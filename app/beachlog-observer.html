@@ -160,6 +160,16 @@ input[type=time]{font:500 16px/1.15 Archivo,system-ui,sans-serif;
   <section>
     <span class="lbl">Observer</span>
     <div class="chips" id="observers"></div>
+    <div id="myheight" hidden class="card" style="gap:10px">
+      <span class="lbl">Your height</span>
+      <p class="note" id="heightwhy"></p>
+      <div class="row">
+        <input type="number" id="my-ft" placeholder="ft" inputmode="numeric" min="3" max="7">
+        <input type="number" id="my-in" placeholder="in" inputmode="numeric" min="0" max="11">
+      </div>
+      <button class="chip" id="my-save" type="button">Save my height</button>
+    </div>
+
     <div id="newobs" hidden class="card" style="gap:10px">
       <span class="lbl">New observer</span>
       <input type="text" id="obs-name" placeholder="name" autocomplete="off">
@@ -357,15 +367,22 @@ var YN=[["true","Yes"],["false","No"]];
 var METHOD = "from_sand";
 
 /* Fallback roster for the observer build, which has no store to read.
- * Heights stay 0 until somebody is actually measured, rather than carrying a
- * guess where a measurement belongs. */
+ *
+ * NO HEIGHTS LIVE HERE, by design. This file is served from a public host, and
+ * a real person's height baked into it would be on the open internet for
+ * anyone who found the URL. Each observer sets their own on their own phone,
+ * and it travels out on the rows they log — which is the only copy that ever
+ * needs to exist. */
 var ROSTER = [
-  {id:"pete",      name:"pete",      height_cm:0},
-  {id:"observer2", name:"observer2", height_cm:0},
-  {id:"observer3", name:"observer3", height_cm:0}
+  {id:"pete",      name:"pete"},
+  {id:"observer2", name:"observer2"},
+  {id:"observer3", name:"observer3"}
 ];
 
 var QKEY="nado.queue.v1", OKEY="nado.observers.v1", LAST="nado.last.v1";
+/* Heights this phone knows, keyed by observer id. Separate from the roster so
+ * that clearing or reloading the roster never takes the calibration with it. */
+var HKEY="nado.heights.v1";
 var db=null, OWNER=false, observers=[], queue=[], recent=[];
 var mode="sweep", active="coronado_north", clearArmed=false;
 var session={}, sheets={};
@@ -383,9 +400,23 @@ function feet(cm){
   if(inch===12){ ft+=1; inch=0; }
   return ft ? (ft+"'"+inch+'"') : (inch+'"');
 }
+/* This phone's record first, then whatever the shared roster knows.
+ *
+ * Local storage is not permanent — a cleared site, a private window, an OS
+ * reclaiming space — so nothing here assumes the height survives. `draw()`
+ * checks on every pass and blocks saving until it is set again, which is why a
+ * lost height costs one re-entry rather than a row with no calibration. */
+function heights(){ return store(HKEY) || {}; }
 function heightOf(obsId){
+  var local=heights()[obsId];
+  if(local) return local;
   var o=observers.filter(function(x){ return x.id===obsId; })[0];
-  return o && o.height_cm ? o.height_cm : 0;
+  return (o && o.height_cm) ? o.height_cm : 0;
+}
+function setHeight(obsId, cm){
+  var all=heights(); all[obsId]=cm; store(HKEY, all);
+  var o=observers.filter(function(x){ return x.id===obsId; })[0];
+  if(o){ o.height_cm=cm; if(OWNER) saveObserver(o); else store(OKEY, observers); }
 }
 
 /* One break's answers. Everything in the card below is per break and survives
@@ -643,6 +674,7 @@ function drawObsTable(){
     var commit=function(){
       var f=parseFloat(ft.value)||0, i=parseFloat(inch.value)||0;
       o.height_cm = f>0 ? Math.round((f*12+i)*2.54) : 0;
+      setHeight(o.id, o.height_cm);
       saveObserver(o);
       derived.textContent = o.height_cm ? o.height_cm+" cm" : "not set";
       draw({keepRoster:true});
@@ -724,11 +756,27 @@ function draw(opts){
   el("breaklbl").textContent = mode==="sweep" ? "Break — all three required" : "Break";
   el("breaknote").hidden = mode!=="sweep";
 
+  /* A height is required before anything can be logged. It is checked on every
+   * draw, not once at startup, so an observer who picks a different name — or
+   * whose phone has forgotten the value — is asked again rather than quietly
+   * logging a row with no calibration. */
+  var needHeight = !!session.observer && !cm;
+  el("myheight").hidden = !needHeight;
+  if(needHeight){
+    var who=observers.filter(function(o){ return o.id===session.observer; })[0];
+    el("heightwhy").textContent =
+      "Before " + (who ? who.name : "you") + " can log, this phone needs your "
+      + "standing height. It anchors the wave scale — “chest high” only means a "
+      + "length once it knows whose chest. It stays on this phone and rides out "
+      + "on the entries you send; it is not stored in the page.";
+  }
+
   var left = required().filter(function(b){ return !complete(b); }).length;
   el("save").textContent = mode==="sweep"
     ? (left ? "Save — "+left+" break"+(left===1?"":"s")+" to go" : "Save all three")
     : "Save entry";
-  el("save").disabled = !(session.observer && allDone());
+  el("save").disabled = !(session.observer && !needHeight && allDone());
+  if(needHeight) el("save").textContent = "Set your height first";
 
   if(!OWNER){
     el("payload").value = queue.length ? JSON.stringify(queue) : "";
@@ -797,6 +845,7 @@ function build(breakId){
   return {
     entry_id: uid(),
     session_id: session.session_id,
+    observer_height_cm: String(heightOf(session.observer) || ""),
     observed_utc: iso(when),
     logged_utc: iso(Date.now()),
     break_id: breakId,
@@ -855,6 +904,19 @@ el("save").addEventListener("click", function(){
     ? "All three logged as one session."
     : (db ? "Logged." : "Logged on this phone."));
   window.scrollTo({top:0,behavior:"smooth"});
+});
+
+if(el("my-save")) el("my-save").addEventListener("click", function(){
+  var ft=parseFloat(el("my-ft").value)||0, inch=parseFloat(el("my-in").value)||0;
+  var cm = ft>0 ? Math.round((ft*12+inch)*2.54) : 0;
+  if(!(cm>=100 && cm<=230)){
+    toast("That is not a standing height — feet and inches, please.");
+    return;
+  }
+  setHeight(session.observer, cm);
+  el("my-ft").value=el("my-in").value="";
+  draw();
+  toast("Saved on this phone.");
 });
 
 if(el("obs-save")) el("obs-save").addEventListener("click", function(){
