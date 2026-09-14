@@ -332,5 +332,15 @@ it** — the expanding-window control in §4 is the model.
 - Wind (KNZY) and tide (NOAA 9410170) — neither probed, both essential at these
   beaches.
 - Is ECMWF's assimilating wave model measurably better than GFS-Wave at 46232?
-- What does a verification log actually look like, such that a person will
-  fill it in daily for a year?
+- ~~What does a verification log actually look like, such that a person will
+  fill it in daily for a year?~~ **Answered, 2026-09-14** —
+  `docs/observation_log.md`, built as `collector/beachlog.py`. The short version:
+  nothing makes a person do anything daily for a year, so it is built to survive
+  irregularity instead of demanding consistency, and it asks for the
+  **differential** (is the south end bigger than the north end today?) rather
+  than the absolute height — that being both what people report reliably and
+  what this project actually claims. Its control is that **Coronado's two window
+  edges predict opposite orderings**: Point Loma cuts the north break off first,
+  the Coronado Islands cut the south break off first, so a fixed bias agrees on
+  one edge and contradicts the other while a real aperture effect flips.
+  Still open: whether anyone fills it in. The file is empty.
