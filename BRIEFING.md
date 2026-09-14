@@ -273,8 +273,19 @@ is at its most fragile. Claim that, and nothing wider.
 4. **NDBC directional spectra at 46232** (`swden`, `swdir`, `swdir2`, `swr1`,
    `swr2`). Not an observation at the beach, but it converts the transform from
    an assumption into an integral — energy inside the beach's window, measured,
-   per frequency, instead of one dominant direction. `collector/probe_spectra.py`
-   now exists to settle it: all five files, freshness sniffed from the newest
+   per frequency, instead of one dominant direction.
+
+   **ANSWERED 2026-09-14: yes, and in better shape than assumed.** Run from
+   Actions, all five files reachable and parsed: **64 frequency bins,
+   0.0250–0.5800 Hz (1.7–40.0 s), agreeing across all five**, ~1 MB and 1,094
+   rows each. `r1`/`r2` arrive **already normalised to [0, 1]** — no percent
+   rescaling for the real-time product, so that trap is settled for this source
+   and still worth re-checking on the historical files. The D(f,θ)
+   reconstruction integrates: 21.7% of the buoy's energy inside Coronado's
+   centre-break window on the record tested. **The transform's input exists and
+   is measurable.**
+
+   `collector/probe_spectra.py` is what settled it: all five files, freshness sniffed from the newest
    parsed record rather than from HTTP 200, frequency bins checked for agreement
    across the five, and a D(f,θ) reconstruction integrated over a real window as
    proof the chain works. **Run it on Actions, not from a session** — on
@@ -299,6 +310,22 @@ is unaffected by any of this.
 roots crawled in ten minutes, all began failing, "we are being rate-limited",
 2 s delay added as the fix. The delay was good manners; the explanation was not
 supported. `collector/probe_mop.py:DENIAL_NOTE` records it.
+
+**Present is not live, and the verdict is where that gets missed.** The first
+run of `probe_spectra` found all five files reachable — and 306 hours old. The
+freshness sniff caught it and the table reported it; the exit code ignored it,
+so the run went green and the workflow announced the transform unblocked on the
+strength of a fortnight-old spectrum. Staleness now downgrades the exit code.
+The fault is BRIEFING's own §8 list arriving through the *verdict* rather than
+the parse, which is the harder place to see it.
+
+**Station 46232 stopped reporting on 2026-09-01T13:00Z** and was still dark
+thirteen days later. Not a feed problem: the repository's own stdmet archive for
+46232 ends at `2026-09-01T13:26Z`, the same cutoff, with `first_seen_utc` of
+2026-09-12 — the collector was still looking and finding nothing newer. **The
+48-hour staleness alert did not visibly fire**, which is its own question and
+has not been chased. A dead anchor buoy is a live problem for the whole project:
+46232 is the station every transform and every forecast here is anchored on.
 
 **Probe verdicts are untrustworthy by default.** Four distinct faults produced
 confident wrong answers in the predecessor: 543-day-stale content served behind
