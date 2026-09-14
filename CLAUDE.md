@@ -51,11 +51,19 @@ forecaster actually verifies against, Surfline included.
 - **Never commit secrets**, even to a private repo.
 - **Data files are tracked, not ignored** — do not add `data/` to `.gitignore`.
   `data/historical/` is three years the 45-day NDBC window can no longer serve.
-- **Coordinates are either verified or flagged.** `forecast/spots.json` carries
-  `verified: false` on every beach because the shoreline points were estimated,
-  not digitised. At Coronado the shadow edge sits about one degree from the
-  shore normal, so a few degrees of error changes the answer. A test asserts
-  the flag stays false; delete it when you have digitised real points.
+- **Coordinates are either verified or flagged, and that is two claims.**
+  `forecast/spots.json` tracks `position_verified` and `shoreline_verified`
+  separately, because measurement says they govern different things: **position
+  sets the open window; the shoreline chord does not.** Rotating a chord ±10°
+  moves the swell-side window by exactly zero — both its edges are
+  blocker-derived, so the seaward half-plane clip never binds — while moving a
+  break 500 m costs Coronado ~4.4°. The chord still sets the normal, which is
+  what the "shadow edge one degree off the normal" figure and all future wind
+  and refraction work are computed from. `tests/test_geometry.py` pins both
+  halves, invariance and its control.
+- **Coronado's three breaks are digitised; Breakers and Gator are not.**
+  Scoped out by decision, not because their estimates are good. Any claim about
+  those two is still standing on guessed coordinates.
 - **If it is gamified later**, the predecessor's rules return in full: no real
   money, no entry fees, prizes or wagering, no play-money tokens or virtual
   currency, points and streaks only.
@@ -63,13 +71,19 @@ forecaster actually verifies against, Surfline included.
 ## Build order
 
 1. **Beach geometry** — done, `forecast/geometry.py`. Which bearings reach each
-   beach at all, from coordinates alone.
-2. **A verification series. This is the blocker; everything below it is
-   unfalsifiable without one.** BRIEFING §7 lists the candidates.
+   beach at all, from coordinates alone. Coronado's three breaks digitised
+   2026-09-14.
+2. **A verification series. This blocks every accuracy CLAIM; it does not block
+   construction.** BRIEFING §7 lists the candidates. It is also the only item
+   here whose cost is wall-clock rather than work — a log started today is thin
+   for months — so it starts first and runs alongside the rest, rather than
+   being finished before anything else begins.
 3. **The transform.** Offshore spectrum at 46232 → energy that survives the
    beach's window. NDBC directional spectra (`swden`, `swdir`, `swdir2`,
-   `swr1`, `swr2`) are the right input and were never confirmed reachable —
-   probe, do not assume.
+   `swr1`, `swr2`) are the right input. `collector/probe_spectra.py` answers
+   whether they are reachable and complete; run it via the
+   `Probe NDBC directional spectra` workflow, because an interactive session
+   cannot see the host and a runner can.
 4. **The forecast.** GFS-Wave partitions at 46232 through the transform.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
@@ -98,10 +112,11 @@ forecaster actually verifies against, Surfline included.
 ## Layout
 
     collector/          data pipeline: NDBC archiving, revisions, station
-                        status, historical backfill, GFS-Wave bulletins
+                        status, historical backfill, GFS-Wave bulletins,
+                        probe_spectra.py (are directional spectra reachable?)
     forecast/
       geometry.py       which bearings reach each beach          [built]
-      spots.json        the three beaches and their blockers     [UNVERIFIED coords]
+      spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
       stats.py          load_column, least_squares, rmse, circular means
       dispersion.py     swell-arrival detection and the 1/T fit
@@ -117,9 +132,16 @@ circular helpers are used here. Trimming it is a good first cleanup.
 
 ## Design rules that are easy to erode
 
-- **The three beaches are not one beach.** Breakers keeps 26° of swell window,
-  Coronado 48°, Gator 65° — and Gator is the only one holding west swell. Any
-  surface showing one number for "Coronado" is wrong.
+- **The three beaches are not one beach — and Coronado is not one beach.**
+  Breakers keeps 26° of swell window and Gator 65°, and Gator alone holds west
+  swell. But the same mechanism runs along Coronado's own sand: the west edge
+  IS the bearing to the Point Loma tip, which sweeps as you walk, giving
+  **42.8° / 49.1° / 56.3°** at the north, centre and south breaks across 2.8 km.
+  That 13.5° spread is a third of the entire Breakers-to-Gator range. Any
+  surface showing one number for "Coronado" is averaging across it.
+- **The Point Loma tip is one point and it carries every west edge.** 100 m of
+  error there moves an edge ~1°. It is the highest-leverage coordinate in the
+  repository.
 - **The buoy does not share the beach's geometry.** 46232 sits south-west of
   Point Loma with the peninsula behind it to the north-east; the beaches sit in
   front of it. A transform that skips the aperture delivers north-west swell

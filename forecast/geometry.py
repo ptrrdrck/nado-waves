@@ -61,8 +61,30 @@ class Spot:
     name: str
     position: tuple[float, float]
     shoreline: tuple[tuple[float, float], tuple[float, float]]
-    verified: bool
+    #: Whether the POSITION has been digitised. This is the flag that governs
+    #: whether the open window can be trusted: both edges of the swell-side
+    #: window are blocker-derived, so the window is a function of position and
+    #: the blockers, and not of the chord.
+    position_verified: bool = False
+    #: Whether the SHORELINE CHORD has been digitised. Separate because it is a
+    #: separate claim about a separate quantity. The chord sets the normal, and
+    #: the normal moves the window by exactly nothing — but it is what the
+    #: "shadow edge sits one degree off the normal" figure is computed from,
+    #: and what wind fetch and refraction will need. A spot can honestly have a
+    #: verified position and an unverified chord; Coronado's north break does.
+    shoreline_verified: bool = False
     notes: str = ""
+
+    @property
+    def verified(self) -> bool:
+        """Fully verified — both claims, not either.
+
+        Deliberately the conservative reading. Anything asking a spot a plain
+        "are you verified?" gets a yes only when nothing about it is still a
+        guess.
+        """
+
+        return self.position_verified and self.shoreline_verified
 
     @property
     def shore_bearing(self) -> float:
@@ -90,15 +112,34 @@ class Spot:
         )
 
 
+def _position(spot: dict) -> tuple[float, float]:
+    """Where the spot is, defaulting to the midpoint of its shoreline chord.
+
+    `position` is optional on purpose. It drives every blocked sector, so it is
+    the load-bearing coordinate, and storing it separately from the chord it
+    should lie on invites exactly one bug: the two drift apart and the window is
+    computed for somewhere the beach is not. That had already happened — the
+    estimated `coronado_central` carried a position 698 m off its own chord.
+    Digitised breaks omit it and get the midpoint; the older estimates keep
+    theirs, flagged unverified.
+    """
+
+    if "position" in spot:
+        return tuple(spot["position"])
+    (la1, lo1), (la2, lo2) = spot["shoreline"]
+    return ((la1 + la2) / 2.0, (lo1 + lo2) / 2.0)
+
+
 def load(path: Path = SPOTS_FILE) -> tuple[list[Spot], list[Blocker]]:
     data = json.loads(path.read_text(encoding="utf-8"))
     spots = [
         Spot(
             id=s["id"],
             name=s["name"],
-            position=tuple(s["position"]),
+            position=_position(s),
             shoreline=(tuple(s["shoreline"][0]), tuple(s["shoreline"][1])),
-            verified=s.get("verified", False),
+            position_verified=s.get("position_verified", False),
+            shoreline_verified=s.get("shoreline_verified", False),
             notes=s.get("notes", ""),
         )
         for s in data["spots"]
@@ -178,12 +219,30 @@ def reaches(spot: Spot, blockers: list[Blocker], bearing: float) -> bool:
     return True
 
 
+def _provenance(spot: Spot) -> str:
+    """Say which of the two coordinate claims is standing on a digitised point.
+
+    Four states, not two, and the distinction is not cosmetic: a spot with a
+    verified position has a trustworthy WINDOW even if its chord is a guess,
+    because the window does not come from the chord. Collapsing that to one
+    "unverified" label would either throw away a good window or quietly claim a
+    normal nobody has checked.
+    """
+
+    if spot.position_verified and spot.shoreline_verified:
+        return "coordinates digitised"
+    if spot.position_verified:
+        return "position digitised; CHORD UNVERIFIED, so the normal is a guess"
+    if spot.shoreline_verified:
+        return "chord digitised; POSITION UNVERIFIED, so the window is a guess"
+    return "coordinates UNVERIFIED"
+
+
 def describe(spot: Spot, blockers: list[Blocker]) -> list[str]:
     lines = [
         f"{spot.name}  ({spot.id})",
         f"  shoreline runs {spot.shore_bearing:.0f}°, so the beach faces "
-        f"{spot.normal:.0f}°"
-        + ("" if spot.verified else "   [coordinates UNVERIFIED]"),
+        f"{spot.normal:.0f}°   [{_provenance(spot)}]",
     ]
     for blocker in blockers:
         sector = blocked_sector(spot, blocker)

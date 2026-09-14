@@ -1,16 +1,45 @@
 {
   "_comment": [
-    "The three beaches this forecaster is for. All on the Coronado peninsula,",
-    "all sharing one offshore buoy (46232) and one blocking geometry, and all",
-    "DIFFERENT because they sit at different bearings and ranges from Point Loma.",
+    "The beaches this forecaster is for, on the Coronado peninsula, all sharing",
+    "one offshore buoy (46232) and one blocking geometry.",
     "",
-    "COORDINATES ARE APPROXIMATE AND UNVERIFIED. They were estimated, not",
-    "digitised from a chart or imagery, and `verified` is false on every entry",
-    "to say so. The shoreline chord matters most: the seaward normal is derived",
-    "from it, and a 5-degree error in the normal moves the open window by 5",
-    "degrees at a shadow edge where the answer is already sensitive. Replacing",
-    "these with real points is the single highest-value correction available and",
-    "needs someone who knows the beach, not more computation.",
+    "CORONADO IS NOT ONE BEACH. It is carried here as three digitised break",
+    "segments, because the window varies along its own length by nearly as much",
+    "as it varies between the named beaches. The west edge of the swell window",
+    "IS the bearing to the Point Loma tip, and that bearing sweeps as you walk",
+    "the sand: measured, 242.2 degrees at the north break to 259.9 at the south,",
+    "giving 42.8 / 49.1 / 56.3 degrees of open window across 2.8 km. For scale,",
+    "the whole Breakers-to-Gator spread is 26.1 to 64.6. A single number for",
+    "'Coronado' averages across a 13.5-degree spread and is wrong at both ends.",
+    "",
+    "WHAT MATTERS IN THESE COORDINATES, measured rather than assumed:",
+    "",
+    "  POSITION sets the window. Both edges of the swell-side window are",
+    "  blocker-derived (Point Loma west, Coronado Islands east), so the seaward",
+    "  half-plane clip never binds there. Moving a break 500 m north costs",
+    "  Coronado about 4.4 degrees of window.",
+    "",
+    "  THE SHORELINE CHORD DOES NOT set the window. Rotating it plus or minus",
+    "  10 degrees moves the swell-side window by exactly zero at all three",
+    "  beaches; it moves only the near-useless south-east arc. An earlier",
+    "  version of this comment claimed the chord 'matters most' and that five",
+    "  degrees of chord error moved the window five degrees. That was never",
+    "  measured and it is false. See tests/test_geometry.py.",
+    "",
+    "  The chord still earns its place: it sets the seaward normal, which is",
+    "  what the headline 'shadow edge sits one degree off the shore normal'",
+    "  claim is computed from, and what wind fetch and refraction will need.",
+    "  It is simply not the thing that decides which swell arrives.",
+    "",
+    "  THE POINT LOMA TIP carries the west edge for every spot in this file.",
+    "  100 m of tip error moves that edge about 1 degree. It is one point and",
+    "  it is load-bearing for all of them.",
+    "",
+    "`position` is OPTIONAL and derived from the shoreline midpoint when",
+    "omitted. It is written out only for the un-digitised spots, which predate",
+    "this file and whose stored position sits 698 m off its own chord - exactly",
+    "the drift that duplicating a derivable value invites. Do not add it back",
+    "for a digitised break.",
     "",
     "Blockers are listed separately. `continues` says the landmass carries on",
     "past that endpoint rather than ending there, which is how a peninsula",
@@ -18,48 +47,92 @@
   ],
   "spots": [
     {
-      "id": "coronado_central",
-      "name": "Coronado Central Beach",
-      "position": [32.6830, -117.1870],
-      "shoreline": [[32.6935, -117.1835], [32.6720, -117.1745]],
-      "verified": false,
-      "notes": "In front of the Hotel del. The reference beach for this project."
+      "id": "coronado_north",
+      "name": "Coronado Central Beach — north break",
+      "shoreline": [[32.6866337, -117.1975652], [32.6855447, -117.1918651]],
+      "position_verified": true,
+      "shoreline_verified": false,
+      "provenance": {
+        "method": "waterline digitised from Google Earth imagery",
+        "by": "pete@lftlc.xyz",
+        "date": "2026-09-14",
+        "caveat": "Imagery splice. The northern point sits about 284 m seaward of the waterline trend through the centre and south breaks, and the southern point about 61 m seaward, which rotates this chord roughly 19 degrees off the local coast trend (102.8 rather than about 122). MEASURED CONSEQUENCE: the swell window does not move at all (chord-invariance), and undoing the full 284 m cross-shore offset would widen it by 0.93 degrees. So the position is usable and the window here is sound. The NORMAL is not: at 192.8 it is about 19 degrees off, and it must not be trusted for wind fetch or refraction until the imagery is re-digitised. Hence shoreline_verified false."
+      },
+      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: window 42.8 degrees, cut off at 242.2."
+    },
+    {
+      "id": "coronado_center",
+      "name": "Coronado Central Beach — centre break",
+      "shoreline": [[32.6828541, -117.1866803], [32.6814135, -117.1841649]],
+      "position_verified": true,
+      "shoreline_verified": true,
+      "provenance": {
+        "method": "waterline digitised from Google Earth imagery",
+        "by": "pete@lftlc.xyz",
+        "date": "2026-09-14"
+      },
+      "notes": "In front of the Hotel del. The successor to the old estimated `coronado_central` and the reference break for this project. Window 49.1 degrees, cut off at 250.3."
+    },
+    {
+      "id": "coronado_south",
+      "name": "Coronado Central Beach — south break",
+      "shoreline": [[32.6765368, -117.1761219], [32.6737318, -117.1723572]],
+      "position_verified": true,
+      "shoreline_verified": true,
+      "provenance": {
+        "method": "waterline digitised from Google Earth imagery",
+        "by": "pete@lftlc.xyz",
+        "date": "2026-09-14"
+      },
+      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest window: 56.3 degrees, holding to 259.9."
     },
     {
       "id": "nasni_breakers",
       "name": "Breakers Beach (NASNI)",
       "position": [32.6920, -117.2130],
       "shoreline": [[32.6985, -117.2180], [32.6870, -117.2035]],
-      "verified": false,
-      "notes": "North Island's ocean shore. Closest of the three to Point Loma, so expected to be the most shadowed. Zuniga Jetty is a missing blocker here - see blockers._missing."
+      "position_verified": false,
+      "shoreline_verified": false,
+      "notes": "North Island's ocean shore. Closest of all spots to Point Loma, so expected to be the most shadowed. Zuniga Jetty is a missing blocker here - see blockers._missing. COORDINATES STILL ESTIMATED, not digitised; out of scope for now by decision, not because they are good."
     },
     {
       "id": "nab_gator",
       "name": "Gator Beach (NAB Coronado)",
       "position": [32.6650, -117.1650],
       "shoreline": [[32.6740, -117.1735], [32.6520, -117.1585]],
-      "verified": false,
-      "notes": "Silver Strand, south of Central. Furthest from Point Loma, so expected to hold the widest window of the three."
+      "position_verified": false,
+      "shoreline_verified": false,
+      "notes": "Silver Strand, south of Central. Furthest from Point Loma, so holds the widest window and is the only spot keeping west swell. COORDINATES STILL ESTIMATED, not digitised; out of scope for now by decision, not because they are good."
     }
   ],
   "blockers": [
     {
       "name": "Point Loma peninsula",
-      "a": [32.6655, -117.2415],
+      "a": [32.6648144, -117.2427037],
       "b": [32.7200, -117.2530],
       "continues": "b",
-      "notes": "The tip is `a`; the ridge runs north from there and does not end, so everything past `b` is land too."
+      "tip_verified": true,
+      "provenance": {
+        "method": "seaward-most waterline point digitised from Google Earth imagery",
+        "by": "pete@lftlc.xyz",
+        "date": "2026-09-14",
+        "note": "Replaced an estimate 136 m away, which moved every west edge by only 0.2 to 0.5 degrees - the old guess was good. `b` is still an estimate, but it only says the ridge runs north and does not end, and the shadow is clipped at the seaward half-plane long before it."
+      },
+      "notes": "The tip is `a`; the ridge runs north from there and does not end, so everything past `b` is land too. `a` carries the west edge of every spot in this file."
     },
     {
       "name": "Coronado Islands",
       "a": [32.4217, -117.3050],
       "b": [32.3958, -117.2472],
       "continues": null,
-      "notes": "Islands, not a peninsula: the shadow closes on both sides."
+      "tip_verified": false,
+      "notes": "Islands, not a peninsula: the shadow closes on both sides. Still estimated."
     }
   ],
   "_missing": [
     "Zuniga Jetty and the harbour-entrance shoal, which matter for Breakers Beach and probably narrow its window further. Not included because inventing coordinates for them would put false precision into the one number this module exists to compute.",
-    "The shelf itself. This is a geometric blocking model only - it says what is BLOCKED, not what refraction and shoaling do to what gets through."
+    "The shelf itself. This is a geometric blocking model only - it says what is BLOCKED, not what refraction and shoaling do to what gets through.",
+    "Digitised coordinates for Breakers and Gator. Scoped out for now; their windows are computed from estimates and are flagged accordingly.",
+    "A re-digitised north-break chord, once the Google Earth imagery splice at the north end of Coronado is resolved. Position is fine; the normal is about 19 degrees off."
   ]
 }
