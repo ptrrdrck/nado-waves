@@ -46,11 +46,19 @@ exists, this produces a *physically derived* forecast, not an accurate one — a
 no accuracy figure appears anywhere without naming what it was measured against.
 See `CLAUDE.md` and `BRIEFING.md` §7.
 
+The series it is waiting on is `data/beach_log/`, and it is **empty**. The log
+that fills it is built (`docs/observation_log.md` explains why it is shaped the
+way it is) and it verifies *differences between the breaks*, not heights — that
+being the claim this project is actually making, and the one a human observer
+can report reliably.
+
 ## Running it
 
 ```
 python -m forecast.geometry              # which bearings reach each beach
 python -m collector.probe_spectra        # are NDBC directional spectra reachable?
+python -m collector.beachlog sweep -o me # log the three breaks in one trip
+python -m forecast.beachverify           # does the log agree with the geometry?
 python -m forecast.verify                # how wrong GFS-Wave is at the buoy
 python -m forecast.residual --ceiling    # what an upstream observation could win
 python -m forecast.forensics             # where a past swell was born
@@ -67,6 +75,9 @@ PYTHONPATH=. python -m pytest -q
     forecast/spots.json   breaks and blockers     [Coronado digitised; others not]
     forecast/verify.py    bias, RMSE, scatter, calibration, band coverage
     forecast/residual.py  is the remaining error recoverable?
+    forecast/beachverify.py  log vs geometry, with the control that could kill it
+    collector/beachlog.py    the human observation log
+    data/beach_log/          the verification series                    [EMPTY]
     forecast/forensics.py read a swell's origin off the buoy record
     data/historical/      3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/  1,095 GFS-Wave cycles/station, with swell partitions

@@ -42,6 +42,15 @@ observer, time and method recorded, stored as its own series, never silently
 blended into the forecast it judges. It is what every operational surf
 forecaster actually verifies against, Surfline included.
 
+- **The log never shows a forecast, and never will.** An observer who has seen
+  one is not an independent witness, and a series contaminated that way cannot
+  judge the forecast that shaped it. That is structural, not a matter of
+  discipline. `forecast_seen` flags the rows where it happened anyway.
+- **The unit is the session, not the day.** One observer, one tide, two or three
+  breaks, half an hour apart: the comparison cancels nearly everything that
+  makes absolute height unreliable, and the differential is what this project
+  actually claims.
+
 ## Non-negotiables
 
 - **Never infer, interpolate, or substitute a missing observation.** A gap is a
@@ -78,6 +87,14 @@ forecaster actually verifies against, Surfline included.
    here whose cost is wall-clock rather than work — a log started today is thin
    for months — so it starts first and runs alongside the rest, rather than
    being finished before anything else begins.
+   **Built, and empty: `collector/beachlog.py` → `data/beach_log/`.** Design and
+   reasoning in `docs/observation_log.md`. It verifies ordinal and differential
+   claims, not heights — face height and Hs are different quantities and the
+   transfer between them is unfitted. `forecast/beachverify.py` tests it against
+   the geometry and carries the control: **Coronado's two window edges predict
+   opposite orderings**, so a fixed bias agrees on one and contradicts the
+   other, while a real aperture effect flips. Agreement on one edge alone is
+   not evidence.
 3. **The transform.** Offshore spectrum at 46232 → energy that survives the
    beach's window. NDBC directional spectra (`swden`, `swdir`, `swdir2`,
    `swr1`, `swr2`) are the right input. `collector/probe_spectra.py` answers
@@ -113,7 +130,8 @@ forecaster actually verifies against, Surfline included.
 
     collector/          data pipeline: NDBC archiving, revisions, station
                         status, historical backfill, GFS-Wave bulletins,
-                        probe_spectra.py (are directional spectra reachable?)
+                        probe_spectra.py (are directional spectra reachable?),
+                        beachlog.py (the human observation log)
     forecast/
       geometry.py       which bearings reach each beach          [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
@@ -123,6 +141,8 @@ forecaster actually verifies against, Surfline included.
       forensics.py      read a swell's origin off the buoy record
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
+      beachverify.py    does the log agree with the geometry, and the control
+    data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
 
