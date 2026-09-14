@@ -37,17 +37,17 @@
 [hidden]{display:none!important}
 body{
   background:var(--paper); color:var(--ink);
-  font:400 16px/1.45 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font:400 17px/1.5 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
   -webkit-text-size-adjust:100%; padding:0 16px 40px; margin:0;
 }
 .wrap{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding-block:18px 0}
 .lbl{
   font-family:"Barlow Condensed",Archivo,sans-serif; font-weight:600;
-  text-transform:uppercase; letter-spacing:.09em; font-size:14px; color:var(--soft);
+  text-transform:uppercase; letter-spacing:.09em; font-size:15px; color:var(--soft);
 }
 h1{
   font-family:"Barlow Condensed",Archivo,sans-serif; font-weight:700;
-  font-size:30px; line-height:1; letter-spacing:.01em; margin:0; text-wrap:balance;
+  font-size:34px; line-height:1.02; letter-spacing:.01em; margin:0; text-wrap:balance;
 }
 header{display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line);padding-bottom:14px}
 .head-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -61,7 +61,7 @@ section{display:flex;flex-direction:column;gap:9px}
 button{font:inherit;color:inherit;cursor:pointer}
 .chip{
   background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-  padding:10px 13px;font-size:15px;font-weight:500;line-height:1.15;
+  padding:11px 14px;font-size:17px;font-weight:500;line-height:1.2;
   transition:background .12s,border-color .12s,color .12s;
 }
 .chip:hover{border-color:var(--line-strong)}
@@ -74,12 +74,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .rung{
   display:flex;align-items:center;gap:10px;text-align:left;width:100%;
   background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-  padding:9px 12px;font-size:15px;position:relative;
+  padding:11px 13px;font-size:17px;position:relative;
 }
 .rung::before{
   content:"";position:absolute;left:-12px;width:8px;height:2px;background:var(--line-strong);
 }
-.rung .bar{height:9px;border-radius:2px;background:var(--sand);flex:0 0 auto;min-width:5px}
+.rung .bar{height:10px;border-radius:2px;background:var(--sand);flex:0 0 auto;min-width:5px}
 .rung .nm{font-weight:500}
 .rung[aria-pressed="true"]{background:var(--surf);border-color:var(--surf);color:var(--surf-ink);font-weight:600}
 .rung[aria-pressed="true"] .bar{background:var(--surf-ink);opacity:.85}
@@ -96,48 +96,48 @@ button{font:inherit;color:inherit;cursor:pointer}
   padding-bottom:calc(2px + env(safe-area-inset-bottom))}
 .primary{
   flex:1;box-shadow:var(--shadow);background:var(--surf);color:var(--surf-ink);border:1px solid var(--surf);
-  border-radius:var(--r);padding:14px;font-weight:700;font-size:16px;
+  border-radius:var(--r);padding:16px;font-weight:700;font-size:18px;
   font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;letter-spacing:.07em;
 }
 .primary[disabled]{opacity:.45;cursor:not-allowed}
-.status{font-size:12.5px;color:var(--soft);display:flex;align-items:center;gap:6px}
+.status{font-size:14px;color:var(--soft);display:flex;align-items:center;gap:6px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:0 0 auto}
 .dot.on{background:var(--ok)} .dot.pend{background:var(--sand-deep)} .dot.off{background:var(--signal)}
 input[type=text],input[type=number]{
   font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--line);
-  border-radius:var(--r);padding:10px 12px;width:100%;
+  border-radius:var(--r);padding:12px 13px;width:100%;
 }
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .row>*{flex:1 1 110px;min-width:0}
-.note{font-size:12.5px;color:var(--soft);margin:0}
-.tbl{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.note{font-size:14.5px;line-height:1.5;color:var(--soft);margin:0}
+.tbl{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
 .tbl th{text-align:left;font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;
-  letter-spacing:.07em;font-size:12px;color:var(--soft);font-weight:600;padding:5px 8px 5px 0;border-bottom:1px solid var(--line)}
+  letter-spacing:.07em;font-size:13.5px;color:var(--soft);font-weight:600;padding:6px 8px 6px 0;border-bottom:1px solid var(--line)}
 .tbl td{padding:7px 8px 7px 0;border-bottom:1px solid var(--line)}
 .scroll{overflow-x:auto}
 .toast{
   position:fixed;left:16px;right:16px;bottom:24px;margin:0 auto;max-width:508px;
   background:var(--ink);color:var(--paper);border-radius:var(--r);padding:11px 14px;
-  font-size:14px;box-shadow:var(--shadow);z-index:9;
+  font-size:15.5px;box-shadow:var(--shadow);z-index:9;
 }
-.mini{background:none;border:none;color:var(--surf);font-size:13px;font-weight:600;padding:2px 0;text-decoration:underline}
+.mini{background:none;border:none;color:var(--surf);font-size:15px;font-weight:600;padding:2px 0;text-decoration:underline}
 details{border-top:1px solid var(--line);padding-top:12px}
 summary{cursor:pointer;font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;
-  letter-spacing:.09em;font-size:14px;font-weight:600;color:var(--soft)}
+  letter-spacing:.09em;font-size:15px;font-weight:600;color:var(--soft)}
 details[open] summary{margin-bottom:12px}
 
 ul.rules{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
-ul.rules li{font-size:12.5px;color:var(--soft)}
+ul.rules li{font-size:14.5px;color:var(--soft)}
 ul.rules b{color:var(--ink);font-weight:600}
-.chip .tick{margin-left:6px;font-size:12px;opacity:.85}
+.chip .tick{margin-left:6px;font-size:14px;opacity:.85}
 .chip[data-done="no"] .tick{opacity:.4}
 .obsrow{display:flex;flex-direction:column;gap:7px;padding:11px 0;border-bottom:1px solid var(--line)}
 .obsrow:last-child{border-bottom:0}
 .obsrow .hrow{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .obsrow .hrow input{width:72px;flex:0 0 auto}
-.obsrow .derived{font-size:12.5px;color:var(--soft);font-variant-numeric:tabular-nums}
+.obsrow .derived{font-size:15px;color:var(--soft);font-variant-numeric:tabular-nums}
 /* Compact so showing and hiding it does not reflow the chips beside it. */
-input[type=time]{font:500 14px/1.15 Archivo,system-ui,sans-serif;
+input[type=time]{font:500 16px/1.15 Archivo,system-ui,sans-serif;
   background:var(--paper);color:var(--ink);border:1px solid var(--line);
   border-radius:var(--r);padding:5px 7px;flex:0 0 auto}
 .whenrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -206,9 +206,8 @@ input[type=time]{font:500 14px/1.15 Archivo,system-ui,sans-serif;
   <section>
     <span class="lbl" id="breaklbl">Break</span>
     <div class="chips" id="breaks"></div>
-    <p class="note" id="breaknote" hidden>Tap between the three as you walk. What you
-      choose for each one is kept — you can go back and change any of them before
-      saving, and all three have to be filled in.</p>
+    <p class="note" id="breaknote" hidden>Tap freely between the three — what you choose for
+      each one is kept. You can make changes before saving.</p>
   </section>
 
   <div class="formzone">
@@ -269,7 +268,7 @@ input[type=time]{font:500 14px/1.15 Archivo,system-ui,sans-serif;
     <p class="note">Copy this and text or email it to Pete. It stays on this phone
       until you do, and copying it does not clear it — send the same block again if
       you are not sure it arrived.</p>
-    <textarea id="payload" readonly rows="6" style="width:100%;font:400 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:10px"></textarea>
+    <textarea id="payload" readonly rows="6" style="width:100%;font:400 13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:10px"></textarea>
     <div class="row">
       <button class="chip" id="copy" type="button">Copy entries</button>
       <button class="chip ghost" id="clear" type="button">Clear sent entries</button>
@@ -396,9 +395,13 @@ function blank(){
            minutes_watched:"10", confidence:"medium", note:"", observed_at:0 };
 }
 
-/* Each break carries its OWN observation time, stamped the first time anything
- * is entered for it — which is when the observer arrived at that break, having
- * just watched it.
+/* Each break carries its OWN observation time, stamped by the first tap on its
+ * TYPICAL WAVE — not by the first tap on anything.
+ *
+ * The typical wave is the observation; wind, rideability and the rest describe
+ * it. So the moment the observer commits to a height is the moment they are
+ * recording, and it does not drift if they open a break's card early, walk, and
+ * come back to the conditions afterwards.
  *
  * An earlier version stamped all three with one time and called the loss
  * nothing. That was wrong. The breaks are twenty minutes and a walk apart, and
@@ -478,7 +481,7 @@ function chips(host, items, get, set){
 }
 function field(key){
   return [function(){ return cur()[key]; },
-          function(v){ var s=cur(); s[key]=v; touch(s); }];
+          function(v){ cur()[key]=v; }];
 }
 
 /* The ruler, used twice: the typical wave and — only when a set was actually
@@ -494,16 +497,18 @@ function ruler(host, key){
       var b=document.createElement("button");
       b.className="rung"; b.type="button";
       var bar=document.createElement("span");
-      bar.className="bar"; bar.style.width=(6+step[2]*70)+"px";
+      bar.className="bar"; bar.style.width=(6+step[2]*48)+"px";
       var nm=document.createElement("span"); nm.className="nm"; nm.textContent=step[1];
       var ap=document.createElement("span"); ap.className="approx";
-      ap.style.cssText="margin-left:auto;font-size:13px;opacity:.72;font-variant-numeric:tabular-nums";
+      ap.style.cssText="margin-left:auto;padding-left:8px;font-size:15px;opacity:.72;font-variant-numeric:tabular-nums";
       b.appendChild(bar); b.appendChild(nm); b.appendChild(ap);
       b.addEventListener("click", function(){
         var live=cur();
         live[key]=k;
-        if(key==="typical" && k==="flat"){ live.saw_sets="false"; live.sets=""; }
-        touch(live);
+        if(key==="typical"){
+          if(k==="flat"){ live.saw_sets="false"; live.sets=""; }
+          touch(live);
+        }
         draw();
       });
       return b;
@@ -535,7 +540,7 @@ function drawObservers(){
       b.className="chip";
       b.appendChild(document.createTextNode(""));
       var h=document.createElement("span"); h.className="ht";
-      h.style.cssText="opacity:.62;font-size:12.5px;font-weight:400";
+      h.style.cssText="opacity:.62;font-size:14px;font-weight:400";
       b.appendChild(h);
       b.addEventListener("click", function(){
         session.observer=k; store(LAST,k); draw();
@@ -678,7 +683,7 @@ function draw(opts){
 
   var s=cur();
   chips(el("sawsets"), YN, field("saw_sets")[0], function(v){
-    var live=cur(); live.saw_sets=v; if(v!=="true") live.sets=""; touch(live);
+    var live=cur(); live.saw_sets=v; if(v!=="true") live.sets="";
   });
   chips(el("wind"), WIND, field("wind")[0], field("wind")[1]);
   chips(el("rideable"), RIDE, field("rideable")[0], field("rideable")[1]);
@@ -824,9 +829,7 @@ el("whentime").addEventListener("change", function(){
   session.when_time=v; draw();
 });
 
-el("note").addEventListener("input", function(){
-  var s=cur(); s.note=el("note").value; touch(s);
-});
+el("note").addEventListener("input", function(){ cur().note=el("note").value; });
 
 el("save").addEventListener("click", function(){
   var rows=[], bad=null;
