@@ -281,3 +281,29 @@ def test_percent_scaled_moments_are_detected_and_divided_out():
     assert fraction(plain) == pytest.approx(fraction(percent), abs=0.05)
     assert "r2 by 1/100" in percent
     assert "r2 by 1/1" in plain
+
+
+def test_a_complete_but_stale_set_is_not_a_green_light():
+    """The first live run found all five files present and 306 hours old.
+
+    Station 46232 had stopped reporting on 2026-09-01; the repository's own
+    stdmet archive stops at the same timestamp. The probe reported the age
+    correctly and then exited 0 anyway, so the workflow announced that the
+    transform was unblocked on the strength of a fortnight-old spectrum. That
+    is the "stale content behind HTTP 200" fault BRIEFING section 8 lists
+    first, arriving through the verdict rather than the parse.
+    """
+
+    old = datetime(2026, 9, 1, 13, 0, tzinfo=timezone.utc)
+    probes = _synthetic(stamp_offsets={k: 0 for k in SPECTRAL_FILES})
+    for probe in probes.values():
+        probe.newest = old
+
+    assert all(p.usable for p in probes.values())
+    assert all(p.stale for p in probes.values())
+
+    text = "\n".join(report("46232", probes))
+    assert "STALE" in text
+    assert "not a live input" in text
+    # The headline must not read as an all-clear.
+    assert "reachable, parsed and fresh" not in text

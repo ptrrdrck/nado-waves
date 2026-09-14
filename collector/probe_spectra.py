@@ -356,8 +356,22 @@ def report(
             "probe there before concluding anything about NDBC.",
             "",
         ]
+    elif len(usable) == len(SPECTRAL_FILES) and stale:
+        oldest = max((p.age_hours or 0.0) for p in stale)
+        lines += [
+            f"**All {len(SPECTRAL_FILES)} files reachable and parsed — but STALE "
+            f"by {oldest:.0f} h.**",
+            "",
+            "The files exist, parse, and agree. They are not a live input. A gap",
+            "this size usually means the station stopped reporting rather than",
+            "that anything is wrong with the feed — check the stdmet archive for",
+            "the same station and the same cutoff before blaming NDBC.",
+            "",
+        ]
     elif len(usable) == len(SPECTRAL_FILES):
-        lines += [f"**All {len(SPECTRAL_FILES)} files reachable and parsed.**", ""]
+        lines += [
+            f"**All {len(SPECTRAL_FILES)} files reachable, parsed and fresh.**", ""
+        ]
     else:
         missing = sorted(set(SPECTRAL_FILES) - {p.kind for p in usable})
         lines += [
@@ -504,7 +518,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if any(p.denied for p in probes.values()):
         return 2
-    return 0 if len(usable) == len(SPECTRAL_FILES) else 1
+    if len(usable) != len(SPECTRAL_FILES):
+        return 1
+    # Complete but stale is not a green light. The first live run found all five
+    # files present and 306 hours old, because station 46232 had stopped
+    # reporting — exactly the "stale content behind HTTP 200" fault BRIEFING
+    # section 8 lists first. Exiting 0 there would have announced the transform
+    # unblocked on the strength of a fortnight-old spectrum.
+    return 1 if any(p.stale for p in usable) else 0
 
 
 def _demonstrate(
