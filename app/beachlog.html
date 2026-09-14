@@ -1,0 +1,628 @@
+<title>Coronado Beach Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+:root{
+  --paper:#EAEEEC; --card:#F6F8F7; --ink:#16232B; --soft:#53656E; --faint:#7C8C93;
+  --line:#CBD5D1; --line-strong:#AFBDB8;
+  --surf:#0B7A8C; --surf-ink:#FFFFFF; --surf-wash:#DCEAEC;
+  --sand:#D9C9A8; --sand-deep:#B9A47C;
+  --signal:#C2462D; --signal-wash:#F5DED8;
+  --ok:#2F7D4F;
+  --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
+  --r:10px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+    --line:#283C46; --line-strong:#3A525E;
+    --surf:#3FB6C6; --surf-ink:#06222A; --surf-wash:#12333B;
+    --sand:#8C7A55; --sand-deep:#A8935F;
+    --signal:#E8705A; --signal-wash:#3A1F1A;
+    --ok:#5FBF86;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+  --line:#283C46; --line-strong:#3A525E;
+  --surf:#3FB6C6; --surf-ink:#06222A; --surf-wash:#12333B;
+  --sand:#8C7A55; --sand-deep:#A8935F;
+  --signal:#E8705A; --signal-wash:#3A1F1A;
+  --ok:#5FBF86;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  background:var(--paper); color:var(--ink);
+  font:400 16px/1.45 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-text-size-adjust:100%; padding:0 16px 128px; margin:0;
+}
+.wrap{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding-block:18px 0}
+.lbl{
+  font-family:"Barlow Condensed",Archivo,sans-serif; font-weight:600;
+  text-transform:uppercase; letter-spacing:.09em; font-size:14px; color:var(--soft);
+}
+h1{
+  font-family:"Barlow Condensed",Archivo,sans-serif; font-weight:700;
+  font-size:30px; line-height:1; letter-spacing:.01em; margin:0; text-wrap:balance;
+}
+header{display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.head-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.blind{
+  font-size:12.5px;color:var(--soft);border-left:3px solid var(--sand-deep);
+  padding:6px 0 6px 10px;margin:0;
+}
+.blind b{color:var(--ink);font-weight:600}
+section{display:flex;flex-direction:column;gap:9px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+button{font:inherit;color:inherit;cursor:pointer}
+.chip{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:10px 13px;font-size:15px;font-weight:500;line-height:1.15;
+  transition:background .12s,border-color .12s,color .12s;
+}
+.chip:hover{border-color:var(--line-strong)}
+.chip[aria-pressed="true"]{background:var(--surf);border-color:var(--surf);color:var(--surf-ink);font-weight:600}
+.chip.ghost{background:transparent;border-style:dashed;color:var(--soft)}
+:focus-visible{outline:2.5px solid var(--surf);outline-offset:2px;border-radius:4px}
+
+/* the ruler — flat at the bottom, overhead at the top, the way it is seen */
+.ruler{display:flex;flex-direction:column-reverse;gap:3px;border-left:2px solid var(--line-strong);padding-left:10px}
+.rung{
+  display:flex;align-items:center;gap:10px;text-align:left;width:100%;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:9px 12px;font-size:15px;position:relative;
+}
+.rung::before{
+  content:"";position:absolute;left:-12px;width:8px;height:2px;background:var(--line-strong);
+}
+.rung .bar{height:9px;border-radius:2px;background:var(--sand);flex:0 0 auto;min-width:5px}
+.rung .nm{font-weight:500}
+.rung[aria-pressed="true"]{background:var(--surf);border-color:var(--surf);color:var(--surf-ink);font-weight:600}
+.rung[aria-pressed="true"] .bar{background:var(--surf-ink);opacity:.85}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px}
+.rail{display:flex;gap:5px}
+.rail div{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.rail div.done{background:var(--ok)}
+.rail div.now{background:var(--surf)}
+.bar-fixed{
+  position:fixed;left:0;right:0;bottom:0;background:var(--card);
+  border-top:1px solid var(--line);padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+}
+.bar-inner{max-width:540px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.primary{
+  flex:1;background:var(--surf);color:var(--surf-ink);border:1px solid var(--surf);
+  border-radius:var(--r);padding:14px;font-weight:700;font-size:16px;
+  font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;letter-spacing:.07em;
+}
+.primary[disabled]{opacity:.45;cursor:not-allowed}
+.status{font-size:12.5px;color:var(--soft);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+.dot.on{background:var(--ok)} .dot.pend{background:var(--sand-deep)} .dot.off{background:var(--signal)}
+input[type=text],input[type=number]{
+  font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--r);padding:10px 12px;width:100%;
+}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 110px;min-width:0}
+.note{font-size:12.5px;color:var(--soft);margin:0}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tbl th{text-align:left;font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;
+  letter-spacing:.07em;font-size:12px;color:var(--soft);font-weight:600;padding:5px 8px 5px 0;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 8px 7px 0;border-bottom:1px solid var(--line)}
+.scroll{overflow-x:auto}
+.toast{
+  position:fixed;left:16px;right:16px;bottom:84px;margin:0 auto;max-width:508px;
+  background:var(--ink);color:var(--paper);border-radius:var(--r);padding:11px 14px;
+  font-size:14px;box-shadow:var(--shadow);z-index:9;
+}
+.mini{background:none;border:none;color:var(--surf);font-size:13px;font-weight:600;padding:2px 0;text-decoration:underline}
+details{border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;
+  letter-spacing:.09em;font-size:14px;font-weight:600;color:var(--soft)}
+details[open] summary{margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="head-top">
+      <h1>Coronado Beach Log</h1>
+      <div class="status"><span class="dot" id="dot"></span><span id="sync">starting</span></div>
+    </div>
+    <p class="blind"><b>No forecast is shown here, on purpose.</b> An observer who has
+      already seen one is not an independent witness. Log what you see, then go look.</p>
+  </header>
+
+  <section>
+    <span class="lbl">Observer</span>
+    <div class="chips" id="observers"></div>
+    <div id="newobs" hidden class="card" style="gap:10px">
+      <span class="lbl">New observer</span>
+      <input type="text" id="obs-name" placeholder="name" autocomplete="off">
+      <div class="row">
+        <input type="number" id="obs-ft" placeholder="ft" inputmode="numeric" min="3" max="7">
+        <input type="number" id="obs-in" placeholder="in" inputmode="numeric" min="0" max="11">
+        <input type="number" id="obs-cm" placeholder="or cm" inputmode="numeric" min="100" max="230">
+      </div>
+      <p class="note">Standing height anchors the body scale — it is what turns
+        “chest high” into a length. Without it every comparison still works.</p>
+      <div class="row">
+        <button class="chip" id="obs-save">Add observer</button>
+        <button class="chip ghost" id="obs-cancel">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="lbl">What are you logging</span>
+    <div class="chips" id="modes"></div>
+    <div class="rail" id="rail" hidden><div></div><div></div><div></div></div>
+  </section>
+
+  <section id="breaksec">
+    <span class="lbl">Break</span>
+    <div class="chips" id="breaks"></div>
+  </section>
+
+  <div class="card">
+    <section>
+      <span class="lbl">Typical wave <span id="whichbreak" style="color:var(--surf)"></span></span>
+      <div class="ruler" id="typical"></div>
+    </section>
+
+    <section id="setsec">
+      <span class="lbl">Sets — the occasional bigger ones</span>
+      <div class="chips" id="sets"></div>
+    </section>
+
+    <section>
+      <span class="lbl">Wind</span>
+      <div class="chips" id="wind"></div>
+    </section>
+
+    <section>
+      <span class="lbl">Rideable</span>
+      <div class="chips" id="rideable"></div>
+    </section>
+
+    <section>
+      <span class="lbl">Watched for</span>
+      <div class="chips" id="minutes"></div>
+      <p class="note">A two-minute look misses set waves and reads low. Recorded so
+        that bias stays correctable.</p>
+    </section>
+
+    <section>
+      <span class="lbl">Saw a set come through</span>
+      <div class="chips" id="sawsets"></div>
+    </section>
+
+    <details>
+      <summary>More</summary>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <section>
+          <span class="lbl">Seen from</span>
+          <div class="chips" id="method"></div>
+        </section>
+        <section>
+          <span class="lbl">How sure</span>
+          <div class="chips" id="confidence"></div>
+        </section>
+        <section>
+          <span class="lbl">When</span>
+          <div class="chips" id="when"></div>
+        </section>
+        <section>
+          <span class="lbl">Already seen a forecast today</span>
+          <div class="chips" id="seen"></div>
+          <p class="note">Honest answer. It flags the entry rather than rejecting it —
+            knowing which rows are contaminated beats pretending none are.</p>
+        </section>
+        <section>
+          <span class="lbl">Note</span>
+          <input type="text" id="note" placeholder="optional" autocomplete="off">
+        </section>
+      </div>
+    </details>
+  </div>
+
+  <details id="recent-wrap">
+    <summary>Recent entries</summary>
+    <div class="scroll"><table class="tbl" id="recent"></table></div>
+  </details>
+
+  <details>
+    <summary>Observers &amp; heights</summary>
+    <div class="scroll"><table class="tbl" id="obstable"></table></div>
+    <p class="note" style="margin-top:10px">Rename anyone here — the generic names are
+      placeholders. Heights are only used to turn a category into an approximate length.</p>
+  </details>
+</div>
+
+<div class="bar-fixed">
+  <div class="bar-inner">
+    <button class="primary" id="save">Save entry</button>
+  </div>
+</div>
+
+<script>
+/* Coronado Beach Log — the capture surface for the verification series.
+ *
+ * Two rules the code exists to enforce, not just the UI:
+ *   1. No forecast is ever displayed. An observer who has seen one is not an
+ *      independent witness, and a contaminated series cannot judge the forecast
+ *      that shaped it. There is no fetch here that could show one.
+ *   2. Nothing is lost. Entries are written to this phone FIRST and flushed to
+ *      the shared store afterwards, because signal at the waterline is not a
+ *      thing to bet a day's observation on.
+ *
+ * There is deliberately no "did not look" option: `flat` means the ocean was
+ * flat and somebody checked. Not looking is a gap, and gaps stay gaps.
+ */
+"use strict";
+
+var BREAKS = [
+  {id:"coronado_north",  name:"North",  hint:"cuts off 242°"},
+  {id:"coronado_center", name:"Centre", hint:"cuts off 250°"},
+  {id:"coronado_south",  name:"South",  hint:"cuts off 260°"}
+];
+/* Ordered smallest to largest. The ordering is what does the real work: it lets
+ * one session say "south was bigger than north" with no calibration at all. */
+var SCALE = [
+  ["flat","Flat",0.00],["ankle","Ankle",0.07],["knee","Knee",0.27],
+  ["thigh","Thigh",0.42],["waist","Waist",0.53],["chest","Chest",0.72],
+  ["shoulder","Shoulder",0.82],["head","Head",1.00],
+  ["overhead","Overhead",1.25],["double_overhead","Double overhead",2.00]
+];
+var WIND=[["glassy","Glassy"],["offshore","Offshore"],["cross","Cross"],
+  ["light_onshore","Light onshore"],["onshore","Onshore"],["storm","Storm"]];
+var METHOD=[["from_sand","Sand"],["from_water","Water"],["from_window","Car"],["from_camera","Camera"]];
+var RIDE=[["yes","Yes"],["marginal","Marginal"],["no","No"]];
+var CONF=[["high","High"],["medium","Medium"],["low","Low"]];
+var MINS=[["2","2 min"],["5","5 min"],["10","10 min"],["20","20 min"],["45","45 min+"]];
+var WHEN=[["0","Now"],["1","1 h ago"],["3","3 h ago"],["6","This morning"]];
+var YN=[["true","Yes"],["false","No"]];
+
+var QKEY="nado.queue.v1", OKEY="nado.observers.v1", LAST="nado.last.v1";
+var db=null, observers=[], queue=[], recent=[], sweep=[], sweepAt=0;
+var state={};
+
+function store(k,v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||"null");
+  localStorage.setItem(k,JSON.stringify(v)); }catch(e){ return null; } }
+function id(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function iso(d){ return new Date(d).toISOString().replace(/\.\d+Z$/,"Z"); }
+function el(id){ return document.getElementById(id); }
+
+function reset(keepBreak){
+  state={ break_id: keepBreak||state.break_id||"coronado_center", typical:"", sets:"",
+    wind:"", rideable:"", minutes_watched:"10", saw_sets:"", method:"from_sand",
+    confidence:"medium", when:"0", forecast_seen:"false", note:"" };
+}
+reset();
+
+/* --- rendering ---------------------------------------------------------- */
+
+function chips(host, items, key, onPick){
+  host.textContent="";
+  items.forEach(function(it){
+    var b=document.createElement("button");
+    b.className="chip"; b.type="button"; b.textContent=it[1];
+    b.setAttribute("aria-pressed", String(state[key]===it[0]));
+    b.addEventListener("click", function(){
+      state[key] = (state[key]===it[0] && key==="sets") ? "" : it[0];
+      if(onPick) onPick(it[0]);
+      draw();
+    });
+    host.appendChild(b);
+  });
+}
+
+function drawRuler(){
+  var host=el("typical"); host.textContent="";
+  SCALE.forEach(function(s){
+    var b=document.createElement("button");
+    b.className="rung"; b.type="button";
+    b.setAttribute("aria-pressed", String(state.typical===s[0]));
+    var bar=document.createElement("span");
+    bar.className="bar"; bar.style.width=(6+s[2]*72)+"px";
+    var nm=document.createElement("span"); nm.className="nm"; nm.textContent=s[1];
+    b.appendChild(bar); b.appendChild(nm);
+    b.addEventListener("click", function(){
+      state.typical=s[0];
+      if(s[0]==="flat") state.sets="";
+      draw();
+    });
+    host.appendChild(b);
+  });
+}
+
+function drawObservers(){
+  var host=el("observers"); host.textContent="";
+  observers.forEach(function(o){
+    var b=document.createElement("button");
+    b.className="chip"; b.type="button"; b.textContent=o.name;
+    b.setAttribute("aria-pressed", String(state.observer===o.id));
+    b.addEventListener("click", function(){ state.observer=o.id; store(LAST,o.id); draw(); });
+    host.appendChild(b);
+  });
+  var add=document.createElement("button");
+  add.className="chip ghost"; add.type="button"; add.textContent="+ new observer";
+  add.addEventListener("click", function(){
+    el("newobs").hidden=false;
+    el("obs-name").value = "observer" + (observers.length+1);
+    el("obs-name").focus();
+  });
+  host.appendChild(add);
+}
+
+function drawModes(){
+  var host=el("modes"); host.textContent="";
+  [["one","One break"],["sweep","All three (one trip)"]].forEach(function(m){
+    var b=document.createElement("button");
+    b.className="chip"; b.type="button"; b.textContent=m[1];
+    b.setAttribute("aria-pressed", String(state.mode===m[0]));
+    b.addEventListener("click", function(){
+      state.mode=m[0];
+      if(m[0]==="sweep"){ sweep=BREAKS.map(function(x){return x.id;}); sweepAt=0;
+        state.session_id=id(); reset(sweep[0]); state.mode="sweep"; }
+      else { sweep=[]; state.session_id=id(); }
+      draw();
+    });
+    host.appendChild(b);
+  });
+}
+
+function drawBreaks(){
+  var host=el("breaks"); host.textContent="";
+  BREAKS.forEach(function(b){
+    var btn=document.createElement("button");
+    btn.className="chip"; btn.type="button";
+    btn.innerHTML = b.name + ' <span style="opacity:.6;font-size:12px">'+b.hint+'</span>';
+    btn.setAttribute("aria-pressed", String(state.break_id===b.id));
+    btn.addEventListener("click", function(){ state.break_id=b.id; draw(); });
+    host.appendChild(btn);
+  });
+}
+
+function drawRecent(){
+  var t=el("recent"); t.textContent="";
+  var head=t.insertRow();
+  ["When","Break","Typical","Sets","Wind"].forEach(function(h){
+    var th=document.createElement("th"); th.textContent=h; head.appendChild(th);
+  });
+  if(!recent.length){
+    var r=t.insertRow(); var c=r.insertCell(); c.colSpan=5;
+    c.textContent="Nothing logged yet."; c.style.color="var(--soft)";
+    return;
+  }
+  recent.slice(0,25).forEach(function(o){
+    var r=t.insertRow();
+    [ (o.observed_utc||"").replace("T"," ").replace("Z",""),
+      (o.break_id||"").replace("coronado_",""),
+      (o.typical||"").replace(/_/g," "),
+      (o.sets||"—").replace(/_/g," "),
+      (o.wind||"").replace(/_/g," ")
+    ].forEach(function(v){ r.insertCell().textContent=v; });
+  });
+}
+
+function drawObsTable(){
+  var t=el("obstable"); t.textContent="";
+  var head=t.insertRow();
+  ["Observer","Height","",""].forEach(function(h){
+    var th=document.createElement("th"); th.textContent=h; head.appendChild(th);
+  });
+  observers.forEach(function(o){
+    var r=t.insertRow();
+    r.insertCell().textContent=o.name;
+    r.insertCell().textContent=o.height_cm ? o.height_cm+" cm" : "not set";
+    var c=r.insertCell();
+    var b=document.createElement("button");
+    b.className="mini"; b.type="button"; b.textContent="rename";
+    b.addEventListener("click", function(){
+      var n=prompt("Name for this observer", o.name);
+      if(n && n.trim()){ o.name=n.trim(); saveObserver(o); draw(); }
+    });
+    c.appendChild(b);
+    var c2=r.insertCell();
+    var b2=document.createElement("button");
+    b2.className="mini"; b2.type="button"; b2.textContent="height";
+    b2.addEventListener("click", function(){
+      var h=prompt("Standing height in cm", o.height_cm||"");
+      var n=parseFloat(h);
+      if(n>=100 && n<=230){ o.height_cm=Math.round(n); saveObserver(o); draw(); }
+    });
+    c2.appendChild(b2);
+  });
+}
+
+function drawStatus(){
+  var d=el("dot"), s=el("sync");
+  if(queue.length){ d.className="dot pend"; s.textContent=queue.length+" waiting to sync"; }
+  else if(db){ d.className="dot on"; s.textContent="synced"; }
+  else { d.className="dot off"; s.textContent="on this phone only"; }
+}
+
+function draw(){
+  drawObservers(); drawModes(); drawBreaks(); drawRuler();
+  chips(el("sets"), SCALE.filter(function(s){return s[0]!=="flat";}).map(function(s){return [s[0],s[1]];}), "sets");
+  chips(el("wind"), WIND, "wind");
+  chips(el("rideable"), RIDE, "rideable");
+  chips(el("minutes"), MINS, "minutes_watched");
+  chips(el("sawsets"), YN, "saw_sets");
+  chips(el("method"), METHOD, "method");
+  chips(el("confidence"), CONF, "confidence");
+  chips(el("when"), WHEN, "when");
+  chips(el("seen"), YN, "forecast_seen");
+  drawRecent(); drawObsTable(); drawStatus();
+
+  el("setsec").hidden = state.typical==="flat";
+  el("breaksec").hidden = state.mode==="sweep";
+  el("rail").hidden = state.mode!=="sweep";
+  if(state.mode==="sweep"){
+    var kids=el("rail").children;
+    for(var i=0;i<kids.length;i++){
+      kids[i].className = i<sweepAt ? "done" : (i===sweepAt ? "now" : "");
+    }
+    var b=BREAKS.filter(function(x){return x.id===sweep[sweepAt];})[0];
+    el("whichbreak").textContent = b ? "— "+b.name : "";
+    el("save").textContent = sweepAt<2 ? "Save & next break" : "Save & finish";
+  } else {
+    el("whichbreak").textContent="";
+    el("save").textContent="Save entry";
+  }
+  el("save").disabled = !(state.observer && state.typical && state.wind && state.rideable);
+}
+
+/* --- persistence -------------------------------------------------------- */
+
+function toast(msg){
+  var t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2600);
+}
+
+function saveObserver(o){
+  var known={}; observers.forEach(function(x){ known[x.id]=x; });
+  known[o.id]=o; observers=Object.keys(known).map(function(k){return known[k];});
+  store(OKEY, observers);
+  if(db) db.collection("observers").doc(o.id).set({
+    name:o.name, height_cm:o.height_cm||0, created_utc:o.created_utc||iso(Date.now())
+  }).catch(function(){});
+}
+
+function enqueue(row){
+  queue.push(row); store(QKEY, queue);
+  recent.unshift(row);
+  flush();
+}
+
+function flush(){
+  if(!db || !queue.length) return;
+  var pending=queue.slice();
+  pending.forEach(function(row){
+    db.collection("observations").doc(row.entry_id).set(row).then(function(){
+      queue = queue.filter(function(q){ return q.entry_id!==row.entry_id; });
+      store(QKEY, queue); drawStatus();
+    }).catch(function(){ /* stays queued; retried on next load or save */ });
+  });
+}
+
+function build(){
+  var breakId = state.mode==="sweep" ? sweep[sweepAt] : state.break_id;
+  var obs = observers.filter(function(o){return o.id===state.observer;})[0];
+  var back = parseInt(state.when||"0",10)*3600*1000;
+  return {
+    entry_id: id(),
+    session_id: state.session_id || id(),
+    observed_utc: iso(Date.now()-back),
+    logged_utc: iso(Date.now()),
+    break_id: breakId,
+    observer: obs ? obs.name : "",
+    observer_id: state.observer,
+    method: state.method,
+    minutes_watched: state.minutes_watched,
+    saw_sets: state.saw_sets || "",
+    typical: state.typical,
+    sets: state.typical==="flat" ? "" : (state.sets||""),
+    typical_ft:"", sets_ft:"",
+    confidence: state.confidence,
+    wind: state.wind,
+    rideable: state.rideable,
+    forecast_seen: state.forecast_seen,
+    note: el("note").value.trim()
+  };
+}
+
+el("save").addEventListener("click", function(){
+  var row=build();
+  /* Sets are the occasional BIGGER waves. Refused, never silently swapped. */
+  if(row.sets){
+    var order=SCALE.map(function(s){return s[0];});
+    if(order.indexOf(row.sets) < order.indexOf(row.typical)){
+      toast("Sets are the bigger waves — pick one above " + row.typical.replace(/_/g," "));
+      return;
+    }
+  }
+  enqueue(row);
+  el("note").value="";
+  if(state.mode==="sweep" && sweepAt<2){
+    sweepAt++;
+    var keep={observer:state.observer, mode:state.mode, session_id:state.session_id,
+      method:state.method, confidence:state.confidence, when:state.when,
+      forecast_seen:state.forecast_seen};
+    reset(sweep[sweepAt]);
+    Object.keys(keep).forEach(function(k){ state[k]=keep[k]; });
+    toast("Logged. Walk to " + BREAKS.filter(function(b){return b.id===sweep[sweepAt];})[0].name + ".");
+  } else {
+    var keepObs=state.observer;
+    sweepAt=0; sweep=[]; reset();
+    state.observer=keepObs; state.mode="one"; state.session_id=id();
+    toast(db ? "Logged." : "Logged on this phone. It will sync when you have signal.");
+  }
+  draw();
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+
+el("obs-save").addEventListener("click", function(){
+  var name=el("obs-name").value.trim();
+  if(!name){ toast("Needs a name — an anonymous observation cannot be weighted."); return; }
+  var cm=parseFloat(el("obs-cm").value);
+  if(!(cm>=100&&cm<=230)){
+    var ft=parseFloat(el("obs-ft").value), inch=parseFloat(el("obs-in").value)||0;
+    cm = ft>0 ? Math.round((ft*12+inch)*2.54) : 0;
+  } else { cm=Math.round(cm); }
+  var o={ id:id(), name:name, height_cm:cm||0, created_utc:iso(Date.now()) };
+  saveObserver(o);
+  state.observer=o.id; store(LAST,o.id);
+  el("newobs").hidden=true;
+  el("obs-name").value=el("obs-ft").value=el("obs-in").value=el("obs-cm").value="";
+  draw();
+});
+el("obs-cancel").addEventListener("click", function(){ el("newobs").hidden=true; });
+
+/* --- boot --------------------------------------------------------------- */
+
+observers = store(OKEY) || [];
+queue = store(QKEY) || [];
+recent = queue.slice();
+state.mode="one"; state.session_id=id();
+var last=store(LAST);
+if(last && observers.some(function(o){return o.id===last;})) state.observer=last;
+else if(observers.length) state.observer=observers[0].id;
+draw();
+
+/* The store arrives later, through the promise, and may never arrive. The page
+ * is fully usable either way — that is the point of writing to the phone first. */
+var use = (window.claude && window.claude.use)
+  ? window.claude.use("db")
+  : Promise.resolve(null);
+use.then(function(store_){
+  db=store_;
+  if(!db){ drawStatus(); return; }
+  db.collection("observers").onSnapshot(function(snap){
+    var seen={};
+    observers.forEach(function(o){ seen[o.id]=o; });
+    snap.docs.forEach(function(d){
+      var v=d.data()||{};
+      seen[d.id]={ id:d.id, name:v.name||d.id, height_cm:v.height_cm||0, created_utc:v.created_utc||"" };
+    });
+    observers=Object.keys(seen).map(function(k){return seen[k];});
+    store(OKEY, observers);
+    if(!state.observer && observers.length) state.observer=observers[0].id;
+    draw();
+  }, function(){});
+  db.collection("observations").orderBy("observed_utc","desc").limit(40)
+    .onSnapshot(function(snap){
+      var rows=snap.docs.map(function(d){ return d.data()||{}; });
+      var ids={}; rows.forEach(function(r){ ids[r.entry_id]=1; });
+      recent = queue.filter(function(q){ return !ids[q.entry_id]; }).concat(rows);
+      drawRecent(); drawStatus();
+    }, function(){});
+  flush();
+}).catch(function(){ drawStatus(); });
+</script>

@@ -140,11 +140,20 @@ WIND = ("glassy", "offshore", "cross", "light_onshore", "onshore", "storm")
 RIDEABLE = ("yes", "marginal", "no")
 
 COLUMNS = (
+    #: Stable per-entry key, minted where the entry is made. It is what makes
+    #: importing from the phone form idempotent: the same row arriving twice is
+    #: recognised and skipped rather than double-counted into a session.
+    "entry_id",
     "session_id",
     "observed_utc",
     "logged_utc",
     "break_id",
+    #: Observer NAME at the time of logging, kept for reading the file by eye,
+    #: and `observer_id` beside it as the durable key. The names start generic
+    #: and get edited once it is known who was actually helping; a series keyed
+    #: on a name would orphan every earlier row the moment that happened.
     "observer",
+    "observer_id",
     "method",
     "minutes_watched",
     "saw_sets",
@@ -173,11 +182,13 @@ class Observation:
     and only the pair can say which this was.
     """
 
+    entry_id: str
     session_id: str
     observed_utc: str
     logged_utc: str
     break_id: str
     observer: str
+    observer_id: str
     method: str
     minutes_watched: str
     saw_sets: str
@@ -246,6 +257,8 @@ def validate(entry: Observation, *, breaks: list[str] | None = None) -> Observat
         )
     if not entry.observer.strip():
         raise BeachLogError("observer: required — an anonymous observation cannot be weighted")
+    if not entry.entry_id.strip():
+        raise BeachLogError("entry_id: required — it is what makes an import idempotent")
 
     entry.method = _one_of(entry.method, METHODS, "method")
     entry.confidence = _one_of(entry.confidence, CONFIDENCE, "confidence")
@@ -406,11 +419,13 @@ def compose(
     note = reader("  note? (Enter to skip)\n  > ").strip()
 
     return Observation(
+        entry_id=uuid.uuid4().hex[:16],
         session_id=session_id,
         observed_utc=to_iso(stamp) or "",
         logged_utc=to_iso(utcnow()) or "",
         break_id=break_id,
         observer=observer,
+        observer_id=observer,
         method=method,
         minutes_watched=minutes,
         saw_sets="true" if saw_sets.startswith("y") else "false",

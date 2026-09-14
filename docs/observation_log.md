@@ -115,6 +115,10 @@ series of eleven observations is not one.
 - Fill in `observers.csv` — the body scale needs your standing height.
 - Wire tide (NOAA 9410170) and wind (KNZY) so each row can be joined after the
   fact rather than asked for.
-- A phone-shaped entry form. The CLI is the storage layer and is honest about
-  it; sixty seconds on a phone at the beach is the real target.
+- ~~A phone-shaped entry form.~~ **Built** — `app/beachlog.html`, published as
+  an Artifact. Body scale as a vertical ruler because that is how an observer
+  reads a wave; everything else thumb-sized chips; sweep mode walks the three
+  breaks in one session. It writes to the phone first and syncs afterwards,
+  because an entry made where there is no signal is still an entry. It shows no
+  forecast and contains no code that could.
 - The face-height transfer function, once the series can support fitting one.

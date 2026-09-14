@@ -40,11 +40,13 @@ BREAKS = ["coronado_north", "coronado_center", "coronado_south"]
 
 def entry(**kwargs) -> Observation:
     base = dict(
+        entry_id="e" + str(abs(hash(str(kwargs))) % 10**9),
         session_id="s1",
         observed_utc=to_iso(utcnow()) or "",
         logged_utc=to_iso(utcnow()) or "",
         break_id="coronado_center",
         observer="pete",
+        observer_id="pete",
         method="from_sand",
         minutes_watched="10",
         saw_sets="true",
@@ -326,3 +328,97 @@ def test_ranking_is_ordinal_and_needs_no_height_conversion():
 
 def test_new_sessions_are_distinct():
     assert new_session() != new_session()
+
+
+# --- importing from the phone form -----------------------------------------
+
+
+def test_importing_the_same_export_twice_does_not_double_count(tmp_path):
+    """The failure this prevents is subtle and would not look like an error.
+
+    A session is the unit the geometry test compares against itself. A
+    duplicated break inside one would read as a genuine second look at the same
+    spot and quietly weight it twice.
+    """
+
+    from collector.beachlog_import import import_rows
+
+    path = tmp_path / "observations.csv"
+    rows = [
+        {"entry_id": "a1", "session_id": "s9", "break_id": "coronado_north",
+         "observer": "pete", "observer_id": "pete", "typical": "waist", "sets": "chest",
+         "wind": "glassy", "rideable": "yes", "method": "from_sand",
+         "confidence": "high", "observed_utc": to_iso(utcnow()),
+         "logged_utc": to_iso(utcnow()), "minutes_watched": "10",
+         "saw_sets": "true", "forecast_seen": "false", "note": ""},
+    ]
+
+    first = import_rows(rows, path=path)
+    second = import_rows(rows, path=path)
+
+    assert first[0] == 1 and first[1] == 0
+    assert second[0] == 0 and second[1] == 1, "the second import must recognise the row"
+    assert len(load(path=path)) == 1
+
+
+def test_a_bad_row_is_refused_by_name_and_the_good_ones_still_land(tmp_path):
+    """One malformed entry from someone else's phone must not cost the rest."""
+
+    from collector.beachlog_import import import_rows
+
+    path = tmp_path / "observations.csv"
+    good = {"entry_id": "g1", "session_id": "s1", "break_id": "coronado_south",
+            "observer": "pete", "observer_id": "pete", "typical": "chest", "sets": "head",
+            "wind": "glassy", "rideable": "yes", "method": "from_sand",
+            "confidence": "high", "observed_utc": to_iso(utcnow()),
+            "logged_utc": to_iso(utcnow()), "minutes_watched": "5",
+            "saw_sets": "true", "forecast_seen": "false", "note": ""}
+    bad = dict(good, entry_id="b1", break_id="trestles")
+
+    imported, duplicate, refused = import_rows([good, bad], path=path)
+
+    assert imported == 1
+    assert len(refused) == 1 and "trestles" in refused[0]
+    assert [e.entry_id for e in load(path=path)] == ["g1"]
+
+
+def test_import_tolerates_extra_keys_the_form_sends(tmp_path):
+    """The form may grow a field before this file knows about it."""
+
+    from collector.beachlog_import import import_rows
+
+    path = tmp_path / "observations.csv"
+    row = {"entry_id": "x1", "session_id": "s1", "break_id": "coronado_center",
+           "observer": "pete", "observer_id": "pete", "typical": "knee", "sets": "",
+           "wind": "onshore", "rideable": "no", "method": "from_window",
+           "confidence": "low", "observed_utc": to_iso(utcnow()),
+           "logged_utc": to_iso(utcnow()), "minutes_watched": "2",
+           "saw_sets": "false", "forecast_seen": "false", "note": "",
+           "some_future_field": "whatever", "app_version": "3"}
+
+    imported, _, refused = import_rows([row], path=path)
+    assert imported == 1 and not refused
+
+
+def test_the_observer_id_survives_a_rename(tmp_path):
+    """The generic names are placeholders and will be edited.
+
+    Keying the series on a name would orphan every earlier row the moment
+    `observer2` becomes a real person's name.
+    """
+
+    from collector.beachlog_import import import_rows
+
+    path = tmp_path / "observations.csv"
+    base = {"session_id": "s1", "break_id": "coronado_north", "observer_id": "obs2",
+            "typical": "waist", "sets": "", "wind": "glassy", "rideable": "yes",
+            "method": "from_sand", "confidence": "high",
+            "observed_utc": to_iso(utcnow()), "logged_utc": to_iso(utcnow()),
+            "minutes_watched": "10", "saw_sets": "true", "forecast_seen": "false", "note": ""}
+
+    import_rows([dict(base, entry_id="r1", observer="observer2")], path=path)
+    import_rows([dict(base, entry_id="r2", observer="Jake")], path=path)
+
+    rows = load(path=path)
+    assert {r.observer for r in rows} == {"observer2", "Jake"}
+    assert {r.observer_id for r in rows} == {"obs2"}, "one person, one durable key"
