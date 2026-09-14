@@ -13,7 +13,7 @@ Point Loma sits directly across their swell window. Computed from coordinates:
 |---|---|---|---|
 | Breakers (NASNI) | 27° | 223° | estimated |
 | Coronado — north break | 42.8° | 242.2° | digitised |
-| Coronado — centre break | 49.1° | 250.3° | digitised |
+| Coronado — center break | 49.1° | 250.3° | digitised |
 | Coronado — south break | 56.3° | 259.9° | digitised |
 | Gator (NAB) | 64° | 270° | estimated |
 
