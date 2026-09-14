@@ -144,7 +144,7 @@ def _rotate_chord(spot: Spot, degrees: float) -> Spot:
 def _swell_window(spot: Spot) -> tuple[float, float]:
     """The open arc on the swell side, ignoring the near-useless south-east one.
 
-    Southern Hemisphere swell arrives from roughly 180-220°, so the arc centred
+    Southern Hemisphere swell arrives from roughly 180-220°, so the arc centered
     south-east of the beach is geometrically real and practically empty.
     """
 
@@ -211,15 +211,15 @@ def test_coronado_is_not_one_beach():
     """
 
     north = _swell_window(BY_ID["coronado_north"])
-    centre = _swell_window(BY_ID["coronado_center"])
+    center = _swell_window(BY_ID["coronado_center"])
     south = _swell_window(BY_ID["coronado_south"])
 
-    widths = [(high - low) % 360.0 for low, high in (north, centre, south)]
+    widths = [(high - low) % 360.0 for low, high in (north, center, south)]
     assert widths[0] < widths[1] < widths[2], "distance from Point Loma must order them"
     assert max(widths) - min(widths) > 10.0, f"spread collapsed to {max(widths) - min(widths):.1f}°"
 
     # The west edge walks south-west along the beach, monotonically.
-    assert north[1] < centre[1] < south[1]
+    assert north[1] < center[1] < south[1]
 
 
 def test_a_digitised_position_sits_on_its_own_shoreline():

@@ -109,7 +109,7 @@ run:
 | break | open window | cuts off at |
 |---|---|---|
 | north | **42.8°** | 242.2° |
-| centre (Hotel del) | **49.1°** | 250.3° |
+| center (Hotel del) | **49.1°** | 250.3° |
 | south | **56.3°** | 259.9° |
 
 A **13.5° spread inside one named beach**, against 38.5° for the entire
@@ -249,7 +249,7 @@ constraint is the last 50 km, not the swell.
 
 Wave-model verification against buoys is also long established and public: the
 WMO Lead Centre for Wave Forecast Verification at ECMWF has collated
-buoy-collocated statistics from the operational centres for two decades. The
+buoy-collocated statistics from the operational centers for two decades. The
 scatter index above is reported in their units on purpose.
 
 **So the opening this project has is narrow and specific:** not better physics,
@@ -332,5 +332,15 @@ it** — the expanding-window control in §4 is the model.
 - Wind (KNZY) and tide (NOAA 9410170) — neither probed, both essential at these
   beaches.
 - Is ECMWF's assimilating wave model measurably better than GFS-Wave at 46232?
-- What does a verification log actually look like, such that a person will
-  fill it in daily for a year?
+- ~~What does a verification log actually look like, such that a person will
+  fill it in daily for a year?~~ **Answered, 2026-09-14** —
+  `docs/observation_log.md`, built as `collector/beachlog.py`. The short version:
+  nothing makes a person do anything daily for a year, so it is built to survive
+  irregularity instead of demanding consistency, and it asks for the
+  **differential** (is the south end bigger than the north end today?) rather
+  than the absolute height — that being both what people report reliably and
+  what this project actually claims. Its control is that **Coronado's two window
+  edges predict opposite orderings**: Point Loma cuts the north break off first,
+  the Coronado Islands cut the south break off first, so a fixed bias agrees on
+  one edge and contradicts the other while a real aperture effect flips.
+  Still open: whether anyone fills it in. The file is empty.

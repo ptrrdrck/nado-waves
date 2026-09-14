@@ -487,7 +487,7 @@ def main(argv: list[str] | None = None) -> int:
         "--window",
         default="201,250",
         help="Demonstration window, 'low,high' in degrees FROM. Default is "
-        "Coronado's centre break.",
+        "Coronado's center break.",
     )
     args = parser.parse_args(argv)
 

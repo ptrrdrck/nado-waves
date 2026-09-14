@@ -31,7 +31,7 @@ on:
         required: false
         default: ""
       window:
-        description: "Demonstration window, 'low,high' degrees FROM (default = Coronado centre break)"
+        description: "Demonstration window, 'low,high' degrees FROM (default = Coronado center break)"
         required: false
         default: "201,250"
 
