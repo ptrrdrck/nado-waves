@@ -131,7 +131,9 @@ forecaster actually verifies against, Surfline included.
     collector/          data pipeline: NDBC archiving, revisions, station
                         status, historical backfill, GFS-Wave bulletins,
                         probe_spectra.py (are directional spectra reachable?),
-                        beachlog.py (the human observation log)
+                        beachlog.py + beachlog_import.py (the observation log)
+    app/beachlog.html   the phone form — capture surface, published as an
+                        Artifact. The repo CSV stays the system of record.
     forecast/
       geometry.py       which bearings reach each beach          [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
