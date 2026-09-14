@@ -9,19 +9,31 @@ One offshore buoy, one blocking geometry, three different answers.
 
 Point Loma sits directly across their swell window. Computed from coordinates:
 
-| beach | faces | open swell window | shadow edge from shore normal |
+| spot | open swell window | cuts off at | coordinates |
 |---|---|---|---|
-| Breakers (NASNI) | 223° | 196–222° — just 26° | 1° |
-| Coronado Central | 251° | 201–249° — 48° | 1° |
-| Gator (NAB) | 240° | 206–270° — 65° | 30° |
+| Breakers (NASNI) | 27° | 223° | estimated |
+| Coronado — north break | 42.8° | 242.2° | digitised |
+| Coronado — centre break | 49.1° | 250.3° | digitised |
+| Coronado — south break | 56.3° | 259.9° | digitised |
+| Gator (NAB) | 64° | 270° | estimated |
 
-Gator holds west swell to 270°; Coronado cuts off at 249°; Breakers at 222°. On
-a W/WNW swell Gator works and Breakers is dead.
+Gator holds west swell to 270°; Breakers dies at 223°. On a W/WNW swell Gator
+works and Breakers is dead.
 
-At Coronado and Breakers the shadow edge sits about **one degree** from the
-shore normal, so a few degrees of incident-direction error moves the beach
-across the boundary between "in the window" and "behind the peninsula". That is
-why a general-purpose forecast is fragile here and reliable a few miles north.
+**Coronado is three rows because it is not one beach.** The west edge of the
+window is the bearing to the Point Loma tip, and that bearing sweeps as you walk
+the sand — 17° of it across 2.8 km. The spread between Coronado's own ends is a
+third of the entire Breakers-to-Gator range.
+
+At Breakers the shadow edge sits about **one degree** from the shore normal, so
+a few degrees of incident-direction error moves the beach across the boundary
+between "in the window" and "behind the peninsula". That is why a
+general-purpose forecast is fragile here and reliable a few miles north.
+
+What that sensitivity does **not** mean is that the shore normal drives the
+answer. Measured: rotating a shoreline chord ±10° moves the swell-side window by
+exactly zero, because both its edges are blocker-derived. Position moves it;
+facing does not. `tests/test_geometry.py` pins the invariance and its control.
 
 And in three years of archive, **3,257 hours of W–WNW and 3,771 hours of NW
 swell fall in the blocked sector**, against 1,247 hours of S–SW in the open one.
@@ -38,6 +50,7 @@ See `CLAUDE.md` and `BRIEFING.md` §7.
 
 ```
 python -m forecast.geometry              # which bearings reach each beach
+python -m collector.probe_spectra        # are NDBC directional spectra reachable?
 python -m forecast.verify                # how wrong GFS-Wave is at the buoy
 python -m forecast.residual --ceiling    # what an upstream observation could win
 python -m forecast.forensics             # where a past swell was born
@@ -51,7 +64,7 @@ PYTHONPATH=. python -m pytest -q
     collector/            NDBC archiving, revisions, station status, backfill,
                           GFS-Wave bulletin parsing
     forecast/geometry.py  which bearings reach each beach            [built]
-    forecast/spots.json   the three beaches                [COORDINATES UNVERIFIED]
+    forecast/spots.json   breaks and blockers     [Coronado digitised; others not]
     forecast/verify.py    bias, RMSE, scatter, calibration, band coverage
     forecast/residual.py  is the remaining error recoverable?
     forecast/forensics.py read a swell's origin off the buoy record
