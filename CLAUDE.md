@@ -99,11 +99,13 @@ forecaster actually verifies against, Surfline included.
    other, while a real aperture effect flips. Agreement on one edge alone is
    not evidence.
 3. **The transform.** Offshore spectrum at 46232 → energy that survives the
-   beach's window. NDBC directional spectra (`swden`, `swdir`, `swdir2`,
-   `swr1`, `swr2`) are the right input. `collector/probe_spectra.py` answers
-   whether they are reachable and complete; run it via the
-   `Probe NDBC directional spectra` workflow, because an interactive session
-   cannot see the host and a runner can.
+   beach's window. **Unblocked: the directional spectra are reachable and
+   complete** — 64 bins, 0.0250–0.5800 Hz, agreeing across all five files,
+   `r1`/`r2` already normalised (BRIEFING §7). Re-probe with the
+   `Probe NDBC directional spectra` workflow, never from a session — an
+   interactive session cannot see the host and a runner can.
+   **Caveat: 46232 has been dark since 2026-09-01.** The anchor buoy for every
+   transform here is not currently reporting anything to transform.
 4. **The forecast.** GFS-Wave partitions at 46232 through the transform.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
@@ -119,7 +121,9 @@ forecaster actually verifies against, Surfline included.
   days of repository inactivity, and the workflow's own bot commits do not
   reliably reset that timer.
 - **Keep the staleness alert** — no new observation in 48 hours, notify. A
-  silently dead collector loses days that cannot be recovered.
+  silently dead collector loses days that cannot be recovered. **It did not
+  visibly fire for 46232's outage from 2026-09-01**, which is unexplained and
+  worth chasing before trusting it.
 - **Egress from a Claude session is policy-controlled and changes mid-session.**
   A 403 at CONNECT is a denial, not throttling: check
   `$HTTPS_PROXY/__agentproxy/status`, report the blocked host, do not route
