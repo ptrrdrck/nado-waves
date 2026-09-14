@@ -48,6 +48,7 @@ def entry(**kwargs) -> Observation:
         break_id="coronado_center",
         observer="pete",
         observer_id="pete",
+        observer_height_cm="180",
         method="from_sand",
         minutes_watched="10",
         saw_sets="true",
@@ -175,7 +176,8 @@ def test_compose_never_asks_for_the_tide():
     """
 
     answers = iter(["c", "h", "g", "s", "y", "h", "12", "y", "n", ""])
-    composed = compose("coronado_center", "pete", session_id="s1", reader=lambda _: next(answers))
+    composed = compose("coronado_center", "pete", session_id="s1", heights={"pete": 180.0},
+                       reader=lambda _: next(answers))
 
     assert composed.typical == "chest"
     assert composed.sets == "head"
@@ -188,14 +190,16 @@ def test_a_flat_day_skips_the_sets_question_entirely():
     """One fewer prompt on the day it obviously does not apply."""
 
     answers = iter(["f", "n", "c", "n", "l", "3", "n", "n", "nothing"])
-    composed = compose("coronado_north", "pete", session_id="s1", reader=lambda _: next(answers))
+    composed = compose("coronado_north", "pete", session_id="s1", heights={"pete": 180.0},
+                       reader=lambda _: next(answers))
     assert composed.typical == "flat"
     assert composed.sets == ""
 
 
 def test_seeing_a_forecast_flags_the_entry_rather_than_rejecting_it():
     answers = iter(["c", "h", "g", "s", "y", "h", "10", "y", "y", ""])
-    composed = compose("coronado_center", "pete", session_id="s1", reader=lambda _: next(answers))
+    composed = compose("coronado_center", "pete", session_id="s1", heights={"pete": 180.0},
+                       reader=lambda _: next(answers))
     assert composed.forecast_seen == "true"
 
 
@@ -347,7 +351,7 @@ def test_importing_the_same_export_twice_does_not_double_count(tmp_path):
     path = tmp_path / "observations.csv"
     rows = [
         {"entry_id": "a1", "session_id": "s9", "break_id": "coronado_north",
-         "observer": "pete", "observer_id": "pete", "typical": "waist", "sets": "chest",
+         "observer": "pete", "observer_id": "pete", "observer_height_cm": "180", "typical": "waist", "sets": "chest",
          "wind": "glassy", "rideable": "yes", "method": "from_sand",
          "confidence": "high", "observed_utc": to_iso(utcnow()),
          "logged_utc": to_iso(utcnow()), "minutes_watched": "10",
@@ -369,7 +373,7 @@ def test_a_bad_row_is_refused_by_name_and_the_good_ones_still_land(tmp_path):
 
     path = tmp_path / "observations.csv"
     good = {"entry_id": "g1", "session_id": "s1", "break_id": "coronado_south",
-            "observer": "pete", "observer_id": "pete", "typical": "chest", "sets": "head",
+            "observer": "pete", "observer_id": "pete", "observer_height_cm": "180", "typical": "chest", "sets": "head",
             "wind": "glassy", "rideable": "yes", "method": "from_sand",
             "confidence": "high", "observed_utc": to_iso(utcnow()),
             "logged_utc": to_iso(utcnow()), "minutes_watched": "5",
@@ -390,7 +394,7 @@ def test_import_tolerates_extra_keys_the_form_sends(tmp_path):
 
     path = tmp_path / "observations.csv"
     row = {"entry_id": "x1", "session_id": "s1", "break_id": "coronado_center",
-           "observer": "pete", "observer_id": "pete", "typical": "knee", "sets": "",
+           "observer": "pete", "observer_id": "pete", "observer_height_cm": "180", "typical": "knee", "sets": "",
            "wind": "onshore", "rideable": "no", "method": "from_window",
            "confidence": "low", "observed_utc": to_iso(utcnow()),
            "logged_utc": to_iso(utcnow()), "minutes_watched": "2",
@@ -412,6 +416,7 @@ def test_the_observer_id_survives_a_rename(tmp_path):
 
     path = tmp_path / "observations.csv"
     base = {"session_id": "s1", "break_id": "coronado_north", "observer_id": "obs2",
+            "observer_height_cm": "175",
             "typical": "waist", "sets": "", "wind": "glassy", "rideable": "yes",
             "method": "from_sand", "confidence": "high",
             "observed_utc": to_iso(utcnow()), "logged_utc": to_iso(utcnow()),
@@ -474,3 +479,75 @@ def test_the_form_offers_no_way_to_record_not_having_looked():
     assert '"flat"' in scale
     for absence in ('"unknown"', '"skipped"', '"none"', '"didnt_look"', '"na"'):
         assert absence not in scale
+
+
+# --- the observer's own height, carried on the row -------------------------
+
+
+def test_the_height_rides_on_the_row_not_a_lookup_table():
+    """Observers set their height on their own phone, and it lives nowhere else.
+
+    A lookup table in this repository would be permanently empty for everyone
+    but Pete, so the body scale would have no calibration for exactly the
+    entries that most need it. Carrying it on the row also means a later
+    re-measurement never silently rewrites what an old observation was judged
+    against.
+    """
+
+    row = entry(observer_height_cm="180", typical="head")
+    assert row.height_cm == 180.0
+    typical, _ = row.height_m(row.height_cm)
+    assert typical == pytest.approx(1.80)
+
+
+def test_an_implausible_height_is_refused():
+    with pytest.raises(BeachLogError, match="outside 100-230"):
+        validate(entry(observer_height_cm="12"))
+    with pytest.raises(BeachLogError, match="not a number"):
+        validate(entry(observer_height_cm="tall"))
+
+
+def test_a_missing_height_is_allowed_and_costs_only_the_metres():
+    """Deliberate, and the opposite of what it looks like.
+
+    Every comparison this log actually makes is ordinal and works perfectly
+    without a height — the height only feeds the approximate metres, which the
+    form itself labels a reading aid. Refusing the row would throw away a real
+    observation to protect a derived convenience. The form is where the rule is
+    enforced; the archive's job is to keep what was seen.
+    """
+
+    row = validate(entry(observer_height_cm=""))
+    assert row.height_cm is None
+    assert row.height_m(None) == (None, None)
+    # And it is still a usable observation.
+    assert row.typical == "chest"
+
+
+def test_the_cli_refuses_to_log_for_an_observer_with_no_height():
+    """The CLI's equivalent of the form's gate."""
+
+    with pytest.raises(BeachLogError, match="no standing height"):
+        compose("coronado_center", "ghost", session_id="s1", heights={},
+                reader=lambda _: "c")
+
+
+def test_import_reports_rows_that_arrive_without_a_height(tmp_path, capsys):
+    from collector.beachlog_import import main as import_main
+    import json
+
+    rows = [{"entry_id": "h1", "session_id": "s1", "break_id": "coronado_north",
+             "observer": "pete", "observer_id": "pete", "observer_height_cm": "",
+             "typical": "waist", "sets": "", "wind": "glassy", "rideable": "yes",
+             "method": "from_sand", "confidence": "high",
+             "observed_utc": to_iso(utcnow()), "logged_utc": to_iso(utcnow()),
+             "minutes_watched": "10", "saw_sets": "false",
+             "forecast_seen": "false", "note": ""}]
+    source = tmp_path / "rows.json"
+    source.write_text(json.dumps(rows), encoding="utf-8")
+
+    import_main([str(source), "--path", str(tmp_path / "observations.csv")])
+    out = capsys.readouterr().out
+    assert "imported 1" in out
+    assert "carry no observer height" in out
+    assert "categories are unaffected" in out

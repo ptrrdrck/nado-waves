@@ -1,1 +1,1 @@
-entry_id,session_id,observed_utc,logged_utc,break_id,observer,observer_id,method,minutes_watched,saw_sets,typical,sets,typical_ft,sets_ft,confidence,wind,rideable,forecast_seen,note
+entry_id,session_id,observed_utc,logged_utc,break_id,observer,observer_id,observer_height_cm,method,minutes_watched,saw_sets,typical,sets,typical_ft,sets_ft,confidence,wind,rideable,forecast_seen,note
