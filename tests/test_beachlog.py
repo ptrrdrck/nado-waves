@@ -9,6 +9,7 @@ tidies up its own inputs is not a record of what was seen.
 from __future__ import annotations
 
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
@@ -422,3 +423,54 @@ def test_the_observer_id_survives_a_rename(tmp_path):
     rows = load(path=path)
     assert {r.observer for r in rows} == {"observer2", "Jake"}
     assert {r.observer_id for r in rows} == {"obs2"}, "one person, one durable key"
+
+
+# --- the two published builds ----------------------------------------------
+
+
+def test_the_two_form_builds_differ_only_in_their_title():
+    """One source, two artifacts, and no build step to keep them in step.
+
+    `app/beachlog.html` is published with the `db` capability and is Pete's
+    page; `app/beachlog-observer.html` is published without it, for helpers who
+    are not signing in to anything. They are the same file because the schema
+    they write is the same schema, and two hand-maintained copies would drift
+    the moment one of them gained a field.
+
+    Only the <title> may differ, so the two are told apart in a gallery. If this
+    fails, copy the owner build over the observer build and re-apply the title
+    rather than patching them separately.
+    """
+
+    owner = Path("app/beachlog.html").read_text(encoding="utf-8").splitlines()
+    observer = Path("app/beachlog-observer.html").read_text(encoding="utf-8").splitlines()
+
+    strip = lambda lines: [ln for ln in lines if not ln.lstrip().startswith("<title>")]
+    assert strip(owner) == strip(observer), "the two form builds have drifted apart"
+
+    titles = [ln for ln in observer if ln.lstrip().startswith("<title>")]
+    assert titles and "Observer" in titles[0], "the observer build needs its own name"
+
+
+def test_the_form_never_fetches_anything():
+    """The no-forecast rule, enforced against the file rather than stated in it.
+
+    An observer who has already seen a forecast is not an independent witness.
+    The page therefore has no way to show one: no network call of any kind, so
+    there is nothing for a future edit to quietly point at a surf API.
+    """
+
+    page = Path("app/beachlog.html").read_text(encoding="utf-8")
+    for reaching_out in ("fetch(", "XMLHttpRequest", "WebSocket", "EventSource",
+                         "import(", "<iframe", "navigator.sendBeacon"):
+        assert reaching_out not in page, f"the form reaches the network via {reaching_out}"
+
+
+def test_the_form_offers_no_way_to_record_not_having_looked():
+    """The same rule as the CSV, checked where an observer actually taps."""
+
+    page = Path("app/beachlog.html").read_text(encoding="utf-8")
+    scale = page.split('var SCALE = [')[1].split('];')[0]
+    assert '"flat"' in scale
+    for absence in ('"unknown"', '"skipped"', '"none"', '"didnt_look"', '"na"'):
+        assert absence not in scale

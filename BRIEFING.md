@@ -109,7 +109,7 @@ run:
 | break | open window | cuts off at |
 |---|---|---|
 | north | **42.8°** | 242.2° |
-| centre (Hotel del) | **49.1°** | 250.3° |
+| center (Hotel del) | **49.1°** | 250.3° |
 | south | **56.3°** | 259.9° |
 
 A **13.5° spread inside one named beach**, against 38.5° for the entire
@@ -249,7 +249,7 @@ constraint is the last 50 km, not the swell.
 
 Wave-model verification against buoys is also long established and public: the
 WMO Lead Centre for Wave Forecast Verification at ECMWF has collated
-buoy-collocated statistics from the operational centres for two decades. The
+buoy-collocated statistics from the operational centers for two decades. The
 scatter index above is reported in their units on purpose.
 
 **So the opening this project has is narrow and specific:** not better physics,

@@ -132,8 +132,11 @@ forecaster actually verifies against, Surfline included.
                         status, historical backfill, GFS-Wave bulletins,
                         probe_spectra.py (are directional spectra reachable?),
                         beachlog.py + beachlog_import.py (the observation log)
-    app/beachlog.html   the phone form — capture surface, published as an
-                        Artifact. The repo CSV stays the system of record.
+    app/beachlog.html   the phone form, owner build (shared store)
+    app/beachlog-observer.html  same file, observer build — no sign-in, entries
+                        stay on the phone and are handed back as text. The two
+                        differ only in <title>; a test enforces it. The repo CSV
+                        stays the system of record for both.
     forecast/
       geometry.py       which bearings reach each beach          [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
@@ -158,7 +161,7 @@ circular helpers are used here. Trimming it is a good first cleanup.
   Breakers keeps 26° of swell window and Gator 65°, and Gator alone holds west
   swell. But the same mechanism runs along Coronado's own sand: the west edge
   IS the bearing to the Point Loma tip, which sweeps as you walk, giving
-  **42.8° / 49.1° / 56.3°** at the north, centre and south breaks across 2.8 km.
+  **42.8° / 49.1° / 56.3°** at the north, center and south breaks across 2.8 km.
   That 13.5° spread is a third of the entire Breakers-to-Gator range. Any
   surface showing one number for "Coronado" is averaging across it.
 - **The Point Loma tip is one point and it carries every west edge.** 100 m of

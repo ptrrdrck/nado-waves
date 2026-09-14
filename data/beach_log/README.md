@@ -8,9 +8,23 @@ Nothing measures waves at Coronado. Not the buoy — 46232 sits outside the
 shadow that defines these breaks. Not CDIP MOP, which is a model. This file is
 the only thing that will ever have observed the thing the project forecasts.
 
-**The phone form is the normal way in.** `app/beachlog.html`, published as an
-Artifact — nobody carries a laptop to the waterline. The CLI below is the same
-schema for when you are at a desk.
+**The phone form is the normal way in.** Nobody carries a laptop to the
+waterline. There are two builds of it, from one source file, because helpers are
+not signing in to anything:
+
+| build | file | who | where entries go |
+| --- | --- | --- | --- |
+| owner | `app/beachlog.html` | Pete | straight into the artifact's shared store |
+| observer | `app/beachlog-observer.html` | everyone else | this phone, handed back as text |
+
+They are the same file apart from the `<title>`, and a test enforces that — two
+hand-maintained copies would drift the moment one gained a field. **The role is
+not a setting.** The page starts as an observer and is promoted only when a
+shared store actually resolves, which happens on Pete's build and nowhere else.
+Starting closed means the roster controls are never on screen for someone who
+should not have them.
+
+The CLI below is the same schema for when you are at a desk.
 
     python -m collector.beachlog log -b coronado_center -o <you>
     python -m collector.beachlog sweep -o <you>      # all three, one trip
@@ -28,8 +42,13 @@ which is about four and a half years of a three-break daily sweep.
 1. The form writes to **this phone first**, then flushes to the artifact's
    store. Signal at the waterline is not something to bet a day's observation
    on, and an entry made in a dead spot is still an entry.
-2. Read the rows out with the Artifact tool's `read_db` on the `observations`
-   collection, save them as JSON.
+2. Get the rows:
+   - **owner build** — read them out with the Artifact tool's `read_db` on the
+     `observations` collection and save as JSON;
+   - **observer build** — they tap *Send your entries*, which copies a JSON
+     block to paste into a text or email. Copying does not clear it, and
+     clearing is a separate deliberate act behind a confirm, because until it
+     reaches the repository that phone holds the only copy.
 3. `python -m collector.beachlog_import rows.json` — validating, idempotent by
    `entry_id`, append-only. Re-importing the same export is a no-op rather than
    a double count, which matters because a duplicated break inside one session
