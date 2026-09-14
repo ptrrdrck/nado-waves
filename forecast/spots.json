@@ -56,13 +56,13 @@
         "method": "waterline digitised from Google Earth imagery",
         "by": "pete@lftlc.xyz",
         "date": "2026-09-14",
-        "caveat": "Imagery splice. The northern point sits about 284 m seaward of the waterline trend through the centre and south breaks, and the southern point about 61 m seaward, which rotates this chord roughly 19 degrees off the local coast trend (102.8 rather than about 122). MEASURED CONSEQUENCE: the swell window does not move at all (chord-invariance), and undoing the full 284 m cross-shore offset would widen it by 0.93 degrees. So the position is usable and the window here is sound. The NORMAL is not: at 192.8 it is about 19 degrees off, and it must not be trusted for wind fetch or refraction until the imagery is re-digitised. Hence shoreline_verified false."
+        "caveat": "Imagery splice. The northern point sits about 284 m seaward of the waterline trend through the center and south breaks, and the southern point about 61 m seaward, which rotates this chord roughly 19 degrees off the local coast trend (102.8 rather than about 122). MEASURED CONSEQUENCE: the swell window does not move at all (chord-invariance), and undoing the full 284 m cross-shore offset would widen it by 0.93 degrees. So the position is usable and the window here is sound. The NORMAL is not: at 192.8 it is about 19 degrees off, and it must not be trusted for wind fetch or refraction until the imagery is re-digitised. Hence shoreline_verified false."
       },
       "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: window 42.8 degrees, cut off at 242.2."
     },
     {
       "id": "coronado_center",
-      "name": "Coronado Central Beach — centre break",
+      "name": "Coronado Central Beach — center break",
       "shoreline": [[32.6828541, -117.1866803], [32.6814135, -117.1841649]],
       "position_verified": true,
       "shoreline_verified": true,

@@ -1,0 +1,961 @@
+<title>Nado Wave Log — Observer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+:root{
+  --paper:#EAEEEC; --card:#F6F8F7; --ink:#16232B; --soft:#53656E; --faint:#7C8C93;
+  --line:#CBD5D1; --line-strong:#AFBDB8;
+  --surf:#0B7A8C; --surf-ink:#FFFFFF; --surf-wash:#DCEAEC;
+  --sand:#D9C9A8; --sand-deep:#B9A47C;
+  --signal:#C2462D; --signal-wash:#F5DED8;
+  --ok:#2F7D4F;
+  --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
+  --r:10px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+    --line:#283C46; --line-strong:#3A525E;
+    --surf:#3FB6C6; --surf-ink:#06222A; --surf-wash:#12333B;
+    --sand:#8C7A55; --sand-deep:#A8935F;
+    --signal:#E8705A; --signal-wash:#3A1F1A;
+    --ok:#5FBF86;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+  --line:#283C46; --line-strong:#3A525E;
+  --surf:#3FB6C6; --surf-ink:#06222A; --surf-wash:#12333B;
+  --sand:#8C7A55; --sand-deep:#A8935F;
+  --signal:#E8705A; --signal-wash:#3A1F1A;
+  --ok:#5FBF86;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  background:var(--paper); color:var(--ink);
+  font:400 17px/1.5 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-text-size-adjust:100%; padding:0 16px 40px; margin:0;
+}
+.wrap{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding-block:18px 0}
+.lbl{
+  font-family:"Barlow Condensed",Archivo,sans-serif; font-weight:600;
+  text-transform:uppercase; letter-spacing:.09em; font-size:15px; color:var(--soft);
+}
+h1{
+  font-family:"Barlow Condensed",Archivo,sans-serif; font-weight:700;
+  font-size:34px; line-height:1.02; letter-spacing:.01em; margin:0; text-wrap:balance;
+}
+header{display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.head-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.blind{
+  font-size:12.5px;color:var(--soft);border-left:3px solid var(--sand-deep);
+  padding:6px 0 6px 10px;margin:0;
+}
+.blind b{color:var(--ink);font-weight:600}
+section{display:flex;flex-direction:column;gap:9px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+button{font:inherit;color:inherit;cursor:pointer}
+.chip{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 14px;font-size:17px;font-weight:500;line-height:1.2;
+  transition:background .12s,border-color .12s,color .12s;
+}
+.chip:hover{border-color:var(--line-strong)}
+.chip[aria-pressed="true"]{background:var(--surf);border-color:var(--surf);color:var(--surf-ink);font-weight:600}
+.chip.ghost{background:transparent;border-style:dashed;color:var(--soft)}
+:focus-visible{outline:2.5px solid var(--surf);outline-offset:2px;border-radius:4px}
+
+/* the ruler — flat at the bottom, overhead at the top, the way it is seen */
+.ruler{display:flex;flex-direction:column-reverse;gap:3px;border-left:2px solid var(--line-strong);padding-left:10px}
+.rung{
+  display:flex;align-items:center;gap:10px;text-align:left;width:100%;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 13px;font-size:17px;position:relative;
+}
+.rung::before{
+  content:"";position:absolute;left:-12px;width:8px;height:2px;background:var(--line-strong);
+}
+.rung .bar{height:10px;border-radius:2px;background:var(--sand);flex:0 0 auto;min-width:5px}
+.rung .nm{font-weight:500}
+.rung[aria-pressed="true"]{background:var(--surf);border-color:var(--surf);color:var(--surf-ink);font-weight:600}
+.rung[aria-pressed="true"] .bar{background:var(--surf-ink);opacity:.85}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px}
+.rail{display:flex;gap:5px}
+.rail div{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.rail div.done{background:var(--ok)}
+.rail div.now{background:var(--surf)}
+/* The save button follows the form rather than the viewport: sticky while the
+ * entry form is on screen, then it scrolls away and the rest of the page —
+ * sending entries, then recent ones — follows underneath it. */
+.formzone{display:flex;flex-direction:column;gap:18px}
+.savebar{position:sticky;bottom:10px;z-index:5;display:flex;
+  padding-bottom:calc(2px + env(safe-area-inset-bottom))}
+.primary{
+  flex:1;box-shadow:var(--shadow);background:var(--surf);color:var(--surf-ink);border:1px solid var(--surf);
+  border-radius:var(--r);padding:16px;font-weight:700;font-size:18px;
+  font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;letter-spacing:.07em;
+}
+.primary[disabled]{opacity:.45;cursor:not-allowed}
+.status{font-size:14px;color:var(--soft);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+.dot.on{background:var(--ok)} .dot.pend{background:var(--sand-deep)} .dot.off{background:var(--signal)}
+input[type=text],input[type=number]{
+  font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--r);padding:12px 13px;width:100%;
+}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 110px;min-width:0}
+.note{font-size:14.5px;line-height:1.5;color:var(--soft);margin:0}
+.tbl{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.tbl th{text-align:left;font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;
+  letter-spacing:.07em;font-size:13.5px;color:var(--soft);font-weight:600;padding:6px 8px 6px 0;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 8px 7px 0;border-bottom:1px solid var(--line)}
+.scroll{overflow-x:auto}
+.toast{
+  position:fixed;left:16px;right:16px;bottom:24px;margin:0 auto;max-width:508px;
+  background:var(--ink);color:var(--paper);border-radius:var(--r);padding:11px 14px;
+  font-size:15.5px;box-shadow:var(--shadow);z-index:9;
+}
+.mini{background:none;border:none;color:var(--surf);font-size:15px;font-weight:600;padding:2px 0;text-decoration:underline}
+details{border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;
+  letter-spacing:.09em;font-size:15px;font-weight:600;color:var(--soft)}
+details[open] summary{margin-bottom:12px}
+
+ul.rules{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+ul.rules li{font-size:14.5px;color:var(--soft)}
+ul.rules b{color:var(--ink);font-weight:600}
+.chip .tick{margin-left:6px;font-size:14px;opacity:.85}
+.chip[data-done="no"] .tick{opacity:.4}
+.obsrow{display:flex;flex-direction:column;gap:7px;padding:11px 0;border-bottom:1px solid var(--line)}
+.obsrow:last-child{border-bottom:0}
+.obsrow .hrow{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.obsrow .hrow input{width:72px;flex:0 0 auto}
+.obsrow .derived{font-size:15px;color:var(--soft);font-variant-numeric:tabular-nums}
+/* Compact so showing and hiding it does not reflow the chips beside it. */
+input[type=time]{font:500 16px/1.15 Archivo,system-ui,sans-serif;
+  background:var(--paper);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--r);padding:5px 7px;flex:0 0 auto}
+.whenrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="head-top">
+      <h1>Nado Wave Log</h1>
+      <div class="status"><span class="dot" id="dot"></span><span id="sync">starting</span></div>
+    </div>
+    <ul class="rules">
+      <li><b>No forecast is shown here, on purpose.</b> An observer who has already
+        seen one is not an independent witness. Log what you see, then check it.</li>
+      <li><b>Make the observation from the sand, in each break area.</b></li>
+    </ul>
+  </header>
+
+  <section>
+    <span class="lbl">Observer</span>
+    <div class="chips" id="observers"></div>
+    <div id="newobs" hidden class="card" style="gap:10px">
+      <span class="lbl">New observer</span>
+      <input type="text" id="obs-name" placeholder="name" autocomplete="off">
+      <div class="row">
+        <input type="number" id="obs-ft" placeholder="ft" inputmode="numeric" min="3" max="7">
+        <input type="number" id="obs-in" placeholder="in" inputmode="numeric" min="0" max="11">
+        <input type="number" id="obs-cm" placeholder="or cm" inputmode="numeric" min="100" max="230">
+      </div>
+      <p class="note">Standing height anchors the body scale — it is what turns
+        “chest high” into a length. Without it every comparison still works.</p>
+      <div class="row">
+        <button class="chip" id="obs-save" type="button">Add observer</button>
+        <button class="chip ghost" id="obs-cancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="lbl">Already seen a forecast today</span>
+    <div class="chips" id="seen"></div>
+    <p class="note">Settle this before you look at the water. It flags the
+      entry rather than rejecting it, and knowing which rows are contaminated
+      beats pretending none are.</p>
+  </section>
+
+  <section>
+    <span class="lbl">When</span>
+    <div class="whenrow">
+      <div class="chips" id="when"></div>
+      <input type="time" id="whentime" aria-label="Time of observation">
+    </div>
+    <p class="note" id="whennote"></p>
+  </section>
+
+  <section>
+    <span class="lbl">What are you logging</span>
+    <div class="chips" id="modes"></div>
+    <p class="note"><b>All three in one trip is the entry that matters most.</b>
+      One observer, one tide, over roughly half an hour means the three can be
+      compared against each other — which cancels most of what makes judging
+      absolute wave height unreliable.</p>
+  </section>
+
+  <section>
+    <span class="lbl" id="breaklbl">Break</span>
+    <div class="chips" id="breaks"></div>
+    <p class="note" id="breaknote" hidden>Tap freely between the three — what you choose for
+      each one is kept. You can make changes before saving.</p>
+  </section>
+
+  <div class="formzone">
+  <div class="card">
+    <section>
+      <span class="lbl">Typical wave <span id="whichbreak" style="color:var(--surf)"></span></span>
+      <div class="ruler" id="typical"></div>
+      <p class="note" id="derivnote"></p>
+    </section>
+
+    <section id="sawsec">
+      <span class="lbl">Saw a set come through</span>
+      <div class="chips" id="sawsets"></div>
+    </section>
+
+    <section id="setsec" hidden>
+      <span class="lbl">Set wave</span>
+      <div class="ruler" id="sets"></div>
+    </section>
+
+    <section>
+      <span class="lbl">Wind</span>
+      <div class="chips" id="wind"></div>
+    </section>
+
+    <section>
+      <span class="lbl">Rideable</span>
+      <div class="chips" id="rideable"></div>
+      <p class="note">About the face, not the size — two feet and clean is not two
+        feet closing out. <b>Yes:</b> waves had a rideable face, you could catch and
+        ride them. <b>Marginal:</b> a few rideable, most closing out, or barely
+        enough push to get in. <b>No:</b> nothing rideable — closing out, too small
+        to catch, or too blown out.</p>
+    </section>
+
+    <section>
+      <span class="lbl">Watched for</span>
+      <div class="chips" id="minutes"></div>
+      <p class="note">A two-minute look misses set waves and reads low. Recorded so
+        that bias stays correctable.</p>
+    </section>
+
+    <section>
+      <span class="lbl">Confidence</span>
+      <div class="chips" id="confidence"></div>
+    </section>
+
+    <section>
+      <span class="lbl">Note</span>
+      <input type="text" id="note" placeholder="optional" autocomplete="off">
+    </section>
+  </div>
+  <div class="savebar"><button class="primary" id="save">Save entry</button></div>
+  </div>
+
+  <section data-observer id="handback">
+    <span class="lbl">Send your entries</span>
+    <p class="note">Copy this and text or email it to Pete. It stays on this phone
+      until you do, and copying it does not clear it — send the same block again if
+      you are not sure it arrived.</p>
+    <textarea id="payload" readonly rows="6" style="width:100%;font:400 13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:10px"></textarea>
+    <div class="row">
+      <button class="chip" id="copy" type="button">Copy entries</button>
+      <button class="chip ghost" id="clear" type="button">Clear sent entries</button>
+    </div>
+  </section>
+
+  <details id="recent-wrap">
+    <summary>Recent entries</summary>
+    <div class="scroll"><table class="tbl" id="recent"></table></div>
+  </details>
+
+  <details data-owner>
+    <summary>Observers &amp; heights</summary>
+    <div id="obstable"></div>
+    <p class="note" style="margin-top:10px">Rename anyone here — the generic names are
+      placeholders. Heights are only used to turn a category into an approximate
+      length, and changes save as you type.</p>
+  </details>
+
+</div>
+
+
+
+<script>
+/* Nado Wave Log — the capture surface for the verification series.
+ *
+ * ONE FILE, TWO ROLES, because two files would drift and the schema is the
+ * whole point of this thing.
+ *
+ *   OWNER    — served as a claude.ai Artifact where the shared store resolves.
+ *              Roster and heights live here and nowhere else.
+ *   OBSERVER — the same file hosted as plain static HTML, or published without
+ *              the db capability. No sign-in: entries live on the phone and get
+ *              handed back as a block of text.
+ *
+ * THE ROLE IS THE STORE, not the presence of `window.claude` — that object
+ * exists in every Artifact viewer, including a copy published without db, so
+ * sniffing it would show the roster controls to exactly the people they are
+ * meant to be hidden from. The page starts closed and is promoted only if a
+ * real store turns up.
+ *
+ * Two rules the code enforces rather than states:
+ *   1. No forecast is ever displayed. There is no network call in this file at
+ *      all, so there is nothing for a later edit to quietly point at a surf API.
+ *   2. Nothing is lost. Entries are written to this phone FIRST, always, and
+ *      only then flushed anywhere else.
+ *
+ * NO DIALOGS. `prompt()` and `confirm()` are blocked in the Artifact's sandbox
+ * and fail silently — the first version of the roster editor used them and its
+ * buttons simply did nothing. Everything is inline or two-tap.
+ *
+ * There is deliberately no "did not look" option: `flat` means the ocean was
+ * flat and somebody checked. Not looking is a gap, and gaps stay gaps.
+ */
+"use strict";
+
+var BREAKS = [
+  {id:"coronado_north",  name:"North"},
+  {id:"coronado_center", name:"Center"},
+  {id:"coronado_south",  name:"South"}
+];
+
+/* Ordered smallest to largest. The ordering is what does the real work: it lets
+ * one session say "south was bigger than north" with no calibration at all.
+ *
+ * The fractions are CONVENTIONAL ANTHROPOMETRY — a rough proportion of standing
+ * height, not measured for anybody. They let the ruler show an approximate face
+ * height beside each rung. The category is what gets stored. */
+var SCALE = [
+  ["flat","Flat",0.00],["ankle","Ankle",0.07],["knee","Knee",0.27],
+  ["thigh","Thigh",0.42],["waist","Waist",0.53],["chest","Chest",0.72],
+  ["shoulder","Shoulder",0.82],["head","Head",1.00],
+  ["overhead","Overhead",1.25],["double_overhead","Double overhead",2.00]
+];
+var WIND=[["glassy","Glassy"],["offshore","Offshore"],["cross","Cross"],
+  ["light_onshore","Light onshore"],["onshore","Onshore"],["storm","Storm"]];
+var RIDE=[["yes","Yes"],["marginal","Marginal"],["no","No"]];
+var CONF=[["high","High"],["medium","Medium"],["low","Low"]];
+var MINS=[["2","2 min"],["5","5 min"],["10","10 min"],["20","20 min"],["45","45 min+"]];
+var YN=[["true","Yes"],["false","No"]];
+
+/* The form always records an observation made from the sand, because that is
+ * what the page instructs. The column stays in the schema — the CLI can still
+ * record a session watched from the water — but there is no question here,
+ * since a field with one possible answer is a tap that buys nothing. */
+var METHOD = "from_sand";
+
+/* Fallback roster for the observer build, which has no store to read.
+ * Heights stay 0 until somebody is actually measured, rather than carrying a
+ * guess where a measurement belongs. */
+var ROSTER = [
+  {id:"pete",      name:"pete",      height_cm:0},
+  {id:"observer2", name:"observer2", height_cm:0},
+  {id:"observer3", name:"observer3", height_cm:0}
+];
+
+var QKEY="nado.queue.v1", OKEY="nado.observers.v1", LAST="nado.last.v1";
+var db=null, OWNER=false, observers=[], queue=[], recent=[];
+var mode="sweep", active="coronado_north", clearArmed=false;
+var session={}, sheets={};
+
+function store(k,v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||"null");
+  localStorage.setItem(k,JSON.stringify(v)); }catch(e){ return null; } }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function iso(d){ return new Date(d).toISOString().replace(/\.\d+Z$/,"Z"); }
+function el(i){ return document.getElementById(i); }
+
+/* Centimetres to the units an observer on a Coronado beach thinks in. */
+function feet(cm){
+  if(!cm) return "";
+  var total=Math.round(cm/2.54), ft=Math.floor(total/12), inch=total%12;
+  if(inch===12){ ft+=1; inch=0; }
+  return ft ? (ft+"'"+inch+'"') : (inch+'"');
+}
+function heightOf(obsId){
+  var o=observers.filter(function(x){ return x.id===obsId; })[0];
+  return o && o.height_cm ? o.height_cm : 0;
+}
+
+/* One break's answers. Everything in the card below is per break and survives
+ * switching between them; the session fields above it are asked once. */
+function blank(){
+  return { typical:"", saw_sets:"", sets:"", wind:"", rideable:"",
+           minutes_watched:"10", confidence:"medium", note:"", observed_at:0 };
+}
+
+/* Each break carries its OWN observation time, stamped by the first tap on its
+ * TYPICAL WAVE — not by the first tap on anything.
+ *
+ * The typical wave is the observation; wind, rideability and the rest describe
+ * it. So the moment the observer commits to a height is the moment they are
+ * recording, and it does not drift if they open a break's card early, walk, and
+ * come back to the conditions afterwards.
+ *
+ * An earlier version stamped all three with one time and called the loss
+ * nothing. That was wrong. The breaks are twenty minutes and a walk apart, and
+ * writing one timestamp across them asserts a simultaneity that did not happen.
+ * The buoy being hourly makes the error survivable, not honest.
+ *
+ * "Previously" is the exception, and deliberately: someone logging after the
+ * fact knows roughly when they were at the beach and nothing finer, so one
+ * supplied time for the session is the whole of what they actually know. */
+function touch(s){ if(!s.observed_at) s.observed_at=Date.now(); }
+function sheet(b){ if(!sheets[b]) sheets[b]=blank(); return sheets[b]; }
+function cur(){ return sheet(active); }
+
+function newSession(){
+  session={ observer:(session && session.observer)||"", forecast_seen:"false",
+            when_mode:"now", when_time:"", session_id:uid() };
+  sheets={};
+}
+newSession();
+
+function complete(b){
+  var s=sheets[b];
+  if(!s) return false;
+  if(!(s.typical && s.wind && s.rideable && s.saw_sets)) return false;
+  if(s.typical!=="flat" && s.saw_sets==="true" && !s.sets) return false;
+  return true;
+}
+function required(){ return mode==="sweep" ? BREAKS.map(function(b){return b.id;}) : [active]; }
+function allDone(){ return required().every(complete); }
+
+/* --- rendering ---------------------------------------------------------- */
+
+/* Redraws REUSE their buttons instead of replacing them.
+ *
+ * Rebuilding a control on every draw looks harmless and is not: a `change` on
+ * a roster field fires at blur, which is the same moment the finger is landing
+ * somewhere else. If that draw replaces the element being tapped, the node dies
+ * between mousedown and mouseup and the tap is swallowed — so the first tap
+ * after typing a height did nothing at all.
+ *
+ * `sync` rebuilds only when the SET of options changes, and otherwise updates
+ * the buttons in place, so nothing under the finger is ever torn out. */
+function sync(host, keys, make, update){
+  var same = host.children.length===keys.length;
+  if(same){
+    for(var i=0;i<keys.length;i++){
+      if(host.children[i].getAttribute("data-val")!==keys[i]){ same=false; break; }
+    }
+  }
+  if(!same){
+    host.textContent="";
+    keys.forEach(function(k){
+      var b=make(k); b.setAttribute("data-val",k); host.appendChild(b);
+    });
+  }
+  keys.forEach(function(k,i){ update(host.children[i], k, i); });
+}
+
+function chips(host, items, get, set){
+  if(!host) return;
+  var by={}; items.forEach(function(it){ by[it[0]]=it[1]; });
+  sync(host, items.map(function(it){ return it[0]; }),
+    function(k){
+      var b=document.createElement("button");
+      b.className="chip"; b.type="button"; b.textContent=by[k];
+      /* Reused buttons keep the listener they were born with, so the listener
+       * must not close over the setter — the one captured on the first draw
+       * would still be writing to whichever break was open then. It reads the
+       * current setter off the node instead, which every draw refreshes. */
+      b.addEventListener("click", function(){ b.__set(k); draw(); });
+      return b;
+    },
+    function(b,k){
+      b.__set=set;
+      b.setAttribute("aria-pressed", String(get()===k));
+    });
+}
+function field(key){
+  return [function(){ return cur()[key]; },
+          function(v){ cur()[key]=v; }];
+}
+
+/* The ruler, used twice: the typical wave and — only when a set was actually
+ * seen — the set wave. Same scale both times, so the two are comparable. */
+function ruler(host, key){
+  var cm=heightOf(session.observer), s=cur();
+  var steps=SCALE.filter(function(step){ return !(key==="sets" && step[0]==="flat"); });
+  var by={}; steps.forEach(function(step){ by[step[0]]=step; });
+
+  sync(host, steps.map(function(step){ return step[0]; }),
+    function(k){
+      var step=by[k];
+      var b=document.createElement("button");
+      b.className="rung"; b.type="button";
+      var bar=document.createElement("span");
+      bar.className="bar"; bar.style.width=(6+step[2]*48)+"px";
+      var nm=document.createElement("span"); nm.className="nm"; nm.textContent=step[1];
+      var ap=document.createElement("span"); ap.className="approx";
+      ap.style.cssText="margin-left:auto;padding-left:8px;font-size:15px;opacity:.72;font-variant-numeric:tabular-nums";
+      b.appendChild(bar); b.appendChild(nm); b.appendChild(ap);
+      b.addEventListener("click", function(){
+        var live=cur();
+        live[key]=k;
+        if(key==="typical"){
+          if(k==="flat"){ live.saw_sets="false"; live.sets=""; }
+          touch(live);
+        }
+        draw();
+      });
+      return b;
+    },
+    function(b,k){
+      var step=by[k];
+      b.setAttribute("aria-pressed", String(s[key]===k));
+      b.querySelector(".approx").textContent = (cm && step[2]>0) ? "~"+feet(cm*step[2]) : "";
+    });
+}
+
+function drawObservers(){
+  var by={}; observers.forEach(function(o){ by[o.id]=o; });
+  var keys=observers.map(function(o){ return o.id; });
+  if(OWNER) keys.push("__add");
+
+  sync(el("observers"), keys,
+    function(k){
+      var b=document.createElement("button"); b.type="button";
+      if(k==="__add"){
+        b.className="chip ghost"; b.textContent="+ new observer";
+        b.addEventListener("click", function(){
+          el("newobs").hidden=false;
+          el("obs-name").value="observer"+(observers.length+1);
+          el("obs-name").focus();
+        });
+        return b;
+      }
+      b.className="chip";
+      b.appendChild(document.createTextNode(""));
+      var h=document.createElement("span"); h.className="ht";
+      h.style.cssText="opacity:.62;font-size:14px;font-weight:400";
+      b.appendChild(h);
+      b.addEventListener("click", function(){
+        session.observer=k; store(LAST,k); draw();
+      });
+      return b;
+    },
+    function(b,k){
+      if(k==="__add") return;
+      var o=by[k];
+      b.firstChild.nodeValue=o.name;
+      b.querySelector(".ht").textContent = o.height_cm ? " "+feet(o.height_cm) : " height not set";
+      b.setAttribute("aria-pressed", String(session.observer===k));
+    });
+}
+
+function drawModes(){
+  var labels={sweep:"All three (one trip)", one:"One break"};
+  sync(el("modes"), ["sweep","one"],
+    function(k){
+      var b=document.createElement("button");
+      b.className="chip"; b.type="button"; b.textContent=labels[k];
+      b.addEventListener("click", function(){
+        mode=k; sheets={}; session.session_id=uid(); draw();
+      });
+      return b;
+    },
+    function(b,k){ b.setAttribute("aria-pressed", String(mode===k)); });
+}
+
+/* In sweep mode the chips pick which break you are EDITING, in any order, and
+ * carry a tick so it is obvious what is still outstanding. */
+function drawBreaks(){
+  var by={}; BREAKS.forEach(function(b){ by[b.id]=b; });
+  sync(el("breaks"), BREAKS.map(function(b){ return b.id; }),
+    function(k){
+      var btn=document.createElement("button");
+      btn.className="chip"; btn.type="button";
+      btn.appendChild(document.createTextNode(by[k].name));
+      var t=document.createElement("span"); t.className="tick";
+      btn.appendChild(t);
+      btn.addEventListener("click", function(){ active=k; draw(); });
+      return btn;
+    },
+    function(btn,k){
+      var done = mode==="sweep" && complete(k);
+      btn.querySelector(".tick").textContent = mode==="sweep" ? (done ? " ✓" : " ○") : "";
+      btn.setAttribute("data-done", done ? "yes" : "no");
+      btn.setAttribute("aria-pressed", String(active===k));
+    });
+}
+
+function drawRecent(){
+  var t=el("recent"); t.textContent="";
+  var head=t.insertRow();
+  ["When","Break","Typical","Set","Wind"].forEach(function(h){
+    var th=document.createElement("th"); th.textContent=h; head.appendChild(th);
+  });
+  if(!recent.length){
+    var r=t.insertRow(), c=r.insertCell(); c.colSpan=5;
+    c.textContent="Nothing logged yet."; c.style.color="var(--soft)";
+    return;
+  }
+  recent.slice(0,25).forEach(function(o){
+    var r=t.insertRow();
+    [ (o.observed_utc||"").replace("T"," ").replace("Z",""),
+      (o.break_id||"").replace("coronado_",""),
+      (o.typical||"").replace(/_/g," "),
+      (o.sets||"—").replace(/_/g," "),
+      (o.wind||"").replace(/_/g," ")
+    ].forEach(function(v){ r.insertCell().textContent=v; });
+  });
+}
+
+/* Inline, because the sandbox eats prompt(). Saves as you type. */
+function drawObsTable(){
+  var host=el("obstable"); if(!host) return;
+  host.textContent="";
+  observers.forEach(function(o){
+    var row=document.createElement("div"); row.className="obsrow";
+
+    var name=document.createElement("input");
+    name.type="text"; name.value=o.name; name.setAttribute("aria-label","Observer name");
+    name.addEventListener("change", function(){
+      var v=name.value.trim();
+      if(!v){ name.value=o.name; toast("An observer needs a name."); return; }
+      o.name=v; saveObserver(o); draw({keepRoster:true});
+    });
+
+    var hrow=document.createElement("div"); hrow.className="hrow";
+    var ft=document.createElement("input"), inch=document.createElement("input");
+    var total=o.height_cm ? Math.round(o.height_cm/2.54) : 0;
+    ft.type=inch.type="number"; ft.inputMode=inch.inputMode="numeric";
+    ft.placeholder="ft"; inch.placeholder="in";
+    ft.value = total ? Math.floor(total/12) : "";
+    inch.value = total ? (total%12) : "";
+    ft.setAttribute("aria-label","Height feet"); inch.setAttribute("aria-label","Height inches");
+    var derived=document.createElement("span"); derived.className="derived";
+    derived.textContent = o.height_cm ? o.height_cm+" cm" : "not set";
+
+    var commit=function(){
+      var f=parseFloat(ft.value)||0, i=parseFloat(inch.value)||0;
+      o.height_cm = f>0 ? Math.round((f*12+i)*2.54) : 0;
+      saveObserver(o);
+      derived.textContent = o.height_cm ? o.height_cm+" cm" : "not set";
+      draw({keepRoster:true});
+    };
+    ft.addEventListener("change", commit);
+    inch.addEventListener("change", commit);
+
+    hrow.appendChild(ft); hrow.appendChild(inch); hrow.appendChild(derived);
+    row.appendChild(name); row.appendChild(hrow);
+    host.appendChild(row);
+  });
+}
+
+function drawStatus(){
+  var d=el("dot"), s=el("sync");
+  if(!OWNER){
+    d.className = queue.length ? "dot pend" : "dot on";
+    s.textContent = queue.length
+      ? queue.length+" on this phone — send when you can" : "nothing waiting";
+    return;
+  }
+  if(queue.length){ d.className="dot pend"; s.textContent=queue.length+" waiting to sync"; }
+  else if(db){ d.className="dot on"; s.textContent="synced"; }
+  else { d.className="dot off"; s.textContent="on this phone only"; }
+}
+
+function draw(opts){
+  drawObservers(); drawModes(); drawBreaks();
+  ruler(el("typical"),"typical");
+  ruler(el("sets"),"sets");
+
+  chips(el("seen"), YN,
+    function(){ return session.forecast_seen; },
+    function(v){ session.forecast_seen=v; });
+  chips(el("when"), [["now","Now"],["prev","Previously"]],
+    function(){ return session.when_mode; },
+    function(v){ session.when_mode=v; if(v==="now") session.when_time=""; });
+
+  var s=cur();
+  chips(el("sawsets"), YN, field("saw_sets")[0], function(v){
+    var live=cur(); live.saw_sets=v; if(v!=="true") live.sets="";
+  });
+  chips(el("wind"), WIND, field("wind")[0], field("wind")[1]);
+  chips(el("rideable"), RIDE, field("rideable")[0], field("rideable")[1]);
+  chips(el("minutes"), MINS, field("minutes_watched")[0], field("minutes_watched")[1]);
+  chips(el("confidence"), CONF, field("confidence")[0], field("confidence")[1]);
+
+  drawRecent(); drawStatus();
+  /* Never rebuild the roster table from inside a roster edit: `change`
+   * fires on blur, by which point the finger is in the next field. */
+  if(!(opts && opts.keepRoster)) drawObsTable();
+
+  var wt=el("whentime");
+  wt.hidden = session.when_mode!=="prev";
+  /* A time the clock has not reached yet is not an observation. */
+  var now=new Date();
+  wt.max = String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+  if(wt.value!==session.when_time) wt.value=session.when_time;
+  el("whennote").textContent = session.when_mode==="prev"
+    ? "Local time of the observation, today."
+    : "Your observation time is used to sync the entry with other recorded ocean data.";
+  if(el("note").value !== s.note) el("note").value = s.note;
+
+  var cm=heightOf(session.observer);
+  el("derivnote").textContent = cm
+    ? "Feet are worked out from this observer's standing height ("+feet(cm)+") using "
+      + "ordinary body proportions. They are a reading aid, not a measurement — what "
+      + "gets stored is the category you tap."
+    : "Set this observer's standing height to see approximate feet beside each rung. "
+      + "Without it the categories still work for every comparison the log makes.";
+
+  /* Only a flat ocean hides this: there are no sets on a flat day. Waiting for
+   * a typical wave first was a sequencing habit, not a reason. */
+  el("sawsec").hidden = s.typical==="flat";
+  el("setsec").hidden = !(s.saw_sets==="true" && s.typical!=="flat");
+
+  var name=BREAKS.filter(function(b){ return b.id===active; })[0].name;
+  el("whichbreak").textContent = "— "+name;
+  el("breaklbl").textContent = mode==="sweep" ? "Break — all three required" : "Break";
+  el("breaknote").hidden = mode!=="sweep";
+
+  var left = required().filter(function(b){ return !complete(b); }).length;
+  el("save").textContent = mode==="sweep"
+    ? (left ? "Save — "+left+" break"+(left===1?"":"s")+" to go" : "Save all three")
+    : "Save entry";
+  el("save").disabled = !(session.observer && allDone());
+
+  if(!OWNER){
+    el("payload").value = queue.length ? JSON.stringify(queue) : "";
+    var c=el("copy");
+    c.textContent = queue.length===1 ? "Copy entry" : "Copy entries";
+    /* Nothing reaches the queue until its break was complete and saved, so an
+     * empty queue is exactly "nothing finished yet". */
+    c.disabled = !queue.length;
+    c.style.opacity = queue.length ? "" : ".45";
+    el("clear").disabled = !queue.length;
+    el("clear").style.opacity = queue.length ? "" : ".45";
+  }
+}
+
+/* --- persistence -------------------------------------------------------- */
+
+function toast(msg){
+  var t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2800);
+}
+
+function saveObserver(o){
+  var known={}; observers.forEach(function(x){ known[x.id]=x; });
+  known[o.id]=o; observers=Object.keys(known).map(function(k){ return known[k]; });
+  store(OKEY, observers);
+  if(db) db.collection("observers").doc(o.id).set({
+    name:o.name, height_cm:o.height_cm||0, created_utc:o.created_utc||iso(Date.now())
+  }).catch(function(){ toast("Could not save that to the shared list — it is kept on this phone."); });
+}
+
+function enqueue(rows){
+  rows.forEach(function(r){ queue.push(r); recent.unshift(r); });
+  store(QKEY, queue);
+  flush();
+}
+
+/* The observer build has nowhere to flush to; the queue IS the record until it
+ * is handed back, which is why clearing is a deliberate separate act. */
+function flush(){
+  if(!db || !queue.length) return;
+  queue.slice().forEach(function(row){
+    db.collection("observations").doc(row.entry_id).set(row).then(function(){
+      queue = queue.filter(function(q){ return q.entry_id!==row.entry_id; });
+      store(QKEY, queue); drawStatus();
+    }).catch(function(){});
+  });
+}
+
+/* The time supplied under "Previously", or 0 when logging live. */
+function suppliedTime(){
+  if(session.when_mode!=="prev" || !session.when_time) return 0;
+  var parts=session.when_time.split(":");
+  var d=new Date();
+  d.setHours(parseInt(parts[0],10), parseInt(parts[1],10), 0, 0);
+  return d.getTime();
+}
+function observedAt(breakId){
+  return suppliedTime() || sheet(breakId).observed_at || Date.now();
+}
+
+function build(breakId){
+  var s=sheet(breakId);
+  var when=observedAt(breakId);
+  var obs=observers.filter(function(o){ return o.id===session.observer; })[0];
+  return {
+    entry_id: uid(),
+    session_id: session.session_id,
+    observed_utc: iso(when),
+    logged_utc: iso(Date.now()),
+    break_id: breakId,
+    observer: obs ? obs.name : "",
+    observer_id: session.observer,
+    method: METHOD,
+    minutes_watched: s.minutes_watched,
+    saw_sets: s.saw_sets,
+    typical: s.typical,
+    sets: s.saw_sets==="true" ? (s.sets||"") : "",
+    typical_ft:"", sets_ft:"",
+    confidence: s.confidence,
+    wind: s.wind,
+    rideable: s.rideable,
+    forecast_seen: session.forecast_seen,
+    note: s.note
+  };
+}
+
+el("whentime").addEventListener("change", function(){
+  var v=el("whentime").value;
+  if(!v){ session.when_time=""; draw(); return; }
+  var parts=v.split(":"), d=new Date();
+  d.setHours(parseInt(parts[0],10), parseInt(parts[1],10), 0, 0);
+  if(d.getTime() > Date.now()){
+    toast("That is in the future — pick an earlier time.");
+    el("whentime").value=session.when_time;
+    return;
+  }
+  session.when_time=v; draw();
+});
+
+el("note").addEventListener("input", function(){ cur().note=el("note").value; });
+
+el("save").addEventListener("click", function(){
+  var rows=[], bad=null;
+  var order=SCALE.map(function(x){ return x[0]; });
+  required().forEach(function(b){
+    var row=build(b);
+    /* A set is by definition one of the bigger waves. Refused, never swapped. */
+    if(row.sets && order.indexOf(row.sets) < order.indexOf(row.typical)) bad=bad||b;
+    rows.push(row);
+  });
+  if(bad){
+    active=bad; draw();
+    toast("A set wave is one of the bigger ones — pick at or above the typical wave.");
+    return;
+  }
+  enqueue(rows);
+  var keptObserver=session.observer, keptSeen=session.forecast_seen;
+  newSession();
+  session.observer=keptObserver; session.forecast_seen=keptSeen;
+  el("note").value="";
+  draw();
+  toast(rows.length>1
+    ? "All three logged as one session."
+    : (db ? "Logged." : "Logged on this phone."));
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+
+if(el("obs-save")) el("obs-save").addEventListener("click", function(){
+  var name=el("obs-name").value.trim();
+  if(!name){ toast("Needs a name — an anonymous observation cannot be weighted."); return; }
+  var cm=parseFloat(el("obs-cm").value);
+  if(!(cm>=100 && cm<=230)){
+    var ft=parseFloat(el("obs-ft").value), inch=parseFloat(el("obs-in").value)||0;
+    cm = ft>0 ? Math.round((ft*12+inch)*2.54) : 0;
+  } else { cm=Math.round(cm); }
+  var o={ id:uid(), name:name, height_cm:cm||0, created_utc:iso(Date.now()) };
+  saveObserver(o);
+  session.observer=o.id; store(LAST,o.id);
+  el("newobs").hidden=true;
+  el("obs-name").value=el("obs-ft").value=el("obs-in").value=el("obs-cm").value="";
+  draw();
+});
+if(el("obs-cancel")) el("obs-cancel").addEventListener("click", function(){
+  el("newobs").hidden=true;
+});
+
+if(el("copy")) el("copy").addEventListener("click", function(){
+  var box=el("payload");
+  if(!box.value){ toast("Nothing to send yet."); return; }
+  box.select(); box.setSelectionRange(0, box.value.length);
+  var done=function(){ toast("Copied. Paste it into a text or email to Pete."); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(box.value).then(done, function(){
+      try{ document.execCommand("copy"); done(); }
+      catch(e){ toast("Select the text above and copy it by hand."); }
+    });
+  } else {
+    try{ document.execCommand("copy"); done(); }
+    catch(e){ toast("Select the text above and copy it by hand."); }
+  }
+});
+
+/* Two-tap rather than confirm(), which the sandbox blocks. */
+if(el("clear")) el("clear").addEventListener("click", function(){
+  var btn=el("clear");
+  if(!queue.length){ toast("Nothing to clear."); return; }
+  if(!clearArmed){
+    clearArmed=true;
+    btn.textContent="Tap again — this is the only copy";
+    setTimeout(function(){
+      clearArmed=false; btn.textContent="Clear sent entries";
+    }, 5000);
+    return;
+  }
+  clearArmed=false; btn.textContent="Clear sent entries";
+  queue=[]; store(QKEY, queue); recent=[]; draw();
+  toast("Cleared.");
+});
+
+/* --- boot --------------------------------------------------------------- */
+
+function applyRole(){
+  document.querySelectorAll("[data-owner]").forEach(function(n){ n.hidden = !OWNER; });
+  document.querySelectorAll("[data-observer]").forEach(function(n){ n.hidden = OWNER; });
+}
+
+observers = store(OKEY) || [];
+queue = store(QKEY) || [];
+recent = queue.slice();
+OWNER = false;
+applyRole();
+if(!observers.length) observers = ROSTER.slice();
+
+var last=store(LAST);
+if(last && observers.some(function(o){ return o.id===last; })) session.observer=last;
+else if(observers.length===1) session.observer=observers[0].id;
+draw();
+
+if(window.claude && window.claude.use){
+  window.claude.use("db").then(function(resolved){
+    db=resolved;
+    if(!db){ drawStatus(); return; }
+    OWNER=true;              /* a store resolved: this is the owner's page */
+    applyRole();
+    db.collection("observers").onSnapshot(function(snap){
+      var seen={};
+      snap.docs.forEach(function(d){
+        var v=d.data()||{};
+        seen[d.id]={ id:d.id, name:v.name||d.id, height_cm:v.height_cm||0,
+                     created_utc:v.created_utc||"" };
+      });
+      if(Object.keys(seen).length){
+        observers=Object.keys(seen).map(function(k){ return seen[k]; });
+        store(OKEY, observers);
+      }
+      draw();
+    }, function(){});
+    db.collection("observations").orderBy("observed_utc","desc").limit(40)
+      .onSnapshot(function(snap){
+        var rows=snap.docs.map(function(d){ return d.data()||{}; });
+        var ids={}; rows.forEach(function(r){ ids[r.entry_id]=1; });
+        recent = queue.filter(function(q){ return !ids[q.entry_id]; }).concat(rows);
+        drawRecent(); drawStatus();
+      }, function(){});
+    flush();
+    draw();
+  }).catch(function(){ drawStatus(); });
+}
+</script>
