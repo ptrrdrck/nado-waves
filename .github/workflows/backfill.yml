@@ -1,0 +1,103 @@
+# Historical backfill — CALIBRATION ONLY, run on demand.
+#
+# Not scheduled. The 45-day urgency that drives collect.yml does not apply here:
+# NDBC keeps the historical archive indefinitely, so there is nothing to lose by
+# fetching it when it is wanted. Running it on a timer would only add commits.
+#
+# This never writes to data/observations/. The live archive holds values as
+# first published, with first_seen_utc, and is the only thing that can resolve a
+# round. The historical archive is quality-controlled after the fact and exists
+# to calibrate the scoring function. See SPEC section 4.
+
+name: Backfill history (calibration)
+
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: "How many complete years back"
+        required: false
+        default: "3"
+      stations:
+        description: "Comma-separated station ids (blank = launch candidates)"
+        required: false
+        default: ""
+      force:
+        description: "Re-fetch station-years already in the manifest"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch historical archive
+        env:
+          YEARS: ${{ inputs.years }}
+          STATIONS: ${{ inputs.stations }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+          args=(--years "${YEARS:-3}")
+          if [ -n "${STATIONS:-}" ]; then
+            args+=(--stations "${STATIONS}")
+          fi
+          if [ "${FORCE:-false}" = "true" ]; then
+            args+=(--force)
+          fi
+          python -m collector.backfill "${args[@]}"
+
+      - name: Re-run the scoring backtest against the wider archive
+        run: python -m game.backtest --source historical || true
+
+      - name: Commit and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "beat-the-buoy collector"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Deliberately scoped: this job must never touch data/observations.
+          git add data/historical
+
+          if git diff --cached --quiet; then
+            echo "No new historical rows to commit."
+            exit 0
+          fi
+
+          added=$(git diff --cached --numstat -- data/historical \
+            | awk '{sum += $1} END {print sum + 0}')
+
+          git commit \
+            -m "data: backfill NDBC history (calibration)" \
+            -m "${added} row(s), hourly, from the NDBC historical archive. Calibration only - not the system of record. See SPEC section 4."
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            git pull --rebase --autostash origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+
+          echo "::error title=Backfill push failed::Could not push historical rows"
+          exit 1

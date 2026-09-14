@@ -1,0 +1,6 @@
+# STATION_ID | OWNER | TTYPE | HULL | NAME | PAYLOAD | LOCATION | TIMEZONE | FORECAST | NOTE
+46222|SC|Buoy|Datawell|San Pedro, CA|Datawell Waverider|33.618 N 118.317 W (33&#176;37'5" N 118&#176;19'1" W)|P|http://forecast.weather.gov/|
+46232|SC|Buoy|Datawell|Point Loma South, CA|Datawell Waverider|32.517 N 117.425 W (32&#176;31'1" N 117&#176;25'30" W)|P||
+46086|NDBC|Buoy|3-meter discus|SAN CLEMENTE BASIN|ARES|32.499 N 118.052 W|P||
+41001|NDBC|Buoy|6-meter NOMAD|EAST HATTERAS|AMPS|34.724 N 72.317 W|E||
+99999|XX|Buoy||BROKEN LOCATION|ARES|not a location at all|P||

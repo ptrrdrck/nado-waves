@@ -1,0 +1,4 @@
+#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS  TIDE
+#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi    ft
+2021 01 01 00 21 999 99.0 99.0  1.93  7.69  6.23 271 9999.0 999.0  15.1 999.0 99.0 99.00
+2021 01 01 00 51 999 99.0 99.0  1.88  7.69  6.11 268 9999.0 999.0  15.0 999.0 99.0 99.00
