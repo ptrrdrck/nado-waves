@@ -1,4 +1,4 @@
-<title>Beach Log — Observer</title>
+<title>Nado Wave Log — Observer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
@@ -38,7 +38,7 @@
 body{
   background:var(--paper); color:var(--ink);
   font:400 16px/1.45 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
-  -webkit-text-size-adjust:100%; padding:0 16px 128px; margin:0;
+  -webkit-text-size-adjust:100%; padding:0 16px 40px; margin:0;
 }
 .wrap{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding-block:18px 0}
 .lbl{
@@ -88,13 +88,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 .rail div{flex:1;height:5px;border-radius:3px;background:var(--line)}
 .rail div.done{background:var(--ok)}
 .rail div.now{background:var(--surf)}
-.bar-fixed{
-  position:fixed;left:0;right:0;bottom:0;background:var(--card);
-  border-top:1px solid var(--line);padding:11px 16px calc(11px + env(safe-area-inset-bottom));
-}
-.bar-inner{max-width:540px;margin:0 auto;display:flex;gap:10px;align-items:center}
+/* The save button follows the form rather than the viewport: sticky while the
+ * entry form is on screen, then it scrolls away and the rest of the page —
+ * sending entries, then recent ones — follows underneath it. */
+.formzone{display:flex;flex-direction:column;gap:18px}
+.savebar{position:sticky;bottom:10px;z-index:5;display:flex;
+  padding-bottom:calc(2px + env(safe-area-inset-bottom))}
 .primary{
-  flex:1;background:var(--surf);color:var(--surf-ink);border:1px solid var(--surf);
+  flex:1;box-shadow:var(--shadow);background:var(--surf);color:var(--surf-ink);border:1px solid var(--surf);
   border-radius:var(--r);padding:14px;font-weight:700;font-size:16px;
   font-family:"Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;letter-spacing:.07em;
 }
@@ -115,7 +116,7 @@ input[type=text],input[type=number]{
 .tbl td{padding:7px 8px 7px 0;border-bottom:1px solid var(--line)}
 .scroll{overflow-x:auto}
 .toast{
-  position:fixed;left:16px;right:16px;bottom:84px;margin:0 auto;max-width:508px;
+  position:fixed;left:16px;right:16px;bottom:24px;margin:0 auto;max-width:508px;
   background:var(--ink);color:var(--paper);border-radius:var(--r);padding:11px 14px;
   font-size:14px;box-shadow:var(--shadow);z-index:9;
 }
@@ -135,8 +136,10 @@ ul.rules b{color:var(--ink);font-weight:600}
 .obsrow .hrow{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .obsrow .hrow input{width:72px;flex:0 0 auto}
 .obsrow .derived{font-size:12.5px;color:var(--soft);font-variant-numeric:tabular-nums}
-input[type=time]{font:inherit;background:var(--paper);color:var(--ink);
-  border:1px solid var(--line);border-radius:var(--r);padding:9px 11px}
+/* Compact so showing and hiding it does not reflow the chips beside it. */
+input[type=time]{font:500 14px/1.15 Archivo,system-ui,sans-serif;
+  background:var(--paper);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--r);padding:5px 7px;flex:0 0 auto}
 .whenrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -144,14 +147,13 @@ input[type=time]{font:inherit;background:var(--paper);color:var(--ink);
 <div class="wrap">
   <header>
     <div class="head-top">
-      <h1>Coronado Beach Log</h1>
+      <h1>Nado Wave Log</h1>
       <div class="status"><span class="dot" id="dot"></span><span id="sync">starting</span></div>
     </div>
     <ul class="rules">
       <li><b>No forecast is shown here, on purpose.</b> An observer who has already
         seen one is not an independent witness. Log what you see, then check it.</li>
-      <li><b>Make the observation from the sand, in the break area</b> — not from the
-        road, the pier or a car park further along.</li>
+      <li><b>Make the observation from the sand, in each break area.</b></li>
     </ul>
   </header>
 
@@ -196,9 +198,9 @@ input[type=time]{font:inherit;background:var(--paper);color:var(--ink);
     <span class="lbl">What are you logging</span>
     <div class="chips" id="modes"></div>
     <p class="note"><b>All three in one trip is the entry that matters most.</b>
-      One observer, one tide, half an hour apart means the three can be compared
-      against each other — which cancels most of what makes judging absolute wave
-      height unreliable.</p>
+      One observer, one tide, over roughly half an hour means the three can be
+      compared against each other — which cancels most of what makes judging
+      absolute wave height unreliable.</p>
   </section>
 
   <section>
@@ -209,6 +211,7 @@ input[type=time]{font:inherit;background:var(--paper);color:var(--ink);
       saving, and all three have to be filled in.</p>
   </section>
 
+  <div class="formzone">
   <div class="card">
     <section>
       <span class="lbl">Typical wave <span id="whichbreak" style="color:var(--surf)"></span></span>
@@ -258,6 +261,20 @@ input[type=time]{font:inherit;background:var(--paper);color:var(--ink);
       <input type="text" id="note" placeholder="optional" autocomplete="off">
     </section>
   </div>
+  <div class="savebar"><button class="primary" id="save">Save entry</button></div>
+  </div>
+
+  <section data-observer id="handback">
+    <span class="lbl">Send your entries</span>
+    <p class="note">Copy this and text or email it to Pete. It stays on this phone
+      until you do, and copying it does not clear it — send the same block again if
+      you are not sure it arrived.</p>
+    <textarea id="payload" readonly rows="6" style="width:100%;font:400 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:10px"></textarea>
+    <div class="row">
+      <button class="chip" id="copy" type="button">Copy entries</button>
+      <button class="chip ghost" id="clear" type="button">Clear sent entries</button>
+    </div>
+  </section>
 
   <details id="recent-wrap">
     <summary>Recent entries</summary>
@@ -272,27 +289,12 @@ input[type=time]{font:inherit;background:var(--paper);color:var(--ink);
       length, and changes save as you type.</p>
   </details>
 
-  <details data-observer id="handback">
-    <summary>Send your entries</summary>
-    <p class="note">Copy this and text or email it to Pete. It stays on this phone
-      until you do, and copying it does not clear it — send the same block again if
-      you are not sure it arrived.</p>
-    <textarea id="payload" readonly rows="6" style="width:100%;font:400 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:10px;margin-top:10px"></textarea>
-    <div class="row" style="margin-top:10px">
-      <button class="chip" id="copy" type="button">Copy entries</button>
-      <button class="chip ghost" id="clear" type="button">Clear sent entries</button>
-    </div>
-  </details>
 </div>
 
-<div class="bar-fixed">
-  <div class="bar-inner">
-    <button class="primary" id="save">Save entry</button>
-  </div>
-</div>
+
 
 <script>
-/* Coronado Beach Log — the capture surface for the verification series.
+/* Nado Wave Log — the capture surface for the verification series.
  *
  * ONE FILE, TWO ROLES, because two files would drift and the schema is the
  * whole point of this thing.
@@ -366,7 +368,7 @@ var ROSTER = [
 
 var QKEY="nado.queue.v1", OKEY="nado.observers.v1", LAST="nado.last.v1";
 var db=null, OWNER=false, observers=[], queue=[], recent=[];
-var mode="one", active="coronado_center", clearArmed=false;
+var mode="sweep", active="coronado_north", clearArmed=false;
 var session={}, sheets={};
 
 function store(k,v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||"null");
@@ -391,8 +393,22 @@ function heightOf(obsId){
  * switching between them; the session fields above it are asked once. */
 function blank(){
   return { typical:"", saw_sets:"", sets:"", wind:"", rideable:"",
-           minutes_watched:"10", confidence:"medium", note:"" };
+           minutes_watched:"10", confidence:"medium", note:"", observed_at:0 };
 }
+
+/* Each break carries its OWN observation time, stamped the first time anything
+ * is entered for it — which is when the observer arrived at that break, having
+ * just watched it.
+ *
+ * An earlier version stamped all three with one time and called the loss
+ * nothing. That was wrong. The breaks are twenty minutes and a walk apart, and
+ * writing one timestamp across them asserts a simultaneity that did not happen.
+ * The buoy being hourly makes the error survivable, not honest.
+ *
+ * "Previously" is the exception, and deliberately: someone logging after the
+ * fact knows roughly when they were at the beach and nothing finer, so one
+ * supplied time for the session is the whole of what they actually know. */
+function touch(s){ if(!s.observed_at) s.observed_at=Date.now(); }
 function sheet(b){ if(!sheets[b]) sheets[b]=blank(); return sheets[b]; }
 function cur(){ return sheet(active); }
 
@@ -461,7 +477,8 @@ function chips(host, items, get, set){
     });
 }
 function field(key){
-  return [function(){ return cur()[key]; }, function(v){ cur()[key]=v; }];
+  return [function(){ return cur()[key]; },
+          function(v){ var s=cur(); s[key]=v; touch(s); }];
 }
 
 /* The ruler, used twice: the typical wave and — only when a set was actually
@@ -486,6 +503,7 @@ function ruler(host, key){
         var live=cur();
         live[key]=k;
         if(key==="typical" && k==="flat"){ live.saw_sets="false"; live.sets=""; }
+        touch(live);
         draw();
       });
       return b;
@@ -534,8 +552,8 @@ function drawObservers(){
 }
 
 function drawModes(){
-  var labels={one:"One break", sweep:"All three (one trip)"};
-  sync(el("modes"), ["one","sweep"],
+  var labels={sweep:"All three (one trip)", one:"One break"};
+  sync(el("modes"), ["sweep","one"],
     function(k){
       var b=document.createElement("button");
       b.className="chip"; b.type="button"; b.textContent=labels[k];
@@ -654,13 +672,13 @@ function draw(opts){
   chips(el("seen"), YN,
     function(){ return session.forecast_seen; },
     function(v){ session.forecast_seen=v; });
-  chips(el("when"), [["now","Now"],["at","At a time"]],
+  chips(el("when"), [["now","Now"],["prev","Previously"]],
     function(){ return session.when_mode; },
     function(v){ session.when_mode=v; if(v==="now") session.when_time=""; });
 
   var s=cur();
   chips(el("sawsets"), YN, field("saw_sets")[0], function(v){
-    s.saw_sets=v; if(v!=="true") s.sets="";
+    var live=cur(); live.saw_sets=v; if(v!=="true") live.sets=""; touch(live);
   });
   chips(el("wind"), WIND, field("wind")[0], field("wind")[1]);
   chips(el("rideable"), RIDE, field("rideable")[0], field("rideable")[1]);
@@ -672,10 +690,15 @@ function draw(opts){
    * fires on blur, by which point the finger is in the next field. */
   if(!(opts && opts.keepRoster)) drawObsTable();
 
-  el("whentime").hidden = session.when_mode!=="at";
-  el("whennote").textContent = session.when_mode==="at"
-    ? "Local time today. If it is later than now it is read as yesterday."
-    : "Recorded to the minute so the entry can be lined up against the buoy record afterwards.";
+  var wt=el("whentime");
+  wt.hidden = session.when_mode!=="prev";
+  /* A time the clock has not reached yet is not an observation. */
+  var now=new Date();
+  wt.max = String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+  if(wt.value!==session.when_time) wt.value=session.when_time;
+  el("whennote").textContent = session.when_mode==="prev"
+    ? "Local time of the observation, today."
+    : "Your observation time is used to sync the entry with other recorded ocean data.";
   if(el("note").value !== s.note) el("note").value = s.note;
 
   var cm=heightOf(session.observer);
@@ -686,8 +709,10 @@ function draw(opts){
     : "Set this observer's standing height to see approximate feet beside each rung. "
       + "Without it the categories still work for every comparison the log makes.";
 
-  el("sawsec").hidden = s.typical==="flat" || !s.typical;
-  el("setsec").hidden = !(s.saw_sets==="true" && s.typical && s.typical!=="flat");
+  /* Only a flat ocean hides this: there are no sets on a flat day. Waiting for
+   * a typical wave first was a sequencing habit, not a reason. */
+  el("sawsec").hidden = s.typical==="flat";
+  el("setsec").hidden = !(s.saw_sets==="true" && s.typical!=="flat");
 
   var name=BREAKS.filter(function(b){ return b.id===active; })[0].name;
   el("whichbreak").textContent = "— "+name;
@@ -700,7 +725,17 @@ function draw(opts){
     : "Save entry";
   el("save").disabled = !(session.observer && allDone());
 
-  if(!OWNER) el("payload").value = queue.length ? JSON.stringify(queue) : "";
+  if(!OWNER){
+    el("payload").value = queue.length ? JSON.stringify(queue) : "";
+    var c=el("copy");
+    c.textContent = queue.length===1 ? "Copy entry" : "Copy entries";
+    /* Nothing reaches the queue until its break was complete and saved, so an
+     * empty queue is exactly "nothing finished yet". */
+    c.disabled = !queue.length;
+    c.style.opacity = queue.length ? "" : ".45";
+    el("clear").disabled = !queue.length;
+    el("clear").style.opacity = queue.length ? "" : ".45";
+  }
 }
 
 /* --- persistence -------------------------------------------------------- */
@@ -738,20 +773,21 @@ function flush(){
   });
 }
 
-/* One observed time for the whole session. The breaks are minutes apart and the
- * buoy reports hourly, so a single timestamp loses nothing and keeps the three
- * entries genuinely comparable. */
-function observedAt(){
-  if(session.when_mode!=="at" || !session.when_time) return Date.now();
+/* The time supplied under "Previously", or 0 when logging live. */
+function suppliedTime(){
+  if(session.when_mode!=="prev" || !session.when_time) return 0;
   var parts=session.when_time.split(":");
   var d=new Date();
   d.setHours(parseInt(parts[0],10), parseInt(parts[1],10), 0, 0);
-  if(d.getTime() > Date.now()) d.setDate(d.getDate()-1);
   return d.getTime();
 }
+function observedAt(breakId){
+  return suppliedTime() || sheet(breakId).observed_at || Date.now();
+}
 
-function build(breakId, when){
+function build(breakId){
   var s=sheet(breakId);
+  var when=observedAt(breakId);
   var obs=observers.filter(function(o){ return o.id===session.observer; })[0];
   return {
     entry_id: uid(),
@@ -775,13 +811,28 @@ function build(breakId, when){
   };
 }
 
-el("note").addEventListener("input", function(){ cur().note=el("note").value; });
+el("whentime").addEventListener("change", function(){
+  var v=el("whentime").value;
+  if(!v){ session.when_time=""; draw(); return; }
+  var parts=v.split(":"), d=new Date();
+  d.setHours(parseInt(parts[0],10), parseInt(parts[1],10), 0, 0);
+  if(d.getTime() > Date.now()){
+    toast("That is still in the future — pick a time you have already been out.");
+    el("whentime").value=session.when_time;
+    return;
+  }
+  session.when_time=v; draw();
+});
+
+el("note").addEventListener("input", function(){
+  var s=cur(); s.note=el("note").value; touch(s);
+});
 
 el("save").addEventListener("click", function(){
-  var when=observedAt(), rows=[], bad=null;
+  var rows=[], bad=null;
   var order=SCALE.map(function(x){ return x[0]; });
   required().forEach(function(b){
-    var row=build(b, when);
+    var row=build(b);
     /* A set is by definition one of the bigger waves. Refused, never swapped. */
     if(row.sets && order.indexOf(row.sets) < order.indexOf(row.typical)) bad=bad||b;
     rows.push(row);
