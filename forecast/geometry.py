@@ -184,25 +184,61 @@ def blocked_sector(spot: Spot, blocker: Blocker) -> tuple[float, float] | None:
     return (low, high) if high > low else None
 
 
-def open_window(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float]]:
-    """Seaward arcs that no blocker covers, as absolute compass bearings."""
+def _free_arcs(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float, bool, bool]]:
+    """Unblocked seaward arcs, relative to the normal, with their edges sourced.
+
+    Each entry is ``(low, high, low_from_blocker, high_from_blocker)``. Knowing
+    *where an edge came from* is what separates the two open arcs at these
+    beaches: an edge at exactly the seaward clip is the beach turning its back
+    on the swell, while a blocker-derived edge is land in the way. BRIEFING
+    section 2 tells the reader to "read the swell-side window" and then leaves
+    them to find it by eye; this is that distinction, computed.
+    """
 
     cuts = [s for s in (blocked_sector(spot, b) for b in blockers) if s]
     cuts.sort()
 
-    free: list[tuple[float, float]] = []
+    free: list[tuple[float, float, bool, bool]] = []
     cursor = -SEAWARD_HALF_WIDTH
     for low, high in cuts:
         if low > cursor:
-            free.append((cursor, low))
+            free.append((cursor, low, cursor > -SEAWARD_HALF_WIDTH, True))
         cursor = max(cursor, high)
     if cursor < SEAWARD_HALF_WIDTH:
-        free.append((cursor, SEAWARD_HALF_WIDTH))
+        free.append((cursor, SEAWARD_HALF_WIDTH, cursor > -SEAWARD_HALF_WIDTH, False))
+
+    # Slivers below half a degree are noise, not a window.
+    return [arc for arc in free if arc[1] - arc[0] > 0.5]
+
+
+def open_window(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float]]:
+    """Seaward arcs that no blocker covers, as absolute compass bearings."""
 
     return [
         ((spot.normal + lo) % 360.0, (spot.normal + hi) % 360.0)
-        for lo, hi in free
-        if hi - lo > 0.5  # slivers below half a degree are noise, not a window
+        for lo, hi, _, _ in _free_arcs(spot, blockers)
+    ]
+
+
+def swell_window(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float]]:
+    """The arcs a real swell can arrive through — both edges cut by land.
+
+    The total open arc overstates, and BRIEFING section 2 says so: every spot
+    here also owns a wide south-east arc that is geometrically real and
+    practically near-useless, because Southern Hemisphere swell arrives from
+    roughly 180-220 degrees and nothing generates surf out of the bight behind
+    Coronado. That arc is the one bounded by the seaward clip.
+
+    The swell-side window is bounded by Point Loma to the west and the Coronado
+    Islands to the east — two blockers, no clip — which is also the mechanical
+    reason the shoreline chord cannot move it (BRIEFING section 2a): the clip
+    is what the normal controls, and here the clip never binds.
+    """
+
+    return [
+        ((spot.normal + lo) % 360.0, (spot.normal + hi) % 360.0)
+        for lo, hi, lo_blocked, hi_blocked in _free_arcs(spot, blockers)
+        if lo_blocked and hi_blocked
     ]
 
 

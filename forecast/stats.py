@@ -320,6 +320,21 @@ def assess(
     return base, (base - fitted) / base * 100, len(rows)
 
 
+def _constraining(registry):
+    """The default station set, imported at call time on purpose.
+
+    `forecast.siting` reaches `forecast.geometry` -> `forecast.swell`, and
+    `swell` still imports `LEAGUE_TZ` from this module — a leftover from the
+    predecessor game (see CLAUDE.md: trimming this module is a good first
+    cleanup). Until that dependency goes, a module-level import here closes a
+    cycle. Deferring it is the small fix; untangling `swell` is the real one.
+    """
+
+    from .siting import constraining
+
+    return constraining(registry)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Residual test for a candidate quantity.")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
@@ -335,7 +350,7 @@ def main(argv: list[str] | None = None) -> int:
     stations = (
         select(registry, args.stations.split(","))
         if args.stations
-        else [s for s in registry if s.launch_candidate]
+        else _constraining(registry)
     )
 
     wind = (

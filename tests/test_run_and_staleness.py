@@ -18,11 +18,19 @@ def sample(name: str) -> str:
 STATION = Station(id="46222", name="San Pedro, CA", region="socal")
 
 
-def test_registry_loads_and_marks_launch_candidates():
+def test_registry_loads_and_carries_only_what_cannot_be_derived():
+    """The registry is a collection list; `forecast.siting` does the ranking.
+
+    `launch_candidate` used to live here and marked the predecessor game's
+    leagues. Nothing replaces it in this file on purpose — a station's value to
+    this project is computed from coordinates, so storing it would be the
+    duplicated-derivable-value bug spots.json already paid for once.
+    """
+
     stations = load_stations()
     assert stations
     assert all(station.id == station.id.upper() for station in stations)
-    assert any(station.launch_candidate for station in stations)
+    assert not any(hasattr(station, "launch_candidate") for station in stations)
 
 
 def test_select_filters_and_rejects_unknown_ids():

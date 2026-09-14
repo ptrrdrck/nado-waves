@@ -1,128 +1,134 @@
 {
   "_comment": [
-    "Stations archived by the collector. This is deliberately a SUPERSET of the",
-    "v1 launch set (SPEC section 10 ships one quantity at a small set of buoys).",
-    "Archiving is kilobytes per station per day and NDBC history older than 45",
-    "days is unrecoverable, so collect broadly now and choose the launch league",
-    "set later from real coverage numbers. Adding a station here is cheap;",
-    "wishing you had added it six months ago is impossible.",
-    "'launch_candidate: true' marks the ones under consideration for v1.",
-    "Water-temperature coverage per station is reported by the collector run",
-    "summary and by `python -m collector.report`.",
-    "Stations with region 'sentinel_np' are NOT leagues and never host a round. They sit thousands of km upstream and exist to see a swell days before it reaches the launch set. launch_candidate is false for all of them."
+    "Stations the collector archives.",
+    "",
+    "WHAT THIS LIST IS FOR. Every station here is archived, because NDBC's",
+    "real-time feed retains 45 days and adding a station six months late is",
+    "impossible. Archiving is kilobytes per station per day. Collect broadly.",
+    "",
+    "WHAT IT IS NOT FOR: deciding which buoys matter. That was previously a",
+    "`launch_candidate` flag inherited from beat-the-buoy, where a station was",
+    "chosen to be a LEAGUE - one buoy per stretch of populated coast, so that a",
+    "player in Santa Monica had somewhere to play. That game is dead and the",
+    "criterion died with it. Measured, four of its six candidates sit 55 to 92",
+    "degrees off Coronado's swell window: no swell that reaches these beaches",
+    "has ever passed over them.",
+    "",
+    "The replacement is DERIVED, not stored: `forecast/siting.py` classifies",
+    "each station by whether swell entering a Coronado break's window passes",
+    "over it, from NDBC coordinates and the digitised geometry. Nothing in this",
+    "file records that verdict, on purpose - spots.json already learned what",
+    "storing a derivable value costs (an estimated position drifted 698 m from",
+    "its own chord and silently won every blocked sector). Run",
+    "`python -m forecast.siting` for the current answer.",
+    "",
+    "Region is still stored, because it is not derivable: 'sentinel_np' marks",
+    "the North Pacific buoys, thousands of km upstream, whose value is travel",
+    "time rather than aperture - the corridor test is meaningless at that range",
+    "and siting classifies them by this field instead of pretending otherwise."
   ],
   "stations": [
-    {
-      "id": "46222",
-      "name": "San Pedro, CA",
-      "region": "socal",
-      "launch_candidate": true,
-      "notes": "CDIP 092. Los Angeles / South Bay league."
-    },
-    {
-      "id": "46221",
-      "name": "Santa Monica Bay, CA",
-      "region": "socal",
-      "launch_candidate": true,
-      "notes": "CDIP 028. Santa Monica / Malibu league."
-    },
-    {
-      "id": "46253",
-      "name": "San Pedro South, CA",
-      "region": "socal",
-      "launch_candidate": false,
-      "notes": "CDIP 181."
-    },
-    {
-      "id": "46224",
-      "name": "Oceanside Offshore, CA",
-      "region": "socal",
-      "launch_candidate": true,
-      "notes": "CDIP 045. North San Diego County league."
-    },
-    {
-      "id": "46225",
-      "name": "Torrey Pines Outer, CA",
-      "region": "socal",
-      "launch_candidate": true,
-      "notes": "CDIP 100. La Jolla league."
-    },
-    {
-      "id": "46258",
-      "name": "Mission Bay West, CA",
-      "region": "socal",
-      "launch_candidate": true,
-      "notes": "CDIP 093. Mission Beach / Pacific Beach league."
-    },
     {
       "id": "46232",
       "name": "Point Loma South, CA",
       "region": "socal",
-      "launch_candidate": true,
-      "notes": "CDIP 191. San Diego league."
-    },
-    {
-      "id": "46219",
-      "name": "San Nicolas Island, CA",
-      "region": "socal",
-      "launch_candidate": false,
-      "notes": "CDIP 067. Offshore reference for upwelling context."
+      "notes": "CDIP 191. THE ANCHOR: the only buoy in this registry inside the swell window of all three Coronado breaks (bearing 230.8 from the centre break, 29.0 km). Every transform and forecast here is anchored on it. DARK since 2026-09-01T13:26Z and still dark - see BRIEFING section 8. There is no geometric substitute in the array; 46086 is the nearest thing and covers only the south break."
     },
     {
       "id": "46086",
       "name": "San Clemente Basin, CA",
       "region": "socal",
-      "launch_candidate": false,
-      "notes": "NDBC moored buoy. Offshore reference point."
+      "notes": "NDBC moored buoy. Inside coronado_south's swell window (256.2 from the centre break, 5.9 degrees outside that break's own window, 81.5 km). The best available upstream look at south-west swell bound for Coronado, and the only partial stand-in while 46232 is dark. The dead game's filter had this station OFF; the geometric criterion promotes it."
     },
     {
       "id": "46047",
       "name": "Tanner Banks, CA",
       "region": "socal",
-      "launch_candidate": false,
-      "notes": "NDBC moored buoy. Offshore reference point."
+      "notes": "NDBC moored buoy, 222.2 km out, 3.4 degrees outside coronado_south's window. Least shadowed station in the array and the denominator for every ratio in BRIEFING section 3, so it stays as the unshadowed baseline as well as an upstream edge case."
+    },
+    {
+      "id": "46258",
+      "name": "Mission Bay West, CA",
+      "region": "socal",
+      "notes": "CDIP 093. THE CONTRAST BUOY, and deliberately not an anchor: it bears 284.2 from the centre break, which is 33.9 degrees INSIDE Point Loma's blocked sector. It is 30.5 km out against 46232's 29.0 - very nearly matched range on the other side of the blocker - so it measures the energy Coronado cannot receive. That is what makes it the control for the aperture claim rather than a substitute for 46232. Do not use it as a fallback anchor when 46232 is dark; on a W/WNW swell it will read energy that is geometrically blocked."
+    },
+    {
+      "id": "46235",
+      "name": "46235 (unconfirmed)",
+      "region": "socal",
+      "notes": "ADDED 2026-09-14 on request, and UNCLASSIFIED. Its coordinates are not in data/station_metadata.csv and www.ndbc.noaa.gov was denied at CONNECT from the session that added it (BRIEFING section 8, a 403 there is a denial and not throttling), so nothing here knows where it is and `forecast.siting` reports it UNPLACED rather than guessing. Recalled but NOT verified: Imperial Beach Nearshore, CDIP 155 - treat that as a lead to check, not a fact. Reported dark at the time of adding. It is in this file anyway because archiving is cheap and the 45-day window is not recoverable: when it returns, the record starts from the day it returns rather than the day someone remembered. Run `python -m collector.metadata` on Actions to place it, then `python -m forecast.siting` to find out whether it constrains anything."
+    },
+    {
+      "id": "46219",
+      "name": "San Nicolas Island, CA",
+      "region": "socal",
+      "notes": "CDIP 067. Outside the islands and reads ~1.0 against Tanner in every direction, which is the control that says BRIEFING section 3's method is not manufacturing structure. Bears 284.2 from the centre break - the same blocked bearing as 46258, 260 km further out."
+    },
+    {
+      "id": "46225",
+      "name": "Torrey Pines Outer, CA",
+      "region": "socal",
+      "notes": "CDIP 100. 75.2 degrees off the centre break's window. North-coast station, kept for the archive and for BRIEFING section 3's shadow ratios; it constrains nothing about Coronado."
+    },
+    {
+      "id": "46224",
+      "name": "Oceanside Offshore, CA",
+      "region": "socal",
+      "notes": "CDIP 045. 83.9 degrees off. Archive and shadow-ratio value only."
+    },
+    {
+      "id": "46253",
+      "name": "San Pedro South, CA",
+      "region": "socal",
+      "notes": "CDIP 181. 67.0 degrees off. Archive and shadow-ratio value only."
+    },
+    {
+      "id": "46222",
+      "name": "San Pedro, CA",
+      "region": "socal",
+      "notes": "CDIP 092. 64.7 degrees off. Archive and shadow-ratio value only."
+    },
+    {
+      "id": "46221",
+      "name": "Santa Monica Bay, CA",
+      "region": "socal",
+      "notes": "CDIP 028. 64.2 degrees off. Archive and shadow-ratio value only."
     },
     {
       "id": "46001",
       "name": "Gulf of Alaska",
       "region": "sentinel_np",
-      "launch_candidate": false,
-      "notes": "3383 km upstream. Winter NW swell source region; 2.5-3.9 day travel time to SoCal depending on period."
+      "notes": "3383 km upstream. Winter NW swell source region; 2.5-3.9 day travel time to SoCal depending on period. NW is largely blocked at Coronado, so this is a source-region watch rather than an input."
     },
     {
       "id": "46006",
       "name": "Southeast Papa",
       "region": "sentinel_np",
-      "launch_candidate": false,
       "notes": "1868 km upstream. Mid-path check on North Pacific swell, 33h-2.1d out."
     },
     {
       "id": "46005",
       "name": "West Washington",
       "region": "sentinel_np",
-      "launch_candidate": false,
       "notes": "1743 km upstream. Northern approach, 31-48h out."
     },
     {
       "id": "46059",
       "name": "California Offshore",
       "region": "sentinel_np",
-      "launch_candidate": false,
       "notes": "1158 km upstream. Last deep-water look before the swell reaches the bight, 21-32h out."
     },
     {
       "id": "51101",
       "name": "Northwestern Hawaii",
       "region": "sentinel_np",
-      "launch_candidate": false,
       "notes": "4345 km. Sees NW swell on the Hawaii great circle; a cross-check rather than a direct upstream point for SoCal."
     },
     {
       "id": "51002",
       "name": "South of Hawaii",
       "region": "sentinel_np",
-      "launch_candidate": false,
-      "notes": "4338 km. The best available southern-hemisphere sentinel, and not on the great-circle path from the Southern Ocean to SoCal - south swell is the weakest case for a buoy-based approach."
+      "notes": "4338 km. The best available southern-hemisphere sentinel, and not on the great-circle path from the Southern Ocean to SoCal - south swell is the weakest case for a buoy-based approach. South swell is also the one regime Coronado's window is wide open to, so its weakness is felt here more than elsewhere."
     }
   ]
 }

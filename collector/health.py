@@ -144,6 +144,7 @@ def build_status(
     now: datetime | None = None,
     max_age_hours: float = DEFAULT_MAX_AGE_HOURS,
     previous: dict | None = None,
+    roles: dict[str, str] | None = None,
 ) -> dict:
     """Build the status document the app reads.
 
@@ -151,6 +152,12 @@ def build_status(
     can say "dark since the 1st" rather than "dark as of this morning". When a
     station goes dark, the moment it went dark is its last observation, not the
     moment we noticed.
+
+    `roles` is the per-station verdict from `forecast.siting`, passed in rather
+    than imported so that liveness stays independent of the beach geometry —
+    this module must keep working when spots.json or the NDBC coordinate file
+    is absent. A station with no entry is reported "unclassified", which is a
+    statement about this run and not about the buoy.
     """
 
     now = now or utcnow()
@@ -164,6 +171,13 @@ def build_status(
         reason = _paused_reason(health, state, now, max_age_hours)
 
         was = prior.get(station.id, {})
+        # When we first went looking for this buoy. A station added to the
+        # registry before it has ever reported has no `state_since_utc` — there
+        # is no last observation to date it from — so this is what lets the
+        # alert treat it as news for a while and then stop, instead of
+        # reporting it every run until someone mutes the alert entirely.
+        first_checked = was.get("first_checked_utc") or now.strftime(ISO)
+
         if was.get("state") == state and was.get("state_since_utc"):
             state_since = was["state_since_utc"]
         elif state == DARK:
@@ -178,9 +192,10 @@ def build_status(
                 "id": station.id,
                 "name": station.name,
                 "region": station.region,
-                "launch_candidate": station.launch_candidate,
+                "constrains_window": (roles or {}).get(station.id, "unclassified"),
                 "state": state,
                 "state_since_utc": state_since,
+                "first_checked_utc": first_checked,
                 "rounds_paused": reason is not None,
                 "paused_reason": reason,
                 "newest_observation_utc": to_iso(health.newest_observation),
@@ -217,7 +232,15 @@ def newly_dark(payload: dict, *, now: datetime | None = None) -> list[dict]:
     for entry in payload.get("stations", []):
         if entry["state"] == LIVE:
             continue
-        since = parse_iso(entry.get("state_since_utc"))
+        # A never-seen station has no last observation to date from, so fall
+        # back to when it was added. Without that it has no date at all and
+        # alerts on every run forever — which is precisely the "train the owner
+        # to ignore the alert" failure this function exists to avoid, and it
+        # bites hardest for a buoy deliberately registered while it is dark so
+        # that archiving starts the day it returns.
+        since = parse_iso(entry.get("state_since_utc")) or parse_iso(
+            entry.get("first_checked_utc")
+        )
         if since is None or (now - since).total_seconds() / 3600.0 <= window:
             fresh.append(entry)
     return fresh

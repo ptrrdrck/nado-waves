@@ -24,7 +24,10 @@ Station set: SoCal nearshore (46222 San Pedro, 46221 Santa Monica, 46253,
 46224 Oceanside, 46225 Torrey Pines, 46258 Mission Bay, **46232 Point Loma
 South** — the Coronado buoy), offshore reference (46219 San Nicolas Island,
 46086 San Clemente Basin, **46047 Tanner Banks** — the least shadowed), and
-North Pacific sentinels (46001, 46005, 46006, 46059, 51101, 51002).
+North Pacific sentinels (46001, 46005, 46006, 46059, 51101, 51002). **46235 was
+added 2026-09-14 and is unplaced** — no coordinates, so no claim; see §3a and
+§9. Every station is archived; which of them *constrain Coronado* is a separate
+and much shorter list (§3a).
 
 ### Data traps that have already bitten
 
@@ -149,6 +152,74 @@ swell hours only (DPD ≥ 12 s, Hs ≥ 0.5 m), 2023–2025.
 San Nicolas reading ~1.0 in every direction is the control — it is outside the
 islands and *should* be flat, and is. That is what says the method is not
 manufacturing structure.
+
+---
+
+## 3a. Measured, 2026-09-14 — which buoys observe Coronado's swell at all
+
+§3 asks how much energy each buoy *loses*. This asks a prior question the
+station list had never been held to: **does the swell that reaches Coronado
+pass over this buoy in the first place?**
+
+The test is one line of geometry, and it is exact rather than fitted. Swell
+arriving at a break from bearing θ travelled the ray leaving that break at
+bearing θ, so a buoy lies on some ray into the window exactly when its own
+bearing *from the break* falls inside that break's swell-side window. Run it
+with `python -m forecast.siting`.
+
+| buoy | km | bearing | ° outside the window (N / C / S) | verdict |
+|---|---|---|---|---|
+| **46232** Point Loma S | 29.0 | 230.8° | **0.0 / 0.0 / 0.0** | in all three |
+| **46086** San Clemente Bsn | 81.5 | 256.2° | 13.5 / 5.9 / **0.0** | in the south break's |
+| 46047 Tanner Banks | 222.2 | 263.0° | 20.7 / 12.8 / 3.4 | edge |
+| 46258 Mission Bay W | 30.5 | 284.2° | 41.5 / 33.9 / 25.2 | **behind Point Loma** |
+| 46219 San Nicolas I. | 259.6 | 284.2° | 41.9 / 33.9 / 24.5 | behind Point Loma |
+| 46225 Torrey Pines | 33.9 | 325.5° | 84.1 / 75.2 / 64.9 | off axis |
+| 46224 Oceanside | 61.3 | 334.2° | 92.5 / 83.9 / 73.8 | off axis |
+| 46253 San Pedro S | 136.0 | 317.2° | 75.1 / 67.0 / 57.3 | off axis |
+| 46222 San Pedro | 147.6 | 314.9° | 72.8 / 64.7 / 55.0 | off axis |
+| 46221 Santa Monica | 188.3 | 314.5° | 72.3 / 64.2 / 54.5 | off axis |
+
+**46232 is the only buoy in the array inside Coronado's window, and there is no
+substitute.** That reframes its outage (§8): the anchor going dark is not an
+inconvenience in the data, it is the removal of the only station that observes
+the swell this project forecasts. 46086 covers the south break alone and is
+5.9° outside the centre's — the nearest thing to a stand-in, and partial.
+
+**The station list was selecting on the wrong thing entirely.** It filtered on
+`launch_candidate`, which marked beat-the-buoy's per-buoy *leagues* — a product
+decision about where players lived. Four of its six candidates (46221, 46222,
+46224, 46225) sit **55–92° off** Coronado's window: no swell that reaches these
+beaches has ever crossed them. Meanwhile 46086, the second-best station in the
+array by this criterion, was flagged off. The flag is now deleted rather than
+repurposed, and the verdict is derived by `forecast/siting.py` rather than
+stored, because §2a already paid for duplicating a derivable coordinate.
+
+**46258 is a control, not a spare anchor.** It is 30.5 km from the centre break
+against 46232's 29.0 — very nearly matched range — but on the far side of the
+blocker, 33.9° inside Point Loma's shadow. That pairing is the natural control
+for the aperture claim: a model that respects the geometry should track 46232
+and *decouple* from 46258 as the swell direction crosses 250°. Substituting it
+for 46232 while the anchor is dark would feed the transform W/WNW energy that
+cannot physically arrive — the §2 failure, committed deliberately.
+
+### Falsified in the same session
+
+**"Score each buoy by how much of the window it can see past the blockers."**
+Strictly stronger-looking than a bearing test, and it carries *no information*.
+Point Loma and the Coronado Islands subtend a few degrees from any offshore
+buoy and none of it lands in the 201–260° band, so **all ten placed stations
+score the full window to within 0.1°** — including the ones 90° off axis. The
+blockers shadow the *beaches*, not the buoys. Pinned as a null by
+`test_blocker_visibility_at_the_buoy_carries_no_information`.
+
+### New primitive
+
+`geometry.swell_window` now computes the swell-side arc directly, as the arc
+with **both edges cut by land**. §2 told the reader to "read the swell-side
+window" and left them to find it by eye. It is also the mechanical reason the
+chord cannot move the window (§2a): the shore normal controls only the seaward
+clip, and at these beaches the clip never binds.
 
 ---
 
@@ -319,6 +390,17 @@ strength of a fortnight-old spectrum. Staleness now downgrades the exit code.
 The fault is BRIEFING's own §8 list arriving through the *verdict* rather than
 the parse, which is the harder place to see it.
 
+**Partly explained, 2026-09-14 — why the staleness alert went quiet.**
+`health.newly_dark` suppresses a station dark for longer than
+`2 × max_age_hours` (96 h) on purpose, so that a long outage does not re-alert
+daily and train the owner to ignore it; after that it moves to a "known-dark,
+not re-alerting" list. So for 46232 the alert had roughly 2026-09-01 to 09-05 to
+be seen and has been silent by design since. That accounts for the silence but
+**not** for whether it was ever delivered, which is still unchased. Separately,
+a station that has *never* reported had no date to age from at all and so was
+reported newly-dark on every run forever — found when 46235 was registered while
+dark; `first_checked_utc` now dates it from when the collector started looking.
+
 **Station 46232 stopped reporting on 2026-09-01T13:00Z** and was still dark
 thirteen days later. Not a feed problem: the repository's own stdmet archive for
 46232 ends at `2026-09-01T13:26Z`, the same cutoff, with `first_seen_utc` of
@@ -353,6 +435,18 @@ it** — the expanding-window control in §4 is the model.
   off the local coast trend, which costs the window nothing and makes the normal
   unusable for wind and refraction.
 - Are NDBC directional spectra reachable and complete for 46232?
+- **Where is 46235?** Registered 2026-09-14 and archiving, but unplaced:
+  `www.ndbc.noaa.gov` was denied at CONNECT from the session that added it, so
+  its coordinates are not in `data/station_metadata.csv` and `forecast.siting`
+  reports it UNPLACED rather than guessing. Run `python -m collector.metadata`
+  **on Actions**, then `python -m forecast.siting`. Recalled but unverified:
+  Imperial Beach Nearshore, CDIP 155 — a lead to check, not a fact. If that is
+  right it sits *south* of the breaks, which would put it in the near-useless
+  south-east arc rather than the swell window; the tool will say.
+- Does a nearer south-west station exist that 46086 is standing in for? The
+  window's edges (201–215° and 240–250° at the centre break) have **no buoy on
+  them at all** — 46232 sits at 230.8°, mid-window — so the two bearings where
+  dH/dθ is largest are the two nothing observes.
 - Zuniga Jetty and harbour-shoal geometry for Breakers.
 - Does refraction/shoaling over the shelf need modelling, or does a measured
   per-direction transfer function absorb it?
