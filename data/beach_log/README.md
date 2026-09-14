@@ -88,7 +88,32 @@ cannot be turned into an approximate length.
 | `wind` | `glassy`, `offshore`, `cross`, `light_onshore`, `onshore`, `storm`. Cross-checks KNZY against the beach. |
 | `rideable` | `yes`, `marginal`, `no`. Two feet and perfect is not two feet and closing out. |
 | `forecast_seen` | Whether the observer had already seen a forecast. Flags the entry rather than rejecting it — knowing which rows are contaminated is worth more than pretending none are. |
-| `note` | Free text. |
+| `is_test` | A rehearsal, made to prove the pipeline carries a row end to end. `true` or blank. |
+| `note` | Free text. A note of `test` (or `test:` / `test -`) at entry marks the whole session as a rehearsal — see below. |
+
+## Rehearsal entries
+
+Put **`test`** in the note and the entry is flagged. In a sweep that marks all
+three, because a rehearsal is a property of the trip, not of one break — marking
+only the break whose note said "test" would leave the other two sitting in the
+series as unflagged invented wave heights, which is worse than not having the
+feature.
+
+The form says so plainly before saving, colours the card, and changes the button
+to *Save test entry*. Rehearsals are carried all the way through — imported,
+counted at import, and **excluded from every count in `forecast.beachverify`**
+(`--include-tests` counts them, and says in the output that it is not evidence).
+
+    python -m collector.beachlog prune-tests --dry-run   # look first
+    python -m collector.beachlog prune-tests             # then remove
+
+**The note is only the trigger, and it is read once, at entry.** What is stored
+is a typed flag, and nothing downstream looks at the note again. Matching on
+note text later is the fault BRIEFING section 8 lists first among the four that
+produced confident wrong answers — and "contest" contains "test". `prune-tests`
+is the only thing in this project that deletes an observation, which is why it
+is an explicit command with a dry run rather than something an import does
+quietly.
 
 ## Rules this file lives by
 

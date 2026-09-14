@@ -182,8 +182,21 @@ def check(session: Session, bearing: float) -> str | None:
     return "agree" if smallest_open >= largest_blocked else "disagree"
 
 
-def report(entries: list[Observation], directions: dict[str, float]) -> list[str]:
+def report(
+    entries: list[Observation],
+    directions: dict[str, float],
+    *,
+    include_tests: bool = False,
+) -> list[str]:
     """What the log can and cannot yet say. Counts only."""
+
+    # Rehearsal rows prove the pipeline carries an entry end to end. They are
+    # not observations of an ocean and must never reach a count that is read as
+    # evidence — so they are dropped here, by their stored flag, and the drop is
+    # announced rather than silent.
+    rehearsals = [e for e in entries if e.is_rehearsal]
+    if not include_tests:
+        entries = [e for e in entries if not e.is_rehearsal]
 
     multi = sessions(entries)
     lines = [
@@ -192,6 +205,14 @@ def report(entries: list[Observation], directions: dict[str, float]) -> list[str
         f"{len(entries)} observation(s), {len(multi)} multi-break session(s).",
         "",
     ]
+    if rehearsals:
+        lines += [
+            f"{len(rehearsals)} test row(s) "
+            + ("INCLUDED by --include-tests — they are not observations and this "
+               "is not evidence." if include_tests
+               else "excluded. `python -m collector.beachlog prune-tests` removes them."),
+            "",
+        ]
 
     if not entries:
         lines += [
@@ -300,6 +321,12 @@ def report(entries: list[Observation], directions: dict[str, float]) -> list[str
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--include-tests",
+        action="store_true",
+        help="Count rehearsal rows too. They are not observations; this exists "
+             "for checking the pipeline, never for reading a result.",
+    )
+    parser.add_argument(
         "--station", default="46232",
         help="Buoy whose MWD classifies each day. Direction is used only to sort "
              "days after the fact; it never reaches an observer.",
@@ -308,7 +335,7 @@ def main(argv: list[str] | None = None) -> int:
 
     entries = load()
     directions = _buoy_directions(args.station)
-    print("\n".join(report(entries, directions)))
+    print("\n".join(report(entries, directions, include_tests=args.include_tests)))
     return 0
 
 
