@@ -72,7 +72,7 @@ cannot be turned into an approximate length.
 | column | meaning |
 | --- | --- |
 | `session_id` | One trip. Entries sharing it were seen by one person, close in time, at one tide — which is what makes them comparable to each other. |
-| `observed_utc` | When the waves were seen. One timestamp for a whole sweep: the three breaks are minutes apart and the buoy reports hourly, so a single time loses nothing and keeps the three entries genuinely comparable. |
+| `observed_utc` | When the waves were seen, **per break**. In a sweep each break is stamped when the observer first enters anything for it, because that is when they arrived at it having just watched it. An earlier version stamped all three identically and called the loss nothing; that was wrong — the breaks are a walk apart and one timestamp asserts a simultaneity that did not happen. The buoy being hourly makes that error survivable, not honest. The exception is a session logged under *Previously*, where one supplied time is the whole of what the observer actually knows. |
 | `logged_utc` | When the row was written. The gap is a quality signal: an entry written six hours later is weaker evidence than one written on the sand. |
 | `break_id` | Must exist in `forecast/spots.json`. An observation against an unknown break cannot be compared to anything and is refused. |
 | `entry_id` | Minted where the entry is made. The idempotency key that makes importing the same export twice a no-op. |
