@@ -110,6 +110,13 @@ def main(argv: list[str] | None = None) -> int:
 
     verb = "would import" if args.dry_run else "imported"
     print(f"{verb} {imported}, skipped {duplicate} already present, refused {len(refused)}")
+
+    # Not an error — the ordinal comparisons work without it — but it must not
+    # be silent, because it is invisible in the row and costs the metres.
+    blank = sum(1 for r in rows if not str(r.get("observer_height_cm") or "").strip())
+    if blank:
+        print(f"  {blank} row(s) carry no observer height; their approximate "
+              "metres cannot be derived. The categories are unaffected.")
     for line in refused:
         print(f"  REFUSED {line}", file=sys.stderr)
     # A refusal is not a failed import: the good rows are in, and the bad ones
