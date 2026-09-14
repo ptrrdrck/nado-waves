@@ -65,7 +65,7 @@ account of exactly what each station reported and when.
 
 Archived **GFS-Wave station bulletins** — what NCEP's global wave model
 predicted for this buoy, as published at the time. Input for the forecast-error
-work in SPEC section 12 and `game/verify.py`.
+work in `forecast/verify.py`.
 
 **Not a game input, ever.** A bulletin is the public forecast, which is exactly
 what a scoreable quantity must not be derivable from. Measuring against it is

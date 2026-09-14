@@ -174,8 +174,20 @@ COLUMNS = (
     "wind",
     "rideable",
     "forecast_seen",
+    #: A deliberate throwaway, made to prove the pipeline carries a row end to
+    #: end. Stored as a TYPED FLAG, never re-derived from the note at read time.
+    #:
+    #: The note is only the convenient trigger at entry — matching on its text
+    #: afterwards is the fault BRIEFING section 8 lists first among the four
+    #: that produced confident wrong answers (`"NOAA" in "...not NOAA"`), and
+    #: "contest" contains "test". Decide once, where the observer can see the
+    #: decision, and record the answer.
+    "is_test",
     "note",
 )
+
+#: A note that means "this is a rehearsal". Matched at ENTRY only.
+TEST_NOTE_PREFIXES = ("test", "test:", "test -", "test-")
 
 
 class BeachLogError(ValueError):
@@ -210,11 +222,18 @@ class Observation:
     wind: str
     rideable: str
     forecast_seen: str
+    is_test: str
     note: str
 
     @property
     def observed(self) -> datetime | None:
         return parse_iso(self.observed_utc)
+
+    @property
+    def is_rehearsal(self) -> bool:
+        """Read the stored flag. Never re-inspect the note."""
+
+        return self.is_test == "true"
 
     @property
     def height_cm(self) -> float | None:
@@ -332,7 +351,7 @@ def validate(entry: Observation, *, breaks: list[str] | None = None) -> Observat
             except ValueError as exc:
                 raise BeachLogError(f"{name}: {raw!r} is not a number") from exc
 
-    for name in ("saw_sets", "forecast_seen"):
+    for name in ("saw_sets", "forecast_seen", "is_test"):
         value = (getattr(entry, name) or "").strip().lower()
         if value not in ("true", "false", ""):
             raise BeachLogError(f"{name}: {value!r} must be true, false or blank")
@@ -486,7 +505,23 @@ def compose(
         wind=wind,
         rideable=rideable,
         forecast_seen="true" if seen.startswith("y") else "false",
+        is_test="true" if looks_like_a_test(note) else "",
         note=note,
+    )
+
+
+def looks_like_a_test(note: str) -> bool:
+    """Does this note say the entry is a rehearsal?
+
+    Used ONCE, where the entry is made and the person can see the verdict. The
+    stored row carries the answer as a flag; nothing downstream reads the note
+    again.
+    """
+
+    text = (note or "").strip().lower()
+    return text == "test" or any(
+        text.startswith(p + " ") or text.startswith(p)
+        for p in ("test:", "test -", "test-")
     )
 
 
@@ -517,10 +552,19 @@ def main(argv: list[str] | None = None) -> int:
     show = sub.add_parser("show", help="Read the log back.")
     show.add_argument("--days", type=int, default=30)
 
+    prune = sub.add_parser(
+        "prune-tests",
+        help="Delete the rehearsal rows, once they have served their purpose.",
+    )
+    prune.add_argument("--dry-run", action="store_true")
+    prune.add_argument("--path", type=Path, default=OBSERVATIONS)
+
     args = parser.parse_args(argv)
 
     if args.command == "show":
         return _show(args.days)
+    if args.command == "prune-tests":
+        return _prune(args.path, dry_run=args.dry_run)
 
     session = new_session()
     breaks = [args.break_id] if args.command == "log" else [
@@ -549,6 +593,37 @@ def main(argv: list[str] | None = None) -> int:
     return 0 if written else 1
 
 
+def _prune(path: Path, *, dry_run: bool = False) -> int:
+    """Remove the rehearsal rows. The only thing in this project that deletes.
+
+    Rewriting an append-only file is not done lightly, which is why it is an
+    explicit command rather than something the import does quietly: a real
+    observation removed by accident cannot be re-observed.
+    """
+
+    entries = load(path=path)
+    tests = [e for e in entries if e.is_rehearsal]
+    if not tests:
+        print("No test rows in the log.")
+        return 0
+
+    for entry in tests:
+        print(f"  {entry.observed_utc}  {entry.break_id:17s} {entry.typical:16s} "
+              f"{entry.note or '(no note)'}")
+    if dry_run:
+        print(f"\n{len(tests)} test row(s) — dry run, nothing removed.")
+        return 0
+
+    keep = [e for e in entries if not e.is_rehearsal]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(COLUMNS))
+        writer.writeheader()
+        for entry in keep:
+            writer.writerow(asdict(entry))
+    print(f"\nRemoved {len(tests)} test row(s); {len(keep)} real observation(s) kept.")
+    return 0
+
+
 def _show(days: int) -> int:
     entries = load()
     if not entries:
@@ -569,6 +644,7 @@ def _show(days: int) -> int:
             f"{('sets ' + entry.sets) if entry.sets else '':22s}"
             f"{entry.wind:14s} {entry.rideable:9s}{approx}"
             + ("   [forecast seen]" if entry.forecast_seen == "true" else "")
+            + ("   [TEST]" if entry.is_rehearsal else "")
         )
     return 0
 
