@@ -54,7 +54,10 @@ forecaster actually verifies against, Surfline included.
 ## Non-negotiables
 
 - **Never infer, interpolate, or substitute a missing observation.** A gap is a
-  gap, in the archive and in verification alike. Historical NDBC files use
+  gap, in the archive and in verification alike. A rehearsal entry carries an
+  explicit `is_test` flag decided at entry; nothing re-derives it from the note,
+  because "contest" contains "test" and BRIEFING §8 lists that class of fault
+  first. Historical NDBC files use
   numeric sentinels (`999.0`, `99.0`, `9999.0`), not `MM` — never backfill
   without `collector.ndbc.is_missing` or you will store 999.0 as a wave height.
 - **Never commit secrets**, even to a private repo.

@@ -60,6 +60,7 @@ def entry(**kwargs) -> Observation:
         wind="glassy",
         rideable="yes",
         forecast_seen="false",
+        is_test="",
         note="",
     )
     base.update(kwargs)
@@ -355,7 +356,7 @@ def test_importing_the_same_export_twice_does_not_double_count(tmp_path):
          "wind": "glassy", "rideable": "yes", "method": "from_sand",
          "confidence": "high", "observed_utc": to_iso(utcnow()),
          "logged_utc": to_iso(utcnow()), "minutes_watched": "10",
-         "saw_sets": "true", "forecast_seen": "false", "note": ""},
+         "saw_sets": "true", "forecast_seen": "false", "is_test": "", "note": ""},
     ]
 
     first = import_rows(rows, path=path)
@@ -377,7 +378,7 @@ def test_a_bad_row_is_refused_by_name_and_the_good_ones_still_land(tmp_path):
             "wind": "glassy", "rideable": "yes", "method": "from_sand",
             "confidence": "high", "observed_utc": to_iso(utcnow()),
             "logged_utc": to_iso(utcnow()), "minutes_watched": "5",
-            "saw_sets": "true", "forecast_seen": "false", "note": ""}
+            "saw_sets": "true", "forecast_seen": "false", "is_test": "", "note": ""}
     bad = dict(good, entry_id="b1", break_id="trestles")
 
     imported, duplicate, refused = import_rows([good, bad], path=path)
@@ -398,7 +399,7 @@ def test_import_tolerates_extra_keys_the_form_sends(tmp_path):
            "wind": "onshore", "rideable": "no", "method": "from_window",
            "confidence": "low", "observed_utc": to_iso(utcnow()),
            "logged_utc": to_iso(utcnow()), "minutes_watched": "2",
-           "saw_sets": "false", "forecast_seen": "false", "note": "",
+           "saw_sets": "false", "forecast_seen": "false", "is_test": "", "note": "",
            "some_future_field": "whatever", "app_version": "3"}
 
     imported, _, refused = import_rows([row], path=path)
@@ -420,7 +421,7 @@ def test_the_observer_id_survives_a_rename(tmp_path):
             "typical": "waist", "sets": "", "wind": "glassy", "rideable": "yes",
             "method": "from_sand", "confidence": "high",
             "observed_utc": to_iso(utcnow()), "logged_utc": to_iso(utcnow()),
-            "minutes_watched": "10", "saw_sets": "true", "forecast_seen": "false", "note": ""}
+            "minutes_watched": "10", "saw_sets": "true", "forecast_seen": "false", "is_test": "", "note": ""}
 
     import_rows([dict(base, entry_id="r1", observer="observer2")], path=path)
     import_rows([dict(base, entry_id="r2", observer="Jake")], path=path)
@@ -542,7 +543,7 @@ def test_import_reports_rows_that_arrive_without_a_height(tmp_path, capsys):
              "method": "from_sand", "confidence": "high",
              "observed_utc": to_iso(utcnow()), "logged_utc": to_iso(utcnow()),
              "minutes_watched": "10", "saw_sets": "false",
-             "forecast_seen": "false", "note": ""}]
+             "forecast_seen": "false", "is_test": "", "note": ""}]
     source = tmp_path / "rows.json"
     source.write_text(json.dumps(rows), encoding="utf-8")
 
@@ -551,3 +552,100 @@ def test_import_reports_rows_that_arrive_without_a_height(tmp_path, capsys):
     assert "imported 1" in out
     assert "carry no observer height" in out
     assert "categories are unaffected" in out
+
+
+# --- rehearsal entries ------------------------------------------------------
+
+
+def test_a_test_note_is_recognised_without_catching_real_ones():
+    """The whole reason this is a flag and not a substring match.
+
+    BRIEFING section 8 lists `"NOAA" in "...not NOAA"` first among the four
+    faults that produced confident wrong answers in the predecessor. "contest"
+    contains "test", and a surf contest at Coronado is not a hypothetical.
+    """
+
+    from collector.beachlog import looks_like_a_test
+
+    for note in ("test", "Test", "TEST", "  test  ", "test: second try", "test - north"):
+        assert looks_like_a_test(note), note
+    for note in ("contest day", "testing the water", "biggest set of the day",
+                 "fastest I have seen it", "", "protest on the strand"):
+        assert not looks_like_a_test(note), note
+
+
+def test_the_flag_is_stored_not_re_derived_from_the_note():
+    """Downstream reads the flag. It never looks at the note again.
+
+    So an entry whose note is edited later — or one whose note happens to start
+    with the word — is whatever it was RECORDED as, decided once where somebody
+    could see the decision.
+    """
+
+    marked = entry(is_test="true", note="anything at all")
+    assert marked.is_rehearsal
+
+    unmarked = entry(is_test="", note="test")
+    assert not unmarked.is_rehearsal, "the note must not override the stored flag"
+
+
+def test_rehearsals_are_excluded_from_the_geometry_report():
+    """They prove the pipeline carries a row. They are not observations."""
+
+    real = session("r", {"coronado_north": "knee", "coronado_south": "head"}).entries
+    fake = [e for e in session("f", {"coronado_north": "flat",
+                                     "coronado_south": "double_overhead"}).entries]
+    for e in fake:
+        e.is_test = "true"
+        e.note = "test"
+
+    stamp = real[0].observed_utc[:13]
+    text = "\n".join(report(real + fake, {stamp: 245.0}))
+
+    assert "2 test row(s) excluded" in text
+    assert "prune-tests" in text
+    # The absurd rehearsal must not have reached the session count.
+    assert "1 multi-break session(s)" in text
+
+
+def test_rehearsals_can_be_counted_but_the_report_says_it_is_not_evidence():
+    real = session("r", {"coronado_north": "knee", "coronado_south": "head"}).entries
+    fake = session("f", {"coronado_north": "waist", "coronado_south": "chest"}).entries
+    for e in fake:
+        e.is_test = "true"
+
+    stamp = real[0].observed_utc[:13]
+    text = "\n".join(report(real + fake, {stamp: 245.0}, include_tests=True))
+
+    assert "2 multi-break session(s)" in text
+    assert "not observations and this is not evidence" in text
+
+
+def test_prune_removes_only_the_rehearsals(tmp_path):
+    from collector.beachlog import _prune
+
+    path = tmp_path / "observations.csv"
+    append(entry(entry_id="real1", break_id="coronado_north", typical="waist",
+                 sets="chest"), path=path)
+    append(entry(entry_id="fake1", break_id="coronado_south", typical="head",
+                 sets="", is_test="true", note="test"), path=path)
+    append(entry(entry_id="real2", break_id="coronado_center", typical="chest",
+                 sets="head"), path=path)
+
+    assert len(load(path=path)) == 3
+    _prune(path)
+
+    left = load(path=path)
+    assert [e.entry_id for e in left] == ["real1", "real2"]
+    assert not any(e.is_rehearsal for e in left)
+
+
+def test_prune_dry_run_changes_nothing(tmp_path):
+    """It rewrites an append-only file, so it can be looked at first."""
+
+    from collector.beachlog import _prune
+
+    path = tmp_path / "observations.csv"
+    append(entry(entry_id="fake1", is_test="true", note="test"), path=path)
+    _prune(path, dry_run=True)
+    assert len(load(path=path)) == 1

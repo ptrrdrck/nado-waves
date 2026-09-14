@@ -5,9 +5,8 @@
 # fetching it when it is wanted. Running it on a timer would only add commits.
 #
 # This never writes to data/observations/. The live archive holds values as
-# first published, with first_seen_utc, and is the only thing that can resolve a
-# round. The historical archive is quality-controlled after the fact and exists
-# to calibrate the scoring function. See SPEC section 4.
+# first published, with first_seen_utc; the historical archive is
+# quality-controlled after the fact and exists for calibration.
 
 name: Backfill history (calibration)
 
@@ -62,9 +61,6 @@ jobs:
             args+=(--force)
           fi
           python -m collector.backfill "${args[@]}"
-
-      - name: Re-run the scoring backtest against the wider archive
-        run: python -m game.backtest --source historical || true
 
       - name: Commit and push
         env:
