@@ -136,7 +136,9 @@ forecaster actually verifies against, Surfline included.
 ## Layout
 
     collector/          data pipeline: NDBC archiving, revisions, station
-                        status, historical backfill, GFS-Wave bulletins,
+                        status (stations.json is a COLLECTION list, not a
+                        ranking — see forecast/siting.py), historical backfill,
+                        GFS-Wave bulletins,
                         probe_spectra.py (are directional spectra reachable?),
                         beachlog.py + beachlog_import.py (the observation log)
     app/beachlog.html   the phone form, owner build (shared store)
@@ -146,6 +148,7 @@ forecaster actually verifies against, Surfline included.
                         stays the system of record for both.
     forecast/
       geometry.py       which bearings reach each beach          [built]
+      siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
       stats.py          load_column, least_squares, rmse, circular means
@@ -178,6 +181,21 @@ circular helpers are used here. Trimming it is a good first cleanup.
   Point Loma with the peninsula behind it to the north-east; the beaches sit in
   front of it. A transform that skips the aperture delivers north-west swell
   that cannot physically arrive, on most days of the year.
+- **A station earns its place by geometry, not by being nearby.** `stations.json`
+  says what is *archived* — collect broadly, the 45-day window is
+  unrecoverable — and nothing more. Which buoys constrain the swell reaching
+  Coronado is **derived** by `forecast/siting.py` from NDBC coordinates and the
+  digitised breaks, never stored, because §2a already paid for duplicating a
+  derivable coordinate. Measured (BRIEFING §3a): **46232 is the only buoy in
+  the array inside Coronado's window, and there is no substitute.** 46258 is
+  33.9° *behind* Point Loma at nearly 46232's range — a control for the
+  aperture claim, and never a fallback anchor. The predecessor's
+  `launch_candidate` flag marked leagues, not physics; four of its six sat
+  55–92° off the window, and it is deleted.
+- **Never type a buoy coordinate.** `collector/metadata.py` fetches them from
+  NDBC; a station it cannot place is reported UNPLACED and makes no claim.
+  46235 is in that state now. NDBC is frequently denied at CONNECT from a
+  session — run the metadata job on Actions.
 - **Bulletin direction is the direction waves travel TOWARD; NDBC `MWD` is where
   they come FROM.** `collector.gfswave` flips it once, on the way in. Do not
   flip it again. Measured: 29° mean error with the flip, 151° without.
