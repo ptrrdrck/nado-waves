@@ -32,10 +32,11 @@ Kept: `timestamp_utc`, `wtmp`, `wvht`, `atmp`, `wspd`, `wdir`, one row per hour.
 
 Calibrating the scoring function across **seasons**. Every number in SPEC
 section 3 came from 46 late-summer days — the stratified, post-upwelling part of
-the year, and plausibly the quietest window there is. Whether the point scale and
-the tail behaviour survive a spring upwelling season is what this answers:
+the year, and plausibly the quietest window there is.
 
-    python -m game.backtest --source historical
+That question belonged to the predecessor's scoring work, and the job that
+answered it (`game.backtest`) died with the game. The archive itself is
+unaffected and is what `forecast.verify` scores the wave forecast against.
 
 ## Provenance
 

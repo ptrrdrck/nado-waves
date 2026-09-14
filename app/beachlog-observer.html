@@ -141,6 +141,9 @@ input[type=time]{font:500 16px/1.15 Archivo,system-ui,sans-serif;
   background:var(--paper);color:var(--ink);border:1px solid var(--line);
   border-radius:var(--r);padding:5px 7px;flex:0 0 auto}
 .whenrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#testnote{color:var(--signal);font-weight:600}
+.formzone.istest .card{border-color:var(--signal)}
+.formzone.istest .primary{background:var(--signal);border-color:var(--signal)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -268,6 +271,7 @@ input[type=time]{font:500 16px/1.15 Archivo,system-ui,sans-serif;
     <section>
       <span class="lbl">Note</span>
       <input type="text" id="note" placeholder="optional" autocomplete="off">
+      <p class="note" id="testnote" hidden></p>
     </section>
   </div>
   <div class="savebar"><button class="primary" id="save">Save entry</button></div>
@@ -365,6 +369,30 @@ var YN=[["true","Yes"],["false","No"]];
  * record a session watched from the water — but there is no question here,
  * since a field with one possible answer is a tap that buys nothing. */
 var METHOD = "from_sand";
+
+/* A note that marks the entry as a rehearsal — a throwaway made to prove the
+ * pipeline carries a row end to end.
+ *
+ * The note is only the TRIGGER, and it is read exactly here, where the person
+ * typing it is shown the verdict before they save. What gets stored is a flag.
+ * Matching on the note text downstream would be the fault BRIEFING section 8
+ * lists first among the four that produced confident wrong answers, and
+ * "contest" contains "test". */
+function looksLikeATest(note){
+  var t=(note||"").trim().toLowerCase();
+  if(t==="test") return true;
+  return ["test:","test -","test-"].some(function(p){ return t.indexOf(p)===0; });
+}
+
+/* A rehearsal is a property of the TRIP, not of one break.
+ *
+ * The note is per break, so marking only the break whose note said "test" left
+ * the other two of a sweep looking like real observations — which is worse than
+ * not having the feature: a made-up wave height sitting in the series unflagged.
+ * Any break marked marks the session. */
+function sessionIsTest(){
+  return required().some(function(b){ return looksLikeATest(sheet(b).note); });
+}
 
 /* Fallback roster for the observer build, which has no store to read.
  *
@@ -738,6 +766,19 @@ function draw(opts){
     : "Your observation time is used to sync the entry with other recorded ocean data.";
   if(el("note").value !== s.note) el("note").value = s.note;
 
+  /* Say so plainly, and colour the form, so a rehearsal can never be mistaken
+   * for a real entry at the moment it is saved. */
+  var testing = sessionIsTest();
+  el("testnote").hidden = !testing;
+  el("testnote").textContent = testing
+    ? (mode==="sweep"
+        ? "All three will be saved as TEST entries. They are carried through the "
+          + "pipeline and left out of every count."
+        : "Saved as a TEST entry. It is carried through the pipeline and left "
+          + "out of every count.")
+    : "";
+  document.querySelector(".formzone").classList.toggle("istest", testing);
+
   var cm=heightOf(session.observer);
   el("derivnote").textContent = cm
     ? "Feet are worked out from this observer's standing height ("+feet(cm)+") using "
@@ -777,6 +818,9 @@ function draw(opts){
     : "Save entry";
   el("save").disabled = !(session.observer && !needHeight && allDone());
   if(needHeight) el("save").textContent = "Set your height first";
+  else if(testing) el("save").textContent = mode==="sweep"
+    ? (left ? "Save test — " + left + " to go" : "Save all three as a test")
+    : "Save test entry";
 
   if(!OWNER){
     el("payload").value = queue.length ? JSON.stringify(queue) : "";
@@ -861,6 +905,7 @@ function build(breakId){
     wind: s.wind,
     rideable: s.rideable,
     forecast_seen: session.forecast_seen,
+    is_test: sessionIsTest() ? "true" : "",
     note: s.note
   };
 }
@@ -878,7 +923,10 @@ el("whentime").addEventListener("change", function(){
   session.when_time=v; draw();
 });
 
-el("note").addEventListener("input", function(){ cur().note=el("note").value; });
+el("note").addEventListener("input", function(){
+  cur().note=el("note").value;
+  draw();   /* the test banner has to answer while the note is being typed */
+});
 
 el("save").addEventListener("click", function(){
   var rows=[], bad=null;

@@ -113,6 +113,13 @@ def main(argv: list[str] | None = None) -> int:
 
     # Not an error — the ordinal comparisons work without it — but it must not
     # be silent, because it is invisible in the row and costs the metres.
+    tests = sum(1 for r in rows if str(r.get("is_test") or "").strip().lower() == "true")
+    if tests:
+        print(f"  {tests} row(s) are marked as tests. They are imported so the "
+              "pipeline is proved end to end, and excluded from every count in "
+              "`forecast.beachverify`. Remove them with "
+              "`python -m collector.beachlog prune-tests`.")
+
     blank = sum(1 for r in rows if not str(r.get("observer_height_cm") or "").strip())
     if blank:
         print(f"  {blank} row(s) carry no observer height; their approximate "
