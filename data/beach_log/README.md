@@ -78,6 +78,7 @@ cannot be turned into an approximate length.
 | `entry_id` | Minted where the entry is made. The idempotency key that makes importing the same export twice a no-op. |
 | `observer` | Display name at the time of logging. Required — an anonymous observation cannot be weighted. |
 | `observer_id` | The durable key. Names start generic and get edited once it is known who was helping; a series keyed on the name would orphan every earlier row the moment that happened. |
+| `observer_height_cm` | The observer's standing height at the time of logging, carried on the row itself. Observers set their own on their own phone and it lives nowhere else, so a lookup table here would be permanently empty for everyone but Pete. Riding along also means a later re-measurement never silently rewrites what an old observation was judged against. Blank is allowed and costs only the approximate metres — every comparison this log makes is ordinal — but the form refuses to save without one. |
 | `method` | `from_water`, `from_sand`, `from_window`, `from_camera`. The phone form always records `from_sand` and asks no question, because that is what it instructs — a field with one possible answer is a tap that buys nothing. The CLI can still record the others. |
 | `minutes_watched` | A two-minute look from a car misses set waves and biases low. Recorded because that bias is correctable and otherwise invisible. |
 | `saw_sets` | Whether a set actually came through while watching. |

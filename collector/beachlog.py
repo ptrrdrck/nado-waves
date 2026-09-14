@@ -154,6 +154,15 @@ COLUMNS = (
     #: on a name would orphan every earlier row the moment that happened.
     "observer",
     "observer_id",
+    #: The observer's standing height AT THE TIME OF LOGGING, carried on the row
+    #: itself rather than looked up later.
+    #:
+    #: Observers set their own height on their own phone, and that phone is the
+    #: only place it lives — so a lookup table here would be permanently empty
+    #: for everyone but Pete, and the body scale would have no calibration at
+    #: all. Riding along with the row also means a re-measurement never silently
+    #: rewrites what an old observation was judged against.
+    "observer_height_cm",
     "method",
     "minutes_watched",
     "saw_sets",
@@ -189,6 +198,7 @@ class Observation:
     break_id: str
     observer: str
     observer_id: str
+    observer_height_cm: str
     method: str
     minutes_watched: str
     saw_sets: str
@@ -205,6 +215,15 @@ class Observation:
     @property
     def observed(self) -> datetime | None:
         return parse_iso(self.observed_utc)
+
+    @property
+    def height_cm(self) -> float | None:
+        """The height this observation was judged against, from the row itself."""
+
+        try:
+            return float(self.observer_height_cm) or None
+        except ValueError:
+            return None
 
     def height_m(self, observer_height_cm: float | None) -> tuple[float | None, float | None]:
         """Approximate face heights in metres. DERIVED, not observed.
@@ -281,6 +300,28 @@ def validate(entry: Observation, *, breaks: list[str] | None = None) -> Observat
         raise BeachLogError(f"observed_utc: {entry.observed_utc!r} is not {ISO}")
     if observed > utcnow():
         raise BeachLogError("observed_utc is in the future")
+
+    #: Blank is allowed and an implausible number is not.
+    #:
+    #: The form refuses to save without a height, which is where the rule
+    #: belongs. Refusing the ROW here would be the wrong trade: every comparison
+    #: this log actually makes is ordinal, and works perfectly without a height —
+    #: the height only feeds the approximate metres, which are a reading aid.
+    #: Throwing away a real observation to protect a derived convenience would
+    #: cost more than it saves. `beachlog_import` counts what arrives without
+    #: one so it stays visible rather than silent.
+    if entry.observer_height_cm:
+        try:
+            height = float(entry.observer_height_cm)
+        except ValueError as exc:
+            raise BeachLogError(
+                f"observer_height_cm: {entry.observer_height_cm!r} is not a number"
+            ) from exc
+        if not 100.0 <= height <= 230.0:
+            raise BeachLogError(
+                f"observer_height_cm: {height:.0f} cm is outside 100-230 — "
+                "a standing height, not a wave"
+            )
 
     for name in ("minutes_watched", "typical_ft", "sets_ft"):
         raw = getattr(entry, name)
@@ -402,10 +443,17 @@ def compose(
     session_id: str,
     reader=input,
     now: datetime | None = None,
+    heights: dict[str, float] | None = None,
 ) -> Observation:
     """Walk one entry, interactively. No forecast is shown, here or anywhere."""
 
     stamp = now or utcnow()
+    heights = load_observers() if heights is None else heights
+    if not heights.get(observer):
+        raise BeachLogError(
+            f"{observer} has no standing height in {OBSERVERS.name}. Add one "
+            "before logging — the body scale is anchored to it."
+        )
     print(f"\n{break_id}  ({observer})")
     typical = _ask("typical", reader=reader)
     sets = "" if typical == "flat" else _ask("sets", allow_blank=True, reader=reader)
@@ -426,6 +474,7 @@ def compose(
         break_id=break_id,
         observer=observer,
         observer_id=observer,
+        observer_height_cm=str(int(heights[observer])),
         method=method,
         minutes_watched=minutes,
         saw_sets="true" if saw_sets.startswith("y") else "false",
@@ -513,7 +562,7 @@ def _show(days: int) -> int:
     print(f"{len(recent)} observation(s) in the last {days} days "
           f"({len(entries)} in the log, first {entries[0].observed_utc}).\n")
     for entry in recent:
-        typical_m, sets_m = entry.height_m(heights.get(entry.observer))
+        typical_m, sets_m = entry.height_m(entry.height_cm or heights.get(entry.observer))
         approx = f"  ~{typical_m:.1f} m" if typical_m else ""
         print(
             f"  {entry.observed_utc}  {entry.break_id:17s} {entry.typical:16s}"
