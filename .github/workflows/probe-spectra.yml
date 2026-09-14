@@ -1,0 +1,82 @@
+# Probe NDBC directional spectra — run on demand.
+#
+# This exists because of where it runs, not what it does. An interactive Claude
+# session reaches NDBC through a policy-controlled egress proxy that has denied
+# www.ndbc.noaa.gov at CONNECT — a refusal of the tunnel before any HTTP request
+# is sent, which surfaces as a connection error and makes the host look dead
+# rather than forbidden (BRIEFING section 8). A GitHub Actions runner has no
+# such policy in front of it, which is the same reason the collector lives here.
+#
+# So: "unreachable from a session" and "not published by NDBC" are different
+# claims, and only this job can tell them apart. The probe exits 2 on a denial,
+# 1 on an incomplete set and 0 when all five files are reachable and parsed, so
+# the three outcomes are distinguishable from the run status alone.
+#
+# Not scheduled. It answers a question once; it does not archive anything and it
+# writes nothing back to the repository. If the answer is yes, the transform
+# gets built (CLAUDE.md build order step 3) and the archiving job that follows
+# is a different file.
+
+name: Probe NDBC directional spectra
+
+on:
+  workflow_dispatch:
+    inputs:
+      station:
+        description: "Station id"
+        required: false
+        default: "46232"
+      historical_year:
+        description: "Probe the historical archive for this year instead of the live feed (blank = live)"
+        required: false
+        default: ""
+      window:
+        description: "Demonstration window, 'low,high' degrees FROM (default = Coronado centre break)"
+        required: false
+        default: "201,250"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Probe the five spectral files
+        id: probe
+        continue-on-error: true
+        # Dispatch inputs go through the environment, never interpolated into
+        # the shell command.
+        env:
+          STATION: ${{ inputs.station }}
+          YEAR: ${{ inputs.historical_year }}
+          WINDOW: ${{ inputs.window }}
+        run: |
+          set -euo pipefail
+          args=(--station "${STATION:-46232}" --window "${WINDOW:-201,250}")
+          if [ -n "${YEAR:-}" ]; then
+            args+=(--historical "${YEAR}")
+          fi
+          python -m collector.probe_spectra "${args[@]}"
+
+      - name: Say which of the three answers this was
+        env:
+          OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -euo pipefail
+          # The probe writes its own report to the step summary. This step only
+          # turns the exit code into a verdict, because "the job went red" is
+          # not the same information as "NDBC does not publish these files".
+          if [ "${OUTCOME}" = "success" ]; then
+            echo "::notice title=Spectra reachable::All five files reachable and parsed. See the step summary; the transform is unblocked."
+          else
+            echo "::warning title=Spectra not confirmed::The probe did not get a complete set. Read the step summary before concluding anything - a CONNECT denial and a 404 mean different things."
+          fi
