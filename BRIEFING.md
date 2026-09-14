@@ -81,9 +81,52 @@ the swell-side window.
 **Deliberately omitted rather than guessed:** Zuniga Jetty and the
 harbour-entrance shoal (both bear on Breakers), and refraction and shoaling over
 the shelf. The model says what is *blocked*, not what happens to what gets
-through. **Coordinates are estimated, not digitised** — `verified: false` on
-every spot, with a test enforcing it. Digitising real shoreline points is the
-highest-value correction available and needs local knowledge, not computation.
+through.
+
+### 2a. Amendment, 2026-09-14 — two claims in §2 were wrong
+
+The table above and the paragraph that used to close this section have been
+superseded by measurement. Both errors pointed effort at the wrong input, so
+they are recorded rather than quietly edited.
+
+**Wrong: "the shoreline chord matters most."** `spots.json` asserted that five
+degrees of chord error moved the open window five degrees at the shadow edge.
+It moves it by **zero**. Both edges of the swell-side window are
+blocker-derived — Point Loma west, the Coronado Islands east — so the seaward
+half-plane clip never binds there and the normal is irrelevant to which swell
+arrives. Rotating a chord ±10° at all three beaches changes nothing; moving a
+break 500 m costs Coronado ~4.4°. **Position sets the window; facing does not.**
+The chord still sets the normal, which is what this section's own "shadow edge
+one degree from the normal" figure is computed from, and what wind fetch and
+refraction will need — it is simply not the aperture. Pinned by
+`test_the_shoreline_chord_does_not_move_the_swell_window` and its control.
+
+**Wrong: "Coronado" is one beach.** The west edge of the window *is* the bearing
+to the Point Loma tip, and that bearing sweeps as you walk the sand — pure
+parallax, a 2.5 km baseline at 6 km range. Digitised, Coronado's three breaks
+run:
+
+| break | open window | cuts off at |
+|---|---|---|
+| north | **42.8°** | 242.2° |
+| centre (Hotel del) | **49.1°** | 250.3° |
+| south | **56.3°** | 259.9° |
+
+A **13.5° spread inside one named beach**, against 38.5° for the entire
+Breakers-to-Gator range. Coronado's north break is geometrically closer to
+Breakers than to Coronado's own south break. §2's single 48° row for "Coronado
+Central" averaged across this.
+
+**Also measured:** the old `coronado_central` carried a stored `position` 698 m
+off the perpendicular from its own shoreline chord — two independent guesses at
+one place, disagreeing, with the position silently winning every blocked sector.
+Digitised spots now derive position from the chord midpoint and a test enforces
+it.
+
+**Still estimated:** Breakers and Gator, scoped out by decision, not because
+their coordinates are good. The Point Loma tip is now digitised and moved only
+136 m, changing every west edge by 0.2–0.5° — the old guess was good, but it is
+one point carrying every west edge in the file, at ~1° per 100 m.
 
 ---
 
@@ -229,9 +272,14 @@ is at its most fragile. Claim that, and nothing wider.
    is a *model*, not truth. Unreachable from a Claude session (§8).
 4. **NDBC directional spectra at 46232** (`swden`, `swdir`, `swdir2`, `swr1`,
    `swr2`). Not an observation at the beach, but it converts the transform from
-   an assumption into an integral — energy inside the beach's 201–253° window,
-   measured, per frequency, instead of one dominant direction. **Never confirmed
-   reachable; the host was denied before it could be tested. Probe it first.**
+   an assumption into an integral — energy inside the beach's window, measured,
+   per frequency, instead of one dominant direction. `collector/probe_spectra.py`
+   now exists to settle it: all five files, freshness sniffed from the newest
+   parsed record rather than from HTTP 200, frequency bins checked for agreement
+   across the five, and a D(f,θ) reconstruction integrated over a real window as
+   proof the chain works. **Run it on Actions, not from a session** — on
+   2026-09-14 `www.ndbc.noaa.gov` was again denied at CONNECT from a session
+   (§8), and "unreachable from here" is not "not published".
 
 ---
 
@@ -271,8 +319,12 @@ it** — the expanding-window control in §4 is the model.
 
 ## 9. Open questions
 
-- Digitised shoreline coordinates for the three beaches. Highest value, lowest
-  effort, needs a person who knows the beach.
+- ~~Digitised shoreline coordinates for the three beaches.~~ **Done for
+  Coronado, 2026-09-14** (three breaks, plus the Point Loma tip); see §2a. Still
+  open for Breakers and Gator, and for a re-digitised Coronado north-break chord
+  once the Google Earth imagery splice there is resolved — that chord sits ~19°
+  off the local coast trend, which costs the window nothing and makes the normal
+  unusable for wind and refraction.
 - Are NDBC directional spectra reachable and complete for 46232?
 - Zuniga Jetty and harbour-shoal geometry for Breakers.
 - Does refraction/shoaling over the shelf need modelling, or does a measured
