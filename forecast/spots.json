@@ -1,0 +1,65 @@
+{
+  "_comment": [
+    "The three beaches this forecaster is for. All on the Coronado peninsula,",
+    "all sharing one offshore buoy (46232) and one blocking geometry, and all",
+    "DIFFERENT because they sit at different bearings and ranges from Point Loma.",
+    "",
+    "COORDINATES ARE APPROXIMATE AND UNVERIFIED. They were estimated, not",
+    "digitised from a chart or imagery, and `verified` is false on every entry",
+    "to say so. The shoreline chord matters most: the seaward normal is derived",
+    "from it, and a 5-degree error in the normal moves the open window by 5",
+    "degrees at a shadow edge where the answer is already sensitive. Replacing",
+    "these with real points is the single highest-value correction available and",
+    "needs someone who knows the beach, not more computation.",
+    "",
+    "Blockers are listed separately. `continues` says the landmass carries on",
+    "past that endpoint rather than ending there, which is how a peninsula",
+    "differs from an island."
+  ],
+  "spots": [
+    {
+      "id": "coronado_central",
+      "name": "Coronado Central Beach",
+      "position": [32.6830, -117.1870],
+      "shoreline": [[32.6935, -117.1835], [32.6720, -117.1745]],
+      "verified": false,
+      "notes": "In front of the Hotel del. The reference beach for this project."
+    },
+    {
+      "id": "nasni_breakers",
+      "name": "Breakers Beach (NASNI)",
+      "position": [32.6920, -117.2130],
+      "shoreline": [[32.6985, -117.2180], [32.6870, -117.2035]],
+      "verified": false,
+      "notes": "North Island's ocean shore. Closest of the three to Point Loma, so expected to be the most shadowed. Zuniga Jetty is a missing blocker here - see blockers._missing."
+    },
+    {
+      "id": "nab_gator",
+      "name": "Gator Beach (NAB Coronado)",
+      "position": [32.6650, -117.1650],
+      "shoreline": [[32.6740, -117.1735], [32.6520, -117.1585]],
+      "verified": false,
+      "notes": "Silver Strand, south of Central. Furthest from Point Loma, so expected to hold the widest window of the three."
+    }
+  ],
+  "blockers": [
+    {
+      "name": "Point Loma peninsula",
+      "a": [32.6655, -117.2415],
+      "b": [32.7200, -117.2530],
+      "continues": "b",
+      "notes": "The tip is `a`; the ridge runs north from there and does not end, so everything past `b` is land too."
+    },
+    {
+      "name": "Coronado Islands",
+      "a": [32.4217, -117.3050],
+      "b": [32.3958, -117.2472],
+      "continues": null,
+      "notes": "Islands, not a peninsula: the shadow closes on both sides."
+    }
+  ],
+  "_missing": [
+    "Zuniga Jetty and the harbour-entrance shoal, which matter for Breakers Beach and probably narrow its window further. Not included because inventing coordinates for them would put false precision into the one number this module exists to compute.",
+    "The shelf itself. This is a geometric blocking model only - it says what is BLOCKED, not what refraction and shoaling do to what gets through."
+  ]
+}

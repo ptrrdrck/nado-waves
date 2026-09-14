@@ -1,0 +1,128 @@
+{
+  "_comment": [
+    "Stations archived by the collector. This is deliberately a SUPERSET of the",
+    "v1 launch set (SPEC section 10 ships one quantity at a small set of buoys).",
+    "Archiving is kilobytes per station per day and NDBC history older than 45",
+    "days is unrecoverable, so collect broadly now and choose the launch league",
+    "set later from real coverage numbers. Adding a station here is cheap;",
+    "wishing you had added it six months ago is impossible.",
+    "'launch_candidate: true' marks the ones under consideration for v1.",
+    "Water-temperature coverage per station is reported by the collector run",
+    "summary and by `python -m collector.report`.",
+    "Stations with region 'sentinel_np' are NOT leagues and never host a round. They sit thousands of km upstream and exist to see a swell days before it reaches the launch set. launch_candidate is false for all of them."
+  ],
+  "stations": [
+    {
+      "id": "46222",
+      "name": "San Pedro, CA",
+      "region": "socal",
+      "launch_candidate": true,
+      "notes": "CDIP 092. Los Angeles / South Bay league."
+    },
+    {
+      "id": "46221",
+      "name": "Santa Monica Bay, CA",
+      "region": "socal",
+      "launch_candidate": true,
+      "notes": "CDIP 028. Santa Monica / Malibu league."
+    },
+    {
+      "id": "46253",
+      "name": "San Pedro South, CA",
+      "region": "socal",
+      "launch_candidate": false,
+      "notes": "CDIP 181."
+    },
+    {
+      "id": "46224",
+      "name": "Oceanside Offshore, CA",
+      "region": "socal",
+      "launch_candidate": true,
+      "notes": "CDIP 045. North San Diego County league."
+    },
+    {
+      "id": "46225",
+      "name": "Torrey Pines Outer, CA",
+      "region": "socal",
+      "launch_candidate": true,
+      "notes": "CDIP 100. La Jolla league."
+    },
+    {
+      "id": "46258",
+      "name": "Mission Bay West, CA",
+      "region": "socal",
+      "launch_candidate": true,
+      "notes": "CDIP 093. Mission Beach / Pacific Beach league."
+    },
+    {
+      "id": "46232",
+      "name": "Point Loma South, CA",
+      "region": "socal",
+      "launch_candidate": true,
+      "notes": "CDIP 191. San Diego league."
+    },
+    {
+      "id": "46219",
+      "name": "San Nicolas Island, CA",
+      "region": "socal",
+      "launch_candidate": false,
+      "notes": "CDIP 067. Offshore reference for upwelling context."
+    },
+    {
+      "id": "46086",
+      "name": "San Clemente Basin, CA",
+      "region": "socal",
+      "launch_candidate": false,
+      "notes": "NDBC moored buoy. Offshore reference point."
+    },
+    {
+      "id": "46047",
+      "name": "Tanner Banks, CA",
+      "region": "socal",
+      "launch_candidate": false,
+      "notes": "NDBC moored buoy. Offshore reference point."
+    },
+    {
+      "id": "46001",
+      "name": "Gulf of Alaska",
+      "region": "sentinel_np",
+      "launch_candidate": false,
+      "notes": "3383 km upstream. Winter NW swell source region; 2.5-3.9 day travel time to SoCal depending on period."
+    },
+    {
+      "id": "46006",
+      "name": "Southeast Papa",
+      "region": "sentinel_np",
+      "launch_candidate": false,
+      "notes": "1868 km upstream. Mid-path check on North Pacific swell, 33h-2.1d out."
+    },
+    {
+      "id": "46005",
+      "name": "West Washington",
+      "region": "sentinel_np",
+      "launch_candidate": false,
+      "notes": "1743 km upstream. Northern approach, 31-48h out."
+    },
+    {
+      "id": "46059",
+      "name": "California Offshore",
+      "region": "sentinel_np",
+      "launch_candidate": false,
+      "notes": "1158 km upstream. Last deep-water look before the swell reaches the bight, 21-32h out."
+    },
+    {
+      "id": "51101",
+      "name": "Northwestern Hawaii",
+      "region": "sentinel_np",
+      "launch_candidate": false,
+      "notes": "4345 km. Sees NW swell on the Hawaii great circle; a cross-check rather than a direct upstream point for SoCal."
+    },
+    {
+      "id": "51002",
+      "name": "South of Hawaii",
+      "region": "sentinel_np",
+      "launch_candidate": false,
+      "notes": "4338 km. The best available southern-hemisphere sentinel, and not on the great-circle path from the Southern Ocean to SoCal - south swell is the weakest case for a buoy-based approach."
+    }
+  ]
+}

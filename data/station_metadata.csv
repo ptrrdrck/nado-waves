@@ -1,0 +1,11 @@
+id,name,owner,station_type,latitude,longitude,usable,note
+46047,"Tanner Banks, CA",N,3-meter foam buoy,32.4180,-119.5350,true,
+46086,"San Clemente Basin, CA",N,2.1-meter ionomer foam buoy,32.5040,-118.0290,true,
+46219,"San Nicolas Island, CA",R,Waverider Buoy,33.2260,-119.8910,true,
+46221,"Santa Monica Bay, CA",R,Waverider Buoy,33.8600,-118.6410,true,
+46222,"San Pedro, CA",R,Waverider Buoy,33.6140,-118.3140,true,
+46224,"Oceanside Offshore, CA",R,Waverider Buoy,33.1780,-117.4720,true,
+46225,"Torrey Pines Outer, CA",R,Waverider Buoy,32.9330,-117.3910,true,
+46232,"Point Loma South, CA",R,Waverider Buoy,32.5170,-117.4250,true,
+46253,"San Pedro South, CA",R,Waverider Buoy,33.5760,-118.1820,true,
+46258,"Mission Bay West, CA",R,Waverider Buoy,32.7490,-117.5020,true,

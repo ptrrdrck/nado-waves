@@ -1,0 +1,124 @@
+# =============================================================================
+# Beat the Buoy — .gitignore
+#
+# IMPORTANT: collected buoy observations are COMMITTED to this repo on purpose.
+# Do not add data/ or *.csv rules here. See SPEC.md section 4 ("Storing the
+# data"). The 45-day NDBC retention window means anything not committed is
+# gone forever.
+# =============================================================================
+
+# --- Secrets and environment -------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib60/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# Type checkers and linters
+.mypy_cache/
+.dmypy.json
+.ruff_cache/
+.pyre/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# --- Node / JavaScript -------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.npm
+.yarn/cache
+.yarn/install-state.gz
+
+# Build output
+.next/
+out/
+.nuxt/
+.output/
+.svelte-kit/
+.vercel/
+.turbo/
+*.tsbuildinfo
+
+# --- Mobile (if a native client is added later) ------------------------------
+.expo/
+.expo-shared/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+ios/Pods/
+android/.gradle/
+android/app/build/
+
+# --- Databases and local scratch ---------------------------------------------
+# Local dev databases only. Committed observation files are NOT ignored.
+*.sqlite
+*.sqlite3
+*.db
+scratch/
+tmp/
+.cache/
+
+# --- Editors and OS ----------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Logs --------------------------------------------------------------------
+*.log
+logs/

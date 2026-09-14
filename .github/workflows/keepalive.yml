@@ -1,0 +1,93 @@
+# GitHub disables scheduled workflows after 60 days of repository inactivity,
+# and commits made by the workflow's own bot token do not reliably reset that
+# timer. On a side project with irregular working sessions that is a live risk,
+# and it would silently kill the collector.
+#
+# Two defences, no third-party action, no required secrets:
+#
+#   1. Weekly, call the Actions API to enable every workflow in the repository.
+#      The call is idempotent when they are already enabled, and it is the
+#      documented way to bring a schedule back after inactivity disablement.
+#   2. Optionally, if a KEEPALIVE_TOKEN secret exists (a fine-grained PAT with
+#      contents:write), push a heartbeat commit under that identity. A commit
+#      authenticated by a user token is unambiguous repository activity, which
+#      the bot token's own commits are not. This is the belt to (1)'s braces.
+#
+# Residual risk worth knowing: if every workflow does get disabled, none of
+# them - including this one - can run to re-enable itself. Pushing any real
+# commit, or clicking "Enable workflow" in the Actions tab, restores it.
+
+name: Keepalive
+
+on:
+  schedule:
+    - cron: "40 6 * * 1" # Mondays
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Re-enable every workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflows = await github.paginate(
+              github.rest.actions.listRepoWorkflows,
+              { owner: context.repo.owner, repo: context.repo.repo, per_page: 100 },
+            );
+            for (const workflow of workflows) {
+              if (workflow.state === 'disabled_manually') {
+                core.info(`Skipping ${workflow.name} (disabled on purpose).`);
+                continue;
+              }
+              await github.rest.actions.enableWorkflow({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: workflow.id,
+              });
+              core.info(`Kept alive: ${workflow.name} (was ${workflow.state}).`);
+            }
+
+      - name: Detect optional keepalive token
+        id: token
+        env:
+          KEEPALIVE_TOKEN: ${{ secrets.KEEPALIVE_TOKEN }}
+        run: |
+          if [ -n "${KEEPALIVE_TOKEN}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Keepalive::No KEEPALIVE_TOKEN secret set. Relying on the API re-enable alone. See README."
+          fi
+
+      - uses: actions/checkout@v4
+        if: ${{ steps.token.outputs.present == 'true' }}
+        with:
+          token: ${{ secrets.KEEPALIVE_TOKEN }}
+
+      - name: Push heartbeat commit
+        if: ${{ steps.token.outputs.present == 'true' }}
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p .github
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/keepalive.txt
+          git config user.name "beat-the-buoy keepalive"
+          git config user.email "keepalive@users.noreply.github.com"
+          git add .github/keepalive.txt
+          if git diff --cached --quiet; then
+            echo "Heartbeat unchanged."
+            exit 0
+          fi
+          git commit \
+            -m "chore: keepalive heartbeat" \
+            -m "Keeps the repository active so GitHub does not disable the scheduled collector after 60 days. See .github/workflows/keepalive.yml."
+          git push origin "HEAD:${BRANCH}"

@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  # Every branch, but not the collector's own data commits - re-running the
+  # suite four times a day on unchanged code just burns Actions minutes.
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - "data/**"
+      - ".github/keepalive.txt"
+      - "**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      # The collector itself has no third-party dependencies, and the suite
+      # makes no network calls - NDBC responses come from fixtures.
+      - run: python -m pytest tests -q

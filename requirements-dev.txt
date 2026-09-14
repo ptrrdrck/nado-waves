@@ -1,0 +1,6 @@
+# The collector itself uses only the Python standard library, on purpose:
+# nothing to install on the runner, nothing to break the archiving job when an
+# upstream package publishes a bad release.
+#
+# These are for the test suite only.
+pytest>=8.0

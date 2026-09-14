@@ -1,0 +1,284 @@
+# BRIEFING — what is already known, and what is already ruled out
+
+Carried over from *beat-the-buoy*, a daily prediction game on SoCal buoy data
+that failed its own go/no-go test. The game is dead; the data, the pipeline and
+the findings are not, and they are why this project starts several months ahead
+of where it looks.
+
+Read this before proposing anything. **Four plausible ideas in here were killed
+by their own tests, and three confident conclusions turned out to be wrong.**
+Both lists are more useful than the successes.
+
+---
+
+## 1. What data exists, and what it costs to lose
+
+| archive | what | why it matters |
+|---|---|---|
+| `data/historical/` | 3 years hourly, 15 stations, 2023-01-01 → 2025-12-31 | NDBC's real-time feed retains **45 days**. This is quality-controlled history that took a day to assemble and cannot be reconstructed from the live feed. |
+| `data/wave_forecasts/` | 1,095 archived GFS-Wave 00Z cycles per station, 3 SoCal stations, with **swell partitions** | Each partition has its own height, period and direction. A directional window is the whole problem here, so a partitioned forecast is the right input and a total-Hs one is nearly useless. |
+| `data/observations/` | rolling 45-day live archive, `first_seen_utc` on every row | Records what was *known at the time*, as distinct from what was later corrected. |
+| `data/revisions/` | append-only log of values NDBC changed after publishing | NDBC revises. A published value is never overwritten by a later blank. |
+
+Station set: SoCal nearshore (46222 San Pedro, 46221 Santa Monica, 46253,
+46224 Oceanside, 46225 Torrey Pines, 46258 Mission Bay, **46232 Point Loma
+South** — the Coronado buoy), offshore reference (46219 San Nicolas Island,
+46086 San Clemente Basin, **46047 Tanner Banks** — the least shadowed), and
+North Pacific sentinels (46001, 46005, 46006, 46059, 51101, 51002).
+
+### Data traps that have already bitten
+
+- **Historical files use numeric missing sentinels** (`999.0`, `99.0`,
+  `9999.0`), not `MM`. Backfilling without `collector.ndbc.is_missing` stores
+  999.0 as a wave height. The check is deliberately per-column: 999.0 hPa is a
+  real pressure.
+- **Moored buoys report waves only at :30/:40/:50.** An hourly downsample that
+  keeps the *first* record per hour destroys the wave data — station 46001 came
+  out with 7 wave observations out of 22,467 before this was caught. The fix is
+  to **merge** values within the hour, not pick one.
+- **CDIP buoys report at :26, NDBC moored buoys at :40/:50.** Any cross-station
+  join on exact timestamps silently drops every cross-type pair and looks like
+  missing data. Bucket to the clock hour.
+- **Column mapping must be header-driven, not positional.** NDBC has changed
+  column order.
+
+---
+
+## 2. The geometry — the core insight this project is built on
+
+From `python -m forecast.geometry`. Computed from coordinates alone; no waves,
+no model, no fitting.
+
+| beach | faces | Point Loma blocks | open swell window | shadow edge from normal |
+|---|---|---|---|---|
+| Breakers (NASNI) | 223° | 222–313° (4.0 km) | **196–222°, just 26°** | 1° |
+| Coronado Central | 251° | 249–341° (5.5 km) | **201–249°, 48°** | 1° |
+| Gator (NAB) | 240° | 270–330° (7.2 km) | **206–270°, 65°** | 30° |
+
+Distance from Point Loma orders the shadows. **Gator holds west swell to 270°
+where Coronado cuts off at 249° and Breakers at 222°** — on a W/WNW swell Gator
+works and Breakers is dead.
+
+**Why published forecasts are unreliable at exactly these beaches:** at Coronado
+and Breakers the shadow edge sits about **one degree** from the shore normal, so
+dH/dθ there is enormous. A few degrees of incident-direction error moves the
+beach across the boundary between "in the window" and "behind the peninsula".
+A few miles north the same error costs a few percent.
+
+**And the buoy makes it easy to get wrong.** From 46232 — the nearest buoy and
+the natural anchor for any San Diego forecast — Point Loma bears **35–46°,
+behind it to the north-east**. The buoy sits entirely outside the shadow that
+defines the beaches. In the archive, 3,257 hours of W–WNW and 3,771 hours of NW
+swell fall in the blocked sector, against 1,247 hours of S–SW in the open one:
+**the dominant swell regime in San Diego is, for Coronado, geometrically
+blocked.** Most days the forecast is a transform artifact, not a propagated wave.
+
+Each beach also has a second open arc to the south-east (Coronado 161–190°). It
+is geometrically real and practically near-useless — Southern Hemisphere swell
+arrives from roughly 180–220° — so the "total open arc" figure overstates. Read
+the swell-side window.
+
+**Deliberately omitted rather than guessed:** Zuniga Jetty and the
+harbour-entrance shoal (both bear on Breakers), and refraction and shoaling over
+the shelf. The model says what is *blocked*, not what happens to what gets
+through. **Coordinates are estimated, not digitised** — `verified: false` on
+every spot, with a test enforcing it. Digitising real shoreline points is the
+highest-value correction available and needs local knowledge, not computation.
+
+---
+
+## 3. Measured: how the islands shadow the whole array
+
+Median ratio of each buoy's Hs to Tanner Banks (46047, outside the islands),
+swell hours only (DPD ≥ 12 s, Hs ≥ 0.5 m), 2023–2025.
+
+| buoy | S | SW | W | WNW | NW | swing |
+|---|---|---|---|---|---|---|
+| 46219 San Nicolas I. | 1.06 | 1.05 | 1.02 | 0.98 | 0.97 | 1.08× |
+| 46086 San Clemente Bsn | 0.84 | 0.82 | 0.79 | 0.75 | 0.69 | 1.22× |
+| 46221 Santa Monica | 0.65 | 0.63 | 0.58 | 0.49 | 0.41 | 1.58× |
+| 46222 San Pedro | 0.54 | 0.50 | 0.51 | 0.48 | 0.41 | 1.30× |
+| 46224 Oceanside | 0.65 | 0.64 | 0.55 | 0.41 | 0.36 | 1.80× |
+| 46225 Torrey Pines | 0.67 | 0.66 | 0.60 | 0.51 | 0.47 | 1.43× |
+| 46258 Mission Bay | 0.74 | 0.72 | 0.65 | 0.57 | 0.52 | 1.42× |
+| **46232 Point Loma S** | **0.77** | **0.75** | **0.69** | **0.62** | **0.55** | **1.39×** |
+
+San Nicolas reading ~1.0 in every direction is the control — it is outside the
+islands and *should* be flat, and is. That is what says the method is not
+manufacturing structure.
+
+---
+
+## 4. Falsified — do not re-derive these
+
+Four ideas that looked right and were killed by their own tests.
+
+**Shadowing improves with period.** It does not; it worsens slightly. Split by
+period band, the ratio never rises and falls most in shadowed directions —
+Oceanside W–WNW runs 0.43 (12–15 s), 0.37 (15–18 s), 0.32 (18 s+), a 0.74×
+change. Same sign at all four stations tested, n > 3,000 per cell. *Untested
+hypothesis for why:* long-period swell is directionally narrow, so a blocked
+beam stays blocked, where broad-spread short-period energy leaks in at angles
+that miss the blocker. Do not repeat that as established.
+
+**Skill collapses at six hours.** Written into a spec as an argument, then
+measured: ratio 0.82–1.31×. False.
+
+**The forecast "fills in late" near the event.** The opposite. Mean signed
+revision from +240h to the settled +24h call is **negative at every lead and
+every station**, with only 25–42% of revisions upward — GFS-Wave starts below
+the buoy and then talks itself further down, by 0.075 m on south swells at
+46232. A swell that genuinely arrived bigger than modelled would revise upward.
+
+**The residual after bias correction is recoverable.** Its one-day
+autocorrelation is +0.24 to +0.46, which looks exactly like a drifting bias, and
+a trailing-window correction beats the static fit by 2–9%. **The control kills
+it:** an *expanding* window — every residual knowable at cycle time — captures
+nearly all of that (static and expanding differ by 0.002–0.005 m), so the static
+fit was never stale. What is left for genuine drift is +0.5% to +6.4% at two
+stations and *negative at eight of eleven leads at the third*. The whole win is
+0.14–0.69 **inches** of wave height. The autocorrelation is within-episode
+persistence, not a bias that moves.
+
+---
+
+## 5. Measured: how wrong the published wave forecast is
+
+1,095 archived GFS-Wave 00Z cycles per station, verified against the buoy
+archive. Regenerate with `python -m forecast.verify`.
+
+**The dominant error is a fixed low bias, not a forecasting failure.** All three
+SoCal buoys sit **0.26–0.31 m below** the model at *every* lead time including
++0h. A bias present in the analysis is model geometry at an unresolved nearshore
+point, not a forecast error.
+
+| 46232 Point Loma | +0h | +24h | +120h | +240h |
+|---|---|---|---|---|
+| bias (m) | -0.31 | -0.30 | -0.27 | -0.28 |
+| RMSE (m) | 0.38 | 0.38 | 0.40 | 0.50 |
+| scatter index | 17.1% | 17.8% | 23.4% | 32.5% |
+
+Removing it — two parameters, fit on 2023–24, scored on 2025 — cuts RMSE by
+**+50% at +0h, +47% at +24h, still +25% at ten days**.
+
+**South swell is the predictable case, not the wobbly one.** Restricted to hours
+the buoy itself calls south-dominated (DPD ≥ 14 s, MWD 160–230°), 46232's RMSE
+runs **0.27 m at +0h to 0.29 m at +240h** — essentially flat across ten days,
+against 0.38 → 0.50 m for all hours. A swell six days in transit is the *easy*
+part of a SoCal forecast; the scatter that grows with lead is local wind sea.
+
+**Bands fitted on history are not automatically honest.** The 70% band held
+78–87% for all hours (over-covering) but only **54–56% at +216h and +240h in the
+south regime**. Making it proportional to forecast height did not fix it —
+coverage moved a point or two, sometimes the wrong way.
+
+**Ceiling on any upstream observation** (`python -m forecast.residual --ceiling`):
+the +0h floor is 0.147 m (5.8 in) of representativeness error that no upstream
+observation removes, and a swell arriving beyond about +190h has not been
+generated yet at cycle time, so nothing can see it. Where an in-transit
+observation could act at all, the entire prize is 2.2–6.5 inches.
+
+**GFS-Wave performs no wave data assimilation at all** — WAVEWATCH III forced by
+GFS winds and ice, nothing more. ECMWF's wave model does assimilate, and ECMWF
+Open Data publishes a 0.25° `wave` stream (`swh`, `mwd`, `mwp`, `mp2`, `pp1d`)
+on the same public bucket as the rest of IFS, retained from somewhere in H1 2024
+(2024-01-01 is 404, 2024-06-01 is 200; boundary not pinned). Comparing an
+assimilating model against an unassimilated one at these buoys costs one GRIB2
+decoder and is the cheapest open experiment left. Caveat: the open-data wave
+stream is **total Hs only, no partitions**, so the south-regime split cannot be
+reproduced on it.
+
+---
+
+## 6. What the published forecasters actually do
+
+Do not repeat the overclaim this project made. **Surf apps are not blind to any
+of this.** Surfline's model gives each swell train with period and direction plus
+animated storm and propagation maps, and LOTUS is WAVEWATCH III source plus
+machine learning trained on years of forecaster and camera observations,
+validated against satellites and buoys, claiming 25%+ error reduction, with
+patents. A learned correction fitted to observed outcomes **is** bias
+correction — they are doing it, at a spot, against human observers.
+
+Their published tolerance is one foot of **face** height. An offshore Hs error of
+0.2 m is a fraction of a foot of face — already inside it. Their binding
+constraint is the last 50 km, not the swell.
+
+Wave-model verification against buoys is also long established and public: the
+WMO Lead Centre for Wave Forecast Verification at ECMWF has collated
+buoy-collocated statistics from the operational centres for two decades. The
+scatter index above is reported in their units on purpose.
+
+**So the opening this project has is narrow and specific:** not better physics,
+but a model that respects *this* geometry at *these three beaches*, where the
+shadow edge sits one degree off the shore normal and a general-purpose transform
+is at its most fragile. Claim that, and nothing wider.
+
+---
+
+## 7. The blocker: verification candidates
+
+**Nothing measures waves at these three beaches.** In order of value:
+
+1. **Logged human observation.** What operational forecasters verify against.
+   Cheapest, and the only one that observes the actual beach. Needs a local
+   person. Store observer, time, method; keep it as its own series; never blend
+   it into the forecast it judges.
+2. **A camera with a known scale** — the same thing, automated.
+3. **CDIP MOP.** Resolves this shoreline and is the obvious cross-check, but it
+   is a *model*, not truth. Unreachable from a Claude session (§8).
+4. **NDBC directional spectra at 46232** (`swden`, `swdir`, `swdir2`, `swr1`,
+   `swr2`). Not an observation at the beach, but it converts the transform from
+   an assumption into an integral — energy inside the beach's 201–253° window,
+   measured, per frequency, instead of one dominant direction. **Never confirmed
+   reachable; the host was denied before it could be tested. Probe it first.**
+
+---
+
+## 8. Environment and process lessons
+
+**Egress is policy-controlled and changes mid-session.** On 2026-09-13 both CDIP
+hosts, and then `www.ndbc.noaa.gov`, began refusing at CONNECT with a proxy-side
+403 — after NDBC had served thousands of files earlier the same day. A 403 there
+is a **denial, not throttling**; the tell is that the proxy refuses the tunnel
+before any HTTP request is sent, so it surfaces as a connection error and the
+host looks dead rather than forbidden. Check
+`$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures`. Report the host; do
+not retry or route around it. The scheduled collector runs on GitHub Actions and
+is unaffected by any of this.
+
+**An earlier diagnosis of the same symptom was wrong** and stood for hours: four
+roots crawled in ten minutes, all began failing, "we are being rate-limited",
+2 s delay added as the fix. The delay was good manners; the explanation was not
+supported. `collector/probe_mop.py:DENIAL_NOTE` records it.
+
+**Probe verdicts are untrustworthy by default.** Four distinct faults produced
+confident wrong answers in the predecessor: 543-day-stale content served behind
+HTTP 200; substring matches against page furniture; a 200 KB read truncating the
+evidence; and `"NOAA" in "...not NOAA"`. Sniff freshness, match specific strings,
+read fully, and return typed flags.
+
+**Performance:** re-reading a 26,000-row CSV inside a candidate loop turned a
+12-second job into minutes — twice, in two different modules. Memoise the column
+reads.
+
+**Method that worked, and is worth keeping:** probe before building; test
+in-sample as an upper bound only; validate out-of-sample on a held-out year;
+and for anything that looks like a finding, **write the control that would kill
+it** — the expanding-window control in §4 is the model.
+
+---
+
+## 9. Open questions
+
+- Digitised shoreline coordinates for the three beaches. Highest value, lowest
+  effort, needs a person who knows the beach.
+- Are NDBC directional spectra reachable and complete for 46232?
+- Zuniga Jetty and harbour-shoal geometry for Breakers.
+- Does refraction/shoaling over the shelf need modelling, or does a measured
+  per-direction transfer function absorb it?
+- Wind (KNZY) and tide (NOAA 9410170) — neither probed, both essential at these
+  beaches.
+- Is ECMWF's assimilating wave model measurably better than GFS-Wave at 46232?
+- What does a verification log actually look like, such that a person will
+  fill it in daily for a year?
