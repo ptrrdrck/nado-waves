@@ -72,13 +72,13 @@ cannot be turned into an approximate length.
 | column | meaning |
 | --- | --- |
 | `session_id` | One trip. Entries sharing it were seen by one person, close in time, at one tide — which is what makes them comparable to each other. |
-| `observed_utc` | When the waves were seen. |
+| `observed_utc` | When the waves were seen. One timestamp for a whole sweep: the three breaks are minutes apart and the buoy reports hourly, so a single time loses nothing and keeps the three entries genuinely comparable. |
 | `logged_utc` | When the row was written. The gap is a quality signal: an entry written six hours later is weaker evidence than one written on the sand. |
 | `break_id` | Must exist in `forecast/spots.json`. An observation against an unknown break cannot be compared to anything and is refused. |
 | `entry_id` | Minted where the entry is made. The idempotency key that makes importing the same export twice a no-op. |
 | `observer` | Display name at the time of logging. Required — an anonymous observation cannot be weighted. |
 | `observer_id` | The durable key. Names start generic and get edited once it is known who was helping; a series keyed on the name would orphan every earlier row the moment that happened. |
-| `method` | `from_water`, `from_sand`, `from_window`, `from_camera` |
+| `method` | `from_water`, `from_sand`, `from_window`, `from_camera`. The phone form always records `from_sand` and asks no question, because that is what it instructs — a field with one possible answer is a tap that buys nothing. The CLI can still record the others. |
 | `minutes_watched` | A two-minute look from a car misses set waves and biases low. Recorded because that bias is correctable and otherwise invisible. |
 | `saw_sets` | Whether a set actually came through while watching. |
 | `typical` `sets` | Body scale, `flat` → `double_overhead`. `sets` may be blank; on a flat day there are none, and inventing one would substitute a value for a missing observation. |
