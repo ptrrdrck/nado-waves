@@ -180,9 +180,9 @@ input[type=time]{font:500 16px/1.15 Archivo,system-ui,sans-serif;
   <section>
     <span class="lbl">Already seen a forecast today</span>
     <div class="chips" id="seen"></div>
-    <p class="note">Settle this before you look at the water. Honest answer — it flags
-      the entry rather than rejecting it, and knowing which rows are contaminated beats
-      pretending none are.</p>
+    <p class="note">Settle this before you look at the water. It flags the
+      entry rather than rejecting it, and knowing which rows are contaminated
+      beats pretending none are.</p>
   </section>
 
   <section>
@@ -822,7 +822,7 @@ el("whentime").addEventListener("change", function(){
   var parts=v.split(":"), d=new Date();
   d.setHours(parseInt(parts[0],10), parseInt(parts[1],10), 0, 0);
   if(d.getTime() > Date.now()){
-    toast("That is still in the future — pick a time you have already been out.");
+    toast("That is in the future — pick an earlier time.");
     el("whentime").value=session.when_time;
     return;
   }
