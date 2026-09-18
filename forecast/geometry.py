@@ -53,6 +53,13 @@ class Blocker:
     #: "a" or "b" when the landmass continues past that endpoint instead of
     #: ending there — a peninsula rather than an island.
     continues: str | None = None
+    #: Whether the endpoint that carries this blocker's edges has been
+    #: digitised. Point Loma's tip is; the Coronado Islands are not. Measured
+    #: on 2026-09-18: moving the islands 500 m west flips the open/shut answer
+    #: on 20.6% of current swell hours and 10.8% of the 3-year archive, so
+    #: which blocker forms an edge is not a footnote — it is the difference
+    #: between a claim and a guess, and the surface has to say which it is.
+    tip_verified: bool = False
 
 
 @dataclass(frozen=True)
@@ -150,6 +157,7 @@ def load(path: Path = SPOTS_FILE) -> tuple[list[Spot], list[Blocker]]:
             a=tuple(b["a"]),
             b=tuple(b["b"]),
             continues=b.get("continues"),
+            tip_verified=b.get("tip_verified", False),
         )
         for b in data["blockers"]
     ]
@@ -184,62 +192,218 @@ def blocked_sector(spot: Spot, blocker: Blocker) -> tuple[float, float] | None:
     return (low, high) if high > low else None
 
 
-def _free_arcs(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float, bool, bool]]:
-    """Unblocked seaward arcs, relative to the normal, with their edges sourced.
+def open_window(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float]]:
+    """Seaward arcs that no blocker covers, as absolute compass bearings.
 
-    Each entry is ``(low, high, low_from_blocker, high_from_blocker)``. Knowing
-    *where an edge came from* is what separates the two open arcs at these
-    beaches: an edge at exactly the seaward clip is the beach turning its back
-    on the swell, while a blocker-derived edge is land in the way. BRIEFING
-    section 2 tells the reader to "read the swell-side window" and then leaves
-    them to find it by eye; this is that distinction, computed.
+    The bare-tuple view of `open_windows`, kept because most callers only want
+    the numbers and every existing test is written against this shape.
     """
 
-    cuts = [s for s in (blocked_sector(spot, b) for b in blockers) if s]
-    cuts.sort()
+    return [(w.low.bearing, w.high.bearing) for w in open_windows(spot, blockers)]
 
-    free: list[tuple[float, float, bool, bool]] = []
+
+#: An edge formed by the seaward half-plane rather than by land.
+SEAWARD = "seaward limit"
+
+#: Confidence tiers for a window edge or an arrival. There are deliberately
+#: only two, and neither is a probability. "high" means every coordinate the
+#: edge stands on has been digitised; "low" means at least one is an estimate.
+#: Nothing here is calibrated against an observation, so a third tier would be
+#: inventing precision the project has not earned — CLAUDE.md, the rule that
+#: governs everything.
+HIGH = "high"
+LOW = "low"
+
+
+@dataclass(frozen=True)
+class Edge:
+    """One end of an open window, and what it is standing on."""
+
+    bearing: float
+    #: The blocker whose endpoint sets this edge, or `SEAWARD`.
+    source: str
+    #: Both coordinates behind this edge are digitised. A bearing is drawn
+    #: between two points, so an edge is only as good as the worse of them:
+    #: a digitised Point Loma tip seen from an estimated break is still a
+    #: guess, and so is a digitised break looking at an estimated island.
+    verified: bool
+
+
+@dataclass(frozen=True)
+class Window:
+    """An open arc, with provenance on both edges."""
+
+    spot_id: str
+    low: Edge
+    high: Edge
+
+    @property
+    def span(self) -> float:
+        return (self.high.bearing - self.low.bearing) % 360.0
+
+    @property
+    def confidence(self) -> str:
+        return HIGH if (self.low.verified and self.high.verified) else LOW
+
+    @property
+    def unverified(self) -> list[str]:
+        """Which sources make this window a guess. Empty when it is not."""
+
+        return [e.source for e in (self.low, self.high) if not e.verified]
+
+
+@dataclass(frozen=True)
+class Arrival:
+    """Whether one bearing reaches one spot, and how much to trust the answer.
+
+    `reaches` is the ordinal claim this project actually makes. `confidence`
+    says whether it rests on digitised coordinates or estimated ones, and
+    `because` names the thing responsible either way, so a surface can show
+    the reason rather than a bare verdict.
+    """
+
+    spot_id: str
+    bearing: float
+    reaches: bool
+    confidence: str
+    because: str
+
+    @property
+    def verified(self) -> bool:
+        return self.confidence == HIGH
+
+
+def _edge(spot: Spot, relative: float, blocker: Blocker | None) -> Edge:
+    bearing = (spot.normal + relative) % 360.0
+    if blocker is None:
+        # The seaward clip is drawn from the normal, so it is the CHORD that
+        # has to be digitised for it to be trustworthy - not the position.
+        # The two flags govern different things (BRIEFING section 2a).
+        return Edge(bearing, SEAWARD, spot.shoreline_verified)
+    return Edge(bearing, blocker.name, blocker.tip_verified and spot.position_verified)
+
+
+def open_windows(spot: Spot, blockers: list[Blocker]) -> list[Window]:
+    """Open arcs, each carrying which blocker formed which edge.
+
+    Same sweep as `open_window`, which now delegates here; the only addition is
+    that the cursor remembers what moved it. That bookkeeping is the whole
+    point: without it the surface can say a break is open but not whether the
+    edge it is open to was digitised or guessed, and at these beaches those are
+    very different statements.
+    """
+
+    cuts = []
+    for blocker in blockers:
+        sector = blocked_sector(spot, blocker)
+        if sector:
+            cuts.append((sector[0], sector[1], blocker))
+    cuts.sort(key=lambda cut: cut[0])
+
+    free: list[tuple[float, Blocker | None, float, Blocker | None]] = []
     cursor = -SEAWARD_HALF_WIDTH
-    for low, high in cuts:
+    cursor_source: Blocker | None = None
+    for low, high, blocker in cuts:
         if low > cursor:
-            free.append((cursor, low, cursor > -SEAWARD_HALF_WIDTH, True))
-        cursor = max(cursor, high)
+            free.append((cursor, cursor_source, low, blocker))
+        if high > cursor:
+            cursor, cursor_source = high, blocker
     if cursor < SEAWARD_HALF_WIDTH:
-        free.append((cursor, SEAWARD_HALF_WIDTH, cursor > -SEAWARD_HALF_WIDTH, False))
-
-    # Slivers below half a degree are noise, not a window.
-    return [arc for arc in free if arc[1] - arc[0] > 0.5]
-
-
-def open_window(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float]]:
-    """Seaward arcs that no blocker covers, as absolute compass bearings."""
+        free.append((cursor, cursor_source, SEAWARD_HALF_WIDTH, None))
 
     return [
-        ((spot.normal + lo) % 360.0, (spot.normal + hi) % 360.0)
-        for lo, hi, _, _ in _free_arcs(spot, blockers)
+        Window(spot.id, _edge(spot, lo, lo_src), _edge(spot, hi, hi_src))
+        for lo, lo_src, hi, hi_src in free
+        if hi - lo > 0.5  # slivers below half a degree are noise, not a window
+    ]
+
+
+def swell_windows(spot: Spot, blockers: list[Blocker]) -> list[Window]:
+    """The open arcs that swell can actually arrive through, with provenance.
+
+    An arc with a seaward-limit edge is an arc that runs into the half-plane
+    clip rather than into land, and at these beaches that is a warning sign
+    rather than a window. Measured 2026-09-18: Coronado's south-east arc spans
+    the bearings where Imperial Beach (155–161°), the Tijuana river mouth
+    (158–163°) and Rosarito (161–163°) sit, 11–41 km away. **The Baja coastline
+    is not in `spots.json`**, so the model has nothing there to cast a shadow
+    and reports open water across a coast you can see from the sand.
+
+    Both edges of a genuine swell-side window are blocker-derived (BRIEFING
+    §2a), so that is the test. It is a filter on what is honest to show, not a
+    claim that the south-east arc is closed — `open_window` still returns
+    everything, and the missing blocker is recorded in BRIEFING §12 rather than
+    papered over here.
+    """
+
+    return [
+        w for w in open_windows(spot, blockers)
+        if w.low.source != SEAWARD and w.high.source != SEAWARD
     ]
 
 
 def swell_window(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float]]:
-    """The arcs a real swell can arrive through — both edges cut by land.
+    """The bare-tuple view of `swell_windows`.
 
-    The total open arc overstates, and BRIEFING section 2 says so: every spot
-    here also owns a wide south-east arc that is geometrically real and
-    practically near-useless, because Southern Hemisphere swell arrives from
-    roughly 180-220 degrees and nothing generates surf out of the bight behind
-    Coronado. That arc is the one bounded by the seaward clip.
-
-    The swell-side window is bounded by Point Loma to the west and the Coronado
-    Islands to the east — two blockers, no clip — which is also the mechanical
-    reason the shoreline chord cannot move it (BRIEFING section 2a): the clip
-    is what the normal controls, and here the clip never binds.
+    Same singular/plural split as `open_window` and `open_windows`: callers
+    that only want the numbers take this one, callers that need to know which
+    blocker formed which edge take the plural. `forecast.siting` and the app
+    surface respectively.
     """
 
-    return [
-        ((spot.normal + lo) % 360.0, (spot.normal + hi) % 360.0)
-        for lo, hi, lo_blocked, hi_blocked in _free_arcs(spot, blockers)
-        if lo_blocked and hi_blocked
-    ]
+    return [(w.low.bearing, w.high.bearing) for w in swell_windows(spot, blockers)]
+
+
+def blocked_by(spot: Spot, blockers: list[Blocker], bearing: float) -> Blocker | None:
+    """Which blocker stops this bearing, or None if nothing does."""
+
+    offset = _relative(bearing, spot.normal)
+    if abs(offset) > SEAWARD_HALF_WIDTH:
+        return None
+    for blocker in blockers:
+        sector = blocked_sector(spot, blocker)
+        if sector and sector[0] <= offset <= sector[1]:
+            return blocker
+    return None
+
+
+def arrival(spot: Spot, blockers: list[Blocker], bearing: float) -> Arrival:
+    """The full verdict for one bearing at one spot, with its confidence.
+
+    Blocked and open are not symmetric, and the asymmetry is the reason this
+    returns a record rather than a bool. A blocked bearing is standing on the
+    one blocker that stops it. An open bearing is standing on BOTH edges of the
+    window it sits in, because either of them moving could close it. So a
+    shadow cast by a digitised headland is a high-confidence "no" even at a
+    spot whose other edge is a guess, while an open verdict inherits the worse
+    of the two edges.
+    """
+
+    offset = _relative(bearing, spot.normal)
+    if abs(offset) > SEAWARD_HALF_WIDTH:
+        return Arrival(
+            spot.id, bearing, False,
+            HIGH if spot.shoreline_verified else LOW,
+            "behind the beach",
+        )
+
+    blocker = blocked_by(spot, blockers, bearing)
+    if blocker is not None:
+        confidence = HIGH if (blocker.tip_verified and spot.position_verified) else LOW
+        return Arrival(spot.id, bearing, False, confidence, blocker.name)
+
+    for window in open_windows(spot, blockers):
+        if _within(bearing, window):
+            sources = " and ".join(dict.fromkeys([window.low.source, window.high.source]))
+            return Arrival(spot.id, bearing, True, window.confidence, f"open between {sources}")
+
+    # Not inside any window and not blocked: only reachable through the
+    # sub-degree slivers open_windows discards. Treat that as no window.
+    return Arrival(spot.id, bearing, True, LOW, "open, but only through a sliver window")
+
+
+def _within(bearing: float, window: Window) -> bool:
+    return ((bearing - window.low.bearing) % 360.0) <= window.span
 
 
 def reaches(spot: Spot, blockers: list[Blocker], bearing: float) -> bool:

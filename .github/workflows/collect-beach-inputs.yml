@@ -1,0 +1,145 @@
+# The three inputs the Coronado forecast needs that the NDBC standard-met
+# collector does not already carry: directional spectra at 46232, wind at KNZY
+# and tide at 9410170.
+#
+# Why this is a workflow and not something a session runs: all three hosts are
+# denied at CONNECT from a Claude session — www.ndbc.noaa.gov,
+# aviationweather.gov and api.tidesandcurrents.noaa.gov, re-checked 2026-09-18.
+# A refused tunnel surfaces as a connection error, so the host looks dead
+# rather than forbidden (BRIEFING section 8). A runner has no such policy in
+# front of it. "Unreachable from a session" and "not published" are different
+# claims and only this job can tell them apart.
+#
+# Each collector exits 2 on a denial and 1 on an incomplete fetch, so a denial
+# is distinguishable from an outage in the run status alone — the distinction
+# BRIEFING section 8 records as having cost hours to make by hand.
+#
+# Cadence: NDBC publishes spectra roughly hourly and METAR arrives hourly with
+# specials in between, so hourly at :45 catches both without hammering either.
+# Tide predictions run four days ahead and barely change; they are re-fetched
+# on the same pass because the request is trivial and one schedule is easier to
+# reason about than three.
+
+name: Collect beach inputs
+
+on:
+  schedule:
+    - cron: "45 * * * *"
+  workflow_dispatch:
+    inputs:
+      station:
+        description: "Buoy for directional spectra"
+        required: false
+        default: "46232"
+      skip_commit:
+        description: "Fetch and report without committing"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beach-inputs
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Each collector runs even if an earlier one failed. A spectra denial
+      # must not cost the day's wind, and vice versa: they are independent
+      # sources and a partial archive is worth more than none.
+      - name: Directional spectra (46232)
+        id: spectra
+        continue-on-error: true
+        env:
+          STATION: ${{ inputs.station }}
+        run: |
+          set -euo pipefail
+          python -m collector.spectra --station "${STATION:-46232}"
+
+      - name: Wind (KNZY)
+        id: wind
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.wind
+
+      - name: Tide (9410170)
+        id: tide
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.tide
+
+      - name: Say which sources came back
+        env:
+          SPECTRA: ${{ steps.spectra.outcome }}
+          WIND: ${{ steps.wind.outcome }}
+          TIDE: ${{ steps.tide.outcome }}
+        run: |
+          set -euo pipefail
+          # The collectors write their own tables to the step summary. This
+          # only turns the outcomes into a headline, because "the job went red"
+          # does not say which of three sources failed.
+          failed=""
+          for pair in "spectra:${SPECTRA}" "wind:${WIND}" "tide:${TIDE}"; do
+            name="${pair%%:*}"; outcome="${pair##*:}"
+            if [ "${outcome}" != "success" ]; then
+              failed="${failed} ${name}"
+            fi
+          done
+          if [ -n "${failed}" ]; then
+            echo "::warning title=Beach inputs incomplete::Did not collect:${failed}. Read the step summary - a CONNECT denial and an outage are different things."
+          else
+            echo "::notice title=Beach inputs collected::spectra, wind and tide all stored."
+          fi
+
+      - name: Commit and push
+        if: ${{ !inputs.skip_commit }}
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves collector"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/spectra data/wind data/tide 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No new beach inputs to commit."
+            exit 0
+          fi
+
+          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide \
+            | awk '{sum += $1} END {print sum + 0}')
+
+          git commit \
+            -m "data: archive beach inputs (spectra, wind, tide)" \
+            -m "${rows} row(s) added. Automated commit from .github/workflows/collect-beach-inputs.yml."
+
+          # Another run may have pushed since checkout. Rebase and retry: the
+          # NDBC real-time feed retains 45 days and a lost run is lost history.
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}); rebasing and retrying."
+            git pull --rebase --autostash origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+
+          echo "::error title=Beach inputs push failed::Could not push archived inputs"
+          exit 1

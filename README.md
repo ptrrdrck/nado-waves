@@ -11,14 +11,20 @@ Point Loma sits directly across their swell window. Computed from coordinates:
 
 | spot | open swell window | cuts off at | coordinates |
 |---|---|---|---|
-| Breakers (NASNI) | 27° | 223° | estimated |
 | Coronado — north break | 42.8° | 242.2° | digitised |
 | Coronado — center break | 49.1° | 250.3° | digitised |
 | Coronado — south break | 56.3° | 259.9° | digitised |
-| Gator (NAB) | 64° | 270° | estimated |
 
-Gator holds west swell to 270°; Breakers dies at 223°. On a W/WNW swell Gator
-works and Breakers is dead.
+Those are the **swell-side** windows — both edges formed by land. `geometry.py`
+also reports a south-east arc that the surface deliberately does not publish:
+it spans Imperial Beach, the Tijuana river mouth and Rosarito at 11–41 km, and
+the Baja coast is not a blocker in `spots.json`, so the raw arc claims open
+water across a coastline you can see from the sand (BRIEFING §12).
+
+The forecast and the app cover **these three breaks only**. Breakers (NASNI)
+and Gator (NAB) are still in `spots.json` for the geometry, and out of
+everything downstream: they are the two spots whose coordinates remain
+estimated.
 
 **Coronado is three rows because it is not one beach.** The west edge of the
 window is the bearing to the Point Loma tip, and that bearing sweeps as you walk
@@ -39,6 +45,32 @@ And in three years of archive, **3,257 hours of W–WNW and 3,771 hours of NW
 swell fall in the blocked sector**, against 1,247 hours of S–SW in the open one.
 The dominant San Diego swell regime is, for Coronado, geometrically blocked.
 
+## The Coronado Islands are not a switch
+
+Local surfers say the islands barely shadow anything. Measured, they are right,
+and there is a mechanism (BRIEFING §10). The islands subtend **10.9°** where
+Point Loma subtends **54.0°**, so against a swell with any realistic
+directional spread they remove about **11%** of the energy and Point Loma
+removes about **half** — and their Fresnel number runs 1.9–5.4 across surf
+periods, low enough that diffraction fills part of even that 11%.
+
+So the forecast **integrates the directional spectrum through the aperture**
+rather than testing one dominant direction against a hard-edged sector. That
+one change is what turns the islands from an on/off switch into a small energy
+reduction. It also means digitising them is low value: they are 31 km out, and
+a full kilometre of coordinate error moves an edge by under 2°, against
+2.2–2.8° for 250 m at the Point Loma tip.
+
+## Seeing it
+
+    python -m forecast.live          # writes data/live/forecast.json
+    python -m http.server            # then open /app/forecast.html
+
+The page states what it is standing on in four levels — geometry, model,
+calibration, observation — and two of those currently read **none**.
+`tests/test_app_surface.py` enforces that the page cannot use the vocabulary an
+accuracy claim would need.
+
 ## The honest caveat, up front
 
 **Nothing measures waves at these three beaches.** Until a verification series
@@ -55,7 +87,11 @@ can report reliably.
 ## Running it
 
 ```
+python -m forecast.live                  # the forecast -> data/live/forecast.json
+python -m forecast.transform             # energy through each aperture
 python -m forecast.geometry              # which bearings reach each beach
+python -m collector.spectra              # archive NDBC directional spectra
+python -m collector.wind                 # KNZY    /  python -m collector.tide
 python -m collector.probe_spectra        # are NDBC directional spectra reachable?
 python -m collector.beachlog sweep -o me # log the three breaks in one trip
 python -m forecast.beachverify           # does the log agree with the geometry?
@@ -69,8 +105,11 @@ PYTHONPATH=. python -m pytest -q
 
 ## Layout
 
+    app/forecast.html     the app surface, Coronado's three breaks  [built]
     collector/            NDBC archiving, revisions, station status, backfill,
-                          GFS-Wave bulletin parsing
+                          GFS-Wave bulletin parsing, spectra, wind, tide
+    forecast/live.py      the live forecast                          [built]
+    forecast/transform.py spectrum -> energy through the aperture    [built]
     forecast/geometry.py  which bearings reach each beach            [built]
     forecast/spots.json   breaks and blockers     [Coronado digitised; others not]
     forecast/verify.py    bias, RMSE, scatter, calibration, band coverage

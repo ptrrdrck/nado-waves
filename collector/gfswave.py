@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import http.client
 import re
+import tarfile
 import time
 import urllib.error
 import urllib.request
@@ -134,12 +135,78 @@ def from_direction(toward_deg: float) -> int:
 
 
 def bulletin_url(station_id: str, cycle: datetime) -> str:
+    """The per-station bulletin path.
+
+    NCEP stopped publishing these between 2026-09-15 and 2026-09-16 — the
+    directory `gfs.YYYYMMDD/HH/wave/station/bulls.tHHz/` is simply absent from
+    2026-09-16 onward and every station 404s. The data did not go away: it
+    ships in `gfswave.tHHz.bull_tar` alongside, which has been published all
+    along. `fetch_bulletin` falls back to the tar, so this path stays for the
+    three years of cycles that predate the change and still serve it directly.
+    """
+
     day = cycle.strftime("%Y%m%d")
     hour = f"{cycle.hour:02d}"
     return (
         f"{BASE_URL}/gfs.{day}/{hour}/wave/station/"
         f"bulls.t{hour}z/gfswave.{station_id}.bull"
     )
+
+
+def bulletin_tar_url(cycle: datetime) -> str:
+    """The all-stations tar for one cycle. ~49 MB, ~918 stations."""
+
+    day = cycle.strftime("%Y%m%d")
+    hour = f"{cycle.hour:02d}"
+    return f"{BASE_URL}/gfs.{day}/{hour}/wave/station/gfswave.t{hour}z.bull_tar"
+
+
+def fetch_bulletins_from_tar(
+    station_ids: list[str],
+    cycle: datetime,
+    timeout: float = 300.0,
+    opener=urllib.request.urlopen,
+) -> dict[str, Bulletin]:
+    """Pull several stations out of one cycle's tar in a single download.
+
+    Streamed rather than buffered: the tar is ~49 MB and only a few kilobytes
+    of it are wanted, so it is read as a stream and abandoned once every
+    requested member has been seen. Taking the stations together matters —
+    BRIEFING §8 records re-reading one big input inside a per-candidate loop
+    turning a 12-second job into minutes, twice. One download, N stations.
+
+    Stations absent from the tar are absent from the result rather than raising,
+    because a station NCEP dropped and a station we mistyped look identical from
+    here and the caller is the one that knows which it asked for.
+    """
+
+    url = bulletin_tar_url(cycle)
+    wanted = {f"gfswave.{s}.bull" for s in station_ids}
+    found: dict[str, Bulletin] = {}
+
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with opener(request, timeout=timeout) as response:
+            # "r|" is the streaming mode: no seeking, no full buffer.
+            with tarfile.open(fileobj=response, mode="r|") as archive:
+                for member in archive:
+                    name = member.name.lstrip("./")
+                    if name not in wanted:
+                        continue
+                    handle = archive.extractfile(member)
+                    if handle is None:
+                        continue
+                    text = handle.read().decode("utf-8", errors="replace")
+                    bulletin = parse_bulletin(text)
+                    found[bulletin.station_id] = bulletin
+                    if len(found) == len(wanted):
+                        break
+    except urllib.error.HTTPError as error:
+        raise BulletinError(f"{url}: HTTP {error.code}") from error
+    except (urllib.error.URLError, OSError, tarfile.TarError, http.client.HTTPException) as error:
+        raise BulletinError(f"{url}: {error}") from error
+
+    return found
 
 
 def fetch_bulletin(
@@ -170,8 +237,15 @@ def fetch_bulletin(
                 payload = response.read().decode("utf-8", errors="replace")
             return parse_bulletin(payload)
         except urllib.error.HTTPError as error:
-            # A 404 is an answer: NCEP did not run that cycle. Retrying it just
-            # spends the budget that a genuinely flaky connection needs.
+            # A 404 used to mean "NCEP did not run that cycle". Since
+            # 2026-09-16 it more often means the per-station layout is gone for
+            # this cycle, so the tar is tried before believing the 404. That
+            # distinction is the whole bug: the archive job went quietly to
+            # zero rows for three days while the data was still published.
+            if error.code == 404:
+                found = fetch_bulletins_from_tar([station_id], cycle, opener=opener)
+                if station_id in found:
+                    return found[station_id]
             raise BulletinError(f"{url}: HTTP {error.code}") from error
         except (urllib.error.URLError, OSError, http.client.HTTPException) as error:
             last = error
