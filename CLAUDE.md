@@ -98,18 +98,34 @@ forecaster actually verifies against, Surfline included.
    opposite orderings**, so a fixed bias agrees on one and contradicts the
    other, while a real aperture effect flips. Agreement on one edge alone is
    not evidence.
-3. **The transform.** Offshore spectrum at 46232 → energy that survives the
-   beach's window. **Unblocked: the directional spectra are reachable and
-   complete** — 64 bins, 0.0250–0.5800 Hz, agreeing across all five files,
-   `r1`/`r2` already normalised (BRIEFING §7). Re-probe with the
-   `Probe NDBC directional spectra` workflow, never from a session — an
-   interactive session cannot see the host and a runner can.
-   **Caveat: 46232 has been dark since 2026-09-01.** The anchor buoy for every
-   transform here is not currently reporting anything to transform.
-4. **The forecast.** GFS-Wave partitions at 46232 through the transform.
+3. **The transform — built, `forecast/transform.py`.** Offshore spectrum at
+   46232 → energy that survives the beach's window. Integrates E(f, θ)·T(θ)
+   over the circle, and also runs GFS-Wave partitions one train at a time,
+   recombining in energy. `collector/spectra.py` archives the five NDBC
+   components to `data/spectra/46232/`; run it from Actions, never a session.
+   **The finding that shaped it (BRIEFING §10): integrating the spectrum is
+   what makes the Coronado Islands an ~11% energy reduction rather than an
+   on/off switch.** Do not reintroduce a binary blocker test against a single
+   `MWD`. **46232 is reporting again** as of 2026-09-17T17:56Z, after a 16-day
+   gap. The staleness alert still did not fire for it.
+4. **The forecast — built, `forecast/live.py`.** GFS-Wave partitions at 46232
+   through the transform, with KNZY wind and 9410170 tide as context. Writes
+   `data/live/forecast.json`. **GFS-Wave publishes no directional spread, so
+   one is assumed** (20° swell, 35° wind sea) — conventional, not fitted, and
+   the weakest number in the chain. BRIEFING §11 measures what it costs: across
+   a fourfold change the between-break ratio moves 1–4%, so publish the ratio
+   loudly and the absolute height quietly.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
-6. **App surface**, which states which of the above it is standing on.
+6. **App surface — built, `app/forecast.html`.** States all four levels
+   (geometry / model / calibration / observation) on screen, not just in the
+   README. **Coronado's three breaks only, by decision (2026-09-18).** Breakers
+   and Gator are out of the forecast and the app. They are not equivalent to
+   Coronado north and south — measured, they differ on 17.6% and 13.5% of
+   archive swell hours — but they are the two spots still standing on estimated
+   coordinates, so nothing trustworthy was dropped.
+   `tests/test_app_surface.py` enforces the vocabulary: the page may not use
+   the words an accuracy claim would need.
 
 ## Infrastructure
 
@@ -128,6 +144,13 @@ forecaster actually verifies against, Surfline included.
   A 403 at CONNECT is a denial, not throttling: check
   `$HTTPS_PROXY/__agentproxy/status`, report the blocked host, do not route
   around it. See `collector/probe_mop.py:DENIAL_NOTE` and BRIEFING §8.
+- **A 404 that used to mean one thing can start meaning another.** NCEP dropped
+  the per-station GFS-Wave bulletin files between 2026-09-15 and 2026-09-16;
+  the data moved to `gfswave.tHHz.bull_tar` in the same directory. The archive
+  job read the 404 as "NCEP skipped this cycle" and went silently to zero rows
+  for three days. `collector.gfswave` now checks the tar before believing a
+  404. Same shape as the staleness alert missing 46232's outage: the monitoring
+  watched for the failure it expected.
 - Before writing an "archive it now, history is unrecoverable" job, **check
   whether the history is actually unrecoverable.** It was for Open-Meteo. It was
   not for GFS-Wave, whose every cycle since 2021-03 sits in the NOAA Open Data
@@ -138,7 +161,10 @@ forecaster actually verifies against, Surfline included.
     collector/          data pipeline: NDBC archiving, revisions, station
                         status, historical backfill, GFS-Wave bulletins,
                         probe_spectra.py (are directional spectra reachable?),
+                        spectra.py (archive them), wind.py (KNZY),
+                        tide.py (9410170),
                         beachlog.py + beachlog_import.py (the observation log)
+    app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/beachlog.html   the phone form, owner build (shared store)
     app/beachlog-observer.html  same file, observer build — no sign-in, entries
                         stay on the phone and are handed back as text. The two
@@ -146,6 +172,8 @@ forecaster actually verifies against, Surfline included.
                         stays the system of record for both.
     forecast/
       geometry.py       which bearings reach each beach          [built]
+      transform.py      spectrum -> energy through the aperture   [built]
+      live.py           the live forecast, Coronado only          [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
       stats.py          load_column, least_squares, rmse, circular means
@@ -154,6 +182,9 @@ forecaster actually verifies against, Surfline included.
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
+    data/live/          forecast.json, what the app surface reads
+    data/spectra/       NDBC directional spectra, five components per station
+    data/wind/          KNZY                    data/tide/  NOAA 9410170
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
@@ -173,7 +204,17 @@ circular helpers are used here. Trimming it is a good first cleanup.
   surface showing one number for "Coronado" is averaging across it.
 - **The Point Loma tip is one point and it carries every west edge.** 100 m of
   error there moves an edge ~1°. It is the highest-leverage coordinate in the
-  repository.
+  repository. Measured 2026-09-18: 250 m of tip error moves a Coronado edge
+  2.2–2.8°, against 0.46° for the same error on the Coronado Islands.
+- **The Coronado Islands are not a switch, and digitising them is low value.**
+  They subtend 10.9° at 31 km and remove ~11% of a spread swell's energy where
+  Point Loma removes ~50%; their Fresnel number runs 1.9–5.4, so even that 11%
+  is partly filled by diffraction. A full kilometre of island coordinate error
+  costs under 2°. The locals who say the islands barely shadow are right, and
+  BRIEFING §10 has the mechanism. **Never restore a binary open/shut test for
+  them** — that was the modelling error, and it inflated the "breaks disagree
+  on 50% of swell hours" headline to roughly twice its real, Point-Loma-driven
+  value of 19.4%.
 - **The buoy does not share the beach's geometry.** 46232 sits south-west of
   Point Loma with the peninsula behind it to the north-east; the beaches sit in
   front of it. A transform that skips the aperture delivers north-west swell

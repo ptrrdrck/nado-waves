@@ -610,3 +610,59 @@ def through_partitions(
             )
         )
     return out
+
+
+def attribution(
+    spot: Spot,
+    blockers: list[Blocker],
+    from_deg: float,
+    spread_deg: float,
+    *,
+    step: float = STEP_DEG,
+) -> dict[str, float]:
+    """Which blocker takes which share of one wave train's energy.
+
+    Shares are of the train's TOTAL energy, so they sum with the surviving
+    fraction to 1. Energy from behind the beach is filed under `SEAWARD_CLIP`
+    rather than dropped, because a surface that shows "62% gets through" and
+    two blockers accounting for 20% invites the reader to wonder where the rest
+    went — and the answer, that a fifth of a broad spectrum was always pointed
+    at the wrong half of the world, is worth saying.
+    """
+
+    r1, r2 = moments_for_spread(spread_deg)
+    steps = max(int(round(360.0 / step)), 1)
+    d_theta = 360.0 / steps
+
+    from .geometry import _relative
+
+    total = 0.0
+    taken: dict[str, float] = {}
+    for n in range(steps):
+        theta = (n + 0.5) * d_theta
+        t = math.radians(theta)
+        density = max(0.0, (1.0 / math.pi) * (
+            0.5
+            + r1 * math.cos(t - math.radians(from_deg))
+            + r2 * math.cos(2.0 * (t - math.radians(from_deg)))
+        ))
+        if density <= 0.0:
+            continue
+        total += density
+
+        offset = _relative(theta, spot.normal)
+        who: str | None = None
+        if abs(offset) > 90.0:
+            who = SEAWARD_CLIP
+        else:
+            for blocker in blockers:
+                sector = blocked_sector(spot, blocker)
+                if sector and sector[0] <= offset <= sector[1]:
+                    who = blocker.name
+                    break
+        if who:
+            taken[who] = taken.get(who, 0.0) + density
+
+    if total <= 0:
+        return {}
+    return {name: value / total for name, value in taken.items()}
