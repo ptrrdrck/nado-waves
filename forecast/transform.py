@@ -445,3 +445,168 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ---------------------------------------------------------------------------
+# Partitions
+#
+# GFS-Wave publishes swell partitions, not spectra: each is one wave train with
+# a height, a peak period and a direction. A partition IS a wave train, so each
+# one is integrated through the aperture on its own and the survivors are
+# recombined by energy. Nothing here fabricates a joint spectrum — stitching
+# partitions into one D(f, θ) would invent structure between them that the
+# bulletin never claimed.
+# ---------------------------------------------------------------------------
+
+#: Directional spread assumed for a partition, in degrees, when the source does
+#: not publish one — and GFS-Wave bulletins do not.
+#:
+#: **This is an assumption, not a measurement, and it is the least defensible
+#: number in this module.** Swell narrows as it propagates, so a long-period
+#: train from the Southern Hemisphere is narrower than a local wind sea; the
+#: two defaults below are conventional values, not fitted ones. `live.py`
+#: reports the sensitivity rather than hiding it, and once `collector.spectra`
+#: has a series the real r1/r2 replace this entirely — that is the whole reason
+#: the spectral path exists.
+SWELL_SPREAD_DEG = 20.0
+WIND_SEA_SPREAD_DEG = 35.0
+
+#: The period below which a partition is treated as wind sea for spread
+#: purposes when the bulletin does not flag it.
+WIND_SEA_PERIOD_S = 8.0
+
+
+def spread_for(period_s: float, wind_sea: bool) -> float:
+    """The assumed directional spread for one partition. See SWELL_SPREAD_DEG."""
+
+    if wind_sea or (period_s and period_s < WIND_SEA_PERIOD_S):
+        return WIND_SEA_SPREAD_DEG
+    return SWELL_SPREAD_DEG
+
+
+def moments_for_spread(spread_deg: float) -> tuple[float, float]:
+    """(r1, r2) for a wrapped-normal directional distribution of this spread.
+
+    r1 = exp(-σ²/2) and r2 = exp(-2σ²) are the exact circular moments, rather
+    than the small-angle 1 − σ²/2 expansion: at a 35° wind-sea spread the two
+    differ by about 5%, and the expansion can go negative at wider spreads,
+    which would put energy where there is none.
+    """
+
+    sigma = math.radians(spread_deg)
+    return math.exp(-0.5 * sigma * sigma), math.exp(-2.0 * sigma * sigma)
+
+
+def directional_fraction(
+    spot: Spot,
+    blockers: list[Blocker],
+    from_deg: float,
+    spread_deg: float,
+    *,
+    step: float = STEP_DEG,
+) -> float:
+    """Fraction of one wave train's energy that gets through the aperture."""
+
+    r1, r2 = moments_for_spread(spread_deg)
+    steps = max(int(round(360.0 / step)), 1)
+    d_theta = 360.0 / steps
+
+    total = inside = 0.0
+    for n in range(steps):
+        theta = (n + 0.5) * d_theta
+        t = math.radians(theta)
+        density = (1.0 / math.pi) * (
+            0.5
+            + r1 * math.cos(t - math.radians(from_deg))
+            + r2 * math.cos(2.0 * (t - math.radians(from_deg)))
+        )
+        density = max(0.0, density)
+        total += density
+        if transmission(spot, blockers, theta) > 0.0:
+            inside += density
+    return inside / total if total > 0 else float("nan")
+
+
+@dataclass
+class PartitionThrough:
+    """One wave train, before and after the aperture."""
+
+    hs_offshore_m: float
+    tp_s: float
+    from_deg: float
+    wind_sea: bool
+    spread_deg: float
+    fraction: float
+
+    @property
+    def hs_in_window_m(self) -> float:
+        return self.hs_offshore_m * math.sqrt(max(0.0, self.fraction))
+
+
+@dataclass
+class PartitionsThrough:
+    """Every wave train at one valid time, recombined after the aperture."""
+
+    spot_id: str
+    parts: list[PartitionThrough] = field(default_factory=list)
+
+    @property
+    def hs_offshore_m(self) -> float:
+        return math.sqrt(sum(p.hs_offshore_m ** 2 for p in self.parts))
+
+    @property
+    def hs_in_window_m(self) -> float:
+        """Recombined in ENERGY, not height. Adding heights would overstate a
+        two-swell day by up to 40%; partitions are independent trains and their
+        variances add, which is the same reason Hs = 4√m0 in the first place."""
+
+        return math.sqrt(sum(p.hs_in_window_m ** 2 for p in self.parts))
+
+    @property
+    def fraction(self) -> float:
+        total = sum(p.hs_offshore_m ** 2 for p in self.parts)
+        return (self.hs_in_window_m ** 2 / total) if total > 0 else float("nan")
+
+    @property
+    def dominant(self) -> PartitionThrough | None:
+        """The train contributing most energy AT THE BREAK, not offshore.
+
+        These differ, and the difference is the entire point of the project: on
+        a west swell the biggest offshore train can be the one Point Loma takes,
+        leaving a smaller south train to define what is actually breaking.
+        """
+
+        surviving = [p for p in self.parts if p.hs_in_window_m > 0]
+        return max(surviving, key=lambda p: p.hs_in_window_m) if surviving else None
+
+
+def through_partitions(
+    spot: Spot,
+    blockers: list[Blocker],
+    partitions: list[tuple[float, float, float, bool]],
+    *,
+    spread_override: float | None = None,
+    step: float = STEP_DEG,
+) -> PartitionsThrough:
+    """Run (hs_m, tp_s, from_deg, wind_sea) tuples through one break's aperture.
+
+    `from_deg` is degrees FROM. `collector.gfswave` stores partitions as
+    `toward_deg` and flips once on the way into the archive; if you are reading
+    a `Partition` object rather than an archive row, flip it yourself and do it
+    exactly once (CLAUDE.md: 29° of error with the flip, 151° without).
+    """
+
+    out = PartitionsThrough(spot_id=spot.id)
+    for hs, tp, from_deg, wind_sea in partitions:
+        spread = spread_override if spread_override is not None else spread_for(tp, wind_sea)
+        out.parts.append(
+            PartitionThrough(
+                hs_offshore_m=hs,
+                tp_s=tp,
+                from_deg=from_deg,
+                wind_sea=wind_sea,
+                spread_deg=spread,
+                fraction=directional_fraction(spot, blockers, from_deg, spread, step=step),
+            )
+        )
+    return out

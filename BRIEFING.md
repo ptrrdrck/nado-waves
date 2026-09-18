@@ -446,3 +446,53 @@ season, which sits on the island edge — so *today's* between-break differences
 are almost entirely an artifact of the binary treatment.
 
 **Quote the Point Loma number, not the total.**
+
+---
+
+## 11. Measured, 2026-09-18 — the differential survives the weakest assumption
+
+GFS-Wave publishes swell partitions with no directional spread, so running them
+through an aperture requires assuming one. That assumption (20° for swell, 35°
+for wind sea, `forecast.transform.SWELL_SPREAD_DEG`) is **the least defensible
+number in the forecast chain**: conventional, not fitted, with nothing to fit it
+against. So it was tested rather than trusted.
+
+Window height at each break against assumed spread, 2026-09-18 00Z cycle:
+
+| spread | north | center | south | south/north |
+|---|---|---|---|---|
+| 10° | 0.604 m | 0.617 m | 0.632 m | 1.046 |
+| 20° | 0.609 m | 0.622 m | 0.637 m | 1.046 |
+| 30° | 0.614 m | 0.626 m | 0.640 m | 1.043 |
+| 40° | 0.614 m | 0.622 m | 0.636 m | 1.035 |
+
+On a synthetic W swell from 255°, where the geometry actually separates the
+breaks, the same sweep runs the ratio 1.249 → 1.198.
+
+**Absolute height moves 2–5% across a fourfold change in the assumption; the
+ratio between breaks moves 1–4%.** The differential — the only thing this
+project claims — is nearly immune to the worst-supported input in the chain.
+That is a reason to publish the ratio prominently and the absolute height
+quietly, which is what `forecast.live` and the app surface do.
+
+**This is not a claim that the heights are right.** It says the assumption is
+not what would make them wrong. The bias, the missing shoaling and refraction,
+the absent offshore-to-face transfer and the total absence of any verification
+series are all still there, and they are all larger.
+
+Pinned by `tests/test_live.py::TestTheDifferentialIsRobust`.
+
+### Also found, 2026-09-18 — the GFS-Wave collector had been dead for three days
+
+NCEP stopped publishing per-station bulletins
+(`gfs.YYYYMMDD/HH/wave/station/bulls.tHHz/gfswave.{id}.bull`) between
+2026-09-15 and 2026-09-16. Every station 404s from 2026-09-16 onward. The data
+did not go away: it ships in `gfswave.tHHz.bull_tar` in the same directory,
+~49 MB and ~918 stations, and has all along.
+
+The failure was silent in the worst way — `fetch_bulletin` treated a 404 as
+"NCEP did not run that cycle", which was true for three years and stopped being
+true without anything changing in this repository. **A 404 that used to mean one
+thing now means another, and nothing alerted.** Same shape as the staleness
+alert not firing for 46232's outage (§8): the monitoring watched for the failure
+it expected. `fetch_bulletin` now checks the tar before believing a 404.
