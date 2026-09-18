@@ -130,11 +130,12 @@ class TestItDegradesHonestly:
     def test_missing_wind_says_so_rather_than_guessing(self, tmp_path):
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, data_dir=tmp_path)
         assert any("wind not collected" in w for w in got.warnings)
-        assert all(b.wind.from_deg is None for b in got.breaks)
+        assert not got.wind.measured
+        assert all(b.wind_offshore is None for b in got.breaks)
 
     def test_missing_tide_leaves_the_field_empty_not_zero(self, tmp_path):
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, data_dir=tmp_path)
-        assert all(h.tide_m is None for b in got.breaks for h in b.hours)
+        assert got.tide and all(t.height_m is None for t in got.tide)
 
     def test_no_cycle_produces_no_breaks_and_says_why(self, monkeypatch, tmp_path):
         monkeypatch.setattr(live, "fetch_latest", lambda **kw: (None, ["cycle unavailable"]))
@@ -162,21 +163,33 @@ class TestWind:
         assert live.offshore_component(offshore_bearing, centre.normal) == pytest.approx(1.0)
         assert live.offshore_component(centre.normal, centre.normal) == pytest.approx(-1.0)
 
-    def test_an_unverified_chord_flags_the_offshore_call(self, tmp_path):
+    def test_an_unverified_chord_flags_the_offshore_call(self):
         """The window does not depend on the chord, but offshore/onshore does —
         it is computed from the normal. Coronado's north break has a digitised
         position and an unverified chord, so the two claims differ there."""
 
-        wind = live.wind_for(BY_ID["coronado_north"],
-                             {"observed_utc": "2026-09-18T05:56:00Z",
-                              "wind_from_deg": "280", "wind_kt": "8", "gust_kt": "",
-                              "variable": ""})
-        assert "unverified" in wind.note
+        wind = live.wind_measurement({"observed_utc": "2026-09-18T05:56:00Z",
+                                      "wind_from_deg": "280", "wind_kt": "8",
+                                      "gust_kt": "", "variable": ""})
+        _, note = live.wind_at_break(BY_ID["coronado_north"], wind)
+        assert "unverified" in note
+        assert live.wind_at_break(BY_ID["coronado_center"], wind)[1] == ""
 
     def test_a_variable_wind_yields_no_direction(self):
-        wind = live.wind_for(BY_ID["coronado_center"],
-                             {"observed_utc": "x", "variable": "1", "wind_kt": "3"})
+        wind = live.wind_measurement({"observed_utc": "x", "variable": "1", "wind_kt": "3"})
         assert wind.from_deg is None and "variable" in wind.note
+        assert live.wind_at_break(BY_ID["coronado_center"], wind) == (None, "")
+
+    def test_the_wind_measurement_is_hoisted_and_the_sense_is_not(self):
+        """One station, so one reading — but the three shore normals span 29°,
+        so what that wind MEANS is per break and must stay there."""
+
+        wind = live.wind_measurement({"observed_utc": "x", "wind_from_deg": "290",
+                                      "wind_kt": "10", "gust_kt": "", "variable": ""})
+        assert not hasattr(wind, "offshore")
+        senses = {sid: live.wind_at_break(BY_ID[sid], wind)[0] for sid in live.BREAKS}
+        assert len(set(senses.values())) == 3, senses
+        assert senses["coronado_north"] > senses["coronado_south"]
 
 
 class TestCycleSelection:

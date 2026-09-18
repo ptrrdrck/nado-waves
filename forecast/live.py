@@ -58,8 +58,15 @@ from .transform import (
 )
 
 STATION = "46232"
+
 WIND_STATION = "KNZY"
+#: The ICAO identifier's plain-language name. Typed, unlike a buoy coordinate:
+#: CLAUDE.md's "never type a buoy coordinate" guards a number that changes the
+#: geometry, and this is a label that changes nothing.
+WIND_STATION_NAME = "NAS North Island"
+
 TIDE_STATION = "9410170"
+TIDE_STATION_NAME = "San Diego, CA"
 
 #: Breaks the app surface covers. Coronado only, by decision.
 BREAKS = ("coronado_north", "coronado_center", "coronado_south")
@@ -76,13 +83,40 @@ CYCLE_LAG_HOURS = 5.5
 
 @dataclass
 class WindAtTime:
+    """What KNZY measured. One station, so one reading for all three breaks.
+
+    The *measurement* is station-level and lives on the forecast. What each
+    break makes of it is not: offshore and onshore are relative to a shore
+    normal, and Coronado's three normals span 29° (192.8 / 214.2 / 221.5), so
+    the same wind can be cross at the north break and onshore at the south.
+    That part stays on the break, as `BreakForecast.wind_offshore`.
+    """
+
+    station: str = WIND_STATION
+    station_name: str = WIND_STATION_NAME
     observed_utc: str | None = None
     from_deg: float | None = None
     speed_kt: float | None = None
     gust_kt: float | None = None
-    #: +1 fully offshore, -1 fully onshore, relative to THIS break's normal.
-    offshore: float | None = None
     note: str = ""
+
+    @property
+    def measured(self) -> bool:
+        return self.from_deg is not None
+
+
+@dataclass
+class TideAtHour:
+    """Water level at one forecast hour. One gauge, so not per break.
+
+    A harmonic PREDICTION, not a measurement — `kind` carries which, and the
+    surface has to say so. `collector.tide` keeps the two in separate files for
+    the same reason.
+    """
+
+    valid_utc: str
+    height_m: float | None = None
+    kind: str | None = None
 
 
 @dataclass
@@ -99,8 +133,6 @@ class Hour:
     #: dominant blocker is the estimated Coronado Islands as less certain than
     #: one governed by the digitised Point Loma tip.
     taken_by: list[dict] = field(default_factory=list)
-    tide_m: float | None = None
-    tide_kind: str | None = None
 
 
 @dataclass
@@ -115,7 +147,14 @@ class BreakForecast:
     swell_window: list[list[float]]
     shore_normal_deg: float
     normal_is_a_guess: bool
-    wind: WindAtTime = field(default_factory=WindAtTime)
+    #: What the station-level wind means AT THIS BREAK: +1 straight offshore,
+    #: −1 straight onshore. Derived from this break's normal, so it differs
+    #: across the three even though the wind does not.
+    wind_offshore: float | None = None
+    #: Why that number is shakier here than the window is. The normal comes
+    #: from the shoreline chord, and Coronado's north break has a digitised
+    #: position with an unverified chord (BRIEFING §2a).
+    wind_note: str = ""
     hours: list[Hour] = field(default_factory=list)
 
 
@@ -124,7 +163,16 @@ class Forecast:
     generated_utc: str
     cycle_utc: str | None
     station: str
+    #: The buoy's name as NDBC publishes it, via data/station_metadata.csv.
+    #: Read rather than typed — CLAUDE.md keeps station facts fetched.
+    station_name: str
     standing_on: dict
+    #: Station-level context, hoisted off the breaks because one station feeds
+    #: all three and repeating it three times is noise, not information.
+    wind: WindAtTime = field(default_factory=WindAtTime)
+    tide: list[TideAtHour] = field(default_factory=list)
+    tide_station: str = TIDE_STATION
+    tide_station_name: str = TIDE_STATION_NAME
     breaks: list[BreakForecast] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     spread_assumption: dict = field(default_factory=dict)
@@ -162,6 +210,20 @@ def read_latest_wind(data_dir: Path) -> dict[str, str] | None:
     return max(rows, key=lambda r: r["observed_utc"]) if rows else None
 
 
+def station_name(station: str, data_dir: Path) -> str:
+    """The buoy's name from the fetched metadata, or its id if unplaced."""
+
+    try:
+        from collector.metadata import load_metadata
+
+        record = load_metadata(Path(data_dir)).get(station)
+        if record and record.name:
+            return record.name
+    except Exception:  # noqa: BLE001 — a missing name must not stop a forecast
+        pass
+    return station
+
+
 def read_tide(data_dir: Path) -> dict[str, tuple[float, str]]:
     """Predicted tide by hour. Empty when the collector has not run."""
 
@@ -191,7 +253,9 @@ def offshore_component(wind_from_deg: float, normal_deg: float) -> float:
     return -math.cos(math.radians(wind_from_deg - normal_deg))
 
 
-def wind_for(spot: Spot, row: dict[str, str] | None) -> WindAtTime:
+def wind_measurement(row: dict[str, str] | None) -> WindAtTime:
+    """What the station recorded. Nothing here depends on a beach."""
+
     if row is None:
         return WindAtTime(note=f"{WIND_STATION} not collected yet — run the "
                                f"'Collect beach inputs' workflow")
@@ -201,23 +265,33 @@ def wind_for(spot: Spot, row: dict[str, str] | None) -> WindAtTime:
             speed_kt=float(row["wind_kt"]) if row.get("wind_kt") else None,
             note="variable or calm — no usable direction",
         )
-    from_deg = float(row["wind_from_deg"])
-    note = ""
-    if not spot.shoreline_verified:
-        # The offshore/onshore split is computed from the NORMAL, which comes
-        # from the chord. Coronado's north break has a digitised position and
-        # an unverified chord sitting ~19 deg off the local coast trend
-        # (BRIEFING section 9), so this number is the one thing about that
-        # break the window's provenance does NOT cover.
-        note = "shore normal is unverified at this break, so offshore/onshore is a guess"
     return WindAtTime(
         observed_utc=row.get("observed_utc"),
-        from_deg=from_deg,
+        from_deg=float(row["wind_from_deg"]),
         speed_kt=float(row["wind_kt"]) if row.get("wind_kt") else None,
         gust_kt=float(row["gust_kt"]) if row.get("gust_kt") else None,
-        offshore=round(offshore_component(from_deg, spot.normal), 3),
-        note=note,
     )
+
+
+def wind_at_break(spot: Spot, wind: WindAtTime) -> tuple[float | None, str]:
+    """What that wind means at this break, and how much to trust it.
+
+    Returns (offshore component, caveat). The component is the only part of the
+    wind that is genuinely per-break: it comes from the shore normal, and the
+    three normals span 29°, so one wind can be cross at the north break and
+    onshore at the south.
+    """
+
+    if not wind.measured:
+        return None, ""
+    note = ""
+    if not spot.shoreline_verified:
+        # The normal comes from the chord. Coronado's north break has a
+        # digitised position and an unverified chord sitting ~19° off the local
+        # coast trend (BRIEFING §9), so this is the one thing about that break
+        # the window's provenance does NOT cover.
+        note = "shore normal unverified here, so offshore/onshore is a guess"
+    return round(offshore_component(wind.from_deg, spot.normal), 3), note
 
 
 def _blocker_verified(name: str, spot: Spot, blockers: list[Blocker]) -> bool:
@@ -264,6 +338,7 @@ def build(
         generated_utc=generated,
         cycle_utc=bulletin.cycle_utc.strftime(ISO) if bulletin else None,
         station=STATION,
+        station_name=station_name(STATION, data_dir),
         standing_on={
             "geometry": "digitised — Coronado's three breaks and the Point Loma tip",
             "model": "GFS-Wave, unassimilated; 0.26–0.31 m low bias at the buoy, not corrected here",
@@ -287,12 +362,23 @@ def build(
 
     wind_row = read_latest_wind(data_dir)
     tide = read_tide(data_dir)
+    forecast.wind = wind_measurement(wind_row)
     if wind_row is None:
         forecast.warnings.append(f"{WIND_STATION} wind not collected yet.")
     if not tide:
         forecast.warnings.append(f"{TIDE_STATION} tide not collected yet.")
 
     rows = [r for r in bulletin.rows if r.lead_hours <= hours]
+
+    # One gauge, so the tide series is station-level and sits beside the breaks
+    # rather than being repeated inside each of them.
+    for row in rows:
+        value = tide.get(row.valid_utc.strftime(ISO)[:13])
+        forecast.tide.append(TideAtHour(
+            valid_utc=row.valid_utc.strftime(ISO),
+            height_m=round(value[0], 3) if value else None,
+            kind=value[1] if value else None,
+        ))
 
     for break_id in BREAKS:
         spot = by_id[break_id]
@@ -304,8 +390,8 @@ def build(
                           for w in swell_windows(spot, blockers)],
             shore_normal_deg=round(spot.normal, 1),
             normal_is_a_guess=not spot.shoreline_verified,
-            wind=wind_for(spot, wind_row),
         )
+        entry.wind_offshore, entry.wind_note = wind_at_break(spot, forecast.wind)
 
         for row in rows:
             parts = [
@@ -334,8 +420,6 @@ def build(
                 for name, share in sorted(shares.items(), key=lambda kv: -kv[1])
                 if share >= 0.005
             ]
-            key = row.valid_utc.strftime(ISO)[:13]
-            tide_value = tide.get(key)
             entry.hours.append(Hour(
                 valid_utc=row.valid_utc.strftime(ISO),
                 lead_h=row.lead_hours,
@@ -345,8 +429,6 @@ def build(
                 dominant_period_s=round(dominant.tp_s, 1) if dominant else None,
                 dominant_from_deg=round(dominant.from_deg, 0) if dominant else None,
                 taken_by=taken_by,
-                tide_m=round(tide_value[0], 3) if tide_value else None,
-                tide_kind=tide_value[1] if tide_value else None,
             ))
         forecast.breaks.append(entry)
 
@@ -360,7 +442,8 @@ def write(forecast: Forecast, path: Path) -> None:
 
 def format_table(forecast: Forecast, *, rows: int = 8) -> str:
     lines = [
-        f"Coronado — GFS-Wave {forecast.cycle_utc or 'NO CYCLE'} at {forecast.station}",
+        f"Coronado — GFS-Wave {forecast.cycle_utc or 'NO CYCLE'} "
+        f"at {forecast.station_name} ({forecast.station})",
         "",
     ]
     for warning in forecast.warnings:
@@ -368,19 +451,34 @@ def format_table(forecast: Forecast, *, rows: int = 8) -> str:
     if forecast.warnings:
         lines.append("")
 
+    wind = forecast.wind
+    if wind.measured:
+        gust = f" gusting {wind.gust_kt:.0f}" if wind.gust_kt else ""
+        lines.append(f"wind  {wind.from_deg:.0f}° at {wind.speed_kt or 0:.0f} kt{gust}"
+                     f"   {wind.station_name} ({wind.station}), {wind.observed_utc}")
+    else:
+        lines.append(f"wind  — {wind.note or 'not collected'}")
+    covered = [t for t in forecast.tide if t.height_m is not None]
+    lines.append(
+        f"tide  {len(covered)}/{len(forecast.tide)} hours covered   "
+        f"{forecast.tide_station_name} ({forecast.tide_station}), harmonic prediction"
+        if forecast.tide else "tide  — not collected"
+    )
+    lines.append("")
+
+    tide_by_time = {t.valid_utc: t for t in forecast.tide}
     for entry in forecast.breaks:
-        wind = entry.wind
-        wind_text = "wind: not collected"
-        if wind.from_deg is not None:
-            sense = "offshore" if (wind.offshore or 0) > 0.3 else (
-                "onshore" if (wind.offshore or 0) < -0.3 else "cross")
-            wind_text = f"wind {wind.from_deg:.0f}° {wind.speed_kt or 0:.0f} kt ({sense})"
-        lines.append(f"{entry.name}   [{entry.confidence} confidence]")
-        lines.append(f"  {wind_text}")
+        sense = ""
+        if entry.wind_offshore is not None:
+            sense = ("offshore" if entry.wind_offshore > 0.3
+                     else "onshore" if entry.wind_offshore < -0.3 else "cross")
+            sense = f"   wind {sense}" + (f" ({entry.wind_note})" if entry.wind_note else "")
+        lines.append(f"{entry.name}   [{entry.confidence} confidence]{sense}")
         lines.append(f"  {'valid':>17s} {'lead':>5s} {'offshore':>9s} {'window':>8s} "
                      f"{'thru':>6s} {'T':>6s} {'from':>6s} {'tide':>7s}")
         for hour in entry.hours[:rows]:
-            tide = f"{hour.tide_m:6.2f}m" if hour.tide_m is not None else "     —"
+            water = tide_by_time.get(hour.valid_utc)
+            tide = f"{water.height_m:6.2f}m" if water and water.height_m is not None else "     —"
             lines.append(
                 f"  {hour.valid_utc:>17s} {hour.lead_h:4d}h {hour.hs_offshore_m:8.2f}m "
                 f"{hour.hs_window_m:7.2f}m {100*(hour.fraction or 0):5.0f}% "
