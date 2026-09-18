@@ -59,6 +59,36 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
        padding:8px 0 8px 11px;margin:0;background:linear-gradient(90deg,var(--signal-wash),transparent 70%)}
 .blind b{color:var(--ink);font-weight:600}
 
+/* Conditions strip: one fact per line, its source under it. */
+.conditions{display:flex;flex-direction:column;gap:10px}
+.cond{display:flex;flex-direction:column;gap:2px;padding:11px 13px;background:var(--card);
+      border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.cond .lbl{font-size:12.5px}
+.cond .val{font-size:19px;font-weight:600;line-height:1.25}
+.cond .val .unit{font-weight:400;color:var(--soft);font-size:15px}
+.cond .src{font-size:12px;color:var(--faint)}
+
+/* Earlier / later seek bar. */
+.seek{display:flex;align-items:stretch;gap:8px}
+.seek button{flex:none;width:46px;font:inherit;font-size:19px;line-height:1;cursor:pointer;
+             background:var(--card);color:var(--ink);border:1px solid var(--line-strong);
+             border-radius:var(--r);box-shadow:var(--shadow)}
+.seek button:hover:not(:disabled){border-color:var(--surf);color:var(--surf)}
+.seek button:disabled{opacity:.38;cursor:default}
+.seek-when{position:relative;flex:1;display:flex;align-items:center;justify-content:center;
+           text-align:center;background:var(--card);border:1px solid var(--line);
+           border-radius:var(--r);box-shadow:var(--shadow);padding:9px 6px;
+           font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
+           font-size:18px;letter-spacing:.01em}
+/* The real control, invisible but on top, so a tap opens the native list. */
+.seek-when select{position:absolute;inset:0;width:100%;height:100%;opacity:0;
+                  border:0;padding:0;cursor:pointer;font:inherit}
+.seek-when:focus-within{outline:2px solid var(--surf);outline-offset:2px}
+
+.source{font-size:12.5px;color:var(--soft);margin:0;text-align:center;
+        border-top:1px solid var(--line);padding-top:12px}
+.source b{color:var(--ink);font-weight:600}
+
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
       padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:11px}
 .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
@@ -101,23 +131,30 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
 </style>
 
 <div class="wrap">
-  <header>
-    <div class="head-top">
-      <h1>Nado Waves</h1>
-      <span class="lbl" id="cycle">loading…</span>
-    </div>
-  </header>
-
   <p class="warn" id="warnings" hidden></p>
 
+  <!-- Earlier / later, with the hour between them. The full list is still a
+       real <select>, laid transparently over the label, so the native picker
+       opens on tap and the control stays keyboard-reachable. -->
+  <nav class="seek" aria-label="Forecast hour">
+    <button type="button" id="earlier" aria-label="Earlier">&#8592;</button>
+    <span class="seek-when">
+      <span id="when-label">&hellip;</span>
+      <select id="when" aria-label="Choose forecast hour"></select>
+    </span>
+    <button type="button" id="later" aria-label="Later">&#8594;</button>
+  </nav>
+
+  <!-- Wind and tide sit above the breaks because one station feeds all three.
+       Only the offshore/onshore reading is per-break, and that stays on the
+       cards: the three shore normals span 29 degrees. -->
+  <section class="conditions" id="conditions"></section>
+
   <section>
-    <div class="head-top" style="justify-content:flex-end">
-      <label class="lbl">when
-        <select id="when"></select>
-      </label>
-    </div>
     <div id="breaks" style="display:flex;flex-direction:column;gap:12px"></div>
   </section>
+
+  <p class="source" id="cycle">loading&hellip;</p>
 
   <p class="blind">
     <b>Nothing has ever measured a wave at these three breaks.</b>
@@ -162,11 +199,56 @@ function compass(deg) {
 }
 
 function when(iso) {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {weekday: "short", hour: "numeric", minute: "2-digit"});
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "long", month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit",
+  });
 }
 
 let DATA = null;
+let TIDE_BY_TIME = {};
+let STEPS = [];      // indices into each break's hours that the picker offers
+let CURSOR = 0;      // position within STEPS
+
+function sense(offshore) {
+  if (offshore == null) return null;
+  return offshore > 0.3 ? "offshore" : offshore < -0.3 ? "onshore" : "cross-shore";
+}
+
+function renderConditions(index) {
+  const wind = DATA.wind || {};
+  // By timestamp, never by position. The tide series and each break's hours
+  // are separate lists that are filtered separately -- the publisher thins the
+  // hours -- so indexing them in parallel silently pairs the wrong rows. It
+  // showed a 3 p.m. tide against a 9 p.m. forecast before this.
+  const stamp = ((DATA.breaks[0] || {}).hours || [])[index];
+  const tide = (stamp && TIDE_BY_TIME[stamp.valid_utc]) || {};
+  const tideLabel = tide.valid_utc
+    ? new Date(tide.valid_utc).toLocaleString(undefined, {hour: "numeric", minute: "2-digit"})
+    : "this hour";
+  const rows = [];
+
+  rows.push(`<div class="cond">
+    <span class="lbl">Wind, latest observed</span>
+    <span class="val">${wind.from_deg != null
+      ? `${compass(wind.from_deg)} <span class="unit">at</span> ${Math.round(wind.speed_kt || 0)} kt`
+        + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt)}</span>` : "")
+      : '<span class="unit">not collected yet</span>'}</span>
+    <span class="src">${wind.from_deg != null
+      ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
+      : (wind.note || "")}</span>
+  </div>`);
+
+  rows.push(`<div class="cond">
+    <span class="lbl">Tide at ${tideLabel}</span>
+    <span class="val">${tide.height_m != null
+      ? `${tide.height_m.toFixed(2)} m <span class="unit">(${(tide.height_m * 3.28084).toFixed(1)} ft)</span>`
+      : '<span class="unit">not collected for this hour</span>'}</span>
+    <span class="src">${DATA.tide_station_name} (${DATA.tide_station}), harmonic prediction &mdash; a model, not a measurement</span>
+  </div>`);
+
+  $("conditions").innerHTML = rows.join("");
+}
 
 function renderStanding(standing) {
   const order = [
@@ -183,6 +265,8 @@ function renderStanding(standing) {
 function renderBreaks(index) {
   const breaks = ORDER.map((id) => DATA.breaks.find((b) => b.id === id)).filter(Boolean);
 
+  renderConditions(index);
+
   $("breaks").innerHTML = breaks.map((entry) => {
     const hour = entry.hours[index] || {};
 
@@ -198,11 +282,10 @@ function renderBreaks(index) {
         <span class="amt">${Math.round(t.share * 100)}%</span>
       </div>`).join("");
 
-    const wind = entry.wind && entry.wind.from_deg != null
-      ? `${compass(entry.wind.from_deg)} ${Math.round(entry.wind.speed_kt || 0)} kt`
-        + (entry.wind.offshore > 0.3 ? " · offshore" : entry.wind.offshore < -0.3 ? " · onshore" : " · cross")
-        + (entry.wind.note ? ` <span class="est">(${entry.wind.note})</span>` : "")
-      : `<span class="est">${(entry.wind && entry.wind.note) || "not collected yet"}</span>`;
+    // Only the offshore/onshore reading is per-break — it comes from this
+    // break's shore normal, and the three span 29 degrees, so one wind can be
+    // cross here and onshore 2 km down the sand.
+    const senseText = sense(entry.wind_offshore);
 
     return `<article class="card">
       <div class="card-top">
@@ -226,23 +309,36 @@ function renderBreaks(index) {
         <div class="rows">${taken || '<div class="quiet">nothing blocked</div>'}</div>
       </div>
 
-      <div class="quiet">wind ${wind}${hour.tide_m != null
-        ? ` · tide <b>${hour.tide_m.toFixed(2)} m</b> <span class="est">(${hour.tide_kind})</span>`
-        : ' · tide <span class="est">not collected yet</span>'}</div>
+      ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
+        entry.wind_note ? ` <span class="est">&mdash; ${entry.wind_note}</span>` : ""}</div>` : ""}
     </article>`;
   }).join("");
 }
 
+function show() {
+  const index = STEPS[CURSOR];
+  const first = (DATA.breaks[0] || {}).hours || [];
+  $("when-label").textContent = when(first[index].valid_utc);
+  $("when").value = String(index);
+  $("earlier").disabled = CURSOR === 0;
+  $("later").disabled = CURSOR === STEPS.length - 1;
+  renderBreaks(index);
+}
+
 function boot(data) {
   DATA = data;
-  $("cycle").textContent = data.cycle_utc
-    ? "GFS-Wave " + data.cycle_utc.replace("T", " ").replace(":00:00Z", "Z") + " · " + data.station
-    : "no cycle available";
+  $("cycle").innerHTML = data.cycle_utc
+    ? `Latest data from the <b>GFS-Wave</b> model run of `
+      + `<b>${when(data.cycle_utc)}</b>, for the offshore buoy `
+      + `<b>${data.station_name}</b> (NDBC ${data.station}).`
+    : "No GFS-Wave cycle was available, so there is nothing to show.";
 
   if (data.warnings && data.warnings.length) {
     $("warnings").hidden = false;
     $("warnings").textContent = data.warnings.join("  ·  ");
   }
+
+  TIDE_BY_TIME = Object.fromEntries((data.tide || []).map((t) => [t.valid_utc, t]));
 
   renderStanding(data.standing_on || {});
 
@@ -255,13 +351,33 @@ function boot(data) {
   // against the hourly file in the repository and the 3-hourly file published
   // to the web. Filtering by array position and then multiplying the index by
   // three assumed hourly data, and would have silently shown the wrong hour.
-  $("when").innerHTML = first
-    .map((h, i) => ({h, i}))
-    .filter(({h}) => h.lead_h % 3 === 0)
-    .map(({h, i}) => `<option value="${i}">${when(h.valid_utc)}</option>`)
+  STEPS = first.map((h, i) => ({h, i})).filter(({h}) => h.lead_h % 3 === 0).map(({i}) => i);
+
+  $("when").innerHTML = STEPS
+    .map((i) => `<option value="${i}">${when(first[i].valid_utc)}</option>`)
     .join("");
-  $("when").onchange = (e) => renderBreaks(Number(e.target.value));
-  renderBreaks(0);
+
+  // Open on the hour nearest NOW, not on the first hour of the cycle. A
+  // GFS-Wave cycle publishes about five hours after its nominal time, so hour
+  // zero is already in the past when anyone loads the page — it opened on
+  // 5 a.m. for a reader standing on the sand at 2 p.m.
+  const now = Date.now();
+  let best = 0;
+  STEPS.forEach((step, n) => {
+    const delta = Math.abs(new Date(first[step].valid_utc).getTime() - now);
+    if (delta < Math.abs(new Date(first[STEPS[best]].valid_utc).getTime() - now)) best = n;
+  });
+
+  $("when").onchange = (e) => {
+    const index = Number(e.target.value);
+    CURSOR = Math.max(0, STEPS.indexOf(index));
+    show();
+  };
+  $("earlier").onclick = () => { if (CURSOR > 0) { CURSOR -= 1; show(); } };
+  $("later").onclick = () => { if (CURSOR < STEPS.length - 1) { CURSOR += 1; show(); } };
+
+  CURSOR = best;
+  show();
 
   const spread = data.spread_assumption || {};
   $("foot").innerHTML = `

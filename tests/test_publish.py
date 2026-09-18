@@ -48,6 +48,10 @@ def forecast(hours: int = 25, breaks: int = 3) -> dict:
             }
             for name in list(("north", "center", "south"))[:breaks]
         ],
+        "tide": [
+            {"valid_utc": f"2026-09-18T{h % 24:02d}:00:00Z", "height_m": float(h), "kind": "predicted"}
+            for h in range(hours)
+        ],
     }
 
 
@@ -110,6 +114,34 @@ class TestThinningMatchesWhatThePageRenders:
         publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
         payload = json.loads((tmp_path / "site" / "forecast.json").read_text())
         assert len(payload["breaks"]) == 3
+
+
+class TestTheTideSeriesStaysAlignedWithTheHours:
+    """The tide series and each break's hours are separate lists filtered
+    separately, so indexing them in parallel pairs the wrong rows — it showed a
+    3 p.m. tide against a 9 p.m. forecast. Both sides key on valid_utc."""
+
+    def test_thinning_keeps_tide_only_for_hours_that_survive(self):
+        thinned = publish.thin(forecast(hours=25))
+        kept = {h["valid_utc"] for h in thinned["breaks"][0]["hours"]}
+        assert {t["valid_utc"] for t in thinned["tide"]} == kept
+
+    def test_the_two_lists_end_up_the_same_length(self):
+        thinned = publish.thin(forecast(hours=25))
+        assert len(thinned["tide"]) == len(thinned["breaks"][0]["hours"])
+
+    def test_position_and_timestamp_agree_after_thinning(self):
+        """The bug was positional lookup against an unthinned series. Even
+        though the page now keys on time, drift here would waste bytes and
+        mislead anyone who does index in parallel."""
+
+        thinned = publish.thin(forecast(hours=25))
+        for hour, tide in zip(thinned["breaks"][0]["hours"], thinned["tide"]):
+            assert hour["valid_utc"] == tide["valid_utc"]
+
+    def test_the_page_looks_tide_up_by_timestamp(self):
+        assert "TIDE_BY_TIME[stamp.valid_utc]" in PAGE_SOURCE
+        assert "(DATA.tide || [])[index]" not in PAGE_SOURCE
 
 
 class TestItRefusesToPublishNothing:
