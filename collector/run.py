@@ -145,7 +145,19 @@ def main(argv: list[str] | None = None) -> int:
     if not args.dry_run:
         # The app reads this to decide which buoys can take a call today, and
         # what to tell a player whose home buoy has gone dark.
-        write_status(args.data_dir, build_status(args.data_dir, stations))
+        # The status file says what each buoy is FOR, not just whether it is
+        # alive: a dark anchor and a dark off-axis buoy are different news.
+        # Geometry failures must not take the collector down with them, so the
+        # roles are best-effort and their absence reads as "unclassified".
+        try:
+            from forecast.siting import survey
+            roles = {e.station.id: e.role for e in survey(stations)}
+        except Exception as exc:  # pragma: no cover - geometry is not the job here
+            print(f"siting unavailable, status roles omitted: {exc}")
+            roles = {}
+        write_status(
+            args.data_dir, build_status(args.data_dir, stations, roles=roles)
+        )
 
     summary = format_summary(outcomes, now)
     print(summary)
