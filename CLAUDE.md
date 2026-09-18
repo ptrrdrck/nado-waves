@@ -121,7 +121,19 @@ forecaster actually verifies against, Surfline included.
    loudly and the absolute height quietly.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
-6. **App surface — built, `app/forecast.html`.** Publishes the swell-side
+6. **App surface — built, `app/forecast.html`, published by
+   `forecast/publish.py`.** This repository is private, so Pages cannot serve
+   it and a published page cannot fetch `data/live/forecast.json` across the
+   boundary. The forecast workflow builds a flat bundle (`index.html` +
+   3-hourly `forecast.json` + `.nojekyll` + README) and pushes it to the
+   **public** `nado-waves-forecast`, the same pattern `nado-waves-log` uses for
+   the observer form. **This repository stays the system of record; nothing is
+   edited on the far side.** Kept separate from the log repository on purpose:
+   the log never shows a forecast, and a sibling path on the same Pages site is
+   one URL edit away. Note that is a separation of paths, not of origins —
+   `*.github.io` project sites share one origin, so it is not a browser
+   boundary.
+   Publishes the swell-side
    window only (BRIEFING §12), no ratio and no confidence badge — a ratio
    against the smallest of three is circular when all three are on screen.
    States all four levels
@@ -262,7 +274,12 @@ circular helpers are used here. Trimming it is a good first cleanup.
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.
 - Wind and tide are not optional at these beaches. KNZY (North Island) for wind,
-  NOAA 9410170 (San Diego) for tide. Neither is wired in yet.
+  NOAA 9410170 (San Diego) for tide. **Both wired in and flowing** as of
+  2026-09-18; the spectra archive is filling too. **Tide predictions must span
+  the whole forecast window at both ends** — a GFS-Wave cycle is already hours
+  old when it publishes, so the forecast starts in the past, and it runs to
+  +168 h. Fetching from *now* to +96 h covered 100 of 169 hours and the rest
+  read "not collected" (BRIEFING §13).
 - **Measure before claiming.** Every strong claim in BRIEFING has a number
   behind it, and four plausible ones were killed by their own tests. Write the
   test that could falsify the idea before building on it.

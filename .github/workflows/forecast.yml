@@ -13,6 +13,12 @@
 # wind and tide, because the forecast reads those from the repository rather
 # than fetching them. A run that finds them missing still produces a forecast
 # and says on screen that they were not collected.
+#
+# The last step publishes the page to a PUBLIC repository, because this one is
+# private and GitHub Pages cannot serve it. Same pattern as nado-waves-log,
+# which serves the observer form. Until PAGES_REPO and FORECAST_PAGES_TOKEN
+# exist the step skips with a notice, so this workflow is safe to merge before
+# the public repository is created.
 
 name: Build forecast
 
@@ -52,6 +58,11 @@ jobs:
           set -euo pipefail
           python -m forecast.live --hours "${HOURS:-168}"
 
+      - name: Build the public bundle
+        run: |
+          set -euo pipefail
+          python -m forecast.publish --out build/site
+
       - name: Commit and push
         env:
           BRANCH: ${{ github.ref_name }}
@@ -85,4 +96,64 @@ jobs:
           done
 
           echo "::error title=Forecast push failed::Could not push the rebuilt forecast"
+          exit 1
+
+      # ------------------------------------------------------------------
+      # Publish to the public Pages repository.
+      #
+      # The token is a fine-grained PAT with Contents: read and write on the
+      # TARGET repository only, stored as the FORECAST_PAGES_TOKEN secret. It
+      # is never written to a file, never echoed, and reaches git through the
+      # credential helper's stdin rather than through the remote URL, so it
+      # cannot end up in a remote that `git remote -v` would print.
+      # ------------------------------------------------------------------
+      - name: Publish the page
+        env:
+          PAGES_REPO: ${{ vars.PAGES_REPO || 'ptrrdrck/nado-waves-forecast' }}
+          PAGES_TOKEN: ${{ secrets.FORECAST_PAGES_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PAGES_TOKEN:-}" ]; then
+            echo "::notice title=Page not published::FORECAST_PAGES_TOKEN is not set, so the bundle was built but not pushed. Create the public repository and add the secret to turn this on."
+            exit 0
+          fi
+
+          work="$(mktemp -d)"
+          git clone --depth 1 "https://github.com/${PAGES_REPO}.git" "$work" 2>/dev/null || {
+            echo "::error title=Pages repo unreachable::Could not clone ${PAGES_REPO}. Create it (public, with one initial commit) and check the token's repository access."
+            exit 1
+          }
+
+          # Replace the published files; anything else in the repo is left be.
+          cp build/site/index.html build/site/forecast.json \
+             build/site/.nojekyll build/site/README.md "$work/"
+
+          cd "$work"
+          git config user.name "nado-waves forecast"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Published page already current."
+            exit 0
+          fi
+
+          cycle="$(python -c "import json;print(json.load(open('forecast.json'))['cycle_utc'])")"
+          git commit -m "Publish forecast for ${cycle}" \
+            -m "Built from nado-waves by .github/workflows/forecast.yml. Do not edit here."
+
+          # The token goes in on stdin, not in the URL.
+          git config credential.helper '!f() { echo "username=x-access-token"; echo "password=${PAGES_TOKEN}"; }; f'
+          for attempt in 1 2 3 4; do
+            if git push origin HEAD; then
+              echo "::notice title=Page published::${PAGES_REPO} updated for cycle ${cycle}."
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}); retrying."
+            git pull --rebase --autostash origin HEAD || true
+            sleep $((2 ** attempt))
+          done
+
+          echo "::error title=Publish failed::Could not push the page to ${PAGES_REPO}"
           exit 1

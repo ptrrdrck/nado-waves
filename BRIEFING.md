@@ -636,3 +636,53 @@ it is nearer, longer, and currently carries no blocker at all. It bears on the
 south-east arc only, which is not where San Diego's swell comes from, so it is
 a correctness fix for the surface rather than a change to any forecast in the
 open window.
+
+---
+
+## 13. Measured, 2026-09-18 — the first real Actions run, and what it caught
+
+The three collectors added this day all work from a runner. All three of their
+hosts are denied at CONNECT from a Claude session, so this was the first
+evidence either way:
+
+| source | result |
+|---|---|
+| NDBC directional spectra, 46232 | five components archived, ~1 MB |
+| KNZY wind | flowing — `290° 10 kt` on the first cycle carrying it |
+| NOAA 9410170 tide | predictions stored |
+
+**And the forecast still said "tide not collected" on most of its hours.** 100
+of 169. Two gaps, both from fetching predictions relative to *now*:
+
+- **Head.** A GFS-Wave cycle publishes about five hours after its nominal time,
+  so the forecast starts in the past. Predictions beginning at fetch time missed
+  the first four hours.
+- **Tail.** Predictions ran to +96 h; the forecast runs to +168 h. Sixty-nine
+  hours uncovered.
+
+Fixed by fetching −24 h to +192 h (`collector.tide.PREDICTION_BACK_HOURS` and
+`PREDICTION_AHEAD_HOURS`), which brackets `live.DEFAULT_HOURS` at both ends.
+Hourly predictions are one small request either way, so the margin is free.
+
+**The shape of the fault is the interesting part.** Nothing failed. Every
+component reported success, the archive filled, the warnings list was empty, and
+the surface degraded exactly as designed — it said "not collected", which was
+true, and gave no reason to suspect the collector had run perfectly. A field
+that is *allowed* to be absent cannot also signal that something is wrong, and
+this project has a lot of those. It is the same shape as the staleness alert
+suppressing itself after 4 days (§8) and the GFS-Wave 404 that changed meaning
+(§11): **the monitoring reported on what it was asked about, and the question
+was wrong.**
+
+Worth a rule: when a field may legitimately be missing, something should still
+check the rate. "Tide is absent on 41% of forecast hours" is a fact no component
+was in a position to notice, because each one only saw its own half.
+
+### Also: the published page fetched a path that does not exist
+
+`forecast/publish.py` builds a flat bundle for the public Pages repository. The
+page fetches `../data/live/forecast.json`, which is right in this repository and
+404 in a flat bundle, so the first build rendered a correct, complete, empty
+shell. Caught by rendering the bundle rather than by reading it, which is the
+only way it *could* have been caught — the HTML was valid, the JSON was valid,
+and the page's own error handling worked.

@@ -224,19 +224,35 @@ def collect_product(
     return result
 
 
+#: Predictions must cover the whole forecast window, at both ends.
+#:
+#: Measured 2026-09-18, the first time this ran on Actions against a real
+#: cycle: predictions fetched from *now* to +96 h left 4 hours uncovered at the
+#: head (a GFS-Wave cycle is already hours old when it publishes, so the
+#: forecast starts in the past) and 69 hours uncovered at the tail (the
+#: forecast runs to +168 h). 100 of 169 hours carried a tide and the rest
+#: silently read "not collected".
+#:
+#: So: back far enough for a stale cycle, forward past `live.DEFAULT_HOURS`
+#: with margin. Cheap — hourly predictions are one small request either way.
+PREDICTION_BACK_HOURS = 24
+PREDICTION_AHEAD_HOURS = 192
+
+
 def collect(
     station: str = STATION,
     data_dir: Path = DEFAULT_DATA_DIR,
     *,
-    ahead_hours: int = 96,
+    ahead_hours: int = PREDICTION_AHEAD_HOURS,
+    back_hours: int = PREDICTION_BACK_HOURS,
 ) -> list[TideResult]:
-    """Measured water level for the last day, predictions for the next four."""
+    """Measured water level for the last day, predictions across the forecast."""
 
     return [
         collect_product(station, "water_level", data_dir, back_hours=24, ahead_hours=0),
         collect_product(
             station, "predictions", data_dir,
-            back_hours=0, ahead_hours=ahead_hours, interval="h",
+            back_hours=back_hours, ahead_hours=ahead_hours, interval="h",
         ),
     ]
 
@@ -265,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--station", default=STATION)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
-    parser.add_argument("--ahead-hours", type=int, default=96)
+    parser.add_argument("--ahead-hours", type=int, default=PREDICTION_AHEAD_HOURS)
     args = parser.parse_args(argv)
 
     results = collect(args.station, args.data_dir, ahead_hours=args.ahead_hours)
