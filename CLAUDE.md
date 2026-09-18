@@ -104,8 +104,10 @@ forecaster actually verifies against, Surfline included.
    `r1`/`r2` already normalised (BRIEFING §7). Re-probe with the
    `Probe NDBC directional spectra` workflow, never from a session — an
    interactive session cannot see the host and a runner can.
-   **Caveat: 46232 has been dark since 2026-09-01.** The anchor buoy for every
-   transform here is not currently reporting anything to transform.
+   **Caveat: 46232 was dark for 16.2 days, 2026-09-01 to 2026-09-17**, and is
+   reporting again. Cause unknown, nothing was done to fix it. The anchor buoy
+   for every transform here can disappear for a fortnight without notice, and
+   BRIEFING §3a says no other station in the array can stand in for it.
 4. **The forecast.** GFS-Wave partitions at 46232 through the transform.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
@@ -121,9 +123,13 @@ forecaster actually verifies against, Surfline included.
   days of repository inactivity, and the workflow's own bot commits do not
   reliably reset that timer.
 - **Keep the staleness alert** — no new observation in 48 hours, notify. A
-  silently dead collector loses days that cannot be recovered. **It did not
-  visibly fire for 46232's outage from 2026-09-01**, which is unexplained and
-  worth chasing before trusting it.
+  silently dead collector loses days that cannot be recovered. It did not
+  visibly fire for 46232's 16-day outage; **partly explained** (BRIEFING §8):
+  `health.newly_dark` deliberately suppresses anything dark longer than
+  2 × 48 h, so the alert had 09-01 to 09-05 to be seen and has been silent by
+  design since. Whether it was ever *delivered* in that window is still
+  unchased. A station that had never reported at all had no date to age from
+  and alerted forever; `first_checked_utc` fixes that.
 - **Egress from a Claude session is policy-controlled and changes mid-session.**
   A 403 at CONNECT is a denial, not throttling: check
   `$HTTPS_PROXY/__agentproxy/status`, report the blocked host, do not route

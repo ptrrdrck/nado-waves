@@ -32,7 +32,7 @@
       "id": "46232",
       "name": "Point Loma South, CA",
       "region": "socal",
-      "notes": "CDIP 191. THE ANCHOR: the only buoy in this registry inside the swell window of all three Coronado breaks (bearing 230.8 from the centre break, 29.0 km). Every transform and forecast here is anchored on it. DARK since 2026-09-01T13:26Z and still dark - see BRIEFING section 8. There is no geometric substitute in the array; 46086 is the nearest thing and covers only the south break."
+      "notes": "CDIP 191. THE ANCHOR: the only buoy in this registry inside the swell window of all three Coronado breaks (bearing 230.8 from the centre break, 29.0 km). Every transform and forecast here is anchored on it. Was dark 2026-09-01T13:26Z to 2026-09-17T17:56Z, 16.2 days, and is reporting again - see BRIEFING section 8. There is no geometric substitute in the array; 46086 is the nearest thing and covers only the south break, which is why a 16-day outage of this one buoy stops the transform outright."
     },
     {
       "id": "46086",
