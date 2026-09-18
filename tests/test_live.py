@@ -43,6 +43,44 @@ SOUTH = [Partition(hs_m=0.5, tp_s=15.3, toward_deg=16, wind_sea=False)]
 WEST = [Partition(hs_m=1.2, tp_s=16.0, toward_deg=75, wind_sea=False)]
 
 
+class TestTheSwellWindowExcludesUnmodelledCoast:
+    """BRIEFING §12. `open_window` also returns a south-east arc, and at
+    Coronado that arc spans the bearings where Imperial Beach, the Tijuana
+    river mouth and Rosarito sit — 11–41 km of Baja coastline that is not in
+    spots.json. Publishing it would show land as open water."""
+
+    def test_only_blocker_bounded_windows_are_published(self):
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
+        for entry in got.breaks:
+            assert len(entry.swell_window) == 1
+            low, high = entry.swell_window[0]
+            assert 195 <= low <= 210 and 240 <= high <= 262
+
+    def test_the_published_windows_match_the_briefing_figures(self):
+        """42.8 / 49.1 / 56.3 degrees — README, BRIEFING §2a and CLAUDE.md all
+        quote these. Edges are published rounded to 0.1°, so a span taken from
+        them can differ from the true span by that much; the tolerance is the
+        rounding and nothing else."""
+
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
+        expected = {"coronado_north": 42.8, "coronado_center": 49.1,
+                    "coronado_south": 56.3}
+        for entry in got.breaks:
+            low, high = entry.swell_window[0]
+            assert high - low == pytest.approx(expected[entry.id], abs=0.1)
+
+    def test_the_south_east_arc_is_still_reachable_from_geometry(self):
+        """Excluded from the surface, not deleted from the model — the missing
+        blocker is a recorded gap, not a silent one."""
+
+        from forecast.geometry import load, open_window, swell_window
+
+        spots, blockers = load()
+        north = [s for s in spots if s.id == "coronado_north"][0]
+        assert len(open_window(north, blockers)) == 2
+        assert len(swell_window(north, blockers)) == 1
+
+
 class TestScope:
     def test_only_the_three_coronado_breaks_are_published(self):
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
@@ -78,12 +116,14 @@ class TestTheDifferentialIsRobust:
         """The control: the gradient has to come from Point Loma's parallax,
         not from the method. A south swell must treat the three alike."""
 
-        south = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
-        west = live.build(bulletin=bulletin(WEST), now=CYCLE)
-        south_ratio = south.breaks[-1].ratio_to_smallest
-        west_ratio = west.breaks[-1].ratio_to_smallest
-        assert west_ratio > south_ratio
-        assert south_ratio < 1.10 < west_ratio
+        def spread(forecast):
+            heights = [b.hours[0].hs_window_m for b in forecast.breaks]
+            return max(heights) / min(heights)
+
+        south = spread(live.build(bulletin=bulletin(SOUTH), now=CYCLE))
+        west = spread(live.build(bulletin=bulletin(WEST), now=CYCLE))
+        assert west > south
+        assert south < 1.10 < west
 
 
 class TestItDegradesHonestly:

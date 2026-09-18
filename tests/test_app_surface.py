@@ -64,7 +64,16 @@ class TestProvenanceIsVisible:
         assert "seg.guess" in SOURCE or "guess" in SOURCE
 
     def test_the_seaward_clip_is_not_dressed_up_as_land(self):
-        assert "the seaward limit, not land" in TEXT
+        from forecast.transform import SEAWARD_CLIP
+
+        assert SEAWARD_CLIP in TEXT
+        assert "nothing blocks it" in TEXT
+
+    def test_the_page_publishes_the_swell_window_not_the_raw_open_arcs(self):
+        """BRIEFING §12: the south-east arc runs across unmodelled Baja coast."""
+
+        assert "swell_window" in SOURCE
+        assert "open_windows" not in SOURCE
 
     def test_the_assumed_spread_is_shown_rather_than_hidden(self):
         assert "spread_assumption" in SOURCE

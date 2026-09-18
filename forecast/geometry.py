@@ -318,6 +318,30 @@ def open_windows(spot: Spot, blockers: list[Blocker]) -> list[Window]:
     ]
 
 
+def swell_window(spot: Spot, blockers: list[Blocker]) -> list[Window]:
+    """The open arcs that swell can actually arrive through.
+
+    An arc with a seaward-limit edge is an arc that runs into the half-plane
+    clip rather than into land, and at these beaches that is a warning sign
+    rather than a window. Measured 2026-09-18: Coronado's south-east arc spans
+    the bearings where Imperial Beach (155–161°), the Tijuana river mouth
+    (158–163°) and Rosarito (161–163°) sit, 11–41 km away. **The Baja coastline
+    is not in `spots.json`**, so the model has nothing there to cast a shadow
+    and reports open water across a coast you can see from the sand.
+
+    Both edges of a genuine swell-side window are blocker-derived (BRIEFING
+    §2a), so that is the test. It is a filter on what is honest to show, not a
+    claim that the south-east arc is closed — `open_window` still returns
+    everything, and the missing blocker is recorded in BRIEFING §12 rather than
+    papered over here.
+    """
+
+    return [
+        w for w in open_windows(spot, blockers)
+        if w.low.source != SEAWARD and w.high.source != SEAWARD
+    ]
+
+
 def blocked_by(spot: Spot, blockers: list[Blocker], bearing: float) -> Blocker | None:
     """Which blocker stops this bearing, or None if nothing does."""
 

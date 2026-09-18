@@ -117,7 +117,10 @@ forecaster actually verifies against, Surfline included.
    loudly and the absolute height quietly.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
-6. **App surface — built, `app/forecast.html`.** States all four levels
+6. **App surface — built, `app/forecast.html`.** Publishes the swell-side
+   window only (BRIEFING §12), no ratio and no confidence badge — a ratio
+   against the smallest of three is circular when all three are on screen.
+   States all four levels
    (geometry / model / calibration / observation) on screen, not just in the
    README. **Coronado's three breaks only, by decision (2026-09-18).** Breakers
    and Gator are out of the forecast and the app. They are not equivalent to
@@ -215,6 +218,13 @@ circular helpers are used here. Trimming it is a good first cleanup.
   them** — that was the modelling error, and it inflated the "breaks disagree
   on 50% of swell hours" headline to roughly twice its real, Point-Loma-driven
   value of 19.4%.
+- **Publish the swell-side window, never the raw open arcs.** A window edge
+  formed by the seaward half-plane clip means the arc ran out of *modelled*
+  land, not that it ran into ocean. Coronado's south-east arc spans Imperial
+  Beach, the Tijuana river mouth and Rosarito at 11–41 km, none of which are
+  blockers in `spots.json`, so the raw arc claims open water across a visible
+  coastline. `forecast.geometry.swell_window` keeps only the windows with both
+  edges blocker-derived; `open_window` still returns everything. BRIEFING §12.
 - **The buoy does not share the beach's geometry.** 46232 sits south-west of
   Point Loma with the peninsula behind it to the north-east; the beaches sit in
   front of it. A transform that skips the aperture delivers north-west swell
