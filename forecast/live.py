@@ -1,0 +1,382 @@
+"""The live forecast for Coronado's three breaks.
+
+Run: ``python -m forecast.live`` — writes ``data/live/forecast.json``, which is
+what the app surface reads.
+
+Chain: the latest GFS-Wave cycle at 46232 → swell partitions → each partition
+integrated through each break's aperture (`forecast.transform`) → recombined by
+energy → wind from KNZY and tide from 9410170 attached as context.
+
+**Scope, by decision (2026-09-18): the three Coronado breaks only.** Breakers
+and Gator are out of the forecast and out of the app. They are not the same
+breaks as Coronado north and south — measured, they differ on 17.6% and 13.5%
+of archive swell hours — but they are the two spots whose coordinates are still
+estimated, so dropping them costs nothing that was trustworthy.
+
+**What this is standing on, in the four levels CLAUDE.md asks for:**
+
+* *Geometry* — digitised. Coronado's three breaks and the Point Loma tip are
+  surveyed points, and the aperture follows from them.
+* *Model* — GFS-Wave, unassimilated, with a measured 0.26–0.31 m low bias at
+  every lead at these buoys (BRIEFING §5). Not corrected for here: the bias was
+  fitted against the BUOY, and correcting a beach forecast with it would import
+  a calibration nobody has checked at the beach.
+* *Calibration* — **none.** No transfer from offshore Hs to face height, no
+  shoaling, no refraction, no band.
+* *Observation* — **none.** `data/beach_log/` is empty. Nothing has ever
+  measured a wave at these three breaks.
+
+So the output is a *physically derived* window height, never an accurate one,
+and it is not a wave height at the beach. The honest claim is ordinal and
+differential: which break holds more of today's swell, and by roughly what
+ratio. That is what the verification log is built to test and what this surface
+is allowed to say.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import math
+import sys
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+from collector.common import DEFAULT_DATA_DIR, ISO
+from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
+
+from .geometry import HIGH, LOW, Blocker, Spot, load, open_window
+from .transform import (
+    SWELL_SPREAD_DEG,
+    WIND_SEA_SPREAD_DEG,
+    PartitionsThrough,
+    through_partitions,
+)
+
+STATION = "46232"
+WIND_STATION = "KNZY"
+TIDE_STATION = "9410170"
+
+#: Breaks the app surface covers. Coronado only, by decision.
+BREAKS = ("coronado_north", "coronado_center", "coronado_south")
+
+#: How far ahead to publish. GFS-Wave runs to +384 h, but BRIEFING §5 measured
+#: the 70% band under-covering badly at +216 h and beyond, and nothing here is
+#: banded at all yet. Seven days is where the archive says the model is still
+#: saying something.
+DEFAULT_HOURS = 168
+
+#: Cycles are published roughly 5 hours after their nominal time.
+CYCLE_LAG_HOURS = 5.5
+
+
+@dataclass
+class WindAtTime:
+    observed_utc: str | None = None
+    from_deg: float | None = None
+    speed_kt: float | None = None
+    gust_kt: float | None = None
+    #: +1 fully offshore, -1 fully onshore, relative to THIS break's normal.
+    offshore: float | None = None
+    note: str = ""
+
+
+@dataclass
+class Hour:
+    valid_utc: str
+    lead_h: int
+    hs_offshore_m: float
+    hs_window_m: float
+    fraction: float
+    dominant_period_s: float | None
+    dominant_from_deg: float | None
+    tide_m: float | None = None
+    tide_kind: str | None = None
+
+
+@dataclass
+class BreakForecast:
+    id: str
+    name: str
+    confidence: str
+    open_windows: list[list[float]]
+    shore_normal_deg: float
+    normal_is_a_guess: bool
+    wind: WindAtTime = field(default_factory=WindAtTime)
+    hours: list[Hour] = field(default_factory=list)
+    #: Ratio of this break's window height to the smallest of the three, at the
+    #: first forecast hour. The differential is the claim; this is it, stated.
+    ratio_to_smallest: float | None = None
+
+
+@dataclass
+class Forecast:
+    generated_utc: str
+    cycle_utc: str | None
+    station: str
+    standing_on: dict
+    breaks: list[BreakForecast] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    spread_assumption: dict = field(default_factory=dict)
+
+
+def latest_cycle(now: datetime | None = None) -> datetime:
+    """The most recent cycle that should have been published by now."""
+
+    now = now or datetime.now(timezone.utc)
+    anchor = now - timedelta(hours=CYCLE_LAG_HOURS)
+    return anchor.replace(hour=(anchor.hour // 6) * 6, minute=0, second=0, microsecond=0)
+
+
+def fetch_latest(station: str = STATION, *, now: datetime | None = None,
+                 back: int = 4) -> tuple[Bulletin | None, list[str]]:
+    """Walk back through cycles until one is available."""
+
+    warnings: list[str] = []
+    cycle = latest_cycle(now)
+    for step in range(back):
+        attempt = cycle - timedelta(hours=6 * step)
+        try:
+            return fetch_bulletin(station, attempt, attempts=2), warnings
+        except BulletinError as exc:
+            warnings.append(f"cycle {attempt:%Y-%m-%dT%H}Z unavailable: {str(exc)[-80:]}")
+    return None, warnings
+
+
+def read_latest_wind(data_dir: Path) -> dict[str, str] | None:
+    path = Path(data_dir) / "wind" / f"{WIND_STATION}.csv"
+    if not path.exists():
+        return None
+    with path.open(newline="", encoding="utf-8") as fh:
+        rows = [r for r in csv.DictReader(fh) if r.get("observed_utc")]
+    return max(rows, key=lambda r: r["observed_utc"]) if rows else None
+
+
+def read_tide(data_dir: Path) -> dict[str, tuple[float, str]]:
+    """Predicted tide by hour. Empty when the collector has not run."""
+
+    out: dict[str, tuple[float, str]] = {}
+    path = Path(data_dir) / "tide" / f"{TIDE_STATION}_predicted.csv"
+    if not path.exists():
+        return out
+    with path.open(newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            stamp, height = row.get("time_utc"), row.get("height_m")
+            if not stamp or not height:
+                continue
+            try:
+                out[stamp[:13]] = (float(height), row.get("kind", "predicted"))
+            except ValueError:
+                continue
+    return out
+
+
+def offshore_component(wind_from_deg: float, normal_deg: float) -> float:
+    """+1 when the wind blows straight off the land, −1 straight onshore.
+
+    The beach normal points seaward, so a wind arriving FROM the normal is
+    coming off the water. Offshore is the opposite bearing, hence the sign.
+    """
+
+    return -math.cos(math.radians(wind_from_deg - normal_deg))
+
+
+def wind_for(spot: Spot, row: dict[str, str] | None) -> WindAtTime:
+    if row is None:
+        return WindAtTime(note=f"{WIND_STATION} not collected yet — run the "
+                               f"'Collect beach inputs' workflow")
+    if row.get("variable") == "1" or not row.get("wind_from_deg"):
+        return WindAtTime(
+            observed_utc=row.get("observed_utc"),
+            speed_kt=float(row["wind_kt"]) if row.get("wind_kt") else None,
+            note="variable or calm — no usable direction",
+        )
+    from_deg = float(row["wind_from_deg"])
+    note = ""
+    if not spot.shoreline_verified:
+        # The offshore/onshore split is computed from the NORMAL, which comes
+        # from the chord. Coronado's north break has a digitised position and
+        # an unverified chord sitting ~19 deg off the local coast trend
+        # (BRIEFING section 9), so this number is the one thing about that
+        # break the window's provenance does NOT cover.
+        note = "shore normal is unverified at this break, so offshore/onshore is a guess"
+    return WindAtTime(
+        observed_utc=row.get("observed_utc"),
+        from_deg=from_deg,
+        speed_kt=float(row["wind_kt"]) if row.get("wind_kt") else None,
+        gust_kt=float(row["gust_kt"]) if row.get("gust_kt") else None,
+        offshore=round(offshore_component(from_deg, spot.normal), 3),
+        note=note,
+    )
+
+
+def confidence_for(spot: Spot, blockers: list[Blocker]) -> str:
+    if not spot.position_verified:
+        return LOW
+    # Both edges of the swell-side window are blocker-derived, so the window is
+    # a function of position and the blockers and NOT of the chord (BRIEFING
+    # section 2a). Point Loma is digitised; the islands are not, but they carry
+    # ~11% of the energy (section 10), below the material share.
+    return HIGH
+
+
+def build(
+    *,
+    data_dir: Path = DEFAULT_DATA_DIR,
+    hours: int = DEFAULT_HOURS,
+    now: datetime | None = None,
+    bulletin: Bulletin | None = None,
+) -> Forecast:
+    spots, blockers = load()
+    by_id = {s.id: s for s in spots}
+    warnings: list[str] = []
+
+    if bulletin is None:
+        bulletin, warnings = fetch_latest(now=now)
+
+    generated = (now or datetime.now(timezone.utc)).strftime(ISO)
+    forecast = Forecast(
+        generated_utc=generated,
+        cycle_utc=bulletin.cycle_utc.strftime(ISO) if bulletin else None,
+        station=STATION,
+        standing_on={
+            "geometry": "digitised — Coronado's three breaks and the Point Loma tip",
+            "model": "GFS-Wave, unassimilated; 0.26–0.31 m low bias at the buoy, not corrected here",
+            "calibration": "none — no offshore-to-face transfer, no shoaling, no refraction, no band",
+            "observation": "none — data/beach_log/ is empty; nothing has measured these breaks",
+            "claim": "physically derived, not accurate; ordinal and differential, not a height at the beach",
+        },
+        warnings=warnings,
+        spread_assumption={
+            "swell_deg": SWELL_SPREAD_DEG,
+            "wind_sea_deg": WIND_SEA_SPREAD_DEG,
+            "note": "GFS-Wave publishes no directional spread. These are conventional "
+                    "values, not fitted ones, and are replaced by measured r1/r2 once "
+                    "collector.spectra has a series.",
+        },
+    )
+
+    if bulletin is None:
+        forecast.warnings.append("No GFS-Wave cycle available; no forecast produced.")
+        return forecast
+
+    wind_row = read_latest_wind(data_dir)
+    tide = read_tide(data_dir)
+    if wind_row is None:
+        forecast.warnings.append(f"{WIND_STATION} wind not collected yet.")
+    if not tide:
+        forecast.warnings.append(f"{TIDE_STATION} tide not collected yet.")
+
+    rows = [r for r in bulletin.rows if r.lead_hours <= hours]
+
+    for break_id in BREAKS:
+        spot = by_id[break_id]
+        entry = BreakForecast(
+            id=spot.id,
+            name=spot.name,
+            confidence=confidence_for(spot, blockers),
+            open_windows=[[round(lo, 1), round(hi, 1)]
+                          for lo, hi in open_window(spot, blockers)],
+            shore_normal_deg=round(spot.normal, 1),
+            normal_is_a_guess=not spot.shoreline_verified,
+            wind=wind_for(spot, wind_row),
+        )
+
+        for row in rows:
+            parts = [
+                (p.hs_m, p.tp_s, float(from_direction(p.toward_deg)), p.wind_sea)
+                for p in row.partitions
+            ]
+            got: PartitionsThrough = through_partitions(spot, blockers, parts)
+            dominant = got.dominant
+            key = row.valid_utc.strftime(ISO)[:13]
+            tide_value = tide.get(key)
+            entry.hours.append(Hour(
+                valid_utc=row.valid_utc.strftime(ISO),
+                lead_h=row.lead_hours,
+                hs_offshore_m=round(got.hs_offshore_m, 3),
+                hs_window_m=round(got.hs_in_window_m, 3),
+                fraction=round(got.fraction, 4) if not math.isnan(got.fraction) else None,
+                dominant_period_s=round(dominant.tp_s, 1) if dominant else None,
+                dominant_from_deg=round(dominant.from_deg, 0) if dominant else None,
+                tide_m=round(tide_value[0], 3) if tide_value else None,
+                tide_kind=tide_value[1] if tide_value else None,
+            ))
+        forecast.breaks.append(entry)
+
+    # The differential, stated rather than left for the reader to compute.
+    if forecast.breaks and all(b.hours for b in forecast.breaks):
+        first = [b.hours[0].hs_window_m for b in forecast.breaks]
+        smallest = min(first) or None
+        if smallest:
+            for entry, value in zip(forecast.breaks, first):
+                entry.ratio_to_smallest = round(value / smallest, 3)
+
+    return forecast
+
+
+def write(forecast: Forecast, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(asdict(forecast), indent=1), encoding="utf-8")
+
+
+def format_table(forecast: Forecast, *, rows: int = 8) -> str:
+    lines = [
+        f"Coronado — GFS-Wave {forecast.cycle_utc or 'NO CYCLE'} at {forecast.station}",
+        "",
+    ]
+    for warning in forecast.warnings:
+        lines.append(f"  ! {warning}")
+    if forecast.warnings:
+        lines.append("")
+
+    for entry in forecast.breaks:
+        wind = entry.wind
+        wind_text = "wind: not collected"
+        if wind.from_deg is not None:
+            sense = "offshore" if (wind.offshore or 0) > 0.3 else (
+                "onshore" if (wind.offshore or 0) < -0.3 else "cross")
+            wind_text = f"wind {wind.from_deg:.0f}° {wind.speed_kt or 0:.0f} kt ({sense})"
+        ratio = f"  ×{entry.ratio_to_smallest:.2f}" if entry.ratio_to_smallest else ""
+        lines.append(f"{entry.name}   [{entry.confidence} confidence]{ratio}")
+        lines.append(f"  {wind_text}")
+        lines.append(f"  {'valid':>17s} {'lead':>5s} {'offshore':>9s} {'window':>8s} "
+                     f"{'thru':>6s} {'T':>6s} {'from':>6s} {'tide':>7s}")
+        for hour in entry.hours[:rows]:
+            tide = f"{hour.tide_m:6.2f}m" if hour.tide_m is not None else "     —"
+            lines.append(
+                f"  {hour.valid_utc:>17s} {hour.lead_h:4d}h {hour.hs_offshore_m:8.2f}m "
+                f"{hour.hs_window_m:7.2f}m {100*(hour.fraction or 0):5.0f}% "
+                f"{hour.dominant_period_s or 0:5.1f}s {hour.dominant_from_deg or 0:5.0f}° {tide}"
+            )
+        lines.append("")
+
+    lines += [
+        "Window height is offshore energy aimed at the break, not a wave height",
+        "at the beach: no shoaling, no refraction, no offshore-to-face transfer.",
+        "No verification series exists, so nothing here carries an error bar.",
+    ]
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--hours", type=int, default=DEFAULT_HOURS)
+    parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--rows", type=int, default=8)
+    args = parser.parse_args(argv)
+
+    forecast = build(data_dir=args.data_dir, hours=args.hours)
+    print(format_table(forecast, rows=args.rows))
+
+    out = args.out or (Path(args.data_dir) / "live" / "forecast.json")
+    write(forecast, out)
+    print(f"\nWrote {out}")
+    return 0 if forecast.breaks else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
