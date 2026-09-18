@@ -66,6 +66,13 @@ a full kilometre of coordinate error moves an edge by under 2°, against
     python -m forecast.live          # writes data/live/forecast.json
     python -m http.server            # then open /app/forecast.html
 
+    python -m forecast.publish       # build the public bundle -> build/site/
+
+**Live: https://ptrrdrck.github.io/nado-waves-forecast/** — this repository is
+private, so the page is published to a public delivery repository, the same way
+`nado-waves-log` serves the observer form. This repository stays the system of
+record; nothing is edited on the far side.
+
 The page states what it is standing on in four levels — geometry, model,
 calibration, observation — and two of those currently read **none**.
 `tests/test_app_surface.py` enforces that the page cannot use the vocabulary an
