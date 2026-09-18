@@ -270,6 +270,13 @@ circular helpers are used here. Trimming it is a good first cleanup.
 - **Bulletin direction is the direction waves travel TOWARD; NDBC `MWD` is where
   they come FROM.** `collector.gfswave` flips it once, on the way in. Do not
   flip it again. Measured: 29° mean error with the flip, 151° without.
+- **One station's reading is not one beach's condition.** Wind and tide are
+  hoisted above the break cards because KNZY and 9410170 feed all three and
+  repeating them three times is noise. **The offshore/onshore reading is not
+  hoisted**, because it is derived from the shore normal and Coronado's three
+  normals span 29° (192.8 / 214.2 / 221.5) — measured 2026-09-18, a 290° wind
+  reads cross-shore at north and centre and onshore at south, on the same
+  reading. Hoist the measurement; keep the interpretation where it is made.
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.
