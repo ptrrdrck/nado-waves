@@ -251,9 +251,14 @@ function boot(data) {
     $("breaks").innerHTML = '<p class="warn">No forecast hours in this file.</p>';
     return;
   }
+  // Keyed on lead_h and carrying the real array index, so the same page works
+  // against the hourly file in the repository and the 3-hourly file published
+  // to the web. Filtering by array position and then multiplying the index by
+  // three assumed hourly data, and would have silently shown the wrong hour.
   $("when").innerHTML = first
-    .filter((_, i) => i % 3 === 0)
-    .map((h, i) => `<option value="${i * 3}">${when(h.valid_utc)}</option>`)
+    .map((h, i) => ({h, i}))
+    .filter(({h}) => h.lead_h % 3 === 0)
+    .map(({h, i}) => `<option value="${i}">${when(h.valid_utc)}</option>`)
     .join("");
   $("when").onchange = (e) => renderBreaks(Number(e.target.value));
   renderBreaks(0);
