@@ -80,6 +80,69 @@ class TestProvenanceIsVisible:
         assert "Directional spread is assumed" in TEXT
 
 
+class TestTheSeekBar:
+    def test_it_opens_on_the_hour_nearest_now_not_the_first_hour(self):
+        """A GFS-Wave cycle publishes about five hours after its nominal time,
+        so hour zero is already past when anyone loads the page — it opened on
+        5 a.m. for a reader standing on the sand at 2 p.m."""
+
+        assert "Date.now()" in SOURCE
+        assert "hour nearest NOW" in SOURCE
+
+    def test_earlier_and_later_move_the_cursor(self):
+        assert '$("earlier").onclick' in SOURCE and '$("later").onclick' in SOURCE
+        assert "CURSOR -= 1" in SOURCE and "CURSOR += 1" in SOURCE
+
+    def test_the_full_list_is_still_a_real_select(self):
+        """Laid transparently over the label, so the native picker opens on tap
+        and the control stays keyboard-reachable."""
+
+        assert '<select id="when"' in SOURCE
+        assert ".seek-when select" in SOURCE and "opacity:0" in SOURCE
+
+    def test_the_ends_disable_rather_than_wrap(self):
+        assert '$("earlier").disabled' in SOURCE and '$("later").disabled' in SOURCE
+
+
+class TestWindAndTideAreHoisted:
+    def test_they_render_above_the_breaks_not_inside_each_card(self):
+        assert SOURCE.index('id="conditions"') < SOURCE.index('id="breaks"')
+
+    def test_each_carries_its_source_underneath(self):
+        assert "station_name" in SOURCE and "tide_station_name" in SOURCE
+        assert 'class="src"' in SOURCE
+
+    def test_the_tide_says_it_is_a_model(self):
+        assert "harmonic prediction" in TEXT
+        assert "a model, not a measurement" in TEXT
+
+    def test_the_labels_separate_an_observation_from_a_forecast_hour(self):
+        """Wind does not move with the picker and tide does."""
+
+        assert "Wind, latest observed" in TEXT
+        assert "Tide at ${tideLabel}" in SOURCE
+
+    def test_the_per_break_offshore_reading_stays_on_the_card(self):
+        """One station, so one wind — but the three shore normals span 29°, so
+        what that wind MEANS is per break."""
+
+        assert "entry.wind_offshore" in SOURCE
+        assert "wind is <b>${senseText}</b> here" in SOURCE
+
+
+class TestTheSourceLine:
+    def test_the_page_has_no_title_heading(self):
+        assert "<h1>" not in SOURCE
+
+    def test_the_cycle_line_explains_itself_and_sits_below_the_breaks(self):
+        assert SOURCE.index('id="breaks"') < SOURCE.index('id="cycle"')
+        assert "Latest data from the" in TEXT
+        assert "model run of" in TEXT and "offshore buoy" in TEXT
+
+    def test_it_names_the_buoy_rather_than_only_its_number(self):
+        assert "data.station_name" in SOURCE and "NDBC ${data.station}" in SOURCE
+
+
 class TestItDegradesVisibly:
     def test_a_failed_load_tells_the_reader_what_to_run(self):
         assert "Could not load" in TEXT

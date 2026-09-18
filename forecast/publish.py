@@ -145,6 +145,18 @@ def thin(forecast: dict, *, step: int = HOUR_STEP) -> dict:
         {**entry, "hours": [h for h in entry["hours"] if h.get("lead_h", 0) % step == 0]}
         for entry in forecast.get("breaks", [])
     ]
+
+    # The tide series is thinned to the hours that survive, by TIMESTAMP rather
+    # than by its own position — the two lists are built separately and there is
+    # no guarantee they line up. The page looks tide up by timestamp too, so a
+    # mismatch here costs bytes rather than correctness; both being keyed the
+    # same way is what makes that true.
+    kept = {
+        h["valid_utc"]
+        for entry in out["breaks"]
+        for h in entry["hours"]
+    }
+    out["tide"] = [t for t in forecast.get("tide", []) if t.get("valid_utc") in kept]
     out["hour_step_h"] = step
     return out
 
