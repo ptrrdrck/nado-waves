@@ -318,8 +318,8 @@ def open_windows(spot: Spot, blockers: list[Blocker]) -> list[Window]:
     ]
 
 
-def swell_window(spot: Spot, blockers: list[Blocker]) -> list[Window]:
-    """The open arcs that swell can actually arrive through.
+def swell_windows(spot: Spot, blockers: list[Blocker]) -> list[Window]:
+    """The open arcs that swell can actually arrive through, with provenance.
 
     An arc with a seaward-limit edge is an arc that runs into the half-plane
     clip rather than into land, and at these beaches that is a warning sign
@@ -340,6 +340,18 @@ def swell_window(spot: Spot, blockers: list[Blocker]) -> list[Window]:
         w for w in open_windows(spot, blockers)
         if w.low.source != SEAWARD and w.high.source != SEAWARD
     ]
+
+
+def swell_window(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float]]:
+    """The bare-tuple view of `swell_windows`.
+
+    Same singular/plural split as `open_window` and `open_windows`: callers
+    that only want the numbers take this one, callers that need to know which
+    blocker formed which edge take the plural. `forecast.siting` and the app
+    surface respectively.
+    """
+
+    return [(w.low.bearing, w.high.bearing) for w in swell_windows(spot, blockers)]
 
 
 def blocked_by(spot: Spot, blockers: list[Blocker], bearing: float) -> Blocker | None:

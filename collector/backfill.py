@@ -296,7 +296,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.stations:
         stations = select(registry, args.stations.split(","))
     else:
-        stations = [s for s in registry if s.launch_candidate]
+        # Stations on the swell's path into Coronado's window, not the dead
+        # game's league set. Deliberately small; --stations overrides.
+        #
+        # Imported here rather than at module scope so that the collector stays
+        # runnable when the beach geometry is not: archiving is the job that
+        # must not stop, and `--stations` still works if spots.json or the NDBC
+        # coordinate file is missing.
+        from forecast.siting import constraining
+
+        stations = constraining(registry)
 
     last_complete = utcnow().year - 1
     years = list(range(last_complete - args.years + 1, last_complete + 1))

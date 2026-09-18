@@ -106,8 +106,12 @@ forecaster actually verifies against, Surfline included.
    **The finding that shaped it (BRIEFING §10): integrating the spectrum is
    what makes the Coronado Islands an ~11% energy reduction rather than an
    on/off switch.** Do not reintroduce a binary blocker test against a single
-   `MWD`. **46232 is reporting again** as of 2026-09-17T17:56Z, after a 16-day
-   gap. The staleness alert still did not fire for it.
+   `MWD`.
+   **Caveat: 46232 was dark for 16.2 days, 2026-09-01 to 2026-09-17**, and is
+   reporting again. Cause unknown, nothing was done to fix it, and the 48-hour
+   staleness alert never visibly fired. The anchor buoy for every transform
+   here can disappear for a fortnight without notice, and BRIEFING §3a says no
+   other station in the array can stand in for it.
 4. **The forecast — built, `forecast/live.py`.** GFS-Wave partitions at 46232
    through the transform, with KNZY wind and 9410170 tide as context. Writes
    `data/live/forecast.json`. **GFS-Wave publishes no directional spread, so
@@ -140,9 +144,13 @@ forecaster actually verifies against, Surfline included.
   days of repository inactivity, and the workflow's own bot commits do not
   reliably reset that timer.
 - **Keep the staleness alert** — no new observation in 48 hours, notify. A
-  silently dead collector loses days that cannot be recovered. **It did not
-  visibly fire for 46232's outage from 2026-09-01**, which is unexplained and
-  worth chasing before trusting it.
+  silently dead collector loses days that cannot be recovered. It did not
+  visibly fire for 46232's 16-day outage; **partly explained** (BRIEFING §8):
+  `health.newly_dark` deliberately suppresses anything dark longer than
+  2 × 48 h, so the alert had 09-01 to 09-05 to be seen and has been silent by
+  design since. Whether it was ever *delivered* in that window is still
+  unchased. A station that had never reported at all had no date to age from
+  and alerted forever; `first_checked_utc` fixes that.
 - **Egress from a Claude session is policy-controlled and changes mid-session.**
   A 403 at CONNECT is a denial, not throttling: check
   `$HTTPS_PROXY/__agentproxy/status`, report the blocked host, do not route
@@ -162,7 +170,9 @@ forecaster actually verifies against, Surfline included.
 ## Layout
 
     collector/          data pipeline: NDBC archiving, revisions, station
-                        status, historical backfill, GFS-Wave bulletins,
+                        status (stations.json is a COLLECTION list, not a
+                        ranking — see forecast/siting.py), historical backfill,
+                        GFS-Wave bulletins,
                         probe_spectra.py (are directional spectra reachable?),
                         spectra.py (archive them), wind.py (KNZY),
                         tide.py (9410170),
@@ -177,6 +187,7 @@ forecaster actually verifies against, Surfline included.
       geometry.py       which bearings reach each beach          [built]
       transform.py      spectrum -> energy through the aperture   [built]
       live.py           the live forecast, Coronado only          [built]
+      siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
       stats.py          load_column, least_squares, rmse, circular means
@@ -229,6 +240,21 @@ circular helpers are used here. Trimming it is a good first cleanup.
   Point Loma with the peninsula behind it to the north-east; the beaches sit in
   front of it. A transform that skips the aperture delivers north-west swell
   that cannot physically arrive, on most days of the year.
+- **A station earns its place by geometry, not by being nearby.** `stations.json`
+  says what is *archived* — collect broadly, the 45-day window is
+  unrecoverable — and nothing more. Which buoys constrain the swell reaching
+  Coronado is **derived** by `forecast/siting.py` from NDBC coordinates and the
+  digitised breaks, never stored, because §2a already paid for duplicating a
+  derivable coordinate. Measured (BRIEFING §3a): **46232 is the only buoy in
+  the array inside Coronado's window, and there is no substitute.** 46258 is
+  33.9° *behind* Point Loma at nearly 46232's range — a control for the
+  aperture claim, and never a fallback anchor. The predecessor's
+  `launch_candidate` flag marked leagues, not physics; four of its six sat
+  55–92° off the window, and it is deleted.
+- **Never type a buoy coordinate.** `collector/metadata.py` fetches them from
+  NDBC; a station it cannot place is reported UNPLACED and makes no claim.
+  46235 is in that state now. NDBC is frequently denied at CONNECT from a
+  session — run the metadata job on Actions.
 - **Bulletin direction is the direction waves travel TOWARD; NDBC `MWD` is where
   they come FROM.** `collector.gfswave` flips it once, on the way in. Do not
   flip it again. Measured: 29° mean error with the flip, 151° without.

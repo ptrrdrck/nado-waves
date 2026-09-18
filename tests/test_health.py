@@ -28,10 +28,8 @@ HEADER = (
     "#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft\n"
 )
 
-LIVE_STATION = Station(id="46222", name="San Pedro, CA", region="socal",
-                       launch_candidate=True)
-DARK_STATION = Station(id="46232", name="Point Loma South, CA", region="socal",
-                       launch_candidate=True)
+LIVE_STATION = Station(id="46222", name="San Pedro, CA", region="socal")
+DARK_STATION = Station(id="46232", name="Point Loma South, CA", region="socal")
 
 NOW = datetime(2026, 9, 13, 2, 0, tzinfo=timezone.utc)
 
@@ -64,7 +62,6 @@ def test_a_dark_buoy_stays_listed_with_rounds_paused(tmp_path):
     assert entry["name"] == "Point Loma South, CA"
     # Still discoverable: history and identity survive.
     assert entry["observation_rows"] == 1
-    assert entry["launch_candidate"] is True
 
 
 def test_the_paused_reason_names_the_date_it_stopped(tmp_path):
@@ -132,3 +129,63 @@ def test_corrupt_status_file_does_not_break_a_run(tmp_path):
     status_path(tmp_path).write_text("{not json", encoding="utf-8")
     assert load_status(tmp_path) == {}
     assert build_status(tmp_path, [LIVE_STATION], now=NOW)["stations"][0]["state"] == LIVE
+
+
+def test_status_reports_what_a_buoy_is_for_not_just_whether_it_is_alive(tmp_path):
+    """A dark anchor and a dark off-axis buoy are different news.
+
+    The role is derived by `forecast.siting` and injected, so the status file
+    can say which one just went dark without this module depending on the
+    beach geometry.
+    """
+
+    archive(tmp_path, DARK_STATION, hours_old=274)
+    entry = build_status(
+        tmp_path, [DARK_STATION], now=NOW, roles={"46232": "window"}
+    )["stations"][0]
+    assert entry["state"] == DARK
+    assert entry["constrains_window"] == "window"
+
+
+def test_a_station_siting_could_not_place_is_unclassified_not_absent(tmp_path):
+    """Missing geometry must never read as "this buoy doesn't matter"."""
+
+    archive(tmp_path, LIVE_STATION, hours_old=1)
+    entry = build_status(tmp_path, [LIVE_STATION], now=NOW, roles={})["stations"][0]
+    assert entry["constrains_window"] == "unclassified"
+    entry = build_status(tmp_path, [LIVE_STATION], now=NOW)["stations"][0]
+    assert entry["constrains_window"] == "unclassified"
+
+
+def test_a_never_seen_station_stops_alerting_once_it_is_old_news(tmp_path):
+    """A buoy registered while dark must not alert on every run forever.
+
+    46235 was added to the registry before it had ever reported, deliberately,
+    so that archiving starts the day it comes back. It has no last observation
+    to date "dark since" from, and before `first_checked_utc` existed that made
+    it permanently "newly dark".
+    """
+
+    from collector.health import newly_dark
+
+    station = Station(id="46235", name="46235 (unconfirmed)", region="socal")
+    first = build_status(tmp_path, [station], now=NOW)
+    assert first["stations"][0]["state"] == NEVER_SEEN
+    assert first["stations"][0]["first_checked_utc"] is not None
+    # Worth one alert when it first appears...
+    assert [e["id"] for e in newly_dark(first, now=NOW)] == ["46235"]
+
+    # ...and silent a week later, still never having reported.
+    later = NOW + timedelta(days=7)
+    second = build_status(tmp_path, [station], now=later, previous=first)
+    assert second["stations"][0]["first_checked_utc"] == first["stations"][0]["first_checked_utc"]
+    assert newly_dark(second, now=later) == []
+
+
+def test_first_checked_survives_a_station_coming_back_to_life(tmp_path):
+    station = Station(id="46235", name="46235 (unconfirmed)", region="socal")
+    first = build_status(tmp_path, [station], now=NOW)
+    archive(tmp_path, station, hours_old=1)
+    back = build_status(tmp_path, [station], now=NOW, previous=first)
+    assert back["stations"][0]["state"] == LIVE
+    assert back["stations"][0]["first_checked_utc"] == first["stations"][0]["first_checked_utc"]
