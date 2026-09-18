@@ -371,3 +371,78 @@ it** — the expanding-window control in §4 is the model.
   the Coronado Islands cut the south break off first, so a fixed bias agrees on
   one edge and contradicts the other while a real aperture effect flips.
   Still open: whether anyone fills it in. The file is empty.
+
+---
+
+## 10. Measured, 2026-09-18 — the Coronado Islands should never have been a binary blocker
+
+The locals are right, and there is now a mechanism and a number behind it.
+This section supersedes any reading of §2 that treats the islands' shadow as
+equivalent in kind to Point Loma's.
+
+**The islands subtend 10.9°; Point Loma subtends 54.0°.** Against a swell with
+a realistic directional spread, that difference is not a matter of degree:
+
+| directional spread | removed by islands (10.9°) | removed by Point Loma (54.0°) |
+|---|---|---|
+| 10° | 11.5% | 52.5% |
+| 20° | 11.2% | 51.6% |
+| 30° | 10.4% | 48.3% |
+
+Worst case — the notch centred exactly on the swell peak. **The islands remove
+about 11% of the energy no matter how the swell is spread**, which is ~6% of
+height, well under an inch on a waist-high wave. Point Loma removes about half.
+
+**So the binary open/shut verdict for the islands was a modelling error, not a
+low-confidence claim.** It only appeared because a single `MWD` value was being
+tested against a hard-edged sector. Integrate the directional spectrum over the
+aperture instead and the 11° notch correctly costs ~11% of the energy, with no
+special-casing: the transform dissolves the problem rather than tiering it.
+
+**Diffraction says the same thing.** Fresnel number `F = W²/(λL)` — sharp
+shadow when `F >> 1`, filled in when `F ~ 1`:
+
+| period | λ | F, Point Loma (6.2 km at 5.7 km) | F, islands (6.1 km at 31.1 km) |
+|---|---|---|---|
+| 12 s | 225 m | 30.1 | 5.4 |
+| 15 s | 351 m | 19.3 | 3.5 |
+| 18 s | 506 m | 13.4 | 2.4 |
+| 20 s | 625 m | 10.8 | 1.9 |
+
+Point Loma casts a genuine geometric shadow at every surf period. The islands
+are marginal and get worse with period — at 20 s, `F ≈ 1.9`, so diffraction
+fills a good part of even the 11%. **Untested hypothesis, do not repeat as
+established:** the islands' true transmission is higher than geometric.
+
+### The correction this forces on §9's "digitise the islands" item
+
+**Digitising the Coronado Islands is low value and can be deprioritised.**
+Worst-case edge movement over 24 perturbation directions, per edge:
+
+| edge | 250 m | 500 m | 1 km |
+|---|---|---|---|
+| Coronado breaks / Point Loma | 2.20–2.82° | 4.40–5.64° | 8.83–11.36° |
+| Coronado breaks / islands | 0.46° | 0.92–0.93° | 1.84–1.86° |
+
+The islands are 31 km away, so their angular leverage is **five times lower**
+than Point Loma's. A full kilometre of island error costs under 2°. The earlier
+finding that "moving the islands 500 m flips 20.6% of live swell hours" was
+**high traffic, not high leverage** — south swell sits on that edge in
+September, so a small angular move crossed a binary threshold many times. Once
+the verdict stops being binary, the same 500 m moves ~11% of energy by a
+fraction of itself.
+
+**The high-leverage coordinate is still the Point Loma tip, and it is already
+digitised.** CLAUDE.md's "highest-leverage coordinate in the repository" stands.
+
+### What this means for the disagreement headline
+
+The 50.0% of swell hours on which the five breaks disagreed (3-year archive,
+Hs ≥ 0.6 m, DPD ≥ 12 s) is **inflated by island-driven binary flips**. Split by
+which blocker causes it: **19.4% from Point Loma, 33.7% from the islands**
+(they overlap). Only the Point Loma share is a real differential. In the live
+45-day window the split is 1.2% against 56.4% — September is south-swell
+season, which sits on the island edge — so *today's* between-break differences
+are almost entirely an artifact of the binary treatment.
+
+**Quote the Point Loma number, not the total.**
