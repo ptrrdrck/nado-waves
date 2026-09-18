@@ -49,9 +49,11 @@ from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_dire
 
 from .geometry import HIGH, LOW, Blocker, Spot, load, open_window
 from .transform import (
+    SEAWARD_CLIP,
     SWELL_SPREAD_DEG,
     WIND_SEA_SPREAD_DEG,
     PartitionsThrough,
+    attribution,
     through_partitions,
 )
 
@@ -92,6 +94,11 @@ class Hour:
     fraction: float
     dominant_period_s: float | None
     dominant_from_deg: float | None
+    #: Share of the offshore energy each blocker took, largest first. The app
+    #: reads this to say WHAT is taking the swell, and to mark a reading whose
+    #: dominant blocker is the estimated Coronado Islands as less certain than
+    #: one governed by the digitised Point Loma tip.
+    taken_by: list[dict] = field(default_factory=list)
     tide_m: float | None = None
     tide_kind: str | None = None
 
@@ -212,6 +219,21 @@ def wind_for(spot: Spot, row: dict[str, str] | None) -> WindAtTime:
     )
 
 
+def _blocker_verified(name: str, spot: Spot, blockers: list[Blocker]) -> bool:
+    """Is this blocker's edge drawn between two digitised points?
+
+    The seaward clip is a chord claim, not a blocker claim, so it follows
+    `shoreline_verified` (BRIEFING §2a: the two flags govern different things).
+    """
+
+    if name == SEAWARD_CLIP:
+        return spot.shoreline_verified
+    for blocker in blockers:
+        if blocker.name == name:
+            return blocker.tip_verified and spot.position_verified
+    return False
+
+
 def confidence_for(spot: Spot, blockers: list[Blocker]) -> str:
     if not spot.position_verified:
         return LOW
@@ -291,6 +313,26 @@ def build(
             ]
             got: PartitionsThrough = through_partitions(spot, blockers, parts)
             dominant = got.dominant
+
+            # Energy-weighted across partitions: a blocker that shadows a small
+            # train matters less than one shadowing the day's main swell.
+            shares: dict[str, float] = {}
+            energy = sum(p.hs_offshore_m ** 2 for p in got.parts) or 1.0
+            for part in got.parts:
+                weight = part.hs_offshore_m ** 2 / energy
+                for name, share in attribution(
+                    spot, blockers, part.from_deg, part.spread_deg
+                ).items():
+                    shares[name] = shares.get(name, 0.0) + weight * share
+            taken_by = [
+                {
+                    "blocker": name,
+                    "share": round(share, 4),
+                    "verified": _blocker_verified(name, spot, blockers),
+                }
+                for name, share in sorted(shares.items(), key=lambda kv: -kv[1])
+                if share >= 0.005
+            ]
             key = row.valid_utc.strftime(ISO)[:13]
             tide_value = tide.get(key)
             entry.hours.append(Hour(
@@ -301,6 +343,7 @@ def build(
                 fraction=round(got.fraction, 4) if not math.isnan(got.fraction) else None,
                 dominant_period_s=round(dominant.tp_s, 1) if dominant else None,
                 dominant_from_deg=round(dominant.from_deg, 0) if dominant else None,
+                taken_by=taken_by,
                 tide_m=round(tide_value[0], 3) if tide_value else None,
                 tide_kind=tide_value[1] if tide_value else None,
             ))
