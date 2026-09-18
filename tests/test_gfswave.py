@@ -118,3 +118,116 @@ def test_a_flat_hour_still_produces_a_row():
     assert len(rows) == 1
     assert rows[0]["part_hs_m"] == ""
     assert rows[0]["hs_total_m"] == "0.44"
+
+
+class TestTheTarFallback:
+    """NCEP dropped the per-station bulletin files between 2026-09-15 and
+    2026-09-16. The data still ships in `gfswave.tHHz.bull_tar`, so a 404 on
+    the per-station path is no longer an answer — it has to be checked against
+    the tar before the cycle is called missing. Three days of archiving went
+    quietly to zero rows before this was caught."""
+
+    import io
+    import tarfile
+    import urllib.error
+    from datetime import datetime, timezone
+
+    CYCLE = datetime(2026, 9, 18, 0, tzinfo=timezone.utc)
+
+    BULLETIN = (
+        "  Location : 46232       (32.52N 117.42W)\n"
+        "  Cycle    : 20260918 00 UTC\n"
+        "+------+-----------+-----------------+\n"
+        "|  day |  hour     | Hst |  1        |\n"
+        "+------+-----------+-----------------+\n"
+        "| 18 00 |  0 |  0.80 | 0.50 15.3 16 |\n"
+    )
+
+    def _tar_bytes(self, members: dict[str, str]) -> bytes:
+        import io
+        import tarfile
+
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode="w") as archive:
+            for name, text in members.items():
+                data = text.encode()
+                info = tarfile.TarInfo(f"./{name}")
+                info.size = len(data)
+                archive.addfile(info, io.BytesIO(data))
+        return buffer.getvalue()
+
+    def _opener(self, payload: bytes):
+        import io
+
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                self.close()
+                return False
+
+        def opener(request, timeout=None):
+            return Response(payload)
+
+        return opener
+
+    def test_the_tar_url_is_the_documented_one(self):
+        from collector.gfswave import bulletin_tar_url
+
+        url = bulletin_tar_url(self.CYCLE)
+        assert url.endswith("gfs.20260918/00/wave/station/gfswave.t00z.bull_tar")
+
+    def test_several_stations_come_out_of_one_download(self):
+        from collector.gfswave import fetch_bulletins_from_tar
+
+        payload = self._tar_bytes({
+            "gfswave.46232.bull": self.BULLETIN,
+            "gfswave.46224.bull": self.BULLETIN.replace("46232", "46224"),
+            "gfswave.99999.bull": self.BULLETIN.replace("46232", "99999"),
+        })
+        found = fetch_bulletins_from_tar(
+            ["46232", "46224"], self.CYCLE, opener=self._opener(payload)
+        )
+        assert sorted(found) == ["46224", "46232"]
+
+    def test_a_station_absent_from_the_tar_is_absent_not_an_error(self):
+        from collector.gfswave import fetch_bulletins_from_tar
+
+        payload = self._tar_bytes({"gfswave.46232.bull": self.BULLETIN})
+        found = fetch_bulletins_from_tar(
+            ["46232", "46224"], self.CYCLE, opener=self._opener(payload)
+        )
+        assert list(found) == ["46232"]
+
+    def test_a_404_on_the_per_station_path_falls_back_to_the_tar(self, monkeypatch):
+        import urllib.error
+
+        from collector import gfswave
+
+        payload = self._tar_bytes({"gfswave.46232.bull": self.BULLETIN})
+        tar_opener = self._opener(payload)
+
+        def opener(request, timeout=None):
+            if request.full_url.endswith(".bull"):
+                raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {}, None)
+            return tar_opener(request, timeout)
+
+        bulletin = gfswave.fetch_bulletin("46232", self.CYCLE, opener=opener, attempts=1)
+        assert bulletin.station_id == "46232"
+
+    def test_a_404_with_the_station_missing_from_the_tar_still_raises(self, monkeypatch):
+        import urllib.error
+
+        from collector import gfswave
+
+        payload = self._tar_bytes({"gfswave.46224.bull": self.BULLETIN.replace("46232", "46224")})
+        tar_opener = self._opener(payload)
+
+        def opener(request, timeout=None):
+            if request.full_url.endswith(".bull"):
+                raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {}, None)
+            return tar_opener(request, timeout)
+
+        with pytest.raises(gfswave.BulletinError):
+            gfswave.fetch_bulletin("46232", self.CYCLE, opener=opener, attempts=1)

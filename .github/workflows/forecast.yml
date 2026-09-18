@@ -1,0 +1,88 @@
+# Regenerate data/live/forecast.json, which is what app/forecast.html reads.
+#
+# The app surface is a static page against a committed JSON file — no server,
+# same shape as the rest of this repository. That means the forecast is only as
+# fresh as this job, so the schedule is the product decision it looks like.
+#
+# Cadence: GFS-Wave runs 00/06/12/18Z and publishes about five hours later, so
+# this fires at 05:40 / 11:40 / 17:40 / 23:40 UTC — shortly after each cycle
+# lands, offset from the top of the hour because scheduled jobs at :00 sit in
+# the longest queue on GitHub's shared runners.
+#
+# It runs AFTER "Collect beach inputs" has had a chance to store the hour's
+# wind and tide, because the forecast reads those from the repository rather
+# than fetching them. A run that finds them missing still produces a forecast
+# and says on screen that they were not collected.
+
+name: Build forecast
+
+on:
+  schedule:
+    - cron: "40 5,11,17,23 * * *"
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "Forecast hours to publish"
+        required: false
+        default: "168"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: forecast
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build the forecast
+        env:
+          HOURS: ${{ inputs.hours }}
+        run: |
+          set -euo pipefail
+          python -m forecast.live --hours "${HOURS:-168}"
+
+      - name: Commit and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves forecast"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/live
+
+          if git diff --cached --quiet; then
+            echo "Forecast unchanged."
+            exit 0
+          fi
+
+          cycle=$(python -c "import json;print(json.load(open('data/live/forecast.json'))['cycle_utc'])")
+
+          git commit \
+            -m "data: rebuild forecast" \
+            -m "GFS-Wave cycle ${cycle}. Automated commit from .github/workflows/forecast.yml."
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}); rebasing and retrying."
+            git pull --rebase --autostash origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+
+          echo "::error title=Forecast push failed::Could not push the rebuilt forecast"
+          exit 1

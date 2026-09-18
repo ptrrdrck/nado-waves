@@ -474,3 +474,165 @@ it** — the expanding-window control in §4 is the model.
   the Coronado Islands cut the south break off first, so a fixed bias agrees on
   one edge and contradicts the other while a real aperture effect flips.
   Still open: whether anyone fills it in. The file is empty.
+
+---
+
+## 10. Measured, 2026-09-18 — the Coronado Islands should never have been a binary blocker
+
+The locals are right, and there is now a mechanism and a number behind it.
+This section supersedes any reading of §2 that treats the islands' shadow as
+equivalent in kind to Point Loma's.
+
+**The islands subtend 10.9°; Point Loma subtends 54.0°.** Against a swell with
+a realistic directional spread, that difference is not a matter of degree:
+
+| directional spread | removed by islands (10.9°) | removed by Point Loma (54.0°) |
+|---|---|---|
+| 10° | 11.5% | 52.5% |
+| 20° | 11.2% | 51.6% |
+| 30° | 10.4% | 48.3% |
+
+Worst case — the notch centred exactly on the swell peak. **The islands remove
+about 11% of the energy no matter how the swell is spread**, which is ~6% of
+height, well under an inch on a waist-high wave. Point Loma removes about half.
+
+**So the binary open/shut verdict for the islands was a modelling error, not a
+low-confidence claim.** It only appeared because a single `MWD` value was being
+tested against a hard-edged sector. Integrate the directional spectrum over the
+aperture instead and the 11° notch correctly costs ~11% of the energy, with no
+special-casing: the transform dissolves the problem rather than tiering it.
+
+**Diffraction says the same thing.** Fresnel number `F = W²/(λL)` — sharp
+shadow when `F >> 1`, filled in when `F ~ 1`:
+
+| period | λ | F, Point Loma (6.2 km at 5.7 km) | F, islands (6.1 km at 31.1 km) |
+|---|---|---|---|
+| 12 s | 225 m | 30.1 | 5.4 |
+| 15 s | 351 m | 19.3 | 3.5 |
+| 18 s | 506 m | 13.4 | 2.4 |
+| 20 s | 625 m | 10.8 | 1.9 |
+
+Point Loma casts a genuine geometric shadow at every surf period. The islands
+are marginal and get worse with period — at 20 s, `F ≈ 1.9`, so diffraction
+fills a good part of even the 11%. **Untested hypothesis, do not repeat as
+established:** the islands' true transmission is higher than geometric.
+
+### The correction this forces on §9's "digitise the islands" item
+
+**Digitising the Coronado Islands is low value and can be deprioritised.**
+Worst-case edge movement over 24 perturbation directions, per edge:
+
+| edge | 250 m | 500 m | 1 km |
+|---|---|---|---|
+| Coronado breaks / Point Loma | 2.20–2.82° | 4.40–5.64° | 8.83–11.36° |
+| Coronado breaks / islands | 0.46° | 0.92–0.93° | 1.84–1.86° |
+
+The islands are 31 km away, so their angular leverage is **five times lower**
+than Point Loma's. A full kilometre of island error costs under 2°. The earlier
+finding that "moving the islands 500 m flips 20.6% of live swell hours" was
+**high traffic, not high leverage** — south swell sits on that edge in
+September, so a small angular move crossed a binary threshold many times. Once
+the verdict stops being binary, the same 500 m moves ~11% of energy by a
+fraction of itself.
+
+**The high-leverage coordinate is still the Point Loma tip, and it is already
+digitised.** CLAUDE.md's "highest-leverage coordinate in the repository" stands.
+
+### What this means for the disagreement headline
+
+The 50.0% of swell hours on which the five breaks disagreed (3-year archive,
+Hs ≥ 0.6 m, DPD ≥ 12 s) is **inflated by island-driven binary flips**. Split by
+which blocker causes it: **19.4% from Point Loma, 33.7% from the islands**
+(they overlap). Only the Point Loma share is a real differential. In the live
+45-day window the split is 1.2% against 56.4% — September is south-swell
+season, which sits on the island edge — so *today's* between-break differences
+are almost entirely an artifact of the binary treatment.
+
+**Quote the Point Loma number, not the total.**
+
+---
+
+## 11. Measured, 2026-09-18 — the differential survives the weakest assumption
+
+GFS-Wave publishes swell partitions with no directional spread, so running them
+through an aperture requires assuming one. That assumption (20° for swell, 35°
+for wind sea, `forecast.transform.SWELL_SPREAD_DEG`) is **the least defensible
+number in the forecast chain**: conventional, not fitted, with nothing to fit it
+against. So it was tested rather than trusted.
+
+Window height at each break against assumed spread, 2026-09-18 00Z cycle:
+
+| spread | north | center | south | south/north |
+|---|---|---|---|---|
+| 10° | 0.604 m | 0.617 m | 0.632 m | 1.046 |
+| 20° | 0.609 m | 0.622 m | 0.637 m | 1.046 |
+| 30° | 0.614 m | 0.626 m | 0.640 m | 1.043 |
+| 40° | 0.614 m | 0.622 m | 0.636 m | 1.035 |
+
+On a synthetic W swell from 255°, where the geometry actually separates the
+breaks, the same sweep runs the ratio 1.249 → 1.198.
+
+**Absolute height moves 2–5% across a fourfold change in the assumption; the
+ratio between breaks moves 1–4%.** The differential — the only thing this
+project claims — is nearly immune to the worst-supported input in the chain.
+That is a reason to publish the ratio prominently and the absolute height
+quietly, which is what `forecast.live` and the app surface do.
+
+**This is not a claim that the heights are right.** It says the assumption is
+not what would make them wrong. The bias, the missing shoaling and refraction,
+the absent offshore-to-face transfer and the total absence of any verification
+series are all still there, and they are all larger.
+
+Pinned by `tests/test_live.py::TestTheDifferentialIsRobust`.
+
+### Also found, 2026-09-18 — the GFS-Wave collector had been dead for three days
+
+NCEP stopped publishing per-station bulletins
+(`gfs.YYYYMMDD/HH/wave/station/bulls.tHHz/gfswave.{id}.bull`) between
+2026-09-15 and 2026-09-16. Every station 404s from 2026-09-16 onward. The data
+did not go away: it ships in `gfswave.tHHz.bull_tar` in the same directory,
+~49 MB and ~918 stations, and has all along.
+
+The failure was silent in the worst way — `fetch_bulletin` treated a 404 as
+"NCEP did not run that cycle", which was true for three years and stopped being
+true without anything changing in this repository. **A 404 that used to mean one
+thing now means another, and nothing alerted.** Same shape as the staleness
+alert not firing for 46232's outage (§8): the monitoring watched for the failure
+it expected. `fetch_bulletin` now checks the tar before believing a 404.
+
+---
+
+## 12. Missing blocker, 2026-09-18 — the Baja coastline is not modelled
+
+`spots.json` carries two blockers: Point Loma and the Coronado Islands. It does
+not carry the coast running south from the beach, and that gap was visible on
+the app surface before anyone measured it — the published "open window" for
+Coronado's north break read **103–189°**, which is a claim of open water across
+a coastline you can see from the sand.
+
+Measured from each break, the south-east arc spans the bearings where:
+
+| landmark | bears (N / centre / S) | distance |
+|---|---|---|
+| Imperial Beach pier | 154.8° / 157.6° / 161.0° | 11–13 km |
+| Tijuana river mouth | 157.7° / 160.1° / 163.0° | 14–16 km |
+| Playas de Tijuana | 158.9° / 161.0° / 163.5° | 17–19 km |
+| Rosarito | 160.5° / 161.5° / 162.6° | 39–41 km |
+
+§2 already said this arc was "geometrically real and practically near-useless"
+and to "read the swell-side window". That was right and it was not enforced
+anywhere, so the first surface built on the geometry published it.
+
+**The rule, now enforced:** a genuine swell-side window has **both edges
+blocker-derived**. An edge formed by the seaward half-plane clip means the arc
+ran out of modelled land, not that it ran into open ocean.
+`forecast.geometry.swell_window` applies that test and is what
+`forecast.live` and the app publish; `open_window` still returns everything, so
+the gap is filtered at the surface rather than hidden in the model.
+
+**Still open:** digitising the Baja coast from Imperial Beach south would close
+the arc properly and is worth more than digitising the Coronado Islands (§10) —
+it is nearer, longer, and currently carries no blocker at all. It bears on the
+south-east arc only, which is not where San Diego's swell comes from, so it is
+a correctness fix for the surface rather than a change to any forecast in the
+open window.
