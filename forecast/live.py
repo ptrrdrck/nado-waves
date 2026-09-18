@@ -47,7 +47,7 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR, ISO
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 
-from .geometry import HIGH, LOW, Blocker, Spot, load, open_window
+from .geometry import HIGH, LOW, Blocker, Spot, load, swell_window
 from .transform import (
     SEAWARD_CLIP,
     SWELL_SPREAD_DEG,
@@ -108,14 +108,15 @@ class BreakForecast:
     id: str
     name: str
     confidence: str
-    open_windows: list[list[float]]
+    #: The arcs swell can actually arrive through — both edges blocker-derived.
+    #: The south-east arc `open_window` also returns is excluded: it spans the
+    #: Baja coastline, which is not modelled as a blocker, so the model calls it
+    #: open water (BRIEFING §12).
+    swell_window: list[list[float]]
     shore_normal_deg: float
     normal_is_a_guess: bool
     wind: WindAtTime = field(default_factory=WindAtTime)
     hours: list[Hour] = field(default_factory=list)
-    #: Ratio of this break's window height to the smallest of the three, at the
-    #: first forecast hour. The differential is the claim; this is it, stated.
-    ratio_to_smallest: float | None = None
 
 
 @dataclass
@@ -299,8 +300,8 @@ def build(
             id=spot.id,
             name=spot.name,
             confidence=confidence_for(spot, blockers),
-            open_windows=[[round(lo, 1), round(hi, 1)]
-                          for lo, hi in open_window(spot, blockers)],
+            swell_window=[[round(w.low.bearing, 1), round(w.high.bearing, 1)]
+                          for w in swell_window(spot, blockers)],
             shore_normal_deg=round(spot.normal, 1),
             normal_is_a_guess=not spot.shoreline_verified,
             wind=wind_for(spot, wind_row),
@@ -349,14 +350,6 @@ def build(
             ))
         forecast.breaks.append(entry)
 
-    # The differential, stated rather than left for the reader to compute.
-    if forecast.breaks and all(b.hours for b in forecast.breaks):
-        first = [b.hours[0].hs_window_m for b in forecast.breaks]
-        smallest = min(first) or None
-        if smallest:
-            for entry, value in zip(forecast.breaks, first):
-                entry.ratio_to_smallest = round(value / smallest, 3)
-
     return forecast
 
 
@@ -382,8 +375,7 @@ def format_table(forecast: Forecast, *, rows: int = 8) -> str:
             sense = "offshore" if (wind.offshore or 0) > 0.3 else (
                 "onshore" if (wind.offshore or 0) < -0.3 else "cross")
             wind_text = f"wind {wind.from_deg:.0f}° {wind.speed_kt or 0:.0f} kt ({sense})"
-        ratio = f"  ×{entry.ratio_to_smallest:.2f}" if entry.ratio_to_smallest else ""
-        lines.append(f"{entry.name}   [{entry.confidence} confidence]{ratio}")
+        lines.append(f"{entry.name}   [{entry.confidence} confidence]")
         lines.append(f"  {wind_text}")
         lines.append(f"  {'valid':>17s} {'lead':>5s} {'offshore':>9s} {'window':>8s} "
                      f"{'thru':>6s} {'T':>6s} {'from':>6s} {'tide':>7s}")

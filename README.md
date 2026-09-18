@@ -15,6 +15,12 @@ Point Loma sits directly across their swell window. Computed from coordinates:
 | Coronado — center break | 49.1° | 250.3° | digitised |
 | Coronado — south break | 56.3° | 259.9° | digitised |
 
+Those are the **swell-side** windows — both edges formed by land. `geometry.py`
+also reports a south-east arc that the surface deliberately does not publish:
+it spans Imperial Beach, the Tijuana river mouth and Rosarito at 11–41 km, and
+the Baja coast is not a blocker in `spots.json`, so the raw arc claims open
+water across a coastline you can see from the sand (BRIEFING §12).
+
 The forecast and the app cover **these three breaks only**. Breakers (NASNI)
 and Gator (NAB) are still in `spots.json` for the geometry, and out of
 everything downstream: they are the two spots whose coordinates remain

@@ -63,8 +63,12 @@ FRESNEL_SHARP = 8.0
 
 GRAVITY = 9.81
 
-#: Attribution label for energy arriving from behind the beach.
-SEAWARD_CLIP = "behind the beach"
+#: Attribution label for energy whose direction of travel misses the beach
+#: entirely — it is aimed at the landward half of the compass, so no amount of
+#: it arrives. Not a blocker: nothing is in the way, the swell is simply
+#: pointed elsewhere. Named for what a reader can do with it rather than for
+#: the half-plane clip that produces it.
+SEAWARD_CLIP = "pointed away from this beach"
 
 
 @dataclass(frozen=True)

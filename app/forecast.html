@@ -62,24 +62,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
       padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:11px}
 .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.badge{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
-       letter-spacing:.07em;font-size:12px;padding:3px 8px;border-radius:999px;white-space:nowrap}
-.badge.high{background:var(--surf-wash);color:var(--surf);border:1px solid var(--surf)}
-.badge.low{background:var(--signal-wash);color:var(--signal);border:1px dashed var(--signal)}
-
-/* The differential leads, because it is the robust claim (BRIEFING s11). */
-.ratio{display:flex;align-items:baseline;gap:9px}
-.ratio b{font-family:"Barlow Condensed",Archivo,sans-serif;font-size:30px;font-weight:700;line-height:1}
-.bar{display:block;height:10px;border-radius:999px;background:var(--surf);min-width:6px}
-.bar-track{display:block;height:10px;background:var(--line);border-radius:999px;overflow:hidden;flex:1}
-
 .quiet{font-size:13.5px;color:var(--soft)}
 .quiet b{color:var(--ink);font-weight:600}
 .rows{display:flex;flex-direction:column;gap:5px;font-size:13.5px}
-.row{display:flex;align-items:center;gap:8px}
-.row .who{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row .amt{font-variant-numeric:tabular-nums;color:var(--soft)}
-.seg{display:block;height:8px;border-radius:999px;background:var(--sand-deep);width:44px;flex:none}
+.row{display:flex;align-items:flex-start;gap:8px}
+.row .who{flex:1;min-width:0}
+.row .amt{font-variant-numeric:tabular-nums;color:var(--soft);padding-top:1px}
+.seg{display:block;margin-top:7px;height:8px;border-radius:999px;background:var(--sand-deep);width:44px;flex:none}
 /* An estimated coordinate is hatched, never just a lighter shade: after
    BRIEFING s10 the islands are a small energy share rather than a switch, so
    the mark has to read as "this edge is a guess", not "this break is worse". */
@@ -117,25 +106,26 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
       <h1>Nado Waves</h1>
       <span class="lbl" id="cycle">loading…</span>
     </div>
-    <p class="blind">
-      <b>Nothing has ever measured a wave at these three breaks.</b>
-      This is a <b>physically derived</b> aperture, not an accurate forecast, and
-      it carries no error bar because there is nothing to compute one against.
-      What it claims is <b>which break holds more of today's swell</b> — not how big it is.
-    </p>
   </header>
 
   <p class="warn" id="warnings" hidden></p>
 
   <section>
-    <div class="head-top">
-      <h2>The three breaks</h2>
+    <div class="head-top" style="justify-content:flex-end">
       <label class="lbl">when
         <select id="when"></select>
       </label>
     </div>
     <div id="breaks" style="display:flex;flex-direction:column;gap:12px"></div>
   </section>
+
+  <p class="blind">
+    <b>Nothing has ever measured a wave at these three breaks.</b>
+    This is a <b>physically derived</b> aperture, not an accurate forecast, and
+    it carries no error bar because there is nothing to compute one against.
+    What it claims is <b>which break holds more of today's swell</b> — not how
+    big it is.
+  </p>
 
   <section class="card">
     <h2>What this is standing on</h2>
@@ -154,7 +144,12 @@ const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
 // North to south along the sand. The order is the point: the west edge of the
 // window is the bearing to the Point Loma tip and it sweeps as you walk.
 const ORDER = ["coronado_north", "coronado_center", "coronado_south"];
-const SHORT = {coronado_north: "North", coronado_center: "Center (Hotel del)", coronado_south: "South"};
+const SHORT = {coronado_north: "North", coronado_center: "Center", coronado_south: "South"};
+
+// Matches forecast.transform.SEAWARD_CLIP. Not a blocker: this is the share of
+// the swell travelling towards a part of the compass the beach does not face,
+// so none of it arrives no matter what is or is not in the way.
+const AWAY = "pointed away from this beach";
 
 const $ = (id) => document.getElementById(id);
 const metres = (m) => (m == null ? "—" : m.toFixed(2) + " m");
@@ -187,23 +182,18 @@ function renderStanding(standing) {
 
 function renderBreaks(index) {
   const breaks = ORDER.map((id) => DATA.breaks.find((b) => b.id === id)).filter(Boolean);
-  const heights = breaks.map((b) => (b.hours[index] || {}).hs_window_m || 0);
-  const biggest = Math.max(...heights, 0.0001);
-  const smallest = Math.min(...heights.filter((h) => h > 0)) || 0.0001;
 
-  $("breaks").innerHTML = breaks.map((entry, i) => {
+  $("breaks").innerHTML = breaks.map((entry) => {
     const hour = entry.hours[index] || {};
-    const ratio = heights[i] / smallest;
-    const width = Math.round((heights[i] / biggest) * 100);
 
     // Blockers, with the estimated ones visibly marked. After BRIEFING s10 the
     // islands are a ~11% energy reduction rather than an on/off switch, so this
     // shows a share and flags its provenance instead of tiering the whole break.
     const taken = (hour.taken_by || []).map((t) => `
       <div class="row">
-        <span class="seg${t.blocker === "behind the beach" ? " horizon" : (t.verified ? "" : " guess")}"></span>
-        <span class="who">${t.blocker === "behind the beach"
-          ? 'behind the beach <span class="est">(the seaward limit, not land)</span>'
+        <span class="seg${t.blocker === AWAY ? " horizon" : (t.verified ? "" : " guess")}"></span>
+        <span class="who">${t.blocker === AWAY
+          ? AWAY + ' <span class="est">(nothing blocks it &mdash; it is aimed elsewhere)</span>'
           : t.blocker + (t.verified ? "" : ' <span class="est">estimated</span>')}</span>
         <span class="amt">${Math.round(t.share * 100)}%</span>
       </div>`).join("");
@@ -217,23 +207,18 @@ function renderBreaks(index) {
     return `<article class="card">
       <div class="card-top">
         <h2>${SHORT[entry.id] || entry.name}</h2>
-        <span class="badge ${entry.confidence}">${entry.confidence} confidence</span>
       </div>
 
-      <div class="ratio">
-        <b>&times;${ratio.toFixed(2)}</b>
-        <span class="bar-track"><span class="bar" style="width:${width}%"></span></span>
-      </div>
       <div class="quiet">
-        relative to the smallest of the three right now ·
-        window energy <b>${metres(hour.hs_window_m)}</b> <span class="est">(${feet(hour.hs_window_m)})</span>
+        window energy <b>${metres(hour.hs_window_m)}</b>
+        <span class="est">(${feet(hour.hs_window_m)})</span>
         of <b>${metres(hour.hs_offshore_m)}</b> offshore
       </div>
 
       <div class="quiet">
         dominant <b>${hour.dominant_period_s ? hour.dominant_period_s.toFixed(1) + " s" : "—"}</b>
         from <b>${compass(hour.dominant_from_deg)}</b>
-        · open window ${entry.open_windows.map((w) => `${Math.round(w[0])}–${Math.round(w[1])}°`).join(", ")}
+        · swell window ${entry.swell_window.map((w) => `${Math.round(w[0])}–${Math.round(w[1])}°`).join(", ")}
       </div>
 
       <div>

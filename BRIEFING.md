@@ -496,3 +496,40 @@ true without anything changing in this repository. **A 404 that used to mean one
 thing now means another, and nothing alerted.** Same shape as the staleness
 alert not firing for 46232's outage (§8): the monitoring watched for the failure
 it expected. `fetch_bulletin` now checks the tar before believing a 404.
+
+---
+
+## 12. Missing blocker, 2026-09-18 — the Baja coastline is not modelled
+
+`spots.json` carries two blockers: Point Loma and the Coronado Islands. It does
+not carry the coast running south from the beach, and that gap was visible on
+the app surface before anyone measured it — the published "open window" for
+Coronado's north break read **103–189°**, which is a claim of open water across
+a coastline you can see from the sand.
+
+Measured from each break, the south-east arc spans the bearings where:
+
+| landmark | bears (N / centre / S) | distance |
+|---|---|---|
+| Imperial Beach pier | 154.8° / 157.6° / 161.0° | 11–13 km |
+| Tijuana river mouth | 157.7° / 160.1° / 163.0° | 14–16 km |
+| Playas de Tijuana | 158.9° / 161.0° / 163.5° | 17–19 km |
+| Rosarito | 160.5° / 161.5° / 162.6° | 39–41 km |
+
+§2 already said this arc was "geometrically real and practically near-useless"
+and to "read the swell-side window". That was right and it was not enforced
+anywhere, so the first surface built on the geometry published it.
+
+**The rule, now enforced:** a genuine swell-side window has **both edges
+blocker-derived**. An edge formed by the seaward half-plane clip means the arc
+ran out of modelled land, not that it ran into open ocean.
+`forecast.geometry.swell_window` applies that test and is what
+`forecast.live` and the app publish; `open_window` still returns everything, so
+the gap is filtered at the surface rather than hidden in the model.
+
+**Still open:** digitising the Baja coast from Imperial Beach south would close
+the arc properly and is worth more than digitising the Coronado Islands (§10) —
+it is nearer, longer, and currently carries no blocker at all. It bears on the
+south-east arc only, which is not where San Diego's swell comes from, so it is
+a correctness fix for the surface rather than a change to any forecast in the
+open window.
