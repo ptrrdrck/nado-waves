@@ -401,6 +401,15 @@ a station that has *never* reported had no date to age from at all and so was
 reported newly-dark on every run forever — found when 46235 was registered while
 dark; `first_checked_utc` now dates it from when the collector started looking.
 
+**RESOLVED 2026-09-17: 46232 is reporting again.** The gap in the archive runs
+`2026-09-01T13:26Z` to `2026-09-17T17:56Z` — **16.2 days**, first seen by the
+collector at 22:24:08Z the same day. Nothing was done to fix it, so nothing was
+learned about the cause, and the outage is the measured fact worth keeping: the
+one buoy §3a shows has no substitute can vanish for a fortnight without notice.
+Sixteen days is also a hole in the record that the 45-day window will erase
+around 2026-10-16, and it cannot be backfilled — NDBC's historical archive is
+annual and does not cover the current year.
+
 **Station 46232 stopped reporting on 2026-09-01T13:00Z** and was still dark
 thirteen days later. Not a feed problem: the repository's own stdmet archive for
 46232 ends at `2026-09-01T13:26Z`, the same cutoff, with `first_seen_utc` of
