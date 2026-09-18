@@ -1,7 +1,16 @@
-"""The station registry.
+"""The station registry: which buoys the collector archives.
 
-Per-buoy leagues are structural, not cosmetic (SPEC section 5), so a station is
-a first-class record from the first commit rather than a bare id in a list.
+This is a collection list, not a ranking. It carries only what cannot be
+derived — id, name, region, and prose. Which stations actually constrain the
+swell reaching Coronado is computed from coordinates and geometry by
+`forecast.siting`, and is deliberately not duplicated here.
+
+It used to carry `launch_candidate`, a flag from the predecessor game marking
+which buoys would host a per-buoy league. That was a product decision about
+where players lived, and it survived the game by accident; measured against the
+beach geometry, four of its six candidates sit 55-92 degrees off Coronado's
+swell window. It is gone rather than repurposed, because a stale flag that
+looks like a decision is worse than no flag.
 """
 
 from __future__ import annotations
@@ -18,7 +27,6 @@ class Station:
     id: str
     name: str
     region: str = ""
-    launch_candidate: bool = False
     notes: str = ""
 
 
@@ -29,7 +37,6 @@ def load_stations(path: Path | None = None) -> list[Station]:
             id=str(entry["id"]).upper(),
             name=entry.get("name", ""),
             region=entry.get("region", ""),
-            launch_candidate=bool(entry.get("launch_candidate", False)),
             notes=entry.get("notes", ""),
         )
         for entry in payload["stations"]

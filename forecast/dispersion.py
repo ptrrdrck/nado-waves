@@ -47,6 +47,7 @@ from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR
 from collector.stations import load_stations, select
+from .siting import constraining
 from .stats import LEAGUE_TZ
 from .stats import load_column
 from .swell import daily_peak
@@ -223,7 +224,7 @@ def main(argv: list[str] | None = None) -> int:
     stations = (
         select(registry, args.stations.split(","))
         if args.stations
-        else [s for s in registry if s.launch_candidate]
+        else constraining(registry)
     )
 
     print("Tier 1 — swell building (a round opens)\n")

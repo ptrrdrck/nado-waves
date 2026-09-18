@@ -47,7 +47,7 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR, ISO
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 
-from .geometry import HIGH, LOW, Blocker, Spot, load, swell_window
+from .geometry import HIGH, LOW, Blocker, Spot, load, swell_windows
 from .transform import (
     SEAWARD_CLIP,
     SWELL_SPREAD_DEG,
@@ -301,7 +301,7 @@ def build(
             name=spot.name,
             confidence=confidence_for(spot, blockers),
             swell_window=[[round(w.low.bearing, 1), round(w.high.bearing, 1)]
-                          for w in swell_window(spot, blockers)],
+                          for w in swell_windows(spot, blockers)],
             shore_normal_deg=round(spot.normal, 1),
             normal_is_a_guess=not spot.shoreline_verified,
             wind=wind_for(spot, wind_row),
