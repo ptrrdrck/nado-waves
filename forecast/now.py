@@ -114,6 +114,9 @@ class Now:
     station: str
     station_name: str
     standing_on: dict
+    #: The limit `stale` was decided against, carried so a surface can re-apply
+    #: it to the reader's own clock instead of keeping a second copy of it.
+    stale_hours: float = STALE_HOURS
     #: What the buoy itself saw, before any aperture — so a reader can see how
     #: much the geometry changed the answer.
     buoy: dict = field(default_factory=dict)

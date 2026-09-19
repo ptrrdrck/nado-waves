@@ -259,6 +259,30 @@ function when(iso) {
   });
 }
 
+// The build stamps an age into now.json and that number freezes the instant
+// the file is written — a page left open kept reporting the age it had at
+// load, and the file itself is only rebuilt once an hour. The timestamp is
+// the fact. The age is derived from it here, against the reader's own clock,
+// every time the card is drawn.
+function ageHours(iso) {
+  if (!iso) return null;
+  const ms = Date.now() - new Date(iso).getTime();
+  return isFinite(ms) ? ms / 3600000 : null;
+}
+
+function ago(hours) {
+  if (hours == null) return "";
+  const mins = Math.round(hours * 60);
+  if (mins < 1) return "just now";
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (!h) return `${m} min ago`;
+  return m ? `${h} h ${m} min ago` : `${h} h ago`;
+}
+
+// Every provenance line ends in a full stop, including the collector's own
+// notes, which do not all carry one.
+const period = (s) => (!s ? "" : /[.!?]\s*$/.test(s) ? s : s + ".");
+
 let DATA = null;      // forecast.json — the modelled chain
 let NOW = null;       // now.json     — the observed chain
 let MODE = "now";     // which chain is on screen
@@ -328,7 +352,7 @@ function swellCard({label, buoy, source}) {
       ? `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
         + trainList(buoy.trains)
       : '<span class="val"><span class="unit">no spectrum</span></span>'}
-    <span class="src">${source}</span>
+    <span class="src">${period(source)}</span>
   </div>`;
 }
 
@@ -340,80 +364,81 @@ function renderConditions(index) {
     const tide = (NOW && NOW.tide) || {};
     const buoy = (NOW && NOW.buoy) || {};
 
-    // The swell card carries what the buoy saw AND where it was seen, which
-    // is why the separate provenance line below the cards is gone: the
-    // measurement and its source belong on the same card.
+    // Each card is titled for the quantity alone. Which chain it belongs to
+    // is the tab, and when it was taken is the provenance line directly
+    // beneath it, so repeating either in the title tells the reader nothing
+    // they cannot already see. The card carries what the buoy saw AND where
+    // it was seen, which is why the separate provenance line below the cards
+    // is gone: the measurement and its source belong together.
+    const age = ago(ageHours(NOW && NOW.observed_utc));
     rows.push(swellCard({
-      label: "Swell at the buoy, observed",
+      label: "Swell",
       buoy,
       source: NOW && NOW.station_name
         ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${when(NOW.observed_utc)}`
-          + (NOW.age_hours != null ? ` &mdash; ${NOW.age_hours} h ago` : "")
-          + (buoy.frequency_bins ? `, across ${buoy.frequency_bins} frequency bins` : "")
+          + (age ? ` &mdash; ${age}` : "")
         : "",
     }));
 
     rows.push(`<div class="cond">
-      <span class="lbl">Wind, observed</span>
+      <span class="lbl">Wind</span>
       <span class="val">${wind.from_deg != null
         ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
-      <span class="src">${wind.from_deg != null
-        ? `${wind.station_name} (${wind.station}), ${when(wind.observed_utc)}`
-        : (wind.note || "")}</span>
+      <span class="src">${period(wind.from_deg != null
+        ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
+        : (wind.note || ""))}</span>
     </div>`);
     rows.push(`<div class="cond">
-      <span class="lbl">Tide, measured</span>
+      <span class="lbl">Tide</span>
       <span class="val">${tide.height_m != null
         ? height(tide.height_m)
         : '<span class="unit">not collected</span>'}</span>
-      <span class="src">${tide.height_m != null
-        ? `${NOW.tide_station_name} (${NOW.tide_station}), ${when(tide.observed_utc)}`
-          + ` &mdash; a measurement, not a prediction`
-        : (tide.note || "")}</span>
+      <span class="src">${period(tide.height_m != null
+        ? `${NOW.tide_station_name} (${NOW.tide_station}), measured ${when(tide.observed_utc)}`
+        : (tide.note || ""))}</span>
     </div>`);
   } else {
     const wind = DATA.wind || {};
     const stamp = ((DATA.breaks[0] || {}).hours || [])[index];
     const tide = (stamp && TIDE_BY_TIME[stamp.valid_utc]) || {};
-    const tideLabel = (tide.valid_utc || (stamp && stamp.valid_utc))
-      ? new Date(tide.valid_utc || stamp.valid_utc)
-          .toLocaleString(undefined, {hour: "numeric", minute: "2-digit"})
-      : "this hour";
     const hour = stamp || {};
+    const stampWhen = stamp && stamp.valid_utc ? when(stamp.valid_utc) : "this hour";
     const modelled = hour.wind_from_deg != null;
 
     // Same card as the observed tab, so a reader comparing the two is
     // comparing like with like rather than two different presentations.
     const buoy = (DATA.buoy || []).find((b) => stamp && b.valid_utc === stamp.valid_utc);
     rows.push(swellCard({
-      label: `Swell at the buoy at ${tideLabel}`,
+      label: "Swell",
       buoy,
       source: buoy
-        ? `GFS-Wave at ${DATA.station_name} (NDBC ${DATA.station}) &mdash; forecast, not a measurement`
+        ? `GFS-Wave at ${DATA.station_name} (NDBC ${DATA.station}) for ${stampWhen}`
+          + ` &mdash; forecast, not a measurement`
         : `the spectral product was unavailable for this cycle, so there are no trains`,
     }));
 
     rows.push(`<div class="cond">
-      <span class="lbl">Wind ${modelled ? `at ${tideLabel}` : ", latest observed"}</span>
+      <span class="lbl">Wind</span>
       <span class="val">${modelled
         ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
         : wind.from_deg != null
           ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
           : '<span class="unit">not collected yet</span>'}</span>
-      <span class="src">${modelled
-        ? `GFS-Wave at the buoy &mdash; forecast, not a measurement`
+      <span class="src">${period(modelled
+        ? `GFS-Wave at the buoy for ${stampWhen} &mdash; forecast, not a measurement`
         : wind.from_deg != null
           ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
-          : (wind.note || "")}</span>
+          : (wind.note || ""))}</span>
     </div>`);
     rows.push(`<div class="cond">
-      <span class="lbl">Tide at ${tideLabel}</span>
+      <span class="lbl">Tide</span>
       <span class="val">${tide.height_m != null
         ? height(tide.height_m)
         : '<span class="unit">not collected for this hour</span>'}</span>
-      <span class="src">${DATA.tide_station_name} (${DATA.tide_station}), harmonic prediction &mdash; a model, not a measurement</span>
+      <span class="src">${period(`${DATA.tide_station_name} (${DATA.tide_station}), `
+        + `harmonic prediction for ${stampWhen} &mdash; a model, not a measurement`)}</span>
     </div>`);
   }
 
@@ -532,11 +557,17 @@ function show() {
   renderBreaks(0);
   renderStanding(NOW.standing_on || {});
 
-  $("stale").hidden = !NOW.stale;
-  if (NOW.stale) {
+  // The build's flag is a floor, never a ceiling: an open page can age a
+  // reading into staleness, but it cannot un-stale one the build already
+  // refused to call current.
+  const observedAge = ageHours(NOW.observed_utc);
+  const limit = NOW.stale_hours != null ? NOW.stale_hours : 3;
+  const stale = NOW.stale || (observedAge != null && observedAge > limit);
+  $("stale").hidden = !stale;
+  if (stale) {
     $("stale").innerHTML = `<b>This is not current.</b> The newest spectrum is `
-      + `${NOW.age_hours} hours old, so it is shown as a reading from `
-      + `${when(NOW.observed_utc)} and nothing more.`;
+      + `from ${when(NOW.observed_utc)}, ${ago(observedAge)}, so it is shown as `
+      + `a reading from then and nothing more.`;
   }
 
   // The buoy's reading and its provenance now live on the swell card, at the
@@ -621,6 +652,10 @@ function boot(data, observed) {
   // observed chain is broken the tab says so rather than hiding it behind a
   // silent fallback to the model.
   setMode("now");
+
+  // The observed age moves whether or not anything else does, so the observed
+  // tab is redrawn on the minute rather than only on load or a tab change.
+  setInterval(() => { if (MODE === "now") show(); }, 60000);
 
   renderFooter();
 
