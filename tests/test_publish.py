@@ -52,6 +52,12 @@ def forecast(hours: int = 25, breaks: int = 3) -> dict:
             {"valid_utc": f"2026-09-18T{h % 24:02d}:00:00Z", "height_m": float(h), "kind": "predicted"}
             for h in range(hours)
         ],
+        "buoy": [
+            {"valid_utc": f"2026-09-18T{h % 24:02d}:00:00Z", "hs_m": 1.0,
+             "peak_period_s": 14.0, "peak_direction_deg": 200, "frequency_bins": 50,
+             "trains": []}
+            for h in range(hours)
+        ],
     }
 
 
@@ -135,6 +141,14 @@ class TestTheTideSeriesStaysAlignedWithTheHours:
     def test_the_two_lists_end_up_the_same_length(self):
         thinned = publish.thin(forecast(hours=25))
         assert len(thinned["tide"]) == len(thinned["breaks"][0]["hours"])
+
+    def test_the_buoy_series_is_thinned_with_the_hours_too(self):
+        """It is per hour like the tide. Unthinned it shipped 169 entries for
+        a page that renders 57."""
+
+        thinned = publish.thin(forecast(hours=25))
+        kept = {h["valid_utc"] for h in thinned["breaks"][0]["hours"]}
+        assert {b["valid_utc"] for b in thinned["buoy"]} == kept
 
     def test_position_and_timestamp_agree_after_thinning(self):
         """The bug was positional lookup against an unthinned series. Even
