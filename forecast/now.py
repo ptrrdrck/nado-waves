@@ -80,6 +80,12 @@ class NowBreak:
     #: the buoy's own peak, and that difference is the project's whole claim.
     peak_period_s: float | None
     peak_direction_deg: float | None
+    #: The surviving energy split into wave trains, largest first. Which one
+    #: leads HERE need not be which leads at the buoy, and need not match the
+    #: other two breaks: on 2026-09-19T04:00Z a 7.1 s westerly led at the buoy
+    #: and at the south break while a 14.3 s south swell led at north and
+    #: centre, on one spectrum.
+    trains: list[dict] = field(default_factory=list)
     taken_by: list[dict] = field(default_factory=list)
     wind_offshore: float | None = None
     wind_note: str = ""
@@ -165,6 +171,19 @@ def read_measured_tide(data_dir: Path, *, now: datetime) -> NowTide:
     return tide
 
 
+def as_trains(trains) -> list[dict]:
+    return [
+        {
+            "hs_m": round(t.hs_m, 3),
+            "period_s": round(t.period_s, 1),
+            "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
+            "share": round(t.share, 4),
+            "wind_sea": t.is_wind_sea,
+        }
+        for t in trains
+    ]
+
+
 def build(
     *,
     data_dir: Path = DEFAULT_DATA_DIR,
@@ -237,6 +256,7 @@ def build(
             None if math.isnan(raw.peak_direction_deg) else round(raw.peak_direction_deg)
         ),
         "frequency_bins": len(spectrum.frequencies),
+        "trains": as_trains(raw.trains),
     }
 
     for break_id in BREAKS:
@@ -255,6 +275,7 @@ def build(
             peak_direction_deg=(
                 None if math.isnan(got.peak_direction_deg) else round(got.peak_direction_deg)
             ),
+            trains=as_trains(got.trains),
             taken_by=[
                 {"blocker": r.blocker, "share": round(r.share, 4), "verified": r.verified}
                 for r in got.removed if r.share >= 0.005
@@ -300,6 +321,13 @@ def format_table(reading: Now) -> str:
         lines.append(f"tide  {tide.height_m:.2f} m MEASURED   {reading.tide_station_name} "
                      f"({reading.tide_station}), {tide.observed_utc}")
     lines.append("")
+
+    if reading.buoy.get("trains"):
+        lines.append("swell trains at the buoy:")
+        for t in reading.buoy["trains"]:
+            lines.append(f"    {t['hs_m']:.2f} m  {t['period_s']:5.1f} s  from {t['from_deg']:3}°"
+                         f"  {'(wind sea)' if t['wind_sea'] else ''}")
+        lines.append("")
 
     lines.append(f"{'break':10s} {'window Hs':>10s} {'thru':>6s} {'peak T':>7s} {'from':>6s}  wind")
     for entry in reading.breaks:
