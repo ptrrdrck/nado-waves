@@ -52,6 +52,7 @@ from .geometry import HIGH, LOW, Blocker, Spot, load, swell_windows
 from .units import height as fmt_height, speed as fmt_speed
 from .transform import (
     GridSpectrum,
+    at_buoy,
     SEAWARD_CLIP,
     SWELL_SPREAD_DEG,
     WIND_SEA_SPREAD_DEG,
@@ -178,6 +179,9 @@ class Forecast:
     #: Read rather than typed — CLAUDE.md keeps station facts fetched.
     station_name: str
     standing_on: dict
+    #: What the model says the buoy will see, per hour, before any aperture.
+    #: Station-level like the wind and tide: one buoy, not three.
+    buoy: list[dict] = field(default_factory=list)
     #: Station-level context, hoisted off the breaks because one station feeds
     #: all three and repeating it three times is noise, not information.
     wind: WindAtTime = field(default_factory=WindAtTime)
@@ -432,6 +436,26 @@ def build(
     # One gauge, so the tide series is station-level and sits beside the breaks
     # rather than being repeated inside each of them.
     for row in rows:
+        record = spectra.get(row.valid_utc)
+        if record is not None:
+            view = at_buoy(GridSpectrum(record.time, record.frequencies,
+                                        record.directions, record.energy))
+            forecast.buoy.append({
+                "valid_utc": row.valid_utc.strftime(ISO),
+                "hs_m": round(view.hs_m, 3),
+                "peak_period_s": (None if math.isnan(view.peak_period_s)
+                                  else round(view.peak_period_s, 1)),
+                "peak_direction_deg": (None if math.isnan(view.peak_direction_deg)
+                                       else round(view.peak_direction_deg)),
+                "frequency_bins": view.frequency_bins,
+                "trains": [
+                    {"hs_m": round(t.hs_m, 3), "period_s": round(t.period_s, 1),
+                     "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
+                     "share": round(t.share, 4), "wind_sea": t.is_wind_sea}
+                    for t in view.trains[:3]
+                ],
+            })
+
         value = tide.get(row.valid_utc.strftime(ISO)[:13])
         forecast.tide.append(TideAtHour(
             valid_utc=row.valid_utc.strftime(ISO),

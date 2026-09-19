@@ -363,3 +363,26 @@ class TestWaveTrainsOnScreen:
         assert "function renderFooter" in SOURCE
         assert 'if (MODE === "now")' in SOURCE
         assert "nothing here is measured at the sand" in TEXT
+
+
+class TestTheSwellCardIsOnBothTabs:
+    """It was built into the Now branch only, so the Forecast tab had wind and
+    tide but nothing for the swell the page is actually about."""
+
+    def test_one_builder_serves_both_chains(self):
+        assert "function swellCard" in SOURCE
+        assert SOURCE.count("rows.push(swellCard({") == 2
+
+    def test_the_observed_card_names_its_measurement(self):
+        assert "Swell at the buoy, observed" in TEXT
+
+    def test_the_forecast_card_names_its_model(self):
+        assert "Swell at the buoy at ${tideLabel}" in SOURCE
+        assert "GFS-Wave at ${DATA.station_name}" in SOURCE
+
+    def test_the_forecast_card_reads_the_per_hour_buoy_series(self):
+        assert "(DATA.buoy || []).find" in SOURCE
+        assert "b.valid_utc === stamp.valid_utc" in SOURCE
+
+    def test_a_cycle_without_a_spectrum_says_why_there_are_no_trains(self):
+        assert "spectral product was unavailable" in TEXT

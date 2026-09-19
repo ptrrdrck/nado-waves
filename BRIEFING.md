@@ -870,3 +870,39 @@ against at the beach: 0.57 → 0.85, 0.62 → 0.92, 0.68 → 1.00, 0.76 → 1.12
 0.87 → 1.30. Every case, same direction. The leader itself flips once the
 starting margin is small enough. Both are pinned in
 `tests/test_transform.py::TestSplittingIntoTrains`.
+
+---
+
+## 17. Found, 2026-09-19 — "at the buoy" was quietly clipped to a beach's half-plane
+
+The Now surface showed a combined Hs with a list of wave trains under it, both
+labelled as the buoy's. The Hs came from `Survives.m0_total`, which integrates
+every direction. The trains came from the *transmitted* energy — and
+`through(spectrum, spot, [])`, with no blockers at all, still applies that
+spot's seaward half-plane. So the trains excluded everything outside
+124–304° of the centre break's normal.
+
+Measured across the archive, that is **12–26% of the energy** — worst case
+26.4% on 2026-08-30T18:00Z. It is exactly the NW sector §2 counts at 3,771
+hours of the record.
+
+**The symptom was a sum that did not match its own headline**, which is the only
+reason it was visible at all: the Hs was right, each train was right, and
+nothing threw. Had the card shown trains alone, or a headline alone, it would
+have read as correct indefinitely.
+
+`transform.at_buoy` integrates the full circle with no spot and no
+transmission, and is what both surfaces now use. A buoy 29 km offshore has no
+landward half.
+
+### The same shape, twice more in one session
+
+- §15: a scrambled direction axis that still integrated to exactly the right Hs.
+- §13: tide absent on 41% of forecast hours, with every collector reporting
+  success.
+- This: an aperture applied where none was meant, visible only as an
+  inconsistency between two numbers that were each individually right.
+
+**A quantity that is correct on its own is not evidence that the thing
+producing it is.** Each of these was caught by cross-checking two views of the
+same state against each other, and none by a value looking wrong.
