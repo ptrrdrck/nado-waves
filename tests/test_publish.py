@@ -78,6 +78,12 @@ class TestTheDataPathIsRepointed:
 
         assert publish.REPO_DATA_PATH in PAGE_SOURCE
 
+    def test_the_observed_path_is_repointed_too(self, tmp_path):
+        publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
+        index = (tmp_path / "site" / "index.html").read_text()
+        assert publish.BUNDLE_NOW_PATH in index
+        assert publish.REPO_NOW_PATH not in index
+
     def test_a_page_that_stopped_using_that_path_fails_loudly(self):
         with pytest.raises(ValueError, match="no longer fetches"):
             publish.repoint("<title>x</title><script>fetch('somewhere/else.json')</script>")

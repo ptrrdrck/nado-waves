@@ -59,6 +59,27 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
        padding:8px 0 8px 11px;margin:0;background:linear-gradient(90deg,var(--signal-wash),transparent 70%)}
 .blind b{color:var(--ink);font-weight:600}
 
+/* The two chains. A segmented control rather than a dropdown: there are
+   exactly two and the choice is the first thing a reader makes. */
+.tabs{display:flex;gap:0;background:var(--card);border:1px solid var(--line);
+      border-radius:var(--r);padding:3px;box-shadow:var(--shadow)}
+.tabs button{flex:1;font:inherit;font-family:"Barlow Condensed",Archivo,sans-serif;
+             font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:15px;
+             padding:9px 6px;border:0;border-radius:calc(var(--r) - 3px);cursor:pointer;
+             background:transparent;color:var(--soft)}
+.tabs button[aria-selected="true"]{background:var(--surf);color:var(--surf-ink)}
+.tabs button:focus-visible{outline:2px solid var(--surf);outline-offset:2px}
+
+/* A stale observation is not "now". Loud, above everything it qualifies. */
+.stale{background:var(--signal-wash);border:1px solid var(--signal);color:var(--ink);
+       border-radius:var(--r);padding:10px 12px;font-size:13.5px;margin:0}
+.stale b{color:var(--signal)}
+
+/* What the buoy saw before the geometry touched it. */
+.buoy{font-size:13px;color:var(--soft);background:var(--card);border:1px dashed var(--line-strong);
+      border-radius:var(--r);padding:9px 12px;margin:0}
+.buoy b{color:var(--ink);font-weight:600}
+
 /* Conditions strip: one fact per line, its source under it. */
 .conditions{display:flex;flex-direction:column;gap:10px}
 .cond{display:flex;flex-direction:column;gap:2px;padding:11px 13px;background:var(--card);
@@ -131,12 +152,25 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
 </style>
 
 <div class="wrap">
+  <!-- Two evidence chains, not two views of one. Now is built only from
+       measurements; Forecast is built only from a model. They share the
+       geometry and nothing else, which is why each carries its own
+       "standing on" block further down. -->
+  <nav class="tabs" role="tablist" aria-label="Now or forecast">
+    <button type="button" id="tab-now" role="tab" aria-selected="true"
+            aria-controls="panel">Now</button>
+    <button type="button" id="tab-forecast" role="tab" aria-selected="false"
+            aria-controls="panel">Forecast</button>
+  </nav>
+
   <p class="warn" id="warnings" hidden></p>
+  <p class="stale" id="stale" hidden></p>
+  <p class="buoy" id="buoy" hidden></p>
 
   <!-- Earlier / later, with the hour between them. The full list is still a
        real <select>, laid transparently over the label, so the native picker
        opens on tap and the control stays keyboard-reachable. -->
-  <nav class="seek" aria-label="Forecast hour">
+  <nav class="seek" id="seek" aria-label="Forecast hour" hidden>
     <button type="button" id="earlier" aria-label="Earlier">&#8592;</button>
     <span class="seek-when">
       <span id="when-label">&hellip;</span>
@@ -150,7 +184,7 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
        cards: the three shore normals span 29 degrees. -->
   <section class="conditions" id="conditions"></section>
 
-  <section>
+  <section id="panel" role="tabpanel">
     <div id="breaks" style="display:flex;flex-direction:column;gap:12px"></div>
   </section>
 
@@ -177,6 +211,7 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
 // and committed by the collector workflow. ?data= overrides for local testing.
 const PARAM = new URLSearchParams(location.search);
 const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
+const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
 
 // North to south along the sand. The order is the point: the west edge of the
 // window is the bearing to the Point Loma tip and it sweeps as you walk.
@@ -205,7 +240,9 @@ function when(iso) {
   });
 }
 
-let DATA = null;
+let DATA = null;      // forecast.json — the modelled chain
+let NOW = null;       // now.json     — the observed chain
+let MODE = "now";     // which chain is on screen
 let TIDE_BY_TIME = {};
 let STEPS = [];      // indices into each break's hours that the picker offers
 let CURSOR = 0;      // position within STEPS
@@ -215,75 +252,122 @@ function sense(offshore) {
   return offshore > 0.3 ? "offshore" : offshore < -0.3 ? "onshore" : "cross-shore";
 }
 
+// Both chains describe the same three breaks, so they are normalised to one
+// shape here and the card renderer stays single-branched. What differs is not
+// the shape but what the numbers are standing on, and that is said elsewhere
+// — loudly — rather than smuggled into the card.
+function cardsForNow() {
+  return (NOW.breaks || []).map((b) => ({
+    id: b.id, name: b.name,
+    hsWindow: b.hs_in_window_m, hsOffshore: NOW.buoy && NOW.buoy.hs_m,
+    fraction: b.fraction,
+    period: b.peak_period_s, direction: b.peak_direction_deg,
+    swellWindow: b.swell_window || [],
+    takenBy: b.taken_by || [],
+    windOffshore: b.wind_offshore, windNote: b.wind_note,
+  }));
+}
+
+function cardsForForecast(index) {
+  return ORDER.map((id) => DATA.breaks.find((b) => b.id === id)).filter(Boolean)
+    .map((b) => {
+      const h = b.hours[index] || {};
+      return {
+        id: b.id, name: b.name,
+        hsWindow: h.hs_window_m, hsOffshore: h.hs_offshore_m,
+        fraction: h.fraction,
+        period: h.dominant_period_s, direction: h.dominant_from_deg,
+        swellWindow: b.swell_window || [],
+        takenBy: h.taken_by || [],
+        windOffshore: b.wind_offshore, windNote: b.wind_note,
+      };
+    });
+}
+
 function renderConditions(index) {
-  const wind = DATA.wind || {};
-  // By timestamp, never by position. The tide series and each break's hours
-  // are separate lists that are filtered separately -- the publisher thins the
-  // hours -- so indexing them in parallel silently pairs the wrong rows. It
-  // showed a 3 p.m. tide against a 9 p.m. forecast before this.
-  const stamp = ((DATA.breaks[0] || {}).hours || [])[index];
-  const tide = (stamp && TIDE_BY_TIME[stamp.valid_utc]) || {};
-  const tideLabel = tide.valid_utc
-    ? new Date(tide.valid_utc).toLocaleString(undefined, {hour: "numeric", minute: "2-digit"})
-    : "this hour";
   const rows = [];
 
-  // The model carries its own 10 m wind at the buoy for every forecast hour,
-  // out of the same WAVEWATCH III file as the spectrum. Prefer it: a wind that
-  // moves with the hour is what the rest of the page is showing. Fall back to
-  // the latest KNZY observation, which is a different kind of claim and says so.
-  const hour = ((DATA.breaks[0] || {}).hours || [])[index] || {};
-  const modelled = hour.wind_from_deg != null;
-  rows.push(`<div class="cond">
-    <span class="lbl">Wind ${modelled ? `at ${tideLabel}` : ", latest observed"}</span>
-    <span class="val">${modelled
-      ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${Math.round(hour.wind_kt || 0)} kt`
-      : wind.from_deg != null
+  if (MODE === "now") {
+    const wind = (NOW && NOW.wind) || {};
+    const tide = (NOW && NOW.tide) || {};
+    rows.push(`<div class="cond">
+      <span class="lbl">Wind, observed</span>
+      <span class="val">${wind.from_deg != null
         ? `${compass(wind.from_deg)} <span class="unit">at</span> ${Math.round(wind.speed_kt || 0)} kt`
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt)}</span>` : "")
-        : '<span class="unit">not collected yet</span>'}</span>
-    <span class="src">${modelled
-      ? `GFS-Wave at the buoy &mdash; forecast, not a measurement`
-      : wind.from_deg != null
-        ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
+        : '<span class="unit">not collected</span>'}</span>
+      <span class="src">${wind.from_deg != null
+        ? `${wind.station_name} (${wind.station}), ${when(wind.observed_utc)}`
         : (wind.note || "")}</span>
-  </div>`);
-
-  rows.push(`<div class="cond">
-    <span class="lbl">Tide at ${tideLabel}</span>
-    <span class="val">${tide.height_m != null
-      ? `${tide.height_m.toFixed(2)} m <span class="unit">(${(tide.height_m * 3.28084).toFixed(1)} ft)</span>`
-      : '<span class="unit">not collected for this hour</span>'}</span>
-    <span class="src">${DATA.tide_station_name} (${DATA.tide_station}), harmonic prediction &mdash; a model, not a measurement</span>
-  </div>`);
+    </div>`);
+    rows.push(`<div class="cond">
+      <span class="lbl">Tide, measured</span>
+      <span class="val">${tide.height_m != null
+        ? `${tide.height_m.toFixed(2)} m <span class="unit">(${(tide.height_m * 3.28084).toFixed(1)} ft)</span>`
+        : '<span class="unit">not collected</span>'}</span>
+      <span class="src">${tide.height_m != null
+        ? `${NOW.tide_station_name} (${NOW.tide_station}), ${when(tide.observed_utc)}`
+          + ` &mdash; a measurement, not a prediction`
+        : (tide.note || "")}</span>
+    </div>`);
+  } else {
+    const wind = DATA.wind || {};
+    const stamp = ((DATA.breaks[0] || {}).hours || [])[index];
+    const tide = (stamp && TIDE_BY_TIME[stamp.valid_utc]) || {};
+    const tideLabel = tide.valid_utc
+      ? new Date(tide.valid_utc).toLocaleString(undefined, {hour: "numeric", minute: "2-digit"})
+      : "this hour";
+    const hour = stamp || {};
+    const modelled = hour.wind_from_deg != null;
+    rows.push(`<div class="cond">
+      <span class="lbl">Wind ${modelled ? `at ${tideLabel}` : ", latest observed"}</span>
+      <span class="val">${modelled
+        ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${Math.round(hour.wind_kt || 0)} kt`
+        : wind.from_deg != null
+          ? `${compass(wind.from_deg)} <span class="unit">at</span> ${Math.round(wind.speed_kt || 0)} kt`
+          : '<span class="unit">not collected yet</span>'}</span>
+      <span class="src">${modelled
+        ? `GFS-Wave at the buoy &mdash; forecast, not a measurement`
+        : wind.from_deg != null
+          ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
+          : (wind.note || "")}</span>
+    </div>`);
+    rows.push(`<div class="cond">
+      <span class="lbl">Tide at ${tideLabel}</span>
+      <span class="val">${tide.height_m != null
+        ? `${tide.height_m.toFixed(2)} m <span class="unit">(${(tide.height_m * 3.28084).toFixed(1)} ft)</span>`
+        : '<span class="unit">not collected for this hour</span>'}</span>
+      <span class="src">${DATA.tide_station_name} (${DATA.tide_station}), harmonic prediction &mdash; a model, not a measurement</span>
+    </div>`);
+  }
 
   $("conditions").innerHTML = rows.join("");
 }
 
+// The two chains stand on different things and name them in different words,
+// so the block is rendered from whatever keys the file carries rather than a
+// fixed list. "claim" is pinned last because it is the conclusion, and a value
+// beginning "none" is marked, because those are the lines that matter most.
 function renderStanding(standing) {
-  const order = [
-    ["geometry", "Geometry"], ["model", "Model"],
-    ["calibration", "Calibration"], ["observation", "Observation"], ["claim", "So the claim is"],
-  ];
-  $("standing").innerHTML = order.map(([key, label]) => {
-    const value = standing[key] || "—";
+  const keys = Object.keys(standing || {}).filter((k) => k !== "claim");
+  if (standing && standing.claim) keys.push("claim");
+  const label = (k) => k === "claim"
+    ? "So the claim is"
+    : k.charAt(0).toUpperCase() + k.slice(1);
+  $("standing").innerHTML = keys.map((key) => {
+    const value = standing[key] || "\u2014";
     const bare = /^none/i.test(value) ? ' class="none"' : "";
-    return `<dt>${label}</dt><dd${bare}>${value}</dd>`;
+    return `<dt>${label(key)}</dt><dd${bare}>${value}</dd>`;
   }).join("");
 }
 
 function renderBreaks(index) {
-  const breaks = ORDER.map((id) => DATA.breaks.find((b) => b.id === id)).filter(Boolean);
-
   renderConditions(index);
 
-  $("breaks").innerHTML = breaks.map((entry) => {
-    const hour = entry.hours[index] || {};
+  const cards = MODE === "now" ? cardsForNow() : cardsForForecast(index);
 
-    // Blockers, with the estimated ones visibly marked. After BRIEFING s10 the
-    // islands are a ~11% energy reduction rather than an on/off switch, so this
-    // shows a share and flags its provenance instead of tiering the whole break.
-    const taken = (hour.taken_by || []).map((t) => `
+  $("breaks").innerHTML = cards.map((c) => {
+    const taken = (c.takenBy || []).map((t) => `
       <div class="row">
         <span class="seg${t.blocker === AWAY ? " horizon" : (t.verified ? "" : " guess")}"></span>
         <span class="who">${t.blocker === AWAY
@@ -292,26 +376,24 @@ function renderBreaks(index) {
         <span class="amt">${Math.round(t.share * 100)}%</span>
       </div>`).join("");
 
-    // Only the offshore/onshore reading is per-break — it comes from this
-    // break's shore normal, and the three span 29 degrees, so one wind can be
-    // cross here and onshore 2 km down the sand.
-    const senseText = sense(entry.wind_offshore);
+    const senseText = sense(c.windOffshore);
 
     return `<article class="card">
       <div class="card-top">
-        <h2>${SHORT[entry.id] || entry.name}</h2>
+        <h2>${SHORT[c.id] || c.name}</h2>
       </div>
 
       <div class="quiet">
-        window energy <b>${metres(hour.hs_window_m)}</b>
-        <span class="est">(${feet(hour.hs_window_m)})</span>
-        of <b>${metres(hour.hs_offshore_m)}</b> offshore
+        window energy <b>${metres(c.hsWindow)}</b>
+        <span class="est">(${feet(c.hsWindow)})</span>
+        of <b>${metres(c.hsOffshore)}</b> ${MODE === "now" ? "at the buoy" : "offshore"}
       </div>
 
       <div class="quiet">
-        dominant <b>${hour.dominant_period_s ? hour.dominant_period_s.toFixed(1) + " s" : "—"}</b>
-        from <b>${compass(hour.dominant_from_deg)}</b>
-        · swell window ${entry.swell_window.map((w) => `${Math.round(w[0])}–${Math.round(w[1])}°`).join(", ")}
+        peak <b>${c.period ? c.period.toFixed(1) + " s" : "\u2014"}</b>
+        from <b>${compass(c.direction)}</b>
+        \u00b7 swell window ${(c.swellWindow || [])
+          .map((w) => `${Math.round(w[0])}\u2013${Math.round(w[1])}\u00b0`).join(", ")}
       </div>
 
       <div>
@@ -320,28 +402,86 @@ function renderBreaks(index) {
       </div>
 
       ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
-        entry.wind_note ? ` <span class="est">&mdash; ${entry.wind_note}</span>` : ""}</div>` : ""}
+        c.windNote ? ` <span class="est">&mdash; ${c.windNote}</span>` : ""}</div>` : ""}
     </article>`;
   }).join("");
 }
 
 function show() {
-  const index = STEPS[CURSOR];
-  const first = (DATA.breaks[0] || {}).hours || [];
-  $("when-label").textContent = when(first[index].valid_utc);
-  $("when").value = String(index);
-  $("earlier").disabled = CURSOR === 0;
-  $("later").disabled = CURSOR === STEPS.length - 1;
-  renderBreaks(index);
+  const forecasting = MODE === "forecast";
+  $("seek").hidden = !forecasting;
+  $("tab-now").setAttribute("aria-selected", String(!forecasting));
+  $("tab-forecast").setAttribute("aria-selected", String(forecasting));
+
+  if (forecasting) {
+    const index = STEPS[CURSOR];
+    const first = (DATA.breaks[0] || {}).hours || [];
+    $("when-label").textContent = when(first[index].valid_utc);
+    $("when").value = String(index);
+    $("earlier").disabled = CURSOR === 0;
+    $("later").disabled = CURSOR === STEPS.length - 1;
+    renderBreaks(index);
+    renderStanding(DATA.standing_on || {});
+    $("buoy").hidden = true;
+    $("stale").hidden = true;
+    $("cycle").innerHTML = DATA.cycle_utc
+      ? `Latest data from the <b>GFS-Wave</b> model run of `
+        + `<b>${when(DATA.cycle_utc)}</b>, for the offshore buoy `
+        + `<b>${DATA.station_name}</b> (NDBC ${DATA.station}).`
+      : "No GFS-Wave cycle was available, so there is nothing to show.";
+    return;
+  }
+
+  // Now. If there is nothing usable, say why and point at the other chain
+  // rather than rendering something that looks current and is not.
+  if (!NOW || !NOW.breaks || !NOW.breaks.length) {
+    $("breaks").innerHTML = "";
+    $("conditions").innerHTML = "";
+    $("buoy").hidden = true;
+    $("stale").hidden = false;
+    $("stale").innerHTML = `<b>No current observation.</b> `
+      + ((NOW && NOW.warnings && NOW.warnings.join(" ")) ||
+         "now.json could not be loaded.")
+      + ` Switch to <b>Forecast</b> for the modelled view.`;
+    $("cycle").innerHTML = "";
+    renderStanding((NOW && NOW.standing_on) || {});
+    return;
+  }
+
+  renderBreaks(0);
+  renderStanding(NOW.standing_on || {});
+
+  $("stale").hidden = !NOW.stale;
+  if (NOW.stale) {
+    $("stale").innerHTML = `<b>This is not current.</b> The newest spectrum is `
+      + `${NOW.age_hours} hours old, so it is shown as a reading from `
+      + `${when(NOW.observed_utc)} and nothing more.`;
+  }
+
+  const b = NOW.buoy || {};
+  $("buoy").hidden = b.hs_m == null;
+  if (b.hs_m != null) {
+    $("buoy").innerHTML = `Before the geometry: the buoy itself saw `
+      + `<b>${b.hs_m.toFixed(2)} m</b> peaking at <b>${b.peak_period_s} s</b> `
+      + `from <b>${compass(b.peak_direction_deg)}</b>, across ${b.frequency_bins} `
+      + `frequency bins. The cards below are what survives each break's aperture.`;
+  }
+
+  $("cycle").innerHTML = `Observed at the buoy <b>${NOW.station_name}</b> `
+    + `(NDBC ${NOW.station}) at <b>${when(NOW.observed_utc)}</b>`
+    + (NOW.age_hours != null ? `, ${NOW.age_hours} h ago.` : ".");
 }
 
-function boot(data) {
+function setMode(mode) {
+  MODE = mode;
+  show();
+}
+
+function boot(data, observed) {
   DATA = data;
-  $("cycle").innerHTML = data.cycle_utc
-    ? `Latest data from the <b>GFS-Wave</b> model run of `
-      + `<b>${when(data.cycle_utc)}</b>, for the offshore buoy `
-      + `<b>${data.station_name}</b> (NDBC ${data.station}).`
-    : "No GFS-Wave cycle was available, so there is nothing to show.";
+  NOW = observed;
+  $("tab-now").onclick = () => setMode("now");
+  $("tab-forecast").onclick = () => setMode("forecast");
 
   if (data.warnings && data.warnings.length) {
     $("warnings").hidden = false;
@@ -349,8 +489,6 @@ function boot(data) {
   }
 
   TIDE_BY_TIME = Object.fromEntries((data.tide || []).map((t) => [t.valid_utc, t]));
-
-  renderStanding(data.standing_on || {});
 
   const first = (data.breaks[0] || {}).hours || [];
   if (!first.length) {
@@ -387,20 +525,36 @@ function boot(data) {
   $("later").onclick = () => { if (CURSOR < STEPS.length - 1) { CURSOR += 1; show(); } };
 
   CURSOR = best;
-  show();
+  // Opens on Now: it is what someone standing on the sand wants, and if the
+  // observed chain is broken the tab says so rather than hiding it behind a
+  // silent fallback to the model.
+  setMode("now");
 
+  // The spread sentence only applies when the forecast fell back to
+  // partitions. On the spectral path there is no assumed spread to disclose,
+  // and printing "assumed at undefined" is worse than saying nothing.
   const spread = data.spread_assumption || {};
+  const assumed = spread.swell_deg != null
+    ? `Directional spread is assumed at ${spread.swell_deg}\u00B0 for swell and `
+      + `${spread.wind_sea_deg}\u00B0 for wind sea \u2014 ${spread.note || ""}`
+    : `The forecast uses the model's own directional spectrum, so no spread is assumed.`;
   $("foot").innerHTML = `
-    Window energy is the offshore energy aimed at a break. It is <b>not a wave height
-    at the beach</b>: no shoaling, no refraction, no offshore-to-face transfer.
-    Directional spread is assumed at ${spread.swell_deg}° for swell and
-    ${spread.wind_sea_deg}° for wind sea &mdash; ${spread.note || ""}
-    Generated ${data.generated_utc}.`;
+    Window energy is the energy aimed at a break. It is <b>not a wave height at
+    the beach</b>: no shoaling, no refraction, no offshore-to-face transfer.
+    ${assumed}
+    Forecast generated ${data.generated_utc}.`;
 }
 
-fetch(SOURCE, {cache: "no-store"})
-  .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-  .then(boot)
+Promise.all([
+  fetch(SOURCE, {cache: "no-store"})
+    .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }),
+  // now.json may legitimately be absent -- it is published by a different job
+  // on a different schedule. Absent is handled; wrong is not.
+  fetch(NOW_SOURCE, {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null),
+])
+  .then(([forecast, observed]) => boot(forecast, observed))
   .catch((err) => {
     $("cycle").textContent = "no data";
     $("warnings").hidden = false;

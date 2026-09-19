@@ -41,7 +41,7 @@ from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
 
-from .geometry import HIGH, LOW, Spot, load
+from .geometry import HIGH, LOW, Spot, load, swell_windows
 from .live import (
     STATION,
     TIDE_STATION,
@@ -68,6 +68,10 @@ class NowBreak:
     id: str
     name: str
     confidence: str
+    #: The arcs swell can arrive through. Static geometry, identical to the
+    #: forecast's — carried here so the surface renders one kind of card from
+    #: either source rather than reaching across files for it.
+    swell_window: list[list[float]]
     #: Offshore energy aimed at this break, as Hs. NOT a height at the beach.
     hs_in_window_m: float
     #: Share of the buoy's total energy that the aperture lets through.
@@ -243,6 +247,8 @@ def build(
             id=spot.id,
             name=spot.name,
             confidence=HIGH if spot.position_verified else LOW,
+            swell_window=[[round(w.low.bearing, 1), round(w.high.bearing, 1)]
+                          for w in swell_windows(spot, blockers)],
             hs_in_window_m=round(got.hs_in_window_m, 3),
             fraction=round(got.fraction, 4) if not math.isnan(got.fraction) else None,
             peak_period_s=None if math.isnan(got.peak_period_s) else round(got.peak_period_s, 1),
