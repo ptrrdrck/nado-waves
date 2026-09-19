@@ -228,15 +228,25 @@ function renderConditions(index) {
     : "this hour";
   const rows = [];
 
+  // The model carries its own 10 m wind at the buoy for every forecast hour,
+  // out of the same WAVEWATCH III file as the spectrum. Prefer it: a wind that
+  // moves with the hour is what the rest of the page is showing. Fall back to
+  // the latest KNZY observation, which is a different kind of claim and says so.
+  const hour = ((DATA.breaks[0] || {}).hours || [])[index] || {};
+  const modelled = hour.wind_from_deg != null;
   rows.push(`<div class="cond">
-    <span class="lbl">Wind, latest observed</span>
-    <span class="val">${wind.from_deg != null
-      ? `${compass(wind.from_deg)} <span class="unit">at</span> ${Math.round(wind.speed_kt || 0)} kt`
-        + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt)}</span>` : "")
-      : '<span class="unit">not collected yet</span>'}</span>
-    <span class="src">${wind.from_deg != null
-      ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
-      : (wind.note || "")}</span>
+    <span class="lbl">Wind ${modelled ? `at ${tideLabel}` : ", latest observed"}</span>
+    <span class="val">${modelled
+      ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${Math.round(hour.wind_kt || 0)} kt`
+      : wind.from_deg != null
+        ? `${compass(wind.from_deg)} <span class="unit">at</span> ${Math.round(wind.speed_kt || 0)} kt`
+          + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt)}</span>` : "")
+        : '<span class="unit">not collected yet</span>'}</span>
+    <span class="src">${modelled
+      ? `GFS-Wave at the buoy &mdash; forecast, not a measurement`
+      : wind.from_deg != null
+        ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
+        : (wind.note || "")}</span>
   </div>`);
 
   rows.push(`<div class="cond">

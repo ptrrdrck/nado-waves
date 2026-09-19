@@ -116,11 +116,20 @@ class TestWindAndTideAreHoisted:
         assert "harmonic prediction" in TEXT
         assert "a model, not a measurement" in TEXT
 
-    def test_the_labels_separate_an_observation_from_a_forecast_hour(self):
-        """Wind does not move with the picker and tide does."""
+    def test_the_labels_separate_a_forecast_hour_from_an_observation(self):
+        """The model's wind moves with the picker and is labelled by hour; the
+        KNZY fallback is an observation and is labelled as one. Both appear,
+        because which is shown depends on what the file carries."""
 
-        assert "Wind, latest observed" in TEXT
+        assert "Wind ${modelled ? `at ${tideLabel}` : \", latest observed\"}" in SOURCE
         assert "Tide at ${tideLabel}" in SOURCE
+
+    def test_model_wind_is_named_as_a_forecast(self):
+        assert "forecast, not a measurement" in TEXT
+
+    def test_it_prefers_the_model_wind_and_falls_back(self):
+        assert "hour.wind_from_deg != null" in SOURCE
+        assert "wind.station_name" in SOURCE
 
     def test_the_per_break_offshore_reading_stays_on_the_card(self):
         """One station, so one wind — but the three shore normals span 29°, so
