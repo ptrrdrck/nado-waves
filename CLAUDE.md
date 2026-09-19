@@ -300,6 +300,12 @@ circular helpers are used here. Trimming it is a good first cleanup.
   normals span 29° (192.8 / 214.2 / 221.5) — measured 2026-09-18, a 290° wind
   reads cross-shore at north and centre and onshore at south, on the same
   reading. Hoist the measurement; keep the interpretation where it is made.
+- **"At the buoy" means no aperture at all — `transform.at_buoy`, not
+  `through(spectrum, spot, [])`.** The latter still applies that spot's seaward
+  half-plane, which excludes 304–124° and dropped **12–26% of the energy** out
+  of the buoy's train list while leaving its headline Hs whole. The symptom was
+  trains that did not sum to the number above them; the cause is that a buoy
+  29 km offshore has no landward half.
 - **The leading wave train is not the same at the buoy and the beach.** The
   aperture takes whichever trains point at the blocked sector, so a spectrum's
   biggest swell offshore need not be the one running a break — measured, that

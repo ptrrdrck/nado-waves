@@ -319,6 +319,19 @@ function trainList(trains, {limit = 4} = {}) {
     </div>`).join("") + `</div>`;
 }
 
+// The swell card, for either chain. Same shape, different provenance: an
+// observed spectrum on one tab and a modelled one on the other.
+function swellCard({label, buoy, source}) {
+  return `<div class="cond">
+    <span class="lbl">${label}</span>
+    ${buoy && buoy.hs_m != null
+      ? `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
+        + trainList(buoy.trains)
+      : '<span class="val"><span class="unit">no spectrum</span></span>'}
+    <span class="src">${source}</span>
+  </div>`;
+}
+
 function renderConditions(index) {
   const rows = [];
 
@@ -330,18 +343,15 @@ function renderConditions(index) {
     // The swell card carries what the buoy saw AND where it was seen, which
     // is why the separate provenance line below the cards is gone: the
     // measurement and its source belong on the same card.
-    rows.push(`<div class="cond">
-      <span class="lbl">Swell at the buoy</span>
-      ${buoy.hs_m != null
-        ? `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
-          + trainList(buoy.trains)
-        : '<span class="val"><span class="unit">no spectrum</span></span>'}
-      <span class="src">${NOW && NOW.station_name
+    rows.push(swellCard({
+      label: "Swell at the buoy, observed",
+      buoy,
+      source: NOW && NOW.station_name
         ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${when(NOW.observed_utc)}`
           + (NOW.age_hours != null ? ` &mdash; ${NOW.age_hours} h ago` : "")
           + (buoy.frequency_bins ? `, across ${buoy.frequency_bins} frequency bins` : "")
-        : ""}</span>
-    </div>`);
+        : "",
+    }));
 
     rows.push(`<div class="cond">
       <span class="lbl">Wind, observed</span>
@@ -367,11 +377,24 @@ function renderConditions(index) {
     const wind = DATA.wind || {};
     const stamp = ((DATA.breaks[0] || {}).hours || [])[index];
     const tide = (stamp && TIDE_BY_TIME[stamp.valid_utc]) || {};
-    const tideLabel = tide.valid_utc
-      ? new Date(tide.valid_utc).toLocaleString(undefined, {hour: "numeric", minute: "2-digit"})
+    const tideLabel = (tide.valid_utc || (stamp && stamp.valid_utc))
+      ? new Date(tide.valid_utc || stamp.valid_utc)
+          .toLocaleString(undefined, {hour: "numeric", minute: "2-digit"})
       : "this hour";
     const hour = stamp || {};
     const modelled = hour.wind_from_deg != null;
+
+    // Same card as the observed tab, so a reader comparing the two is
+    // comparing like with like rather than two different presentations.
+    const buoy = (DATA.buoy || []).find((b) => stamp && b.valid_utc === stamp.valid_utc);
+    rows.push(swellCard({
+      label: `Swell at the buoy at ${tideLabel}`,
+      buoy,
+      source: buoy
+        ? `GFS-Wave at ${DATA.station_name} (NDBC ${DATA.station}) &mdash; forecast, not a measurement`
+        : `the spectral product was unavailable for this cycle, so there are no trains`,
+    }));
+
     rows.push(`<div class="cond">
       <span class="lbl">Wind ${modelled ? `at ${tideLabel}` : ", latest observed"}</span>
       <span class="val">${modelled

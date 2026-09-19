@@ -56,7 +56,7 @@ from .live import (
     wind_at_break,
     wind_measurement,
 )
-from .transform import Spectrum, load_spectra, through
+from .transform import Spectrum, at_buoy, load_spectra, through
 
 #: Older than this and the spectrum is not "now". NDBC publishes hourly and the
 #: collector runs hourly, so a healthy reading is under two hours old. Three
@@ -248,15 +248,18 @@ def build(
         reading.warnings.append(f"{TIDE_STATION} measured water level not available.")
 
     # What the buoy saw with no aperture at all, so the surface can show how
-    # much of the answer is geometry rather than weather.
-    raw = through(spectrum, by_id[BREAKS[1]], [])
+    # much of the answer is geometry rather than weather. `at_buoy` and not
+    # `through(..., [])`: the latter still clips to a spot's seaward half-plane,
+    # which dropped 12-26% of the energy out of the train list while leaving the
+    # headline Hs whole, so the trains did not sum to the number above them.
+    raw = at_buoy(spectrum)
     reading.buoy = {
-        "hs_m": round(raw.hs_total_m, 3),
+        "hs_m": round(raw.hs_m, 3),
         "peak_period_s": None if math.isnan(raw.peak_period_s) else round(raw.peak_period_s, 1),
         "peak_direction_deg": (
             None if math.isnan(raw.peak_direction_deg) else round(raw.peak_direction_deg)
         ),
-        "frequency_bins": len(spectrum.frequencies),
+        "frequency_bins": raw.frequency_bins,
         "trains": as_trains(raw.trains),
     }
 
