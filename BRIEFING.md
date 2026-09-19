@@ -944,6 +944,19 @@ to Pages, every such value is a candidate. `age_minutes` on the measured tide
 is the same shape and is not yet displayed; if it ever is, it gets the same
 treatment.
 
+**Later the same day, it was.** The wind and tide provenance lines now carry
+their own ages, so all four measurement lines on the surface — buoy, KNZY, the
+water level, and the forecast tab's KNZY fallback — go through one `observedAt`
+helper that derives the age from the timestamp against the reader's clock.
+Neither `age_hours` nor `age_minutes` is read by the page, and a test pins that
+against the code with the explanatory comment stripped, plus a control so it
+cannot pass by stripping everything.
+
+The ages are only on lines naming a MEASUREMENT. A modelled wind or a harmonic
+tide is a forecast FOR a moment, not a reading taken AT one, and "23 h ago"
+under a prediction for next Tuesday would be nonsense — those lines say
+"for <time>" and carry no age at all.
+
 Verified in a headless browser with the clock under test control: two hours
 forward, the age reads 3 h 25 min and the stale banner appears without a
 reload. The formatter itself is pinned in node against nine cases, because
