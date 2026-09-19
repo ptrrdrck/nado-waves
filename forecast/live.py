@@ -50,6 +50,7 @@ from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, pa
 
 from .geometry import HIGH, LOW, Blocker, Spot, load, swell_windows
 from .units import height as fmt_height, speed as fmt_speed
+from .tideturns import read_turns, turns_between
 from .transform import (
     GridSpectrum,
     at_buoy,
@@ -186,6 +187,12 @@ class Forecast:
     #: all three and repeating it three times is noise, not information.
     wind: WindAtTime = field(default_factory=WindAtTime)
     tide: list[TideAtHour] = field(default_factory=list)
+    #: Predicted turning points across the forecast window, so a surface can
+    #: say which way the tide is running at the hour on screen without
+    #: differencing the hourly series — which locates a turn up to 29.4 min
+    #: out (measured). One entry past the window, because the last hour still
+    #: has a next turn and it lies beyond the window by definition.
+    tide_turns: list[dict] = field(default_factory=list)
     tide_station: str = TIDE_STATION
     tide_station_name: str = TIDE_STATION_NAME
     breaks: list[BreakForecast] = field(default_factory=list)
@@ -412,6 +419,11 @@ def build(
         forecast.warnings.append(f"{WIND_STATION} wind not collected yet.")
     if not tide:
         forecast.warnings.append(f"{TIDE_STATION} tide not collected yet.")
+    all_turns = read_turns(data_dir, TIDE_STATION)
+    if not all_turns:
+        forecast.warnings.append(
+            f"{TIDE_STATION} predicted high/low turns not collected yet."
+        )
 
     rows = [r for r in bulletin.rows if r.lead_hours <= hours]
 
@@ -462,6 +474,13 @@ def build(
             height_m=round(value[0], 3) if value else None,
             kind=value[1] if value else None,
         ))
+
+    if rows and all_turns:
+        forecast.tide_turns = [
+            t.as_dict() for t in turns_between(
+                all_turns, rows[0].valid_utc, rows[-1].valid_utc,
+            )
+        ]
 
     for break_id in BREAKS:
         spot = by_id[break_id]

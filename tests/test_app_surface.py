@@ -9,6 +9,7 @@ gets its own test.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -484,3 +485,78 @@ class TestTheAgeFormatter:
                           'ageHours(null), ageHours(""), ageHours("not a date")]));'],
             capture_output=True, text=True, check=True).stdout
         assert json.loads(out) == [None, None, None]
+
+
+class TestTheTideSaysWhichWayItIsGoing:
+    """A water level alone does not tell anyone whether to go now or in three
+    hours. The turn does — and it is a prediction sitting on a tab that is
+    otherwise measurements only, so the card has to say so."""
+
+    def test_the_direction_word_is_the_bright_one(self):
+        assert "<b>${turn.direction}</b> to ${height(turn.height_m)}" in SOURCE
+        assert ".cond .turn b{color:var(--ink)" in SOURCE
+
+    def test_the_direction_is_read_off_the_turn_not_differenced(self):
+        """Measured, differencing the water level reads backwards on 19.5% of
+        6-minute samples. The page has the measured series available and must
+        not be tempted by it."""
+
+        assert "turn.direction" in SOURCE
+        assert "nextTurn(turns, afterIso)" in SOURCE
+        for tempting in ("tide.height_m -", "- prevTide", "slope("):
+            assert tempting not in SOURCE, tempting
+
+    def test_the_observed_tab_marks_the_turn_as_a_prediction(self):
+        """The level beside it is measured. An unlabelled turn would make the
+        whole card read as an observation."""
+
+        assert "{tagged: true}" in SOURCE
+        assert '<span class="tag">predicted</span>' in SOURCE
+
+    def test_the_forecast_tab_does_not_repeat_the_tag(self):
+        """Everything on that tab is a model and its provenance says so."""
+
+        assert "turnLine(DATA.tide_turns || [], stamp.valid_utc)" in SOURCE
+
+    def test_the_observed_turn_is_asked_for_against_the_readers_clock(self):
+        """BRIEFING §18: a 'next turn' baked in at build time stops being the
+        next turn the moment it passes, on a page that sits open for hours."""
+
+        assert "new Date().toISOString(), {tagged: true}" in SOURCE
+
+    def test_a_far_off_turn_carries_its_weekday(self):
+        """'at 11:42 AM' is not an answer six days out. Run in node against a
+        fixed timezone, because same-local-day is the whole question and a
+        grep cannot tell a correct comparison from a wrong one."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+
+        start = SOURCE.index("const clock = (iso) =>")
+        body = SOURCE[start:SOURCE.index("\n}\n", SOURCE.index("function turnClock")) + 2]
+
+        cases = [
+            # (turn, asked-about, expects a weekday)
+            ("2026-09-19T18:42:00Z", "2026-09-19T13:00:00Z", False),  # later today
+            ("2026-09-20T14:00:00Z", "2026-09-19T13:00:00Z", True),   # tomorrow
+            ("2026-09-25T14:00:00Z", "2026-09-19T13:00:00Z", True),   # next week
+            # Crosses UTC midnight but not the LOCAL one: still today.
+            ("2026-09-20T03:00:00Z", "2026-09-19T22:00:00Z", False),
+        ]
+        script = body + "\n" + "\n".join(
+            f'console.log(JSON.stringify(turnClock({t!r}, {f!r})));' for t, f, _ in cases
+        )
+        out = subprocess.run(
+            [node, "-e", script], capture_output=True, text=True, check=True,
+            env={**os.environ, "TZ": "America/Los_Angeles"},
+        ).stdout.splitlines()
+        got = [json.loads(line) for line in out if line.strip()]
+        assert len(got) == len(cases)
+        for text, (turn, _asked, wants_day) in zip(got, cases):
+            has_day = any(d in text for d in
+                          ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+            assert has_day == wants_day, f"{turn} -> {text!r}"
+
+    def test_an_uncollected_turn_renders_nothing_rather_than_a_guess(self):
+        assert "if (!turn || !turn.direction || turn.height_m == null) return \"\"" in SOURCE

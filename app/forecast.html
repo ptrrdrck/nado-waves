@@ -85,6 +85,15 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* Metric, in parentheses after the imperial value it restates. */
 .unit{font-weight:400;color:var(--soft)}
 .cond .src{font-size:12px;color:var(--faint)}
+/* Where the tide is going next. Dim like any other supporting line, with the
+   direction itself at full ink because that is the word being read. */
+/* Inline, not flex: the height carries its own metric span and flex would
+   make that a separate item with a gap in front of it, splitting "3.8 ft"
+   from "(1.16 m)" that every other number on the page keeps together. */
+.cond .turn{font-size:13.5px;color:var(--soft)}
+.cond .turn b{color:var(--ink);font-weight:600}
+.cond .turn .tag{font-size:11px;color:var(--faint);text-transform:uppercase;
+                 letter-spacing:.06em;margin-left:5px;white-space:nowrap}
 
 /* Wave trains. A spectrum is two or three swells plus a wind sea, and which
    one leads at a break need not be the one leading at the buoy — so they are
@@ -283,6 +292,46 @@ function ago(hours) {
 // notes, which do not all carry one.
 const period = (s) => (!s ? "" : /[.!?]\s*$/.test(s) ? s : s + ".");
 
+const clock = (iso) => new Date(iso).toLocaleString(undefined, {
+  hour: "numeric", minute: "2-digit",
+});
+
+// A turn six days out is not "at 11:42 AM". The weekday appears only when the
+// turn falls on a different local day from the moment being asked about, so
+// the common case -- the next turn today -- stays short.
+function turnClock(iso, fromIso) {
+  const at = new Date(iso);
+  const from = new Date(fromIso);
+  const sameDay = at.toDateString() === from.toDateString();
+  return sameDay ? clock(iso)
+    : at.toLocaleString(undefined, {weekday: "short"}) + " " + clock(iso);
+}
+
+// The tide's next turning point, and which way it is running into it.
+//
+// The direction is read off the TURN, never differenced from the water level.
+// Measured on the 6-minute measured series: differencing the two newest
+// samples reads the direction backwards on 19.5% of readings, and a 45-minute
+// regression is still wrong 3.3% of the time. Both fail near slack water --
+// exactly when a reader looks -- and a measured "falling" beside a predicted
+// high water would be a card contradicting itself.
+function nextTurn(turns, afterIso) {
+  if (!turns || !turns.length || !afterIso) return null;
+  return turns.find((t) => t.valid_utc > afterIso) || null;
+}
+
+// `tagged` marks the line as a prediction, which is needed on the observed tab
+// and not on the forecast tab, where the whole card is already a model and its
+// provenance says so.
+function turnLine(turns, afterIso, {tagged = false} = {}) {
+  const turn = nextTurn(turns, afterIso);
+  if (!turn || !turn.direction || turn.height_m == null) return "";
+  return `<span class="turn"><b>${turn.direction}</b> to ${height(turn.height_m)}`
+    + ` at ${turnClock(turn.valid_utc, afterIso)}`
+    + (tagged ? ` <span class="tag">predicted</span>` : "")
+    + `</span>`;
+}
+
 let DATA = null;      // forecast.json — the modelled chain
 let NOW = null;       // now.json     — the observed chain
 let MODE = "now";     // which chain is on screen
@@ -390,11 +439,14 @@ function renderConditions(index) {
         ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
         : (wind.note || ""))}</span>
     </div>`);
+    // The turn is asked for against the READER's clock, not the build's, so
+    // it keeps being the next turn as turns pass beneath an open page.
     rows.push(`<div class="cond">
       <span class="lbl">Tide</span>
       <span class="val">${tide.height_m != null
         ? height(tide.height_m)
         : '<span class="unit">not collected</span>'}</span>
+      ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
       <span class="src">${period(tide.height_m != null
         ? `${NOW.tide_station_name} (${NOW.tide_station}), measured ${when(tide.observed_utc)}`
         : (tide.note || ""))}</span>
@@ -437,6 +489,9 @@ function renderConditions(index) {
       <span class="val">${tide.height_m != null
         ? height(tide.height_m)
         : '<span class="unit">not collected for this hour</span>'}</span>
+      ${stamp && stamp.valid_utc
+        ? turnLine(DATA.tide_turns || [], stamp.valid_utc)
+        : ""}
       <span class="src">${period(`${DATA.tide_station_name} (${DATA.tide_station}), `
         + `harmonic prediction for ${stampWhen} &mdash; a model, not a measurement`)}</span>
     </div>`);

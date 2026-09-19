@@ -949,3 +949,78 @@ forward, the age reads 3 h 25 min and the stale banner appears without a
 reload. The formatter itself is pinned in node against nine cases, because
 "1.02 h ago" and "1 h 1 min ago" are a property of the arithmetic and a grep
 cannot tell them apart.
+
+## 19. Measured, 2026-09-19 — the tide's direction cannot be read off the gauge
+
+The tide card was to say "rising to 5.6 ft at 11:42 AM". Two numbers, and the
+obvious sources for them are wrong in two different ways.
+
+### The direction
+
+The measured water level is right there, at 6-minute resolution, so differencing
+the two newest samples looks like the honest answer — a measurement, on the tab
+that is measurements only.
+
+Measured against the archive (333 samples with a defined direction, where the
+change across ±1 h exceeds 2 cm):
+
+| how the direction is taken | reads it backwards |
+|---|---|
+| newest two samples (6 min apart) | **19.5%** |
+| 12 min apart | 15.6% |
+| 30 min apart | 4.8% |
+| least-squares slope over 45 min | **3.3%** |
+| least-squares slope over 90 min | 3.3% |
+
+One reading in five, from the obvious implementation. The mechanism is not
+subtle: the median 6-minute step is 1.1 cm and the peak rate is about 4.3 cm
+per 6 minutes, so near slack water the real change is smaller than the gauge's
+own wobble and the sign is noise.
+
+Regression fixes most of it and not enough. All eleven of the 45-minute errors
+sit at |slope| ≤ 5.6 cm/h, so a deadband would catch them — but 5.6 cm/h is
+13% of the peak rate, which is roughly **a quarter of every tide cycle** spent
+saying "near the turn" instead of rising or falling. That is most of the window
+in which anyone would care.
+
+So the direction is read off the next turn: a high is risen into, a low is
+fallen into. It costs nothing, has no noise, and — the part that actually
+decided it — **direction and target then come from one source and cannot
+contradict each other.** A measured "falling" printed beside a predicted high
+water is not a small cosmetic fault; it happens precisely at the turn, which is
+when the card is worth reading.
+
+### The time
+
+The hourly prediction file is already collected, so finding the highs and lows
+in it is free. Measured over its 32 extrema:
+
+- time of the turning point: **14.5 min out on average, 29.4 min worst**
+- height at the turning point: 0.6 cm mean, 2.6 cm worst — under a tenth of a
+  foot
+
+An hourly grid can tell you how high the next high water is. It cannot tell you
+when. CO-OPS computes the turns from the constituents and serves them at
+`interval=hilo`, so they are fetched into a third file rather than derived, and
+there is **no fallback** between the two: a surface that silently swapped one
+for the other would present the worse number in the same words as the better
+one, which is §8's and §17's shape again.
+
+The stand-in turns file built for rendering — quadratic vertex on the hourly
+grid, scratchpad only, never `data/` — made the case by itself: on a flat
+stretch it invented a "high" of 1.158 m and a "low" of 1.144 m 108 minutes
+apart. A 1.4 cm tide cycle is not a tide cycle.
+
+### What it cost
+
+The observed tab now carries one modelled number. That is a real dent in the
+Now/Forecast split, and it is labelled rather than hidden: a `predicted` tag on
+the card, and a "standing on" row that names the measured level and the
+predicted turn as two separate claims. The rule exists so a reader always knows
+which chain they are looking at. An unlabelled turn would have broken it; a
+labelled one beside a measurement is the rule working.
+
+**Two obvious sources, both free, both wrong — and neither was wrong in a way
+that would ever have shown up as a crash, a blank, or a number that looked odd.**
+A tide card differencing the gauge would have read correctly four times in five,
+which is exactly the hit rate at which nobody files a bug.

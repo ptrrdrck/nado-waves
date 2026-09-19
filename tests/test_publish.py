@@ -224,3 +224,43 @@ class TestTheBundleIsServable:
         (tmp_path / "site" / "stale.html").write_text("old", encoding="utf-8")
         publish.build(tmp_path / "site", data_dir=data_dir)
         assert not (tmp_path / "site" / "stale.html").exists()
+
+
+class TestTheTideTurnsSurviveThinning:
+    """The per-hour series are thinned by kept `valid_utc`. The turns are not
+    a per-hour series — CO-OPS puts them at 11:42, not 11:00 — so filtering
+    them the same way would delete very nearly all of them, and the card would
+    silently lose its second line on the published page only."""
+
+    TURNS = [
+        {"valid_utc": "2026-09-19T11:42:00Z", "height_m": 1.712,
+         "event": "high", "direction": "rising"},
+        {"valid_utc": "2026-09-19T18:06:00Z", "height_m": 0.134,
+         "event": "low", "direction": "falling"},
+    ]
+
+    def forecast(self):
+        return {
+            "breaks": [{"id": "coronado_north", "hours": [
+                {"lead_h": h, "valid_utc": f"2026-09-19T{h:02d}:00:00Z"}
+                for h in range(6)
+            ]}],
+            "tide": [{"valid_utc": f"2026-09-19T{h:02d}:00:00Z", "height_m": 1.0}
+                     for h in range(6)],
+            "tide_turns": list(self.TURNS),
+        }
+
+    def test_no_turn_is_dropped_for_sitting_off_the_hour(self):
+        out = publish.thin(self.forecast(), step=3)
+        assert out["tide_turns"] == self.TURNS
+
+    def test_the_per_hour_series_are_still_thinned(self):
+        """The control: thinning is working, so the test above is not passing
+        because nothing is filtered at all."""
+
+        out = publish.thin(self.forecast(), step=3)
+        assert len(out["tide"]) == 2 and len(out["breaks"][0]["hours"]) == 2
+
+    def test_thinning_stays_idempotent_with_turns_present(self):
+        once = publish.thin(self.forecast(), step=3)
+        assert publish.thin(once, step=3) == once
