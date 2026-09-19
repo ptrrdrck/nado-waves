@@ -81,7 +81,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
       border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
 .cond .lbl{font-size:12.5px}
 .cond .val{font-size:19px;font-weight:600;line-height:1.25}
-.cond .val .unit{font-weight:400;color:var(--soft);font-size:15px}
+.cond .val .unit{font-size:15px}
+/* Metric, in parentheses after the imperial value it restates. */
+.unit{font-weight:400;color:var(--soft)}
 .cond .src{font-size:12px;color:var(--faint)}
 
 /* Wave trains. A spectrum is two or three swells plus a wind sea, and which
@@ -90,8 +92,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .trains{display:flex;flex-direction:column;gap:3px;margin-top:3px}
 .train{display:flex;align-items:baseline;gap:8px;font-size:14px;
        font-variant-numeric:tabular-nums}
-.train .ht{font-weight:600;min-width:62px}
-.train .tp{color:var(--soft);min-width:52px}
+.train .ht{font-weight:600;min-width:112px}
+.train .tp{color:var(--soft);min-width:48px}
 .train .dr{color:var(--soft);flex:1}
 .train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
 .train.lead .ht,.train.lead .dr{color:var(--ink)}
@@ -231,8 +233,18 @@ const SHORT = {coronado_north: "North", coronado_center: "Center", coronado_sout
 const AWAY = "pointed away from this beach";
 
 const $ = (id) => document.getElementById(id);
-const metres = (m) => (m == null ? "—" : m.toFixed(2) + " m");
-const feet = (m) => (m == null ? "" : (m * 3.28084).toFixed(1) + " ft");
+// Imperial leads, metric in parentheses. Everything upstream of the page --
+// the JSON, the transform, the collectors -- stays SI, because that is what
+// NDBC and WAVEWATCH III publish and converting in the data model would put a
+// unit change between the source and every cross-check. These convert at the
+// point of display and nowhere else.
+const FT_PER_M = 3.28084;
+const MPH_PER_KT = 1.15078;
+
+const height = (m) => (m == null ? "\u2014"
+  : `${(m * FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)</span>`);
+const speed = (kt) => (kt == null ? "\u2014"
+  : `${Math.round(kt * MPH_PER_KT)} mph <span class="unit">(${Math.round(kt)} kt)</span>`);
 
 function compass(deg) {
   if (deg == null) return "—";
@@ -300,7 +312,7 @@ function trainList(trains, {limit = 4} = {}) {
   if (!trains || !trains.length) return "";
   return `<div class="trains">` + trains.slice(0, limit).map((t, i) => `
     <div class="train${i === 0 ? " lead" : ""}">
-      <span class="ht">${t.hs_m.toFixed(2)} m</span>
+      <span class="ht">${height(t.hs_m)}</span>
       <span class="tp">${t.period_s.toFixed(1)} s</span>
       <span class="dr">${compass(t.from_deg)}</span>
       ${t.wind_sea ? '<span class="tag">wind sea</span>' : ""}
@@ -321,7 +333,7 @@ function renderConditions(index) {
     rows.push(`<div class="cond">
       <span class="lbl">Swell at the buoy</span>
       ${buoy.hs_m != null
-        ? `<span class="val">${buoy.hs_m.toFixed(2)} m <span class="unit">combined</span></span>`
+        ? `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
           + trainList(buoy.trains)
         : '<span class="val"><span class="unit">no spectrum</span></span>'}
       <span class="src">${NOW && NOW.station_name
@@ -334,8 +346,8 @@ function renderConditions(index) {
     rows.push(`<div class="cond">
       <span class="lbl">Wind, observed</span>
       <span class="val">${wind.from_deg != null
-        ? `${compass(wind.from_deg)} <span class="unit">at</span> ${Math.round(wind.speed_kt || 0)} kt`
-          + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt)}</span>` : "")
+        ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
+          + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
       <span class="src">${wind.from_deg != null
         ? `${wind.station_name} (${wind.station}), ${when(wind.observed_utc)}`
@@ -344,7 +356,7 @@ function renderConditions(index) {
     rows.push(`<div class="cond">
       <span class="lbl">Tide, measured</span>
       <span class="val">${tide.height_m != null
-        ? `${tide.height_m.toFixed(2)} m <span class="unit">(${(tide.height_m * 3.28084).toFixed(1)} ft)</span>`
+        ? height(tide.height_m)
         : '<span class="unit">not collected</span>'}</span>
       <span class="src">${tide.height_m != null
         ? `${NOW.tide_station_name} (${NOW.tide_station}), ${when(tide.observed_utc)}`
@@ -363,9 +375,9 @@ function renderConditions(index) {
     rows.push(`<div class="cond">
       <span class="lbl">Wind ${modelled ? `at ${tideLabel}` : ", latest observed"}</span>
       <span class="val">${modelled
-        ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${Math.round(hour.wind_kt || 0)} kt`
+        ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
         : wind.from_deg != null
-          ? `${compass(wind.from_deg)} <span class="unit">at</span> ${Math.round(wind.speed_kt || 0)} kt`
+          ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
           : '<span class="unit">not collected yet</span>'}</span>
       <span class="src">${modelled
         ? `GFS-Wave at the buoy &mdash; forecast, not a measurement`
@@ -376,7 +388,7 @@ function renderConditions(index) {
     rows.push(`<div class="cond">
       <span class="lbl">Tide at ${tideLabel}</span>
       <span class="val">${tide.height_m != null
-        ? `${tide.height_m.toFixed(2)} m <span class="unit">(${(tide.height_m * 3.28084).toFixed(1)} ft)</span>`
+        ? height(tide.height_m)
         : '<span class="unit">not collected for this hour</span>'}</span>
       <span class="src">${DATA.tide_station_name} (${DATA.tide_station}), harmonic prediction &mdash; a model, not a measurement</span>
     </div>`);
@@ -425,9 +437,8 @@ function renderBreaks(index) {
       </div>
 
       <div class="quiet">
-        window energy <b>${metres(c.hsWindow)}</b>
-        <span class="est">(${feet(c.hsWindow)})</span>
-        of <b>${metres(c.hsOffshore)}</b> ${MODE === "now" ? "at the buoy" : "offshore"}
+        window energy <b>${height(c.hsWindow)}</b>
+        of <b>${height(c.hsOffshore)}</b> ${MODE === "now" ? "at the buoy" : "offshore"}
       </div>
 
       ${c.trains && c.trains.length ? `

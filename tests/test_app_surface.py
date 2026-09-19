@@ -215,6 +215,46 @@ class TestTheTwoChains:
         assert "no spread is assumed" in TEXT
 
 
+class TestUnits:
+    """Imperial leads, metric in parentheses, everywhere a number is shown.
+    The data model stays SI: NDBC and WAVEWATCH III publish metres and knots,
+    and putting a conversion between the source and every cross-check is how a
+    3.28 ends up somewhere it should not be."""
+
+    def test_there_is_one_place_each_conversion_happens(self):
+        assert "const FT_PER_M = 3.28084" in SOURCE
+        assert "const MPH_PER_KT = 1.15078" in SOURCE
+        assert SOURCE.count("3.28084") == 1
+        assert SOURCE.count("1.15078") == 1
+
+    def test_height_puts_feet_first(self):
+        assert 'FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)' in SOURCE
+
+    def test_speed_puts_mph_first(self):
+        assert 'MPH_PER_KT)} mph <span class="unit">(${Math.round(kt)} kt)' in SOURCE
+
+    def test_nothing_still_renders_a_bare_metric_value(self):
+        assert "metres(" not in SOURCE and "feet(" not in SOURCE
+        assert "} kt`" not in SOURCE
+
+    def test_the_python_side_shares_the_same_rule(self):
+        from forecast.units import height, speed
+
+        assert height(0.71) == "2.3 ft (0.71 m)"
+        assert speed(8) == "9 mph (8 kt)"
+        assert height(None) == "\u2014" and speed(None) == "\u2014"
+
+    def test_the_measured_bias_is_stated_in_both(self):
+        """It is a measurement shown to a reader like any other."""
+
+        from forecast.live import build
+
+        from tests.test_live import SOUTH, bulletin, CYCLE
+
+        got = build(bulletin=bulletin(SOUTH), now=CYCLE)
+        assert "0.9\u20131.0 ft (0.26\u20130.31 m)" in got.standing_on["model"]
+
+
 class TestTheSourceLine:
     def test_the_page_has_no_title_heading(self):
         assert "<h1>" not in SOURCE
@@ -295,7 +335,7 @@ class TestWaveTrainsOnScreen:
         assert "trainList(c.trains" in SOURCE
 
     def test_a_train_shows_height_period_and_heading(self):
-        assert "t.hs_m.toFixed(2)" in SOURCE
+        assert "height(t.hs_m)" in SOURCE
         assert "t.period_s.toFixed(1)" in SOURCE
         assert "compass(t.from_deg)" in SOURCE
 
