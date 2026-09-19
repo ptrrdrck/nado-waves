@@ -946,3 +946,71 @@ def split_trains(
     trains = [t for t in trains if t.share >= min_share and t.hs_m >= min_hs]
     trains.sort(key=lambda t: -t.hs_m)
     return trains
+
+
+@dataclass
+class BuoyView:
+    """The spectrum as the buoy sees it: the whole circle, no aperture at all.
+
+    `through()` always applies a transmission, and with no blockers that is
+    still the seaward half-plane of whichever spot it was handed — so using it
+    for "what the buoy saw" quietly drops everything arriving from behind that
+    beach. Measured across the archive, that is **12–26% of the energy**, and
+    it showed up as a train list that did not sum to the headline it sat under.
+    A buoy 29 km offshore has no landward half; this has no spot.
+    """
+
+    time: datetime
+    hs_m: float
+    peak_period_s: float
+    peak_direction_deg: float
+    trains: list[Train] = field(default_factory=list)
+    frequency_bins: int = 0
+
+
+def at_buoy(spectrum: Spectrum, *, step: float = STEP_DEG) -> BuoyView:
+    """Integrate the full circle with nothing in the way."""
+
+    steps = max(int(round(360.0 / step)), 1)
+    d_theta = 360.0 / steps
+    radians_step = math.radians(d_theta)
+
+    m0 = 0.0
+    per_bin: list[tuple[int, float]] = []
+    bin_sin: dict[int, float] = {}
+    bin_cos: dict[int, float] = {}
+
+    for index, freq in enumerate(spectrum.frequencies):
+        density = spectrum.c11[index]
+        if density <= 0.0 or math.isnan(density):
+            continue
+        width = spectrum.bin_width(index)
+        total = sin_sum = cos_sum = 0.0
+        for n in range(steps):
+            theta = (n + 0.5) * d_theta
+            energy = spectrum.density(index, theta) * radians_step * width
+            if energy <= 0.0:
+                continue
+            total += energy
+            sin_sum += energy * math.sin(math.radians(theta))
+            cos_sum += energy * math.cos(math.radians(theta))
+        m0 += total
+        per_bin.append((index, total))
+        bin_sin[index], bin_cos[index] = sin_sum, cos_sum
+
+    peak_period = peak_direction = float("nan")
+    if per_bin:
+        best, best_energy = max(per_bin, key=lambda item: item[1])
+        if best_energy > 0:
+            freq = spectrum.frequencies[best]
+            peak_period = 1.0 / freq if freq > 0 else float("nan")
+            peak_direction = spectrum.a1[best] % 360.0
+
+    return BuoyView(
+        time=spectrum.time,
+        hs_m=4.0 * math.sqrt(max(0.0, m0)),
+        peak_period_s=peak_period,
+        peak_direction_deg=peak_direction,
+        trains=split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos),
+        frequency_bins=len(spectrum.frequencies),
+    )

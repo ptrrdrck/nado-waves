@@ -231,3 +231,34 @@ class TestWaveTrains:
     def test_the_table_lists_the_buoys_trains(self, tmp_path):
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
         assert "swell trains at the buoy" in now_mod.format_table(got)
+
+
+class TestTheBuoyViewIsUnclipped:
+    """`through(spectrum, spot, [])` still applies the spot's seaward
+    half-plane, so using it for "what the buoy saw" dropped everything
+    arriving from behind that beach — 12-26% of the energy across the
+    archive. The headline Hs stayed whole, so the symptom was a train list
+    that did not sum to the number above it."""
+
+    def test_the_trains_sum_to_the_headline(self, tmp_path):
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        from_trains = math.sqrt(sum((t["hs_m"] / 4.0) ** 2 for t in got.buoy["trains"]))
+        assert 4.0 * from_trains == pytest.approx(got.buoy["hs_m"], rel=0.08)
+
+    def test_it_does_not_go_through_a_spot(self):
+        import inspect
+
+        source = inspect.getsource(now_mod.build)
+        assert "at_buoy(spectrum)" in source
+        assert "through(spectrum, by_id[BREAKS[1]], [])" not in source
+
+    def test_a_northerly_swell_is_not_dropped(self, tmp_path):
+        """The clip excluded 304-124 degrees, which is where NW swell lives —
+        3,771 hours of it in the archive (BRIEFING §2)."""
+
+        north = spectrum(MOMENT, peak_dir=320.0)
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=north)
+        assert got.buoy["hs_m"] > 0.5
+        assert got.buoy["trains"]
+        # And the beaches still get almost none of it.
+        assert all(b.fraction < 0.35 for b in got.breaks)

@@ -168,6 +168,10 @@ def thin(forecast: dict, *, step: int = HOUR_STEP) -> dict:
         for h in entry["hours"]
     }
     out["tide"] = [t for t in forecast.get("tide", []) if t.get("valid_utc") in kept]
+    # The buoy series is per hour like the tide, and gets thinned the same way.
+    # It was shipping all 169 hours while the page rendered 57, which is the
+    # waste this function exists to prevent.
+    out["buoy"] = [b for b in forecast.get("buoy", []) if b.get("valid_utc") in kept]
     out["hour_step_h"] = step
     return out
 
