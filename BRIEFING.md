@@ -906,3 +906,46 @@ landward half.
 **A quantity that is correct on its own is not evidence that the thing
 producing it is.** Each of these was caught by cross-checking two views of the
 same state against each other, and none by a value looking wrong.
+
+## 18. Found, 2026-09-19 — a "now"-relative number was frozen into a static file
+
+`now.json` carried `age_hours`, computed at build time as
+`(moment - spectrum.time)`. The app surface printed it verbatim: "1.01 h ago".
+
+Two things are wrong with that, and only the cosmetic one was reported.
+
+The file is rebuilt hourly, on the :45 collector job, and delivered as a static
+bundle. So the age was **wrong the moment it was served** — by up to an hour at
+load, and by however long the reader left the tab open after that. It never
+moved. A page open since breakfast still said "1.01 h ago" at lunch.
+
+The second is the one that mattered. `stale` is decided against the same
+build-time age, and `STALE_HOURS` is 3. A page loaded at age 2.9 h, on a cycle
+that then failed to publish, would sit there indefinitely presenting a reading
+as current that the *next* build would have refused. **The page had no way to
+age a reading into staleness**, which is precisely the failure the stale banner
+exists to prevent — NDBC has served 306-hour-old content behind an HTTP 200.
+
+The timestamp is the fact. `observed_utc` is in the file already, so the page
+derives the age from it against the reader's own clock, every time the card is
+drawn, and redraws the observed tab on the minute. `stale_hours` now ships in
+`now.json` so the surface re-applies the *build's* limit rather than keeping a
+second copy of the number.
+
+The build's `stale` flag is kept as a **floor, never a ceiling**: the clock can
+age a reading into staleness, but it cannot un-stale one the build already
+refused to call current. The build knows things the page does not — gaps,
+sentinels, a spectrum that failed a check — and a page that could argue its way
+back to "current" would be able to overrule all of them.
+
+**Anything relative to "now" must be computed when it is read, not when it is
+written.** In a repository whose entire delivery path is a static file pushed
+to Pages, every such value is a candidate. `age_minutes` on the measured tide
+is the same shape and is not yet displayed; if it ever is, it gets the same
+treatment.
+
+Verified in a headless browser with the clock under test control: two hours
+forward, the age reads 3 h 25 min and the stale banner appears without a
+reload. The formatter itself is pinned in node against nine cases, because
+"1.02 h ago" and "1 h 1 min ago" are a property of the arithmetic and a grep
+cannot tell them apart.
