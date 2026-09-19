@@ -165,10 +165,24 @@ class Survives:
     #: Zeroth moment inside the window and in total, m².
     m0_in: float
     m0_total: float
-    #: Energy-weighted mean period and direction of the SURVIVING energy.
-    peak_period_s: float
+    #: Energy-weighted MEAN period and direction of the surviving energy.
+    #: Named for what they are: `peak_period_s` used to hold this mean, which
+    #: is a different quantity and 42–50° away from the buoy's own `MWD`.
+    mean_period_s: float
     mean_direction_deg: float
     confidence: str
+    #: The PEAK of the surviving energy — the single frequency bin carrying
+    #: most of it, and the mean direction in that bin. These are the quantities
+    #: comparable to NDBC's `DPD` and `MWD`, and to the forecast card's
+    #: "dominant" swell. Measured against 37 hours of the buoy's own reports:
+    #: peak direction agrees to a median 5°, peak period to a median 0.38 s
+    #: (BRIEFING §14).
+    #:
+    #: They are taken AFTER the aperture, so on a day when Point Loma shadows
+    #: the biggest train these differ from the buoy's — which is the whole
+    #: point of the project rather than a discrepancy.
+    peak_period_s: float = float("nan")
+    peak_direction_deg: float = float("nan")
     #: Per-blocker attribution of the energy that did not make it.
     removed: list[Removed] = field(default_factory=list)
     #: Blockers whose geometric shadow is not trustworthy at this period.
@@ -288,6 +302,9 @@ def through(
     # Energy-weighted accumulators for the SURVIVING energy only.
     weighted_period = 0.0
     sin_sum = cos_sum = 0.0
+    # Surviving energy per frequency bin, so the peak can be found after the
+    # aperture rather than before it.
+    per_bin: list[tuple[int, float]] = []
 
     for index, freq in enumerate(spectrum.frequencies):
         density = spectrum.c11[index]
@@ -295,6 +312,7 @@ def through(
             continue
         width = spectrum.bin_width(index)
         period = 1.0 / freq if freq > 0 else 0.0
+        bin_surviving = 0.0
         for n in range(steps):
             theta = (n + 0.5) * d_theta
             energy = spectrum.density(index, theta) * radians_step * width
@@ -304,6 +322,7 @@ def through(
             if trans[n] > 0.0:
                 surviving = energy * trans[n]
                 m0_in += surviving
+                bin_surviving += surviving
                 weighted_period += surviving * period
                 sin_sum += surviving * math.sin(math.radians(theta))
                 cos_sum += surviving * math.cos(math.radians(theta))
@@ -311,9 +330,19 @@ def through(
                 who = culprit[n]
                 if who:
                     taken[who] = taken.get(who, 0.0) + energy
+        per_bin.append((index, bin_surviving))
 
     mean_period = weighted_period / m0_in if m0_in > 0 else float("nan")
     mean_dir = math.degrees(math.atan2(sin_sum, cos_sum)) % 360.0 if m0_in > 0 else float("nan")
+
+    peak_period = peak_direction = float("nan")
+    if per_bin:
+        best, best_energy = max(per_bin, key=lambda item: item[1])
+        if best_energy > 0:
+            freq = spectrum.frequencies[best]
+            peak_period = 1.0 / freq if freq > 0 else float("nan")
+            # alpha1 in the peak bin is exactly how NDBC defines MWD.
+            peak_direction = spectrum.a1[best] % 360.0
 
     by_name = {b.name: b for b in blockers}
     removed: list[Removed] = []
@@ -349,8 +378,10 @@ def through(
         time=spectrum.time,
         m0_in=m0_in,
         m0_total=m0_total,
-        peak_period_s=mean_period,
+        mean_period_s=mean_period,
         mean_direction_deg=mean_dir,
+        peak_period_s=peak_period,
+        peak_direction_deg=peak_direction,
         confidence=confidence,
         removed=removed,
         diffraction_suspect=suspect,
@@ -434,13 +465,13 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  {len(spectrum.frequencies)} bins, "
           f"{spectrum.frequencies[0]:.4f}–{spectrum.frequencies[-1]:.4f} Hz\n")
     print(f"{'break':24s} {'window Hs':>10s} {'buoy Hs':>9s} {'survives':>9s} "
-          f"{'mean T':>7s} {'mean dir':>9s}  confidence")
+          f"{'peak T':>7s} {'peak dir':>9s}  confidence")
     for spot in coronado:
         got = through(spectrum, spot, blockers)
         print(
             f"{spot.name[:24]:24s} {got.hs_in_window_m:9.2f}m {got.hs_total_m:8.2f}m "
             f"{100*got.fraction:8.1f}% {got.peak_period_s:6.1f}s "
-            f"{got.mean_direction_deg:8.0f}°  {got.confidence}"
+            f"{got.peak_direction_deg:8.0f}°  {got.confidence}"
         )
     print("\nWindow Hs is offshore energy aimed at the break. It is NOT a wave")
     print("height at the beach: no shoaling, no refraction, nothing propagated.")
