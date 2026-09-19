@@ -1,8 +1,8 @@
 {
- "generated_utc": "2026-09-19T03:31:36Z",
- "observed_utc": "2026-09-19T00:00:00Z",
- "age_hours": 3.53,
- "stale": true,
+ "generated_utc": "2026-09-19T03:34:32Z",
+ "observed_utc": "2026-09-19T03:00:00Z",
+ "age_hours": 0.58,
+ "stale": false,
  "station": "46232",
  "station_name": "Point Loma South, CA",
  "standing_on": {
@@ -15,26 +15,26 @@
   "claim": "observed at a buoy 29 km offshore and put through the beach's aperture; not a wave height at the beach, and not verified there"
  },
  "buoy": {
-  "hs_m": 1.337,
-  "peak_period_s": 5.9,
-  "peak_direction_deg": 292,
+  "hs_m": 1.321,
+  "peak_period_s": 14.3,
+  "peak_direction_deg": 200,
   "frequency_bins": 64
  },
  "wind": {
   "station": "KNZY",
   "station_name": "NAS North Island",
-  "observed_utc": "2026-09-18T23:52:00Z",
-  "from_deg": 300.0,
-  "speed_kt": 9.0,
+  "observed_utc": "2026-09-19T03:22:00Z",
+  "from_deg": 310.0,
+  "speed_kt": 8.0,
   "gust_kt": null,
   "note": ""
  },
  "tide": {
-  "observed_utc": "2026-09-19T00:30:00Z",
-  "height_m": 1.459,
+  "observed_utc": "2026-09-19T03:24:00Z",
+  "height_m": 0.959,
   "kind": "observed",
-  "age_minutes": 181.6,
-  "note": "last measurement is 3.0 h old"
+  "age_minutes": 10.5,
+  "note": ""
  },
  "tide_station": "9410170",
  "tide_station_name": "San Diego, CA",
@@ -43,23 +43,23 @@
    "id": "coronado_north",
    "name": "Coronado Central Beach \u2014 north break",
    "confidence": "high",
-   "hs_in_window_m": 0.658,
-   "fraction": 0.2424,
-   "peak_period_s": 13.3,
-   "peak_direction_deg": 192,
+   "hs_in_window_m": 0.704,
+   "fraction": 0.2841,
+   "peak_period_s": 14.3,
+   "peak_direction_deg": 200,
    "taken_by": [
     {
      "blocker": "Point Loma peninsula",
-     "share": 0.3014,
+     "share": 0.267,
      "verified": true
     },
     {
      "blocker": "Coronado Islands",
-     "share": 0.0157,
+     "share": 0.0256,
      "verified": false
     }
    ],
-   "wind_offshore": 0.296,
+   "wind_offshore": 0.457,
    "wind_note": "shore normal unverified here, so offshore/onshore is a guess",
    "diffraction_suspect": [
     "Coronado Islands"
@@ -69,52 +69,54 @@
    "id": "coronado_center",
    "name": "Coronado Central Beach \u2014 center break",
    "confidence": "high",
-   "hs_in_window_m": 0.685,
-   "fraction": 0.2624,
+   "hs_in_window_m": 0.732,
+   "fraction": 0.3067,
    "peak_period_s": 14.3,
-   "peak_direction_deg": 208,
+   "peak_direction_deg": 200,
    "taken_by": [
     {
      "blocker": "Point Loma peninsula",
-     "share": 0.4202,
+     "share": 0.3696,
      "verified": true
     },
     {
      "blocker": "Coronado Islands",
-     "share": 0.0174,
+     "share": 0.0284,
      "verified": false
     }
    ],
-   "wind_offshore": -0.074,
+   "wind_offshore": 0.1,
    "wind_note": "",
-   "diffraction_suspect": []
+   "diffraction_suspect": [
+    "Coronado Islands"
+   ]
   },
   {
    "id": "coronado_south",
    "name": "Coronado Central Beach \u2014 south break",
    "confidence": "high",
-   "hs_in_window_m": 0.758,
-   "fraction": 0.3213,
+   "hs_in_window_m": 0.791,
+   "fraction": 0.3584,
    "peak_period_s": 14.3,
-   "peak_direction_deg": 208,
+   "peak_direction_deg": 200,
    "taken_by": [
     {
      "blocker": "Point Loma peninsula",
-     "share": 0.407,
+     "share": 0.3586,
      "verified": true
     },
     {
      "blocker": "Coronado Islands",
-     "share": 0.0193,
+     "share": 0.0315,
      "verified": false
     }
    ],
-   "wind_offshore": -0.2,
+   "wind_offshore": -0.026,
    "wind_note": "",
-   "diffraction_suspect": []
+   "diffraction_suspect": [
+    "Coronado Islands"
+   ]
   }
  ],
- "warnings": [
-  "The newest spectrum is 3.5 h old, over the 3 h limit \u2014 this is not current and must not be shown as now."
- ]
+ "warnings": []
 }
