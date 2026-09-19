@@ -1000,7 +1000,17 @@ in it is free. Measured over its 32 extrema:
   foot
 
 An hourly grid can tell you how high the next high water is. It cannot tell you
-when. CO-OPS computes the turns from the constituents and serves them at
+when.
+
+Those two figures were measured against a quadratic fit through the hourly
+grid — the model's own curve, not ground truth, because CO-OPS is denied at
+CONNECT from a session. The real turns arrived on Actions the same day, and
+cross-checking the grid against 31 of them says the estimate was slightly
+**conservative**: the grid's argmax lands **15.4 min off on average and 30.0
+min at worst**, understating the height by 0.7 cm mean and 2.8 cm worst. Same
+conclusion, from a located quantity rather than a fitted one — §15's lesson.
+
+CO-OPS computes the turns from the constituents and serves them at
 `interval=hilo`, so they are fetched into a third file rather than derived, and
 there is **no fallback** between the two: a surface that silently swapped one
 for the other would present the worse number in the same words as the better
@@ -1009,7 +1019,9 @@ one, which is §8's and §17's shape again.
 The stand-in turns file built for rendering — quadratic vertex on the hourly
 grid, scratchpad only, never `data/` — made the case by itself: on a flat
 stretch it invented a "high" of 1.158 m and a "low" of 1.144 m 108 minutes
-apart. A 1.4 cm tide cycle is not a tide cycle.
+apart. A 1.4 cm tide cycle is not a tide cycle. The real file has 31 turns
+across the same nine days, and the **smallest** range between consecutive ones
+is 19.5 cm against a median of 131.9 cm.
 
 ### What it cost
 

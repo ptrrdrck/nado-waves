@@ -340,8 +340,9 @@ circular helpers are used here. Trimming it is a good first cleanup.
   would do, at exactly the moment a reader is looking. BRIEFING §19.
 - **Fetch the turns; do not find them in the hourly file.** `interval=hilo` is
   CO-OPS computing high and low water from the constituents. Taking the argmax
-  of the hourly predictions instead puts the time **14.5 min out on average and
-  up to 29.4**, while the height barely moves (2.6 cm worst). An hourly grid can
+  of the hourly predictions instead puts the time **15.4 min out on average and
+  up to 30.0** — measured against 31 real CO-OPS turns — while the height
+  barely moves (2.8 cm worst). An hourly grid can
   say how high the next high water is and not when, and when is the half anyone
   plans around. There is deliberately **no fallback** from one to the other: a
   surface that silently swapped them would present the worse number in the same
