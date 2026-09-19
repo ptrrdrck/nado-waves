@@ -299,6 +299,14 @@ circular helpers are used here. Trimming it is a good first cleanup.
   normals span 29° (192.8 / 214.2 / 221.5) — measured 2026-09-18, a 290° wind
   reads cross-shore at north and centre and onshore at south, on the same
   reading. Hoist the measurement; keep the interpretation where it is made.
+- **The leading wave train is not the same at the buoy and the beach.** The
+  aperture takes whichever trains point at the blocked sector, so a spectrum's
+  biggest swell offshore need not be the one running a break — measured, that
+  re-ordering happens on 23% of archived spectra, and on 2026-09-19T04:00Z the
+  leader differed *between the three breaks* on one reading. Surfaces list the
+  trains rather than collapsing them to one "dominant"
+  (`transform.split_trains`, BRIEFING §16). It is a peak split of the 1-D
+  spectrum, not a 2-D watershed, and must not be described as partitioning.
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.

@@ -75,11 +75,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
        border-radius:var(--r);padding:10px 12px;font-size:13.5px;margin:0}
 .stale b{color:var(--signal)}
 
-/* What the buoy saw before the geometry touched it. */
-.buoy{font-size:13px;color:var(--soft);background:var(--card);border:1px dashed var(--line-strong);
-      border-radius:var(--r);padding:9px 12px;margin:0}
-.buoy b{color:var(--ink);font-weight:600}
-
 /* Conditions strip: one fact per line, its source under it. */
 .conditions{display:flex;flex-direction:column;gap:10px}
 .cond{display:flex;flex-direction:column;gap:2px;padding:11px 13px;background:var(--card);
@@ -88,6 +83,19 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond .val{font-size:19px;font-weight:600;line-height:1.25}
 .cond .val .unit{font-weight:400;color:var(--soft);font-size:15px}
 .cond .src{font-size:12px;color:var(--faint)}
+
+/* Wave trains. A spectrum is two or three swells plus a wind sea, and which
+   one leads at a break need not be the one leading at the buoy — so they are
+   listed rather than collapsed into a single "dominant". */
+.trains{display:flex;flex-direction:column;gap:3px;margin-top:3px}
+.train{display:flex;align-items:baseline;gap:8px;font-size:14px;
+       font-variant-numeric:tabular-nums}
+.train .ht{font-weight:600;min-width:62px}
+.train .tp{color:var(--soft);min-width:52px}
+.train .dr{color:var(--soft);flex:1}
+.train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.train.lead .ht,.train.lead .dr{color:var(--ink)}
+.train:not(.lead){opacity:.72}
 
 /* Earlier / later seek bar. */
 .seek{display:flex;align-items:stretch;gap:8px}
@@ -165,7 +173,6 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
 
   <p class="warn" id="warnings" hidden></p>
   <p class="stale" id="stale" hidden></p>
-  <p class="buoy" id="buoy" hidden></p>
 
   <!-- Earlier / later, with the hour between them. The full list is still a
        real <select>, laid transparently over the label, so the native picker
@@ -263,6 +270,7 @@ function cardsForNow() {
     fraction: b.fraction,
     period: b.peak_period_s, direction: b.peak_direction_deg,
     swellWindow: b.swell_window || [],
+    trains: b.trains || [],
     takenBy: b.taken_by || [],
     windOffshore: b.wind_offshore, windNote: b.wind_note,
   }));
@@ -278,10 +286,25 @@ function cardsForForecast(index) {
         fraction: h.fraction,
         period: h.dominant_period_s, direction: h.dominant_from_deg,
         swellWindow: b.swell_window || [],
+        trains: h.trains || [],
         takenBy: h.taken_by || [],
         windOffshore: b.wind_offshore, windNote: b.wind_note,
       };
     });
+}
+
+// Trains, largest first, the leader emphasised. Height leads the line because
+// it is what a reader compares between trains; period and heading say which
+// wave it is.
+function trainList(trains, {limit = 4} = {}) {
+  if (!trains || !trains.length) return "";
+  return `<div class="trains">` + trains.slice(0, limit).map((t, i) => `
+    <div class="train${i === 0 ? " lead" : ""}">
+      <span class="ht">${t.hs_m.toFixed(2)} m</span>
+      <span class="tp">${t.period_s.toFixed(1)} s</span>
+      <span class="dr">${compass(t.from_deg)}</span>
+      ${t.wind_sea ? '<span class="tag">wind sea</span>' : ""}
+    </div>`).join("") + `</div>`;
 }
 
 function renderConditions(index) {
@@ -290,6 +313,24 @@ function renderConditions(index) {
   if (MODE === "now") {
     const wind = (NOW && NOW.wind) || {};
     const tide = (NOW && NOW.tide) || {};
+    const buoy = (NOW && NOW.buoy) || {};
+
+    // The swell card carries what the buoy saw AND where it was seen, which
+    // is why the separate provenance line below the cards is gone: the
+    // measurement and its source belong on the same card.
+    rows.push(`<div class="cond">
+      <span class="lbl">Swell at the buoy</span>
+      ${buoy.hs_m != null
+        ? `<span class="val">${buoy.hs_m.toFixed(2)} m <span class="unit">combined</span></span>`
+          + trainList(buoy.trains)
+        : '<span class="val"><span class="unit">no spectrum</span></span>'}
+      <span class="src">${NOW && NOW.station_name
+        ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${when(NOW.observed_utc)}`
+          + (NOW.age_hours != null ? ` &mdash; ${NOW.age_hours} h ago` : "")
+          + (buoy.frequency_bins ? `, across ${buoy.frequency_bins} frequency bins` : "")
+        : ""}</span>
+    </div>`);
+
     rows.push(`<div class="cond">
       <span class="lbl">Wind, observed</span>
       <span class="val">${wind.from_deg != null
@@ -389,12 +430,18 @@ function renderBreaks(index) {
         of <b>${metres(c.hsOffshore)}</b> ${MODE === "now" ? "at the buoy" : "offshore"}
       </div>
 
+      ${c.trains && c.trains.length ? `
+      <div>
+        <div class="lbl">swell reaching here</div>
+        ${trainList(c.trains, {limit: 3})}
+      </div>` : `
       <div class="quiet">
         peak <b>${c.period ? c.period.toFixed(1) + " s" : "\u2014"}</b>
         from <b>${compass(c.direction)}</b>
-        \u00b7 swell window ${(c.swellWindow || [])
-          .map((w) => `${Math.round(w[0])}\u2013${Math.round(w[1])}\u00b0`).join(", ")}
-      </div>
+      </div>`}
+
+      <div class="quiet">swell window ${(c.swellWindow || [])
+        .map((w) => `${Math.round(w[0])}\u2013${Math.round(w[1])}\u00b0`).join(", ")}</div>
 
       <div>
         <div class="lbl">taking the swell</div>
@@ -413,6 +460,8 @@ function show() {
   $("tab-now").setAttribute("aria-selected", String(!forecasting));
   $("tab-forecast").setAttribute("aria-selected", String(forecasting));
 
+  renderFooter();
+
   if (forecasting) {
     const index = STEPS[CURSOR];
     const first = (DATA.breaks[0] || {}).hours || [];
@@ -422,7 +471,6 @@ function show() {
     $("later").disabled = CURSOR === STEPS.length - 1;
     renderBreaks(index);
     renderStanding(DATA.standing_on || {});
-    $("buoy").hidden = true;
     $("stale").hidden = true;
     $("cycle").innerHTML = DATA.cycle_utc
       ? `Latest data from the <b>GFS-Wave</b> model run of `
@@ -437,7 +485,6 @@ function show() {
   if (!NOW || !NOW.breaks || !NOW.breaks.length) {
     $("breaks").innerHTML = "";
     $("conditions").innerHTML = "";
-    $("buoy").hidden = true;
     $("stale").hidden = false;
     $("stale").innerHTML = `<b>No current observation.</b> `
       + ((NOW && NOW.warnings && NOW.warnings.join(" ")) ||
@@ -458,18 +505,29 @@ function show() {
       + `${when(NOW.observed_utc)} and nothing more.`;
   }
 
-  const b = NOW.buoy || {};
-  $("buoy").hidden = b.hs_m == null;
-  if (b.hs_m != null) {
-    $("buoy").innerHTML = `Before the geometry: the buoy itself saw `
-      + `<b>${b.hs_m.toFixed(2)} m</b> peaking at <b>${b.peak_period_s} s</b> `
-      + `from <b>${compass(b.peak_direction_deg)}</b>, across ${b.frequency_bins} `
-      + `frequency bins. The cards below are what survives each break's aperture.`;
-  }
+  // The buoy's reading and its provenance now live on the swell card, at the
+  // top, beside the wind and tide it sits with. Nothing is left to say down
+  // here on the observed side.
+  $("cycle").innerHTML = "";
+}
 
-  $("cycle").innerHTML = `Observed at the buoy <b>${NOW.station_name}</b> `
-    + `(NDBC ${NOW.station}) at <b>${when(NOW.observed_utc)}</b>`
-    + (NOW.age_hours != null ? `, ${NOW.age_hours} h ago.` : ".");
+// The footer differs by tab: the spread note and the build time describe the
+// forecast, and printing them under an observed reading would attribute a
+// model's properties to a measurement.
+function renderFooter() {
+  const shared = `Window energy is the energy aimed at a break. It is <b>not a wave
+    height at the beach</b>: no shoaling, no refraction, no offshore-to-face transfer.`;
+  if (MODE === "now") {
+    $("foot").innerHTML = shared + ` Observed at a buoy 29 km offshore and put
+      through each break's aperture; nothing here is measured at the sand.`;
+    return;
+  }
+  const spread = (DATA && DATA.spread_assumption) || {};
+  const assumed = spread.swell_deg != null
+    ? `Directional spread is assumed at ${spread.swell_deg}\u00B0 for swell and `
+      + `${spread.wind_sea_deg}\u00B0 for wind sea \u2014 ${spread.note || ""}`
+    : `The forecast uses the model's own directional spectrum, so no spread is assumed.`;
+  $("foot").innerHTML = `${shared} ${assumed} Forecast generated ${DATA.generated_utc}.`;
 }
 
 function setMode(mode) {
@@ -530,19 +588,8 @@ function boot(data, observed) {
   // silent fallback to the model.
   setMode("now");
 
-  // The spread sentence only applies when the forecast fell back to
-  // partitions. On the spectral path there is no assumed spread to disclose,
-  // and printing "assumed at undefined" is worse than saying nothing.
-  const spread = data.spread_assumption || {};
-  const assumed = spread.swell_deg != null
-    ? `Directional spread is assumed at ${spread.swell_deg}\u00B0 for swell and `
-      + `${spread.wind_sea_deg}\u00B0 for wind sea \u2014 ${spread.note || ""}`
-    : `The forecast uses the model's own directional spectrum, so no spread is assumed.`;
-  $("foot").innerHTML = `
-    Window energy is the energy aimed at a break. It is <b>not a wave height at
-    the beach</b>: no shoaling, no refraction, no offshore-to-face transfer.
-    ${assumed}
-    Forecast generated ${data.generated_utc}.`;
+  renderFooter();
+
 }
 
 Promise.all([
