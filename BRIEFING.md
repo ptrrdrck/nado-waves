@@ -805,3 +805,68 @@ git objects a year** — to duplicate a record that exists in the right place.
 This does not weaken "data files are tracked, not ignored": that rule guards the
 irreplaceable NDBC archive and the collected series beside it. A regenerable
 forecast is neither.
+
+---
+
+## 16. Measured, 2026-09-19 — the leading wave train is not the same at the buoy and the beach
+
+A spectrum is two or three swells plus a wind sea, and the aperture does not
+scale them together: it takes whichever ones point at the blocked sector. So
+**which train leads can change between the buoy and the sand, and between the
+three breaks on one spectrum.**
+
+`forecast.transform.split_trains` splits the surviving energy at its local
+minima, after the aperture, so each break's trains are the ones reaching it.
+
+### How often it happens
+
+Over 400 archived NDBC spectra at 46232, the leading train at Coronado centre
+differed from the leading train at the buoy by more than 3 s on **92 of them —
+23%.** Not an edge case.
+
+Measured example, 2026-08-17T09:00Z:
+
+| | leading train | second |
+|---|---|---|
+| at the buoy | 0.79 m, 5.6 s, from 260° | 0.69 m, 15.4 s, from 202° |
+| at Coronado centre | **0.62 m, 15.4 s, from 196°** | 0.46 m, 5.6 s, from 231° |
+
+Point Loma takes most of the westerly and the south swell leads at the beach.
+
+### And it differs between the three breaks
+
+2026-09-19T04:00Z, one spectrum:
+
+| | leading train |
+|---|---|
+| buoy | 0.91 m, 7.1 s, from 268° |
+| north | 0.46 m, **14.3 s**, from 183° |
+| centre | 0.48 m, **14.3 s**, from 187° |
+| south | 0.53 m, **7.1 s**, from 240° |
+
+North and centre are led by the south swell; the south break, whose window
+reaches to 259.9°, is still led by the westerly. Same water, three answers —
+which is the project's whole premise, now visible in one reading.
+
+### What the splitter is, and is not
+
+**A peak split of the 1-D spectrum, not a spectral partitioning.** WAVEWATCH III
+uses a watershed over the full 2-D field and can separate two trains that share
+a frequency band while arriving from different headings; this cannot, and
+reports them as one train at the energy-weighted mean heading. It is honest for
+the common case, where swell and wind sea are well separated in frequency.
+
+**Peaks need prominence.** Without a rule that the trough between two peaks must
+fall to 60% of the smaller one, ordinary wiggle in a wind sea split into four
+"trains" at 4.2, 5.3, 6.2 and 7.1 s — a description of the noise, not the water.
+With it, the median spectrum yields three trains.
+
+### The control
+
+The robust claim is not that the leader flips — that depends on how far ahead
+the blocked train started — but that **the ratio always moves in favour of the
+open train.** Across a synthetic sweep, south-to-sea height ratio at the buoy
+against at the beach: 0.57 → 0.85, 0.62 → 0.92, 0.68 → 1.00, 0.76 → 1.12,
+0.87 → 1.30. Every case, same direction. The leader itself flips once the
+starting margin is small enough. Both are pinned in
+`tests/test_transform.py::TestSplittingIntoTrains`.

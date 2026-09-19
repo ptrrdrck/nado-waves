@@ -187,6 +187,9 @@ class Survives:
     removed: list[Removed] = field(default_factory=list)
     #: Blockers whose geometric shadow is not trustworthy at this period.
     diffraction_suspect: list[str] = field(default_factory=list)
+    #: The surviving energy split into wave trains, largest first. Which train
+    #: leads here need not be which leads at the buoy — see `split_trains`.
+    trains: list["Train"] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
     @property
@@ -303,8 +306,11 @@ def through(
     weighted_period = 0.0
     sin_sum = cos_sum = 0.0
     # Surviving energy per frequency bin, so the peak can be found after the
-    # aperture rather than before it.
+    # aperture rather than before it, and so the spectrum can be split into
+    # wave trains that are the ones reaching THIS break.
     per_bin: list[tuple[int, float]] = []
+    bin_sin: dict[int, float] = {}
+    bin_cos: dict[int, float] = {}
 
     for index, freq in enumerate(spectrum.frequencies):
         density = spectrum.c11[index]
@@ -313,6 +319,7 @@ def through(
         width = spectrum.bin_width(index)
         period = 1.0 / freq if freq > 0 else 0.0
         bin_surviving = 0.0
+        bin_sin_sum = bin_cos_sum = 0.0
         for n in range(steps):
             theta = (n + 0.5) * d_theta
             energy = spectrum.density(index, theta) * radians_step * width
@@ -326,11 +333,14 @@ def through(
                 weighted_period += surviving * period
                 sin_sum += surviving * math.sin(math.radians(theta))
                 cos_sum += surviving * math.cos(math.radians(theta))
+                bin_sin_sum += surviving * math.sin(math.radians(theta))
+                bin_cos_sum += surviving * math.cos(math.radians(theta))
             else:
                 who = culprit[n]
                 if who:
                     taken[who] = taken.get(who, 0.0) + energy
         per_bin.append((index, bin_surviving))
+        bin_sin[index], bin_cos[index] = bin_sin_sum, bin_cos_sum
 
     mean_period = weighted_period / m0_in if m0_in > 0 else float("nan")
     mean_dir = math.degrees(math.atan2(sin_sum, cos_sum)) % 360.0 if m0_in > 0 else float("nan")
@@ -385,6 +395,7 @@ def through(
         confidence=confidence,
         removed=removed,
         diffraction_suspect=suspect,
+        trains=split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos),
     )
 
 
@@ -805,3 +816,133 @@ class GridSpectrum:
         weight = position - low
         return max(0.0, self.energy[low % count][index] * (1 - weight)
                         + self.energy[(low + 1) % count][index] * weight)
+
+
+# ---------------------------------------------------------------------------
+# Wave trains
+#
+# A spectrum is usually two or three separate swells plus a wind sea, and which
+# of them dominates AT A BREAK is not which dominates at the buoy — Point Loma
+# can take the biggest train and leave a smaller one running the show. That
+# re-ordering is the project's claim, so the surface has to be able to show it.
+# ---------------------------------------------------------------------------
+
+#: Two peaks are one train unless the trough between them drops to this
+#: fraction of the smaller peak. Without it, ordinary wiggle in a wind sea
+#: splits into four "trains" at 4.2, 5.3, 6.2 and 7.1 s, which is a
+#: description of the noise and not of the water.
+PROMINENCE = 0.6
+
+#: A train carrying less than this share of the surviving energy is noise from
+#: the splitter rather than a wave anybody would name.
+MIN_TRAIN_SHARE = 0.04
+
+#: And one below this height is not worth a line on a card whatever its share.
+MIN_TRAIN_HS_M = 0.05
+
+
+@dataclass
+class Train:
+    """One wave train: a band of the spectrum around a local energy peak."""
+
+    hs_m: float
+    period_s: float
+    from_deg: float
+    #: Share of the energy this train is of the spectrum it was split out of.
+    share: float
+
+    @property
+    def is_wind_sea(self) -> bool:
+        """Short period is the only wind-sea signal available here.
+
+        The bulletin flags its own partitions; a spectrum does not, and
+        inferring it from steepness would need the wind, which is a different
+        measurement with its own failure modes. Eight seconds is conventional.
+        """
+
+        return self.period_s < WIND_SEA_PERIOD_S
+
+
+def split_trains(
+    energies: list[tuple[int, float]],
+    frequencies: list[float],
+    sin_sums: dict[int, float],
+    cos_sums: dict[int, float],
+    *,
+    min_share: float = MIN_TRAIN_SHARE,
+    min_hs: float = MIN_TRAIN_HS_M,
+) -> list[Train]:
+    """Split a 1-D energy spectrum into trains at its local minima.
+
+    **This is a peak split, not a spectral partitioning.** WAVEWATCH III uses a
+    watershed over the full 2-D spectrum and can separate two trains that share
+    a frequency band while arriving from different directions; this cannot, and
+    will report them as one train at the energy-weighted mean heading. It is
+    honest for the common case — a long-period swell and a short-period wind
+    sea are well separated in frequency — and it is named for what it does so
+    that nobody later reads more into it.
+
+    `energies` is (bin index, energy in m²) in increasing frequency.
+    """
+
+    live = [(i, e) for i, e in energies if e > 0.0]
+    if not live:
+        return []
+    total = sum(e for _, e in live)
+    if total <= 0:
+        return []
+
+    # Local maxima, then assign every bin to the peak it descends from. With
+    # one peak this is the whole spectrum, which is the right answer.
+    peaks = [
+        k for k in range(len(live))
+        if (k == 0 or live[k][1] > live[k - 1][1])
+        and (k == len(live) - 1 or live[k][1] >= live[k + 1][1])
+    ]
+    if not peaks:
+        peaks = [max(range(len(live)), key=lambda k: live[k][1])]
+
+    # Merge peaks that are not separated by a real trough: a dip that barely
+    # descends is one train with a bumpy top, not two waves.
+    merged = [peaks[0]]
+    for peak in peaks[1:]:
+        previous = merged[-1]
+        trough = min(live[previous:peak + 1], key=lambda item: item[1])[1]
+        smaller = min(live[previous][1], live[peak][1])
+        if smaller > 0 and trough / smaller > PROMINENCE:
+            # Keep whichever of the two is the taller; they are one train.
+            if live[peak][1] > live[previous][1]:
+                merged[-1] = peak
+        else:
+            merged.append(peak)
+    peaks = merged
+
+    bounds = [0]
+    for left, right in zip(peaks, peaks[1:]):
+        trough = min(range(left, right + 1), key=lambda k: live[k][1])
+        bounds.append(trough)
+    bounds.append(len(live))
+
+    trains: list[Train] = []
+    for start, end in zip(bounds, bounds[1:]):
+        band = live[start:end]
+        if not band:
+            continue
+        m0 = sum(e for _, e in band)
+        if m0 <= 0:
+            continue
+        top = max(band, key=lambda item: item[1])[0]
+        sin_total = sum(sin_sums.get(i, 0.0) for i, _ in band)
+        cos_total = sum(cos_sums.get(i, 0.0) for i, _ in band)
+        heading = (math.degrees(math.atan2(sin_total, cos_total)) % 360.0
+                   if (sin_total or cos_total) else float("nan"))
+        trains.append(Train(
+            hs_m=4.0 * math.sqrt(m0),
+            period_s=1.0 / frequencies[top] if frequencies[top] > 0 else float("nan"),
+            from_deg=heading,
+            share=m0 / total,
+        ))
+
+    trains = [t for t in trains if t.share >= min_share and t.hs_m >= min_hs]
+    trains.sort(key=lambda t: -t.hs_m)
+    return trains

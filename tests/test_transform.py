@@ -238,3 +238,114 @@ class TestLoadSpectraRefusesToGuess:
         self._write(tmp_path, "r2", rows, freqs=("0.0500", "0.0700"))
         with pytest.raises(ValueError, match="frequency bins disagree"):
             load_spectra(tmp_path)
+
+
+class TestSplittingIntoTrains:
+    """A spectrum is two or three swells plus a wind sea, and which of them
+    leads AT A BREAK need not be which leads at the buoy. That re-ordering is
+    the project's claim, so the splitter has to be able to show it."""
+
+    def two_peaks(self, *, west: float = 1.4) -> Spectrum:
+        """A long-period south swell in the window and a west sea outside it."""
+
+        bins = 40
+        freqs = [0.03 + 0.01 * i for i in range(bins)]
+        sigma = math.radians(20.0)
+        r1, r2 = math.exp(-0.5 * sigma ** 2), math.exp(-2.0 * sigma ** 2)
+        c11, a1 = [], []
+        for f in freqs:
+            south = 1.0 * math.exp(-((f - 0.07) ** 2) / (2 * 0.008 ** 2))
+            sea = west * math.exp(-((f - 0.17) ** 2) / (2 * 0.020 ** 2))
+            c11.append(south + sea)
+            a1.append(200.0 if south >= sea else 265.0)
+        return Spectrum(datetime(2026, 9, 19, tzinfo=timezone.utc),
+                        freqs, c11, a1, a1, [r1] * bins, [r2] * bins)
+
+    @staticmethod
+    def ratio(trains) -> float:
+        """Long-period train's height over the short-period one's."""
+
+        swell = [t for t in trains if t.period_s > 10.0]
+        sea = [t for t in trains if t.period_s <= 10.0]
+        return swell[0].hs_m / sea[0].hs_m if swell and sea else float("nan")
+
+    def test_it_finds_both_trains(self):
+        got = through(self.two_peaks(), BY_ID["coronado_center"], [])
+        assert len(got.trains) == 2
+        periods = sorted(t.period_s for t in got.trains)
+        assert periods[0] < 8.0 < periods[1]
+
+    def test_trains_come_back_largest_first(self):
+        got = through(self.two_peaks(), BY_ID["coronado_center"], [])
+        heights = [t.hs_m for t in got.trains]
+        assert heights == sorted(heights, reverse=True)
+
+    def test_a_ripple_is_not_a_train(self):
+        """Without a prominence rule, ordinary wiggle in a wind sea split into
+        four 'trains' at 4.2, 5.3, 6.2 and 7.1 s — a description of the noise
+        rather than of the water."""
+
+        bins = 40
+        freqs = [0.03 + 0.01 * i for i in range(bins)]
+        # One broad sea with a small dimple in its top.
+        c11 = [1.0 * math.exp(-((f - 0.15) ** 2) / (2 * 0.04 ** 2)) for f in freqs]
+        c11[len(c11) // 2] *= 0.97
+        sigma = math.radians(20.0)
+        spectrum = Spectrum(datetime(2026, 9, 19, tzinfo=timezone.utc), freqs, c11,
+                            [260.0] * bins, [260.0] * bins,
+                            [math.exp(-0.5 * sigma ** 2)] * bins,
+                            [math.exp(-2.0 * sigma ** 2)] * bins)
+        assert len(through(spectrum, BY_ID["coronado_center"], []).trains) == 1
+
+    def test_shares_are_of_the_spectrum_they_were_split_from(self):
+        got = through(self.two_peaks(), BY_ID["coronado_center"], [])
+        assert sum(t.share for t in got.trains) == pytest.approx(1.0, abs=0.06)
+
+    def test_short_period_is_flagged_as_wind_sea(self):
+        got = through(self.two_peaks(), BY_ID["coronado_center"], [])
+        short = min(got.trains, key=lambda t: t.period_s)
+        long_ = max(got.trains, key=lambda t: t.period_s)
+        assert short.is_wind_sea and not long_.is_wind_sea
+
+    @pytest.mark.parametrize("west", [0.6, 0.8, 1.0, 1.2, 1.4])
+    def test_the_aperture_always_shifts_the_balance_toward_the_open_train(self, west):
+        """The robust form of the claim. Whether the south swell actually
+        overtakes depends on how far ahead the sea started, but the RATIO
+        between them must move in its favour every time — measured, 0.57→0.85
+        at the widest margin and 0.87→1.30 at the narrowest."""
+
+        spectrum = self.two_peaks(west=west)
+        at_buoy = self.ratio(through(spectrum, BY_ID["coronado_center"], []).trains)
+        at_beach = self.ratio(through(spectrum, BY_ID["coronado_center"], BLOCKERS).trains)
+        assert at_beach > at_buoy
+
+    def test_and_with_a_small_enough_margin_the_leader_actually_flips(self):
+        """Which is the thing worth putting on a surface: the biggest train at
+        the buoy is not the one running the beach. Seen in the archive on 92 of
+        400 real spectra, and reproduced here."""
+
+        spectrum = self.two_peaks(west=0.8)
+        buoy = through(spectrum, BY_ID["coronado_center"], []).trains
+        beach = through(spectrum, BY_ID["coronado_center"], BLOCKERS).trains
+
+        assert buoy[0].period_s < 10.0       # the sea leads at the buoy
+        assert beach[0].period_s > 10.0      # the swell leads at the beach
+
+    def test_an_empty_spectrum_yields_no_trains(self):
+        bins = 10
+        spectrum = Spectrum(datetime(2026, 9, 19, tzinfo=timezone.utc),
+                            [0.05 + 0.01 * i for i in range(bins)], [0.0] * bins,
+                            [200.0] * bins, [200.0] * bins, [0.9] * bins, [0.5] * bins)
+        assert through(spectrum, BY_ID["coronado_center"], []).trains == []
+
+    def test_a_trains_heading_is_the_surviving_energy_not_the_whole_circle(self):
+        """After the aperture the train's heading should move toward the part
+        of it that got through, not stay where the buoy saw it."""
+
+        spectrum = self.two_peaks()
+        buoy = {round(t.period_s): t for t in through(spectrum, BY_ID["coronado_center"], []).trains}
+        beach = {round(t.period_s): t for t in
+                 through(spectrum, BY_ID["coronado_center"], BLOCKERS).trains}
+        shared = set(buoy) & set(beach)
+        assert shared
+        assert any(abs(buoy[k].from_deg - beach[k].from_deg) > 1.0 for k in shared)

@@ -135,6 +135,9 @@ class Hour:
     #: From the same WAVEWATCH III file as the spectrum, so no second source.
     wind_from_deg: float | None = None
     wind_kt: float | None = None
+    #: The surviving energy split into wave trains, largest first. Only on the
+    #: spectral path — partitions arrive pre-split and are not re-split here.
+    trains: list[dict] = field(default_factory=list)
     #: Share of the offshore energy each blocker took, largest first. The app
     #: reads this to say WHAT is taking the swell, and to mark a reading whose
     #: dominant blocker is the estimated Coronado Islands as less certain than
@@ -464,6 +467,12 @@ def build(
                 shares = {r.blocker: r.share for r in survived.removed}
                 hour_wind_deg = round(record.wind_from_deg)
                 hour_wind_kt = round(record.wind_kt, 1)
+                hour_trains = [
+                    {"hs_m": round(t.hs_m, 3), "period_s": round(t.period_s, 1),
+                     "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
+                     "share": round(t.share, 4), "wind_sea": t.is_wind_sea}
+                    for t in survived.trains[:3]
+                ]
             else:
                 parts = [
                     (p.hs_m, p.tp_s, float(from_direction(p.toward_deg)), p.wind_sea)
@@ -477,6 +486,7 @@ def build(
                 dominant_tp = round(dominant.tp_s, 1) if dominant else None
                 dominant_dir = round(dominant.from_deg) if dominant else None
                 hour_wind_deg = hour_wind_kt = None
+                hour_trains = []
                 shares = {}
 
                 # Energy-weighted across partitions: a blocker shadowing a
@@ -508,6 +518,7 @@ def build(
                 dominant_from_deg=dominant_dir,
                 wind_from_deg=hour_wind_deg,
                 wind_kt=hour_wind_kt,
+                trains=hour_trains,
                 taken_by=taken_by,
             ))
         forecast.breaks.append(entry)
