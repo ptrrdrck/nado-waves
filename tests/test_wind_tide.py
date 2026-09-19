@@ -134,3 +134,78 @@ class TestTideKeepsTheModelApartFromTheMeasurement:
         )
         assert "datum=MLLW" in url and "units=metric" in url
         assert "time_zone=gmt" in url and "interval=h" in url
+
+
+class TestTheTideTurns:
+    """CO-OPS computes the high and low water times from the constituents.
+    Deriving them from the hourly prediction grid instead puts the time 14.5
+    minutes out on average and up to 29.4 (measured, 32 extrema in the
+    archive), while the height barely moves — so the hourly file can say how
+    high the next high water is and not when, and when is the half anyone
+    plans around."""
+
+    HILO = json.dumps({"predictions": [
+        {"t": "2026-09-19 11:42", "v": "1.712", "type": "H"},
+        {"t": "2026-09-19 18:06", "v": "0.134", "type": "L"},
+    ]}).encode()
+
+    def test_the_turns_land_in_their_own_file(self, tmp_path):
+        path = tide_mod.tide_path(tmp_path, "9410170", "turns")
+        assert "turns" in path.name
+        assert path != tide_mod.tide_path(tmp_path, "9410170", "predictions")
+
+    def test_it_asks_co_ops_for_hilo_not_an_interval(self):
+        assert tide_mod.REQUESTS["turns"] == ("predictions", "hilo")
+        assert tide_mod.api_product("turns") == "predictions"
+
+    def test_a_turn_records_which_way_the_tide_is_going(self):
+        rows = tide_mod.parse(self.HILO, "turns")
+        assert [r["event"] for r in rows] == ["high", "low"]
+
+    def test_a_turn_is_still_the_same_harmonic_model(self):
+        """Not a third kind of thing — the same prediction, reported at its own
+        turning points instead of on a clock."""
+
+        assert {r["kind"] for r in tide_mod.parse(self.HILO, "turns")} == {"predicted"}
+
+    def test_an_unlabelled_hilo_row_is_dropped_not_guessed(self):
+        """A turning point that cannot say which way the tide is going is a
+        number, not a turn."""
+
+        body = json.dumps({"predictions": [
+            {"t": "2026-09-19 11:42", "v": "1.712", "type": ""},
+            {"t": "2026-09-19 18:06", "v": "0.134", "type": "L"},
+        ]}).encode()
+        rows = tide_mod.parse(body, "turns")
+        assert len(rows) == 1 and rows[0]["event"] == "low"
+
+    def test_an_unknown_label_is_kept_verbatim_not_mapped(self):
+        """CO-OPS emits HH and LL at some stations. Forcing one of those into
+        'high' or 'low' would be inventing a claim; the reader names it or
+        nothing does."""
+
+        body = json.dumps({"predictions": [
+            {"t": "2026-09-19 11:42", "v": "1.712", "type": "HH"},
+        ]}).encode()
+        assert tide_mod.parse(body, "turns")[0]["event"] == "hh"
+
+    def test_the_older_files_are_not_widened_to_match(self, tmp_path):
+        """The observed and predicted CSVs are already written and have five
+        columns. Appending a six-column row to them would misalign every row
+        after it."""
+
+        assert "event" not in tide_mod.fields_for("predictions")
+        assert "event" in tide_mod.fields_for("turns")
+
+        path = tide_mod.tide_path(tmp_path, "9410170", "turns")
+        tide_mod.append(path, tide_mod.parse(self.HILO, "turns"),
+                        seen_at="2026-09-19T06:00:00Z", fields=tide_mod.TURN_FIELDS)
+        header = path.read_text().splitlines()[0]
+        assert header.endswith("event")
+        assert len(path.read_text().splitlines()[1].split(",")) == len(header.split(","))
+
+    def test_all_three_products_are_collected(self):
+        import inspect
+        source = inspect.getsource(tide_mod.collect)
+        for product in ("water_level", "predictions", "turns"):
+            assert f'"{product}"' in source

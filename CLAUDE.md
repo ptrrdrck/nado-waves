@@ -207,7 +207,8 @@ forecaster actually verifies against, Surfline included.
                         probe_spectra.py (are directional spectra reachable?),
                         spectra.py (archive them), wind.py (KNZY),
                         wavespec.py (WW3's own spectrum + wind, not archived),
-                        tide.py (9410170),
+                        tide.py (9410170 — measured, hourly predicted, and
+                        CO-OPS's own hilo TURNS in a third file),
                         beachlog.py + beachlog_import.py (the observation log)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/beachlog.html   the phone form, owner build (shared store)
@@ -222,6 +223,8 @@ forecaster actually verifies against, Surfline included.
       now.py            the OBSERVED reading, measurements only    [built]
       publish.py        the public delivery bundle                 [built]
       units.py          ft/mph first, m/kt in parentheses -- display only
+      tideturns.py      the next high/low, and why its direction is not
+                        differenced from the measured level      [built]
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
@@ -233,7 +236,9 @@ forecaster actually verifies against, Surfline included.
       beachverify.py    does the log agree with the geometry, and the control
     data/live/          forecast.json, what the app surface reads
     data/spectra/       NDBC directional spectra, five components per station
-    data/wind/          KNZY                    data/tide/  NOAA 9410170
+    data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
+                        _observed (measured), _predicted (hourly harmonic),
+                        _turns (the harmonic model's own highs and lows)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
@@ -322,6 +327,31 @@ circular helpers are used here. Trimming it is a good first cleanup.
   not be. `forecast/units.py` and the two constants at the top of
   `app/forecast.html` are the only places the conversion happens; a test pins
   that each factor appears exactly once.
+- **The tide's direction is read off the next turn, never differenced from the
+  water level.** Measured 2026-09-19 on the 6-minute measured series:
+  differencing the two newest samples reads the direction **backwards on 19.5%
+  of readings**, and a least-squares slope over a trailing 45 minutes is still
+  wrong 3.3% — because near slack water the real change is smaller than the
+  gauge's own wobble (median 6-minute step 1.1 cm). Every 45-minute error sits
+  under 5.6 cm/h, but a deadband that wide would silence the card for roughly a
+  quarter of every cycle. If the next turn is a high the tide is rising into it,
+  so direction and target come from one source and cannot contradict each other
+  on screen — which is what a measured "falling" beside a predicted high water
+  would do, at exactly the moment a reader is looking. BRIEFING §19.
+- **Fetch the turns; do not find them in the hourly file.** `interval=hilo` is
+  CO-OPS computing high and low water from the constituents. Taking the argmax
+  of the hourly predictions instead puts the time **14.5 min out on average and
+  up to 29.4**, while the height barely moves (2.6 cm worst). An hourly grid can
+  say how high the next high water is and not when, and when is the half anyone
+  plans around. There is deliberately **no fallback** from one to the other: a
+  surface that silently swapped them would present the worse number in the same
+  words as the better one.
+- **The observed tab now carries exactly one modelled number — the tide's next
+  turn — and it is labelled everywhere it appears**: a `predicted` tag on the
+  card, and a "standing on" row that names the measured level and the predicted
+  turn as two claims. The Now/Forecast split is about the reader always knowing
+  which chain they are looking at, not about a tab being chemically pure; an
+  unlabelled turn would have broken it, a labelled one demonstrates it.
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.
