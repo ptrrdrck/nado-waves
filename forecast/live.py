@@ -49,6 +49,7 @@ from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_dire
 from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
 from .geometry import HIGH, LOW, Blocker, Spot, load, swell_windows
+from .units import height as fmt_height, speed as fmt_speed
 from .transform import (
     GridSpectrum,
     SEAWARD_CLIP,
@@ -381,7 +382,7 @@ def build(
         station_name=station_name(STATION, data_dir),
         standing_on={
             "geometry": "digitised — Coronado's three breaks and the Point Loma tip",
-            "model": "GFS-Wave, unassimilated; 0.26–0.31 m low bias at the buoy, not corrected here",
+            "model": "GFS-Wave, unassimilated; 0.9–1.0 ft (0.26–0.31 m) low bias at the buoy, not corrected here",
             "calibration": "none — no offshore-to-face transfer, no shoaling, no refraction, no band",
             "observation": "none — data/beach_log/ is empty; nothing has measured these breaks",
             "claim": "physically derived, not accurate; ordinal and differential, not a height at the beach",
@@ -419,7 +420,7 @@ def build(
     spectra = spectra or {}
     forecast.wave_source = "spectrum" if spectra else "partitions"
     forecast.standing_on["model"] = (
-        "GFS-Wave, unassimilated; 0.26–0.31 m low bias at the buoy, not corrected here"
+        "GFS-Wave, unassimilated; 0.9–1.0 ft (0.26–0.31 m) low bias at the buoy, not corrected here"
         + ("; its own directional spectrum, so no assumed spread"
            if spectra else "; swell partitions with an assumed directional spread")
     )
@@ -544,8 +545,8 @@ def format_table(forecast: Forecast, *, rows: int = 8) -> str:
 
     wind = forecast.wind
     if wind.measured:
-        gust = f" gusting {wind.gust_kt:.0f}" if wind.gust_kt else ""
-        lines.append(f"wind  {wind.from_deg:.0f}° at {wind.speed_kt or 0:.0f} kt{gust}"
+        gust = f", gusting {fmt_speed(wind.gust_kt)}" if wind.gust_kt else ""
+        lines.append(f"wind  {wind.from_deg:.0f}° at {fmt_speed(wind.speed_kt)}{gust}"
                      f"   {wind.station_name} ({wind.station}), {wind.observed_utc}")
     else:
         lines.append(f"wind  — {wind.note or 'not collected'}")
@@ -565,15 +566,16 @@ def format_table(forecast: Forecast, *, rows: int = 8) -> str:
                      else "onshore" if entry.wind_offshore < -0.3 else "cross")
             sense = f"   wind {sense}" + (f" ({entry.wind_note})" if entry.wind_note else "")
         lines.append(f"{entry.name}   [{entry.confidence} confidence]{sense}")
-        lines.append(f"  {'valid':>17s} {'lead':>5s} {'offshore':>9s} {'window':>8s} "
-                     f"{'thru':>6s} {'T':>6s} {'from':>6s} {'tide':>7s}")
+        lines.append(f"  {'valid':>17s} {'lead':>5s} {'offshore':>16s} {'window':>16s} "
+                     f"{'thru':>6s} {'T':>6s} {'from':>6s} {'tide':>16s}")
         for hour in entry.hours[:rows]:
             water = tide_by_time.get(hour.valid_utc)
-            tide = f"{water.height_m:6.2f}m" if water and water.height_m is not None else "     —"
+            tide = fmt_height(water.height_m if water else None)
             lines.append(
-                f"  {hour.valid_utc:>17s} {hour.lead_h:4d}h {hour.hs_offshore_m:8.2f}m "
-                f"{hour.hs_window_m:7.2f}m {100*(hour.fraction or 0):5.0f}% "
-                f"{hour.dominant_period_s or 0:5.1f}s {hour.dominant_from_deg or 0:5.0f}° {tide}"
+                f"  {hour.valid_utc:>17s} {hour.lead_h:4d}h "
+                f"{fmt_height(hour.hs_offshore_m):>16s} {fmt_height(hour.hs_window_m):>16s} "
+                f"{100*(hour.fraction or 0):5.0f}% "
+                f"{hour.dominant_period_s or 0:5.1f}s {hour.dominant_from_deg or 0:5.0f}° {tide:>16s}"
             )
         lines.append("")
 
