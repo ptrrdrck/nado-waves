@@ -82,6 +82,18 @@ jobs:
           set -euo pipefail
           python -m collector.tide
 
+      # "Now" is only as fresh as the job that publishes it. The forecast job
+      # runs four times a day, which would make an hourly observation up to six
+      # hours old before anyone saw it -- so the observed reading is rebuilt and
+      # published here, hourly, right after the spectra land. It is ~2.6 KB
+      # against forecast.json's 70 KB, which is why it is its own file.
+      - name: Rebuild the observed reading
+        id: now
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m forecast.now
+
       - name: Say which sources came back
         env:
           SPECTRA: ${{ steps.spectra.outcome }}
@@ -115,7 +127,7 @@ jobs:
           git config user.name "nado-waves collector"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/spectra data/wind data/tide 2>/dev/null || true
+          git add data/spectra data/wind data/tide data/live/now.json 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No new beach inputs to commit."
@@ -143,3 +155,20 @@ jobs:
 
           echo "::error title=Beach inputs push failed::Could not push archived inputs"
           exit 1
+
+      # Republish the bundle so the observed reading reaches the page within
+      # the hour. forecast.json is rebuilt only by the forecast job, so this
+      # re-copies whatever it last produced -- git sees no change in it and the
+      # commit carries only now.json.
+      - name: Publish the observed reading
+        if: ${{ !inputs.skip_commit }}
+        continue-on-error: true
+        env:
+          PAGES_REPO: ${{ vars.PAGES_REPO || 'ptrrdrck/nado-waves-forecast' }}
+          PAGES_TOKEN: ${{ secrets.FORECAST_PAGES_TOKEN }}
+          BUNDLE: build/site
+          REASON: "Publish observed reading"
+        run: |
+          set -euo pipefail
+          python -m forecast.publish --out build/site
+          .github/scripts/publish-pages.sh
