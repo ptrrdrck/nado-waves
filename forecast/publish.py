@@ -13,8 +13,14 @@ The bundle:
 
     index.html      app/forecast.html inside a standalone HTML document
     forecast.json   data/live/forecast.json, thinned to what the page shows
+    now.json        data/live/now.json — the observed reading, if there is one
     .nojekyll       Pages must serve the files as-is, not run Jekyll over them
     README.md       says what the repository is and where to edit it
+
+`now.json` is optional and is published whenever it exists. It is small and
+changes hourly where `forecast.json` changes four times a day, which is why it
+is a separate file rather than a key inside one: the hourly job rewrites a few
+kilobytes instead of seventy.
 
 **This repository stays the system of record.** The bundle is regenerated from
 it every cycle and nothing is ever edited on the far side — the same contract
@@ -202,6 +208,19 @@ def build(
         json.dumps(thin(forecast, step=step), separators=(",", ":")), encoding="utf-8"
     )
     written["forecast.json"] = payload.stat().st_size
+
+    # The observed reading, when there is one. Absent is a normal state: the
+    # page falls back to the forecast and says the observation is missing,
+    # which is better than publishing a stale "now".
+    now_path = Path(data_dir) / "live" / "now.json"
+    if now_path.exists():
+        payload = out_dir / "now.json"
+        payload.write_text(
+            json.dumps(json.loads(now_path.read_text(encoding="utf-8")),
+                       separators=(",", ":")),
+            encoding="utf-8",
+        )
+        written["now.json"] = payload.stat().st_size
 
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
     written[".nojekyll"] = 0

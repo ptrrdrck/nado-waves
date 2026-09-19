@@ -686,3 +686,50 @@ page fetches `../data/live/forecast.json`, which is right in this repository and
 shell. Caught by rendering the bundle rather than by reading it, which is the
 only way it *could* have been caught — the HTML was valid, the JSON was valid,
 and the page's own error handling worked.
+
+---
+
+## 14. Measured, 2026-09-19 — the spectral chain reproduces the buoy's own report
+
+Before building the observed "now" path on it, the chain from archived NDBC
+spectral files through `forecast.transform` was checked against the quantities
+46232 publishes for itself. If these disagreed, nothing downstream could be
+trusted.
+
+| quantity | spectrum vs the buoy's own report | n |
+|---|---|---|
+| Hs from integrating E(f, θ) vs `WVHT` | −0.7% to +8.4% | 3 |
+| α₁ at the peak bin vs `MWD` | mean **8.0°**, median **5.0°** | 37 |
+| 1/f at the peak bin vs `DPD` | mean **0.79 s**, median **0.38 s** | 37 |
+
+The residuals are about what the reported precision allows: `MWD` comes in
+whole degrees and `DPD` in whole seconds, and the peak is quantised to a
+frequency bin.
+
+**The trap this walked into first.** Compared against the *energy-weighted mean*
+direction, the same spectra looked 42–50° away from `MWD`, which reads like a
+broken convention. It is not: **`MWD` is α₁ at the peak frequency**, and the
+mean over a spectrum carrying both a south swell and a west windsea sits
+between them. Two different quantities, one of which happens to have a similar
+name. `Survives.peak_period_s` had the same fault — it held an energy-weighted
+mean — and is now `mean_period_s`, with the true peak added beside it.
+
+### What the observed reading shows that the buoy alone does not
+
+From the spectrum of 2026-09-19T00:00Z:
+
+| | Hs | peak period | peak direction |
+|---|---|---|---|
+| the buoy itself | 1.34 m | 5.9 s | 292° |
+| Coronado north | 0.66 m (24%) | 13.3 s | 192° |
+| Coronado centre | 0.69 m (26%) | 14.3 s | 208° |
+| Coronado south | 0.76 m (32%) | 14.3 s | 208° |
+
+**The peak changes wave train at the beach.** What dominates offshore is a
+5.9 s west windsea, and Point Loma takes it; what is left is a 13–14 s south
+swell at roughly a quarter of the energy. A forecast anchored on this buoy that
+skips the aperture reports the windsea. §2's "most days the forecast is a
+transform artifact, not a propagated wave" is this, on measured data.
+
+Note the peak is taken **after** the aperture, which is why north differs from
+centre and south: they do not all keep the same train.
