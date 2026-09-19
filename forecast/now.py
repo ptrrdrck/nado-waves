@@ -36,7 +36,7 @@ import json
 import math
 import sys
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
@@ -56,12 +56,18 @@ from .live import (
     wind_at_break,
     wind_measurement,
 )
+from .tideturns import read_turns, turns_between
 from .transform import Spectrum, at_buoy, load_spectra, through
 
 #: Older than this and the spectrum is not "now". NDBC publishes hourly and the
 #: collector runs hourly, so a healthy reading is under two hours old. Three
 #: leaves room for one missed run without lying about what it is.
 STALE_HOURS = 3.0
+
+#: How far ahead to carry predicted turns. Two tide cycles is enough that the
+#: page can keep answering "the next turn" as turns pass beneath it, without
+#: carrying a week of them into a file that describes one moment.
+TURN_WINDOW_HOURS = 36
 
 
 @dataclass
@@ -114,6 +120,9 @@ class Now:
     station: str
     station_name: str
     standing_on: dict
+    #: Predicted turning points of the tide. A MODEL, on a tab that is
+    #: otherwise measurements only, and named as one everywhere it shows.
+    tide_turns: list = field(default_factory=list)
     #: The limit `stale` was decided against, carried so a surface can re-apply
     #: it to the reader's own clock instead of keeping a second copy of it.
     stale_hours: float = STALE_HOURS
@@ -219,7 +228,10 @@ def build(
             "waves": f"OBSERVED — NDBC directional spectrum at {STATION}, "
                      f"measured r1/r2, no assumed spread",
             "wind": f"OBSERVED — {WIND_STATION} METAR",
-            "tide": f"OBSERVED — measured water level at {TIDE_STATION}, not a prediction",
+            # Rewritten below once the turn is known: the card carries a measured
+        # level AND a predicted turn, and a row claiming the whole thing was
+        # observed would be the exact confusion this block exists to prevent.
+        "tide": f"OBSERVED — measured water level at {TIDE_STATION}, not a prediction",
             "calibration": "none — no offshore-to-face transfer, no shoaling, no refraction",
             "observation at the beach": "none — data/beach_log/ is empty; "
                                         "nothing has measured these breaks",
@@ -249,6 +261,28 @@ def build(
     reading.tide = read_measured_tide(data_dir, now=moment)
     if reading.tide.height_m is None:
         reading.warnings.append(f"{TIDE_STATION} measured water level not available.")
+
+    # The turns the tide is running toward. Predicted, and the only modelled
+    # numbers on this tab.
+    #
+    # A window rather than just the next one, for BRIEFING §18's reason: "the
+    # next turn" is relative to NOW, and a single turn baked in at build time
+    # would go stale the moment it passed, on a page that may sit open for
+    # hours. The surface picks from the list against the reader's own clock.
+    turns = turns_between(
+        read_turns(data_dir, TIDE_STATION),
+        moment, moment + timedelta(hours=TURN_WINDOW_HOURS),
+    )
+    reading.tide_turns = [t.as_dict() for t in turns]
+    if not turns:
+        reading.warnings.append(
+            f"{TIDE_STATION} predicted high/low turns not collected yet."
+        )
+    reading.standing_on["tide"] = (
+        f"OBSERVED — measured water level at {TIDE_STATION}"
+        + ("; the next turn is a harmonic PREDICTION, not a measurement"
+           if turns else ", and no predicted turn is collected")
+    )
 
     # What the buoy saw with no aperture at all, so the surface can show how
     # much of the answer is geometry rather than weather. `at_buoy` and not
