@@ -701,3 +701,107 @@ def attribution(
     if total <= 0:
         return {}
     return {name: value / total for name, value in taken.items()}
+
+
+@dataclass
+class GridSpectrum:
+    """A full E(f, θ) grid, as WAVEWATCH III publishes it.
+
+    Duck-compatible with `Spectrum`, so `through()` integrates either without
+    knowing which it has. The difference is what they are standing on: NDBC
+    gives five coefficients that reconstruct a smooth two-term fit, while this
+    is the model's own directional grid at 36 headings.
+
+    **It carries a real directional spread**, which is the point of using it:
+    the partition path has to assume one (`SWELL_SPREAD_DEG`), and BRIEFING §11
+    calls that the least defensible number in the forecast chain.
+
+    `directions` are degrees FROM. `collector.wavespec` flips them out of the
+    file's TOWARD convention once, on the way in — do not flip them again.
+    """
+
+    time: datetime
+    frequencies: list[float]
+    #: Degrees FROM, one per direction bin.
+    directions: list[float]
+    #: E(f, θ) in m²/Hz/radian, indexed [direction][frequency].
+    energy: list[list[float]]
+
+    def __post_init__(self) -> None:
+        if len(self.energy) != len(self.directions):
+            raise ValueError(
+                f"{len(self.energy)} direction rows against "
+                f"{len(self.directions)} directions — the grid does not match "
+                f"its own axis, which silently reshapes the spectrum"
+            )
+        for row in self.energy:
+            if len(row) != len(self.frequencies):
+                raise ValueError("a direction row is not the length of the frequency axis")
+
+    @property
+    def c11(self) -> list[float]:
+        """Non-directional energy density, integrating the grid over θ."""
+
+        step = math.radians(360.0 / len(self.directions))
+        return [
+            sum(self.energy[d][i] for d in range(len(self.directions))) * step
+            for i in range(len(self.frequencies))
+        ]
+
+    @property
+    def a1(self) -> list[float]:
+        """Energy-weighted mean direction per frequency bin, degrees FROM.
+
+        The same quantity NDBC reports as `alpha1`, so a caller reading `a1`
+        off either spectrum type gets the same kind of number.
+        """
+
+        out: list[float] = []
+        for i in range(len(self.frequencies)):
+            sin_sum = cos_sum = 0.0
+            for d, heading in enumerate(self.directions):
+                weight = self.energy[d][i]
+                sin_sum += weight * math.sin(math.radians(heading))
+                cos_sum += weight * math.cos(math.radians(heading))
+            out.append(math.degrees(math.atan2(sin_sum, cos_sum)) % 360.0
+                       if (sin_sum or cos_sum) else 0.0)
+        return out
+
+    def bin_width(self, index: int) -> float:
+        f = self.frequencies
+        if len(f) < 2:
+            return 1.0
+        if index == 0:
+            return f[1] - f[0]
+        if index == len(f) - 1:
+            return f[-1] - f[-2]
+        return (f[index + 1] - f[index - 1]) / 2.0
+
+    def density(self, index: int, theta: float) -> float:
+        """E(f, θ) at an arbitrary heading, linear between the grid's bins.
+
+        The grid is 10° apart and `through()` samples every 1°, so the
+        alternative — snapping to the nearest bin — would quantise every
+        window edge to 10° and undo the precision the geometry is built for.
+        """
+
+        headings = self.directions
+        count = len(headings)
+        if count < 2:
+            return max(0.0, self.energy[0][index])
+
+        # The axis is evenly spaced but may run EITHER WAY and start anywhere.
+        # WAVEWATCH III's descends (264.8, 255.1, 245.1, ...), and assuming it
+        # ascends scrambles the direction mapping: it still integrates to the
+        # right total energy, so Hs looks correct, while the energy is spread
+        # around the wrong headings and the peak lands on the wrong wave train.
+        # Caught by the peak coming out as a 3.1 s wind sea where the same
+        # cycle's bulletin says a 15.3 s swell.
+        signed_step = ((headings[1] - headings[0] + 180.0) % 360.0) - 180.0
+        offset = ((theta - headings[0] + 180.0) % 360.0) - 180.0
+        position = offset / signed_step
+
+        low = math.floor(position)
+        weight = position - low
+        return max(0.0, self.energy[low % count][index] * (1 - weight)
+                        + self.energy[(low + 1) % count][index] * weight)

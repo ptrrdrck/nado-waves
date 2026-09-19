@@ -112,13 +112,16 @@ forecaster actually verifies against, Surfline included.
    staleness alert never visibly fired. The anchor buoy for every transform
    here can disappear for a fortnight without notice, and BRIEFING §3a says no
    other station in the array can stand in for it.
-4. **The forecast — built, `forecast/live.py`.** GFS-Wave partitions at 46232
-   through the transform, with KNZY wind and 9410170 tide as context. Writes
-   `data/live/forecast.json`. **GFS-Wave publishes no directional spread, so
-   one is assumed** (20° swell, 35° wind sea) — conventional, not fitted, and
-   the weakest number in the chain. BRIEFING §11 measures what it costs: across
-   a fourfold change the between-break ratio moves 1–4%, so publish the ratio
-   loudly and the absolute height quietly.
+4. **The forecast — built, `forecast/live.py`.** GFS-Wave at 46232 through the
+   transform, with wind and 9410170 tide as context. Writes
+   `data/live/forecast.json` (gitignored — derived, see Infrastructure).
+   **It uses WAVEWATCH III's own directional spectrum** via
+   `collector/wavespec.py`, which also carries the model's 10 m wind, so the
+   assumed 20°/35° spread is no longer used on this path and no second wind
+   source is needed. Falls back to partitions when the spectral product is
+   unavailable, and `wave_source` says which was used. The two agree to within
+   5.6% through the aperture (BRIEFING §15), which confirms §11 by a different
+   route.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
 6. **App surface — built, `app/forecast.html`, published by
@@ -174,6 +177,16 @@ forecaster actually verifies against, Surfline included.
   for three days. `collector.gfswave` now checks the tar before believing a
   404. Same shape as the staleness alert missing 46232's outage: the monitoring
   watched for the failure it expected.
+- **`data/live/` is gitignored, and that is not a breach of "data is tracked".**
+  That rule guards the irreplaceable NDBC archive and the collected series; a
+  forecast rebuilt every cycle from committed inputs is neither, and the public
+  delivery repository's history is already the record of what was shown.
+  Committing it cost ~460 MB of git objects a year (BRIEFING §15).
+- **A total is not a validation of a mapping.** The WW3 direction axis descends;
+  reading it as ascending scrambled which heading each energy bin sat at and
+  still integrated to exactly the right Hs. Only a *located* quantity — the
+  spectral peak, against the bulletin's dominant partition — caught it.
+  BRIEFING §15.
 - Before writing an "archive it now, history is unrecoverable" job, **check
   whether the history is actually unrecoverable.** It was for Open-Meteo. It was
   not for GFS-Wave, whose every cycle since 2021-03 sits in the NOAA Open Data
@@ -187,6 +200,7 @@ forecaster actually verifies against, Surfline included.
                         GFS-Wave bulletins,
                         probe_spectra.py (are directional spectra reachable?),
                         spectra.py (archive them), wind.py (KNZY),
+                        wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170),
                         beachlog.py + beachlog_import.py (the observation log)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
@@ -199,6 +213,8 @@ forecaster actually verifies against, Surfline included.
       geometry.py       which bearings reach each beach          [built]
       transform.py      spectrum -> energy through the aperture   [built]
       live.py           the live forecast, Coronado only          [built]
+      now.py            the OBSERVED reading, measurements only    [built]
+      publish.py        the public delivery bundle                 [built]
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity

@@ -232,18 +232,55 @@ def build(
     return written
 
 
+def build_now_only(out_dir: Path, *, data_dir: Path = DEFAULT_DATA_DIR) -> dict[str, int]:
+    """Just `now.json`, for the hourly job.
+
+    The observed reading changes every hour and the forecast four times a day,
+    so the hourly publish copies one 2.6 KB file rather than rebuilding a 70 KB
+    bundle to leave most of it byte-identical. `publish-pages.sh` copies only
+    what it is given, so the forecast already in the public repository is left
+    exactly as the forecast job last wrote it.
+    """
+
+    source = Path(data_dir) / "live" / "now.json"
+    if not source.exists():
+        raise FileNotFoundError(f"{source} — run `python -m forecast.now` first")
+
+    out_dir = Path(out_dir)
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True)
+    target = out_dir / "now.json"
+    target.write_text(
+        json.dumps(json.loads(source.read_text(encoding="utf-8")), separators=(",", ":")),
+        encoding="utf-8",
+    )
+    return {"now.json": target.stat().st_size}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=REPO_ROOT / "build" / "site")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--step", type=int, default=HOUR_STEP)
+    parser.add_argument("--only-now", action="store_true",
+                        help="publish just now.json (the hourly job)")
     args = parser.parse_args(argv)
 
     try:
-        written = build(args.out, data_dir=args.data_dir, step=args.step)
+        if args.only_now:
+            written = build_now_only(args.out, data_dir=args.data_dir)
+        else:
+            written = build(args.out, data_dir=args.data_dir, step=args.step)
     except (FileNotFoundError, ValueError) as exc:
         print(f"Not published: {exc}")
         return 1
+
+    if args.only_now:
+        print(f"Observed reading → {args.out}")
+        for name, size in written.items():
+            print(f"  {name:16s} {size:>9,} B")
+        return 0
 
     forecast = json.loads((Path(args.data_dir) / "live" / "forecast.json").read_text())
     print(f"Bundle for cycle {forecast.get('cycle_utc')} → {args.out}")
