@@ -20,9 +20,21 @@ TEXT = re.sub(r"\s+", " ", SOURCE)
 
 
 class TestItSaysWhatItIsStandingOn:
-    def test_the_four_levels_are_all_rendered(self):
-        for level in ("geometry", "model", "calibration", "observation"):
-            assert f'["{level}"' in SOURCE or f'"{level}"' in SOURCE
+    def test_the_levels_come_from_the_data_not_a_fixed_list(self):
+        """The two chains name different levels — Now has no 'model' row and
+        Forecast has no 'waves observed' row — so the renderer walks whatever
+        keys the file carries. That the keys are the right ones is pinned on
+        the data side, in test_live and test_now."""
+
+        assert "Object.keys(standing" in SOURCE
+
+    def test_a_none_value_is_marked_rather_than_rendered_flat(self):
+        """'calibration: none' and 'observation at the beach: none' are the
+        two lines that matter most, so they are not allowed to read as
+        ordinary prose."""
+
+        assert '/^none/i.test(value)' in SOURCE
+        assert '.none{' in SOURCE
 
     def test_the_page_states_nothing_has_measured_these_breaks(self):
         assert "Nothing has ever measured a wave at these three breaks" in TEXT
@@ -135,8 +147,68 @@ class TestWindAndTideAreHoisted:
         """One station, so one wind — but the three shore normals span 29°, so
         what that wind MEANS is per break."""
 
-        assert "entry.wind_offshore" in SOURCE
+        assert "c.windOffshore" in SOURCE
         assert "wind is <b>${senseText}</b> here" in SOURCE
+
+
+class TestTheTwoChains:
+    """Now and Forecast are not two views of one thing. Every input on the Now
+    side is a measurement and every input on the Forecast side is a model, so
+    each carries its own standing-on block and the page must not blur them."""
+
+    def test_there_is_a_toggle_with_exactly_two_options(self):
+        assert 'id="tab-now"' in SOURCE and 'id="tab-forecast"' in SOURCE
+        assert 'role="tablist"' in SOURCE
+
+    def test_it_opens_on_now(self):
+        assert 'setMode("now")' in SOURCE
+        assert "Opens on Now" in SOURCE
+
+    def test_the_hour_picker_belongs_to_the_forecast_only(self):
+        assert '$("seek").hidden = !forecasting' in SOURCE
+
+    def test_each_chain_has_its_own_standing_on_block(self):
+        """Rendered from whatever keys the file carries, because the two name
+        different things — the Now side has no 'model' row and the Forecast
+        side has no 'waves observed' row."""
+
+        assert "Object.keys(standing" in SOURCE
+        assert "renderStanding(NOW.standing_on" in SOURCE
+        assert "renderStanding(DATA.standing_on" in SOURCE
+
+    def test_now_labels_its_inputs_as_measurements(self):
+        assert "Wind, observed" in TEXT and "Tide, measured" in TEXT
+        assert "a measurement, not a prediction" in TEXT
+
+    def test_forecast_labels_its_inputs_as_a_model(self):
+        assert "forecast, not a measurement" in TEXT
+        assert "a model, not a measurement" in TEXT
+
+    def test_a_stale_observation_is_not_rendered_as_current(self):
+        """NDBC has served 306-hour-old content behind an HTTP 200."""
+
+        assert "This is not current" in TEXT
+        assert "NOW.stale" in SOURCE
+
+    def test_a_missing_observation_says_so_and_points_at_the_forecast(self):
+        assert "No current observation" in TEXT
+        assert "Switch to <b>Forecast</b>" in TEXT
+
+    def test_now_shows_what_the_buoy_saw_before_the_geometry(self):
+        """So a reader can see how much of the answer is the aperture."""
+
+        assert "Before the geometry" in TEXT
+        assert "what survives each break's aperture" in TEXT
+
+    def test_both_chains_render_through_one_card_shape(self):
+        assert "cardsForNow" in SOURCE and "cardsForForecast" in SOURCE
+
+    def test_the_spread_note_is_omitted_when_none_is_assumed(self):
+        """The spectral path assumes no spread, and printing 'assumed at
+        undefined' is worse than saying nothing."""
+
+        assert "spread.swell_deg != null" in SOURCE
+        assert "no spread is assumed" in TEXT
 
 
 class TestTheSourceLine:
@@ -145,11 +217,13 @@ class TestTheSourceLine:
 
     def test_the_cycle_line_explains_itself_and_sits_below_the_breaks(self):
         assert SOURCE.index('id="breaks"') < SOURCE.index('id="cycle"')
+        assert "Observed at the buoy" in TEXT  # the Now variant
         assert "Latest data from the" in TEXT
         assert "model run of" in TEXT and "offshore buoy" in TEXT
 
     def test_it_names_the_buoy_rather_than_only_its_number(self):
-        assert "data.station_name" in SOURCE and "NDBC ${data.station}" in SOURCE
+        assert "DATA.station_name" in SOURCE and "NDBC ${DATA.station}" in SOURCE
+        assert "NOW.station_name" in SOURCE and "NDBC ${NOW.station}" in SOURCE
 
 
 class TestItDegradesVisibly:

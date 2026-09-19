@@ -66,6 +66,8 @@ HOUR_STEP = 3
 #: nothing. Caught by rendering the bundle rather than by reading it.
 REPO_DATA_PATH = "../data/live/forecast.json"
 BUNDLE_DATA_PATH = "forecast.json"
+REPO_NOW_PATH = "../data/live/now.json"
+BUNDLE_NOW_PATH = "now.json"
 
 DOCTYPE = "<!doctype html>"
 HEAD = """<html lang="en">
@@ -123,13 +125,16 @@ of paths and of links, not a browser security boundary.
 def repoint(fragment: str) -> str:
     """Point the page at the bundle's flat `forecast.json`."""
 
-    if REPO_DATA_PATH not in fragment:
-        raise ValueError(
-            f"{PAGE_SOURCE.name} no longer fetches {REPO_DATA_PATH!r}. The "
-            f"publisher rewrites that path for the flat bundle; if the page "
-            f"changed how it loads data, this has to change with it."
-        )
-    return fragment.replace(REPO_DATA_PATH, BUNDLE_DATA_PATH)
+    for repo_path in (REPO_DATA_PATH, REPO_NOW_PATH):
+        if repo_path not in fragment:
+            raise ValueError(
+                f"{PAGE_SOURCE.name} no longer fetches {repo_path!r}. The "
+                f"publisher rewrites that path for the flat bundle; if the page "
+                f"changed how it loads data, this has to change with it."
+            )
+    return (fragment
+            .replace(REPO_DATA_PATH, BUNDLE_DATA_PATH)
+            .replace(REPO_NOW_PATH, BUNDLE_NOW_PATH))
 
 
 def wrap(fragment: str, *, app_title: str) -> str:

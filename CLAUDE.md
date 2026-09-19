@@ -125,7 +125,13 @@ forecaster actually verifies against, Surfline included.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
 6. **App surface — built, `app/forecast.html`, published by
-   `forecast/publish.py`.** This repository is private, so Pages cannot serve
+   `forecast/publish.py`.** **Two tabs, and they are two evidence chains
+   rather than two views of one.** *Now* is built only from measurements
+   (`now.json`: NDBC directional spectrum, KNZY METAR, measured water level);
+   *Forecast* only from a model (`forecast.json`: GFS-Wave). Each renders its
+   own "standing on" block from whatever keys its file carries, because the
+   two name different levels. Opens on Now; a stale or missing observation
+   says so and points at Forecast rather than falling back silently. This repository is private, so Pages cannot serve
    it and a published page cannot fetch `data/live/forecast.json` across the
    boundary. The forecast workflow builds a flat bundle (`index.html` +
    3-hourly `forecast.json` + `.nojekyll` + README) and pushes it to the
