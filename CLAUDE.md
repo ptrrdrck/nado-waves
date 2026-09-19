@@ -221,6 +221,7 @@ forecaster actually verifies against, Surfline included.
       live.py           the live forecast, Coronado only          [built]
       now.py            the OBSERVED reading, measurements only    [built]
       publish.py        the public delivery bundle                 [built]
+      units.py          ft/mph first, m/kt in parentheses -- display only
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
@@ -307,6 +308,14 @@ circular helpers are used here. Trimming it is a good first cleanup.
   trains rather than collapsing them to one "dominant"
   (`transform.split_trains`, BRIEFING §16). It is a peak split of the 1-D
   spectrum, not a 2-D watershed, and must not be described as partitioning.
+- **Imperial leads, metric in parentheses, everywhere a number is shown.**
+  "2.3 ft (0.71 m)", "9 mph (8 kt)". **Nothing upstream of a display converts**:
+  the JSON, the transform and the collectors stay in metres and knots, because
+  that is what NDBC and WAVEWATCH III publish and putting a unit change between
+  the source and every cross-check is how a 3.28 ends up somewhere it should
+  not be. `forecast/units.py` and the two constants at the top of
+  `app/forecast.html` are the only places the conversion happens; a test pins
+  that each factor appears exactly once.
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.

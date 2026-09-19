@@ -42,6 +42,7 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
 
 from .geometry import HIGH, LOW, Spot, load, swell_windows
+from .units import height as fmt_height, speed as fmt_speed
 from .live import (
     STATION,
     TIDE_STATION,
@@ -310,26 +311,26 @@ def format_table(reading: Now) -> str:
 
     if reading.buoy:
         b = reading.buoy
-        lines.append(f"the buoy itself:  Hs {b['hs_m']:.2f} m, peak {b['peak_period_s']} s "
+        lines.append(f"the buoy itself:  Hs {fmt_height(b['hs_m'])}, peak {b['peak_period_s']} s "
                      f"from {b['peak_direction_deg']}°  ({b['frequency_bins']} bins)")
     wind = reading.wind
     if wind.measured:
-        lines.append(f"wind  {wind.from_deg:.0f}° at {wind.speed_kt or 0:.0f} kt   "
+        lines.append(f"wind  {wind.from_deg:.0f}° at {fmt_speed(wind.speed_kt)}   "
                      f"{wind.station_name} ({wind.station}), {wind.observed_utc}")
     tide = reading.tide
     if tide.height_m is not None:
-        lines.append(f"tide  {tide.height_m:.2f} m MEASURED   {reading.tide_station_name} "
+        lines.append(f"tide  {fmt_height(tide.height_m)} MEASURED   {reading.tide_station_name} "
                      f"({reading.tide_station}), {tide.observed_utc}")
     lines.append("")
 
     if reading.buoy.get("trains"):
         lines.append("swell trains at the buoy:")
         for t in reading.buoy["trains"]:
-            lines.append(f"    {t['hs_m']:.2f} m  {t['period_s']:5.1f} s  from {t['from_deg']:3}°"
-                         f"  {'(wind sea)' if t['wind_sea'] else ''}")
+            lines.append(f"    {fmt_height(t['hs_m']):>16s}  {t['period_s']:5.1f} s  "
+                         f"from {t['from_deg']:3}°  {'(wind sea)' if t['wind_sea'] else ''}")
         lines.append("")
 
-    lines.append(f"{'break':10s} {'window Hs':>10s} {'thru':>6s} {'peak T':>7s} {'from':>6s}  wind")
+    lines.append(f"{'break':10s} {'window Hs':>16s} {'thru':>6s} {'peak T':>7s} {'from':>6s}  wind")
     for entry in reading.breaks:
         # "Coronado Central Beach - north break" truncates to an identical
         # prefix for all three, which is the one thing the table must not do.
@@ -339,7 +340,7 @@ def format_table(reading: Now) -> str:
             sense = ("offshore" if entry.wind_offshore > 0.3
                      else "onshore" if entry.wind_offshore < -0.3 else "cross")
         lines.append(
-            f"{label:10s} {entry.hs_in_window_m:9.2f}m "
+            f"{label:10s} {fmt_height(entry.hs_in_window_m):>16s} "
             f"{100*(entry.fraction or 0):5.0f}% {entry.peak_period_s or 0:6.1f}s "
             f"{entry.peak_direction_deg or 0:5.0f}°  {sense}"
         )
