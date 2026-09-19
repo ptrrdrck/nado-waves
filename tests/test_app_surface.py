@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -128,13 +130,15 @@ class TestWindAndTideAreHoisted:
         assert "harmonic prediction" in TEXT
         assert "a model, not a measurement" in TEXT
 
-    def test_the_labels_separate_a_forecast_hour_from_an_observation(self):
-        """The model's wind moves with the picker and is labelled by hour; the
-        KNZY fallback is an observation and is labelled as one. Both appear,
-        because which is shown depends on what the file carries."""
+    def test_the_provenance_separates_a_forecast_hour_from_an_observation(self):
+        """The model's wind moves with the picker; the KNZY fallback is an
+        observation. Both appear, because which is shown depends on what the
+        file carries — and since the titles are bare quantities now, the
+        provenance line is the only thing telling them apart."""
 
-        assert "Wind ${modelled ? `at ${tideLabel}` : \", latest observed\"}" in SOURCE
-        assert "Tide at ${tideLabel}" in SOURCE
+        assert "GFS-Wave at the buoy for ${stampWhen}" in SOURCE
+        assert "${wind.station_name} (${wind.station}), observed " in SOURCE
+        assert "harmonic prediction for ${stampWhen}" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
         assert "forecast, not a measurement" in TEXT
@@ -177,8 +181,12 @@ class TestTheTwoChains:
         assert "renderStanding(DATA.standing_on" in SOURCE
 
     def test_now_labels_its_inputs_as_measurements(self):
-        assert "Wind, observed" in TEXT and "Tide, measured" in TEXT
-        assert "a measurement, not a prediction" in TEXT
+        """The card titles are bare quantities, so the word that says these
+        are measurements has to be in the provenance line, where the reader
+        looks for where a number came from."""
+
+        assert "observed ${when(wind.observed_utc)}" in SOURCE
+        assert "measured ${when(tide.observed_utc)}" in SOURCE
 
     def test_forecast_labels_its_inputs_as_a_model(self):
         assert "forecast, not a measurement" in TEXT
@@ -199,9 +207,7 @@ class TestTheTwoChains:
         card in the same strip rather than a dashed aside, and it carries its
         own provenance instead of leaving it stranded below the breaks."""
 
-        assert "Swell at the buoy" in TEXT
         assert "observed ${when(NOW.observed_utc)}" in SOURCE
-        assert "frequency bins" in TEXT
         assert 'id="buoy"' not in SOURCE
 
     def test_both_chains_render_through_one_card_shape(self):
@@ -352,7 +358,7 @@ class TestWaveTrainsOnScreen:
     def test_the_swell_card_is_styled_like_wind_and_tide(self):
         """Same .cond card in the same strip, not a dashed aside."""
 
-        swell = SOURCE.index("Swell at the buoy")
+        swell = SOURCE.index('label: "Swell"')
         assert SOURCE.count('class="cond"') >= 3
         assert SOURCE.rindex('<div class="cond">', 0, swell) > 0
 
@@ -374,11 +380,11 @@ class TestTheSwellCardIsOnBothTabs:
         assert SOURCE.count("rows.push(swellCard({") == 2
 
     def test_the_observed_card_names_its_measurement(self):
-        assert "Swell at the buoy, observed" in TEXT
+        assert "${NOW.station_name} (NDBC ${NOW.station}), observed " in SOURCE
 
     def test_the_forecast_card_names_its_model(self):
-        assert "Swell at the buoy at ${tideLabel}" in SOURCE
         assert "GFS-Wave at ${DATA.station_name}" in SOURCE
+        assert "forecast, not a measurement" in TEXT
 
     def test_the_forecast_card_reads_the_per_hour_buoy_series(self):
         assert "(DATA.buoy || []).find" in SOURCE
@@ -386,3 +392,95 @@ class TestTheSwellCardIsOnBothTabs:
 
     def test_a_cycle_without_a_spectrum_says_why_there_are_no_trains(self):
         assert "spectral product was unavailable" in TEXT
+
+
+class TestTheProvenanceLines:
+    """The card titles were carrying what the tab and the provenance already
+    said. Stripping them to the bare quantity only works if the provenance
+    line underneath actually carries the rest — which moment, whose
+    measurement, and how old."""
+
+    def test_the_titles_are_bare_quantities(self):
+        for label in ('label: "Swell"', '<span class="lbl">Wind</span>',
+                      '<span class="lbl">Tide</span>'):
+            assert label in SOURCE, label
+        # The hour left the titles, so it has to be in the model's provenance
+        # or the forecast card no longer says which moment it describes.
+        assert "for ${stampWhen}" in SOURCE
+
+    def test_every_provenance_line_ends_in_a_full_stop(self):
+        """Including the collector's own notes, which do not all carry one —
+        `period` is applied at the card, not trusted to the note."""
+
+        assert "const period = (s) =>" in SOURCE
+        bare = [m for m in re.findall(r'<span class="src">\$\{(.{0,40})', SOURCE)
+                if not m.startswith(("period(", "period ("))]
+        assert not bare, f"provenance not routed through period(): {bare}"
+
+    def test_the_age_is_derived_from_the_timestamp_not_read_from_the_file(self):
+        """now.json's `age_hours` freezes the instant the file is written, and
+        the file is rebuilt once an hour, so a page showing it reported an age
+        that was wrong on load and never moved afterwards."""
+
+        assert "NOW.age_hours" not in SOURCE
+        assert "Date.now() - new Date(iso).getTime()" in SOURCE
+        assert "setInterval(() => { if (MODE === \"now\") show(); }, 60000)" in SOURCE
+
+    def test_the_clock_can_only_add_staleness_never_remove_it(self):
+        """The build refused to call a reading current for reasons the page
+        cannot see, so the flag is a floor. NOW.stale_hours carries the limit
+        rather than the page keeping a second copy of it."""
+
+        assert "NOW.stale || (observedAge != null && observedAge > limit)" in SOURCE
+        assert "NOW.stale_hours" in SOURCE
+
+        from forecast.now import STALE_HOURS, Now
+
+        assert "stale_hours" in Now.__dataclass_fields__
+        assert Now.__dataclass_fields__["stale_hours"].default == STALE_HOURS
+
+
+class TestTheAgeFormatter:
+    """Ran in node, because "1.02 h ago" versus "1 h 1 min ago" is a property
+    of the arithmetic and a grep cannot tell them apart."""
+
+    CASES = [
+        (0.0, "just now"),
+        (0.4 / 60, "just now"),
+        (1.0 / 60, "1 min ago"),
+        (59.0 / 60, "59 min ago"),
+        (1.0, "1 h ago"),
+        (1.02, "1 h 1 min ago"),
+        (2.5, "2 h 30 min ago"),
+        (25.0, "25 h ago"),
+        (-1.0, "just now"),          # a reader's clock behind the buoy's
+    ]
+
+    def test_it_reads_in_hours_and_minutes(self):
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+
+        start = SOURCE.index("function ago(hours) {")
+        body = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+
+        script = body + "\n" + "\n".join(
+            f"console.log(JSON.stringify(ago({hours!r})));" for hours, _ in self.CASES
+        )
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True,
+                             check=True).stdout.split("\n")
+        got = [json.loads(line) for line in out if line.strip()]
+        assert got == [want for _, want in self.CASES]
+
+    def test_a_missing_timestamp_produces_no_age_rather_than_a_guess(self):
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+
+        start = SOURCE.index("function ageHours(iso) {")
+        body = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        out = subprocess.run(
+            [node, "-e", body + '\nconsole.log(JSON.stringify(['
+                          'ageHours(null), ageHours(""), ageHours("not a date")]));'],
+            capture_output=True, text=True, check=True).stdout
+        assert json.loads(out) == [None, None, None]
