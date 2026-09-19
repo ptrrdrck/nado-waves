@@ -733,3 +733,75 @@ transform artifact, not a propagated wave" is this, on measured data.
 
 Note the peak is taken **after** the aperture, which is why north differs from
 centre and south: they do not all keep the same train.
+
+---
+
+## 15. Measured, 2026-09-19 — WAVEWATCH III publishes its own spectrum and wind
+
+`gfswave.tHHz.spec_tar.gz` carries, per cycle and per station, a full 50 × 36
+directional energy grid at every forecast hour, with the 10 m wind and surface
+current in each record's header. That is two problems solved from one file:
+forecast wind with no second source, and a **measured** directional spread in
+place of §11's assumed 20°/35°.
+
+### Cost, and why nothing is archived
+
+The tar is 1.73 GB, but 46232 is **member 330 of 918**, so streaming it and
+stopping at that member needs **617 MB and about ten seconds** — the remaining
+1.1 GB is never pulled. Gzip has no random access, so stopping early is the
+only saving available, and it is a large one.
+
+`spec_tar.gz` still returns 200 for **2021-04-01**, so CLAUDE.md's rule applies
+directly: do not write an "archive it now" job for history that is not
+unrecoverable. Only the derived per-break numbers are stored.
+
+### Two direction conventions in one file, and they disagree
+
+| field | convention | evidence |
+|---|---|---|
+| spectral grid | **TOWARD** | flipped: 4.5° from the bulletin's dominant partition; as-is: 175.5° |
+| header wind | **FROM** | as-is: 29.4° against KNZY vs 150.6° flipped; 12.6° against the wind-sea partition vs 167.4° |
+
+Both were measured, both twice. `collector.wavespec` flips the grid once and
+leaves the wind alone.
+
+### The bug that total energy could not catch
+
+The direction axis **descends** (264.8, 255.1, 245.1, …). The first
+interpolation assumed it ascends, which scrambles which heading each energy bin
+sits at — **and integrates to exactly the right total**. Hs came out 0.800 m
+against the bulletin's 0.80, looking like a clean validation, while the peak
+landed on a 3.1 s wind sea where the bulletin said a 15.3 s swell.
+
+**A total is not a validation of a mapping.** Any permutation of the bins
+conserves it. What caught this was comparing a *located* quantity — the peak —
+against an independent statement of the same thing. Worth remembering wherever
+a check is "the numbers add up".
+
+Corrected, the grid gives peak 15.6 s from 192° against the bulletin's 15.3 s
+from 196°, and Hs 0.790 m against 0.80 (the 1.3% is 1° sampling of a 10° grid).
+
+### The two paths agree, which is the real control
+
+Same model, same cycle, two independent representations through the same
+aperture — the measured-spread grid against the assumed-spread partitions:
+
+| | worst disagreement |
+|---|---|
+| window Hs, all three breaks, 25 hours | **5.6%** |
+
+The grid runs consistently 3–5% lower. **This confirms §11 by a completely
+different route**: if the assumed spread had been doing real damage, replacing
+it with a measured one would not land within six percent.
+
+### Growth, fixed in the same change
+
+`data/live/` is now gitignored. It is derived output, rebuilt every cycle from
+inputs that are all either committed here or served by NOAA back to 2021, and
+the public delivery repository's git history is already the record of what was
+shown and when. Committing it cost 315 KB four times a day — about **460 MB of
+git objects a year** — to duplicate a record that exists in the right place.
+
+This does not weaken "data files are tracked, not ignored": that rule guards the
+irreplaceable NDBC archive and the collected series beside it. A regenerable
+forecast is neither.

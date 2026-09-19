@@ -122,3 +122,13 @@ desktop.ini
 # --- Logs --------------------------------------------------------------------
 *.log
 logs/
+
+# Derived forecast output, rebuilt from scratch every cycle and published to
+# the public delivery repository, whose git history IS the record of what was
+# shown and when. NOT an observation: CLAUDE.md's "data files are tracked, not
+# ignored" guards the irreplaceable NDBC archive in data/historical and the
+# collected series beside it, and this is neither. Committing it cost 315 KB
+# four times a day -- about 460 MB of git objects a year -- for a file that
+# `python -m forecast.live` reproduces from inputs that are all either
+# committed here or served by NOAA back to 2021.
+/data/live/

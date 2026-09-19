@@ -46,14 +46,17 @@ from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, ISO
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
+from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
 from .geometry import HIGH, LOW, Blocker, Spot, load, swell_windows
 from .transform import (
+    GridSpectrum,
     SEAWARD_CLIP,
     SWELL_SPREAD_DEG,
     WIND_SEA_SPREAD_DEG,
     PartitionsThrough,
     attribution,
+    through,
     through_partitions,
 )
 
@@ -128,6 +131,10 @@ class Hour:
     fraction: float
     dominant_period_s: float | None
     dominant_from_deg: float | None
+    #: The model's own 10 m wind at the buoy for this hour, degrees FROM.
+    #: From the same WAVEWATCH III file as the spectrum, so no second source.
+    wind_from_deg: float | None = None
+    wind_kt: float | None = None
     #: Share of the offshore energy each blocker took, largest first. The app
     #: reads this to say WHAT is taking the swell, and to mark a reading whose
     #: dominant blocker is the estimated Coronado Islands as less certain than
@@ -175,6 +182,11 @@ class Forecast:
     tide_station_name: str = TIDE_STATION_NAME
     breaks: list[BreakForecast] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    #: "spectrum" when the model's own directional grid was available, and
+    #: "partitions" when it fell back. The two differ by under 6% through the
+    #: aperture (measured), but they stand on different things and the surface
+    #: is entitled to say which.
+    wave_source: str = "partitions"
     spread_assumption: dict = field(default_factory=dict)
 
 
@@ -199,6 +211,29 @@ def fetch_latest(station: str = STATION, *, now: datetime | None = None,
         except BulletinError as exc:
             warnings.append(f"cycle {attempt:%Y-%m-%dT%H}Z unavailable: {str(exc)[-80:]}")
     return None, warnings
+
+
+def fetch_spectra(
+    cycle: datetime, *, hours: int, station: str = STATION
+) -> tuple[dict[datetime, SpecRecord], str | None]:
+    """The model's own directional spectra for this cycle, keyed by valid time.
+
+    `build(use_spectra=...)` defaults to False so that fetching 617 MB is an
+    explicit act. It is opted into by `main()` and by the workflow; a test that
+    injects a bulletin gets no network at all. Before that default flipped, the
+    suite took 122 seconds and made one download per test.
+
+    Returns ({} , reason) when unavailable — a missing spectral product must
+    fall back to partitions rather than stop the forecast. Measured cost:
+    617 MB and about ten seconds, because the stream is abandoned once 46232
+    is found (`collector.wavespec`).
+    """
+
+    try:
+        text, _read = fetch_station_spec(station, cycle)
+        return {r.time: r for r in parse_spec(text, limit_hours=hours)}, None
+    except WaveSpecError as exc:
+        return {}, str(exc)[-120:]
 
 
 def read_latest_wind(data_dir: Path) -> dict[str, str] | None:
@@ -325,6 +360,8 @@ def build(
     hours: int = DEFAULT_HOURS,
     now: datetime | None = None,
     bulletin: Bulletin | None = None,
+    spectra: dict | None = None,
+    use_spectra: bool = False,
 ) -> Forecast:
     spots, blockers = load()
     by_id = {s.id: s for s in spots}
@@ -370,6 +407,24 @@ def build(
 
     rows = [r for r in bulletin.rows if r.lead_hours <= hours]
 
+    # The model's own directional grid, when it can be had: it carries a real
+    # directional spread where the partitions need one assumed.
+    if spectra is None and use_spectra:
+        spectra, reason = fetch_spectra(bulletin.cycle_utc, hours=hours)
+        if reason:
+            forecast.warnings.append(f"spectral product unavailable ({reason}); using partitions")
+    spectra = spectra or {}
+    forecast.wave_source = "spectrum" if spectra else "partitions"
+    forecast.standing_on["model"] = (
+        "GFS-Wave, unassimilated; 0.26–0.31 m low bias at the buoy, not corrected here"
+        + ("; its own directional spectrum, so no assumed spread"
+           if spectra else "; swell partitions with an assumed directional spread")
+    )
+    if spectra:
+        forecast.spread_assumption = {
+            "note": "not used — the model's directional spectrum carries its own spread"
+        }
+
     # One gauge, so the tide series is station-level and sits beside the breaks
     # rather than being repeated inside each of them.
     for row in rows:
@@ -394,23 +449,46 @@ def build(
         entry.wind_offshore, entry.wind_note = wind_at_break(spot, forecast.wind)
 
         for row in rows:
-            parts = [
-                (p.hs_m, p.tp_s, float(from_direction(p.toward_deg)), p.wind_sea)
-                for p in row.partitions
-            ]
-            got: PartitionsThrough = through_partitions(spot, blockers, parts)
-            dominant = got.dominant
+            record = spectra.get(row.valid_utc)
+            if record is not None:
+                grid = GridSpectrum(record.time, record.frequencies,
+                                    record.directions, record.energy)
+                survived = through(grid, spot, blockers)
+                hs_offshore = survived.hs_total_m
+                hs_window = survived.hs_in_window_m
+                fraction = survived.fraction
+                dominant_tp = (None if math.isnan(survived.peak_period_s)
+                               else round(survived.peak_period_s, 1))
+                dominant_dir = (None if math.isnan(survived.peak_direction_deg)
+                                else round(survived.peak_direction_deg))
+                shares = {r.blocker: r.share for r in survived.removed}
+                hour_wind_deg = round(record.wind_from_deg)
+                hour_wind_kt = round(record.wind_kt, 1)
+            else:
+                parts = [
+                    (p.hs_m, p.tp_s, float(from_direction(p.toward_deg)), p.wind_sea)
+                    for p in row.partitions
+                ]
+                got: PartitionsThrough = through_partitions(spot, blockers, parts)
+                dominant = got.dominant
+                hs_offshore = got.hs_offshore_m
+                hs_window = got.hs_in_window_m
+                fraction = got.fraction
+                dominant_tp = round(dominant.tp_s, 1) if dominant else None
+                dominant_dir = round(dominant.from_deg) if dominant else None
+                hour_wind_deg = hour_wind_kt = None
+                shares = {}
 
-            # Energy-weighted across partitions: a blocker that shadows a small
-            # train matters less than one shadowing the day's main swell.
-            shares: dict[str, float] = {}
-            energy = sum(p.hs_offshore_m ** 2 for p in got.parts) or 1.0
-            for part in got.parts:
-                weight = part.hs_offshore_m ** 2 / energy
-                for name, share in attribution(
-                    spot, blockers, part.from_deg, part.spread_deg
-                ).items():
-                    shares[name] = shares.get(name, 0.0) + weight * share
+                # Energy-weighted across partitions: a blocker shadowing a
+                # small train matters less than one shadowing the main swell.
+                energy = sum(p.hs_offshore_m ** 2 for p in got.parts) or 1.0
+                for part in got.parts:
+                    weight = part.hs_offshore_m ** 2 / energy
+                    for name, share in attribution(
+                        spot, blockers, part.from_deg, part.spread_deg
+                    ).items():
+                        shares[name] = shares.get(name, 0.0) + weight * share
+
             taken_by = [
                 {
                     "blocker": name,
@@ -423,11 +501,13 @@ def build(
             entry.hours.append(Hour(
                 valid_utc=row.valid_utc.strftime(ISO),
                 lead_h=row.lead_hours,
-                hs_offshore_m=round(got.hs_offshore_m, 3),
-                hs_window_m=round(got.hs_in_window_m, 3),
-                fraction=round(got.fraction, 4) if not math.isnan(got.fraction) else None,
-                dominant_period_s=round(dominant.tp_s, 1) if dominant else None,
-                dominant_from_deg=round(dominant.from_deg, 0) if dominant else None,
+                hs_offshore_m=round(hs_offshore, 3),
+                hs_window_m=round(hs_window, 3),
+                fraction=round(fraction, 4) if not math.isnan(fraction) else None,
+                dominant_period_s=dominant_tp,
+                dominant_from_deg=dominant_dir,
+                wind_from_deg=hour_wind_deg,
+                wind_kt=hour_wind_kt,
                 taken_by=taken_by,
             ))
         forecast.breaks.append(entry)
@@ -500,9 +580,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--hours", type=int, default=DEFAULT_HOURS)
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--rows", type=int, default=8)
+    parser.add_argument("--no-spectra", action="store_true",
+                        help="skip the 617 MB spectral fetch and use partitions")
     args = parser.parse_args(argv)
 
-    forecast = build(data_dir=args.data_dir, hours=args.hours)
+    forecast = build(data_dir=args.data_dir, hours=args.hours,
+                     use_spectra=not args.no_spectra)
     print(format_table(forecast, rows=args.rows))
 
     out = args.out or (Path(args.data_dir) / "live" / "forecast.json")

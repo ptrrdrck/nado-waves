@@ -32,8 +32,10 @@ on:
         required: false
         default: "168"
 
+# Nothing is committed back here any more -- data/live is gitignored and the
+# bundle goes to the public repository with its own token.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: forecast
@@ -56,6 +58,9 @@ jobs:
           HOURS: ${{ inputs.hours }}
         run: |
           set -euo pipefail
+          # --no-spectra falls back to partitions; the default fetches the
+          # model's own directional grid (617 MB streamed, ~10 s, nothing
+          # archived because NOAA serves every cycle back to 2021).
           python -m forecast.live --hours "${HOURS:-168}"
 
       - name: Build the public bundle
@@ -63,41 +68,9 @@ jobs:
           set -euo pipefail
           python -m forecast.publish --out build/site
 
-      - name: Commit and push
-        env:
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-
-          git config user.name "nado-waves forecast"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add data/live
-
-          if git diff --cached --quiet; then
-            echo "Forecast unchanged."
-            exit 0
-          fi
-
-          cycle=$(python -c "import json;print(json.load(open('data/live/forecast.json'))['cycle_utc'])")
-
-          git commit \
-            -m "data: rebuild forecast" \
-            -m "GFS-Wave cycle ${cycle}. Automated commit from .github/workflows/forecast.yml."
-
-          for attempt in 1 2 3 4; do
-            if git push origin "HEAD:${BRANCH}"; then
-              echo "Pushed on attempt ${attempt}."
-              exit 0
-            fi
-            echo "Push failed (attempt ${attempt}); rebasing and retrying."
-            git pull --rebase --autostash origin "${BRANCH}" || true
-            sleep $((2 ** attempt))
-          done
-
-          echo "::error title=Forecast push failed::Could not push the rebuilt forecast"
-          exit 1
-
+      # data/live is gitignored -- it is derived output, rebuilt every cycle,
+      # and the public repository's history is the record of what was shown.
+      # Nothing from this job needs committing here any more.
       - name: Publish the page
         env:
           PAGES_REPO: ${{ vars.PAGES_REPO || 'ptrrdrck/nado-waves-forecast' }}
