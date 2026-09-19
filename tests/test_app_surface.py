@@ -194,11 +194,15 @@ class TestTheTwoChains:
         assert "No current observation" in TEXT
         assert "Switch to <b>Forecast</b>" in TEXT
 
-    def test_now_shows_what_the_buoy_saw_before_the_geometry(self):
-        """So a reader can see how much of the answer is the aperture."""
+    def test_now_shows_what_the_buoy_saw_beside_the_wind_and_tide(self):
+        """The buoy's own reading is a condition like the others, so it is a
+        card in the same strip rather than a dashed aside, and it carries its
+        own provenance instead of leaving it stranded below the breaks."""
 
-        assert "Before the geometry" in TEXT
-        assert "what survives each break's aperture" in TEXT
+        assert "Swell at the buoy" in TEXT
+        assert "observed ${when(NOW.observed_utc)}" in SOURCE
+        assert "frequency bins" in TEXT
+        assert 'id="buoy"' not in SOURCE
 
     def test_both_chains_render_through_one_card_shape(self):
         assert "cardsForNow" in SOURCE and "cardsForForecast" in SOURCE
@@ -216,8 +220,12 @@ class TestTheSourceLine:
         assert "<h1>" not in SOURCE
 
     def test_the_cycle_line_explains_itself_and_sits_below_the_breaks(self):
+        """Forecast only. On the observed side the provenance moved up onto
+        the swell card, so there is nothing left to say down here."""
+
         assert SOURCE.index('id="breaks"') < SOURCE.index('id="cycle"')
-        assert "Observed at the buoy" in TEXT  # the Now variant
+        assert "Latest data from the" in TEXT
+        assert '$("cycle").innerHTML = "";' in SOURCE
         assert "Latest data from the" in TEXT
         assert "model run of" in TEXT and "offshore buoy" in TEXT
 
@@ -265,9 +273,53 @@ class TestItMatchesTheLiveOutput:
             known |= {f.name for f in fields(cls)}
         known |= {"blocker", "share", "verified"}       # taken_by entries
         known |= {"swell_deg", "wind_sea_deg", "note"}  # spread_assumption
+        known |= {"hs_m", "period_s", "from_deg", "wind_sea"}  # train entries
+        known |= {"peak_period_s", "peak_direction_deg", "frequency_bins"}  # buoy
+        known |= {"age_hours", "observed_utc", "trains", "height_m", "kind"}
 
         for accessor in re.findall(r"\b(?:hour|entry|data|t|spread)\.([a-z_]{3,})\b", SOURCE):
             if accessor in {"map", "filter", "find", "join", "length", "split",
                             "toFixed", "textContent", "innerHTML"}:
                 continue
             assert accessor in known, f"page reads unknown field {accessor!r}"
+
+
+class TestWaveTrainsOnScreen:
+    """When the geometry takes the dominant swell, the secondary leads at the
+    beach. That re-ordering happened on 92 of 400 archived spectra, so the
+    surface lists the trains rather than collapsing them to one 'dominant'."""
+
+    def test_there_is_a_train_renderer_shared_by_both_chains(self):
+        assert "function trainList" in SOURCE
+        assert "trainList(buoy.trains)" in SOURCE
+        assert "trainList(c.trains" in SOURCE
+
+    def test_a_train_shows_height_period_and_heading(self):
+        assert "t.hs_m.toFixed(2)" in SOURCE
+        assert "t.period_s.toFixed(1)" in SOURCE
+        assert "compass(t.from_deg)" in SOURCE
+
+    def test_the_leading_train_is_emphasised(self):
+        assert 'i === 0 ? " lead"' in SOURCE
+        assert ".train.lead" in SOURCE
+
+    def test_wind_sea_is_labelled(self):
+        assert "wind sea" in TEXT
+
+    def test_the_break_card_says_these_are_the_ones_reaching_here(self):
+        assert "swell reaching here" in TEXT
+
+    def test_the_swell_card_is_styled_like_wind_and_tide(self):
+        """Same .cond card in the same strip, not a dashed aside."""
+
+        swell = SOURCE.index("Swell at the buoy")
+        assert SOURCE.count('class="cond"') >= 3
+        assert SOURCE.rindex('<div class="cond">', 0, swell) > 0
+
+    def test_the_footer_does_not_describe_the_forecast_on_the_observed_tab(self):
+        """Printing a model's build time and spread under a measurement would
+        attribute the model's properties to the observation."""
+
+        assert "function renderFooter" in SOURCE
+        assert 'if (MODE === "now")' in SOURCE
+        assert "nothing here is measured at the sand" in TEXT

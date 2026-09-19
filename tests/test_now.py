@@ -198,3 +198,36 @@ class TestOutput:
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
         text = " ".join(now_mod.format_table(got).split())
         assert "never measured at the beach itself" in text
+
+
+class TestWaveTrains:
+    """A reader wants to know which swell is running their break, and that is
+    not always the one running the buoy."""
+
+    def test_the_buoy_reading_carries_its_trains(self, tmp_path):
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        assert got.buoy["trains"]
+        first = got.buoy["trains"][0]
+        assert {"hs_m", "period_s", "from_deg", "share", "wind_sea"} <= set(first)
+
+    def test_every_break_carries_its_own_trains(self, tmp_path):
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        assert all(b.trains for b in got.breaks)
+
+    def test_a_breaks_trains_are_no_larger_than_the_buoys(self, tmp_path):
+        """The aperture only ever removes energy."""
+
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        biggest_at_buoy = max(t["hs_m"] for t in got.buoy["trains"])
+        for entry in got.breaks:
+            assert max(t["hs_m"] for t in entry.trains) <= biggest_at_buoy + 1e-9
+
+    def test_trains_are_ordered_largest_first(self, tmp_path):
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        for entry in got.breaks:
+            heights = [t["hs_m"] for t in entry.trains]
+            assert heights == sorted(heights, reverse=True)
+
+    def test_the_table_lists_the_buoys_trains(self, tmp_path):
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        assert "swell trains at the buoy" in now_mod.format_table(got)
