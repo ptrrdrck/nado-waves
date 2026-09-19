@@ -307,6 +307,20 @@ function turnClock(iso, fromIso) {
     : at.toLocaleString(undefined, {weekday: "short"}) + " " + clock(iso);
 }
 
+// When a measurement was taken, and how long ago that is. The age is derived
+// here rather than read from the file for BRIEFING §18's reason, and it is the
+// same reason for all three: now.json carries `age_hours` and `tide.age_minutes`
+// frozen at build time, and the file is rebuilt once an hour.
+//
+// Only lines naming a MEASUREMENT get this. A modelled wind or a harmonic tide
+// is a forecast FOR a moment, not a reading taken AT one, and "23 h ago" under
+// a prediction for next Tuesday would be nonsense.
+function observedAt(iso) {
+  if (!iso) return "";
+  const age = ago(ageHours(iso));
+  return when(iso) + (age ? ` &mdash; ${age}` : "");
+}
+
 // The tide's next turning point, and which way it is running into it.
 //
 // The direction is read off the TURN, never differenced from the water level.
@@ -419,13 +433,11 @@ function renderConditions(index) {
     // they cannot already see. The card carries what the buoy saw AND where
     // it was seen, which is why the separate provenance line below the cards
     // is gone: the measurement and its source belong together.
-    const age = ago(ageHours(NOW && NOW.observed_utc));
     rows.push(swellCard({
       label: "Swell",
       buoy,
       source: NOW && NOW.station_name
-        ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${when(NOW.observed_utc)}`
-          + (age ? ` &mdash; ${age}` : "")
+        ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${observedAt(NOW.observed_utc)}`
         : "",
     }));
 
@@ -436,7 +448,7 @@ function renderConditions(index) {
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
       <span class="src">${period(wind.from_deg != null
-        ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
+        ? `${wind.station_name} (${wind.station}), observed ${observedAt(wind.observed_utc)}`
         : (wind.note || ""))}</span>
     </div>`);
     // The turn is asked for against the READER's clock, not the build's, so
@@ -448,7 +460,7 @@ function renderConditions(index) {
         : '<span class="unit">not collected</span>'}</span>
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
       <span class="src">${period(tide.height_m != null
-        ? `${NOW.tide_station_name} (${NOW.tide_station}), measured ${when(tide.observed_utc)}`
+        ? `${NOW.tide_station_name} (${NOW.tide_station}), measured ${observedAt(tide.observed_utc)}`
         : (tide.note || ""))}</span>
     </div>`);
   } else {
@@ -481,7 +493,7 @@ function renderConditions(index) {
       <span class="src">${period(modelled
         ? `GFS-Wave at the buoy for ${stampWhen} &mdash; forecast, not a measurement`
         : wind.from_deg != null
-          ? `${wind.station_name} (${wind.station}), observed ${when(wind.observed_utc)}`
+          ? `${wind.station_name} (${wind.station}), observed ${observedAt(wind.observed_utc)}`
           : (wind.note || ""))}</span>
     </div>`);
     rows.push(`<div class="cond">
