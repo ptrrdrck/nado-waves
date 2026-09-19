@@ -186,8 +186,8 @@ class TestTheTwoChains:
         are measurements has to be in the provenance line, where the reader
         looks for where a number came from."""
 
-        assert "observed ${when(wind.observed_utc)}" in SOURCE
-        assert "measured ${when(tide.observed_utc)}" in SOURCE
+        assert "observed ${observedAt(wind.observed_utc)}" in SOURCE
+        assert "measured ${observedAt(tide.observed_utc)}" in SOURCE
 
     def test_forecast_labels_its_inputs_as_a_model(self):
         assert "forecast, not a measurement" in TEXT
@@ -208,7 +208,7 @@ class TestTheTwoChains:
         card in the same strip rather than a dashed aside, and it carries its
         own provenance instead of leaving it stranded below the breaks."""
 
-        assert "observed ${when(NOW.observed_utc)}" in SOURCE
+        assert "observed ${observedAt(NOW.observed_utc)}" in SOURCE
         assert 'id="buoy"' not in SOURCE
 
     def test_both_chains_render_through_one_card_shape(self):
@@ -560,3 +560,54 @@ class TestTheTideSaysWhichWayItIsGoing:
 
     def test_an_uncollected_turn_renders_nothing_rather_than_a_guess(self):
         assert "if (!turn || !turn.direction || turn.height_m == null) return \"\"" in SOURCE
+
+
+class TestEveryMeasurementSaysHowOldItIs:
+    """A reading's timestamp answers "when", not "is this current". 4:52 AM is
+    twelve minutes ago at breakfast and nine hours ago after work, and the
+    second is a different card."""
+
+    def test_all_four_measurement_lines_go_through_one_helper(self):
+        """Three cards on Now plus the forecast tab's KNZY fallback. Four
+        hand-rolled age expressions is four chances to drift."""
+
+        assert "function observedAt" in SOURCE
+        assert SOURCE.count("observedAt(") == 5      # the definition plus four uses
+        for site in ("observed ${observedAt(NOW.observed_utc)}",
+                     "observed ${observedAt(wind.observed_utc)}",
+                     "measured ${observedAt(tide.observed_utc)}"):
+            assert site in SOURCE, site
+
+    def test_the_forecast_tabs_observed_wind_fallback_is_aged_too(self):
+        """It only appears when the model has no wind for that hour, which is
+        exactly when how old the substitute is matters."""
+
+        wind_block = SOURCE[SOURCE.index("GFS-Wave at the buoy for ${stampWhen}"):]
+        assert "observed ${observedAt(wind.observed_utc)}" in wind_block[:400]
+
+    def test_a_prediction_is_never_given_an_age(self):
+        """A modelled wind or a harmonic tide is a forecast FOR a moment, not a
+        reading taken AT one. "23 h ago" under next Tuesday would be nonsense,
+        so those lines use `stampWhen` and never `observedAt`."""
+
+        for predicted in ("GFS-Wave at the buoy for ${stampWhen}",
+                          "harmonic prediction for ${stampWhen}",
+                          "(NDBC ${DATA.station}) for ${stampWhen}"):
+            assert predicted in SOURCE, predicted
+        assert "observedAt(stamp" not in SOURCE
+        assert "observedAt(t." not in SOURCE
+
+    def test_the_age_is_not_read_from_the_frozen_field(self):
+        """now.json carries `tide.age_minutes` computed at build time, and the
+        file is rebuilt once an hour — BRIEFING §18 flagged it as the next
+        instance of the same trap if it were ever displayed. It is displayed
+        now, and it is not read from there."""
+
+        code = "\n".join(line for line in SOURCE.splitlines()
+                          if not line.lstrip().startswith("//"))
+        assert "age_minutes" not in code
+        assert "age_hours" not in code
+        # The control: the prose explaining why they are unused is still there,
+        # so this passes because the fields are unread rather than because the
+        # comment stripper ate the whole file.
+        assert "age_hours" in SOURCE and "age_minutes" in SOURCE
