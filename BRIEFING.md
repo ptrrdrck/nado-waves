@@ -1229,3 +1229,50 @@ and 205.3 at 3 km — a 25.6° spread. That is the coast bending toward Imperial
 Beach and the river mouth, which §12 already describes as unmodelled coastline.
 It is the clearest illustration of §20's rule that a normal is a property of a
 chord: for this break, at the kilometre scale, there is no single right answer.
+
+### §21a — CUSP is not reachable by either route, and a 403 lied about why
+
+Run 6 walked both halves of Digital Coast and closes this line of enquiry.
+
+| endpoint | result |
+|---|---|
+| `gis.charttools.noaa.gov/arcgis/rest/services` | 17 candidates from 209 entries |
+| `coast.noaa.gov/arcgis/rest/services` | **0 candidates from 374 entries** |
+| `mapservices.weather.noaa.gov/static/rest/services` | 0 from 226 |
+| `chs.coast.noaa.gov/arcgis/rest/services` | 404 |
+| `coast.noaa.gov/htdata/Shoreline/` | **403 Forbidden** |
+| `coast.noaa.gov/htdata/` | **403 Forbidden** |
+
+Digital Coast's REST catalogue holds 22 folders — `CCAP_Water_Quality`,
+`CountySnapshots`, `DAV`, `DC`, `dc_slr`, `EiCIZ`, `Elevation`, `enow`,
+`FloodExposureMapper`, `Hosted`, `Imagery`, `LakeLevels`, `Landcover`,
+`LandCoverAtlas`, `MarineCadastre`, `nerrs`, `NOS_Mapping`, `NWS_Mapping`,
+`OceanReports`, `sovi`, `USInteragencyElevationInventory`, `Utilities` — all
+within the folder budget, and **not one service matches a shoreline pattern.**
+CUSP is not published there as a service. The file tree that would carry it as
+a download refuses a directory listing, so without a documented filename there
+is nothing to discover, and guessing one is the thing this module exists not to
+do.
+
+**So the ENC chart coastline of §21 is the best available cross-check, and it
+stays a cross-check.** Getting a survey-grade MHW vector needs a documented
+download URL from outside this repository, not another crawl.
+
+### The 403 that meant the opposite thing
+
+`is_denial` classified both htdata refusals as egress denials, and the summary
+would have said "Denied at CONNECT — policy, not throttling". **That was wrong
+and it was my own code lying to me.** The function was written for a Claude
+session, where a 403 is the proxy refusing CONNECT and the host may be fine.
+On a runner there is no such proxy: a 403 is NOAA itself, and here it means
+directory listing is switched off.
+
+Reading it as a denial files "this directory is not browsable" under "we could
+not reach this host" — the same class of fault as reading NCEP's 404 as "no
+cycle today" (CLAUDE.md, Infrastructure). An `HTTPError` carries a real status
+from a real response, so it can never be an egress denial; only a refused
+tunnel can. That distinction is now explicit, with a test.
+
+**The same status code means opposite things depending on where the code runs,
+and nothing in the response says which.** That is worth carrying forward to
+every other collector that classifies its own failures.
