@@ -33,3 +33,4 @@ time_utc,first_seen_utc,height_m,kind,datum,event
 2026-09-27T10:45:00Z,2026-09-19T13:29:37Z,0.229,predicted,MLLW,low
 2026-09-27T16:55:00Z,2026-09-19T19:36:29Z,1.912,predicted,MLLW,high
 2026-09-27T23:22:00Z,2026-09-20T00:25:11Z,0.064,predicted,MLLW,low
+2026-09-28T05:25:00Z,2026-09-20T05:26:21Z,1.583,predicted,MLLW,high
