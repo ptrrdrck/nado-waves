@@ -314,3 +314,79 @@ class TestDuplicateVerticesDoNotWeightTheFit:
         two = straight(spot, 124.0, n=2, span_m=200.0)
         got = fit_at(two * 8, spot, 400.0)
         assert got.normal_deg is None and "vertices" in got.note
+
+
+class TestEverySourceIsRead:
+    """§21 fitted normals to whichever source the collector reached first and
+    could not know a finer chart existed. Reading one fixed filename is what
+    made that invisible."""
+
+    def test_sources_come_back_finest_band_first(self, tmp_path):
+        spot = BY_ID["coronado_center"]
+        folder = tmp_path / "shoreline"
+        folder.mkdir(parents=True)
+        for name in ("enc_approach_88_coronado", "enc_harbour_84_coronado",
+                     "enc_general_58_coronado"):
+            _write(folder / f"{name}.csv", straight(spot, 124.0, n=9))
+        from forecast.shorenormal import read_sources
+        assert list(read_sources(tmp_path)) == [
+            "enc_harbour_84_coronado", "enc_approach_88_coronado",
+            "enc_general_58_coronado"]
+
+    def test_read_vertices_takes_the_finest(self, tmp_path):
+        spot = BY_ID["coronado_center"]
+        folder = tmp_path / "shoreline"
+        folder.mkdir(parents=True)
+        _write(folder / "enc_approach_88_coronado.csv", straight(spot, 124.0, n=5))
+        _write(folder / "enc_harbour_84_coronado.csv", straight(spot, 124.0, n=41))
+        from forecast.shorenormal import read_vertices
+        assert len(read_vertices(tmp_path)) == 41
+
+    def test_an_empty_folder_is_no_sources(self, tmp_path):
+        from forecast.shorenormal import read_sources
+        assert read_sources(tmp_path) == {}
+
+    def test_the_comparison_shows_each_source(self, tmp_path):
+        from forecast.shorenormal import compare_sources
+        spot = BY_ID["coronado_center"]
+        folder = tmp_path / "shoreline"
+        folder.mkdir(parents=True)
+        _write(folder / "enc_harbour_84_coronado.csv", straight(spot, 124.0, n=41))
+        _write(folder / "enc_approach_88_coronado.csv", straight(spot, 130.0, n=41))
+        text = compare_sources(tmp_path)
+        assert "enc_harbour_84_coronado" in text
+        assert "enc_approach_88_coronado" in text
+
+    def test_one_source_alone_prints_no_comparison(self, tmp_path):
+        """Nothing to compare is not a table with one row."""
+
+        from forecast.shorenormal import compare_sources
+        spot = BY_ID["coronado_center"]
+        folder = tmp_path / "shoreline"
+        folder.mkdir(parents=True)
+        _write(folder / "enc_harbour_84_coronado.csv", straight(spot, 124.0, n=41))
+        assert compare_sources(tmp_path) == ""
+
+    def test_the_comparison_shows_the_vertex_count(self, tmp_path):
+        """A normal from three points is a line through three points. The
+        count is why §21 could not fit north, so it belongs in the table."""
+
+        from forecast.shorenormal import compare_sources
+        spot = BY_ID["coronado_center"]
+        folder = tmp_path / "shoreline"
+        folder.mkdir(parents=True)
+        _write(folder / "enc_harbour_84_coronado.csv", straight(spot, 124.0, n=41))
+        _write(folder / "enc_approach_88_coronado.csv", straight(spot, 124.0, n=41))
+        assert "v)" in compare_sources(tmp_path)
+
+
+def _write(path, points):
+    import csv as _csv
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        w = _csv.DictWriter(fh, fieldnames=["part", "seq", "lat", "lon",
+                                            "source_layer", "fetched_utc"])
+        w.writeheader()
+        for seq, (lat, lon) in enumerate(points):
+            w.writerow({"part": 0, "seq": seq, "lat": f"{lat:.7f}",
+                        "lon": f"{lon:.7f}", "source_layer": "test",
+                        "fetched_utc": "2026-09-20T00:00:00Z"})

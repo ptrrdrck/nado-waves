@@ -422,3 +422,65 @@ class TestA403MeansTwoDifferentThings:
         text = mod.format_summary(mod.Result(attempts=[attempt]))
         assert "Denied at CONNECT" not in text
         assert "403" in text
+
+
+class TestChartScaleIsARanking:
+    """ENC usage bands are a documented quality ordering. The first version of
+    this collector ignored them: it took whichever coastline layer answered
+    first and never asked whether a better one existed. Measured (BRIEFING
+    §22), enc_harbour/84 carries 97 features in the Coronado box where
+    enc_approach/88 carries 61 — and §21 fitted the 61."""
+
+    def test_harbour_outranks_approach_outranks_general(self):
+        rank = mod.scale_of
+        harbour = "https://x/services/encdirect/enc_harbour/MapServer/84"
+        approach = "https://x/services/encdirect/enc_approach/MapServer/88"
+        general = "https://x/services/encdirect/enc_general/MapServer/58"
+        assert rank(harbour) > rank(approach) > rank(general)
+
+    def test_an_unbanded_service_does_not_outrank_a_banded_one(self):
+        assert mod.scale_of("https://x/services/MCS/ENCOnline/MapServer") == 0
+        assert mod.scale_of("https://x/services/encdirect/enc_coastal/MapServer") > 0
+
+    def test_candidates_are_sorted_finest_first(self):
+        import inspect
+        source = inspect.getsource(mod.collect)
+        assert "sort(key=lambda url: -scale_of(url))" in source
+        assert source.index("sort(key") < source.index("for service in result.candidates")
+
+
+class TestOneFilePerSource:
+    """A single fixed filename made comparison impossible: the finer fetch
+    would overwrite the coarser one and the disagreement would never show."""
+
+    def test_the_name_carries_the_band_and_the_layer(self):
+        assert mod.store_name(
+            "https://x/services/encdirect/enc_harbour/MapServer/84"
+        ) == "enc_harbour_84_coronado.csv"
+
+    def test_two_bands_do_not_collide(self):
+        a = mod.store_name("https://x/services/encdirect/enc_harbour/MapServer/84")
+        b = mod.store_name("https://x/services/encdirect/enc_approach/MapServer/88")
+        assert a != b
+
+    def test_storing_one_does_not_remove_the_other(self, tmp_path):
+        pts = [[(32.68, -117.18), (32.67, -117.17)]]
+        first = mod.store(pts, "https://x/services/encdirect/enc_approach/MapServer/88",
+                          tmp_path)
+        second = mod.store(pts, "https://x/services/encdirect/enc_harbour/MapServer/84",
+                           tmp_path)
+        assert first.exists() and second.exists() and first != second
+
+    def test_the_same_source_twice_overwrites_itself(self, tmp_path):
+        """A survey, not a series — re-fetching the same layer destroys
+        nothing, and git is the version log."""
+
+        pts = [[(32.68, -117.18), (32.67, -117.17)]]
+        url = "https://x/services/encdirect/enc_harbour/MapServer/84"
+        mod.store(pts, url, tmp_path)
+        again = mod.store(pts, url, tmp_path)
+        assert len(list((tmp_path / "shoreline").glob("*.csv"))) == 1
+        assert again.exists()
+
+    def test_more_than_one_source_is_kept(self):
+        assert mod.SOURCE_BUDGET >= 2
