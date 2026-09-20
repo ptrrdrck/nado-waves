@@ -324,11 +324,20 @@ function windowList(windows) {
   // but now.json is optional and the publish script keeps the previous one
   // when a build fails — so the page can meet an older payload shape, and a
   // card reading "NaN-NaN deg" is worse than a card saying nothing.
-  const ok = (windows || []).filter(
-    (w) => w && isFinite(w.from) && isFinite(w.to));
+  const given = windows || [];
+  const ok = given.filter((w) => w && isFinite(w.from) && isFinite(w.to));
   if (!ok.length) {
-    return '<div class="quiet">no open window &mdash; land on every bearing '
-         + 'this beach faces</div>';
+    // Two different failures, and only one of them is about the coast. An
+    // empty list is the geometry saying there is nowhere to arrive from; a
+    // list this page cannot read is the page saying so. Printing the
+    // geometric claim for both would put a false statement about the beach on
+    // screen every time a payload went stale -- which is exactly when nobody
+    // is watching.
+    return given.length
+      ? '<div class="quiet">windows not readable from this file &mdash; '
+        + 'it is older than the page</div>'
+      : '<div class="quiet">no open window &mdash; land on every bearing '
+        + 'this beach faces</div>';
   }
   windows = ok;
   const spans = windows.map((w) => ((w.to - w.from) % 360 + 360) % 360);
