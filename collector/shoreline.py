@@ -1,0 +1,357 @@
+"""Fetch NOAA's surveyed shoreline near Coronado, to check the digitised chords.
+
+    python -m collector.shoreline          # discover, fetch, archive
+    python -m collector.shoreline --probe  # discover and report, store nothing
+
+Run it on Actions. Every NOAA coastal host is denied at CONNECT from a Claude
+session — measured 2026-09-20, `chs.coast.noaa.gov`, `coast.noaa.gov`,
+`geodesy.noaa.gov` and `maps.coast.noaa.gov` all answered 403 (BRIEFING §8).
+
+WHY THIS EXISTS. `forecast/spots.json` carries three shoreline chords traced by
+hand from Google Earth. They set each break's seaward normal, which is the only
+thing standing behind the offshore/onshore/cross-shore reading on the app
+surface. One of the three, `coronado_north`, is known by its own provenance to
+be about 19 degrees off from an imagery splice. Nothing independent has ever
+checked the other two.
+
+That matters more than it sounds. Measured (BRIEFING §20): the verdict
+boundaries sit at fixed angles from the normal, which puts six of the nine
+boundaries for Coronado's three breaks inside 265-330 degrees — and 62.6% of a
+three-year wind record sits in 270-330. One degree of normal error changes the
+verdict on 4.2% of readings; five degrees on 21%; north's known 19 on ~70%.
+A hand-traced chord is not good enough for a number that sensitive.
+
+DISCOVERY, NOT GUESSED URLS. `probe_mop` learned this the expensive way and
+says so in its own docstring: guessing a deep path produced two wrong verdicts
+earlier in this project. So this walks the ArcGIS REST catalogue from documented
+roots and looks for a shoreline layer, rather than hardcoding a path this
+session cannot reach to verify. What it found, and what it tried and failed, go
+into the step summary either way.
+
+WHAT THE ANSWER IS AND IS NOT. A surveyed shoreline is an independent
+measurement of where the land meets the sea, and it settles the ORIENTATION
+question the chords are being used for. It is not the same line as the traced
+waterline: NOAA's shoreline products are referenced to a tidal datum (MHW,
+typically) while a Google Earth trace follows whatever the water was doing when
+the image was taken. Expect a systematic cross-shore offset between the two and
+do not read it as error. Orientation is what is being checked here, and
+orientation is what survives a translation.
+
+It is also NOT the normal that refraction will want. That one belongs to the
+depth contours at breaking depth, which is a bathymetry question and a
+different job.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from .common import DEFAULT_DATA_DIR, ISO, utcnow, write_step_summary
+
+USER_AGENT = "nado-waves/1.0 (surf forecast research; contact via repository)"
+
+#: Catalogue roots, not layer paths. Each is an ArcGIS REST services directory
+#: that is expected to respond; what lives inside it is discovered.
+CATALOG_ROOTS = (
+    "https://chs.coast.noaa.gov/arcgis/rest/services",
+    "https://coast.noaa.gov/arcgis/rest/services",
+    "https://gis.charttools.noaa.gov/arcgis/rest/services",
+)
+
+#: A service or layer worth opening. Deliberately broad — the point is to see
+#: what is there, and the summary lists everything matched so a human can judge.
+WANTED = re.compile(r"shorelin|cusp|coastal[_ ]?survey", re.I)
+
+#: Coronado's digitised stretch runs 32.6737 to 32.6866 N, -117.1976 to
+#: -117.1724 E. Padded by roughly 2 km so a fit at the 2 km scale has vertices
+#: beyond both ends of the beach rather than running out of line at the edges.
+BBOX = (-117.2200, 32.6550, -117.1500, 32.7060)   # xmin, ymin, xmax, ymax
+
+STORE_NAME = "noaa_shoreline_coronado.csv"
+
+FIELDS = ["part", "seq", "lat", "lon", "source_layer", "fetched_utc"]
+
+TIMEOUT = 45.0
+
+#: Denial is policy, not throttling, and must be reported rather than retried.
+DENIAL_NOTE = (
+    "403 at CONNECT is the egress policy refusing the host, not NOAA refusing "
+    "the request. Run this job on Actions; do not route around it (BRIEFING §8)."
+)
+
+
+class ShorelineError(RuntimeError):
+    pass
+
+
+@dataclass
+class Attempt:
+    url: str
+    ok: bool = False
+    denied: bool = False
+    note: str = ""
+
+
+@dataclass
+class Result:
+    attempts: list[Attempt] = field(default_factory=list)
+    candidates: list[str] = field(default_factory=list)
+    layer: str = ""
+    parts: int = 0
+    vertices: int = 0
+    stored: Path | None = None
+
+    @property
+    def ok(self) -> bool:
+        return self.vertices > 0
+
+    @property
+    def denied(self) -> bool:
+        return bool(self.attempts) and all(a.denied for a in self.attempts)
+
+
+def fetch_json(url: str, *, timeout: float = TIMEOUT) -> dict:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        payload = response.read()
+    try:
+        data = json.loads(payload.decode("utf-8", errors="replace"))
+    except json.JSONDecodeError as exc:
+        raise ShorelineError(f"not JSON: {exc}") from None
+    # ArcGIS reports failure inside a 200 body, the same shape CO-OPS does and
+    # the same shape BRIEFING §8 lists first. Check the error before the data.
+    if isinstance(data, dict) and data.get("error"):
+        message = data["error"].get("message", "") if isinstance(data["error"], dict) else str(data["error"])
+        raise ShorelineError(f"ArcGIS error in a 200 body: {message[:200]}")
+    return data
+
+
+def is_denial(exc: Exception) -> bool:
+    text = f"{exc.__class__.__name__}: {exc}"
+    return "403" in text or "CONNECT" in text or "URLError" in text
+
+
+def discover(roots: tuple[str, ...] = CATALOG_ROOTS) -> Result:
+    """Walk each catalogue root one level and collect services worth trying."""
+
+    result = Result()
+    for root in roots:
+        attempt = Attempt(url=root)
+        try:
+            catalog = fetch_json(f"{root}?f=json")
+        except Exception as exc:  # noqa: BLE001 — classified, not swallowed
+            attempt.denied = is_denial(exc)
+            attempt.note = f"{exc.__class__.__name__}: {exc}"[:160]
+            result.attempts.append(attempt)
+            continue
+
+        attempt.ok = True
+        found = 0
+        for service in catalog.get("services", []) or []:
+            name = str(service.get("name", ""))
+            kind = str(service.get("type", ""))
+            if kind not in ("MapServer", "FeatureServer"):
+                continue
+            if not WANTED.search(name):
+                continue
+            result.candidates.append(f"{root}/{name.split('/')[-1]}/{kind}")
+            found += 1
+        # Folders are one level down and NOAA nests coastal products in them.
+        for folder in catalog.get("folders", []) or []:
+            if not WANTED.search(str(folder)):
+                continue
+            try:
+                sub = fetch_json(f"{root}/{folder}?f=json")
+            except Exception:  # noqa: BLE001 — a dead folder is not fatal
+                continue
+            for service in sub.get("services", []) or []:
+                kind = str(service.get("type", ""))
+                if kind in ("MapServer", "FeatureServer"):
+                    name = str(service.get("name", "")).split("/")[-1]
+                    result.candidates.append(f"{root}/{folder}/{name}/{kind}")
+                    found += 1
+        attempt.note = f"{found} candidate service(s)"
+        result.attempts.append(attempt)
+    return result
+
+
+def line_layers(service_url: str) -> list[str]:
+    """Layer ids in a service whose geometry is a polyline."""
+
+    try:
+        meta = fetch_json(f"{service_url}?f=json")
+    except Exception:  # noqa: BLE001 — try the next service
+        return []
+    out = []
+    for layer in meta.get("layers", []) or []:
+        geometry = str(layer.get("geometryType", ""))
+        if not geometry or "Polyline" in geometry:
+            out.append(f"{service_url}/{layer.get('id')}")
+    return out
+
+
+def query_url(layer_url: str, bbox: tuple[float, float, float, float]) -> str:
+    params = {
+        "where": "1=1",
+        "geometry": ",".join(f"{v}" for v in bbox),
+        "geometryType": "esriGeometryEnvelope",
+        "inSR": "4326",
+        "outSR": "4326",
+        "spatialRel": "esriSpatialRelIntersects",
+        "returnGeometry": "true",
+        "outFields": "*",
+        "f": "json",
+    }
+    return f"{layer_url}/query?{urllib.parse.urlencode(params)}"
+
+
+def parse_paths(payload: dict) -> list[list[tuple[float, float]]]:
+    """Polyline paths as (lat, lon) lists. Empty when the layer had none.
+
+    ArcGIS gives x,y — longitude first. Flipping that silently would put
+    Coronado in the Indian Ocean, so it is done once, here, on the way in.
+    """
+
+    parts: list[list[tuple[float, float]]] = []
+    for feature in payload.get("features", []) or []:
+        geometry = feature.get("geometry") or {}
+        for path in geometry.get("paths", []) or []:
+            points = []
+            for point in path:
+                if not isinstance(point, (list, tuple)) or len(point) < 2:
+                    continue
+                lon, lat = float(point[0]), float(point[1])
+                points.append((lat, lon))
+            if len(points) >= 2:
+                parts.append(points)
+    return parts
+
+
+def in_bbox(lat: float, lon: float, bbox: tuple[float, float, float, float]) -> bool:
+    xmin, ymin, xmax, ymax = bbox
+    return xmin <= lon <= xmax and ymin <= lat <= ymax
+
+
+def store(parts: list[list[tuple[float, float]]], layer: str, data_dir: Path) -> Path:
+    """Write the vertices. Overwrites: a shoreline is a survey, not a series.
+
+    Unlike the tide and buoy archives there is nothing here that a later fetch
+    would destroy — this is one published survey, not a stream of observations
+    whose earlier values are the record. The git history is the version log.
+    """
+
+    path = Path(data_dir) / "shoreline" / STORE_NAME
+    path.parent.mkdir(parents=True, exist_ok=True)
+    stamp = utcnow().strftime(ISO)
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=FIELDS)
+        writer.writeheader()
+        for index, part in enumerate(parts):
+            for seq, (lat, lon) in enumerate(part):
+                writer.writerow({
+                    "part": index, "seq": seq,
+                    "lat": f"{lat:.7f}", "lon": f"{lon:.7f}",
+                    "source_layer": layer, "fetched_utc": stamp,
+                })
+    return path
+
+
+def collect(
+    data_dir: Path = DEFAULT_DATA_DIR,
+    *,
+    bbox: tuple[float, float, float, float] = BBOX,
+    probe_only: bool = False,
+) -> Result:
+    result = discover()
+    if not result.candidates:
+        return result
+
+    for service in result.candidates:
+        for layer in line_layers(service):
+            try:
+                payload = fetch_json(query_url(layer, bbox))
+            except Exception as exc:  # noqa: BLE001 — try the next layer
+                result.attempts.append(
+                    Attempt(url=layer, denied=is_denial(exc),
+                            note=f"{exc.__class__.__name__}: {exc}"[:160]))
+                continue
+            parts = [
+                [p for p in path if in_bbox(*p, bbox)]
+                for path in parse_paths(payload)
+            ]
+            parts = [p for p in parts if len(p) >= 2]
+            if not parts:
+                result.attempts.append(Attempt(url=layer, ok=True, note="no vertices in bbox"))
+                continue
+            result.layer = layer
+            result.parts = len(parts)
+            result.vertices = sum(len(p) for p in parts)
+            result.attempts.append(
+                Attempt(url=layer, ok=True,
+                        note=f"{result.vertices} vertices in {result.parts} part(s)"))
+            if not probe_only:
+                result.stored = store(parts, layer, data_dir)
+            return result
+    return result
+
+
+def format_summary(result: Result) -> str:
+    lines = ["### Shoreline — NOAA surveyed vector near Coronado", ""]
+    lines += ["| tried | ok | note |", "|---|---|---|"]
+    for attempt in result.attempts:
+        state = "denied" if attempt.denied else ("yes" if attempt.ok else "no")
+        lines.append(f"| `{attempt.url}` | {state} | {attempt.note} |")
+    lines.append("")
+    if result.candidates:
+        lines.append(f"**{len(result.candidates)} candidate service(s):**")
+        lines += [f"- `{c}`" for c in result.candidates]
+        lines.append("")
+    if result.ok:
+        lines.append(
+            f"**Stored {result.vertices} vertices** in {result.parts} part(s) from "
+            f"`{result.layer}` → `{result.stored}`."
+        )
+        lines.append("")
+        lines.append(
+            "Run `python -m forecast.shorenormal` to compare these against the "
+            "hand-digitised chords in `forecast/spots.json`."
+        )
+    elif result.denied:
+        lines.append(f"**Denied at CONNECT.** {DENIAL_NOTE}")
+    else:
+        lines.append(
+            "**No shoreline layer found.** Nothing was stored, and nothing is "
+            "inferred from the miss — the chords keep their existing "
+            "`shoreline_verified` flags. The table above is what to read next."
+        )
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--probe", action="store_true",
+                        help="discover and report, store nothing")
+    args = parser.parse_args(argv)
+
+    result = collect(args.data_dir, probe_only=args.probe)
+    summary = format_summary(result)
+    print(summary)
+    write_step_summary(summary)
+
+    if result.denied:
+        return 2
+    return 0 if (result.ok or args.probe) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

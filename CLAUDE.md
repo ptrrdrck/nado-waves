@@ -209,6 +209,8 @@ forecaster actually verifies against, Surfline included.
                         wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),
+                        shoreline.py (NOAA's surveyed shoreline vector, to
+                        check the hand-traced chords — run on Actions),
                         beachlog.py + beachlog_import.py (the observation log)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/beachlog.html   the phone form, owner build (shared store)
@@ -225,6 +227,8 @@ forecaster actually verifies against, Surfline included.
       units.py          ft/mph first, m/kt in parentheses -- display only
       tideturns.py      the next high/low, and why its direction is not
                         differenced from the measured level      [built]
+      shorenormal.py    surveyed shore normals vs the digitised chords,
+                        swept over scale; reports, never edits    [built]
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
@@ -239,6 +243,7 @@ forecaster actually verifies against, Surfline included.
     data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
                         _observed (measured), _predicted (hourly harmonic),
                         _turns (the harmonic model's own highs and lows)
+    data/shoreline/     NOAA's surveyed vector near Coronado    [NOT YET RUN]
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
@@ -353,6 +358,26 @@ circular helpers are used here. Trimming it is a good first cleanup.
   turn as two claims. The Now/Forecast split is about the reader always knowing
   which chain they are looking at, not about a tab being chemically pure; an
   unlabelled turn would have broken it, a labelled one demonstrates it.
+- **The shore normal is the highest-leverage input to the wind reading, and
+  two of three are unchecked.** Measured 2026-09-20 (BRIEFING §20): the verdict
+  boundaries sit at fixed angles from the normal, which puts six of the nine
+  boundaries for Coronado's breaks inside 265–330°, and **62.6% of a three-year
+  wind record sits in 270–330°**. So error lands where the data is: 1° of
+  normal error changes the verdict on **4.2%** of readings, 5° on 21%, and
+  `coronado_north`'s known ~19° imagery-splice error on about **70%**. That is
+  roughly twice what a uniform wind rose would cost. The north card's wind line
+  is close to uninformative until the chord is re-digitised.
+- **A normal is a property of a chord, not of a point.** The same beach gives
+  102.8° over north's 547 m chord, 124.2° over centre's 285 m, 131.5° over
+  south's 471 m and 121.3° over the whole 2.8 km — 28.7° of spread, all of it
+  real. Any verification that does not state its chord length has verified
+  nothing. `forecast/shorenormal.py` therefore reports a SWEEP over scale, and
+  `residual_m` says whether the break sits on a straight stretch or a curve.
+- **There are two shore normals and they are not the same claim.** The
+  waterline normal is what the wind reading needs; the depth-contour normal at
+  breaking depth is what refraction will need. `Spot.normal` is currently one
+  number doing both jobs, and checking it against a shoreline verifies only the
+  first.
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.
