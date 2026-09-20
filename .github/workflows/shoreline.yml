@@ -28,6 +28,11 @@ on:
         type: boolean
         required: false
         default: false
+      enc_layers:
+        description: "Also enumerate the ENC chart layers near the harbour entrance"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -64,6 +69,15 @@ jobs:
         if: ${{ !inputs.probe_only }}
         continue-on-error: true
         run: python -m forecast.shorenormal | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # Reports only. Zuniga Jetty is S-57 class SLCONS and is awash for much
+      # of its length, so no shoreline product carries it; Zuniga Shoals is
+      # submerged entirely. This says which chart layers hold them and how
+      # many features sit in the box, and stops there.
+      - name: Enumerate the ENC chart layers
+        if: ${{ inputs.enc_layers }}
+        continue-on-error: true
+        run: python -m collector.enc_layers
 
       - name: Headline
         if: always()
