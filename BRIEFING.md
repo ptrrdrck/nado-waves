@@ -1155,3 +1155,77 @@ claim the surface actually makes, rather than a geometric proxy for it. It
 cannot separate "normal wrong" from "KNZY, 3 km across the bay, is
 unrepresentative here", which is the argument for also sighting a bearing on
 the sand.
+
+## 21. Measured, 2026-09-20 — the chords survive an independent check, and north's caveat does not
+
+§20 built the machinery to check Coronado's shore normals against a surveyed
+shoreline. It took five Actions runs to find one, and what arrived is not what
+was being looked for. Both halves of that are worth recording.
+
+### What the source actually is
+
+`gis.charttools.noaa.gov/.../encdirect/enc_approach/MapServer/88` — the
+coastline feature class (COALNE) out of NOAA's **Electronic Navigational
+Charts**. 689 vertices in the Coronado box.
+
+That is **not** the NGS Continually Updated Shoreline, and not a survey-grade
+MHW vector. It is a cartographic product, generalised for navigation at chart
+scale. The distinction matters in the direction that makes the check weaker:
+a generalised line is artificially straight, so a low residual is partly a
+property of the cartography and not only of the beach. Read what follows as an
+independent cross-check, not as the verification §20 set out to obtain. The
+project's own rule — verification is an observation, not another model —
+applies here and this is still a model.
+
+### The numbers
+
+| break | chord | ENC coastline | disagreement | straightness |
+|---|---|---|---|---|
+| north | 192.8 | 194.9–195.9 (800 m–3 km) | **+2.1 to +3.1** | — |
+| center | 214.2 | 213.6 (400 m) | **−0.6** | 1.3 m rms |
+| south | 221.5 | 221.0 (400 m) | **−0.5** | 0.5 m rms |
+
+**`coronado_north`'s provenance caveat is not supported.** `spots.json` says
+its normal "is about 19 degrees off" and "must not be trusted for wind fetch
+or refraction". An independent coastline puts it 2–3° off, not 19.
+
+The likely explanation is §20's scale point, applied to the repo's own note:
+the 19° was north's 547 m chord compared against the *centre-to-south* trend of
+127.1°. Those are two different stretches of sand. The survey says north's own
+local orientation really is about 104–106°, close to what its chord already
+carries. The splice moved the northern point SEAWARD, which translates the
+chord without rotating it much — and §20 measured that orientation survives a
+translation.
+
+That is a claim in the repository contradicted by evidence, and the flag has
+**not** been flipped. Two to three degrees is still 8–13% of wind readings by
+§20's table, the ENC line is generalised, and north cannot be fitted at the
+400 m scale the wind reading actually wants — only 3 distinct vertices sit
+within 200 m of it. Re-digitising north from clean imagery remains the right
+fix; what changed is the expected size of the correction.
+
+### Two faults caught in the checking, not by anything failing
+
+**Duplicated vertices.** The ENC line repeats a point wherever two chart
+segments meet — 166 of 689. A principal axis weights a repeated point twice,
+so the fit leans toward whichever stretch is stitched most often. Before
+deduplication north "agreed to +1.3°" at 400 m; after it, north has 3 distinct
+vertices there and correctly **refuses to fit at all**. The agreeable number
+was the artefact.
+
+**A bay-contamination check that could not work.** San Diego Bay sits 500 m
+behind this beach and a bay vertex in a fit would wreck it. The first test
+asked whether a vertex lies more than 90° from the seaward normal — but an
+along-shore vertex sits at ±90° by definition, so the test flagged the entire
+centre break and nothing else. The right test is the perpendicular offset: all
+nearby vertices are 1–17 m off the breaks, a tide-and-datum width, and none is
+in the bay. **A check whose failure mode is indistinguishable from its success
+mode is not a check.**
+
+### South curves, and that is geography
+
+South is stable at 220.8–221.1 out to 800 m and then swings to 195.4 at 1.5 km
+and 205.3 at 3 km — a 25.6° spread. That is the coast bending toward Imperial
+Beach and the river mouth, which §12 already describes as unmodelled coastline.
+It is the clearest illustration of §20's rule that a normal is a property of a
+chord: for this break, at the kilometre scale, there is no single right answer.
