@@ -104,6 +104,11 @@ class Layer:
     geometry: str
     count: int | None = None
     note: str = ""
+    #: Whether a count was even attempted. Without this, a layer past the
+    #: QUERY_BUDGET and a layer that answered with an error both render as a
+    #: bare dash — three states, two renderings, which is the fault this
+    #: session has now hit five separate times.
+    queried: bool = False
 
     @property
     def klass(self) -> str:
@@ -168,6 +173,7 @@ def count_features(layer: Layer, service_url: str,
                    bbox: tuple[float, float, float, float]) -> None:
     """Fill in `count`, or `note` saying why it could not be had."""
 
+    layer.queried = True
     try:
         payload = fetch_json(count_url(f"{service_url}/{layer.id}", bbox),
                              timeout=TIMEOUT)
@@ -233,9 +239,16 @@ def format_summary(result: Result) -> str:
     lines += ["", "| service | id | layer | geometry | features in box |",
               "|---|---|---|---|---|"]
     for layer in sorted(result.interesting,
-                        key=lambda l: (-(l.count or 0), l.service, l.id)):
-        count = (f"**{layer.count}**" if layer.count
-                 else ("0" if layer.count == 0 else f"— {layer.note}"))
+                        key=lambda l: (not l.queried, -(l.count or 0),
+                                       l.service, l.id)):
+        if layer.count:
+            count = f"**{layer.count}**"
+        elif layer.count == 0:
+            count = "0"
+        elif not layer.queried:
+            count = "not queried — past the budget"
+        else:
+            count = f"failed — {layer.note}"
         lines.append(f"| {layer.service} | {layer.id} | `{layer.name}` | "
                      f"{layer.geometry} | {count} |")
     lines.append("")

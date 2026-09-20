@@ -209,8 +209,10 @@ forecaster actually verifies against, Surfline included.
                         wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),
-                        shoreline.py (NOAA's surveyed shoreline vector, to
-                        check the hand-traced chords — run on Actions),
+                        shoreline.py (NOAA's ENC coastline, to check the
+                        hand-traced chords — run on Actions),
+                        enc_layers.py (what else the charts carry: the jetty,
+                        the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/beachlog.html   the phone form, owner build (shared store)
