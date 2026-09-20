@@ -63,22 +63,32 @@ USER_AGENT = "nado-waves/1.0 (surf forecast research; contact via repository)"
 #: that is expected to respond; what lives inside it is discovered.
 CATALOG_ROOTS = (
     "https://gis.charttools.noaa.gov/arcgis/rest/services",
-    "https://chs.coast.noaa.gov/arcgis/rest/services",
     "https://coast.noaa.gov/arcgis/rest/services",
-    "https://coast.noaa.gov/arcgis/rest/services/dc_slr",
+    "https://chs.coast.noaa.gov/arcgis/rest/services",
     "https://mapservices.weather.noaa.gov/static/rest/services",
-    "https://mapservices.weather.noaa.gov/eventdriven/rest/services",
-    "https://nowcoast.noaa.gov/arcgis/rest/services",
-    "https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services",
+)
+
+#: Services the first two probe runs turned up that are worth opening whatever
+#: their NAME matches, because NOAA's ENC chart data carries the coastline as a
+#: feature class (COALNE) inside a service called something else entirely.
+#: These are catalogue entries observed on 2026-09-20, not guesses.
+KNOWN_SERVICES = (
+    "https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer",
+    "https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/NOAAChartDisplay/MapServer",
+    "https://gis.charttools.noaa.gov/arcgis/rest/services/MarineChart_Services/NOAACharts/MapServer",
 )
 
 #: How many folders to open per root. A big catalogue has dozens and this is a
 #: discovery pass, not a crawl.
 FOLDER_BUDGET = 12
 
+#: How many entries to print per root. One catalogue with four thousand
+#: services buried the other three in the second run's summary.
+LISTING_CAP = 60
+
 #: A service or layer worth opening. Deliberately broad — the point is to see
 #: what is there, and the summary lists everything matched so a human can judge.
-WANTED = re.compile(r"shorelin|cusp|coastal[_ ]?survey", re.I)
+WANTED = re.compile(r"shorelin|cusp|coalne|coast.?line|\bmhw\b|coastal[_ ]?survey", re.I)
 
 #: Coronado's digitised stretch runs 32.6737 to 32.6866 N, -117.1976 to
 #: -117.1724 E. Padded by roughly 2 km so a fit at the 2 km scale has vertices
@@ -224,18 +234,29 @@ def discover(roots: tuple[str, ...] = CATALOG_ROOTS) -> Result:
 
 
 def line_layers(service_url: str) -> list[str]:
-    """Layer ids in a service whose geometry is a polyline."""
+    """Polyline layers in a service, the shoreline-named ones first.
+
+    Matching on LAYER names and not only service names is what the second probe
+    run was missing: NOAA's ENC chart services are called things like
+    `NOAACharts`, and the coastline lives inside them as a feature class named
+    COALNE. Filtering at the service level never opened them.
+    """
 
     try:
         meta = fetch_json(f"{service_url}?f=json")
     except Exception:  # noqa: BLE001 — try the next service
         return []
-    out = []
+    named, other = [], []
     for layer in meta.get("layers", []) or []:
         geometry = str(layer.get("geometryType", ""))
-        if not geometry or "Polyline" in geometry:
-            out.append(f"{service_url}/{layer.get('id')}")
-    return out
+        if geometry and "Polyline" not in geometry:
+            continue
+        url = f"{service_url}/{layer.get('id')}"
+        (named if WANTED.search(str(layer.get("name", ""))) else other).append(url)
+    # A chart service has dozens of layers and querying every one of them is a
+    # crawl, not a probe. The named ones are the point; a handful of others are
+    # kept in case the naming differs.
+    return named + other[:8]
 
 
 def query_url(layer_url: str, bbox: tuple[float, float, float, float]) -> str:
@@ -311,8 +332,9 @@ def collect(
     probe_only: bool = False,
 ) -> Result:
     result = discover()
-    if not result.candidates:
-        return result
+    # Observed services go first: they are known to exist and known to be the
+    # kind of thing that carries a coastline, whatever they are called.
+    result.candidates = list(KNOWN_SERVICES) + result.candidates
 
     for service in result.candidates:
         for layer in line_layers(service):
@@ -361,9 +383,9 @@ def format_summary(result: Result) -> str:
             continue
         lines.append(f"<details><summary>{len(attempt.listing)} entries at "
                      f"<code>{attempt.url}</code></summary>\n")
-        lines += [f"- `{entry}`" for entry in attempt.listing[:200]]
-        if len(attempt.listing) > 200:
-            lines.append(f"- …and {len(attempt.listing) - 200} more")
+        lines += [f"- `{entry}`" for entry in attempt.listing[:LISTING_CAP]]
+        if len(attempt.listing) > LISTING_CAP:
+            lines.append(f"- …and {len(attempt.listing) - LISTING_CAP} more")
         lines.append("\n</details>\n")
     if result.candidates:
         lines.append(f"**{len(result.candidates)} candidate service(s):**")
