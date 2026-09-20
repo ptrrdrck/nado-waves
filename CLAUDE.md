@@ -243,7 +243,8 @@ forecaster actually verifies against, Surfline included.
     data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
                         _observed (measured), _predicted (hourly harmonic),
                         _turns (the harmonic model's own highs and lows)
-    data/shoreline/     NOAA's surveyed vector near Coronado    [NOT YET RUN]
+    data/shoreline/     NOAA ENC coastline near Coronado - a CHART product,
+                        generalised, not the survey-grade MHW vector  [689 pts]
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
