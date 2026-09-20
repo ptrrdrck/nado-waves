@@ -41,7 +41,9 @@ from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
 
-from .geometry import HIGH, LOW, Spot, load, swell_windows
+from .geometry import (HIGH, LOW, Spot, geometry_line,
+                       geometry_provenance, load,
+                       swell_windows, window_entry)
 from .units import height as fmt_height, speed as fmt_speed
 from .live import (
     STATION,
@@ -120,6 +122,12 @@ class Now:
     station: str
     station_name: str
     standing_on: dict
+    #: What the aperture itself is standing on: the ENC chart cells the
+    #: blockers were read from, and which blockers came from imagery instead.
+    #: Station-level, not per break, because one blocker set serves all three —
+    #: and structured rather than a sentence so the card can print a
+    #: provenance line without the page hardcoding a claim of its own.
+    geometry: dict = field(default_factory=dict)
     #: Predicted turning points of the tide. A MODEL, on a tab that is
     #: otherwise measurements only, and named as one everywhere it shows.
     tide_turns: list = field(default_factory=list)
@@ -223,8 +231,9 @@ def build(
         stale=True,
         station=STATION,
         station_name=station_name(STATION, data_dir),
+        geometry=geometry_provenance(blockers),
         standing_on={
-            "geometry": "digitised — Coronado's three breaks and the Point Loma tip",
+            "geometry": geometry_line(blockers),
             "waves": f"OBSERVED — NDBC directional spectrum at {STATION}, "
                      f"measured r1/r2, no assumed spread",
             "wind": f"OBSERVED — {WIND_STATION} METAR",
@@ -308,8 +317,7 @@ def build(
             id=spot.id,
             name=spot.name,
             confidence=HIGH if spot.position_verified else LOW,
-            swell_window=[[round(w.low.bearing, 1), round(w.high.bearing, 1)]
-                          for w in swell_windows(spot, blockers)],
+            swell_window=[window_entry(w) for w in swell_windows(spot, blockers)],
             hs_in_window_m=round(got.hs_in_window_m, 3),
             fraction=round(got.fraction, 4) if not math.isnan(got.fraction) else None,
             peak_period_s=None if math.isnan(got.peak_period_s) else round(got.peak_period_s, 1),

@@ -48,7 +48,8 @@ from collector.common import DEFAULT_DATA_DIR, ISO
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
-from .geometry import HIGH, LOW, Blocker, Spot, load, swell_windows
+from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
+                       load, swell_windows, window_entry)
 from .units import height as fmt_height, speed as fmt_speed
 from .tideturns import read_turns, turns_between
 from .transform import (
@@ -153,10 +154,13 @@ class BreakForecast:
     id: str
     name: str
     confidence: str
-    #: The arcs swell can actually arrive through — both edges blocker-derived.
-    #: The south-east arc `open_window` also returns is excluded: it spans the
-    #: Baja coastline, which is not modelled as a blocker, so the model calls it
-    #: open water (BRIEFING §12).
+    #: The arcs swell can actually arrive through — every edge blocker-derived.
+    #: Three of them since 2026-09-20: the south window between the Baja coast
+    #: and the southern Coronado Islands, the 6° channel between the two
+    #: islands, and the west window out to the Point Loma tip. It used to be
+    #: one, because the south-east arc ran across a Baja coastline that was not
+    #: modelled and `swell_windows` rightly withheld it. Charting that coast is
+    #: what let it be published (BRIEFING §12, §24).
     swell_window: list[list[float]]
     shore_normal_deg: float
     normal_is_a_guess: bool
@@ -180,6 +184,12 @@ class Forecast:
     #: Read rather than typed — CLAUDE.md keeps station facts fetched.
     station_name: str
     standing_on: dict
+    #: What the aperture itself is standing on: the ENC chart cells the
+    #: blockers were read from, and which blockers came from imagery instead.
+    #: Station-level, not per break, because one blocker set serves all three —
+    #: and structured rather than a sentence so the card can print a
+    #: provenance line without the page hardcoding a claim of its own.
+    geometry: dict = field(default_factory=dict)
     #: What the model says the buoy will see, per hour, before any aperture.
     #: Station-level like the wind and tide: one buoy, not three.
     buoy: list[dict] = field(default_factory=list)
@@ -391,8 +401,9 @@ def build(
         cycle_utc=bulletin.cycle_utc.strftime(ISO) if bulletin else None,
         station=STATION,
         station_name=station_name(STATION, data_dir),
+        geometry=geometry_provenance(blockers),
         standing_on={
-            "geometry": "digitised — Coronado's three breaks and the Point Loma tip",
+            "geometry": geometry_line(blockers),
             "model": "GFS-Wave, unassimilated; 0.9–1.0 ft (0.26–0.31 m) low bias at the buoy, not corrected here",
             "calibration": "none — no offshore-to-face transfer, no shoaling, no refraction, no band",
             "observation": "none — data/beach_log/ is empty; nothing has measured these breaks",
@@ -488,8 +499,7 @@ def build(
             id=spot.id,
             name=spot.name,
             confidence=confidence_for(spot, blockers),
-            swell_window=[[round(w.low.bearing, 1), round(w.high.bearing, 1)]
-                          for w in swell_windows(spot, blockers)],
+            swell_window=[window_entry(w) for w in swell_windows(spot, blockers)],
             shore_normal_deg=round(spot.normal, 1),
             normal_is_a_guess=not spot.shoreline_verified,
         )

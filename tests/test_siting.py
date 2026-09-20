@@ -29,39 +29,83 @@ def survey():
 
 # --- the geometry primitive -------------------------------------------------
 
-def test_swell_window_drops_the_near_useless_south_east_arc(spots_and_blockers):
-    """Every spot has two open arcs; only one can carry a real swell.
+def test_every_published_edge_now_stands_on_land(spots_and_blockers):
+    """BRIEFING section 12 dissolved, 2026-09-20.
 
-    BRIEFING section 2 says the total open arc overstates because the south-east
-    arc points into the bight. The swell-side window is the one with land on
-    both edges, and it must be strictly narrower than the open arc.
+    The rule has not changed: a window edge formed by the seaward half-plane
+    means the arc ran out of MODELLED land, not that it ran into ocean, and
+    such an arc may not be published. What changed is the modelled land. With
+    the Baja coast charted and added as a blocker, the half-plane no longer
+    forms an edge for any spot in the file, so `swell_window` now returns
+    everything `open_window` does. The clip was never a fact about the coast;
+    it was a fact about what this repository had digitised.
     """
 
     spots, blockers = spots_and_blockers
     for spot in spots.values():
-        full = open_window(spot, blockers)
-        swell = swell_window(spot, blockers)
-        assert len(swell) == 1, f"{spot.id} should have exactly one swell window"
-        assert len(full) > len(swell), f"{spot.id} lost its south-east arc"
+        assert swell_window(spot, blockers) == open_window(spot, blockers), spot.id
+        assert len(swell_window(spot, blockers)) == 3, spot.id
+
+
+def test_the_guard_still_fires_for_a_spot_the_land_does_not_surround(
+    spots_and_blockers,
+):
+    """Identity is a property of these five spots, not of the function. A spot
+    with only one blocker near it still gets its raw arc withheld — otherwise
+    the next break added to the file publishes open water across a coastline
+    nobody has digitised, which is exactly what section 12 was written about.
+    """
+
+    spots, blockers = spots_and_blockers
+    spot = spots["coronado_center"]
+    islands_only = [b for b in blockers if "Islands" in b.name]
+    assert len(open_window(spot, islands_only)) > len(swell_window(spot, islands_only))
+    for low, high in swell_window(spot, islands_only):
+        assert (low, high) not in [(w[0], w[1]) for w in []]
 
 
 @pytest.mark.parametrize(
     "spot_id,low,high",
     [
-        ("coronado_north", 199.4, 242.2),
-        ("coronado_center", 201.2, 250.3),
-        ("coronado_south", 203.5, 259.9),
-        ("nasni_breakers", 196.0, 222.6),
-        ("nab_gator", 205.9, 269.9),
+        ("coronado_north", 200.6, 242.2),
+        ("coronado_center", 202.6, 250.3),
+        ("coronado_south", 205.2, 259.9),
+        ("nasni_breakers", 196.9, 222.6),
+        ("nab_gator", 207.8, 269.9),
     ],
 )
-def test_swell_window_reproduces_the_published_numbers(spots_and_blockers, spot_id, low, high):
-    """The 42.8 / 49.1 / 56.3 spread BRIEFING section 2a is built on."""
+def test_the_west_window_reproduces_the_published_numbers(
+    spots_and_blockers, spot_id, low, high
+):
+    """The spread BRIEFING section 2a is built on, on the WEST window.
+
+    Its low edge moved 1.2 to 1.9 degrees when the Coronado Islands were
+    charted on 2026-09-20 — the estimate they replaced understated the island
+    shadow — so the widths are 41.6 / 47.7 / 54.7 where they used to be
+    42.8 / 49.1 / 56.3. The 13 degrees of spread along Coronado's own sand,
+    which is what the section is about, is unchanged: it comes from the Point
+    Loma end, and Point Loma has not moved.
+    """
 
     spots, blockers = spots_and_blockers
-    (got_low, got_high), = swell_window(spots[spot_id], blockers)
+    windows = swell_window(spots[spot_id], blockers)
+    got_low, got_high = windows[-1]     # the west window is the last by bearing
     assert got_low == pytest.approx(low, abs=0.1)
     assert got_high == pytest.approx(high, abs=0.1)
+
+
+def test_the_spread_along_coronados_sand_survives_the_island_charting():
+    """BRIEFING section 2a's headline. It is a Point Loma quantity."""
+
+    from forecast.geometry import load
+    spots, blockers = load()
+    by_id = {s.id: s for s in spots}
+    widths = {}
+    for sid in ("coronado_north", "coronado_center", "coronado_south"):
+        low, high = swell_window(by_id[sid], blockers)[-1]
+        widths[sid] = high - low
+    spread = widths["coronado_south"] - widths["coronado_north"]
+    assert spread == pytest.approx(13.1, abs=0.3)
 
 
 # --- the criterion ----------------------------------------------------------
@@ -151,7 +195,10 @@ def test_blocker_visibility_at_the_buoy_carries_no_information(spots_and_blocker
 
     for position in coordinates.values():
         for break_id in BREAKS:
-            (low, high), = swell_window(spots[break_id], blockers)
+            # The west window. Siting asks which buoys sit in the arc
+            # that carries the swell these breaks are forecast for,
+            # and that has always been this one.
+            low, high = swell_window(spots[break_id], blockers)[-1]
             seen = sum(
                 1 for step in range(int((high - low) * 10))
                 if visible(position, low + step / 10.0)

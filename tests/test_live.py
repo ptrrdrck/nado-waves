@@ -44,41 +44,68 @@ WEST = [Partition(hs_m=1.2, tp_s=16.0, toward_deg=75, wind_sea=False)]
 
 
 class TestTheSwellWindowExcludesUnmodelledCoast:
-    """BRIEFING §12. `open_window` also returns a south-east arc, and at
-    Coronado that arc spans the bearings where Imperial Beach, the Tijuana
-    river mouth and Rosarito sit — 11–41 km of Baja coastline that is not in
-    spots.json. Publishing it would show land as open water."""
+    """BRIEFING §12, and what became of it on 2026-09-20.
 
-    def test_only_blocker_bounded_windows_are_published(self):
+    The rule stands: an edge formed by the seaward half-plane means the arc
+    ran out of MODELLED land, and publishing it shows land as open water. The
+    south-east arc was withheld because Imperial Beach, the Tijuana river
+    mouth and Rosarito were not in spots.json. They are now — the Baja coast
+    is charted and blocked — so the half-plane forms no edge anywhere and
+    three land-bounded windows are published per break instead of one.
+    """
+
+    def test_every_published_edge_stands_on_land(self):
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
         for entry in got.breaks:
-            assert len(entry.swell_window) == 1
-            low, high = entry.swell_window[0]
-            assert 195 <= low <= 210 and 240 <= high <= 262
+            assert len(entry.swell_window) == 3
+            south, channel, west = entry.swell_window
+            assert 160 <= south["from"] <= 172 and 185 <= south["to"] <= 195
+            assert 190 <= channel["from"] <= 200 and 196 <= channel["to"] <= 206
+            assert 198 <= west["from"] <= 208 and 240 <= west["to"] <= 262
 
-    def test_the_published_windows_match_the_briefing_figures(self):
-        """42.8 / 49.1 / 56.3 degrees — README, BRIEFING §2a and CLAUDE.md all
-        quote these. Edges are published rounded to 0.1°, so a span taken from
-        them can differ from the true span by that much; the tolerance is the
-        rounding and nothing else."""
+    def test_each_window_says_what_forms_its_edges(self):
+        """The surface has to name these windows, and the only honest name
+        for a window is the land either side of it. Hardcoding
+        'south / channel / west' into the page would keep saying it after the
+        geometry moved — and there are three windows here only because the
+        geometry moved."""
 
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
-        expected = {"coronado_north": 42.8, "coronado_center": 49.1,
-                    "coronado_south": 56.3}
-        for entry in got.breaks:
-            low, high = entry.swell_window[0]
-            assert high - low == pytest.approx(expected[entry.id], abs=0.1)
+        south, channel, west = got.breaks[0].swell_window
+        assert south["opened_by"] == "Baja mainland"
+        assert "Islands" in south["closed_by"]
+        assert "Islands" in channel["opened_by"] and "Islands" in channel["closed_by"]
+        assert channel["opened_by"] != channel["closed_by"]
+        assert west["closed_by"] == "Point Loma peninsula"
+        assert all(w["confidence"] == "high" for w in (south, channel, west))
 
-    def test_the_south_east_arc_is_still_reachable_from_geometry(self):
-        """Excluded from the surface, not deleted from the model — the missing
-        blocker is a recorded gap, not a silent one."""
+    def test_the_west_window_matches_the_briefing_figures(self):
+        """41.6 / 47.7 / 54.7 degrees, where README, BRIEFING §2a and
+        CLAUDE.md quoted 42.8 / 49.1 / 56.3. The low edge moved when the
+        Coronado Islands were charted — the estimate it replaced understated
+        the island shadow by 1.2 to 1.9 degrees. The spread across the beach,
+        which is what §2a is about, is a Point Loma quantity and unchanged at
+        about 13 degrees. Edges are published rounded to 0.1°, so a span taken
+        from them can differ by that much; the tolerance is the rounding."""
+
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
+        expected = {"coronado_north": 41.6, "coronado_center": 47.7,
+                    "coronado_south": 54.7}
+        for entry in got.breaks:
+            west = entry.swell_window[-1]
+            assert west["to"] - west["from"] == pytest.approx(expected[entry.id], abs=0.1)
+
+    def test_the_south_east_arc_is_now_a_published_window(self):
+        """It was never deleted from the model, only withheld. What it was
+        waiting for was the coastline it crossed, and the shoreline collector
+        fetched it."""
 
         from forecast.geometry import load, open_window, swell_window
 
         spots, blockers = load()
         north = [s for s in spots if s.id == "coronado_north"][0]
-        assert len(open_window(north, blockers)) == 2
-        assert len(swell_window(north, blockers)) == 1
+        assert len(open_window(north, blockers)) == 3
+        assert swell_window(north, blockers) == open_window(north, blockers)
 
 
 class TestScope:
@@ -95,9 +122,18 @@ class TestScope:
 
 class TestTheDifferentialIsRobust:
     """BRIEFING §11. If the ratio between breaks swung with the assumed
-    spread, the differential would be an artifact of an unfitted number."""
+    spread, the differential would be an artifact of an unfitted number.
 
-    @pytest.mark.parametrize("partitions,tolerance", [(SOUTH, 0.02), (WEST, 0.06)])
+    The south fixture's tolerance went from 0.02 to 0.03 on 2026-09-20. It
+    arrives from 196 degrees, which the charted island outlines put next to
+    the edge of the 6-degree channel between the two islands, so widening the
+    spread now trades energy across that edge as well as across the Point Loma
+    one. 2.4% across a fourfold spread change instead of 2.0%: the section's
+    claim is unchanged in kind, and the number is worse because the geometry
+    is finer, not because the model is.
+    """
+
+    @pytest.mark.parametrize("partitions,tolerance", [(SOUTH, 0.03), (WEST, 0.06)])
     def test_the_ratio_barely_moves_across_a_fourfold_spread_change(self, partitions, tolerance):
         from collector.gfswave import from_direction
 

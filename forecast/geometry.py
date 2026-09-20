@@ -60,6 +60,15 @@ class Blocker:
     #: which blocker forms an edge is not a footnote — it is the difference
     #: between a claim and a guess, and the surface has to say which it is.
     tip_verified: bool = False
+    #: The ENC chart CELLS this blocker's endpoints were read from, in
+    #: endpoint order. Empty for anything not digitised from a chart — Point
+    #: Loma's tip is imagery, and says so. A usage band is a mosaic of cells,
+    #: so "the approach band" names the drawer and the cell names the chart;
+    #: the surface carries the cells, because that is the part a reader could
+    #: go and look at.
+    cells: tuple[str, ...] = ()
+    #: What kind of product the cells came from, verbatim from spots.json.
+    chart_product: str = ""
 
 
 @dataclass(frozen=True)
@@ -158,6 +167,8 @@ def load(path: Path = SPOTS_FILE) -> tuple[list[Spot], list[Blocker]]:
             b=tuple(b["b"]),
             continues=b.get("continues"),
             tip_verified=b.get("tip_verified", False),
+            cells=tuple(b.get("provenance", {}).get("cells", ()) or ()),
+            chart_product=b.get("provenance", {}).get("chart_product", ""),
         )
         for b in data["blockers"]
     ]
@@ -352,6 +363,80 @@ def swell_window(spot: Spot, blockers: list[Blocker]) -> list[tuple[float, float
     """
 
     return [(w.low.bearing, w.high.bearing) for w in swell_windows(spot, blockers)]
+
+
+def window_entry(window: "Window") -> dict:
+    """One published window, with what forms each of its edges.
+
+    The edges are in the payload because the surface has to NAME the windows,
+    and the only honest name for a window is the land either side of it. A
+    page that hardcoded "south / channel / west" would keep saying it after
+    the geometry moved — and there are three windows here only because the
+    geometry moved this morning.
+    """
+
+    return {
+        "from": round(window.low.bearing, 1),
+        "to": round(window.high.bearing, 1),
+        "opened_by": window.low.source,
+        "closed_by": window.high.source,
+        "confidence": window.confidence,
+    }
+
+
+def geometry_provenance(blockers: list[Blocker]) -> dict:
+    """What the published windows are standing on, for the surface to print.
+
+    Derived from `spots.json` rather than written into the page, because a
+    hardcoded provenance line is a claim that stops being checked the moment
+    the geometry changes — and this geometry changed twice in one day. If a
+    blocker is re-digitised from a different chart, the line follows.
+
+    `cells` are ENC chart cells and `imagery` names the blockers that came
+    from aerial imagery instead. Both are listed: a surface that printed only
+    the charts would imply the whole aperture was charted, and Point Loma's
+    tip — the highest-leverage coordinate in the repository — is not.
+    """
+
+    cells: list[str] = []
+    imagery: list[str] = []
+    product = ""
+    for blocker in blockers:
+        if blocker.cells:
+            product = product or blocker.chart_product
+            for cell in blocker.cells:
+                if cell not in cells:
+                    cells.append(cell)
+        else:
+            imagery.append(blocker.name)
+    return {
+        "chart_product": product,
+        "cells": sorted(cells),
+        "from_imagery": imagery,
+        "unverified": sorted(b.name for b in blockers if not b.tip_verified),
+    }
+
+
+def geometry_line(blockers: list[Blocker]) -> str:
+    """The "standing on" sentence, composed from the same dict the card uses.
+
+    One source for one fact. The line this replaced was written by hand and
+    said "Coronado's three breaks and the Point Loma tip" — true when there
+    was one blocker pair, and silently wrong from the moment the islands and
+    the Baja coast were charted.
+    """
+
+    got = geometry_provenance(blockers)
+    parts = ["digitised"]
+    if got["cells"]:
+        product = got["chart_product"] or "NOAA ENC"
+        parts.append(f"{product}, cells {', '.join(got['cells'])}")
+    if got["from_imagery"]:
+        parts.append("aerial imagery for " + ", ".join(got["from_imagery"]))
+    line = " — ".join([parts[0], "; ".join(parts[1:])]) if len(parts) > 1 else parts[0]
+    if got["unverified"]:
+        line += " — ESTIMATED: " + ", ".join(got["unverified"])
+    return line
 
 
 def blocked_by(spot: Spot, blockers: list[Blocker], bearing: float) -> Blocker | None:

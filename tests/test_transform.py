@@ -85,8 +85,27 @@ class TestTheIslandsAreNotASwitch:
 
     @pytest.mark.parametrize("spread", [10.0, 20.0, 30.0])
     def test_islands_take_about_a_tenth_at_any_spread(self, spread):
+        """Less than a tenth, since 2026-09-20. The charted outlines resolve
+        the group into two islands with 6.1 degrees of open channel between
+        them, and a spread swell pours through it: at 30 degrees of spread the
+        share drops to 4.7%, against 11% when the group was one solid screen.
+        The section's claim moves further in the direction it already pointed.
+        """
+
         got = through(synthetic(190.0, spread_deg=spread), BY_ID["coronado_center"], BLOCKERS)
-        assert 0.05 < share_of(got, "Islands") < 0.18
+        assert 0.03 < share_of(got, "Islands") < 0.18
+
+    def test_the_channel_between_the_islands_is_open_water(self):
+        """It is not decoration: the estimate these outlines replaced claimed
+        the whole 13.5 degrees was land, which is the binary treatment again
+        at one scale up — a group of islands read as one blocker."""
+
+        from forecast.geometry import reaches
+        centre = BY_ID["coronado_center"]
+        islands = [b for b in BLOCKERS if "Islands" in b.name]
+        assert reaches(centre, islands, 197.0)
+        assert not reaches(centre, islands, 192.0)
+        assert not reaches(centre, islands, 201.5)
 
     def test_point_loma_takes_several_times_more_when_it_is_in_the_way(self):
         got = through(synthetic(265.0), BY_ID["coronado_center"], BLOCKERS)
@@ -102,10 +121,13 @@ class TestTheIslandsAreNotASwitch:
 
         centre = BY_ID["coronado_center"]
         islands = [b for b in BLOCKERS if "Islands" in b.name]
-        # 195 deg is inside the islands' blocked sector at every Coronado break.
+        # 192 deg is inside the southern group's shadow at every Coronado
+        # break. It used to be 195, which the charted outlines moved into the
+        # channel between the two islands — open water, and a bearing that
+        # proves nothing about a shadow.
         from forecast.geometry import reaches
-        assert not reaches(centre, islands, 195.0)      # binary says: nothing arrives
-        got = through(synthetic(195.0), centre, islands)
+        assert not reaches(centre, islands, 192.0)      # binary says: nothing arrives
+        got = through(synthetic(192.0), centre, islands)
         assert got.fraction > 0.75                      # the integral says: most of it does
 
 

@@ -142,17 +142,26 @@ def _rotate_chord(spot: Spot, degrees: float) -> Spot:
 
 
 def _swell_window(spot: Spot) -> tuple[float, float]:
-    """The open arc on the swell side, ignoring the near-useless south-east one.
+    """The WEST window — the one whose far edge is the Point Loma tip.
 
-    Southern Hemisphere swell arrives from roughly 180-220°, so the arc centered
-    south-east of the beach is geometrically real and practically empty.
+    Named by its blocker rather than by an angle band, because there are three
+    windows now and two of them sit inside 180-300 degrees. The old version
+    took the first match in that band and would silently return the 6-degree
+    channel between the Coronado Islands, which moves for entirely different
+    reasons than this one does.
+
+    The window it skips is no longer "near-useless" either: measured on the
+    three-year 46232 archive, arrivals from 100-190 degrees are 16.7% of rows
+    and 11.6% of energy. It is skipped here because these tests are about the
+    Point Loma edge, not because nothing arrives through it.
     """
 
-    for low, high in open_window(spot, BLOCKERS):
-        middle = (low + ((high - low) % 360.0) / 2.0) % 360.0
-        if 180.0 <= middle <= 300.0:
-            return low, high
-    raise AssertionError(f"{spot.id} has no swell-side window")
+    from forecast.geometry import swell_windows
+
+    for window in swell_windows(spot, BLOCKERS):
+        if "Point Loma" in window.high.source:
+            return window.low.bearing, window.high.bearing
+    raise AssertionError(f"{spot.id} has no window bounded by Point Loma")
 
 
 def test_the_shoreline_chord_does_not_move_the_swell_window():
