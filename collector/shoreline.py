@@ -93,6 +93,22 @@ PRIORITY_FOLDERS = re.compile(r"ngs|geodet|encdirect|hydrographic|nav", re.I)
 #: mattered got cut.
 FOLDER_BUDGET = 28
 
+#: Digital Coast serves its bulk products as files under /htdata/, not as
+#: ArcGIS services. Measured 2026-09-20: coast.noaa.gov's REST catalogue
+#: carries 374 entries across 16 folders and NOT ONE matches a shoreline
+#: pattern, so if CUSP is reachable at all it is a download and not a service.
+#:
+#: These are directory roots, listed and reported -- not a guessed path to a
+#: file. The probe says what it found; it does not assume a filename.
+HTDATA_ROOTS = (
+    "https://coast.noaa.gov/htdata/Shoreline/",
+    "https://coast.noaa.gov/htdata/",
+)
+
+#: An href in an Apache/IIS directory index. Anything else on the page is
+#: chrome.
+HREF = re.compile(r'href="([^"?][^"]*)"', re.I)
+
 #: How many entries to print per root. One catalogue with four thousand
 #: services buried the other three in the second run's summary.
 LISTING_CAP = 60
@@ -285,6 +301,58 @@ def discover(roots: tuple[str, ...] = CATALOG_ROOTS) -> Result:
     return result
 
 
+def fetch_text(url: str, *, timeout: float = TIMEOUT) -> str:
+    request = urllib.request.Request(url, headers={
+        "User-Agent": USER_AGENT,
+        "Accept-Encoding": "gzip, deflate",
+    })
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        payload = decompress(response.read(),
+                             response.headers.get("Content-Encoding", ""))
+    return payload.decode("utf-8", errors="replace")
+
+
+def list_directory(url: str) -> list[str]:
+    """Entries in a served directory index, parent links dropped.
+
+    HTML, not JSON, because this half of Digital Coast is a file tree. It is
+    parsed only well enough to say WHAT IS THERE — nothing downstream depends
+    on the parse, because the point is to put the listing in front of a human
+    rather than to pick a file automatically.
+    """
+
+    names = []
+    for href in HREF.findall(fetch_text(url)):
+        if href.startswith(("/", "#", "http", "..", "?")):
+            continue
+        if href not in names:
+            names.append(href)
+    return names
+
+
+def probe_htdata(roots: tuple[str, ...] = HTDATA_ROOTS) -> list[Attempt]:
+    """Report what the file tree holds. Stores nothing, assumes nothing."""
+
+    out = []
+    for root in roots:
+        attempt = Attempt(url=root)
+        try:
+            names = list_directory(root)
+        except Exception as exc:  # noqa: BLE001 — classified, not swallowed
+            attempt.denied = is_denial(exc)
+            attempt.note = f"{exc.__class__.__name__}: {exc}"[:160]
+            attempt.sample = getattr(exc, "sample", "")
+            out.append(attempt)
+            continue
+        attempt.ok = True
+        attempt.listing = names
+        hits = [n for n in names if WANTED.search(n)]
+        attempt.note = (f"{len(names)} entr(ies)"
+                        + (f", {len(hits)} matching: " + ", ".join(hits[:6]) if hits else ""))
+        out.append(attempt)
+    return out
+
+
 def line_layers(service_url: str) -> list[str]:
     """Polyline layers in a service, the shoreline-named ones first.
 
@@ -384,6 +452,9 @@ def collect(
     probe_only: bool = False,
 ) -> Result:
     result = discover()
+    # The file tree is discovery only and never short-circuits the service
+    # walk: it reports alongside, so one run answers both questions.
+    result.attempts += probe_htdata()
     # Observed services go first: they are known to exist and known to be the
     # kind of thing that carries a coastline, whatever they are called.
     result.candidates = list(KNOWN_SERVICES) + result.candidates
