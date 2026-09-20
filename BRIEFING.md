@@ -1049,3 +1049,109 @@ labelled one beside a measurement is the rule working.
 that would ever have shown up as a crash, a blank, or a number that looked odd.**
 A tide card differencing the gauge would have read correctly four times in five,
 which is exactly the hit rate at which nobody files a bug.
+
+## 20. Measured, 2026-09-20 — the shore normal is where the wind reading lives or dies
+
+The app surface calls the wind offshore, onshore or cross-shore at each break.
+That reading stands on one number per break — the seaward shore normal — and
+two of the three have never been checked against anything. The third,
+`coronado_north`, is known by its own provenance to be about 19° wrong.
+
+The question was how accurate the normals need to be. The answer is: much more
+accurate than a hand-traced chord, because of where the boundaries fall.
+
+### The boundaries sit where the wind blows
+
+`offshore = −cos(wind_from − normal)` with ±0.3 thresholds puts the verdict
+edges at fixed angles from the seaward normal: onshore inside 72.5°,
+cross-shore 72.5–107.5°, offshore beyond 107.5°. In compass terms:
+
+| break | normal | onshore\|cross | cross\|offshore |
+|---|---|---|---|
+| north | 192.8 | 120.2, **265.3** | 85.3, **300.2** |
+| center | 214.2 | 141.7, **286.8** | 106.8, **321.7** |
+| south | 221.5 | 149.0, **294.1** | 114.1, **329.0** |
+
+Six of those nine bold edges land in 265–330°. On 46086's three-year record,
+**62.6% of wind readings sit in 270–330°**. The error does not average out over
+a season; it lands exactly where the distribution has its mass.
+
+| normal error | north | center | south | *uniform rose* |
+|---|---|---|---|---|
+| ±1° | 4.2% | 4.2% | 4.6% | *2.2%* |
+| ±5° | 21.3% | 20.3% | 22.3% | *11.1%* |
+| ±10° | 41.2% | 40.7% | 42.4% | *22.2%* |
+| ±19° | 69.7% | 71.2% | 68.0% | *42.2%* |
+
+Roughly **twice** the cost a uniform wind rose would carry. One degree flips
+one reading in twenty-four. North's known 19° flips about seven in ten, which
+makes that card's wind line close to uninformative.
+
+**Caveat, and it is a real one.** 46086 is offshore and its rose is not
+Coronado's. KNZY — the station the surface actually uses — had 34 readings when
+this was measured, 1.4 days, far too thin to conclude from, though it points
+the same way (26% at ±5°). Re-run this against KNZY once that archive has
+months in it. The local sea breeze is also WNW–NW, so the expectation is that
+this holds or worsens, but that is an expectation and not a measurement.
+
+### A normal is a property of a chord, not of a point
+
+Before any survey data, the existing coordinates already disagree with
+themselves depending on the scale you measure at:
+
+| chord | length | trend | seaward normal |
+|---|---|---|---|
+| north (own) | 547 m | 102.8 | 192.8 |
+| center (own) | 285 m | 124.2 | 214.2 |
+| south (own) | 471 m | 131.5 | 221.5 |
+| center → south | 1681 m | 127.1 | 217.1 |
+| whole beach | 2761 m | 121.3 | 211.3 |
+
+28.7° of spread at one beach, none of it error. So "verify the normal" is not
+well posed until the chord length is stated, and `forecast/shorenormal.py`
+reports a sweep over 200 m to 3 km rather than a number. A normal stable across
+that range means a straight stretch; one that swings means a curve, and no
+single normal is right for that break. `residual_m` is what tells them apart —
+measured on a synthetic beach that hooks on one side only, the normal moved
+2.7° between 400 m and 3 km while the straightness went from 0.0001 m to 43.6 m
+rms. **The residual is the louder signal, and by a long way.**
+
+One subtlety worth keeping: a window centred on the break samples symmetrically,
+so *constant* curvature averages to the same trend at every radius and shows
+nothing. It takes curvature that differs either side of the break to move the
+answer with scale. The first version of that test built a symmetric arc and
+failed, correctly.
+
+### Two normals, and they are not the same claim
+
+The waterline normal is the land–sea boundary the wind crosses — the right one
+for offshore/onshore. The depth-contour normal at breaking depth is the right
+one for refraction and wave approach. `Spot.normal` is one number doing both
+jobs. Checking it against a surveyed shoreline verifies the first and says
+nothing about the second.
+
+### Why the survey, and what it cannot settle
+
+`collector/shoreline.py` fetches NOAA's surveyed shoreline vector and
+`forecast/shorenormal.py` fits it. The fit is the **principal axis**, not an
+ordinary y-on-x regression: OLS minimises error in one axis only, so its answer
+depends on which way the coast happens to run relative to north and it
+degenerates entirely for a north–south beach. `forecast/stats.py:least_squares`
+is the ordinary kind and is deliberately not used here.
+
+NOAA's shoreline is referenced to a tidal datum; a traced waterline follows
+whatever the water was doing in the image. The two sit at different cross-shore
+positions and `offset_m` reports that rather than hiding it — **it is not an
+error term.** Orientation survives a translation, and orientation is the thing
+being checked.
+
+Neither the survey nor anything else here touches the **±0.3 band edges**. The
+verdict depends on two unverified numbers, not one, and a 35°-wide cross-shore
+band is a convention nobody has measured. The beach log already records
+`wind [g]lassy [o]ffshore [c]ross [l]ight onshore [n] onshore [s]torm` at a
+named break and time, beside an archived KNZY direction — which makes every log
+entry a datapoint for calibrating the normal AND the band. That verifies the
+claim the surface actually makes, rather than a geometric proxy for it. It
+cannot separate "normal wrong" from "KNZY, 3 km across the bay, is
+unrepresentative here", which is the argument for also sighting a bearing on
+the sand.

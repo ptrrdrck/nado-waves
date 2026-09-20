@@ -1,0 +1,111 @@
+# Fetch NOAA's surveyed shoreline near Coronado and compare it to the chords
+# in forecast/spots.json.
+#
+# Why this is a workflow and not something a session runs: every NOAA coastal
+# host is denied at CONNECT from a Claude session — chs.coast.noaa.gov,
+# coast.noaa.gov, geodesy.noaa.gov and maps.coast.noaa.gov, all 403, measured
+# 2026-09-20. A refused tunnel looks like a dead host rather than a forbidden
+# one (BRIEFING section 8), so only a runner can tell "not reachable from a
+# session" apart from "not published".
+#
+# Why it is ON DEMAND and not scheduled: a surveyed shoreline is a published
+# survey, not a stream of observations. There is no 45-day window closing on
+# it and nothing is lost by not fetching it today. The 45-day urgency behind
+# collect.yml does not apply, and a timer here would only add commits.
+#
+# The collector exits 2 on a CONNECT denial and 1 when it found no shoreline
+# layer at all, so those two are distinguishable from the run status alone.
+# They mean different things: denial is the egress policy, an empty find is a
+# statement about NOAA's catalogue.
+
+name: Shoreline check
+
+on:
+  workflow_dispatch:
+    inputs:
+      probe_only:
+        description: "Discover and report without storing or committing"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shoreline
+  cancel-in-progress: false
+
+jobs:
+  shoreline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch the surveyed shoreline
+        id: fetch
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.probe_only }}" = "true" ]; then
+            python -m collector.shoreline --probe
+          else
+            python -m collector.shoreline
+          fi
+
+      # Runs whatever the fetch did. With no stored vertices it prints the
+      # "nothing is inferred from the absence" notice, which is the honest
+      # output and worth having in the log either way.
+      - name: Compare against the digitised chords
+        if: ${{ !inputs.probe_only }}
+        continue-on-error: true
+        run: python -m forecast.shorenormal | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Headline
+        if: always()
+        env:
+          FETCH: ${{ steps.fetch.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "${FETCH}" != "success" ]; then
+            echo "::warning title=Shoreline not collected::Read the step summary - a CONNECT denial and an empty catalogue are different things."
+          else
+            echo "::notice title=Shoreline collected::Compared against forecast/spots.json; nothing was edited."
+          fi
+
+      - name: Commit and push
+        if: ${{ !inputs.probe_only }}
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves collector"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/shoreline 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No shoreline change to commit."
+            exit 0
+          fi
+
+          rows=$(git diff --cached --numstat -- data/shoreline \
+            | awk '{sum += $1} END {print sum + 0}')
+
+          git commit \
+            -m "data: NOAA surveyed shoreline near Coronado" \
+            -m "${rows} vertex row(s) changed. Automated commit from .github/workflows/shoreline.yml." \
+            -m "Reference only: nothing in forecast/spots.json is edited by this job."
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then exit 0; fi
+            git pull --rebase origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+          echo "::error title=Push failed::Could not push the shoreline after 4 attempts."
+          exit 1
