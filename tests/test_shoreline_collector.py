@@ -28,11 +28,47 @@ class TestItDiscoversRatherThanGuesses:
     two wrong verdicts earlier in this project. This walks the catalogue."""
 
     def test_no_layer_path_is_hardcoded(self):
+        """Catalogue roots and folders are fine — they are things to walk. A
+        LAYER path is the thing that must be discovered, because guessing one
+        is what `probe_mop` records as having produced two wrong verdicts."""
+
         source = Path("collector/shoreline.py").read_text(encoding="utf-8")
         for root in mod.CATALOG_ROOTS:
-            assert root.endswith("/arcgis/rest/services"), root
-        # A hardcoded layer would look like ".../MapServer/3" in the constants.
+            assert "/rest/services" in root, root
+            assert "MapServer" not in root and "FeatureServer" not in root, root
+            assert not root.rstrip("/").split("/")[-1].isdigit(), root
         assert "MapServer/" not in source.split("def ")[0]
+
+    def test_the_listing_is_reported_even_when_nothing_matches(self):
+        """The first run of this probe returned "0 candidate services" from a
+        catalogue it had barely opened, which is a statement about the filter
+        and not about NOAA. What was actually there is now the finding."""
+
+        attempt = mod.Attempt(url="https://example.test/arcgis/rest/services",
+                              ok=True, note="0 candidate service(s)",
+                              listing=["Bathymetry (MapServer)", "chartdata/ (folder)"])
+        text = mod.format_summary(mod.Result(attempts=[attempt]))
+        assert "Bathymetry (MapServer)" in text and "chartdata/" in text
+
+    def test_a_non_json_body_is_sampled_so_it_can_be_identified(self):
+        """"not JSON" cannot tell an HTML error page from a login redirect, and
+        a second Actions run to find out is a wasted round trip."""
+
+        attempt = mod.Attempt(url="https://example.test", note="not JSON",
+                              sample="<!DOCTYPE html><title>Sign in</title>")
+        assert "Sign in" in mod.format_summary(mod.Result(attempts=[attempt]))
+
+    def test_folders_are_opened_regardless_of_their_name(self, monkeypatch):
+        """A shoreline layer can live in a folder called anything. Filtering
+        folders by name is how the first run missed the catalogue entirely."""
+
+        def fake(url, **k):
+            if url.endswith("services?f=json"):
+                return {"services": [], "folders": ["chartdata"]}
+            return {"services": [{"name": "chartdata/CUSP", "type": "MapServer"}]}
+        monkeypatch.setattr(mod, "fetch_json", fake)
+        got = mod.discover(("https://example.test/arcgis/rest/services",))
+        assert any("CUSP" in c for c in got.candidates), got.candidates
 
     def test_it_matches_shoreline_services_case_insensitively(self):
         for name in ("CUSP", "cusp_shoreline", "Coastal_Survey", "MHW_Shoreline"):

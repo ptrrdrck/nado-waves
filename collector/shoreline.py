@@ -62,10 +62,19 @@ USER_AGENT = "nado-waves/1.0 (surf forecast research; contact via repository)"
 #: Catalogue roots, not layer paths. Each is an ArcGIS REST services directory
 #: that is expected to respond; what lives inside it is discovered.
 CATALOG_ROOTS = (
+    "https://gis.charttools.noaa.gov/arcgis/rest/services",
     "https://chs.coast.noaa.gov/arcgis/rest/services",
     "https://coast.noaa.gov/arcgis/rest/services",
-    "https://gis.charttools.noaa.gov/arcgis/rest/services",
+    "https://coast.noaa.gov/arcgis/rest/services/dc_slr",
+    "https://mapservices.weather.noaa.gov/static/rest/services",
+    "https://mapservices.weather.noaa.gov/eventdriven/rest/services",
+    "https://nowcoast.noaa.gov/arcgis/rest/services",
+    "https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services",
 )
+
+#: How many folders to open per root. A big catalogue has dozens and this is a
+#: discovery pass, not a crawl.
+FOLDER_BUDGET = 12
 
 #: A service or layer worth opening. Deliberately broad — the point is to see
 #: what is there, and the summary lists everything matched so a human can judge.
@@ -99,6 +108,15 @@ class Attempt:
     ok: bool = False
     denied: bool = False
     note: str = ""
+    #: What the root actually contained. A probe that reports only its own
+    #: MATCHES says nothing at all when there are none — which is what the
+    #: first run of this did, and it is the same shape as the staleness alert
+    #: that watched for the failure it expected (BRIEFING §8). The listing is
+    #: the finding when the filter comes back empty.
+    listing: list[str] = field(default_factory=list)
+    #: First bytes of a body that would not parse, so "not JSON" can be told
+    #: from "an HTML login page" without another run.
+    sample: str = ""
 
 
 @dataclass
@@ -119,14 +137,23 @@ class Result:
         return bool(self.attempts) and all(a.denied for a in self.attempts)
 
 
+class NotJSON(ShorelineError):
+    """The body parsed as something, just not JSON. Carries what it looked like."""
+
+    def __init__(self, message: str, sample: str = ""):
+        super().__init__(message)
+        self.sample = sample
+
+
 def fetch_json(url: str, *, timeout: float = TIMEOUT) -> dict:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         payload = response.read()
+    text = payload.decode("utf-8", errors="replace")
     try:
-        data = json.loads(payload.decode("utf-8", errors="replace"))
+        data = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise ShorelineError(f"not JSON: {exc}") from None
+        raise NotJSON(f"not JSON: {exc}", sample=" ".join(text[:180].split())) from None
     # ArcGIS reports failure inside a 200 body, the same shape CO-OPS does and
     # the same shape BRIEFING §8 lists first. Check the error before the data.
     if isinstance(data, dict) and data.get("error"):
@@ -151,6 +178,7 @@ def discover(roots: tuple[str, ...] = CATALOG_ROOTS) -> Result:
         except Exception as exc:  # noqa: BLE001 — classified, not swallowed
             attempt.denied = is_denial(exc)
             attempt.note = f"{exc.__class__.__name__}: {exc}"[:160]
+            attempt.sample = getattr(exc, "sample", "")
             result.attempts.append(attempt)
             continue
 
@@ -159,27 +187,38 @@ def discover(roots: tuple[str, ...] = CATALOG_ROOTS) -> Result:
         for service in catalog.get("services", []) or []:
             name = str(service.get("name", ""))
             kind = str(service.get("type", ""))
+            attempt.listing.append(f"{name} ({kind})")
             if kind not in ("MapServer", "FeatureServer"):
                 continue
             if not WANTED.search(name):
                 continue
             result.candidates.append(f"{root}/{name.split('/')[-1]}/{kind}")
             found += 1
-        # Folders are one level down and NOAA nests coastal products in them.
-        for folder in catalog.get("folders", []) or []:
-            if not WANTED.search(str(folder)):
-                continue
+
+        # EVERY folder, not only the ones whose NAME matches. A shoreline layer
+        # can live in a folder called anything, and the first run of this probe
+        # filtered folders by name and reported "0 candidates" from a catalogue
+        # it had barely opened.
+        folders = [str(f) for f in (catalog.get("folders", []) or [])]
+        attempt.listing += [f"{f}/ (folder)" for f in folders]
+        ordered = sorted(folders, key=lambda f: (0 if WANTED.search(f) else 1, f))
+        for folder in ordered[:FOLDER_BUDGET]:
             try:
-                sub = fetch_json(f"{root}/{folder}?f=json")
+                inner = fetch_json(f"{root}/{folder}?f=json")
             except Exception:  # noqa: BLE001 — a dead folder is not fatal
                 continue
-            for service in sub.get("services", []) or []:
+            for service in inner.get("services", []) or []:
                 kind = str(service.get("type", ""))
-                if kind in ("MapServer", "FeatureServer"):
-                    name = str(service.get("name", "")).split("/")[-1]
-                    result.candidates.append(f"{root}/{folder}/{name}/{kind}")
-                    found += 1
-        attempt.note = f"{found} candidate service(s)"
+                name = str(service.get("name", "")).split("/")[-1]
+                if kind not in ("MapServer", "FeatureServer"):
+                    continue
+                attempt.listing.append(f"{folder}/{name} ({kind})")
+                if not WANTED.search(name) and not WANTED.search(folder):
+                    continue
+                result.candidates.append(f"{root}/{folder}/{name}/{kind}")
+                found += 1
+        attempt.note = (f"{found} candidate service(s) from "
+                        f"{len(attempt.listing)} entries seen")
         result.attempts.append(attempt)
     return result
 
@@ -309,8 +348,23 @@ def format_summary(result: Result) -> str:
     lines += ["| tried | ok | note |", "|---|---|---|"]
     for attempt in result.attempts:
         state = "denied" if attempt.denied else ("yes" if attempt.ok else "no")
-        lines.append(f"| `{attempt.url}` | {state} | {attempt.note} |")
+        note = attempt.note
+        if attempt.sample:
+            note += f" — body began: `{attempt.sample[:120]}`"
+        lines.append(f"| `{attempt.url}` | {state} | {note} |")
     lines.append("")
+
+    # What was actually there, matched or not. Without this a zero-candidate
+    # run says only "I found nothing", which is not a finding about NOAA.
+    for attempt in result.attempts:
+        if not attempt.listing:
+            continue
+        lines.append(f"<details><summary>{len(attempt.listing)} entries at "
+                     f"<code>{attempt.url}</code></summary>\n")
+        lines += [f"- `{entry}`" for entry in attempt.listing[:200]]
+        if len(attempt.listing) > 200:
+            lines.append(f"- …and {len(attempt.listing) - 200} more")
+        lines.append("\n</details>\n")
     if result.candidates:
         lines.append(f"**{len(result.candidates)} candidate service(s):**")
         lines += [f"- `{c}`" for c in result.candidates]
