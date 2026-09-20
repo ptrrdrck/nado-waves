@@ -122,7 +122,49 @@ WANTED = re.compile(r"shorelin|cusp|coalne|coast.?line|\bmhw\b|coastal[_ ]?surve
 #: beyond both ends of the beach rather than running out of line at the edges.
 BBOX = (-117.2200, 32.6550, -117.1500, 32.7060)   # xmin, ymin, xmax, ymax
 
-STORE_NAME = "noaa_shoreline_coronado.csv"
+#: ENC usage bands, coarse to fine. This is a DOCUMENTED quality ordering and
+#: the first version of this collector ignored it entirely: it took whichever
+#: coastline layer answered first and never asked whether a better one existed.
+#: Measured 2026-09-20 (BRIEFING §22), that cost real resolution —
+#: `enc_harbour/84` carries 97 features in the Coronado box where
+#: `enc_approach/88` carries 61, and §21 fitted the 61.
+SCALE_RANK = {
+    "enc_berthing": 6,
+    "enc_harbour": 5,
+    "enc_approach": 4,
+    "enc_coastal": 3,
+    "enc_general": 2,
+    "enc_overview": 1,
+}
+
+
+def scale_of(url: str) -> int:
+    """Finer is higher. 0 for anything not on the band list."""
+
+    for name, rank in SCALE_RANK.items():
+        if name in url:
+            return rank
+    return 0
+
+
+def store_name(layer_url: str) -> str:
+    """One file per SOURCE, so a second source cannot clobber the first.
+
+    Keeping both is the point: two charts of the same coast at two scales is
+    the only cross-check available here, and a single `noaa_shoreline.csv`
+    made that impossible — the finer fetch would simply overwrite the coarser
+    one and the disagreement would never be visible.
+    """
+
+    parts = [p for p in layer_url.rstrip("/").split("/") if p]
+    service = next((p for p in parts if p in SCALE_RANK), "enc")
+    layer_id = parts[-1] if parts[-1].isdigit() else "x"
+    return f"{service}_{layer_id}_coronado.csv"
+
+
+#: How many coastline sources to keep. More than one so they can be compared;
+#: not all of them, because the coarse bands add nothing but bytes.
+SOURCE_BUDGET = 3
 
 FIELDS = ["part", "seq", "lat", "lon", "source_layer", "fetched_utc"]
 
@@ -164,6 +206,8 @@ class Result:
     parts: int = 0
     vertices: int = 0
     stored: Path | None = None
+    #: Every file written this run, one per source chart band.
+    sources: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -439,14 +483,15 @@ def in_bbox(lat: float, lon: float, bbox: tuple[float, float, float, float]) -> 
 
 
 def store(parts: list[list[tuple[float, float]]], layer: str, data_dir: Path) -> Path:
-    """Write the vertices. Overwrites: a shoreline is a survey, not a series.
+    """Write the vertices, to a file named for the SOURCE.
 
-    Unlike the tide and buoy archives there is nothing here that a later fetch
-    would destroy — this is one published survey, not a stream of observations
-    whose earlier values are the record. The git history is the version log.
+    Overwrites its own file: a shoreline is a survey, not a series, and unlike
+    the tide and buoy archives nothing here is destroyed by a later fetch of
+    the same layer. The git history is the version log. It does NOT overwrite
+    another source's file, which the single fixed filename used to do.
     """
 
-    path = Path(data_dir) / "shoreline" / STORE_NAME
+    path = Path(data_dir) / "shoreline" / store_name(layer)
     path.parent.mkdir(parents=True, exist_ok=True)
     stamp = utcnow().strftime(ISO)
     with path.open("w", newline="", encoding="utf-8") as fh:
@@ -475,8 +520,15 @@ def collect(
     # Observed services go first: they are known to exist and known to be the
     # kind of thing that carries a coastline, whatever they are called.
     result.candidates = list(KNOWN_SERVICES) + result.candidates
+    # Finest chart band first. Without this the order is whatever the
+    # catalogue walk happened to produce, which is how §21 ended up fitting
+    # normals to the approach chart while a finer one sat unused.
+    result.candidates.sort(key=lambda url: -scale_of(url))
 
+    kept = 0
     for service in result.candidates:
+        if kept >= SOURCE_BUDGET:
+            break
         for layer in line_layers(service):
             try:
                 payload = fetch_json(query_url(layer, bbox))
@@ -493,15 +545,22 @@ def collect(
             if not parts:
                 result.attempts.append(Attempt(url=layer, ok=True, note="no vertices in bbox"))
                 continue
-            result.layer = layer
-            result.parts = len(parts)
-            result.vertices = sum(len(p) for p in parts)
+            vertices = sum(len(p) for p in parts)
+            # First one found stays the headline, so the summary keeps reading
+            # the way it did; the rest are stored beside it for comparison.
+            if not result.layer:
+                result.layer = layer
+                result.parts = len(parts)
+                result.vertices = vertices
             result.attempts.append(
                 Attempt(url=layer, ok=True,
-                        note=f"{result.vertices} vertices in {result.parts} part(s)"))
+                        note=f"{vertices} vertices in {len(parts)} part(s)"))
             if not probe_only:
-                result.stored = store(parts, layer, data_dir)
-            return result
+                path = store(parts, layer, data_dir)
+                result.stored = result.stored or path
+                result.sources.append(str(path))
+            kept += 1
+            break       # one coastline layer per service is enough
     return result
 
 
