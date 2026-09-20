@@ -283,3 +283,34 @@ BREAKS_IDS = ("coronado_north", "coronado_center", "coronado_south")
 def _stored(tmp_path: Path, points) -> Path:
     write_store(tmp_path, points)
     return tmp_path
+
+
+class TestDuplicateVerticesDoNotWeightTheFit:
+    """The ENC coastline repeats a vertex wherever two chart segments meet —
+    166 of 689 in the Coronado extract. A principal axis weights a repeated
+    point twice, so the fit leans toward whichever stretch is stitched most
+    often."""
+
+    def test_a_repeated_point_does_not_move_the_normal(self):
+        spot = BY_ID["coronado_center"]
+        clean = straight(spot, 124.0, n=9, span_m=400.0)
+        # Stack copies onto one end, which is where a lop-sided weight bites.
+        loaded = clean + [clean[0]] * 6 + [clean[1]] * 6
+        a = fit_at(clean, spot, 800.0)
+        b = fit_at(loaded, spot, 800.0)
+        assert a.normal_deg is not None and b.normal_deg is not None
+        assert abs(((b.normal_deg - a.normal_deg + 180.0) % 360.0) - 180.0) < 0.01
+
+    def test_duplicates_do_not_inflate_the_vertex_count(self):
+        """`vertices` is what the MIN_VERTICES refusal is judged on, so a
+        window of three points repeated twice must not read as six."""
+
+        spot = BY_ID["coronado_center"]
+        three = straight(spot, 124.0, n=3, span_m=300.0)
+        assert fit_at(three + three, spot, 800.0).vertices == 3
+
+    def test_a_window_of_repeats_refuses_rather_than_fitting(self):
+        spot = BY_ID["coronado_center"]
+        two = straight(spot, 124.0, n=2, span_m=200.0)
+        got = fit_at(two * 8, spot, 400.0)
+        assert got.normal_deg is None and "vertices" in got.note

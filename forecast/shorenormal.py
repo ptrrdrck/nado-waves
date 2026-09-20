@@ -184,6 +184,19 @@ def fit_at(
     ]
     xy = to_local(near_ll, origin)
     xy = [p for p in xy if math.hypot(*p) <= scale_m / 2.0]
+
+    # Deduplicate. The ENC coastline repeats a vertex wherever two chart
+    # segments meet — 166 of 689 in the Coronado extract — and a principal
+    # axis weights a repeated point twice, so the fit would lean toward
+    # whichever stretch happens to be stitched most often. Measured on that
+    # extract, north's 400 m window holds 5 vertices at 3 distinct positions.
+    seen, unique = set(), []
+    for point in xy:
+        key = (round(point[0], 2), round(point[1], 2))
+        if key not in seen:
+            seen.add(key)
+            unique.append(point)
+    xy = unique
     fit = Fit(scale_m=scale_m, vertices=len(xy))
     if len(xy) < MIN_VERTICES:
         fit.note = f"only {len(xy)} vertices within {scale_m/2:.0f} m"
