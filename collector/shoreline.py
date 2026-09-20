@@ -239,6 +239,23 @@ def fetch_json(url: str, *, timeout: float = TIMEOUT) -> dict:
 
 
 def is_denial(exc: Exception) -> bool:
+    """Is this the EGRESS POLICY refusing, or the origin server refusing?
+
+    The same 403 means opposite things depending on where this runs. From a
+    Claude session it is the proxy refusing CONNECT and the host may be fine;
+    from an Actions runner there is no such proxy, so a 403 is NOAA itself
+    saying no — measured 2026-09-20, `coast.noaa.gov/htdata/` answers 403 to a
+    runner because directory listing is switched off.
+
+    Calling the second one a denial would file "this directory is not
+    browsable" under "we could not reach this host", which is the same class
+    of fault as reading NCEP's 404 as "no cycle today" (CLAUDE.md). An
+    HTTPError carries a real status from a real response, so it is never an
+    egress denial; only a refused tunnel is.
+    """
+
+    if isinstance(exc, urllib.error.HTTPError):
+        return False
     text = f"{exc.__class__.__name__}: {exc}"
     return "403" in text or "CONNECT" in text or "URLError" in text
 
