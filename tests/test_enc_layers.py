@@ -204,3 +204,84 @@ class TestItDoesNotWrite:
         source = Path("collector/enc_layers.py").read_text(encoding="utf-8")
         for writing in (".write_text(", '"w"', "'w'", "csv.DictWriter"):
             assert writing not in source, writing
+
+
+class TestEnglishNamesNotJustAcronyms:
+    """The first run enumerated 787 layers across four services and matched
+    ZERO, because NOAA's MapServer names its layers in English. Layer 88 IS
+    the coastline — `collector.shoreline` pulled geometry out of it — and it
+    does not have "COALNE" anywhere in its name."""
+
+    @pytest.mark.parametrize("name,want", [
+        ("Coastline", "COALNE"),
+        ("Shoreline Construction", "SLCONS"),
+        ("Land Area", "LNDARE"),
+        ("Depth Contour", "DEPCNT"),
+        ("Depth Area", "DEPARE"),
+        ("Obstruction", "OBSTRN"),
+        ("Underwater Rock", "UWTROC"),
+        ("Seabed Area", "SBDARE"),
+        ("Soundings", "SOUNDG"),
+    ])
+    def test_the_english_name_matches(self, name, want):
+        assert layer(name).klass == want
+
+    def test_the_acronym_still_matches_too(self):
+        """Belt and braces: some services do use the S-57 code."""
+
+        assert layer("COALNE").klass == "COALNE"
+        assert layer("SLCONS_line").klass == "SLCONS"
+
+    def test_shoreline_construction_is_not_read_as_coastline(self):
+        """They are different objects and only one of them is Zuniga Jetty."""
+
+        assert layer("Shoreline Construction").klass == "SLCONS"
+
+    def test_navigation_furniture_is_still_ignored(self):
+        """The control. Over-matching everything would be as useless as
+        matching nothing."""
+
+        for name in ("Buoy Lateral", "Light", "Anchorage Area",
+                     "Pilot Boarding Place", "Recommended Track",
+                     "Radio Calling-in Point"):
+            assert layer(name).klass == "", name
+
+
+class TestTheListingIsAlwaysPrinted:
+    """The first run printed "0 carry an S-57 class" and an empty table. That
+    is a statement about the pattern, not about NOAA — the identical fault
+    `collector.shoreline` had been fixed for hours earlier, rebuilt here from
+    scratch. What is actually there is the finding when the match is empty."""
+
+    def test_names_are_listed_even_when_nothing_matched(self):
+        got = mod.Result(layers=[
+            layer("Buoy Lateral", id=1), layer("Light", id=2),
+        ])
+        assert not got.interesting
+        text = mod.format_summary(got)
+        assert "Buoy Lateral" in text and "Light" in text
+        assert "distinct layer names" in text
+
+    def test_names_are_listed_when_something_did_match(self):
+        got = mod.Result(layers=[layer("Coastline", count=9), layer("Light")])
+        text = mod.format_summary(got)
+        assert "Coastline" in text and "Light" in text
+
+    def test_the_same_name_across_scales_collapses_to_one_row(self):
+        """787 layers is four chart scales carrying the same classes."""
+
+        got = mod.Result(layers=[
+            layer("Coastline", service="enc_approach", id=88),
+            layer("Coastline", service="enc_harbour", id=91),
+            layer("Coastline", service="enc_coastal", id=77),
+        ])
+        text = mod.format_summary(got)
+        assert "3 distinct layer names" not in text
+        assert "1 distinct layer names" in text
+        assert "enc_approach/88" in text and "enc_harbour/91" in text
+
+    def test_a_long_listing_is_capped_and_says_so(self):
+        got = mod.Result(layers=[layer(f"Layer {i:03d}", id=i)
+                                 for i in range(mod.NAME_CAP + 40)])
+        text = mod.format_summary(got)
+        assert f"…and {40} more" in text

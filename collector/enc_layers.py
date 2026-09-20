@@ -35,6 +35,7 @@ queried and a layer that is empty are different facts.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import urllib.parse
 from dataclasses import dataclass, field
@@ -58,18 +59,35 @@ SERVICES = tuple(
 #: whole of Coronado and south past Imperial Beach.
 BBOX = (-117.2800, 32.6000, -117.1400, 32.7500)
 
-#: S-57 object classes worth asking about, and why. Anything else in the chart
-#: is navigation furniture for this project's purposes.
+#: S-57 object classes worth asking about, why, and what the layer is likely to
+#: be CALLED.
+#:
+#: The acronym alone is not enough and the first run proved it: 787 layers
+#: across four services, zero matches, because NOAA's MapServer names its
+#: layers in English. Layer 88 IS the coastline — `collector.shoreline` pulled
+#: geometry out of it — and it does not have "COALNE" in its name.
+#:
+#: Over-matching is the right way to be wrong here. A layer named for something
+#: else costs one count query; a class missed because the pattern was narrow
+#: costs an Actions round trip, which is exactly what the first run cost.
 WANTED_CLASSES = {
-    "COALNE": "coastline",
-    "SLCONS": "shoreline construction — jetties, breakwaters",
-    "LNDARE": "land area — island and headland silhouettes",
-    "DEPCNT": "depth contour",
-    "DEPARE": "depth area",
-    "OBSTRN": "obstruction",
-    "UWTROC": "underwater rock",
-    "SBDARE": "seabed area",
+    "COALNE": ("coastline", r"coast.?line|shore.?line(?!.*construct)"),
+    "SLCONS": ("shoreline construction — jetties, breakwaters",
+               r"shore.?line.*construct|construct.*shore|jetty|jetties|"
+               r"breakwater|groyne|groin|training.?wall|pier|wharf|dyke|dike"),
+    "LNDARE": ("land area — island and headland silhouettes",
+               r"land.?area|land.?region|\bisland"),
+    "DEPCNT": ("depth contour", r"depth.?contour|\bcontour"),
+    "DEPARE": ("depth area", r"depth.?area|dredged.?area"),
+    "OBSTRN": ("obstruction", r"obstruct|wreck"),
+    "UWTROC": ("underwater rock", r"underwater.?rock|under.?water|\brock"),
+    "SBDARE": ("seabed area", r"sea.?bed|bottom.?charact"),
+    "SOUNDG": ("soundings — spot depths", r"sounding"),
 }
+
+#: How many distinct layer names to print. The listing IS the finding when the
+#: match comes back empty, so it has to be generous.
+NAME_CAP = 200
 
 #: How many layers to query per service. A chart service carries well over a
 #: hundred and this is a probe, not a crawl.
@@ -89,11 +107,11 @@ class Layer:
 
     @property
     def klass(self) -> str:
-        """The S-57 acronym, if the layer's name carries one."""
+        """The S-57 class this layer looks like, by acronym OR by English name."""
 
         upper = self.name.upper()
-        for acronym in WANTED_CLASSES:
-            if acronym in upper:
+        for acronym, (_why, pattern) in WANTED_CLASSES.items():
+            if acronym in upper or re.search(pattern, self.name, re.I):
                 return acronym
         return ""
 
@@ -224,9 +242,25 @@ def format_summary(result: Result) -> str:
 
     lines += ["**What each class would be for:**", ""]
     seen = {l.klass for l in result.populated}
-    for acronym, why in WANTED_CLASSES.items():
+    for acronym, (why, _pattern) in WANTED_CLASSES.items():
         mark = "yes" if acronym in seen else "not found in box"
         lines.append(f"- `{acronym}` — {why} — **{mark}**")
+
+    # ALWAYS list what is actually there. The first run reported "0 carry an
+    # S-57 class" and printed an empty table, which is a statement about the
+    # pattern and not about NOAA — the identical fault `collector.shoreline`
+    # had been fixed for hours earlier, rebuilt here from scratch. Distinct
+    # names, because the same class repeats across four chart scales.
+    names: dict[str, list[str]] = {}
+    for entry in result.layers:
+        names.setdefault(entry.name, []).append(f"{entry.service}/{entry.id}")
+    lines += ["", f"<details><summary>{len(names)} distinct layer names across "
+                  f"{len(result.layers)} layers</summary>", ""]
+    for name in sorted(names)[:NAME_CAP]:
+        lines.append(f"- `{name}` — {', '.join(names[name][:4])}")
+    if len(names) > NAME_CAP:
+        lines.append(f"- …and {len(names) - NAME_CAP} more")
+    lines += ["", "</details>"]
     lines += ["", "This enumerates. It stores nothing and edits nothing. "
                   "Which layer becomes a blocker is a judgement with a "
                   "provenance record, and BRIEFING §20 already says a shoal is "
