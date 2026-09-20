@@ -484,3 +484,129 @@ class TestOneFilePerSource:
 
     def test_more_than_one_source_is_kept(self):
         assert mod.SOURCE_BUDGET >= 2
+
+
+class TestRegions:
+    """A stored extract is clipped by its own envelope on every edge, and the
+    filename is the only place that says which envelope. The three Coronado
+    files sit on their bbox at all four corners: read without that, the fact
+    that they stop 2.8 km south of the south break looks like the chart running
+    out of coast, when it is only the query running out of box."""
+
+    def test_the_region_is_in_the_filename(self):
+        assert mod.store_name(
+            "https://x/services/encdirect/enc_harbour/MapServer/84", "baja"
+        ) == "enc_harbour_84_baja.csv"
+
+    def test_the_same_layer_in_two_regions_does_not_collide(self):
+        url = "https://x/services/encdirect/enc_harbour/MapServer/84"
+        assert mod.store_name(url, "coronado") != mod.store_name(url, "baja")
+
+    def test_the_default_region_keeps_the_existing_names(self):
+        """The three files already in `data/shoreline/` are named this way and
+        `forecast.shorenormal` reads them by that name."""
+
+        assert mod.store_name(
+            "https://x/services/encdirect/enc_harbour/MapServer/84"
+        ).endswith("_coronado.csv")
+
+    def test_baja_reaches_past_the_border(self):
+        """The whole point of the region: NOAA's charts are the question, and a
+        box that stops at 32.535 cannot answer it."""
+
+        _, ymin, _, ymax = mod.REGIONS["baja"]
+        assert ymin < 32.0 < ymax
+
+    def test_baja_covers_the_tangent_stretch(self):
+        """Measured from public landmark positions: the Baja coast from the
+        Tijuana river mouth to Punta Eugenia sits inside 152-165 degrees from
+        Coronado, and the seaward-most bearing comes from the near stretch
+        between Playas de Tijuana and Rosarito. The box must contain it."""
+
+        xmin, ymin, xmax, ymax = mod.REGIONS["baja"]
+        for lat, lon in ((32.553, -117.130), (32.525, -117.124), (32.362, -117.060)):
+            assert ymin <= lat <= ymax and xmin <= lon <= xmax
+
+    def test_every_region_is_a_well_formed_box(self):
+        for name, (xmin, ymin, xmax, ymax) in mod.REGIONS.items():
+            assert xmin < xmax and ymin < ymax, name
+
+    def test_the_summary_states_the_envelope(self):
+        """Without it the vertex count is unreadable — 904 points is a dense
+        coastline or a clipped one and the number alone does not say."""
+
+        text = mod.format_summary(mod.Result(region="baja", bbox=mod.REGIONS["baja"]))
+        assert "baja" in text
+        assert "-117.4" in text and "31.6" in text
+
+
+class TestTransferLimit:
+    """The Coronado box returned 97 features and never met a page limit, so
+    nothing here had ever seen one. A 130 km box will, and a silently truncated
+    coastline drops exactly the seaward-most vertex the fetch exists to find —
+    the same shape as the 404 that meant `bull_tar` and was read as `skipped`."""
+
+    def paged(self, pages):
+        seen = []
+
+        def fetch(url):
+            seen.append(url)
+            return pages[len(seen) - 1]
+
+        return fetch, seen
+
+    def line(self, lat):
+        return {"geometry": {"paths": [[[-117.1, lat], [-117.2, lat]]]}}
+
+    def test_one_clean_page_asks_once(self):
+        fetch, seen = self.paged([{"features": [self.line(32.6)]}])
+        paths, truncated = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        assert len(paths) == 1 and not truncated and len(seen) == 1
+
+    def test_a_truncated_page_is_followed(self):
+        fetch, seen = self.paged([
+            {"features": [self.line(32.6)], "exceededTransferLimit": True},
+            {"features": [self.line(32.5)]},
+        ])
+        paths, truncated = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        assert len(paths) == 2 and not truncated
+        assert "resultOffset=1" in seen[1]
+
+    def test_the_first_page_does_not_send_an_offset(self):
+        fetch, seen = self.paged([{"features": []}])
+        mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        assert "resultOffset" not in seen[0]
+
+    def test_a_server_that_never_stops_is_bounded(self):
+        page = {"features": [self.line(32.6)], "exceededTransferLimit": True}
+        seen = []
+
+        def fetch(url):
+            seen.append(url)
+            return page
+
+        paths, truncated = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        assert truncated
+        assert len(seen) == mod.PAGE_BUDGET
+
+    def test_an_empty_page_ends_it_even_when_the_flag_is_set(self):
+        """Otherwise a server that sets the flag and returns nothing spins to
+        the budget on every run."""
+
+        page = {"features": [], "exceededTransferLimit": True}
+        seen = []
+
+        def fetch(url):
+            seen.append(url)
+            return page
+
+        _, truncated = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        assert len(seen) == 1 and not truncated
+
+    def test_the_summary_says_the_coastline_is_incomplete(self):
+        result = mod.Result(region="baja", bbox=mod.REGIONS["baja"])
+        result.truncated.append("https://x/enc_coastal/MapServer/70")
+        result.vertices, result.parts = 8000, 40
+        text = mod.format_summary(result)
+        assert "Incomplete" in text
+        assert "enc_coastal" in text

@@ -117,10 +117,30 @@ LISTING_CAP = 60
 #: what is there, and the summary lists everything matched so a human can judge.
 WANTED = re.compile(r"shorelin|cusp|coalne|coast.?line|\bmhw\b|coastal[_ ]?survey", re.I)
 
-#: Coronado's digitised stretch runs 32.6737 to 32.6866 N, -117.1976 to
-#: -117.1724 E. Padded by roughly 2 km so a fit at the 2 km scale has vertices
-#: beyond both ends of the beach rather than running out of line at the edges.
-BBOX = (-117.2200, 32.6550, -117.1500, 32.7060)   # xmin, ymin, xmax, ymax
+#: Named fetch boxes. A region is a bbox AND a filename suffix, because the
+#: two must not drift apart: the stored Coronado files were clipped on all four
+#: edges by their own envelope, and only the suffix in their names says which
+#: envelope that was.
+#:
+#: - `coronado` — the beach. The digitised stretch runs 32.6737 to 32.6866 N,
+#:   -117.1976 to -117.1724 E, padded by roughly 2 km so a fit at the 2 km
+#:   scale has vertices beyond both ends rather than running out of line.
+#: - `baja` — the coast south of the border, from the Tijuana river mouth to
+#:   Punta Banda. It exists to find ONE number: the bearing of the seaward-most
+#:   point of that coast as seen from Coronado, which is the southern edge of
+#:   the swell window. Measured from public landmark positions, the whole Baja
+#:   coast out to Punta Eugenia (573 km) sits inside 152–165° from Coronado —
+#:   seen almost exactly edge-on — so the edge is a tangent, and a tangent is
+#:   decided by whichever vertex the chart happened to place furthest seaward.
+#:   Same shape as the Point Loma tip, and the same leverage.
+REGIONS: dict[str, tuple[float, float, float, float]] = {
+    "coronado": (-117.2200, 32.6550, -117.1500, 32.7060),
+    "baja": (-117.4000, 31.6000, -116.5500, 32.6600),
+}
+
+#: The default region, kept as a module constant because every existing caller
+#: and test passes the Coronado box by this name.
+BBOX = REGIONS["coronado"]   # xmin, ymin, xmax, ymax
 
 #: ENC usage bands, coarse to fine. This is a DOCUMENTED quality ordering and
 #: the first version of this collector ignored it entirely: it took whichever
@@ -147,19 +167,25 @@ def scale_of(url: str) -> int:
     return 0
 
 
-def store_name(layer_url: str) -> str:
-    """One file per SOURCE, so a second source cannot clobber the first.
+def store_name(layer_url: str, region: str = "coronado") -> str:
+    """One file per SOURCE and REGION, so neither can clobber the other.
 
-    Keeping both is the point: two charts of the same coast at two scales is
-    the only cross-check available here, and a single `noaa_shoreline.csv`
-    made that impossible — the finer fetch would simply overwrite the coarser
-    one and the disagreement would never be visible.
+    Keeping both sources is the point: two charts of the same coast at two
+    scales is the only cross-check available here, and a single
+    `noaa_shoreline.csv` made that impossible — the finer fetch would simply
+    overwrite the coarser one and the disagreement would never be visible.
+
+    The region is in the name for a different reason. A stored extract is
+    clipped by its own query envelope on all four edges, and nothing inside the
+    file records which envelope that was: reading `enc_harbour_84` and finding
+    it stops 2.8 km south of the beach says nothing about what the chart
+    carries there. The suffix is the only place that distinction lives.
     """
 
     parts = [p for p in layer_url.rstrip("/").split("/") if p]
     service = next((p for p in parts if p in SCALE_RANK), "enc")
     layer_id = parts[-1] if parts[-1].isdigit() else "x"
-    return f"{service}_{layer_id}_coronado.csv"
+    return f"{service}_{layer_id}_{region}.csv"
 
 
 #: How many coastline sources to keep. More than one so they can be compared;
@@ -200,8 +226,17 @@ class Attempt:
 
 @dataclass
 class Result:
+    #: Which named box this run asked for, and the box itself. A stored extract
+    #: is clipped by its envelope on every edge, so the envelope is part of the
+    #: finding and belongs in the summary beside the vertex count.
+    region: str = "coronado"
+    bbox: tuple[float, float, float, float] = BBOX
     attempts: list[Attempt] = field(default_factory=list)
     candidates: list[str] = field(default_factory=list)
+    #: Layers that were still returning `exceededTransferLimit` when the page
+    #: budget ran out. A non-empty list means the stored coastline is INCOMPLETE
+    #: and no tangent bearing may be read off it.
+    truncated: list[str] = field(default_factory=list)
     layer: str = ""
     parts: int = 0
     vertices: int = 0
@@ -440,7 +475,11 @@ def line_layers(service_url: str) -> list[str]:
     return named + other[:8]
 
 
-def query_url(layer_url: str, bbox: tuple[float, float, float, float]) -> str:
+def query_url(
+    layer_url: str,
+    bbox: tuple[float, float, float, float],
+    offset: int = 0,
+) -> str:
     params = {
         "where": "1=1",
         "geometry": ",".join(f"{v}" for v in bbox),
@@ -452,7 +491,45 @@ def query_url(layer_url: str, bbox: tuple[float, float, float, float]) -> str:
         "outFields": "*",
         "f": "json",
     }
+    if offset:
+        params["resultOffset"] = str(offset)
     return f"{layer_url}/query?{urllib.parse.urlencode(params)}"
+
+
+#: How many pages of features to pull from one layer before giving up. At the
+#: server's usual 1000-2000 features a page this is far more coast than any
+#: region here needs; the cap exists so a server that ignores `resultOffset`
+#: loops a bounded number of times rather than forever.
+PAGE_BUDGET = 12
+
+
+def fetch_paths(
+    layer_url: str,
+    bbox: tuple[float, float, float, float],
+    *,
+    fetch=None,
+) -> tuple[list[list[tuple[float, float]]], bool]:
+    """Every feature in the box, following `exceededTransferLimit`.
+
+    Returns the paths and whether the layer was STILL truncated when the page
+    budget ran out, because those are two different answers and a caller that
+    cannot tell them apart is the fault BRIEFING §8 keeps naming: the Coronado
+    box returned 97 features and never came near a page limit, so nothing here
+    had ever met one. A 130 km box will, and a silently truncated coastline
+    would drop exactly the seaward-most vertex this fetch exists to find.
+    """
+
+    fetch = fetch or fetch_json
+    paths: list[list[tuple[float, float]]] = []
+    offset = 0
+    for _ in range(PAGE_BUDGET):
+        payload = fetch(query_url(layer_url, bbox, offset))
+        page = parse_paths(payload)
+        paths += page
+        if not payload.get("exceededTransferLimit") or not page:
+            return paths, False
+        offset += len(payload.get("features") or page)
+    return paths, True
 
 
 def parse_paths(payload: dict) -> list[list[tuple[float, float]]]:
@@ -482,7 +559,12 @@ def in_bbox(lat: float, lon: float, bbox: tuple[float, float, float, float]) -> 
     return xmin <= lon <= xmax and ymin <= lat <= ymax
 
 
-def store(parts: list[list[tuple[float, float]]], layer: str, data_dir: Path) -> Path:
+def store(
+    parts: list[list[tuple[float, float]]],
+    layer: str,
+    data_dir: Path,
+    region: str = "coronado",
+) -> Path:
     """Write the vertices, to a file named for the SOURCE.
 
     Overwrites its own file: a shoreline is a survey, not a series, and unlike
@@ -491,7 +573,7 @@ def store(parts: list[list[tuple[float, float]]], layer: str, data_dir: Path) ->
     another source's file, which the single fixed filename used to do.
     """
 
-    path = Path(data_dir) / "shoreline" / store_name(layer)
+    path = Path(data_dir) / "shoreline" / store_name(layer, region)
     path.parent.mkdir(parents=True, exist_ok=True)
     stamp = utcnow().strftime(ISO)
     with path.open("w", newline="", encoding="utf-8") as fh:
@@ -510,10 +592,15 @@ def store(parts: list[list[tuple[float, float]]], layer: str, data_dir: Path) ->
 def collect(
     data_dir: Path = DEFAULT_DATA_DIR,
     *,
-    bbox: tuple[float, float, float, float] = BBOX,
+    region: str = "coronado",
+    bbox: tuple[float, float, float, float] | None = None,
     probe_only: bool = False,
 ) -> Result:
-    result = discover()
+    bbox = bbox if bbox is not None else REGIONS[region]
+    result = Result(region=region, bbox=bbox)
+    discovered = discover()
+    result.attempts = discovered.attempts
+    result.candidates = discovered.candidates
     # The file tree is discovery only and never short-circuits the service
     # walk: it reports alongside, so one run answers both questions.
     result.attempts += probe_htdata()
@@ -531,7 +618,7 @@ def collect(
             break
         for layer in line_layers(service):
             try:
-                payload = fetch_json(query_url(layer, bbox))
+                raw, truncated = fetch_paths(layer, bbox)
             except Exception as exc:  # noqa: BLE001 — try the next layer
                 result.attempts.append(
                     Attempt(url=layer, denied=is_denial(exc),
@@ -539,7 +626,7 @@ def collect(
                 continue
             parts = [
                 [p for p in path if in_bbox(*p, bbox)]
-                for path in parse_paths(payload)
+                for path in raw
             ]
             parts = [p for p in parts if len(p) >= 2]
             if not parts:
@@ -552,11 +639,14 @@ def collect(
                 result.layer = layer
                 result.parts = len(parts)
                 result.vertices = vertices
-            result.attempts.append(
-                Attempt(url=layer, ok=True,
-                        note=f"{vertices} vertices in {len(parts)} part(s)"))
+            note = f"{vertices} vertices in {len(parts)} part(s)"
+            if truncated:
+                note += (f" — STILL TRUNCATED after {PAGE_BUDGET} pages; "
+                         "the box is too big or the server ignores resultOffset")
+                result.truncated.append(layer)
+            result.attempts.append(Attempt(url=layer, ok=True, note=note))
             if not probe_only:
-                path = store(parts, layer, data_dir)
+                path = store(parts, layer, data_dir, region)
                 result.stored = result.stored or path
                 result.sources.append(str(path))
             kept += 1
@@ -565,7 +655,15 @@ def collect(
 
 
 def format_summary(result: Result) -> str:
-    lines = ["### Shoreline — NOAA surveyed vector near Coronado", ""]
+    xmin, ymin, xmax, ymax = result.bbox
+    lines = [
+        f"### Shoreline — NOAA chart vector, region `{result.region}`",
+        "",
+        f"Query envelope `{xmin} {ymin} {xmax} {ymax}`. Everything stored is "
+        "clipped to it on all four edges, so a file that stops short of "
+        "somewhere says nothing about what the chart carries there.",
+        "",
+    ]
     lines += ["| tried | ok | note |", "|---|---|---|"]
     for attempt in result.attempts:
         state = "denied" if attempt.denied else ("yes" if attempt.ok else "no")
@@ -589,6 +687,14 @@ def format_summary(result: Result) -> str:
     if result.candidates:
         lines.append(f"**{len(result.candidates)} candidate service(s):**")
         lines += [f"- `{c}`" for c in result.candidates]
+        lines.append("")
+    if result.truncated:
+        lines.append(
+            "**Incomplete.** These layers were still truncated when the page "
+            "budget ran out, so the stored coastline is missing features and "
+            "no edge may be read off it:"
+        )
+        lines += [f"- `{layer}`" for layer in result.truncated]
         lines.append("")
     if result.ok:
         lines.append(
@@ -616,9 +722,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--probe", action="store_true",
                         help="discover and report, store nothing")
+    parser.add_argument("--region", choices=sorted(REGIONS), default="coronado",
+                        help="which named query envelope to fetch")
     args = parser.parse_args(argv)
 
-    result = collect(args.data_dir, probe_only=args.probe)
+    result = collect(args.data_dir, region=args.region, probe_only=args.probe)
     summary = format_summary(result)
     print(summary)
     write_step_summary(summary)
