@@ -117,10 +117,30 @@ LISTING_CAP = 60
 #: what is there, and the summary lists everything matched so a human can judge.
 WANTED = re.compile(r"shorelin|cusp|coalne|coast.?line|\bmhw\b|coastal[_ ]?survey", re.I)
 
-#: Coronado's digitised stretch runs 32.6737 to 32.6866 N, -117.1976 to
-#: -117.1724 E. Padded by roughly 2 km so a fit at the 2 km scale has vertices
-#: beyond both ends of the beach rather than running out of line at the edges.
-BBOX = (-117.2200, 32.6550, -117.1500, 32.7060)   # xmin, ymin, xmax, ymax
+#: Named fetch boxes. A region is a bbox AND a filename suffix, because the
+#: two must not drift apart: the stored Coronado files were clipped on all four
+#: edges by their own envelope, and only the suffix in their names says which
+#: envelope that was.
+#:
+#: - `coronado` — the beach. The digitised stretch runs 32.6737 to 32.6866 N,
+#:   -117.1976 to -117.1724 E, padded by roughly 2 km so a fit at the 2 km
+#:   scale has vertices beyond both ends rather than running out of line.
+#: - `baja` — the coast south of the border, from the Tijuana river mouth to
+#:   Punta Banda. It exists to find ONE number: the bearing of the seaward-most
+#:   point of that coast as seen from Coronado, which is the southern edge of
+#:   the swell window. Measured from public landmark positions, the whole Baja
+#:   coast out to Punta Eugenia (573 km) sits inside 152–165° from Coronado —
+#:   seen almost exactly edge-on — so the edge is a tangent, and a tangent is
+#:   decided by whichever vertex the chart happened to place furthest seaward.
+#:   Same shape as the Point Loma tip, and the same leverage.
+REGIONS: dict[str, tuple[float, float, float, float]] = {
+    "coronado": (-117.2200, 32.6550, -117.1500, 32.7060),
+    "baja": (-117.4000, 31.6000, -116.5500, 32.6600),
+}
+
+#: The default region, kept as a module constant because every existing caller
+#: and test passes the Coronado box by this name.
+BBOX = REGIONS["coronado"]   # xmin, ymin, xmax, ymax
 
 #: ENC usage bands, coarse to fine. This is a DOCUMENTED quality ordering and
 #: the first version of this collector ignored it entirely: it took whichever
@@ -147,26 +167,36 @@ def scale_of(url: str) -> int:
     return 0
 
 
-def store_name(layer_url: str) -> str:
-    """One file per SOURCE, so a second source cannot clobber the first.
+def store_name(layer_url: str, region: str = "coronado") -> str:
+    """One file per SOURCE and REGION, so neither can clobber the other.
 
-    Keeping both is the point: two charts of the same coast at two scales is
-    the only cross-check available here, and a single `noaa_shoreline.csv`
-    made that impossible — the finer fetch would simply overwrite the coarser
-    one and the disagreement would never be visible.
+    Keeping both sources is the point: two charts of the same coast at two
+    scales is the only cross-check available here, and a single
+    `noaa_shoreline.csv` made that impossible — the finer fetch would simply
+    overwrite the coarser one and the disagreement would never be visible.
+
+    The region is in the name for a different reason. A stored extract is
+    clipped by its own query envelope on all four edges, and nothing inside the
+    file records which envelope that was: reading `enc_harbour_84` and finding
+    it stops 2.8 km south of the beach says nothing about what the chart
+    carries there. The suffix is the only place that distinction lives.
     """
 
     parts = [p for p in layer_url.rstrip("/").split("/") if p]
     service = next((p for p in parts if p in SCALE_RANK), "enc")
     layer_id = parts[-1] if parts[-1].isdigit() else "x"
-    return f"{service}_{layer_id}_coronado.csv"
+    return f"{service}_{layer_id}_{region}.csv"
 
 
 #: How many coastline sources to keep. More than one so they can be compared;
 #: not all of them, because the coarse bands add nothing but bytes.
 SOURCE_BUDGET = 3
 
-FIELDS = ["part", "seq", "lat", "lon", "source_layer", "fetched_utc"]
+#: `cell` is the ENC chart cell a vertex came from, blank when the service
+#: names none. It sits before `fetched_utc` rather than at the end because
+#: these files are rewritten whole on every fetch — unlike the tide and buoy
+#: archives, where appending a column to an existing CSV would misalign it.
+FIELDS = ["part", "seq", "lat", "lon", "source_layer", "cell", "fetched_utc"]
 
 TIMEOUT = 45.0
 
@@ -200,8 +230,24 @@ class Attempt:
 
 @dataclass
 class Result:
+    #: The ENC cells the stored vertices came from, and every attribute name
+    #: the service returned. A usage band is a mosaic, not a chart, so
+    #: "digitised from the approach band" names the drawer; the cells name the
+    #: charts. The key list is here so an empty `cells` reads as "the service
+    #: does not publish one" rather than as a silent miss.
+    cells: list[str] = field(default_factory=list)
+    attribute_keys: list[str] = field(default_factory=list)
+    #: Which named box this run asked for, and the box itself. A stored extract
+    #: is clipped by its envelope on every edge, so the envelope is part of the
+    #: finding and belongs in the summary beside the vertex count.
+    region: str = "coronado"
+    bbox: tuple[float, float, float, float] = BBOX
     attempts: list[Attempt] = field(default_factory=list)
     candidates: list[str] = field(default_factory=list)
+    #: Layers that were still returning `exceededTransferLimit` when the page
+    #: budget ran out. A non-empty list means the stored coastline is INCOMPLETE
+    #: and no tangent bearing may be read off it.
+    truncated: list[str] = field(default_factory=list)
     layer: str = ""
     parts: int = 0
     vertices: int = 0
@@ -440,7 +486,11 @@ def line_layers(service_url: str) -> list[str]:
     return named + other[:8]
 
 
-def query_url(layer_url: str, bbox: tuple[float, float, float, float]) -> str:
+def query_url(
+    layer_url: str,
+    bbox: tuple[float, float, float, float],
+    offset: int = 0,
+) -> str:
     params = {
         "where": "1=1",
         "geometry": ",".join(f"{v}" for v in bbox),
@@ -452,19 +502,98 @@ def query_url(layer_url: str, bbox: tuple[float, float, float, float]) -> str:
         "outFields": "*",
         "f": "json",
     }
+    if offset:
+        params["resultOffset"] = str(offset)
     return f"{layer_url}/query?{urllib.parse.urlencode(params)}"
 
 
-def parse_paths(payload: dict) -> list[list[tuple[float, float]]]:
-    """Polyline paths as (lat, lon) lists. Empty when the layer had none.
+#: How many pages of features to pull from one layer before giving up. At the
+#: server's usual 1000-2000 features a page this is far more coast than any
+#: region here needs; the cap exists so a server that ignores `resultOffset`
+#: loops a bounded number of times rather than forever.
+PAGE_BUDGET = 12
+
+
+def fetch_paths(
+    layer_url: str,
+    bbox: tuple[float, float, float, float],
+    *,
+    fetch=None,
+) -> tuple[list[tuple[list[tuple[float, float]], str]], bool, list[str]]:
+    """Every feature in the box, following `exceededTransferLimit`.
+
+    Returns the paths and whether the layer was STILL truncated when the page
+    budget ran out, because those are two different answers and a caller that
+    cannot tell them apart is the fault BRIEFING §8 keeps naming: the Coronado
+    box returned 97 features and never came near a page limit, so nothing here
+    had ever met one. A 130 km box will, and a silently truncated coastline
+    would drop exactly the seaward-most vertex this fetch exists to find.
+    """
+
+    fetch = fetch or fetch_json
+    paths: list[tuple[list[tuple[float, float]], str]] = []
+    keys: list[str] = []
+    offset = 0
+    for _ in range(PAGE_BUDGET):
+        payload = fetch(query_url(layer_url, bbox, offset))
+        page = parse_features(payload)
+        paths += page
+        keys = keys or attribute_keys(payload)
+        if not payload.get("exceededTransferLimit") or not page:
+            return paths, False, keys
+        offset += len(payload.get("features") or page)
+    return paths, True, keys
+
+
+#: Attribute names that identify the ENC CELL a feature came from, best
+#: first. A usage band is not a chart: `enc_approach/88` is a mosaic of many
+#: cells, and "digitised from the approach band" names the drawer rather than
+#: the chart. Tried case-insensitively; the summary lists every attribute key
+#: the service actually returned, so a miss here is visible in one run rather
+#: than inferred from a blank column.
+CELL_FIELDS = ("DSNM", "CELLNAME", "CELL_NAME", "CELL", "SORIND", "LNAM")
+
+
+def cell_of(attributes: dict) -> str:
+    """The ENC cell id in a feature's attributes, or "" if none is named."""
+
+    lowered = {str(k).lower(): v for k, v in (attributes or {}).items()}
+    for field in CELL_FIELDS:
+        value = lowered.get(field.lower())
+        if value not in (None, "", "null"):
+            text = str(value).strip()
+            # S-57 SORIND is a four-field citation — agency, indication,
+            # method, SOURCE ID — and it is the last field that names the
+            # chart. Reading the second instead returns "US" for every
+            # feature on the US coast, which looks like a populated column.
+            if field == "SORIND" and "," in text:
+                bits = [b.strip() for b in text.split(",") if b.strip()]
+                return bits[-1] if bits else text
+            return text
+    return ""
+
+
+def attribute_keys(payload: dict) -> list[str]:
+    """Every attribute name the service returned, for the summary."""
+
+    keys: dict[str, None] = {}
+    for feature in payload.get("features", []) or []:
+        for key in (feature.get("attributes") or {}):
+            keys[str(key)] = None
+    return sorted(keys)
+
+
+def parse_features(payload: dict) -> list[tuple[list[tuple[float, float]], str]]:
+    """Polyline paths as (points, cell) pairs. Empty when the layer had none.
 
     ArcGIS gives x,y — longitude first. Flipping that silently would put
     Coronado in the Indian Ocean, so it is done once, here, on the way in.
     """
 
-    parts: list[list[tuple[float, float]]] = []
+    parts: list[tuple[list[tuple[float, float]], str]] = []
     for feature in payload.get("features", []) or []:
         geometry = feature.get("geometry") or {}
+        cell = cell_of(feature.get("attributes") or {})
         for path in geometry.get("paths", []) or []:
             points = []
             for point in path:
@@ -473,8 +602,14 @@ def parse_paths(payload: dict) -> list[list[tuple[float, float]]]:
                 lon, lat = float(point[0]), float(point[1])
                 points.append((lat, lon))
             if len(points) >= 2:
-                parts.append(points)
+                parts.append((points, cell))
     return parts
+
+
+def parse_paths(payload: dict) -> list[list[tuple[float, float]]]:
+    """The geometry alone. Kept because most callers only want the points."""
+
+    return [points for points, _ in parse_features(payload)]
 
 
 def in_bbox(lat: float, lon: float, bbox: tuple[float, float, float, float]) -> bool:
@@ -482,7 +617,12 @@ def in_bbox(lat: float, lon: float, bbox: tuple[float, float, float, float]) -> 
     return xmin <= lon <= xmax and ymin <= lat <= ymax
 
 
-def store(parts: list[list[tuple[float, float]]], layer: str, data_dir: Path) -> Path:
+def store(
+    parts: list[list[tuple[float, float]]] | list[tuple[list[tuple[float, float]], str]],
+    layer: str,
+    data_dir: Path,
+    region: str = "coronado",
+) -> Path:
     """Write the vertices, to a file named for the SOURCE.
 
     Overwrites its own file: a shoreline is a survey, not a series, and unlike
@@ -491,18 +631,21 @@ def store(parts: list[list[tuple[float, float]]], layer: str, data_dir: Path) ->
     another source's file, which the single fixed filename used to do.
     """
 
-    path = Path(data_dir) / "shoreline" / store_name(layer)
+    path = Path(data_dir) / "shoreline" / store_name(layer, region)
     path.parent.mkdir(parents=True, exist_ok=True)
     stamp = utcnow().strftime(ISO)
     with path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=FIELDS)
         writer.writeheader()
         for index, part in enumerate(parts):
-            for seq, (lat, lon) in enumerate(part):
+            # A bare list of points is still accepted: the cell is an addition
+            # to what a part carries, not a change of what a part IS.
+            points, cell = part if isinstance(part, tuple) else (part, "")
+            for seq, (lat, lon) in enumerate(points):
                 writer.writerow({
                     "part": index, "seq": seq,
                     "lat": f"{lat:.7f}", "lon": f"{lon:.7f}",
-                    "source_layer": layer, "fetched_utc": stamp,
+                    "source_layer": layer, "cell": cell, "fetched_utc": stamp,
                 })
     return path
 
@@ -510,10 +653,15 @@ def store(parts: list[list[tuple[float, float]]], layer: str, data_dir: Path) ->
 def collect(
     data_dir: Path = DEFAULT_DATA_DIR,
     *,
-    bbox: tuple[float, float, float, float] = BBOX,
+    region: str = "coronado",
+    bbox: tuple[float, float, float, float] | None = None,
     probe_only: bool = False,
 ) -> Result:
-    result = discover()
+    bbox = bbox if bbox is not None else REGIONS[region]
+    result = Result(region=region, bbox=bbox)
+    discovered = discover()
+    result.attempts = discovered.attempts
+    result.candidates = discovered.candidates
     # The file tree is discovery only and never short-circuits the service
     # walk: it reports alongside, so one run answers both questions.
     result.attempts += probe_htdata()
@@ -531,32 +679,39 @@ def collect(
             break
         for layer in line_layers(service):
             try:
-                payload = fetch_json(query_url(layer, bbox))
+                raw, truncated, keys = fetch_paths(layer, bbox)
             except Exception as exc:  # noqa: BLE001 — try the next layer
                 result.attempts.append(
                     Attempt(url=layer, denied=is_denial(exc),
                             note=f"{exc.__class__.__name__}: {exc}"[:160]))
                 continue
             parts = [
-                [p for p in path if in_bbox(*p, bbox)]
-                for path in parse_paths(payload)
+                ([p for p in path if in_bbox(*p, bbox)], cell)
+                for path, cell in raw
             ]
-            parts = [p for p in parts if len(p) >= 2]
+            parts = [(p, cell) for p, cell in parts if len(p) >= 2]
+            result.attribute_keys = result.attribute_keys or keys
+            for _, cell in parts:
+                if cell and cell not in result.cells:
+                    result.cells.append(cell)
             if not parts:
                 result.attempts.append(Attempt(url=layer, ok=True, note="no vertices in bbox"))
                 continue
-            vertices = sum(len(p) for p in parts)
+            vertices = sum(len(p) for p, _ in parts)
             # First one found stays the headline, so the summary keeps reading
             # the way it did; the rest are stored beside it for comparison.
             if not result.layer:
                 result.layer = layer
                 result.parts = len(parts)
                 result.vertices = vertices
-            result.attempts.append(
-                Attempt(url=layer, ok=True,
-                        note=f"{vertices} vertices in {len(parts)} part(s)"))
+            note = f"{vertices} vertices in {len(parts)} part(s)"
+            if truncated:
+                note += (f" — STILL TRUNCATED after {PAGE_BUDGET} pages; "
+                         "the box is too big or the server ignores resultOffset")
+                result.truncated.append(layer)
+            result.attempts.append(Attempt(url=layer, ok=True, note=note))
             if not probe_only:
-                path = store(parts, layer, data_dir)
+                path = store(parts, layer, data_dir, region)
                 result.stored = result.stored or path
                 result.sources.append(str(path))
             kept += 1
@@ -565,7 +720,15 @@ def collect(
 
 
 def format_summary(result: Result) -> str:
-    lines = ["### Shoreline — NOAA surveyed vector near Coronado", ""]
+    xmin, ymin, xmax, ymax = result.bbox
+    lines = [
+        f"### Shoreline — NOAA chart vector, region `{result.region}`",
+        "",
+        f"Query envelope `{xmin} {ymin} {xmax} {ymax}`. Everything stored is "
+        "clipped to it on all four edges, so a file that stops short of "
+        "somewhere says nothing about what the chart carries there.",
+        "",
+    ]
     lines += ["| tried | ok | note |", "|---|---|---|"]
     for attempt in result.attempts:
         state = "denied" if attempt.denied else ("yes" if attempt.ok else "no")
@@ -589,6 +752,33 @@ def format_summary(result: Result) -> str:
     if result.candidates:
         lines.append(f"**{len(result.candidates)} candidate service(s):**")
         lines += [f"- `{c}`" for c in result.candidates]
+        lines.append("")
+    if result.truncated:
+        lines.append(
+            "**Incomplete.** These layers were still truncated when the page "
+            "budget ran out, so the stored coastline is missing features and "
+            "no edge may be read off it:"
+        )
+        lines += [f"- `{layer}`" for layer in result.truncated]
+        lines.append("")
+    if result.cells:
+        lines.append(
+            f"**ENC cells** ({len(result.cells)}): "
+            + ", ".join(f"`{c}`" for c in sorted(result.cells))
+        )
+        lines.append("")
+        lines.append(
+            "These are the charts. The usage band is the drawer they sit in, "
+            "so a provenance line should name these and not `enc_approach/88`."
+        )
+        lines.append("")
+    elif result.attribute_keys:
+        lines.append(
+            "**No ENC cell attribute.** The service returned these keys and "
+            "none of them is a cell id, so the provenance can only name the "
+            "usage band: "
+            + ", ".join(f"`{k}`" for k in result.attribute_keys[:40])
+        )
         lines.append("")
     if result.ok:
         lines.append(
@@ -616,9 +806,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--probe", action="store_true",
                         help="discover and report, store nothing")
+    parser.add_argument("--region", choices=sorted(REGIONS), default="coronado",
+                        help="which named query envelope to fetch")
     args = parser.parse_args(argv)
 
-    result = collect(args.data_dir, probe_only=args.probe)
+    result = collect(args.data_dir, region=args.region, probe_only=args.probe)
     summary = format_summary(result)
     print(summary)
     write_step_summary(summary)

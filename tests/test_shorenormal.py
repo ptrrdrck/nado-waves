@@ -333,6 +333,21 @@ class TestEverySourceIsRead:
             "enc_harbour_84_coronado", "enc_approach_88_coronado",
             "enc_general_58_coronado"]
 
+    def test_another_region_is_not_read_as_this_beach(self, tmp_path):
+        """`data/shoreline/` holds more than one coast now. A Baja extract fed
+        to a fit of Coronado's chord would lose every vertex to the scale
+        filter and report as nothing at all, which is the worst way to be
+        wrong: a contaminated source that looks like an absent one."""
+
+        spot = BY_ID["coronado_center"]
+        folder = tmp_path / "shoreline"
+        folder.mkdir(parents=True)
+        _write(folder / "enc_harbour_84_coronado.csv", straight(spot, 124.0, n=9))
+        _write(folder / "enc_coastal_70_baja.csv", straight(spot, 124.0, n=9))
+        from forecast.shorenormal import read_sources
+        assert list(read_sources(tmp_path)) == ["enc_harbour_84_coronado"]
+        assert list(read_sources(tmp_path, "baja")) == ["enc_coastal_70_baja"]
+
     def test_read_vertices_takes_the_finest(self, tmp_path):
         spot = BY_ID["coronado_center"]
         folder = tmp_path / "shoreline"

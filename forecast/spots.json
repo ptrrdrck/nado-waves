@@ -8,7 +8,7 @@
     "as it varies between the named beaches. The west edge of the swell window",
     "IS the bearing to the Point Loma tip, and that bearing sweeps as you walk",
     "the sand: measured, 242.2 degrees at the north break to 259.9 at the south,",
-    "giving 42.8 / 49.1 / 56.3 degrees of open window across 2.8 km. For scale,",
+    "giving 41.6 / 47.7 / 54.7 degrees of open window across 2.8 km. For scale,",
     "the whole Breakers-to-Gator spread is 26.1 to 64.6. A single number for",
     "'Coronado' averages across a 13.5-degree spread and is wrong at both ends.",
     "",
@@ -49,7 +49,16 @@
     {
       "id": "coronado_north",
       "name": "Coronado Central Beach — north break",
-      "shoreline": [[32.6866337, -117.1975652], [32.6855447, -117.1918651]],
+      "shoreline": [
+        [
+          32.6866337,
+          -117.1975652
+        ],
+        [
+          32.6855447,
+          -117.1918651
+        ]
+      ],
       "position_verified": true,
       "shoreline_verified": false,
       "provenance": {
@@ -58,12 +67,21 @@
         "date": "2026-09-14",
         "caveat": "Imagery splice. The northern point sits about 284 m seaward of the waterline trend through the center and south breaks, and the southern point about 61 m seaward, which rotates this chord roughly 19 degrees off the local coast trend (102.8 rather than about 122). MEASURED CONSEQUENCE: the swell window does not move at all (chord-invariance), and undoing the full 284 m cross-shore offset would widen it by 0.93 degrees. So the position is usable and the window here is sound. The NORMAL is not: at 192.8 it is about 19 degrees off, and it must not be trusted for wind fetch or refraction until the imagery is re-digitised. Hence shoreline_verified false."
       },
-      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: window 42.8 degrees, cut off at 242.2."
+      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: west window 41.6 degrees, cut off at 242.2. Also 164.7-187.4 to the south and a 192.6-198.6 channel between the islands."
     },
     {
       "id": "coronado_center",
       "name": "Coronado Central Beach — center break",
-      "shoreline": [[32.6828541, -117.1866803], [32.6814135, -117.1841649]],
+      "shoreline": [
+        [
+          32.6828541,
+          -117.1866803
+        ],
+        [
+          32.6814135,
+          -117.1841649
+        ]
+      ],
       "position_verified": true,
       "shoreline_verified": true,
       "provenance": {
@@ -71,12 +89,21 @@
         "by": "pete@lftlc.xyz",
         "date": "2026-09-14"
       },
-      "notes": "In front of the Hotel del. The successor to the old estimated `coronado_central` and the reference break for this project. Window 49.1 degrees, cut off at 250.3."
+      "notes": "In front of the Hotel del. The successor to the old estimated `coronado_central` and the reference break for this project. West window 47.7 degrees, cut off at 250.3; south window 166.4-189.1; island channel 194.4-200.5."
     },
     {
       "id": "coronado_south",
       "name": "Coronado Central Beach — south break",
-      "shoreline": [[32.6765368, -117.1761219], [32.6737318, -117.1723572]],
+      "shoreline": [
+        [
+          32.6765368,
+          -117.1761219
+        ],
+        [
+          32.6737318,
+          -117.1723572
+        ]
+      ],
       "position_verified": true,
       "shoreline_verified": true,
       "provenance": {
@@ -84,13 +111,25 @@
         "by": "pete@lftlc.xyz",
         "date": "2026-09-14"
       },
-      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest window: 56.3 degrees, holding to 259.9."
+      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest west window: 54.7 degrees, holding to 259.9. South window 168.5-191.1; island channel 196.8-203.0."
     },
     {
       "id": "nasni_breakers",
       "name": "Breakers Beach (NASNI)",
-      "position": [32.6920, -117.2130],
-      "shoreline": [[32.6985, -117.2180], [32.6870, -117.2035]],
+      "position": [
+        32.692,
+        -117.213
+      ],
+      "shoreline": [
+        [
+          32.6985,
+          -117.218
+        ],
+        [
+          32.687,
+          -117.2035
+        ]
+      ],
       "position_verified": false,
       "shoreline_verified": false,
       "notes": "North Island's ocean shore. Closest of all spots to Point Loma, so expected to be the most shadowed. Zuniga Jetty is a missing blocker here - see blockers._missing. COORDINATES STILL ESTIMATED, not digitised; out of scope for now by decision, not because they are good."
@@ -98,8 +137,20 @@
     {
       "id": "nab_gator",
       "name": "Gator Beach (NAB Coronado)",
-      "position": [32.6650, -117.1650],
-      "shoreline": [[32.6740, -117.1735], [32.6520, -117.1585]],
+      "position": [
+        32.665,
+        -117.165
+      ],
+      "shoreline": [
+        [
+          32.674,
+          -117.1735
+        ],
+        [
+          32.652,
+          -117.1585
+        ]
+      ],
       "position_verified": false,
       "shoreline_verified": false,
       "notes": "Silver Strand, south of Central. Furthest from Point Loma, so holds the widest window and is the only spot keeping west swell. COORDINATES STILL ESTIMATED, not digitised; out of scope for now by decision, not because they are good."
@@ -108,8 +159,14 @@
   "blockers": [
     {
       "name": "Point Loma peninsula",
-      "a": [32.6648144, -117.2427037],
-      "b": [32.7200, -117.2530],
+      "a": [
+        32.6648144,
+        -117.2427037
+      ],
+      "b": [
+        32.72,
+        -117.253
+      ],
       "continues": "b",
       "tip_verified": true,
       "provenance": {
@@ -121,12 +178,79 @@
       "notes": "The tip is `a`; the ridge runs north from there and does not end, so everything past `b` is land too. `a` carries the west edge of every spot in this file."
     },
     {
-      "name": "Coronado Islands",
-      "a": [32.4217, -117.3050],
-      "b": [32.3958, -117.2472],
+      "name": "Coronado Islands (south group)",
+      "a": [
+        32.3944927,
+        -117.2397568
+      ],
+      "b": [
+        32.4247854,
+        -117.2636729
+      ],
       "continues": null,
-      "tip_verified": false,
-      "notes": "Islands, not a peninsula: the shadow closes on both sides. Still estimated."
+      "tip_verified": true,
+      "provenance": {
+        "method": "extreme-bearing vertices of the southern island group, NOAA ENC approach band",
+        "by": "collector.shoreline region=baja",
+        "date": "2026-09-20",
+        "note": "Charted 2026-09-20 from NOAA's ENC approach band (enc_approach/88) via collector.shoreline region=baja, endpoints read by forecast.blockeredge. The coastal band (enc_coastal/70) agrees to within 0.05 degrees on every edge. Two candidate vertices existed for one endpoint of each island and they differ by at most 0.044 degrees; the wider-shadow pick was taken. 4459 m across at 29.4 km, Fresnel about 1.9 at 15 s, which is the low end of the 1.9 to 5.4 range BRIEFING section 10 measured. At a 0.3 km link distance this group resolves further into three islands separated by 0.98 and 0.25 degrees, but those sub-degree gaps move with the link distance and the two-cluster split does not - it is identical from 0.3 km to 3 km on both chart bands.",
+        "cells": [
+          "US4CA74M.000",
+          "US4CA1BX.000"
+        ],
+        "chart_product": "NOAA ENC, approach band (usage band 4)"
+      },
+      "notes": "Three islands close together; treated as one because their gaps are sub-degree and not stable under the clustering distance."
+    },
+    {
+      "name": "Coronado Islands (north)",
+      "a": [
+        32.4355617,
+        -117.2947326
+      ],
+      "b": [
+        32.4470062,
+        -117.3012743
+      ],
+      "continues": null,
+      "tip_verified": true,
+      "provenance": {
+        "method": "extreme-bearing vertices of the northern island, NOAA ENC approach band",
+        "by": "collector.shoreline region=baja",
+        "date": "2026-09-20",
+        "note": "Charted 2026-09-20 from NOAA's ENC approach band (enc_approach/88) via collector.shoreline region=baja, endpoints read by forecast.blockeredge. The coastal band (enc_coastal/70) agrees to within 0.05 degrees on every edge. Two candidate vertices existed for one endpoint of each island and they differ by at most 0.044 degrees; the wider-shadow pick was taken. This island is 1427 m across at 28.2 km, giving a Fresnel number of about 0.2 at 15 s - its shadow is very largely filled by diffraction and the hard edge here is close to fiction. Its HIGH-bearing edge is the low edge of the west swell window on every break, so the number is load-bearing even though the shadow is soft.",
+        "cells": [
+          "US4CA1BX.000",
+          "US4CA74M.000"
+        ],
+        "chart_product": "NOAA ENC, approach band (usage band 4)"
+      },
+      "notes": "Island, not a peninsula: the shadow closes on both sides."
+    },
+    {
+      "name": "Baja mainland",
+      "a": [
+        32.4701509,
+        -117.1245933
+      ],
+      "b": [
+        32.3833861,
+        -117.0889979
+      ],
+      "continues": "b",
+      "tip_verified": true,
+      "provenance": {
+        "method": "seaward-most charted vertex of the Mexican coast as seen from Coronado, NOAA ENC approach band (enc_approach/88), read by forecast.blockeredge",
+        "by": "collector.shoreline region=baja",
+        "date": "2026-09-20",
+        "note": "`a` is a TANGENT, not the end of a chord. The Baja coast is seen almost exactly edge-on from these breaks - every charted vertex from the border to the extract's southern limit spans 147 to 168 degrees - so one vertex carries the whole edge, the same geometry as the Point Loma tip. It is a softer problem than Point Loma because it is 23 km out rather than 5: 100 m of error moves the edge 0.25 degrees, against about 1 there. The coastal band agrees to 0.18 degrees. The maximum sits 9.6 km NORTH of the last charted vertex, so the coast turns away inside the data and this is a tangent rather than the chart running out - forecast.blockeredge carries that alarm and it is quiet here.",
+        "cells": [
+          "US4CA1BX.000",
+          "US4CA74M.000"
+        ],
+        "chart_product": "NOAA ENC, approach band (usage band 4)"
+      },
+      "notes": "The coast running south from the border. `a` is the tangent and carries the southern edge of every Coronado window; `b` only says the land continues past it and does not end. UNTESTED CLAIM: no coast south of 32.3834 - where NOAA's charts stop - bears higher than `a` from these breaks. Public landmark positions put Punta Descanso, Ensenada, Punta Banda and Punta Eugenia at 152 to 159 degrees, all below it, but those are typed estimates and not a measurement. GSHHG or a Mexican chart would settle it."
     }
   ],
   "_missing": [

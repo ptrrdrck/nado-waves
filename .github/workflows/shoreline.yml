@@ -33,6 +33,14 @@ on:
         type: boolean
         required: false
         default: false
+      region:
+        description: "Which query envelope to fetch"
+        type: choice
+        required: false
+        default: coronado
+        options:
+          - coronado
+          - baja
 
 permissions:
   contents: write
@@ -56,17 +64,20 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
+          region="${{ inputs.region }}"
           if [ "${{ inputs.probe_only }}" = "true" ]; then
-            python -m collector.shoreline --probe
+            python -m collector.shoreline --probe --region "${region:-coronado}"
           else
-            python -m collector.shoreline
+            python -m collector.shoreline --region "${region:-coronado}"
           fi
 
       # Runs whatever the fetch did. With no stored vertices it prints the
       # "nothing is inferred from the absence" notice, which is the honest
-      # output and worth having in the log either way.
+      # output and worth having in the log either way. Skipped for the Baja
+      # box: `forecast.shorenormal` fits the Coronado chords, and a Baja
+      # extract has nothing to compare them to.
       - name: Compare against the digitised chords
-        if: ${{ !inputs.probe_only }}
+        if: ${{ !inputs.probe_only && inputs.region != 'baja' }}
         continue-on-error: true
         run: python -m forecast.shorenormal | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -112,7 +123,7 @@ jobs:
             | awk '{sum += $1} END {print sum + 0}')
 
           git commit \
-            -m "data: NOAA surveyed shoreline near Coronado" \
+            -m "data: NOAA chart shoreline, region ${{ inputs.region }}" \
             -m "${rows} vertex row(s) changed. Automated commit from .github/workflows/shoreline.yml." \
             -m "Reference only: nothing in forecast/spots.json is edited by this job."
 

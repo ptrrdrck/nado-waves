@@ -27,6 +27,12 @@ def forecast(hours: int = 25, breaks: int = 3) -> dict:
         "cycle_utc": "2026-09-18T12:00:00Z",
         "station": "46232",
         "standing_on": {"observation": "none"},
+        "geometry": {
+            "chart_product": "NOAA ENC, approach band (usage band 4)",
+            "cells": ["US4CA1BX.000", "US4CA74M.000"],
+            "from_imagery": ["Point Loma peninsula"],
+            "unverified": [],
+        },
         "warnings": [],
         "spread_assumption": {"swell_deg": 20.0, "wind_sea_deg": 35.0, "note": "not fitted"},
         "breaks": [
@@ -34,7 +40,11 @@ def forecast(hours: int = 25, breaks: int = 3) -> dict:
                 "id": f"coronado_{name}",
                 "name": name,
                 "confidence": "high",
-                "swell_window": [[201.2, 250.3]],
+                "swell_window": [
+                    {"from": 202.6, "to": 250.3,
+                     "opened_by": "Coronado Islands (north)",
+                     "closed_by": "Point Loma peninsula", "confidence": "high"},
+                ],
                 "shore_normal_deg": 214.2,
                 "normal_is_a_guess": False,
                 "wind": {},

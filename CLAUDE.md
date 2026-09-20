@@ -84,7 +84,9 @@ forecaster actually verifies against, Surfline included.
 
 1. **Beach geometry** — done, `forecast/geometry.py`. Which bearings reach each
    beach at all, from coordinates alone. Coronado's three breaks digitised
-   2026-09-14.
+   2026-09-14; the Coronado Islands and the Baja coast charted from NOAA's ENC
+   2026-09-20, which split the islands in two and closed the southern arc on
+   land. Every window edge in the file now stands on a blocker.
 2. **A verification series. This blocks every accuracy CLAIM; it does not block
    construction.** BRIEFING §7 lists the candidates. It is also the only item
    here whose cost is wall-clock rather than work — a log started today is thin
@@ -209,8 +211,9 @@ forecaster actually verifies against, Surfline included.
                         wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),
-                        shoreline.py (NOAA's ENC coastline, to check the
-                        hand-traced chords — run on Actions),
+                        shoreline.py (NOAA's ENC coastline, by named REGION —
+                        `coronado` checks the hand-traced chords, `baja` carries
+                        the islands and the Mexican coast — run on Actions),
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log)
@@ -231,6 +234,8 @@ forecaster actually verifies against, Surfline included.
                         differenced from the measured level      [built]
       shorenormal.py    surveyed shore normals vs the digitised chords,
                         swept over scale; reports, never edits    [built]
+      blockeredge.py    a blocker's edges read off the charted coast, against
+                        what spots.json claims; reports, never edits  [built]
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
@@ -245,9 +250,14 @@ forecaster actually verifies against, Surfline included.
     data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
                         _observed (measured), _predicted (hourly harmonic),
                         _turns (the harmonic model's own highs and lows)
-    data/shoreline/     NOAA ENC coastline near Coronado, one file per chart
-                        band - harbour 904 pts, approach 689, coastal 312. A
-                        CHART product, generalised, not survey-grade MHW.
+    data/shoreline/     NOAA ENC coastline, one file per chart band AND
+                        region. `_coronado` (harbour 904 pts, approach 689,
+                        coastal 312) and `_baja` (harbour 2428, approach 3691,
+                        coastal 1431 - the islands and the Mexican coast to
+                        32.383, where NOAA's charts stop). A CHART product,
+                        generalised, not survey-grade MHW. Every file is
+                        clipped by its own query envelope on all four edges,
+                        which is why the region is in the filename.
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
@@ -259,32 +269,49 @@ circular helpers are used here. Trimming it is a good first cleanup.
 ## Design rules that are easy to erode
 
 - **The three beaches are not one beach — and Coronado is not one beach.**
-  Breakers keeps 26° of swell window and Gator 65°, and Gator alone holds west
+  Breakers keeps 26° of west window and Gator 62°, and Gator alone holds west
   swell. But the same mechanism runs along Coronado's own sand: the west edge
   IS the bearing to the Point Loma tip, which sweeps as you walk, giving
-  **42.8° / 49.1° / 56.3°** at the north, center and south breaks across 2.8 km.
-  That 13.5° spread is a third of the entire Breakers-to-Gator range. Any
-  surface showing one number for "Coronado" is averaging across it.
+  **41.6° / 47.7° / 54.7°** at the north, center and south breaks across 2.8 km.
+  That 13.1° spread is a third of the entire Breakers-to-Gator range. Any
+  surface showing one number for "Coronado" is averaging across it. (Those were
+  42.8 / 49.1 / 56.3 until 2026-09-20; charting the Coronado Islands moved the
+  window's LOW edge 1.2–1.9° and left the spread, which is a Point Loma
+  quantity, alone.)
 - **The Point Loma tip is one point and it carries every west edge.** 100 m of
   error there moves an edge ~1°. It is the highest-leverage coordinate in the
   repository. Measured 2026-09-18: 250 m of tip error moves a Coronado edge
   2.2–2.8°, against 0.46° for the same error on the Coronado Islands.
-- **The Coronado Islands are not a switch, and digitising them is low value.**
-  They subtend 10.9° at 31 km and remove ~11% of a spread swell's energy where
-  Point Loma removes ~50%; their Fresnel number runs 1.9–5.4, so even that 11%
-  is partly filled by diffraction. A full kilometre of island coordinate error
-  costs under 2°. The locals who say the islands barely shadow are right, and
-  BRIEFING §10 has the mechanism. **Never restore a binary open/shut test for
-  them** — that was the modelling error, and it inflated the "breaks disagree
-  on 50% of swell hours" headline to roughly twice its real, Point-Loma-driven
-  value of 19.4%.
+- **The Coronado Islands are not a switch, and they are not one island.**
+  Charted 2026-09-20 from NOAA's ENC: **two** islands with **6.1° of open
+  channel** between them, stable from a 0.3 km to a 3 km clustering distance
+  on two chart bands. The estimate they replaced was one blocker spanning the
+  whole group, which claimed that channel was land and put the group's Fresnel
+  number at ~7 where the islands' own are **1.6 and 0.2** — silencing the
+  diffraction flag that §10 exists to raise. They remove **under 5%** of a
+  30°-spread swell's energy where Point Loma removes ~50%. The locals who say
+  the islands barely shadow are right, and the finer the geometry gets the
+  more right they are. **Never restore a binary open/shut test for them**, and
+  **never merge them back into one blocker** — both are the same error, one
+  scale apart.
 - **Publish the swell-side window, never the raw open arcs.** A window edge
   formed by the seaward half-plane clip means the arc ran out of *modelled*
-  land, not that it ran into ocean. Coronado's south-east arc spans Imperial
-  Beach, the Tijuana river mouth and Rosarito at 11–41 km, none of which are
-  blockers in `spots.json`, so the raw arc claims open water across a visible
-  coastline. `forecast.geometry.swell_window` keeps only the windows with both
-  edges blocker-derived; `open_window` still returns everything. BRIEFING §12.
+  land, not that it ran into ocean. **As of 2026-09-20 no edge of any spot in
+  the file is formed that way**, so `swell_window` and `open_window` now
+  return the same thing — because the coast that was missing got charted, not
+  because the rule relaxed. Keep the guard: it is what stops the next break
+  added to the file publishing open water across a coastline nobody has
+  digitised. BRIEFING §12, §24.
+- **The south window is real and it is where the south swell is.** The Baja
+  coast is a **tangent**, not a chord: every charted vertex from the border to
+  Rosarito sits inside 147–168° from these breaks, so one vertex at 23 km
+  carries the whole southern edge. 100 m of error there costs 0.25°, against
+  ~1° for the same error on the Point Loma tip. Measured on the three-year
+  46232 archive, **16.7% of rows and 11.6% of energy** arrive from 100–190°,
+  and **9.6% of all archive hours** carry Hs ≥ 1.0 m at DPD ≥ 12 s from that
+  sector. UNTESTED: that no coast south of 32.3834 — where NOAA's charts
+  stop — bears higher than the tangent. Landmark estimates say 152–159°, all
+  below it; that is not a measurement.
 - **The buoy does not share the beach's geometry.** 46232 sits south-west of
   Point Loma with the peninsula behind it to the north-east; the beaches sit in
   front of it. A transform that skips the aperture delivers north-west swell
