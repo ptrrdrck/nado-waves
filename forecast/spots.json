@@ -193,7 +193,12 @@
         "method": "extreme-bearing vertices of the southern island group, NOAA ENC approach band",
         "by": "collector.shoreline region=baja",
         "date": "2026-09-20",
-        "note": "Charted 2026-09-20 from NOAA's ENC approach band (enc_approach/88) via collector.shoreline region=baja, endpoints read by forecast.blockeredge. The coastal band (enc_coastal/70) agrees to within 0.05 degrees on every edge. Two candidate vertices existed for one endpoint of each island and they differ by at most 0.044 degrees; the wider-shadow pick was taken. 4459 m across at 29.4 km, Fresnel about 1.9 at 15 s, which is the low end of the 1.9 to 5.4 range BRIEFING section 10 measured. At a 0.3 km link distance this group resolves further into three islands separated by 0.98 and 0.25 degrees, but those sub-degree gaps move with the link distance and the two-cluster split does not - it is identical from 0.3 km to 3 km on both chart bands."
+        "note": "Charted 2026-09-20 from NOAA's ENC approach band (enc_approach/88) via collector.shoreline region=baja, endpoints read by forecast.blockeredge. The coastal band (enc_coastal/70) agrees to within 0.05 degrees on every edge. Two candidate vertices existed for one endpoint of each island and they differ by at most 0.044 degrees; the wider-shadow pick was taken. 4459 m across at 29.4 km, Fresnel about 1.9 at 15 s, which is the low end of the 1.9 to 5.4 range BRIEFING section 10 measured. At a 0.3 km link distance this group resolves further into three islands separated by 0.98 and 0.25 degrees, but those sub-degree gaps move with the link distance and the two-cluster split does not - it is identical from 0.3 km to 3 km on both chart bands.",
+        "cells": [
+          "US4CA74M.000",
+          "US4CA1BX.000"
+        ],
+        "chart_product": "NOAA ENC, approach band (usage band 4)"
       },
       "notes": "Three islands close together; treated as one because their gaps are sub-degree and not stable under the clustering distance."
     },
@@ -213,7 +218,12 @@
         "method": "extreme-bearing vertices of the northern island, NOAA ENC approach band",
         "by": "collector.shoreline region=baja",
         "date": "2026-09-20",
-        "note": "Charted 2026-09-20 from NOAA's ENC approach band (enc_approach/88) via collector.shoreline region=baja, endpoints read by forecast.blockeredge. The coastal band (enc_coastal/70) agrees to within 0.05 degrees on every edge. Two candidate vertices existed for one endpoint of each island and they differ by at most 0.044 degrees; the wider-shadow pick was taken. This island is 1427 m across at 28.2 km, giving a Fresnel number of about 0.2 at 15 s - its shadow is very largely filled by diffraction and the hard edge here is close to fiction. Its HIGH-bearing edge is the low edge of the west swell window on every break, so the number is load-bearing even though the shadow is soft."
+        "note": "Charted 2026-09-20 from NOAA's ENC approach band (enc_approach/88) via collector.shoreline region=baja, endpoints read by forecast.blockeredge. The coastal band (enc_coastal/70) agrees to within 0.05 degrees on every edge. Two candidate vertices existed for one endpoint of each island and they differ by at most 0.044 degrees; the wider-shadow pick was taken. This island is 1427 m across at 28.2 km, giving a Fresnel number of about 0.2 at 15 s - its shadow is very largely filled by diffraction and the hard edge here is close to fiction. Its HIGH-bearing edge is the low edge of the west swell window on every break, so the number is load-bearing even though the shadow is soft.",
+        "cells": [
+          "US4CA1BX.000",
+          "US4CA74M.000"
+        ],
+        "chart_product": "NOAA ENC, approach band (usage band 4)"
       },
       "notes": "Island, not a peninsula: the shadow closes on both sides."
     },
@@ -233,7 +243,12 @@
         "method": "seaward-most charted vertex of the Mexican coast as seen from Coronado, NOAA ENC approach band (enc_approach/88), read by forecast.blockeredge",
         "by": "collector.shoreline region=baja",
         "date": "2026-09-20",
-        "note": "`a` is a TANGENT, not the end of a chord. The Baja coast is seen almost exactly edge-on from these breaks - every charted vertex from the border to the extract's southern limit spans 147 to 168 degrees - so one vertex carries the whole edge, the same geometry as the Point Loma tip. It is a softer problem than Point Loma because it is 23 km out rather than 5: 100 m of error moves the edge 0.25 degrees, against about 1 there. The coastal band agrees to 0.18 degrees. The maximum sits 9.6 km NORTH of the last charted vertex, so the coast turns away inside the data and this is a tangent rather than the chart running out - forecast.blockeredge carries that alarm and it is quiet here."
+        "note": "`a` is a TANGENT, not the end of a chord. The Baja coast is seen almost exactly edge-on from these breaks - every charted vertex from the border to the extract's southern limit spans 147 to 168 degrees - so one vertex carries the whole edge, the same geometry as the Point Loma tip. It is a softer problem than Point Loma because it is 23 km out rather than 5: 100 m of error moves the edge 0.25 degrees, against about 1 there. The coastal band agrees to 0.18 degrees. The maximum sits 9.6 km NORTH of the last charted vertex, so the coast turns away inside the data and this is a tangent rather than the chart running out - forecast.blockeredge carries that alarm and it is quiet here.",
+        "cells": [
+          "US4CA1BX.000",
+          "US4CA74M.000"
+        ],
+        "chart_product": "NOAA ENC, approach band (usage band 4)"
       },
       "notes": "The coast running south from the border. `a` is the tangent and carries the southern edge of every Coronado window; `b` only says the land continues past it and does not end. UNTESTED CLAIM: no coast south of 32.3834 - where NOAA's charts stop - bears higher than `a` from these breaks. Public landmark positions put Punta Descanso, Ensenada, Punta Banda and Punta Eugenia at 152 to 159 degrees, all below it, but those are typed estimates and not a measurement. GSHHG or a Mexican chart would settle it."
     }

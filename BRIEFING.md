@@ -1572,3 +1572,93 @@ the fetch exists to find. Same shape as §8's 404 that meant `bull_tar`.
 `fetch_paths` now follows `exceededTransferLimit` and reports when it is
 *still* truncated at the page budget, which is a different answer from "that is
 all there was".
+
+---
+
+## 25. Measured, 2026-09-20 — the missing coast was inflating every window
+
+§24 added the Baja coast as a blocker for the sake of the PUBLISHED window.
+The larger consequence was to the numbers. Before it existed, `transmission`
+returned 1 for every bearing inside the seaward half-plane that no blocker
+covered — and at Coronado that half-plane runs down to 103–132°, across the
+Silver Strand, San Diego Bay, Imperial Beach and 36 km of Mexico. The
+transform was delivering swell through land.
+
+Over the 741 archived directional spectra at 46232:
+
+| break | window Hs, before | after | change | fraction before | after |
+|---|---|---|---|---|---|
+| north | 0.869 m | 0.742 m | **−14.6%** | 0.493 | 0.366 |
+| center | 0.880 m | 0.783 m | **−10.9%** | 0.508 | 0.409 |
+| south | 0.905 m | 0.816 m | **−9.9%** | 0.540 | 0.445 |
+
+**The control.** A 10–15% drop could equally be a blocker that over-blocks, so
+every bearing the old model delivered and the new one refuses was checked
+against the charted coastline:
+
+| bearing | share of the lost energy | what is there |
+|---|---|---|
+| 120–130° | 6.3% | charted coast, 4.0 km |
+| 130–140° | 14.4% | charted coast, 3.6 km |
+| 140–150° | 20.4% | charted coast, 5.4 km |
+| 150–160° | 26.7% | charted coast, 9.6 km |
+| 160–170° | 18.9% | charted coast, 16.6 km |
+| 180–190° | 4.2% | Coronado Islands, 31.2 km |
+| 200–210° | 9.1% | Coronado Islands, 28.2 km |
+
+Every one of them has land on it, the nearest 3.6 km away. Nothing was
+over-blocked; the old number was over-delivered.
+
+Note where this energy came from: §24 measured only **five rows in three
+years** with a mean direction in 130–160°. This is not those rows. It is the
+DIRECTIONAL TAIL of swells centred elsewhere — a 200° swell with 20–30° of
+spread puts real energy at 150°, and the integral picked all of it up because
+nothing was in the way. That is the same lesson as §10 from the other
+direction: integrating the spectrum is what makes a blocker a percentage
+rather than a switch, and it is also what makes a MISSING blocker cost 10–15%
+instead of nothing.
+
+### The leading train moved too
+
+| break | leader is a different train | same train, heading moved | median shift |
+|---|---|---|---|
+| north | 78 / 741 (10.5%) | 660 / 741 | 15.2° |
+| center | 78 / 741 (10.5%) | 639 / 741 | 14.2° |
+| south | 89 / 741 (12.0%) | 590 / 741 | 13.8° |
+
+So on about 11% of archived spectra the surface used to name a different
+leading train, and on most of the rest it named the same train arriving from a
+heading **14° further south-east than it should have** — the aperture-weighted
+mean was being dragged by tail energy sitting over Mexico.
+
+§16 measured the leader re-ordering between buoy and beach on 23% of spectra.
+That finding survives: this is a correction to where the aperture is, not to
+whether the aperture re-orders.
+
+### What the surface says now
+
+The three windows LEAD the break card. They are the only thing on it that is
+identical on both tabs and independent of the weather — the fixed geometry the
+rest of the card is a consequence of — and they are what differs between three
+breaks whose other numbers look nearly alike.
+
+Each row names the land either side of it (`Baja coast → Islands S`), taken
+from `opened_by`/`closed_by` in the payload rather than hardcoded, because a
+page that said "south / channel / west" would keep saying it after the
+geometry moved — and this geometry moved twice in one day. Each row carries a
+bar proportional to its span **within that card**, because 23°, 6° and 42°
+printed as three identical rows of numbers read as three equivalent openings.
+
+Under them, one line: *geometry modelled from NOAA ENC charts US4CA1BX.000,
+US4CA74M.000; Point Loma from imagery.* Composed from `spots.json`, which now
+records the ENC cell each blocker endpoint was read from. Point Loma is named
+beside the charts on purpose — it forms an edge printed directly above the
+line, and "NOAA ENC" alone would let a reader take the whole aperture as
+charted when the highest-leverage coordinate in the repository is a Google
+Earth trace.
+
+The line repeats on all three cards. That sits against the rule that hoisted
+wind and tide off the break cards, and it is a deliberate exception: a
+provenance that a reader has to scroll away from to find is a provenance they
+will not read. It is one 12px line, and the full four-level statement stays in
+the standing-on block.

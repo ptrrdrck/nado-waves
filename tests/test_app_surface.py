@@ -85,10 +85,74 @@ class TestProvenanceIsVisible:
         assert "nothing blocks it" in TEXT
 
     def test_the_page_publishes_the_swell_window_not_the_raw_open_arcs(self):
-        """BRIEFING §12: the south-east arc runs across unmodelled Baja coast."""
+        """BRIEFING §12: the south-east arc ran across unmodelled Baja coast.
+        It is modelled now, but the page still reads the guarded list."""
 
         assert "swell_window" in SOURCE
         assert "open_windows" not in SOURCE
+
+
+class TestTheWindowsLeadTheCard:
+    """Three windows per break, every edge on land, and they are the only
+    thing on the card that is the same whichever tab you are on."""
+
+    def test_the_card_names_each_window_by_the_land_either_side(self):
+        """Never by a hardcoded "south / channel / west". The page would keep
+        saying it after the geometry moved, and this geometry moved twice in
+        one day."""
+
+        assert "opened_by" in SOURCE and "closed_by" in SOURCE
+        for hardcoded in ("island channel", "south window", "west window"):
+            assert hardcoded not in SOURCE.lower()
+
+    def test_the_windows_come_before_the_energy_on_the_card(self):
+        card = SOURCE[SOURCE.index('<article class="card">'):]
+        assert card.index("windowList") < card.index("window energy")
+
+    def test_a_window_carries_its_span_not_just_its_edges(self):
+        """23, 6 and 42 degrees. Three identical rows of numbers would read as
+        three equivalent openings, so the span is printed and drawn."""
+
+        assert "wide" in SOURCE
+        assert 'class="bar"' in SOURCE
+
+    def test_an_estimated_edge_is_marked_on_the_window_that_carries_it(self):
+        assert "one edge estimated" in SOURCE
+        assert ".win.soft" in SOURCE
+
+    def test_no_open_window_is_a_sentence_not_an_empty_list(self):
+        assert "no open window" in SOURCE
+
+
+class TestTheGeometryProvenance:
+    """The aperture is the one thing on this page with a citable source, and
+    a reader who wants to check it can pull the chart."""
+
+    def test_the_card_names_the_enc_charts(self):
+        assert "NOAA ENC chart" in SOURCE
+        assert "geometry modelled from" in SOURCE
+
+    def test_the_line_is_composed_from_the_file_not_written_into_the_page(self):
+        """A hardcoded provenance is a claim that stops being checked. The
+        cells live in spots.json and the page reads whatever is there."""
+
+        assert "geom.cells" in SOURCE
+        for cell in ("US4CA1BX", "US4CA74M"):
+            assert cell not in SOURCE
+
+    def test_imagery_is_named_beside_the_charts(self):
+        """Point Loma's tip is imagery and forms an edge printed directly
+        above the line. "NOAA ENC" alone would let a reader take the whole
+        aperture as charted."""
+
+        assert "from_imagery" in SOURCE
+        assert "from imagery" in SOURCE
+
+    def test_the_provenance_reads_from_the_tab_on_screen(self):
+        """The two chains carry the same geometry. Reading it from the other
+        file would be the cross-tab leak the Now/Forecast split prevents."""
+
+        assert 'provenanceLine((MODE === "now" ? NOW : DATA).geometry)' in SOURCE
 
     def test_the_assumed_spread_is_shown_rather_than_hidden(self):
         assert "spread_assumption" in SOURCE

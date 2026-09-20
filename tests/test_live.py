@@ -59,9 +59,25 @@ class TestTheSwellWindowExcludesUnmodelledCoast:
         for entry in got.breaks:
             assert len(entry.swell_window) == 3
             south, channel, west = entry.swell_window
-            assert 160 <= south[0] <= 172 and 185 <= south[1] <= 195
-            assert 190 <= channel[0] <= 200 and 196 <= channel[1] <= 206
-            assert 198 <= west[0] <= 208 and 240 <= west[1] <= 262
+            assert 160 <= south["from"] <= 172 and 185 <= south["to"] <= 195
+            assert 190 <= channel["from"] <= 200 and 196 <= channel["to"] <= 206
+            assert 198 <= west["from"] <= 208 and 240 <= west["to"] <= 262
+
+    def test_each_window_says_what_forms_its_edges(self):
+        """The surface has to name these windows, and the only honest name
+        for a window is the land either side of it. Hardcoding
+        'south / channel / west' into the page would keep saying it after the
+        geometry moved — and there are three windows here only because the
+        geometry moved."""
+
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
+        south, channel, west = got.breaks[0].swell_window
+        assert south["opened_by"] == "Baja mainland"
+        assert "Islands" in south["closed_by"]
+        assert "Islands" in channel["opened_by"] and "Islands" in channel["closed_by"]
+        assert channel["opened_by"] != channel["closed_by"]
+        assert west["closed_by"] == "Point Loma peninsula"
+        assert all(w["confidence"] == "high" for w in (south, channel, west))
 
     def test_the_west_window_matches_the_briefing_figures(self):
         """41.6 / 47.7 / 54.7 degrees, where README, BRIEFING §2a and
@@ -76,8 +92,8 @@ class TestTheSwellWindowExcludesUnmodelledCoast:
         expected = {"coronado_north": 41.6, "coronado_center": 47.7,
                     "coronado_south": 54.7}
         for entry in got.breaks:
-            low, high = entry.swell_window[-1]
-            assert high - low == pytest.approx(expected[entry.id], abs=0.1)
+            west = entry.swell_window[-1]
+            assert west["to"] - west["from"] == pytest.approx(expected[entry.id], abs=0.1)
 
     def test_the_south_east_arc_is_now_a_published_window(self):
         """It was never deleted from the model, only withheld. What it was

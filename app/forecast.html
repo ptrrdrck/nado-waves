@@ -150,6 +150,36 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .seg.horizon{background:var(--line-strong);opacity:.65}
 .est{color:var(--faint);font-size:12px}
 
+/* The windows lead the card, so they get the only tabular block in it. The
+   BAR is the point: the three arcs are 23, 6 and 42 degrees wide, and three
+   identical rows of numbers would read as three equivalent openings. Width is
+   proportional to span within the card, never across cards -- a reader
+   compares this break's arcs to each other here, and compares breaks by the
+   numbers. */
+.wins{display:flex;flex-direction:column;gap:9px}
+.win{display:grid;grid-template-columns:auto 1fr;align-items:baseline;
+     gap:2px 9px;font-size:13.5px}
+.win .deg{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink);
+          white-space:nowrap}
+.win .pt{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
+         letter-spacing:.05em;color:var(--soft);font-size:12.5px}
+.win .edge{grid-column:1/-1;font-size:12px;color:var(--faint)}
+/* The bar comes LAST in the row and underlines it. Sitting between the
+   degrees and the edge label it read as a divider, and the edge label then
+   looked like it belonged to the window below. */
+.win .bar{grid-column:1/-1;height:5px;border-radius:999px;margin-top:3px;
+          background:var(--sand-deep);min-width:3px}
+/* A window with a guessed coordinate on either edge is hatched, for the same
+   reason the blocker segments are: the reader has to be able to see WHICH
+   claim is soft, not just that the break scores worse. */
+.win.soft .bar{background:repeating-linear-gradient(45deg,var(--sand-deep),
+               var(--sand-deep) 3px,transparent 3px,transparent 6px);
+               outline:1px dashed var(--line-strong)}
+/* A footnote to the window block, not a fourth window. Without the rule it
+   read as one more edge label in the same faint grey. */
+.prov{font-size:12px;color:var(--faint);margin-top:9px;padding-top:8px;
+      border-top:1px solid var(--line)}
+
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
 th:first-child,td:first-child{text-align:left}
@@ -254,6 +284,87 @@ const height = (m) => (m == null ? "\u2014"
   : `${(m * FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)</span>`);
 const speed = (kt) => (kt == null ? "\u2014"
   : `${Math.round(kt * MPH_PER_KT)} mph <span class="unit">(${Math.round(kt)} kt)</span>`);
+
+// Display-only shortenings for the card's window rows. A full blocker name is
+// the truth and stays in the JSON, the "taking the swell" list and the
+// standing-on block; three of them in a 13-degree row would wrap twice. Any
+// name not listed falls through unchanged, so adding a blocker to spots.json
+// can make this table ugly but never wrong.
+const BLOCKER_SHORT = {
+  "Point Loma peninsula": "Point Loma",
+  "Coronado Islands (south group)": "Islands S",
+  "Coronado Islands (north)": "Islands N",
+  "Baja mainland": "Baja coast",
+};
+const shortBlocker = (name) => BLOCKER_SHORT[name] || name || "\u2014";
+
+// The compass point alone, without the degrees the row already prints.
+function point(deg) {
+  if (deg == null) return "";
+  const points = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return points[Math.round(deg / 22.5) % 16];
+}
+
+// The middle of an arc, wrap-safe. Every window in this file sits well away
+// from north, but a mid-point that broke at 350-010 would be a bug nobody saw
+// until a spot was added somewhere else.
+function midBearing(from, to) {
+  const span = ((to - from) % 360 + 360) % 360;
+  return (from + span / 2) % 360;
+}
+
+// The windows, widest-first BAR but listed in bearing order so the row order
+// matches the compass. Each row says what land forms each edge, because the
+// only honest name for a window is what is either side of it -- a page that
+// hardcoded "south / channel / west" would keep saying it after the geometry
+// moved, and this geometry moved twice in a day.
+function windowList(windows) {
+  if (!windows || !windows.length) {
+    return '<div class="quiet">no open window &mdash; land on every bearing '
+         + 'this beach faces</div>';
+  }
+  const spans = windows.map((w) => ((w.to - w.from) % 360 + 360) % 360);
+  const widest = Math.max(...spans, 1);
+  return `<div class="wins">` + windows.map((w, i) => {
+    const soft = w.confidence && w.confidence !== "high";
+    return `<div class="win${soft ? " soft" : ""}">
+      <span class="deg">${Math.round(w.from)}\u2013${Math.round(w.to)}\u00b0</span>
+      <span class="pt">${point(midBearing(w.from, w.to))} &middot; ${Math.round(spans[i])}\u00b0 wide</span>
+      <span class="edge">${shortBlocker(w.opened_by)} \u2192 ${shortBlocker(w.closed_by)}${
+        soft ? ' <span class="est">one edge estimated</span>' : ""}</span>
+      <span class="bar" style="width:${Math.max(3, 100 * spans[i] / widest)}%"></span>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+// Where the aperture itself came from. Composed from the file, never written
+// into the page: spots.json carries the ENC cell each blocker endpoint was
+// read from, and if a blocker is re-digitised from another chart this line
+// follows it. Naming the usage band alone would name the drawer rather than
+// the chart, and naming only the charts would imply the whole aperture was
+// charted -- Point Loma's tip, the highest-leverage coordinate here, is
+// imagery.
+function provenanceLine(geom) {
+  if (!geom) return "";
+  const bits = [];
+  if (geom.cells && geom.cells.length) {
+    bits.push(`NOAA ENC chart${geom.cells.length > 1 ? "s" : ""} `
+      + geom.cells.join(", "));
+  }
+  // Named even though it is one blocker of four, because Point Loma forms an
+  // edge printed directly above this line. A provenance that said only "NOAA
+  // ENC" would let a reader take the whole aperture as charted, and the tip
+  // is the highest-leverage coordinate in the repository.
+  if (geom.from_imagery && geom.from_imagery.length) {
+    bits.push(`${geom.from_imagery.map(shortBlocker).join(", ")} from imagery`);
+  }
+  if (!bits.length) return "";
+  let line = `geometry modelled from ${bits.join("; ")}`;
+  if (geom.unverified && geom.unverified.length) {
+    line += `. ESTIMATED: ${geom.unverified.map(shortBlocker).join(", ")}`;
+  }
+  return period(line);
+}
 
 function compass(deg) {
   if (deg == null) return "—";
@@ -533,6 +644,12 @@ function renderBreaks(index) {
   renderConditions(index);
 
   const cards = MODE === "now" ? cardsForNow() : cardsForForecast(index);
+  // One blocker set serves all three breaks, so the provenance is computed
+  // once per render rather than per card. It comes from whichever file is on
+  // screen: the two chains carry the same geometry, and reading it from the
+  // other one would be the cross-tab leak the Now/Forecast split exists to
+  // prevent.
+  const prov = provenanceLine((MODE === "now" ? NOW : DATA).geometry);
 
   $("breaks").innerHTML = cards.map((c) => {
     const taken = (c.takenBy || []).map((t) => `
@@ -546,9 +663,19 @@ function renderBreaks(index) {
 
     const senseText = sense(c.windOffshore);
 
+    // The windows LEAD. They are the only thing on this card that is the same
+    // whichever tab you are on and whatever the weather is doing -- the fixed
+    // geometry the rest of the card is a consequence of -- and they are what
+    // differs between the three breaks when every other number looks alike.
     return `<article class="card">
       <div class="card-top">
         <h2>${SHORT[c.id] || c.name}</h2>
+      </div>
+
+      <div>
+        <div class="lbl">swell windows</div>
+        ${windowList(c.swellWindow)}
+        ${prov ? `<div class="prov">${prov}</div>` : ""}
       </div>
 
       <div class="quiet">
@@ -565,9 +692,6 @@ function renderBreaks(index) {
         peak <b>${c.period ? c.period.toFixed(1) + " s" : "\u2014"}</b>
         from <b>${compass(c.direction)}</b>
       </div>`}
-
-      <div class="quiet">swell window ${(c.swellWindow || [])
-        .map((w) => `${Math.round(w[0])}\u2013${Math.round(w[1])}\u00b0`).join(", ")}</div>
 
       <div>
         <div class="lbl">taking the swell</div>
