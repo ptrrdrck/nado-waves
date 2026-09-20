@@ -560,7 +560,7 @@ class TestTransferLimit:
 
     def test_one_clean_page_asks_once(self):
         fetch, seen = self.paged([{"features": [self.line(32.6)]}])
-        paths, truncated = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        paths, truncated, _ = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
         assert len(paths) == 1 and not truncated and len(seen) == 1
 
     def test_a_truncated_page_is_followed(self):
@@ -568,7 +568,7 @@ class TestTransferLimit:
             {"features": [self.line(32.6)], "exceededTransferLimit": True},
             {"features": [self.line(32.5)]},
         ])
-        paths, truncated = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        paths, truncated, _ = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
         assert len(paths) == 2 and not truncated
         assert "resultOffset=1" in seen[1]
 
@@ -585,7 +585,7 @@ class TestTransferLimit:
             seen.append(url)
             return page
 
-        paths, truncated = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        paths, truncated, _ = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
         assert truncated
         assert len(seen) == mod.PAGE_BUDGET
 
@@ -600,7 +600,7 @@ class TestTransferLimit:
             seen.append(url)
             return page
 
-        _, truncated = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
+        _, truncated, _ = mod.fetch_paths("u", mod.BBOX, fetch=fetch)
         assert len(seen) == 1 and not truncated
 
     def test_the_summary_says_the_coastline_is_incomplete(self):
@@ -610,3 +610,81 @@ class TestTransferLimit:
         text = mod.format_summary(result)
         assert "Incomplete" in text
         assert "enc_coastal" in text
+
+
+class TestChartCells:
+    """A usage band is a mosaic of chart cells, not a chart. "Digitised from
+    the approach band" names the drawer; the cell names the chart, and that is
+    what a provenance line on the app surface has to say."""
+
+    def feature(self, attrs):
+        return {"attributes": attrs,
+                "geometry": {"paths": [[[-117.1, 32.6], [-117.2, 32.6]]]}}
+
+    def test_a_named_cell_is_taken(self):
+        assert mod.cell_of({"DSNM": "US5CA72M.000"}) == "US5CA72M.000"
+
+    def test_the_field_name_is_matched_whatever_its_case(self):
+        assert mod.cell_of({"dsnm": "US5CA72M.000"}) == "US5CA72M.000"
+
+    def test_the_best_field_wins_when_several_are_present(self):
+        got = mod.cell_of({"LNAM": "xyz", "DSNM": "US5CA72M.000"})
+        assert got == "US5CA72M.000"
+
+    def test_a_sorind_citation_gives_up_its_cell(self):
+        """S-57 SORIND is a comma-joined citation: agency, source, method,
+        id. The second field is the chart."""
+
+        assert mod.cell_of({"SORIND": "US,US,graph,US4CA11M"}) == "US4CA11M"
+
+    def test_no_cell_field_is_an_empty_string_not_a_guess(self):
+        assert mod.cell_of({"OBJNAM": "COASTLINE"}) == ""
+        assert mod.cell_of({}) == ""
+
+    def test_an_empty_value_does_not_count_as_a_cell(self):
+        assert mod.cell_of({"DSNM": ""}) == ""
+        assert mod.cell_of({"DSNM": None}) == ""
+
+    def test_the_cell_rides_with_the_geometry(self):
+        payload = {"features": [self.feature({"DSNM": "US5CA72M.000"})]}
+        (points, cell), = mod.parse_features(payload)
+        assert cell == "US5CA72M.000" and len(points) == 2
+
+    def test_parse_paths_still_returns_bare_geometry(self):
+        payload = {"features": [self.feature({"DSNM": "US5CA72M.000"})]}
+        assert mod.parse_paths(payload) == [[(32.6, -117.1), (32.6, -117.2)]]
+
+    def test_the_stored_file_carries_the_cell(self, tmp_path):
+        path = mod.store([([(32.68, -117.18), (32.67, -117.17)], "US5CA72M.000")],
+                         "https://x/services/encdirect/enc_harbour/MapServer/84",
+                         tmp_path, "coronado")
+        rows = list(csv.DictReader(path.open()))
+        assert all(r["cell"] == "US5CA72M.000" for r in rows)
+
+    def test_a_part_with_no_cell_still_stores(self, tmp_path):
+        """The column is an addition to what a part carries, not a change of
+        what a part IS — the older call shape has to keep working."""
+
+        path = mod.store([[(32.68, -117.18), (32.67, -117.17)]],
+                         "https://x/services/encdirect/enc_harbour/MapServer/84",
+                         tmp_path, "coronado")
+        rows = list(csv.DictReader(path.open()))
+        assert all(r["cell"] == "" for r in rows)
+
+    def test_the_summary_names_the_cells(self):
+        result = mod.Result(region="baja", bbox=mod.REGIONS["baja"])
+        result.cells = ["US4CA11M", "US3CA52M"]
+        result.vertices, result.parts = 10, 2
+        text = mod.format_summary(result)
+        assert "US4CA11M" in text and "US3CA52M" in text
+
+    def test_an_absent_cell_attribute_lists_what_was_there_instead(self):
+        """A blank column with no explanation is the fault this repository
+        keeps paying for: a probe that reports only its own matches says
+        nothing at all when there are none."""
+
+        result = mod.Result(region="baja", bbox=mod.REGIONS["baja"])
+        result.attribute_keys = ["OBJECTID", "OBJNAM", "SCAMIN"]
+        text = mod.format_summary(result)
+        assert "No ENC cell attribute" in text
+        assert "OBJNAM" in text

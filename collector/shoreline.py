@@ -192,7 +192,11 @@ def store_name(layer_url: str, region: str = "coronado") -> str:
 #: not all of them, because the coarse bands add nothing but bytes.
 SOURCE_BUDGET = 3
 
-FIELDS = ["part", "seq", "lat", "lon", "source_layer", "fetched_utc"]
+#: `cell` is the ENC chart cell a vertex came from, blank when the service
+#: names none. It sits before `fetched_utc` rather than at the end because
+#: these files are rewritten whole on every fetch — unlike the tide and buoy
+#: archives, where appending a column to an existing CSV would misalign it.
+FIELDS = ["part", "seq", "lat", "lon", "source_layer", "cell", "fetched_utc"]
 
 TIMEOUT = 45.0
 
@@ -226,6 +230,13 @@ class Attempt:
 
 @dataclass
 class Result:
+    #: The ENC cells the stored vertices came from, and every attribute name
+    #: the service returned. A usage band is a mosaic, not a chart, so
+    #: "digitised from the approach band" names the drawer; the cells name the
+    #: charts. The key list is here so an empty `cells` reads as "the service
+    #: does not publish one" rather than as a silent miss.
+    cells: list[str] = field(default_factory=list)
+    attribute_keys: list[str] = field(default_factory=list)
     #: Which named box this run asked for, and the box itself. A stored extract
     #: is clipped by its envelope on every edge, so the envelope is part of the
     #: finding and belongs in the summary beside the vertex count.
@@ -508,7 +519,7 @@ def fetch_paths(
     bbox: tuple[float, float, float, float],
     *,
     fetch=None,
-) -> tuple[list[list[tuple[float, float]]], bool]:
+) -> tuple[list[tuple[list[tuple[float, float]], str]], bool, list[str]]:
     """Every feature in the box, following `exceededTransferLimit`.
 
     Returns the paths and whether the layer was STILL truncated when the page
@@ -520,28 +531,69 @@ def fetch_paths(
     """
 
     fetch = fetch or fetch_json
-    paths: list[list[tuple[float, float]]] = []
+    paths: list[tuple[list[tuple[float, float]], str]] = []
+    keys: list[str] = []
     offset = 0
     for _ in range(PAGE_BUDGET):
         payload = fetch(query_url(layer_url, bbox, offset))
-        page = parse_paths(payload)
+        page = parse_features(payload)
         paths += page
+        keys = keys or attribute_keys(payload)
         if not payload.get("exceededTransferLimit") or not page:
-            return paths, False
+            return paths, False, keys
         offset += len(payload.get("features") or page)
-    return paths, True
+    return paths, True, keys
 
 
-def parse_paths(payload: dict) -> list[list[tuple[float, float]]]:
-    """Polyline paths as (lat, lon) lists. Empty when the layer had none.
+#: Attribute names that identify the ENC CELL a feature came from, best
+#: first. A usage band is not a chart: `enc_approach/88` is a mosaic of many
+#: cells, and "digitised from the approach band" names the drawer rather than
+#: the chart. Tried case-insensitively; the summary lists every attribute key
+#: the service actually returned, so a miss here is visible in one run rather
+#: than inferred from a blank column.
+CELL_FIELDS = ("DSNM", "CELLNAME", "CELL_NAME", "CELL", "SORIND", "LNAM")
+
+
+def cell_of(attributes: dict) -> str:
+    """The ENC cell id in a feature's attributes, or "" if none is named."""
+
+    lowered = {str(k).lower(): v for k, v in (attributes or {}).items()}
+    for field in CELL_FIELDS:
+        value = lowered.get(field.lower())
+        if value not in (None, "", "null"):
+            text = str(value).strip()
+            # S-57 SORIND is a four-field citation — agency, indication,
+            # method, SOURCE ID — and it is the last field that names the
+            # chart. Reading the second instead returns "US" for every
+            # feature on the US coast, which looks like a populated column.
+            if field == "SORIND" and "," in text:
+                bits = [b.strip() for b in text.split(",") if b.strip()]
+                return bits[-1] if bits else text
+            return text
+    return ""
+
+
+def attribute_keys(payload: dict) -> list[str]:
+    """Every attribute name the service returned, for the summary."""
+
+    keys: dict[str, None] = {}
+    for feature in payload.get("features", []) or []:
+        for key in (feature.get("attributes") or {}):
+            keys[str(key)] = None
+    return sorted(keys)
+
+
+def parse_features(payload: dict) -> list[tuple[list[tuple[float, float]], str]]:
+    """Polyline paths as (points, cell) pairs. Empty when the layer had none.
 
     ArcGIS gives x,y — longitude first. Flipping that silently would put
     Coronado in the Indian Ocean, so it is done once, here, on the way in.
     """
 
-    parts: list[list[tuple[float, float]]] = []
+    parts: list[tuple[list[tuple[float, float]], str]] = []
     for feature in payload.get("features", []) or []:
         geometry = feature.get("geometry") or {}
+        cell = cell_of(feature.get("attributes") or {})
         for path in geometry.get("paths", []) or []:
             points = []
             for point in path:
@@ -550,8 +602,14 @@ def parse_paths(payload: dict) -> list[list[tuple[float, float]]]:
                 lon, lat = float(point[0]), float(point[1])
                 points.append((lat, lon))
             if len(points) >= 2:
-                parts.append(points)
+                parts.append((points, cell))
     return parts
+
+
+def parse_paths(payload: dict) -> list[list[tuple[float, float]]]:
+    """The geometry alone. Kept because most callers only want the points."""
+
+    return [points for points, _ in parse_features(payload)]
 
 
 def in_bbox(lat: float, lon: float, bbox: tuple[float, float, float, float]) -> bool:
@@ -560,7 +618,7 @@ def in_bbox(lat: float, lon: float, bbox: tuple[float, float, float, float]) -> 
 
 
 def store(
-    parts: list[list[tuple[float, float]]],
+    parts: list[list[tuple[float, float]]] | list[tuple[list[tuple[float, float]], str]],
     layer: str,
     data_dir: Path,
     region: str = "coronado",
@@ -580,11 +638,14 @@ def store(
         writer = csv.DictWriter(fh, fieldnames=FIELDS)
         writer.writeheader()
         for index, part in enumerate(parts):
-            for seq, (lat, lon) in enumerate(part):
+            # A bare list of points is still accepted: the cell is an addition
+            # to what a part carries, not a change of what a part IS.
+            points, cell = part if isinstance(part, tuple) else (part, "")
+            for seq, (lat, lon) in enumerate(points):
                 writer.writerow({
                     "part": index, "seq": seq,
                     "lat": f"{lat:.7f}", "lon": f"{lon:.7f}",
-                    "source_layer": layer, "fetched_utc": stamp,
+                    "source_layer": layer, "cell": cell, "fetched_utc": stamp,
                 })
     return path
 
@@ -618,21 +679,25 @@ def collect(
             break
         for layer in line_layers(service):
             try:
-                raw, truncated = fetch_paths(layer, bbox)
+                raw, truncated, keys = fetch_paths(layer, bbox)
             except Exception as exc:  # noqa: BLE001 — try the next layer
                 result.attempts.append(
                     Attempt(url=layer, denied=is_denial(exc),
                             note=f"{exc.__class__.__name__}: {exc}"[:160]))
                 continue
             parts = [
-                [p for p in path if in_bbox(*p, bbox)]
-                for path in raw
+                ([p for p in path if in_bbox(*p, bbox)], cell)
+                for path, cell in raw
             ]
-            parts = [p for p in parts if len(p) >= 2]
+            parts = [(p, cell) for p, cell in parts if len(p) >= 2]
+            result.attribute_keys = result.attribute_keys or keys
+            for _, cell in parts:
+                if cell and cell not in result.cells:
+                    result.cells.append(cell)
             if not parts:
                 result.attempts.append(Attempt(url=layer, ok=True, note="no vertices in bbox"))
                 continue
-            vertices = sum(len(p) for p in parts)
+            vertices = sum(len(p) for p, _ in parts)
             # First one found stays the headline, so the summary keeps reading
             # the way it did; the rest are stored beside it for comparison.
             if not result.layer:
@@ -695,6 +760,25 @@ def format_summary(result: Result) -> str:
             "no edge may be read off it:"
         )
         lines += [f"- `{layer}`" for layer in result.truncated]
+        lines.append("")
+    if result.cells:
+        lines.append(
+            f"**ENC cells** ({len(result.cells)}): "
+            + ", ".join(f"`{c}`" for c in sorted(result.cells))
+        )
+        lines.append("")
+        lines.append(
+            "These are the charts. The usage band is the drawer they sit in, "
+            "so a provenance line should name these and not `enc_approach/88`."
+        )
+        lines.append("")
+    elif result.attribute_keys:
+        lines.append(
+            "**No ENC cell attribute.** The service returned these keys and "
+            "none of them is a cell id, so the provenance can only name the "
+            "usage band: "
+            + ", ".join(f"`{k}`" for k in result.attribute_keys[:40])
+        )
         lines.append("")
     if result.ok:
         lines.append(
