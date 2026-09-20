@@ -191,11 +191,10 @@ class TestTheSummaryIsHonest:
         assert "a shoal is not a blocker" in text
 
     def test_zero_is_distinguished_from_unqueryable(self):
-        got = mod.Result(layers=[
-            layer("SLCONS", id=1, count=0),
-            layer("DEPCNT", id=2, note="Invalid"),
-        ])
-        text = mod.format_summary(got)
+        zero = layer("SLCONS", id=1, count=0)
+        failed = layer("DEPCNT", id=2, note="Invalid")
+        zero.queried = failed.queried = True    # both were asked; one errored
+        text = mod.format_summary(mod.Result(layers=[zero, failed]))
         assert "| 0 |" in text and "Invalid" in text
 
 
@@ -285,3 +284,42 @@ class TestTheListingIsAlwaysPrinted:
                                  for i in range(mod.NAME_CAP + 40)])
         text = mod.format_summary(got)
         assert f"…and {40} more" in text
+
+
+class TestThreeStatesThreeRenderings:
+    """A layer past the QUERY_BUDGET and a layer that answered with an error
+    both printed a bare dash. That is the same "indistinguishable states" fault
+    this module was written to avoid, and it showed up in its own output."""
+
+    def test_unqueried_is_not_rendered_as_failed(self):
+        past_budget = layer("Depth Area", id=232)
+        text = mod.format_summary(mod.Result(layers=[past_budget]))
+        assert "past the budget" in text
+        assert "failed" not in text
+
+    def test_failed_is_not_rendered_as_zero(self):
+        got = layer("Coastline", id=87, note="Invalid or missing input")
+        got.queried = True
+        text = mod.format_summary(mod.Result(layers=[got]))
+        assert "failed" in text and "Invalid" in text
+
+    def test_zero_is_its_own_answer(self):
+        got = layer("Obstruction", id=103, count=0)
+        got.queried = True
+        text = mod.format_summary(mod.Result(layers=[got]))
+        assert "| 0 |" in text
+        assert "failed" not in text and "past the budget" not in text
+
+    def test_counting_marks_the_layer_as_queried(self, monkeypatch):
+        monkeypatch.setattr(mod, "fetch_json", lambda url, **k: {"count": 5})
+        got = layer("Coastline")
+        mod.count_features(got, "svc", mod.BBOX)
+        assert got.queried
+
+    def test_a_failure_still_marks_it_queried(self, monkeypatch):
+        def boom(url, **k):
+            raise mod.ShorelineError("nope")
+        monkeypatch.setattr(mod, "fetch_json", boom)
+        got = layer("Coastline")
+        mod.count_features(got, "svc", mod.BBOX)
+        assert got.queried and got.count is None
