@@ -120,6 +120,7 @@ class TestParsingTheGeometry:
         body = json.dumps({"error": {"message": "Invalid or missing input"}}).encode()
 
         class FakeResponse:
+            headers = {"Content-Encoding": ""}
             def read(self): return body
             def __enter__(self): return self
             def __exit__(self, *a): return False
@@ -235,3 +236,88 @@ class TestItMatchesLayerNamesNotOnlyServiceNames:
                               listing=[f"svc{i} (MapServer)" for i in range(500)])
         text = mod.format_summary(mod.Result(attempts=[attempt]))
         assert f"…and {500 - mod.LISTING_CAP} more" in text
+
+
+class TestContentEncoding:
+    """coast.noaa.gov serves gzip whether or not it was asked for, and urllib
+    does not decompress on its own. Three probe runs read that as "not JSON"
+    and wrote off the Digital Coast host — the likeliest home of a surveyed
+    shoreline. Caught only because the summary began sampling bodies it could
+    not parse, and the sample started with the gzip magic number."""
+
+    RAW = b'{"services": []}'
+
+    def test_gzip_is_undone_by_its_magic_number(self):
+        import gzip
+        assert mod.decompress(gzip.compress(self.RAW)) == self.RAW
+
+    def test_gzip_is_undone_by_the_header_too(self):
+        """Header AND magic number, because the header is what the server says
+        and the magic number is what it did, and those can disagree."""
+
+        import gzip
+        assert mod.decompress(gzip.compress(self.RAW), "gzip") == self.RAW
+
+    def test_deflate_is_undone_raw_or_wrapped(self):
+        import zlib
+        assert mod.decompress(zlib.compress(self.RAW), "deflate") == self.RAW
+        assert mod.decompress(zlib.compress(self.RAW)[2:-4], "deflate") == self.RAW
+
+    def test_an_uncompressed_body_passes_through(self):
+        assert mod.decompress(self.RAW) == self.RAW
+        assert mod.decompress(self.RAW, "identity") == self.RAW
+
+    def test_a_truncated_body_is_returned_not_raised(self):
+        """A truncated gzip raises EOFError, which is NOT an OSError — the
+        first version caught only OSError and would have crashed. That would
+        turn "the response was cut short" into "the host is dead", which is
+        the exact distinction this module exists to make."""
+
+        import gzip
+        broken = gzip.compress(self.RAW)[:6]
+        assert mod.decompress(broken) == broken
+
+    def test_a_body_that_merely_starts_like_gzip_survives(self):
+        assert mod.decompress(b"\x1f\x8bnope") == b"\x1f\x8bnope"
+
+    def test_the_request_asks_for_what_it_can_undo(self):
+        source = Path("collector/shoreline.py").read_text(encoding="utf-8")
+        assert "Accept-Encoding" in source and "gzip, deflate" in source
+
+
+class TestTheFolderBudgetCoversTheCatalogue:
+    def test_the_survey_office_is_opened_before_the_alphabet_runs_out(self):
+        """charttools carries 22 folders. The budget was 12, sorted
+        alphabetically among non-matching names, so `NGS/` — the National
+        Geodetic Survey, the office that publishes the US shoreline — was
+        never opened."""
+
+        assert mod.FOLDER_BUDGET >= 22
+        for name in ("NGS", "encdirect", "Hydrographic_Services"):
+            assert mod.PRIORITY_FOLDERS.search(name), name
+
+    def test_priority_folders_sort_ahead_of_ordinary_ones(self, monkeypatch):
+        opened = []
+
+        def fake(url, **k):
+            if url.endswith("services?f=json"):
+                return {"services": [], "folders": ["AAA", "NGS", "ZZZ"]}
+            opened.append(url)
+            return {"services": []}
+
+        monkeypatch.setattr(mod, "fetch_json", fake)
+        mod.discover(("https://example.test/arcgis/rest/services",))
+        assert "NGS" in opened[0], opened
+
+    def test_a_priority_folder_offers_its_services_whatever_they_are_called(self, monkeypatch):
+        """The coastline inside an NGS or ENC service is not going to be in
+        the service's name."""
+
+        def fake(url, **k):
+            if url.endswith("services?f=json"):
+                return {"services": [], "folders": ["NGS"]}
+            return {"services": [{"name": "NGS/Anything", "type": "MapServer"}]}
+
+        monkeypatch.setattr(mod, "fetch_json", fake)
+        got = mod.discover(("https://example.test/arcgis/rest/services",))
+        assert any("Anything" in c for c in got.candidates), got.candidates
