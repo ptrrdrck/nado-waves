@@ -150,8 +150,19 @@ def read_file(path: Path) -> list[tuple[float, float]]:
     return out
 
 
-def read_sources(data_dir: Path) -> dict[str, list[tuple[float, float]]]:
-    """Every stored source, finest chart band first. Empty when not collected.
+#: The region suffix this module reads. `data/shoreline/` also holds extracts
+#: of other coasts — the Baja fetch is the first — and those are a different
+#: question with a different answer. Globbing `*.csv` would hand a coastline
+#: 40 km south of the beach to a fit of the beach's own chord, and the scale
+#: filter would quietly drop every one of its vertices, so the contamination
+#: would show up as nothing at all.
+REGION = "coronado"
+
+
+def read_sources(
+    data_dir: Path, region: str = REGION
+) -> dict[str, list[tuple[float, float]]]:
+    """Every stored source for one region, finest chart band first.
 
     A dict and not a list, because the whole point is telling the sources
     apart: two charts of the same coast at two scales disagree, and that
@@ -161,14 +172,15 @@ def read_sources(data_dir: Path) -> dict[str, list[tuple[float, float]]]:
     folder = Path(data_dir) / STORE_DIR
     if not folder.exists():
         return {}
-    found = sorted(folder.glob("*.csv"), key=lambda p: (band_of(p.name), p.name))
+    found = sorted(folder.glob(f"*_{region}.csv"),
+                   key=lambda p: (band_of(p.name), p.name))
     return {p.stem: read_file(p) for p in found if p.is_file()}
 
 
-def read_vertices(data_dir: Path) -> list[tuple[float, float]]:
+def read_vertices(data_dir: Path, region: str = REGION) -> list[tuple[float, float]]:
     """The finest available source. Kept for callers wanting just one."""
 
-    sources = read_sources(data_dir)
+    sources = read_sources(data_dir, region)
     return next(iter(sources.values()), [])
 
 

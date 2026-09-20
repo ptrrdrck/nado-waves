@@ -1413,3 +1413,162 @@ was a fact about fitting circles to a bend.
 `noaa_shoreline_coronado.csv` was byte-identical to `enc_approach_88_coronado.csv`
 — the same layer under the old single-filename scheme. Removed; it is a
 duplicate, not data.
+
+---
+
+## 24. Measured, 2026-09-20 — the southern clip was never about the ocean
+
+§12 withheld Coronado's south-east arc because its lower edge was formed by the
+seaward half-plane rather than by land: the arc crossed Imperial Beach, the
+Tijuana river mouth and Rosarito at 11–41 km, none of which were blockers in
+`spots.json`, so the raw arc claimed open water across a coastline you can see
+from the sand. The rule was right. What it was really recording was a gap in
+this repository's geometry, and a single Actions run closed it.
+
+### Was the clipped sector worth anything?
+
+The hypothesis going in was that it was not — that swell from 100–190° has
+essentially no fetch and removing the clip would buy honesty and nothing else.
+**Falsified.** Over the three-year 46232 archive (26,198 usable hourly rows):
+
+| sector | rows | share of rows | share of energy |
+|---|---|---|---|
+| 100–130° ESE | 14 | 0.05% | 0.01% |
+| 130–160° SE | 5 | 0.02% | 0.03% |
+| 160–180° SSE | 1,239 | 4.73% | 3.62% |
+| 180–190° S | 3,123 | 11.92% | 7.99% |
+| **100–190° total** | **4,381** | **16.72%** | **11.65%** |
+
+And **9.6% of every hour in the archive** carries Hs ≥ 1.0 m at DPD ≥ 12 s from
+that sector — southern-hemisphere groundswell, which is what these beaches are
+known for in summer. The largest are 2.2–2.6 m at 15–17 s from 161–188°.
+
+Note where the energy is NOT: 130–160° holds five rows in three years. That
+sector is the one the Baja coast actually occupies, so the clip was withholding
+a real window in order to hide a sector that carries nothing anyway.
+
+### The southern edge is a tangent
+
+The Baja coast is seen almost exactly edge-on from Coronado. Charted vertices
+from the border to the southern limit of NOAA's coverage span 147–168° from the
+south break; public landmark positions put Punta Descanso, Ensenada, Punta
+Banda, Cabo Colonet, Isla Cedros and Punta Eugenia — out to 573 km — inside
+152–159°. **The whole Baja peninsula subtends about six degrees.**
+
+So the edge is set by one vertex, the seaward-most, and nothing either side of
+it matters. That is the Point Loma tip's geometry again, with one difference
+that matters: it is 23 km out rather than 5, so **100 m of error moves the edge
+0.25° against ~1° at Point Loma.**
+
+| break | tangent (approach band) | coastal band | apart |
+|---|---|---|---|
+| north | 164.68° | 164.52° | 0.15 |
+| center | 166.39° | 166.23° | 0.17 |
+| south | 168.45° | 168.28° | 0.18 |
+
+All three take it from the same physical vertex, at 32.4702 N, −117.1246 W.
+Two independent chart bands agreeing to 0.18° is a far better conditioned
+measurement than §23's principal axes, which disagreed by 18.6° at 1500 m on
+Coronado's own bend.
+
+**The control that had to pass first:** a maximum sitting at the southern end
+of the extract would be the chart ending, not the coast turning away. It is
+not — the maximum sits **9.6 km north** of the last charted vertex, and the
+bearing falls to 166.1° there. `forecast.blockeredge` carries that alarm
+(`Edge.at_data_limit`) and it is quiet. The first version of the alarm fired on
+the Coronado Islands, whose southern tip is the southern end of an island and
+could not be anything else; an alarm that fires on the geometry it exists to
+exonerate is worse than no alarm, because the real one then reads as noise.
+
+**Still untested:** that no coast south of 32.3834 N — where NOAA's charts stop
+— bears higher than the tangent. The landmark bearings above say it does not,
+but those are typed estimates. GSHHG or a Mexican chart would settle it.
+
+### The islands are two islands
+
+The same extract charted the Coronado Islands, which had been an estimate. The
+estimate was good and systematically **narrow**: both edges moved outward, by
+1.25–1.36° on the low side and 1.22–1.64° on the high, so the shadow was
+understated by about 2.5–2.9° rather than misplaced. That is what §10's "a full
+kilometre of island coordinate error costs under 2°" predicts.
+
+The larger finding is that the group is not one blocker. Single-link clustering
+of the charted vertices gives **two islands with 6.12° of open channel between
+them**, and that split is stable at every link distance from 0.3 km to 3 km on
+both chart bands (the channel measures 6.12° on approach and 6.17° on coastal).
+At 0.3 km the southern group resolves further into three islands, but those
+gaps are 0.98° and 0.25° and they move with the link distance, so they are not
+modelled.
+
+Modelling the group as one screen is **the binary-blocker error one scale up**:
+
+| model | span | Fresnel number at 15 s |
+|---|---|---|
+| one screen, whole group | 13.5° | ~7 |
+| southern group | 5.3° | 1.6 |
+| northern island | 2.1° | 0.2 |
+
+`FRESNEL_SHARP` is 8. A single screen sits close enough to it that the
+diffraction flag stops firing — the model would have claimed a clean geometric
+shadow across 13.5° of which 6.1° is navigable water. Split, both islands are
+soft, which is what §10 said all along and what the locals say.
+
+The islands' share of a 30°-spread swell's energy drops from ~11% to **4.7%**.
+§10's claim moves further in the direction it already pointed.
+
+### What changed on the surface
+
+Every Coronado break now publishes **three** windows, every edge standing on
+land:
+
+| break | south | island channel | west |
+|---|---|---|---|
+| north | 164.7–187.4° | 192.6–198.6° | 200.6–242.2° |
+| center | 166.4–189.1° | 194.4–200.5° | 202.6–250.3° |
+| south | 168.5–191.1° | 196.8–203.0° | 205.2–259.9° |
+
+`swell_window` and `open_window` now return the same thing for every spot in
+the file. **The guard stays** — it is what stops the next break added to the
+file publishing open water across a coastline nobody has digitised — but it no
+longer has anything to withhold.
+
+The west window's low edge moved 1.2–1.9° when the islands were charted, so the
+figures README, §2a and CLAUDE.md quote go from 42.8 / 49.1 / 56.3 to
+**41.6 / 47.7 / 54.7**. The 13° spread along Coronado's sand is unchanged: it
+is a Point Loma quantity and Point Loma has not moved.
+
+### The verification control got sharper without an observation
+
+§7's control rests on Coronado's window edges predicting **opposite** orderings,
+so a fixed observer bias agrees on one and contradicts the other. It used to
+rest on two edges. It now rests on six bands:
+
+| bearing | ordering |
+|---|---|
+| 165.0–168.5° | north bigger |
+| 187.5–191.5° | south bigger |
+| 193.0–197.0° | north bigger |
+| 199.0–201.0° | south bigger |
+| 201.0–205.5° | north bigger |
+| 242.5–260.0° | south bigger |
+
+Both orderings now appear at more than one independent edge, so a confound has
+to survive several flips rather than one. The 165–168.5° band is the Baja
+tangent, and it is the only band in the file whose width is set by a coordinate
+south of the border.
+
+### Two faults worth keeping
+
+**The extract's extent is not the chart's extent.** The three `_coronado`
+shoreline files stop 2.8 km south of the south break, and I read that as the
+chart cells running out. They sit on their query envelope at **all four
+corners**: it was my own bbox. The filename now carries the region for exactly
+this reason — nothing inside the file records which envelope clipped it.
+
+**The Coronado box never met a transfer limit, so nothing was built to handle
+one.** 97 features in 5 km; a 130 km box will hit `maxRecordCount`, and a
+silently truncated coastline would have dropped exactly the seaward-most vertex
+the fetch exists to find. Same shape as §8's 404 that meant `bull_tar`.
+`fetch_paths` now follows `exceededTransferLimit` and reports when it is
+*still* truncated at the page budget, which is a different answer from "that is
+all there was".

@@ -153,10 +153,13 @@ class BreakForecast:
     id: str
     name: str
     confidence: str
-    #: The arcs swell can actually arrive through — both edges blocker-derived.
-    #: The south-east arc `open_window` also returns is excluded: it spans the
-    #: Baja coastline, which is not modelled as a blocker, so the model calls it
-    #: open water (BRIEFING §12).
+    #: The arcs swell can actually arrive through — every edge blocker-derived.
+    #: Three of them since 2026-09-20: the south window between the Baja coast
+    #: and the southern Coronado Islands, the 6° channel between the two
+    #: islands, and the west window out to the Point Loma tip. It used to be
+    #: one, because the south-east arc ran across a Baja coastline that was not
+    #: modelled and `swell_windows` rightly withheld it. Charting that coast is
+    #: what let it be published (BRIEFING §12, §24).
     swell_window: list[list[float]]
     shore_normal_deg: float
     normal_is_a_guess: bool

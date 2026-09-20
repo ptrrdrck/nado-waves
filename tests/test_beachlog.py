@@ -217,7 +217,7 @@ def test_only_some_days_discriminate():
     assert not discriminates(210.0, BREAKS)  # open to all three
     assert not discriminates(265.0, BREAKS)  # blocked at all three
     assert discriminates(245.0, BREAKS)      # north cut off
-    assert discriminates(200.0, BREAKS)      # south cut off
+    assert discriminates(194.0, BREAKS)      # south cut off
 
 
 def test_the_two_window_edges_predict_opposite_orderings():
@@ -229,11 +229,37 @@ def test_the_two_window_edges_predict_opposite_orderings():
     """
 
     assert which_edge(245.0, BREAKS) == "west"   # Point Loma: south bigger
-    assert which_edge(200.0, BREAKS) == "east"   # Islands: north bigger
+    assert which_edge(194.0, BREAKS) == "east"   # Islands: north bigger
     assert which_edge(210.0, BREAKS) is None     # no prediction
 
     assert "coronado_north" not in open_breaks(245.0, BREAKS)
-    assert "coronado_south" not in open_breaks(200.0, BREAKS)
+    assert "coronado_south" not in open_breaks(194.0, BREAKS)
+
+
+def test_charting_baja_and_the_islands_added_discriminating_bands():
+    """The control got sharper on 2026-09-20, and it did so without a single
+    observation being logged.
+
+    It used to rest on two edges, one per ordering. Splitting the Coronado
+    Islands at their channel and adding the Baja coast gives six bands:
+    165.0-168.5 east, 187.5-191.5 west, 193.0-197.0 east, 199.0-201.0 west,
+    201.0-205.5 east, 242.5-260.0 west. Both orderings now appear at more
+    than one edge, so a confound has to survive several independent flips
+    rather than one.
+
+    The 165-168.5 band is the Baja tangent, and it is the only one in the
+    file whose width is set by a coordinate south of the border.
+    """
+
+    east = [b / 2.0 for b in range(320, 540)
+            if which_edge(b / 2.0, BREAKS) == "east"]
+    west = [b / 2.0 for b in range(320, 540)
+            if which_edge(b / 2.0, BREAKS) == "west"]
+    assert east and west
+    # The Baja tangent band, which did not exist before the coast was charted.
+    assert any(165.0 <= b <= 168.5 for b in east)
+    # And Point Loma's, which has been there all along.
+    assert any(242.5 <= b <= 260.0 for b in west)
 
 
 def test_the_geometry_is_confirmed_when_the_ordering_matches():
@@ -241,7 +267,7 @@ def test_the_geometry_is_confirmed_when_the_ordering_matches():
     assert check(west, 245.0) == "agree"
 
     east = session("e", {"coronado_north": "head", "coronado_south": "knee"})
-    assert check(east, 200.0) == "agree"
+    assert check(east, 194.0) == "agree"
 
 
 def test_the_geometry_is_contradicted_when_it_does_not():
@@ -270,7 +296,7 @@ def test_a_fixed_bias_agrees_on_one_edge_and_disagrees_on_the_other():
     always_south_bigger = {"coronado_north": "knee", "coronado_south": "head"}
 
     west = check(session("w", always_south_bigger), 245.0)
-    east = check(session("e", always_south_bigger), 200.0)
+    east = check(session("e", always_south_bigger), 194.0)
 
     assert west == "agree"
     assert east == "disagree"

@@ -9,17 +9,27 @@ One offshore buoy, one blocking geometry, three different answers.
 
 Point Loma sits directly across their swell window. Computed from coordinates:
 
-| spot | open swell window | cuts off at | coordinates |
-|---|---|---|---|
-| Coronado — north break | 42.8° | 242.2° | digitised |
-| Coronado — center break | 49.1° | 250.3° | digitised |
-| Coronado — south break | 56.3° | 259.9° | digitised |
+| spot | west window | cuts off at | south window | island channel | coordinates |
+|---|---|---|---|---|---|
+| Coronado — north break | 41.6° | 242.2° | 164.7–187.4° | 192.6–198.6° | digitised |
+| Coronado — center break | 47.7° | 250.3° | 166.4–189.1° | 194.4–200.5° | digitised |
+| Coronado — south break | 54.7° | 259.9° | 168.5–191.1° | 196.8–203.0° | digitised |
 
-Those are the **swell-side** windows — both edges formed by land. `geometry.py`
-also reports a south-east arc that the surface deliberately does not publish:
-it spans Imperial Beach, the Tijuana river mouth and Rosarito at 11–41 km, and
-the Baja coast is not a blocker in `spots.json`, so the raw arc claims open
-water across a coastline you can see from the sand (BRIEFING §12).
+Every edge in that table is formed by land. There used to be one window per
+break, because `geometry.py` also reported a south-east arc the surface
+deliberately withheld: it spans Imperial Beach, the Tijuana river mouth and
+Rosarito at 11–41 km, and the Baja coast was not a blocker in `spots.json`, so
+the raw arc claimed open water across a coastline you can see from the sand
+(BRIEFING §12). On 2026-09-20 that coast was fetched from NOAA's ENC and
+added, which closed the arc's lower edge on land and made it publishable —
+and which matters, because 16.7% of the three-year 46232 archive arrives from
+100–190° and nearly all of it is long-period south swell (BRIEFING §24).
+
+The same fetch charted the Coronado Islands, which had been an estimate. They
+are **two** islands with 6.1° of open channel between them, not one 13.5°
+screen: modelling the group as a single blocker claimed that channel was land
+and pushed its Fresnel number from ~1.6 to ~7, which silenced the diffraction
+flag that BRIEFING §10 exists to raise.
 
 The forecast and the app cover **these three breaks only**. Breakers (NASNI)
 and Gator (NAB) are still in `spots.json` for the geometry, and out of
