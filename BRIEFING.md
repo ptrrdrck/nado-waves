@@ -1276,3 +1276,79 @@ tunnel can. That distinction is now explicit, with a test.
 **The same status code means opposite things depending on where the code runs,
 and nothing in the response says which.** That is worth carrying forward to
 every other collector that classifies its own failures.
+
+## 22. Measured, 2026-09-20 — the chart carries the jetty, the shoals, and a better coastline
+
+`collector.enc_layers` enumerated 787 layers across four ENC chart scales and
+counted features inside the approaches box. **All nine object classes asked
+about are present.** The layer ids, so nobody has to run it again:
+
+### Zuniga Jetty — SLCONS
+
+| layer | id | features |
+|---|---|---|
+| `Approach.Shoreline_Construction_line` | enc_approach/89 | **714** |
+| `Harbor.Shoreline_Construction_line` | enc_harbour/85 | **546** |
+| `Harbor.Shoreline_Construction_area` | enc_harbour/138 | 53 |
+| `Coastal.Shoreline_Construction_line` | enc_coastal/71 | 46 |
+
+Those counts are the whole harbour's constructed shoreline — quays, piers,
+seawalls — not the jetty alone. Picking Zuniga out is a filter on geometry,
+not a filter on layer. But the object exists and is reachable, which is what
+§21a could not say about any shoreline product.
+
+### Zuniga Shoals — bathymetry
+
+| layer | id | features |
+|---|---|---|
+| `Harbor.Sounding_point` | enc_harbour/76 | **4,025** |
+| `Harbor.Depth_Contour_line` | enc_harbour/104 | **571** |
+| `Approach.Sounding_point` | enc_approach/80 | 352 |
+| `Coastal.Sounding_point` | enc_coastal/61 | 104 |
+| `Approach.Underwater_Awash_Rock_point` | enc_approach/37 | **62** |
+| `Approach.Depth_Contour_line` | enc_approach/108 | 48 |
+
+Four thousand soundings at harbour scale is real bathymetry, and the 62 awash
+rocks are exactly the character of that ground. **None of it makes a shoal a
+blocker** — §20 stands: it refracts, it does not shadow. This is material for
+refraction work, and it means that work does not need CUDEM to start.
+
+### The coastline we used was the coarser one
+
+| layer | id | features |
+|---|---|---|
+| `Harbor.Coastline_line` | enc_harbour/84 | **97** |
+| `Approach.Coastline_line` | enc_approach/88 | 61 |
+| `Coastal.Coastline_line` | enc_coastal/70 | 28 |
+| `General.Coastline_line` | enc_general/58 | 5 |
+
+§21 fitted normals to **enc_approach/88**, because that is the layer the
+shoreline collector happened to reach first. The harbour chart carries **97
+features where the approach chart carries 61** — a finer scale over a smaller
+area, which is the whole point of the ENC scale bands.
+
+That matters directly: §21 could not fit `coronado_north` at the 400 m scale
+because only **3 distinct vertices** sat within 200 m of it. A finer chart is
+the obvious first thing to try before concluding the break is unfittable, and
+nothing about §21's conclusions should be treated as final until it has been
+re-run against enc_harbour/84.
+
+**The collector took the first layer that answered and never asked whether a
+better one existed.** It had no ranking at all — the ENC scale bands are a
+documented quality ordering and it ignored them.
+
+### The unqueryable layers, explained
+
+`CoastlineP`, `CoastlineL`, `SeabedA`, `SoundingsP` and friends carry no
+geometry type and answer "Invalid or missing input parameters" to any query.
+They are group layers; the data lives in the `Approach.*` / `Harbor.*` named
+layers beneath them. That closes the loose end from §21 — layers 19 and 87 were
+not broken, they were never data.
+
+### And the fault, again
+
+The summary rendered a layer past the `QUERY_BUDGET` and a layer that answered
+with an error identically, as a bare dash. **Three states, two renderings** —
+the fifth time in one session that a tool of mine could not distinguish "I did
+not look" from "I looked and it failed". It now carries a `queried` flag and
+prints three different things.
