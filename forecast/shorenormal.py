@@ -67,7 +67,22 @@ EARTH_R = 6371000.0
 
 BREAKS = ("coronado_north", "coronado_center", "coronado_south")
 
-STORE = "shoreline/noaa_shoreline_coronado.csv"
+#: Every source chart band the collector stored, finest first. Reading ONE
+#: fixed file is how §21 came to fit normals to the approach chart without
+#: noticing a finer one existed.
+STORE_DIR = "shoreline"
+
+#: Finer first, so the headline is the best available and the rest are the
+#: cross-check. Matches `collector.shoreline.SCALE_RANK`.
+BAND_ORDER = ("enc_berthing", "enc_harbour", "enc_approach",
+              "enc_coastal", "enc_general", "enc_overview")
+
+
+def band_of(name: str) -> int:
+    for index, band in enumerate(BAND_ORDER):
+        if band in name:
+            return index
+    return len(BAND_ORDER)
 
 
 @dataclass
@@ -122,12 +137,9 @@ class BreakReport:
         return max(rel) - min(rel)
 
 
-def read_vertices(data_dir: Path) -> list[tuple[float, float]]:
-    """Every surveyed vertex, in file order. Empty when not collected."""
+def read_file(path: Path) -> list[tuple[float, float]]:
+    """Vertices from one stored source, in file order."""
 
-    path = Path(data_dir) / STORE
-    if not path.exists():
-        return []
     out: list[tuple[float, float]] = []
     with path.open(newline="", encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
@@ -136,6 +148,28 @@ def read_vertices(data_dir: Path) -> list[tuple[float, float]]:
             except (KeyError, TypeError, ValueError):
                 continue
     return out
+
+
+def read_sources(data_dir: Path) -> dict[str, list[tuple[float, float]]]:
+    """Every stored source, finest chart band first. Empty when not collected.
+
+    A dict and not a list, because the whole point is telling the sources
+    apart: two charts of the same coast at two scales disagree, and that
+    disagreement is the only cross-check available here.
+    """
+
+    folder = Path(data_dir) / STORE_DIR
+    if not folder.exists():
+        return {}
+    found = sorted(folder.glob("*.csv"), key=lambda p: (band_of(p.name), p.name))
+    return {p.stem: read_file(p) for p in found if p.is_file()}
+
+
+def read_vertices(data_dir: Path) -> list[tuple[float, float]]:
+    """The finest available source. Kept for callers wanting just one."""
+
+    sources = read_sources(data_dir)
+    return next(iter(sources.values()), [])
 
 
 def to_local(points: list[tuple[float, float]], origin: tuple[float, float]):
@@ -233,10 +267,12 @@ def fit_at(
     return fit
 
 
-def report(data_dir: Path = DEFAULT_DATA_DIR, spots_path: Path | None = None) -> list[BreakReport]:
+def report(data_dir: Path = DEFAULT_DATA_DIR, spots_path: Path | None = None,
+           vertices: list | None = None) -> list[BreakReport]:
     spot_list, _ = load(spots_path) if spots_path else load()
     spots = {s.id: s for s in spot_list}
-    vertices = read_vertices(data_dir)
+    if vertices is None:
+        vertices = read_vertices(data_dir)
 
     out = []
     for break_id in BREAKS:
@@ -317,12 +353,49 @@ def format_report(reports: list[BreakReport]) -> str:
     return "\n".join(lines)
 
 
+def compare_sources(data_dir: Path = DEFAULT_DATA_DIR) -> str:
+    """Every stored chart band, side by side, at the reporting scale.
+
+    This exists because §21's conclusions rested on whichever source the
+    collector reached first. Two charts of the same coast disagreeing is
+    information; one chart alone is an assumption.
+    """
+
+    sources = read_sources(data_dir)
+    if len(sources) < 2:
+        return ""
+
+    lines = ["", "### The same coast at more than one chart scale", "",
+             "Finer bands first. A disagreement here is the cross-check §21 "
+             "did not have — it fitted whichever source the collector reached "
+             "first and could not know a finer one existed.", "",
+             "| source | vertices | " + " | ".join(
+                 b.split("_")[-1] for b in BREAKS) + " |",
+             "|---" * (len(BREAKS) + 2) + "|"]
+    for name, points in sources.items():
+        cells = []
+        for break_id in BREAKS:
+            entry = next(r for r in report(data_dir, vertices=points)
+                         if r.id == break_id)
+            fit = entry.headline
+            cells.append(f"{fit.normal_deg:.1f} ({fit.vertices}v)" if fit
+                         else "—")
+        lines.append(f"| `{name}` | {len(points)} | " + " | ".join(cells) + " |")
+    lines += ["", "`(Nv)` is how many DISTINCT vertices the fit had at "
+                  f"{REPORT_SCALE_M:.0f} m. A normal from three points is a "
+                  "line through three points, not a shoreline."]
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     args = parser.parse_args(argv)
     reports = report(args.data_dir)
     print(format_report(reports))
+    comparison = compare_sources(args.data_dir)
+    if comparison:
+        print(comparison)
     return 0 if any(r.headline for r in reports) else 1
 
 
