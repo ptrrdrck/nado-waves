@@ -46,8 +46,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
+import io
 import json
 import re
+import zlib
 import sys
 import urllib.error
 import urllib.parse
@@ -78,9 +81,17 @@ KNOWN_SERVICES = (
     "https://gis.charttools.noaa.gov/arcgis/rest/services/MarineChart_Services/NOAACharts/MapServer",
 )
 
-#: How many folders to open per root. A big catalogue has dozens and this is a
-#: discovery pass, not a crawl.
-FOLDER_BUDGET = 12
+#: Folders worth opening ahead of the rest even though their names say nothing
+#: about shorelines. NGS is the National Geodetic Survey -- the office that
+#: publishes the US shoreline -- and `encdirect` serves ENC chart data, which
+#: carries the coastline as a feature class. charttools has 22 folders and the
+#: budget was 12 sorted alphabetically, so `NGS/` was never opened.
+PRIORITY_FOLDERS = re.compile(r"ngs|geodet|encdirect|hydrographic|nav", re.I)
+
+#: How many folders to open per root. A discovery pass, not a crawl -- but 12
+#: was under the 22 charttools carries, which is how the one folder that
+#: mattered got cut.
+FOLDER_BUDGET = 28
 
 #: How many entries to print per root. One catalogue with four thousand
 #: services buried the other three in the second run's summary.
@@ -155,10 +166,49 @@ class NotJSON(ShorelineError):
         self.sample = sample
 
 
+#: gzip's magic number. coast.noaa.gov serves compressed bodies whether or not
+#: they were asked for, and urllib does not decompress on its own -- the first
+#: three probe runs read that as "not JSON" and wrote the host off. It is the
+#: Digital Coast host, the likeliest home of a surveyed shoreline, so that
+#: mistake cost the whole exercise. Caught only because the summary started
+#: sampling bodies it could not parse.
+GZIP_MAGIC = b"\x1f\x8b"
+
+
+def decompress(payload: bytes, encoding: str = "") -> bytes:
+    """Undo a content encoding, by header or by magic number.
+
+    By BOTH, because the header is what the server says and the magic number is
+    what it did, and coast.noaa.gov is an example of the two disagreeing.
+    """
+
+    encoding = (encoding or "").lower()
+    if encoding == "gzip" or payload[:2] == GZIP_MAGIC:
+        try:
+            return gzip.GzipFile(fileobj=io.BytesIO(payload)).read()
+        except (OSError, EOFError):
+            # EOFError is NOT an OSError, and a truncated body raises it. A
+            # crash here would turn "the response was cut short" into a dead
+            # host, which is the distinction this whole module exists to make.
+            return payload
+    if encoding == "deflate":
+        for wbits in (zlib.MAX_WBITS, -zlib.MAX_WBITS):
+            try:
+                return zlib.decompress(payload, wbits)
+            except zlib.error:
+                continue
+    return payload
+
+
 def fetch_json(url: str, *, timeout: float = TIMEOUT) -> dict:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    request = urllib.request.Request(url, headers={
+        "User-Agent": USER_AGENT,
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+    })
     with urllib.request.urlopen(request, timeout=timeout) as response:
-        payload = response.read()
+        payload = decompress(response.read(),
+                             response.headers.get("Content-Encoding", ""))
     text = payload.decode("utf-8", errors="replace")
     try:
         data = json.loads(text)
@@ -211,7 +261,8 @@ def discover(roots: tuple[str, ...] = CATALOG_ROOTS) -> Result:
         # it had barely opened.
         folders = [str(f) for f in (catalog.get("folders", []) or [])]
         attempt.listing += [f"{f}/ (folder)" for f in folders]
-        ordered = sorted(folders, key=lambda f: (0 if WANTED.search(f) else 1, f))
+        ordered = sorted(folders, key=lambda f: (
+            0 if WANTED.search(f) else 1 if PRIORITY_FOLDERS.search(f) else 2, f))
         for folder in ordered[:FOLDER_BUDGET]:
             try:
                 inner = fetch_json(f"{root}/{folder}?f=json")
@@ -223,7 +274,8 @@ def discover(roots: tuple[str, ...] = CATALOG_ROOTS) -> Result:
                 if kind not in ("MapServer", "FeatureServer"):
                     continue
                 attempt.listing.append(f"{folder}/{name} ({kind})")
-                if not WANTED.search(name) and not WANTED.search(folder):
+                if not (WANTED.search(name) or WANTED.search(folder)
+                        or PRIORITY_FOLDERS.search(folder)):
                     continue
                 result.candidates.append(f"{root}/{folder}/{name}/{kind}")
                 found += 1
