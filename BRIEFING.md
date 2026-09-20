@@ -1352,3 +1352,64 @@ with an error identically, as a bare dash. **Three states, two renderings** —
 the fifth time in one session that a tool of mine could not distinguish "I did
 not look" from "I looked and it failed". It now carries a `queried` flag and
 prints three different things.
+
+## 23. Measured, 2026-09-20 — the finer chart settles north, and kills the wide-scale sweep
+
+§22 found that `enc_harbour/84` carries more of the same coast than
+`enc_approach/88`. Re-fetched with the bands ranked, both stored, and the
+normals re-run against each.
+
+### North is fittable, and it is not 19° off
+
+| break | chord | harbour chart | disagreement | vertices at 400 m | scale spread |
+|---|---|---|---|---|---|
+| north | 192.8 | **194.4** | **+1.7** | 23 (was 3) | 0.7° |
+| center | 214.2 | 213.9 | −0.3 | 15 | 4.3° |
+| south | 221.5 | 220.8 | −0.7 | 44 | 6.9° |
+
+§21 could not fit `coronado_north` at all: three distinct vertices inside 200 m.
+The harbour chart puts **23** there, and the answer is stable to **0.7° across
+200 m to 3 km** — the straightest stretch of the three.
+
+So `spots.json`'s claim that north's normal "is about 19 degrees off" and "must
+not be trusted" is **wrong by an order of magnitude**, now on a real fit rather
+than §21's three-point line. The flag is still not flipped here: 1.7° is 7% of
+wind readings by §20's table, this is still a chart and not a survey, and
+changing a coordinate is a decision with a provenance record. But the
+re-digitisation §20 called urgent is not urgent.
+
+### Two charts of the same coast, and where they stop agreeing
+
+Same bounding box, same extent, same farthest reach — 904 vertices against 689,
+so the gain is density and not coverage. Where both fit:
+
+| break | 200 m | 400 m | 800 m | 1500 m | 3000 m |
+|---|---|---|---|---|---|
+| north | — | — | 0.2 | 0.7 | 0.8 |
+| center | — | 0.3 | 0.1 | 1.1 | **3.1** |
+| south | 0.1 | 0.2 | 0.1 | **18.6** | **14.7** |
+
+Degrees apart. **Below 800 m the two charts agree to within 0.3°.** At south's
+1500 m window they give 214.0 and 195.4 for the same coast.
+
+That is not one chart being wrong. It is the window: south sits where the coast
+bends toward Imperial Beach, and a CIRCULAR window there collects segments
+running in several directions at once. The principal axis of that cloud is
+decided by which vertices each chart happened to place, not by any trend of the
+beach.
+
+**§20 said a normal is a property of a chord. This sharpens it: past a few
+hundred metres on a curving coast, a circular window is not a chord at all**,
+and the number it returns is not a property of the beach. The usable range is
+where independent charts agree — 200 to 800 m — and `REPORT_SCALE_M` at 400 m
+already sits inside it. The wide columns of the sweep should be read as a
+curvature alarm and never as a normal.
+
+That also retires §21's "south has a 25.6° spread" as a fact about south. It
+was a fact about fitting circles to a bend.
+
+### Housekeeping
+
+`noaa_shoreline_coronado.csv` was byte-identical to `enc_approach_88_coronado.csv`
+— the same layer under the old single-filename scheme. Removed; it is a
+duplicate, not data.
