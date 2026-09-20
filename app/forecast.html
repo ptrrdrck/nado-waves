@@ -319,10 +319,18 @@ function midBearing(from, to) {
 // hardcoded "south / channel / west" would keep saying it after the geometry
 // moved, and this geometry moved twice in a day.
 function windowList(windows) {
-  if (!windows || !windows.length) {
+  // A window whose bearings are not numbers is not drawn as NaN. The bundle
+  // publishes index.html and forecast.json in one commit so they cannot drift,
+  // but now.json is optional and the publish script keeps the previous one
+  // when a build fails — so the page can meet an older payload shape, and a
+  // card reading "NaN-NaN deg" is worse than a card saying nothing.
+  const ok = (windows || []).filter(
+    (w) => w && isFinite(w.from) && isFinite(w.to));
+  if (!ok.length) {
     return '<div class="quiet">no open window &mdash; land on every bearing '
          + 'this beach faces</div>';
   }
+  windows = ok;
   const spans = windows.map((w) => ((w.to - w.from) % 360 + 360) % 360);
   const widest = Math.max(...spans, 1);
   return `<div class="wins">` + windows.map((w, i) => {

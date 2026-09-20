@@ -675,3 +675,17 @@ class TestEveryMeasurementSaysHowOldItIs:
         # so this passes because the fields are unread rather than because the
         # comment stripper ate the whole file.
         assert "age_hours" in SOURCE and "age_minutes" in SOURCE
+
+
+class TestTheWindowBlockSurvivesAnOlderPayload:
+    """`index.html` and `forecast.json` ship in one commit and cannot drift.
+    `now.json` is optional, and the publish script keeps the previous one when
+    a build fails — so the page can meet an older payload shape."""
+
+    def test_bearings_are_checked_before_they_are_drawn(self):
+        assert "isFinite(w.from)" in SOURCE and "isFinite(w.to)" in SOURCE
+
+    def test_an_unusable_payload_falls_back_to_the_sentence(self):
+        block = SOURCE[SOURCE.index("function windowList"):]
+        block = block[:block.index("function provenanceLine")]
+        assert "no open window" in block
