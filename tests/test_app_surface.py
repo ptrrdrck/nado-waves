@@ -685,7 +685,14 @@ class TestTheWindowBlockSurvivesAnOlderPayload:
     def test_bearings_are_checked_before_they_are_drawn(self):
         assert "isFinite(w.from)" in SOURCE and "isFinite(w.to)" in SOURCE
 
-    def test_an_unusable_payload_falls_back_to_the_sentence(self):
+    def test_an_unreadable_payload_is_not_reported_as_a_fact_about_the_coast(self):
+        """"No open window" is a claim about the beach. A payload this page
+        cannot read is a claim about the payload. Printing the first for both
+        puts a false statement about the geometry on screen every time a file
+        goes stale -- which is exactly when nobody is watching."""
+
         block = SOURCE[SOURCE.index("function windowList"):]
         block = block[:block.index("function provenanceLine")]
         assert "no open window" in block
+        assert "older than the page" in block
+        assert block.index("given.length") < block.index("no open window")
