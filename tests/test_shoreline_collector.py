@@ -184,3 +184,54 @@ class TestTheSummaryIsHonestWhenItFindsNothing:
         got = mod.Result(layer="svc/0", parts=1, vertices=42,
                          stored=tmp_path / "x.csv")
         assert "forecast.shorenormal" in mod.format_summary(got)
+
+
+class TestItMatchesLayerNamesNotOnlyServiceNames:
+    """The second probe run walked NOAA's chart catalogue and reported nothing,
+    because it filtered at the SERVICE level. NOAA's ENC chart services are
+    called things like `NOAACharts`, and the coastline lives inside them as a
+    feature class named COALNE."""
+
+    def test_the_pattern_knows_what_a_coastline_is_called(self):
+        for name in ("COALNE", "Coastline", "coast_line", "MHW", "CUSP_shoreline"):
+            assert mod.WANTED.search(name), name
+
+    def test_shoreline_named_layers_are_tried_first(self, monkeypatch):
+        monkeypatch.setattr(mod, "fetch_json", lambda url, **k: {"layers": [
+            {"id": 0, "name": "Depth Areas", "geometryType": "esriGeometryPolyline"},
+            {"id": 1, "name": "COALNE", "geometryType": "esriGeometryPolyline"},
+        ]})
+        got = mod.line_layers("https://example.test/svc/MapServer")
+        assert got[0].endswith("/1"), got
+
+    def test_polygon_layers_are_not_offered_as_lines(self, monkeypatch):
+        monkeypatch.setattr(mod, "fetch_json", lambda url, **k: {"layers": [
+            {"id": 0, "name": "COALNE", "geometryType": "esriGeometryPolygon"},
+        ]})
+        assert mod.line_layers("https://example.test/svc/MapServer") == []
+
+    def test_a_chart_service_is_not_crawled_end_to_end(self, monkeypatch):
+        """Dozens of unnamed layers is a crawl, not a probe."""
+
+        monkeypatch.setattr(mod, "fetch_json", lambda url, **k: {"layers": [
+            {"id": i, "name": f"Layer {i}", "geometryType": "esriGeometryPolyline"}
+            for i in range(40)
+        ]})
+        assert len(mod.line_layers("https://example.test/svc/MapServer")) <= 8
+
+    def test_the_observed_services_are_tried_whatever_they_are_called(self):
+        """These came out of a real catalogue walk on 2026-09-20, not a guess,
+        and none of them would pass a name filter."""
+
+        assert mod.KNOWN_SERVICES
+        for url in mod.KNOWN_SERVICES:
+            assert url.endswith("/MapServer") and "charttools.noaa.gov" in url
+
+    def test_one_catalogue_cannot_bury_the_others(self):
+        """4,060 services from one root pushed the other three out of the
+        summary entirely in the second run."""
+
+        attempt = mod.Attempt(url="https://example.test", ok=True,
+                              listing=[f"svc{i} (MapServer)" for i in range(500)])
+        text = mod.format_summary(mod.Result(attempts=[attempt]))
+        assert f"…and {500 - mod.LISTING_CAP} more" in text
