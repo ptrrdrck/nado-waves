@@ -390,3 +390,35 @@ class TestTheFileTreeProbe:
         for root in mod.HTDATA_ROOTS:
             assert root.endswith("/"), root
             assert "." not in root.rsplit("/", 2)[-2], root
+
+
+class TestA403MeansTwoDifferentThings:
+    """From a Claude session a 403 is the proxy refusing CONNECT and the host
+    may be perfectly fine. From an Actions runner there is no such proxy, so a
+    403 is the origin refusing — measured 2026-09-20, coast.noaa.gov/htdata/
+    answers 403 to a runner because directory listing is switched off.
+
+    Conflating them files "this directory is not browsable" under "we could not
+    reach this host", which is the same class of fault as reading NCEP's 404 as
+    "no cycle today"."""
+
+    def test_an_http_status_is_never_an_egress_denial(self):
+        import urllib.error
+        for code in (401, 403, 404, 500):
+            exc = urllib.error.HTTPError("u", code, "no", {}, None)
+            assert not mod.is_denial(exc), code
+
+    def test_a_refused_tunnel_still_is(self):
+        assert mod.is_denial(OSError("gateway answered 403 to CONNECT"))
+        import urllib.error
+        assert mod.is_denial(urllib.error.URLError("unreachable"))
+
+    def test_the_summary_does_not_cry_denial_over_a_server_403(self):
+        import urllib.error
+        attempt = mod.Attempt(url="https://example.test/htdata/")
+        exc = urllib.error.HTTPError("u", 403, "Forbidden", {}, None)
+        attempt.denied = mod.is_denial(exc)
+        attempt.note = f"{exc.__class__.__name__}: {exc}"[:160]
+        text = mod.format_summary(mod.Result(attempts=[attempt]))
+        assert "Denied at CONNECT" not in text
+        assert "403" in text
