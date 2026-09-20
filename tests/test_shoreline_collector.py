@@ -321,3 +321,72 @@ class TestTheFolderBudgetCoversTheCatalogue:
         monkeypatch.setattr(mod, "fetch_json", fake)
         got = mod.discover(("https://example.test/arcgis/rest/services",))
         assert any("Anything" in c for c in got.candidates), got.candidates
+
+
+class TestTheFileTreeProbe:
+    """coast.noaa.gov's REST catalogue carries 374 entries across 16 folders
+    and not one matches a shoreline pattern (measured 2026-09-20). Digital
+    Coast serves its bulk products as files under /htdata/, so if CUSP is
+    reachable at all it is a download and not a service."""
+
+    INDEX = ('<html><body>'
+             '<a href="../">Parent Directory</a>'
+             '<a href="CUSP/">CUSP/</a>'
+             '<a href="NGS_MHW/">NGS_MHW/</a>'
+             '<a href="readme.txt">readme.txt</a>'
+             '<a href="/elsewhere">elsewhere</a>'
+             '<a href="?C=N;O=D">sort</a>'
+             '</body></html>')
+
+    def test_it_lists_what_is_there(self, monkeypatch):
+        monkeypatch.setattr(mod, "fetch_text", lambda url, **k: self.INDEX)
+        assert mod.list_directory("https://example.test/htdata/") == [
+            "CUSP/", "NGS_MHW/", "readme.txt"]
+
+    def test_navigation_chrome_is_not_a_listing_entry(self, monkeypatch):
+        """Parent links, absolute paths and column-sort links are the page,
+        not its contents."""
+
+        monkeypatch.setattr(mod, "fetch_text", lambda url, **k: self.INDEX)
+        got = mod.list_directory("https://example.test/htdata/")
+        for chrome in ("../", "/elsewhere", "?C=N;O=D"):
+            assert chrome not in got
+
+    def test_a_shoreline_name_is_called_out_in_the_note(self, monkeypatch):
+        monkeypatch.setattr(mod, "fetch_text", lambda url, **k: self.INDEX)
+        got = mod.probe_htdata(("https://example.test/htdata/",))
+        assert got[0].ok and "CUSP/" in got[0].note
+
+    def test_a_denial_is_classified_not_swallowed(self, monkeypatch):
+        def boom(url, **k):
+            raise OSError("gateway answered 403 to CONNECT")
+        monkeypatch.setattr(mod, "fetch_text", boom)
+        got = mod.probe_htdata(("https://example.test/htdata/",))
+        assert got[0].denied and not got[0].ok
+
+    def test_a_missing_directory_is_reported_not_fatal(self, monkeypatch):
+        def missing(url, **k):
+            raise urllib_error_404()
+        import urllib.error
+        def urllib_error_404():
+            return urllib.error.HTTPError("u", 404, "Not Found", {}, None)
+        monkeypatch.setattr(mod, "fetch_text", missing)
+        got = mod.probe_htdata(("https://example.test/htdata/",))
+        assert not got[0].ok and "404" in got[0].note
+
+    def test_it_reports_beside_the_services_rather_than_instead_of_them(self):
+        """One run answers both questions. The file tree must not
+        short-circuit the service walk or a future CUSP service is invisible."""
+
+        import inspect
+        source = inspect.getsource(mod.collect)
+        assert "probe_htdata()" in source
+        assert source.index("probe_htdata()") < source.index("for service in result.candidates")
+
+    def test_no_filename_is_assumed(self):
+        """The rule this module was built around: report what is there, never
+        guess a deep path and believe the answer."""
+
+        for root in mod.HTDATA_ROOTS:
+            assert root.endswith("/"), root
+            assert "." not in root.rsplit("/", 2)[-2], root
