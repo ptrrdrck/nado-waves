@@ -245,8 +245,9 @@ forecaster actually verifies against, Surfline included.
     data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
                         _observed (measured), _predicted (hourly harmonic),
                         _turns (the harmonic model's own highs and lows)
-    data/shoreline/     NOAA ENC coastline near Coronado - a CHART product,
-                        generalised, not the survey-grade MHW vector  [689 pts]
+    data/shoreline/     NOAA ENC coastline near Coronado, one file per chart
+                        band - harbour 904 pts, approach 689, coastal 312. A
+                        CHART product, generalised, not survey-grade MHW.
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
@@ -370,6 +371,14 @@ circular helpers are used here. Trimming it is a good first cleanup.
   `coronado_north`'s known ~19° imagery-splice error on about **70%**. That is
   roughly twice what a uniform wind rose would cost. The north card's wind line
   is close to uninformative until the chord is re-digitised.
+- **Past a few hundred metres on a curving coast, a circular window is not a
+  chord.** Measured 2026-09-20 (BRIEFING §23): two independent chart bands of
+  the same coast agree within **0.3° up to 800 m**, and disagree by **18.6° at
+  1500 m** at the south break, where the coast bends toward Imperial Beach. The
+  principal axis of a circular window there is decided by which vertices each
+  chart happened to place. Read the wide columns of `shorenormal`'s sweep as a
+  curvature alarm, never as a normal. `REPORT_SCALE_M` at 400 m sits inside the
+  agreeing range.
 - **A normal is a property of a chord, not of a point.** The same beach gives
   102.8° over north's 547 m chord, 124.2° over centre's 285 m, 131.5° over
   south's 471 m and 121.3° over the whole 2.8 km — 28.7° of spread, all of it
