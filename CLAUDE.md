@@ -262,9 +262,13 @@ forecaster actually verifies against, Surfline included.
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
 
-`forecast/stats.py` still carries `assess`, `contested_skill` and a CLI from the
-predecessor's scoring work. Only `load_column`, `least_squares`, `rmse` and the
-circular helpers are used here. Trimming it is a good first cleanup.
+`forecast/stats.py` was trimmed to the four helpers this project uses
+(`load_column`, `angular_difference`, `least_squares`, `rmse`) when the
+repository went public. The predecessor's scoring work — `assess`,
+`contested_skill`, the feature-group fits and the CLI — is gone, along with
+`collector/forecast.py` and its probes, which archived an Open-Meteo water
+temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
+`LOCAL_TZ`; it was always just America/Los_Angeles.
 
 ## Design rules that are easy to erode
 

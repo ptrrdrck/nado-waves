@@ -31,8 +31,8 @@ from datetime import datetime, timezone
 DEFAULT_BASE_URL = "https://www.ndbc.noaa.gov/data/realtime2"
 
 USER_AGENT = (
-    "beat-the-buoy-collector/1.0 "
-    "(+https://github.com/ptrrdrck/beat-the-buoy; NDBC archiving job)"
+    "nado-waves-collector/1.0 "
+    "(+https://github.com/ptrrdrck/nado-waves; NDBC archiving job)"
 )
 
 MISSING = "MM"

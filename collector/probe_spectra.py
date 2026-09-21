@@ -20,9 +20,8 @@ substring matches against page furniture, a truncated read, and `"NOAA" in
 
 - reads every response in full, and reports the byte count it actually read;
 - sniffs FRESHNESS from the newest parsed timestamp, never from HTTP 200;
-- prints the raw header and first data line verbatim next to the parse, the
-  way `probe_raw.py` does, so a format surprise is visible rather than
-  swallowed;
+- prints the raw header and first data line verbatim next to the parse, so a
+  format surprise is visible rather than swallowed;
 - returns typed flags, so a caller can tell "denied" from "absent" from
   "present but stale" instead of reading prose;
 - distinguishes a proxy CONNECT denial from throttling from a real 404. A 403

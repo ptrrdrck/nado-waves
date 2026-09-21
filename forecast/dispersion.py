@@ -48,7 +48,7 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR
 from collector.stations import load_stations, select
 from .siting import constraining
-from .stats import LEAGUE_TZ
+from .stats import LOCAL_TZ
 from .stats import load_column
 from .swell import daily_peak
 
