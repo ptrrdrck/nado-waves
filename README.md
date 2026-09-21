@@ -141,8 +141,14 @@ PYTHONPATH=. python -m pytest -q
 Data files are tracked on purpose. NDBC's real-time feed retains 45 days;
 anything not committed here is gone.
 
-## Read first
+## On the `BRIEFING §n` citations
 
-`BRIEFING.md` — three years of measured findings, four falsified hypotheses and
-several expensive mistakes, inherited from the project this grew out of. Most
-questions worth asking have already been answered there, some the hard way.
+Comments and docstrings throughout this repository cite `BRIEFING §n`. That is
+a working notebook — three years of measured findings, four falsified
+hypotheses and several expensive mistakes, inherited from the project this grew
+out of — and it is kept private, so those citations do not resolve here.
+
+Nothing in the code depends on it. Every rule the briefing justifies is also
+stated where it is enforced, and the numbers behind the strong claims are in
+`docs/forecast_error.md`, `docs/swell_forensics.txt` and the tests. The
+citations are provenance, not a dependency.

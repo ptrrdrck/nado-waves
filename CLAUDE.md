@@ -5,6 +5,14 @@ measured findings, four falsified hypotheses and several expensive mistakes,
 carried over from the project this one grew out of. Most questions worth asking
 here have already been answered there, some of them the hard way.
 
+**It is not in this repository.** This repo is public; the briefing lives in
+the private sibling `ptrrdrck/nado-waves-notes`, and the `BRIEFING §n`
+citations throughout this codebase point into it. If you are a Claude session
+and cannot see it, say so and work with reduced confidence — do not re-derive
+a finding it already records, and do not assume a rule here is arbitrary
+because its reasoning is not in front of you. Attaching that repository to the
+session is the fix, not guessing.
+
 ## What this is
 
 **An expert surf forecaster for three beaches on the Coronado peninsula:**
