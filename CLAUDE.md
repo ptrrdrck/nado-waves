@@ -252,7 +252,9 @@ forecaster actually verifies against, Surfline included.
     app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/geometry.html   template for the model-geometry drawing; filled by
                         `python -m forecast.geomviz OUT.html` from spots.json,
-                        never hand-edited with coordinates
+                        never hand-edited with coordinates. `forecast.publish`
+                        ships it as `geometry.html` in BOTH bundles, linked
+                        from the foot of the live page
     app/beachlog.html   the phone form, owner build (shared store)
     app/beachlog-observer.html  same file, observer build — no sign-in, entries
                         stay on the phone and are handed back as text. The two

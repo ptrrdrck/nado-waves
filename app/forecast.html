@@ -205,6 +205,7 @@ th{color:var(--soft);font-weight:600;font-size:12px}
       border-radius:var(--r);padding:9px 11px;margin:0}
 footer{font-size:12.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:12px}
 a{color:var(--surf)}
+.geolink{margin:0;font-size:13px}
 select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px solid var(--line-strong);
        background:var(--card);color:var(--ink)}
 @media(max-width:380px){ h1{font-size:29px} }
@@ -262,6 +263,10 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
   </section>
 
   <footer id="foot"></footer>
+  <!-- Static, outside #foot: renderFooter rewrites that per tab, and this link
+       belongs to both. geometry.html is built by forecast.publish from
+       spots.json and ships beside this page in the bundle. -->
+  <p class="geolink"><a href="geometry.html">Geometry: every vertex behind these windows →</a></p>
 </div>
 
 <script>

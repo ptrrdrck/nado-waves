@@ -55,6 +55,9 @@ p{margin:0;max-width:68ch}
   font-variant-numeric:tabular-nums;font-size:13px}
 header{display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line);padding-bottom:16px}
 .lede{color:var(--soft)}
+.back{align-self:flex-start;font-size:14px;color:var(--surf);text-decoration:none;font-weight:500}
+.back:hover{text-decoration:underline}
+.back:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
 .status{display:flex;flex-wrap:wrap;gap:8px}
 .pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;
   padding:4px 10px;border:1px solid var(--line-strong);border-radius:999px;background:var(--card)}
@@ -125,6 +128,7 @@ footer{font-size:13px;color:var(--faint);border-top:1px solid var(--line);paddin
 
 <div class="wrap">
   <header>
+    <a class="back" href="./">← Back to the forecast</a>
     <span class="lbl">Nado Waves · model geometry</span>
     <h1>The Coronado aperture</h1>
     <p class="lede">Every vertex the forecast's geometry uses, drawn where it sits and joined the way the
@@ -235,7 +239,7 @@ const VIEWS = [
    caption: "The full aperture: Point Loma 5–7 km out, the Baja coast 23–25 km, the islands 28–33 km. Every window edge ends on a charted vertex."},
   {id: "near", label: "Point Loma & breaks", box: bboxOf([...MODEL.breaks.flatMap(b => b.chord), ...Object.values(tangentOf), loma.a], 0.6), dist: ["near", "beach"],
    caption: "The west edge of each window is the ray to the Point Loma tip. It sweeps as you walk the sand — that sweep is the whole difference between the three breaks."},
-  {id: "tip", label: "The tip", box: bboxOf([...loma.outline, MODEL.imagery_tip], 0.07), dist: ["tip"],
+  {id: "tip", label: "The tip", box: bboxOf(loma.outline, 0.07), dist: ["tip"],
    caption: "Point Loma's tip as the model carries it: the convex hull of the charted tip. Each break's tangent lands on its own vertex, so no single point can stand for all three."},
   {id: "islands", label: "The islands", box: bboxOf([islandsS.a, islandsS.b, islandsN.a, islandsN.b], 1.4), dist: ["islands"],
    caption: "Two islands, each modelled as a screen between its two extreme-bearing vertices, with open channel between them."},
@@ -402,7 +406,7 @@ function draw() {
     const r = opts.r || 4.5;
     let n;
     if (opts.imagery) {
-      n = el("path", {d: `M${x},${y - r - 1.5} L${x + r + 1.5},${y} L${x},${y + r + 1.5} L${x - r - 1.5},${y} Z`, fill: cssv("--sea"), stroke: opts.color || cssv("--ink"), "stroke-width": 1.8, "stroke-dasharray": opts.retired ? "2 2" : "none"}, g.mark);
+      n = el("path", {d: `M${x},${y - r - 1.5} L${x + r + 1.5},${y} L${x},${y + r + 1.5} L${x - r - 1.5},${y} Z`, fill: cssv("--sea"), stroke: opts.color || cssv("--ink"), "stroke-width": 1.8, "stroke-dasharray": "2 2"}, g.mark);
     } else {
       n = el("circle", {cx: x, cy: y, r, fill: opts.color || cssv("--ink"), stroke: cssv("--sea"), "stroke-width": 1.5}, g.mark);
     }
@@ -430,11 +434,6 @@ function draw() {
     ids.forEach((id, i) => el("circle", {cx: x, cy: y, r: 7 + i * 3, fill: "none", stroke: cssv(BREAK_VAR[id]), "stroke-width": 2}, g.mark));
     vtx(v, `<b>Point Loma tangent · ${ids.map(short).join(", ")}</b><br>forms the west edge of ${ids.map(short).join(" and ")}<br>NOAA ENC ${loma.cells[0] || ""}, approach band<br><span class="coord">${fmtLL(v)}</span>`, {r: 3.5});
     if (current === "tip") label(v, ids.map(short).join(" · ") + " tangent", 12, ids.includes("coronado_north") ? -10 : 20, "t-lbl", "start");
-  }
-  // the retired imagery trace
-  if (view.s > 150) {
-    vtx(MODEL.imagery_tip, `<b>Retired: Google Earth trace of the tip</b><br>digitised 2026-09-14, replaced 2026-09-22<br>not used by the model<br><span class="coord">${fmtLL(MODEL.imagery_tip)}</span>`, {imagery: true, retired: true, r: 4, color: cssv("--faint")});
-    if (current === "tip") label(MODEL.imagery_tip, "imagery trace (retired)", -14, -10, "t-soft", "end");
   }
   vtx(loma.b, `<b>Point Loma · b</b><br>only says the ridge runs on north<br>clipped by the query envelope, not the coast<br><span class="coord">${fmtLL(loma.b)}</span>`, {r: 4, color: cssv("--land-edge")});
   label(loma.b, "Point Loma ridge continues", 10, 4, "t-soft");
@@ -553,9 +552,12 @@ document.getElementById("legend").innerHTML = [
   `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.6"/></svg>ray: break → the vertex forming that edge</span>`,
   `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 4"/></svg>the edge carried on past it</span>`,
   `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--land-edge)"/></svg>charted vertex (NOAA ENC)</span>`,
-  `<span><svg width="14" height="14"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-dasharray="2 2"/></svg>imagery trace (retired, tip view)</span>`,
   `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--land-edge)" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/></svg>land continues</span>`,
   `<span><svg width="14" height="14"><path d="M7,1 L13,12 L1,12 Z" fill="var(--surf)"/></svg>buoy ${MODEL.buoy.id}</span>`,
+  // Only when something on the map is still traced by hand: the guard that
+  // names imagery on the forecast page, drawn here as a dashed diamond.
+  ...(MODEL.breaks.some(b => b.source === "imagery")
+    ? [`<span><svg width="14" height="14"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-dasharray="2 2"/></svg>traced from imagery</span>`] : []),
 ].join("");
 
 // ---------- status ----------

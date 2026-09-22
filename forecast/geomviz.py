@@ -36,11 +36,6 @@ PLACEHOLDER = "/*__MODEL__*/null"
 #: never typed (CLAUDE.md: never type a buoy coordinate).
 BUOY = "46232"
 
-#: The Google Earth trace the tip replaced on 2026-09-22, kept so the drawing
-#: can show how far the chart moved it. History, not model input.
-IMAGERY_TIP = (32.6648144, -117.2427037)
-
-
 def buoy_position(data_dir: Path = DEFAULT_DATA_DIR) -> tuple[float, float] | None:
     path = Path(data_dir) / "station_metadata.csv"
     if not path.exists():
@@ -122,7 +117,6 @@ def build(spots_path: Path | None = None, data_dir: Path = DEFAULT_DATA_DIR,
         "breaks": breaks,
         "blockers": out_blockers,
         "buoy": {"id": BUOY, "position": buoy_position(data_dir)},
-        "imagery_tip": IMAGERY_TIP,
         "distances": distances(breaks, by_name, buoy_position(data_dir)),
     }
 
@@ -159,9 +153,6 @@ def distances(breaks: list[dict], by_name: dict[str, Blocker],
                       key=lambda pq: great_circle_km(*pq))
             add("tip", "spread of the three tangent vertices", far[0], far[1],
                 "why no single point can stand for the tip")
-        for b in breaks:
-            add("tip", f"imagery trace → {short(b['id'])} tangent", IMAGERY_TIP,
-                tangents[b["id"]], "how far the chart moved this break's vertex")
 
     south = by_name.get("Coronado Islands (south group)")
     north = by_name.get("Coronado Islands (north)")
