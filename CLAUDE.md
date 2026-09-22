@@ -174,6 +174,23 @@ forecaster actually verifies against, Surfline included.
 - **Wire in a keepalive action.** GitHub disables scheduled workflows after 60
   days of repository inactivity, and the workflow's own bot commits do not
   reliably reset that timer.
+- **GitHub's scheduler is throttled, and frequency is not a lever.** Measured
+  2026-09-22 across four schedules on this repository: the rate actually
+  DELIVERED sits near 0.2 runs an hour whatever the cron asks. 5/day got 84%,
+  hourly 26%, 2/h 11%, `*/10` **2%** — and `*/10` came out lower per hour than
+  hourly did. Raising the cron to buy freshness is a falsified idea; it was
+  tried and reverted the same day. Reliable collection is driven from outside
+  by `repository_dispatch`, and the cron is a backstop — `docs/collection_trigger.md`.
+  Keeping it inside Actions was rejected on cost: spacing runs apart needs a
+  job that sleeps, and a sleeping job holds a runner for the gap, ~24
+  runner-hours a day at any cadence.
+- **A cadence promised on screen must match the trigger that keeps it.**
+  `COLLECT_INTERVAL_MIN` in `forecast/now.py` feeds each Now card's countdown.
+  When the cron said `*/10` and GitHub was delivering one run every four hours,
+  every card called itself late against a schedule nobody was keeping — the
+  countdown reported the gap between the request and reality rather than
+  anything about the data. `tests/test_now.py` reads the cron out of the
+  workflow and fails if the two disagree; it cannot see an external scheduler.
 - **Keep the staleness alert** — no new observation in 48 hours, notify. A
   silently dead collector loses days that cannot be recovered. It did not
   visibly fire for 46232's 16-day outage; **partly explained** (BRIEFING §8):
