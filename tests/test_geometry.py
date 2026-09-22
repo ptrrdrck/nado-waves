@@ -266,3 +266,60 @@ def test_blocker_entirely_behind_the_beach_is_ignored():
 def test_spots_file_documents_what_it_leaves_out():
     data = json.loads(Path("forecast/spots.json").read_text())
     assert data["_missing"], "the omissions list is part of the model"
+
+
+# --- a rounded tip: the tangent is per observer -------------------------------
+
+class TestTipOutline:
+    """Charted 2026-09-22 (BRIEFING §26). The Point Loma tip is a rounded
+    headland, and the breaks look at it from bearings 18 degrees apart, so
+    each break's tangent lands on a different charted vertex. A single `a`
+    was wrong by up to 0.67 degrees somewhere - as large as the correction."""
+
+    def test_no_outline_means_a_is_the_edge_for_everyone(self):
+        from forecast.geometry import Blocker
+
+        b = Blocker("x", (32.0, -117.0), (32.1, -117.0))
+        assert b.a_seen_from((32.5, -117.5)) == (32.0, -117.0)
+
+    def test_the_tangent_is_taken_per_observer(self):
+        """Two observers either side of a round tip see its two shoulders."""
+
+        from forecast.geometry import Blocker
+
+        tip = ((32.000, -117.000), (31.999, -117.001), (31.999, -116.999))
+        b = Blocker("x", tip[0], (32.05, -117.0), "b", outline=tip)
+        west = b.a_seen_from((32.02, -117.05))
+        east = b.a_seen_from((32.02, -116.95))
+        assert west != east
+
+    def test_point_loma_hands_each_coronado_break_its_own_vertex(self):
+        spots, blockers = load()
+        loma = next(b for b in blockers if b.name == "Point Loma peninsula")
+        assert loma.outline, "the tip should be a charted outline"
+        seen = {s.id: loma.a_seen_from(s.position) for s in spots
+                if s.id.startswith("coronado_")}
+        assert len(set(seen.values())) == 3
+
+    def test_no_blocker_is_standing_on_imagery_any_more(self):
+        """The last imagery-derived blocker was the tip. If one comes back the
+        surface's provenance line must name it, and this test says so first."""
+
+        from forecast.geometry import geometry_provenance
+
+        _, blockers = load()
+        got = geometry_provenance(blockers)
+        assert got["from_imagery"] == []
+        assert "US4CA74M.000" in got["cells"]
+
+    def test_the_break_positions_are_still_named_as_imagery(self):
+        """With the tip charted, the only imagery left in the aperture is its
+        observer end. It must still reach the surface's provenance line."""
+
+        from forecast.geometry import geometry_line, geometry_provenance
+
+        spots, blockers = load()
+        coronado = [s for s in spots if s.id.startswith("coronado_")]
+        got = geometry_provenance(blockers, coronado)
+        assert got["breaks_from_imagery"] == [s.id for s in coronado]
+        assert "imagery for the break positions" in geometry_line(blockers, coronado)

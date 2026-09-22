@@ -310,9 +310,9 @@ def build(
         stale=True,
         station=STATION,
         station_name=station_name(STATION, data_dir),
-        geometry=geometry_provenance(blockers),
+        geometry=geometry_provenance(blockers, [by_id[b] for b in BREAKS]),
         standing_on={
-            "geometry": geometry_line(blockers),
+            "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),
             "waves": f"OBSERVED — NDBC directional spectrum at {STATION}, "
                      f"measured r1/r2, no assumed spread",
             "wind": f"OBSERVED — {WIND_STATION} METAR",

@@ -94,7 +94,10 @@ forecaster actually verifies against, Surfline included.
    beach at all, from coordinates alone. Coronado's three breaks digitised
    2026-09-14; the Coronado Islands and the Baja coast charted from NOAA's ENC
    2026-09-20, which split the islands in two and closed the southern arc on
-   land. Every window edge in the file now stands on a blocker.
+   land; the Point Loma tip charted 2026-09-22, per break. Every window edge
+   in the file now stands on a charted blocker. The break positions — the
+   aperture's other end — are still Google Earth traces, and the surface says
+   so (`breaks_from_imagery`).
 2. **A verification series. This blocks every accuracy CLAIM; it does not block
    construction.** BRIEFING §7 lists the candidates. It is also the only item
    here whose cost is wall-clock rather than work — a log started today is thin
@@ -238,11 +241,15 @@ forecaster actually verifies against, Surfline included.
                         CO-OPS's own hilo TURNS in a third file),
                         shoreline.py (NOAA's ENC coastline, by named REGION —
                         `coronado` checks the hand-traced chords, `baja` carries
-                        the islands and the Mexican coast — run on Actions),
+                        the islands and the Mexican coast, `point_loma` the
+                        tip — run on Actions),
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
+    app/geometry.html   template for the model-geometry drawing; filled by
+                        `python -m forecast.geomviz OUT.html` from spots.json,
+                        never hand-edited with coordinates
     app/beachlog.html   the phone form, owner build (shared store)
     app/beachlog-observer.html  same file, observer build — no sign-in, entries
                         stay on the phone and are handed back as text. The two
@@ -261,6 +268,8 @@ forecaster actually verifies against, Surfline included.
                         swept over scale; reports, never edits    [built]
       blockeredge.py    a blocker's edges read off the charted coast, against
                         what spots.json claims; reports, never edits  [built]
+      geomviz.py        draws the vertices the model uses, the ray to each
+                        edge's vertex, and the distances between them  [built]
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
@@ -279,7 +288,9 @@ forecaster actually verifies against, Surfline included.
                         region. `_coronado` (harbour 904 pts, approach 689,
                         coastal 312) and `_baja` (harbour 2428, approach 3691,
                         coastal 1431 - the islands and the Mexican coast to
-                        32.383, where NOAA's charts stop). A CHART product,
+                        32.383, where NOAA's charts stop) and `_point_loma`
+                        (harbour 2815, approach 1612, coastal 879 — the
+                        harbour band is holed at the tip). A CHART product,
                         generalised, not survey-grade MHW. Every file is
                         clipped by its own query envelope on all four edges,
                         which is why the region is in the filename.
@@ -298,19 +309,28 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
 ## Design rules that are easy to erode
 
 - **The three beaches are not one beach — and Coronado is not one beach.**
-  Breakers keeps 26° of west window and Gator 62°, and Gator alone holds west
+  Breakers keeps 23° of west window and Gator 62°, and Gator alone holds west
   swell. But the same mechanism runs along Coronado's own sand: the west edge
   IS the bearing to the Point Loma tip, which sweeps as you walk, giving
-  **41.6° / 47.7° / 54.7°** at the north, center and south breaks across 2.8 km.
-  That 13.1° spread is a third of the entire Breakers-to-Gator range. Any
+  **41.1° / 47.7° / 54.9°** at the north, center and south breaks across 2.8 km.
+  That 13.8° spread is a third of the entire Breakers-to-Gator range. Any
   surface showing one number for "Coronado" is averaging across it. (Those were
-  42.8 / 49.1 / 56.3 until 2026-09-20; charting the Coronado Islands moved the
-  window's LOW edge 1.2–1.9° and left the spread, which is a Point Loma
-  quantity, alone.)
-- **The Point Loma tip is one point and it carries every west edge.** 100 m of
-  error there moves an edge ~1°. It is the highest-leverage coordinate in the
+  42.8 / 49.1 / 56.3 until 2026-09-20, when charting the Coronado Islands moved
+  the LOW edge 1.2–1.9°; and 41.6 / 47.7 / 54.7 until 2026-09-22, when charting
+  the Point Loma tip moved the HIGH edge −0.53 / +0.01 / +0.17 and the spread,
+  a Point Loma quantity, from 13.1° to 13.8°.)
+- **The Point Loma tip carries every west edge, and it is not one point.** 100 m
+  of error there moves an edge ~1°; it is the highest-leverage geometry in the
   repository. Measured 2026-09-18: 250 m of tip error moves a Coronado edge
   2.2–2.8°, against 0.46° for the same error on the Coronado Islands.
+  **Charted 2026-09-22 from NOAA's ENC** (BRIEFING §26): the tip is a rounded
+  headland, each break's tangent lands on a different charted vertex up to
+  330 m apart, and any single point is wrong by up to 0.67° somewhere. So the
+  blocker carries an `outline` (the convex hull of the charted tip — only a
+  hull vertex can be a tangent) and `Blocker.a_seen_from` takes the edge per
+  break. **Never collapse it back to one point.** The approach band is used,
+  not the finer harbour band: the harbour coastline has a 336 m hole across
+  the tip, and a tangent on a line end is missing data, not coast.
 - **The Coronado Islands are not a switch, and they are not one island.**
   Charted 2026-09-20 from NOAA's ENC: **two** islands with **6.1° of open
   channel** between them, stable from a 0.3 km to a 3 km clustering distance

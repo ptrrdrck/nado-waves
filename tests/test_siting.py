@@ -67,11 +67,11 @@ def test_the_guard_still_fires_for_a_spot_the_land_does_not_surround(
 @pytest.mark.parametrize(
     "spot_id,low,high",
     [
-        ("coronado_north", 200.6, 242.2),
+        ("coronado_north", 200.6, 241.7),
         ("coronado_center", 202.6, 250.3),
-        ("coronado_south", 205.2, 259.9),
-        ("nasni_breakers", 196.9, 222.6),
-        ("nab_gator", 207.8, 269.9),
+        ("coronado_south", 205.2, 260.0),
+        ("nasni_breakers", 196.9, 220.0),
+        ("nab_gator", 207.8, 270.0),
     ],
 )
 def test_the_west_window_reproduces_the_published_numbers(
@@ -80,11 +80,13 @@ def test_the_west_window_reproduces_the_published_numbers(
     """The spread BRIEFING section 2a is built on, on the WEST window.
 
     Its low edge moved 1.2 to 1.9 degrees when the Coronado Islands were
-    charted on 2026-09-20 — the estimate they replaced understated the island
-    shadow — so the widths are 41.6 / 47.7 / 54.7 where they used to be
-    42.8 / 49.1 / 56.3. The 13 degrees of spread along Coronado's own sand,
-    which is what the section is about, is unchanged: it comes from the Point
-    Loma end, and Point Loma has not moved.
+    charted on 2026-09-20, and its HIGH edge moved -0.53 / +0.01 / +0.17 at
+    north / center / south when the Point Loma tip was charted on 2026-09-22
+    - per break, off the tip's outline, because each break's tangent lands
+    on a different vertex of a rounded headland. The widths are now
+    41.1 / 47.7 / 54.9 (were 41.6 / 47.7 / 54.7, and 42.8 / 49.1 / 56.3
+    before the islands). Breakers moves most, 2.6 degrees, being nearest the
+    tip - and it is still standing on an estimated position.
     """
 
     spots, blockers = spots_and_blockers
@@ -95,7 +97,9 @@ def test_the_west_window_reproduces_the_published_numbers(
 
 
 def test_the_spread_along_coronados_sand_survives_the_island_charting():
-    """BRIEFING section 2a's headline. It is a Point Loma quantity."""
+    """BRIEFING section 2a's headline. It is a Point Loma quantity, so it
+    moved when the tip was charted: 13.1 on the imagery trace, 13.8 on the
+    chart, because the north break's edge swung west and the south's east."""
 
     from forecast.geometry import load
     spots, blockers = load()
@@ -105,7 +109,7 @@ def test_the_spread_along_coronados_sand_survives_the_island_charting():
         low, high = swell_window(by_id[sid], blockers)[-1]
         widths[sid] = high - low
     spread = widths["coronado_south"] - widths["coronado_north"]
-    assert spread == pytest.approx(13.1, abs=0.3)
+    assert spread == pytest.approx(13.8, abs=0.3)
 
 
 # --- the criterion ----------------------------------------------------------
@@ -181,7 +185,7 @@ def test_blocker_visibility_at_the_buoy_carries_no_information(spots_and_blocker
     assert coordinates, "no coordinates to test against"
 
     def blocker_arc(position, blocker):
-        a = initial_bearing(position, blocker.a)
+        a = initial_bearing(position, blocker.a_seen_from(position))
         b = initial_bearing(position, blocker.b)
         delta = (b - a + 180.0) % 360.0 - 180.0
         return (a, a + delta) if delta >= 0 else (a + delta, a)

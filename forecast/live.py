@@ -401,9 +401,9 @@ def build(
         cycle_utc=bulletin.cycle_utc.strftime(ISO) if bulletin else None,
         station=STATION,
         station_name=station_name(STATION, data_dir),
-        geometry=geometry_provenance(blockers),
+        geometry=geometry_provenance(blockers, [by_id[b] for b in BREAKS]),
         standing_on={
-            "geometry": geometry_line(blockers),
+            "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),
             "model": "GFS-Wave, unassimilated; 0.9–1.0 ft (0.26–0.31 m) low bias at the buoy, not corrected here",
             "calibration": "none — no offshore-to-face transfer, no shoaling, no refraction, no band",
             "observation": "none — data/beach_log/ is empty; nothing has measured these breaks",

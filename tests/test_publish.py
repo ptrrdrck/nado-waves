@@ -30,7 +30,8 @@ def forecast(hours: int = 25, breaks: int = 3) -> dict:
         "geometry": {
             "chart_product": "NOAA ENC, approach band (usage band 4)",
             "cells": ["US4CA1BX.000", "US4CA74M.000"],
-            "from_imagery": ["Point Loma peninsula"],
+            "from_imagery": [],
+            "breaks_from_imagery": ["coronado_north", "coronado_center", "coronado_south"],
             "unverified": [],
         },
         "warnings": [],

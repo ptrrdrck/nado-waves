@@ -141,12 +141,14 @@ class TestTheGeometryProvenance:
             assert cell not in SOURCE
 
     def test_imagery_is_named_beside_the_charts(self):
-        """Point Loma's tip is imagery and forms an edge printed directly
-        above the line. "NOAA ENC" alone would let a reader take the whole
+        """Every edge printed above the line runs from a break to a blocker.
+        The blockers are charted as of 2026-09-22; the break positions are
+        still imagery, and "NOAA ENC" alone would let a reader take the whole
         aperture as charted."""
 
         assert "from_imagery" in SOURCE
         assert "from imagery" in SOURCE
+        assert "breaks_from_imagery" in SOURCE
 
     def test_the_provenance_reads_from_the_tab_on_screen(self):
         """The two chains carry the same geometry. Reading it from the other

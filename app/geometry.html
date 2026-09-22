@@ -1,0 +1,602 @@
+<title>The Coronado Aperture</title>
+<meta name="description" content="Every vertex the Coronado forecast's geometry uses, plotted and connected, with the rays that form each break's swell window.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Tokens are app/forecast.html's, so the two pages read as one product. The
+   three break hues are the first three slots of the validated categorical
+   palette (all-pairs safe in both modes); nothing else on the page is
+   coloured by break. */
+:root{
+  --paper:#EAEEEC; --card:#F6F8F7; --ink:#16232B; --soft:#53656E; --faint:#7C8C93;
+  --line:#CBD5D1; --line-strong:#AFBDB8;
+  --surf:#1565C0; --surf-ink:#FFFFFF; --surf-wash:#DCE7F7;
+  --sand:#D9C9A8; --sand-deep:#8F7A4E; --land-edge:#6B5A36;
+  --sea:#E3EBEF; --grid:#D4DEE2;
+  --north:#2a78d6; --center:#eb6834; --south:#1baf7a;
+  --r:10px;
+  --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+    --line:#283C46; --line-strong:#3A525E;
+    --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
+    --sand:#5C4F36; --sand-deep:#B59E6C; --land-edge:#CDB684;
+    --sea:#112129; --grid:#1D313B;
+    --north:#3987e5; --center:#d95926; --south:#199e70;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+  --line:#283C46; --line-strong:#3A525E;
+  --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
+  --sand:#5C4F36; --sand-deep:#B59E6C; --land-edge:#CDB684;
+  --sea:#112129; --grid:#1D313B;
+  --north:#3987e5; --center:#d95926; --south:#199e70;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 16px/1.5 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:22px 48px;
+  display:flex;flex-direction:column;gap:22px}
+h1,h2,.lbl,.chip,.seg button{font-family:"Barlow Condensed",Archivo,sans-serif}
+h1{font-weight:700;font-size:clamp(30px,5vw,40px);line-height:1.05;margin:0;
+  letter-spacing:.01em;text-wrap:balance}
+h2{font-weight:700;font-size:22px;margin:0;text-wrap:balance}
+.lbl{font-weight:600;text-transform:uppercase;letter-spacing:.09em;font-size:13px;color:var(--soft)}
+p{margin:0;max-width:68ch}
+.mono,td.num,.coord{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  font-variant-numeric:tabular-nums;font-size:13px}
+header{display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line);padding-bottom:16px}
+.lede{color:var(--soft)}
+.status{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;
+  padding:4px 10px;border:1px solid var(--line-strong);border-radius:999px;background:var(--card)}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--sand-deep);flex:none}
+.pill i.ring{background:transparent;border:2px dashed var(--soft);width:11px;height:11px}
+
+/* controls: one row above the map */
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:3px;box-shadow:var(--shadow)}
+.seg button{font:inherit;font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
+  text-transform:uppercase;letter-spacing:.07em;font-size:14px;padding:7px 11px;border:0;
+  border-radius:calc(var(--r) - 3px);background:transparent;color:var(--soft);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surf);color:var(--surf-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-weight:600;font-size:14px;letter-spacing:.05em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;
+  border:1px solid var(--line-strong);background:var(--card);color:var(--ink);cursor:pointer}
+.chip i{width:10px;height:10px;border-radius:2px;flex:none}
+.chip[aria-pressed="false"]{color:var(--faint);background:transparent}
+.chip[aria-pressed="false"] i{opacity:.25}
+button:focus-visible{outline:2px solid var(--surf);outline-offset:2px}
+
+/* the map */
+.mapbox{position:relative;background:var(--sea);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+#map{display:block;width:100%;height:min(68vh,620px);min-height:340px;touch-action:none;cursor:grab}
+#map.dragging{cursor:grabbing}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
+.zoom button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line-strong);
+  background:var(--card);color:var(--ink);font:600 18px/1 Archivo,sans-serif;cursor:pointer}
+.caption{position:absolute;left:10px;bottom:10px;right:56px;font-size:13px;color:var(--soft);
+  pointer-events:none;text-shadow:0 0 3px var(--sea),0 0 3px var(--sea)}
+#tip{position:absolute;pointer-events:none;background:var(--card);color:var(--ink);
+  border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;font-size:13px;
+  box-shadow:var(--shadow);max-width:280px;line-height:1.4}
+#tip b{font-weight:600}
+#tip .coord{color:var(--soft);font-size:12px}
+
+svg text{font-family:Archivo,system-ui,sans-serif}
+.t-lbl{font-size:12px;fill:var(--ink);paint-order:stroke;stroke:var(--sea);stroke-width:3.5px;stroke-linejoin:round}
+.t-soft{font-size:11px;fill:var(--soft);paint-order:stroke;stroke:var(--sea);stroke-width:3.5px;stroke-linejoin:round}
+.t-dist{font:500 11.5px "IBM Plex Mono",ui-monospace,monospace;fill:var(--ink)}
+.t-cond{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:700;font-size:15px;
+  letter-spacing:.04em;text-transform:uppercase}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;color:var(--soft)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend svg{flex:none}
+
+section{display:flex;flex-direction:column;gap:12px}
+.note{font-size:14px;color:var(--soft)}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
+  letter-spacing:.07em;font-size:13px;color:var(--soft);text-align:left;padding:9px 12px;
+  border-bottom:1px solid var(--line-strong);white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;white-space:nowrap}
+td .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:1px}
+.src{font-size:12px;padding:2px 7px;border-radius:999px;border:1px solid var(--line-strong);white-space:nowrap}
+.src.img{border-style:dashed;color:var(--soft)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px}
+footer{font-size:13px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="lbl">Nado Waves · model geometry</span>
+    <h1>The Coronado aperture</h1>
+    <p class="lede">Every vertex the forecast's geometry uses, drawn where it sits and joined the way the
+      model joins it. Each coloured ray runs from a break to the one vertex that forms that edge of its
+      swell window — the vertex whose error would move the edge. This is the model, not the chart: the
+      stored ENC extracts hold thousands of coastline vertices, and the aperture is decided by a few dozen.</p>
+    <div class="status" id="status"></div>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="View" id="views"></div>
+    <div class="chips" role="group" aria-label="Breaks" id="breakchips"></div>
+    <div class="chips" role="group" aria-label="Layers" id="layerchips"></div>
+  </div>
+
+  <div class="mapbox">
+    <svg id="map" role="img" aria-label="Map of the model's vertices, window edges and distances"></svg>
+    <div class="zoom">
+      <button id="zin" aria-label="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out">−</button>
+    </div>
+    <div class="caption" id="caption"></div>
+    <div id="tip" hidden></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <section>
+    <h2>Windows, and the vertex behind each edge</h2>
+    <p class="note">Bearings are the direction swell comes FROM. “100 m moves it” is how far the edge swings if
+      that one vertex is wrong by 100 m (328 ft) — the leverage of each coordinate.</p>
+    <div class="tablebox"><table id="wtable"></table></div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>Vertices in use</h2>
+      <div class="tablebox"><table id="vtable"></table></div>
+    </section>
+    <section>
+      <h2>Distances</h2>
+      <div class="tablebox"><table id="dtable"></table></div>
+    </section>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const MODEL = /*__MODEL__*/null;
+
+// Display units only. The payload is km and degrees end to end; imperial leads
+// and metric follows in parentheses, as everywhere else in this project.
+const KM_PER_MI = 1.609344, FT_PER_M = 3.28084;
+const fmtDist = (km) => km < 1
+  ? `${Math.round(km * 1000 * FT_PER_M).toLocaleString()} ft (${Math.round(km * 1000)} m)`
+  : `${(km / KM_PER_MI).toFixed(km < 16 ? 2 : 1)} mi (${km.toFixed(km < 10 ? 2 : 1)} km)`;
+const fmtBrg = (d) => `${d.toFixed(1)}°`;
+const fmtLL = (p) => `${p[0].toFixed(5)}, ${p[1].toFixed(5)}`;
+
+const BREAK_VAR = {coronado_north: "--north", coronado_center: "--center", coronado_south: "--south"};
+const short = (id) => id.replace("coronado_", "");
+const cssv = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SHORT_BLOCKER = {
+  "Point Loma peninsula": "Point Loma",
+  "Coronado Islands (south group)": "Islands S",
+  "Coronado Islands (north)": "Islands N",
+  "Baja mainland": "Baja coast",
+};
+
+// ---------- projection: local equirectangular, km, north up ----------
+const C = MODEL.breaks.find(b => b.id === "coronado_center") || MODEL.breaks[0];
+const LAT0 = C.position[0], LON0 = C.position[1];
+const KX = 111.320 * Math.cos(LAT0 * Math.PI / 180), KY = 110.574;
+const P = (p) => [(p[1] - LON0) * KX, (p[0] - LAT0) * KY];
+
+const svg = document.getElementById("map");
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+
+const loma = MODEL.blockers.find(b => b.name === "Point Loma peninsula");
+const islandsS = MODEL.blockers.find(b => b.name === "Coronado Islands (south group)");
+const islandsN = MODEL.blockers.find(b => b.name === "Coronado Islands (north)");
+const baja = MODEL.blockers.find(b => b.name === "Baja mainland");
+
+// The vertex each break takes off the tip, from the payload's own edges.
+const tangentOf = {};
+for (const b of MODEL.breaks)
+  for (const w of b.windows)
+    for (const e of w.edges)
+      if (e.blocker === "Point Loma peninsula") tangentOf[b.id] = e.vertex;
+
+// ---------- views ----------
+const bboxOf = (pts, padKm) => {
+  const xy = pts.map(P);
+  const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
+  return [Math.min(...xs) - padKm, Math.min(...ys) - padKm, Math.max(...xs) + padKm, Math.max(...ys) + padKm];
+};
+const allPts = [...MODEL.breaks.map(b => b.position),
+  ...MODEL.blockers.flatMap(b => [b.a, b.b]), ...(MODEL.buoy.position ? [MODEL.buoy.position] : [])];
+const VIEWS = [
+  {id: "whole", label: "Whole aperture", box: bboxOf(allPts, 2.5), dist: ["far"],
+   caption: "The full aperture: Point Loma 5–7 km out, the Baja coast 23–25 km, the islands 28–33 km. Every window edge ends on a charted vertex."},
+  {id: "near", label: "Point Loma & breaks", box: bboxOf([...MODEL.breaks.flatMap(b => b.chord), ...Object.values(tangentOf), loma.a], 0.6), dist: ["near", "beach"],
+   caption: "The west edge of each window is the ray to the Point Loma tip. It sweeps as you walk the sand — that sweep is the whole difference between the three breaks."},
+  {id: "tip", label: "The tip", box: bboxOf([...loma.outline, MODEL.imagery_tip], 0.07), dist: ["tip"],
+   caption: "Point Loma's tip as the model carries it: the convex hull of the charted tip. Each break's tangent lands on its own vertex, so no single point can stand for all three."},
+  {id: "islands", label: "The islands", box: bboxOf([islandsS.a, islandsS.b, islandsN.a, islandsN.b], 1.4), dist: ["islands"],
+   caption: "Two islands, each modelled as a screen between its two extreme-bearing vertices, with open channel between them."},
+];
+
+let view = {cx: 0, cy: 0, s: 20};   // s = px per km
+let current = "near";
+const state = {breaks: new Set(MODEL.breaks.map(b => b.id)), wedges: true, rays: true, dists: true};
+
+function size() { const r = svg.getBoundingClientRect(); return [r.width, r.height]; }
+function fit(box) {
+  const [w, h] = size();
+  const bw = box[2] - box[0], bh = box[3] - box[1];
+  view = {cx: (box[0] + box[2]) / 2, cy: (box[1] + box[3]) / 2, s: Math.min(w / bw, h / bh)};
+}
+const S = (p) => {       // lat/lon -> screen px
+  const [x, y] = P(p); const [w, h] = size();
+  return [w / 2 + (x - view.cx) * view.s, h / 2 - (y - view.cy) * view.s];
+};
+const SK = (xy) => { const [w, h] = size(); return [w / 2 + (xy[0] - view.cx) * view.s, h / 2 - (xy[1] - view.cy) * view.s]; };
+
+// A point `km` along a compass bearing from p, in projected km.
+const along = (p, brg, km) => { const [x, y] = P(p); const r = brg * Math.PI / 180; return [x + km * Math.sin(r), y + km * Math.cos(r)]; };
+
+// ---------- tooltip ----------
+const tip = document.getElementById("tip");
+function hoverable(node, html) {
+  node.style.cursor = "pointer";
+  const show = (ev) => {
+    tip.innerHTML = html; tip.hidden = false;
+    const box = svg.getBoundingClientRect();
+    let x = ev.clientX - box.left + 14, y = ev.clientY - box.top + 14;
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    if (x + tw > box.width - 8) x = ev.clientX - box.left - tw - 14;
+    if (y + th > box.height - 8) y = ev.clientY - box.top - th - 14;
+    tip.style.left = Math.max(6, x) + "px"; tip.style.top = Math.max(6, y) + "px";
+  };
+  node.addEventListener("pointerenter", show);
+  node.addEventListener("pointermove", show);
+  node.addEventListener("pointerleave", () => { tip.hidden = true; });
+  node.addEventListener("pointerdown", (ev) => { ev.stopPropagation(); show(ev); });
+}
+
+// ---------- drawing ----------
+function draw() {
+  svg.replaceChildren();
+  const [w, h] = size();
+  const g = {
+    grid: el("g", {}, svg), wedge: el("g", {}, svg), land: el("g", {}, svg),
+    ray: el("g", {}, svg), dist: el("g", {}, svg), mark: el("g", {}, svg), text: el("g", {}, svg),
+  };
+
+  // 1 km or 10 km graticule, whichever reads at this scale
+  const stepKm = view.s > 400 ? 0.1 : view.s > 40 ? 1 : 10;
+  const x0 = view.cx - w / 2 / view.s, x1 = view.cx + w / 2 / view.s;
+  const y0 = view.cy - h / 2 / view.s, y1 = view.cy + h / 2 / view.s;
+  for (let x = Math.ceil(x0 / stepKm) * stepKm; x <= x1; x += stepKm) {
+    const [sx] = SK([x, 0]); el("line", {x1: sx, x2: sx, y1: 0, y2: h, stroke: cssv("--grid"), "stroke-width": 1}, g.grid);
+  }
+  for (let y = Math.ceil(y0 / stepKm) * stepKm; y <= y1; y += stepKm) {
+    const [, sy] = SK([0, y]); el("line", {x1: 0, x2: w, y1: sy, y2: sy, stroke: cssv("--grid"), "stroke-width": 1}, g.grid);
+  }
+
+  const REACH = 80;   // km: long enough to leave any view
+  const shown = MODEL.breaks.filter(b => state.breaks.has(b.id));
+
+  // window wedges
+  if (state.wedges) for (const b of shown) {
+    const col = cssv(BREAK_VAR[b.id]);
+    for (const win of b.windows) {
+      const o = S(b.position);
+      const pts = [o];
+      for (let t = win.from; t <= win.to + 1e-9; t += Math.max(0.25, (win.to - win.from) / 60)) pts.push(SK(along(b.position, t, REACH)));
+      pts.push(SK(along(b.position, win.to, REACH)));
+      el("polygon", {points: pts.map(p => p.join(",")).join(" "), fill: col, "fill-opacity": 0.06, stroke: "none"}, g.wedge);
+    }
+  }
+
+  // land, as the model has it
+  const land = cssv("--sand"), edge = cssv("--land-edge"), deep = cssv("--sand-deep");
+  // Point Loma: the charted hull, then the ridge running on to `b` and beyond
+  // The hull's northern side is where the tip extract was cut (32.672 N), not
+  // coast, so it is filled but not stroked: only charted edges get a line.
+  const hull = loma.outline.map(S);
+  const cutLat = Math.max(...loma.outline.map(p => p[0])) - 0.0009;
+  el("polygon", {points: hull.map(p => p.join(",")).join(" "), fill: land, stroke: "none"}, g.land);
+  loma.outline.forEach((p, i) => {
+    const q = loma.outline[(i + 1) % loma.outline.length];
+    if (p[0] > cutLat && q[0] > cutLat) return;
+    const [x1, y1] = S(p), [x2, y2] = S(q);
+    el("line", {x1, y1, x2, y2, stroke: edge, "stroke-width": 1.5, "stroke-linecap": "round"}, g.land);
+  });
+  const top = loma.outline.reduce((m, p) => p[0] > m[0] ? p : m, loma.outline[0]);
+  const lb = S(loma.b), lt = S(top);
+  el("line", {x1: lt[0], y1: lt[1], x2: lb[0], y2: lb[1], stroke: edge, "stroke-width": 3, "stroke-linecap": "round"}, g.land);
+  const brgUp = Math.atan2(lb[0] - lt[0], -(lb[1] - lt[1]));
+  const onward = [lb[0] + Math.sin(brgUp) * 60, lb[1] - Math.cos(brgUp) * 60];
+  el("line", {x1: lb[0], y1: lb[1], x2: onward[0], y2: onward[1], stroke: edge, "stroke-width": 3, "stroke-dasharray": "2 6", "stroke-linecap": "round"}, g.land);
+  // Islands: a screen between two vertices
+  for (const isl of [islandsS, islandsN]) {
+    const a = S(isl.a), b2 = S(isl.b);
+    el("line", {x1: a[0], y1: a[1], x2: b2[0], y2: b2[1], stroke: deep, "stroke-width": 5, "stroke-linecap": "round"}, g.land);
+  }
+  // Baja: the tangent vertex, and the coast continuing past `b`
+  { const a = S(baja.a), b2 = S(baja.b);
+    el("line", {x1: a[0], y1: a[1], x2: b2[0], y2: b2[1], stroke: edge, "stroke-width": 3, "stroke-linecap": "round"}, g.land);
+    const ang = Math.atan2(b2[1] - a[1], b2[0] - a[0]);
+    el("line", {x1: b2[0], y1: b2[1], x2: b2[0] + Math.cos(ang) * 60, y2: b2[1] + Math.sin(ang) * 60, stroke: edge, "stroke-width": 3, "stroke-dasharray": "2 6", "stroke-linecap": "round"}, g.land);
+  }
+
+  // rays: break -> the vertex that forms each edge, then on past it, dashed
+  if (state.rays) for (const b of shown) {
+    const col = cssv(BREAK_VAR[b.id]);
+    const o = S(b.position);
+    for (const win of b.windows) for (const e of win.edges) {
+      if (!e.vertex) continue;
+      const v = S(e.vertex), far = SK(along(b.position, e.bearing, REACH));
+      el("line", {x1: o[0], y1: o[1], x2: v[0], y2: v[1], stroke: col, "stroke-width": 1.6, "stroke-opacity": 0.9}, g.ray);
+      el("line", {x1: v[0], y1: v[1], x2: far[0], y2: far[1], stroke: col, "stroke-width": 1.2, "stroke-dasharray": "5 5", "stroke-opacity": 0.55}, g.ray);
+      const hit = el("line", {x1: o[0], y1: o[1], x2: v[0], y2: v[1], stroke: "transparent", "stroke-width": 12}, g.ray);
+      hoverable(hit, `<b>${short(b.id)} · ${e.side === "high" ? "high" : "low"} edge ${fmtBrg(e.bearing)}</b><br>formed by ${e.blocker}<br>ray length ${fmtDist(e.range_km)}<br><span class="coord">${fmtLL(e.vertex)}</span>`);
+    }
+  }
+
+  // distances for this view
+  if (state.dists) {
+    const groups = VIEWS.find(v => v.id === current).dist;
+    const ink = cssv("--ink"), card = cssv("--card");
+    const placed = [];
+    for (const d of MODEL.distances.filter(d => groups.includes(d.group))) {
+      const a = S(d.a), b2 = S(d.b);
+      const len = Math.hypot(b2[0] - a[0], b2[1] - a[1]);
+      if (len < 26) continue;
+      const nx = -(b2[1] - a[1]) / len, ny = (b2[0] - a[0]) / len;
+      el("line", {x1: a[0], y1: a[1], x2: b2[0], y2: b2[1], stroke: ink, "stroke-width": 1, "stroke-opacity": 0.7, "stroke-dasharray": "1 3"}, g.dist);
+      for (const p of [a, b2]) el("line", {x1: p[0] - nx * 5, y1: p[1] - ny * 5, x2: p[0] + nx * 5, y2: p[1] + ny * 5, stroke: ink, "stroke-width": 1.2}, g.dist);
+      const label = fmtDist(d.km);
+      const t = el("text", {"text-anchor": "middle", class: "t-dist"}, g.text);
+      t.textContent = label;
+      // Slide the label along its own line until it clears the ones placed.
+      const hits = (bb) => placed.some(q => bb.x < q.x + q.width + 6 && q.x < bb.x + bb.width + 6 && bb.y < q.y + q.height + 4 && q.y < bb.y + bb.height + 4);
+      let bb, free = false;
+      for (const f of [0.5, 0.38, 0.62, 0.27, 0.73, 0.18, 0.82]) {
+        t.setAttribute("x", a[0] + (b2[0] - a[0]) * f); t.setAttribute("y", a[1] + (b2[1] - a[1]) * f + 4);
+        bb = t.getBBox();
+        if (!hits(bb)) { free = true; break; }
+      }
+      // Near-parallel lines (the tip's three tangents) share every slot, so
+      // stack the label below its neighbours instead.
+      for (let k = 0; !free && k < 8; k++) {
+        t.setAttribute("x", (a[0] + b2[0]) / 2); t.setAttribute("y", (a[1] + b2[1]) / 2 + 4 + (k + 1) * 22);
+        bb = t.getBBox(); free = !hits(bb);
+      }
+      placed.push(bb);
+      const bg = el("rect", {x: bb.x - 5, y: bb.y - 2, width: bb.width + 10, height: bb.height + 4, rx: 4, fill: card, stroke: cssv("--line-strong")}, g.text);
+      g.text.insertBefore(bg, t);
+      hoverable(bg, `<b>${d.label}</b><br>${fmtDist(d.km)}${d.note ? `<br>${d.note}` : ""}`);
+    }
+  }
+
+  // vertices
+  const vtx = (p, html, opts = {}) => {
+    const [x, y] = S(p);
+    const r = opts.r || 4.5;
+    let n;
+    if (opts.imagery) {
+      n = el("path", {d: `M${x},${y - r - 1.5} L${x + r + 1.5},${y} L${x},${y + r + 1.5} L${x - r - 1.5},${y} Z`, fill: cssv("--sea"), stroke: opts.color || cssv("--ink"), "stroke-width": 1.8, "stroke-dasharray": opts.retired ? "2 2" : "none"}, g.mark);
+    } else {
+      n = el("circle", {cx: x, cy: y, r, fill: opts.color || cssv("--ink"), stroke: cssv("--sea"), "stroke-width": 1.5}, g.mark);
+    }
+    const hit = el("circle", {cx: x, cy: y, r: Math.max(r + 6, 10), fill: "transparent"}, g.mark);
+    hoverable(hit, html);
+    return [x, y];
+  };
+  const label = (p, text, dx = 8, dy = -8, cls = "t-lbl", anchor = "start") => {
+    const [x, y] = S(p);
+    const t = el("text", {x: x + dx, y: y + dy, class: cls, "text-anchor": anchor}, g.text);
+    t.textContent = text; return t;
+  };
+
+  // Point Loma hull vertices, when there is room to see them
+  if (view.s > 250) for (const p of loma.outline) {
+    const used = Object.entries(tangentOf).filter(([, v]) => v[0] === p[0] && v[1] === p[1]).map(([k]) => short(k));
+    if (used.length) continue;
+    vtx(p, `<b>Point Loma hull vertex</b><br>NOAA ENC, approach band<br>not a tangent from any Coronado break<br><span class="coord">${fmtLL(p)}</span>`, {r: 2.6, color: cssv("--land-edge")});
+  }
+  // the three tangent vertices, ringed in their break's colour
+  const tangentGroups = {};
+  for (const [id, v] of Object.entries(tangentOf)) (tangentGroups[v.join()] ||= {v, ids: []}).ids.push(id);
+  for (const {v, ids} of Object.values(tangentGroups)) {
+    const [x, y] = S(v);
+    ids.forEach((id, i) => el("circle", {cx: x, cy: y, r: 7 + i * 3, fill: "none", stroke: cssv(BREAK_VAR[id]), "stroke-width": 2}, g.mark));
+    vtx(v, `<b>Point Loma tangent · ${ids.map(short).join(", ")}</b><br>forms the west edge of ${ids.map(short).join(" and ")}<br>NOAA ENC ${loma.cells[0] || ""}, approach band<br><span class="coord">${fmtLL(v)}</span>`, {r: 3.5});
+    if (current === "tip") label(v, ids.map(short).join(" · ") + " tangent", 12, ids.includes("coronado_north") ? -10 : 20, "t-lbl", "start");
+  }
+  // the retired imagery trace
+  if (view.s > 150) {
+    vtx(MODEL.imagery_tip, `<b>Retired: Google Earth trace of the tip</b><br>digitised 2026-09-14, replaced 2026-09-22<br>not used by the model<br><span class="coord">${fmtLL(MODEL.imagery_tip)}</span>`, {imagery: true, retired: true, r: 4, color: cssv("--faint")});
+    if (current === "tip") label(MODEL.imagery_tip, "imagery trace (retired)", -14, -10, "t-soft", "end");
+  }
+  vtx(loma.b, `<b>Point Loma · b</b><br>only says the ridge runs on north<br>clipped by the query envelope, not the coast<br><span class="coord">${fmtLL(loma.b)}</span>`, {r: 4, color: cssv("--land-edge")});
+  label(loma.b, "Point Loma ridge continues", 10, 4, "t-soft");
+
+  for (const isl of [islandsS, islandsN]) {
+    for (const [k, p] of [["a", isl.a], ["b", isl.b]])
+      vtx(p, `<b>${isl.name} · ${k}</b><br>extreme-bearing vertex, NOAA ENC ${isl.cells.join(", ")}<br>screen width ${fmtDist(isl.span_km)}<br><span class="coord">${fmtLL(p)}</span>`, {color: cssv("--land-edge")});
+    const west = isl.a[1] < isl.b[1] ? isl.a : isl.b;
+    label(west, isl === islandsS ? "Coronado Islands · south group" : "Coronado Islands · north", -12, 4, "t-soft", "end");
+  }
+  vtx(baja.a, `<b>Baja coast · tangent</b><br>one vertex carries every south edge<br>NOAA ENC ${baja.cells.join(", ")}<br><span class="coord">${fmtLL(baja.a)}</span>`, {color: cssv("--land-edge")});
+  vtx(baja.b, `<b>Baja coast · b</b><br>says only that the coast runs on south<br><span class="coord">${fmtLL(baja.b)}</span>`, {r: 3.5, color: cssv("--land-edge")});
+  label(baja.a, "Baja coast · tangent", 10, 4, "t-soft");
+
+  if (MODEL.buoy.position) {
+    const [x, y] = S(MODEL.buoy.position);
+    const tri = el("path", {d: `M${x},${y - 8} L${x + 7},${y + 5} L${x - 7},${y + 5} Z`, fill: cssv("--surf"), stroke: cssv("--sea"), "stroke-width": 1.5}, g.mark);
+    const hit = el("circle", {cx: x, cy: y, r: 12, fill: "transparent"}, g.mark);
+    hoverable(hit, `<b>Buoy ${MODEL.buoy.id}</b><br>the anchor spectrum; position from NDBC metadata<br><span class="coord">${fmtLL(MODEL.buoy.position)}</span>`);
+    label(MODEL.buoy.position, `buoy ${MODEL.buoy.id}`, 10, 4, "t-soft");
+  }
+
+  // breaks: chord (imagery), position, normal
+  for (const b of MODEL.breaks) {
+    const on = state.breaks.has(b.id);
+    const col = cssv(BREAK_VAR[b.id]);
+    const [p1, p2] = b.chord.map(S);
+    el("line", {x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], stroke: col, "stroke-width": 4, "stroke-linecap": "round", "stroke-opacity": on ? 1 : 0.35}, g.mark);
+    if (view.s > 60) {
+      const nEnd = SK(along(b.position, b.normal, 0.35));
+      const o = S(b.position);
+      el("line", {x1: o[0], y1: o[1], x2: nEnd[0], y2: nEnd[1], stroke: col, "stroke-width": 1.5, "stroke-opacity": on ? 0.9 : 0.3, "marker-end": "none"}, g.mark);
+    }
+    b.chord.forEach((p, i) => vtx(p, `<b>${short(b.id)} chord · end ${i + 1}</b><br>${b.method}, ${b.date}<br>chord ${fmtDist(b.chord_m / 1000)}<br><span class="coord">${fmtLL(p)}</span>`, {imagery: true, r: 3.5, color: col}));
+    vtx(b.position, `<b>${b.name}</b><br>position = chord midpoint (imagery)<br>faces ${fmtBrg(b.normal)}<br>${b.windows.map(w => `${fmtBrg(w.from)}–${fmtBrg(w.to)}`).join(" · ")}<br><span class="coord">${fmtLL(b.position)}</span>`, {r: 4.5, color: col});
+    if (view.s > 40) label(b.position, short(b.id), 12, 5, "t-lbl t-cond");
+  }
+  if (view.s <= 40) label(C.position, "Coronado breaks", 14, 5, "t-lbl t-cond");
+
+  // scale bar
+  const nice = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20];
+  const target = 110 / view.s; const sk = nice.find(n => n >= target) || 20;
+  const bx = 14, by = 20, bw = sk * view.s;
+  const sb = el("g", {}, svg);
+  el("rect", {x: bx - 6, y: by - 14, width: bw + 12, height: 24, rx: 5, fill: cssv("--card"), "fill-opacity": 0.85}, sb);
+  el("line", {x1: bx, y1: by, x2: bx + bw, y2: by, stroke: cssv("--ink"), "stroke-width": 2}, sb);
+  for (const x of [bx, bx + bw]) el("line", {x1: x, y1: by - 5, x2: x, y2: by + 1, stroke: cssv("--ink"), "stroke-width": 2}, sb);
+  const st = el("text", {x: bx + bw / 2, y: by - 4, "text-anchor": "middle", class: "t-dist"}, sb);
+  st.textContent = fmtDist(sk);
+  const nt = el("text", {x: bx + bw + 16, y: by + 4, class: "t-soft"}, sb); nt.textContent = "N ↑";
+
+  document.getElementById("caption").textContent = VIEWS.find(v => v.id === current).caption;
+}
+
+// ---------- controls ----------
+const viewsBox = document.getElementById("views");
+for (const v of VIEWS) {
+  const b = document.createElement("button");
+  b.id = "view-" + v.id; b.textContent = v.label; b.setAttribute("aria-pressed", v.id === current);
+  b.onclick = () => { current = v.id; fit(v.box); syncViews(); draw(); };
+  viewsBox.appendChild(b);
+}
+const syncViews = () => viewsBox.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.id === "view-" + current));
+
+const bc = document.getElementById("breakchips");
+for (const b of MODEL.breaks) {
+  const c = document.createElement("button");
+  c.className = "chip"; c.id = "brk-" + b.id; c.setAttribute("aria-pressed", "true");
+  c.innerHTML = `<i style="background:var(${BREAK_VAR[b.id]})"></i>${short(b.id)}`;
+  c.onclick = () => { state.breaks.has(b.id) ? state.breaks.delete(b.id) : state.breaks.add(b.id);
+    c.setAttribute("aria-pressed", state.breaks.has(b.id)); draw(); };
+  bc.appendChild(c);
+}
+const lc = document.getElementById("layerchips");
+for (const [k, text] of [["wedges", "Windows"], ["rays", "Edge rays"], ["dists", "Distances"]]) {
+  const c = document.createElement("button");
+  c.className = "chip"; c.id = "layer-" + k; c.setAttribute("aria-pressed", "true"); c.textContent = text;
+  c.onclick = () => { state[k] = !state[k]; c.setAttribute("aria-pressed", state[k]); draw(); };
+  lc.appendChild(c);
+}
+
+// pan, wheel zoom, pinch
+const pointers = new Map(); let pinch0 = null;
+const zoomAt = (f, sx, sy) => {
+  const [w, h] = size();
+  const kx = view.cx + (sx - w / 2) / view.s, ky = view.cy - (sy - h / 2) / view.s;
+  view.s = Math.min(Math.max(view.s * f, 2), 20000);
+  view.cx = kx - (sx - w / 2) / view.s; view.cy = ky + (sy - h / 2) / view.s;
+  draw();
+};
+svg.addEventListener("wheel", (e) => { e.preventDefault(); const r = svg.getBoundingClientRect();
+  zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, {passive: false});
+svg.addEventListener("pointerdown", (e) => { tip.hidden = true; svg.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, [e.clientX, e.clientY]); svg.classList.add("dragging");
+  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = {d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: view.s}; } });
+svg.addEventListener("pointermove", (e) => {
+  if (!pointers.has(e.pointerId)) return;
+  const prev = pointers.get(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pointers.size === 1) { view.cx -= (e.clientX - prev[0]) / view.s; view.cy += (e.clientY - prev[1]) / view.s; draw(); }
+  else if (pointers.size === 2 && pinch0) {
+    const [a, b] = [...pointers.values()]; const r = svg.getBoundingClientRect();
+    const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    zoomAt((pinch0.s * d / pinch0.d) / view.s, (a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top);
+  }
+});
+const up = (e) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = null; if (!pointers.size) svg.classList.remove("dragging"); };
+svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
+document.getElementById("zin").onclick = () => { const [w, h] = size(); zoomAt(1.6, w / 2, h / 2); };
+document.getElementById("zout").onclick = () => { const [w, h] = size(); zoomAt(1 / 1.6, w / 2, h / 2); };
+let lastW = 0;
+new ResizeObserver(() => { const [w] = size(); if (Math.abs(w - lastW) > 2) { lastW = w; fit(VIEWS.find(v => v.id === current).box); draw(); } }).observe(svg);
+
+// ---------- legend ----------
+document.getElementById("legend").innerHTML = [
+  `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.6"/></svg>ray: break → the vertex forming that edge</span>`,
+  `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 4"/></svg>the edge carried on past it</span>`,
+  `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--land-edge)"/></svg>charted vertex (NOAA ENC)</span>`,
+  `<span><svg width="14" height="14"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="none" stroke="var(--ink)" stroke-width="1.8"/></svg>traced from imagery</span>`,
+  `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--land-edge)" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/></svg>land continues</span>`,
+  `<span><svg width="14" height="14"><path d="M7,1 L13,12 L1,12 Z" fill="var(--surf)"/></svg>buoy ${MODEL.buoy.id}</span>`,
+].join("");
+
+// ---------- status ----------
+const charted = MODEL.blockers.filter(b => b.cells.length).length;
+const imageryBreaks = MODEL.breaks.filter(b => b.source === "imagery").length;
+document.getElementById("status").innerHTML =
+  `<span class="pill"><i></i>${charted} of ${MODEL.blockers.length} blockers from NOAA ENC</span>` +
+  (imageryBreaks ? `<span class="pill"><i class="ring"></i>${imageryBreaks} break positions still traced from imagery</span>` : "");
+
+// ---------- tables ----------
+const vbl = (x) => SHORT_BLOCKER[x] || x;
+const costs = (km) => (100 / 1000 / km) * 180 / Math.PI;
+document.getElementById("wtable").innerHTML =
+  `<thead><tr><th>Break</th><th>Window</th><th>Span</th><th>Edge</th><th>Formed by</th><th>Vertex</th><th>Ray</th><th>100 m moves it</th></tr></thead><tbody>` +
+  MODEL.breaks.flatMap(b => b.windows.flatMap(w => w.edges.map((e, i) => `<tr>
+    <td>${i === 0 && w === b.windows[0] ? `<span class="sw" style="background:var(${BREAK_VAR[b.id]})"></span>${short(b.id)}` : ""}</td>
+    <td class="num">${i === 0 ? `${fmtBrg(w.from)}–${fmtBrg(w.to)}` : ""}</td>
+    <td class="num">${i === 0 ? fmtBrg(w.span) : ""}</td>
+    <td class="num">${e.side} ${fmtBrg(e.bearing)}</td>
+    <td>${e.blocker ? vbl(e.blocker) : "seaward limit"}</td>
+    <td class="coord">${e.vertex ? fmtLL(e.vertex) : "—"}</td>
+    <td class="num">${e.range_km ? fmtDist(e.range_km) : "—"}</td>
+    <td class="num">${e.range_km ? costs(e.range_km).toFixed(2) + "°" : "—"}</td></tr>`))).join("") + `</tbody>`;
+
+const vrows = [];
+for (const b of MODEL.breaks) {
+  b.chord.forEach((p, i) => vrows.push([`${short(b.id)} chord end ${i + 1}`, p, "imagery", b.date]));
+}
+for (const {v, ids} of Object.values(Object.entries(tangentOf).reduce((m, [id, v]) => ((m[v.join()] ||= {v, ids: []}).ids.push(id), m), {})))
+  vrows.push([`Point Loma tangent (${ids.map(short).join(", ")})`, v, "ENC", loma.date]);
+vrows.push([`Point Loma hull (${loma.outline.length} vertices)`, null, "ENC", loma.date]);
+vrows.push(["Point Loma b (ridge continues)", loma.b, "ENC", loma.date]);
+for (const isl of [islandsS, islandsN]) { vrows.push([`${vbl(isl.name)} a`, isl.a, "ENC", isl.date]); vrows.push([`${vbl(isl.name)} b`, isl.b, "ENC", isl.date]); }
+vrows.push(["Baja tangent (a)", baja.a, "ENC", baja.date]);
+vrows.push(["Baja b (coast continues)", baja.b, "ENC", baja.date]);
+document.getElementById("vtable").innerHTML = `<thead><tr><th>Vertex</th><th>Lat, lon</th><th>Source</th></tr></thead><tbody>` +
+  vrows.map(([n, p, s, d]) => `<tr><td>${n}</td><td class="coord">${p ? fmtLL(p) : "see the tip view"}</td><td><span class="src ${s === "imagery" ? "img" : ""}">${s === "imagery" ? "imagery" : "NOAA ENC"} · ${d}</span></td></tr>`).join("") + `</tbody>`;
+
+document.getElementById("dtable").innerHTML = `<thead><tr><th>Between</th><th>Distance</th></tr></thead><tbody>` +
+  MODEL.distances.map(d => `<tr><td>${d.label}${d.note ? `<br><span class="note">${d.note}</span>` : ""}</td><td class="num">${fmtDist(d.km)}</td></tr>`).join("") + `</tbody>`;
+
+document.getElementById("foot").textContent =
+  `Built from forecast/spots.json by forecast/geomviz.py. Blockers: ${MODEL.blockers.map(b => `${vbl(b.name)} ${b.cells.length ? "ENC " + b.cells.join("/") : "imagery"} (${b.date})`).join("; ")}. ` +
+  `Distances are great-circle; the map is a local equirectangular projection centred on the center break. Geometry only — this page says which bearings can reach each break, not how big anything is.`;
+</script>

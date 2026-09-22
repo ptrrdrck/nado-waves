@@ -69,6 +69,37 @@ class Blocker:
     cells: tuple[str, ...] = ()
     #: What kind of product the cells came from, verbatim from spots.json.
     chart_product: str = ""
+    #: Charted vertices around endpoint `a`, when that end is a ROUNDED
+    #: headland rather than a point. Empty means `a` is the edge for everyone.
+    #:
+    #: Measured 2026-09-22 on the Point Loma tip (BRIEFING §26): the tangent
+    #: from each break lands on a DIFFERENT charted vertex, up to 330 m apart
+    #: around the curve of the tip, because the breaks look at it from bearings
+    #: 18 degrees apart. Any single point is wrong somewhere - the north
+    #: break's tangent vertex puts the south break's edge 0.41 degrees out,
+    #: the south break's puts the north's 0.67 out - which is as large as the
+    #: correction the chart made to the imagery trace. So the edge is taken per
+    #: observer, off the outline, by `a_seen_from`.
+    outline: tuple[tuple[float, float], ...] = ()
+
+    def a_seen_from(self, position: tuple[float, float]) -> tuple[float, float]:
+        """The vertex that forms the `a`-side edge, as seen from `position`.
+
+        The one furthest round from `b` on `a`'s side: that is the tangent,
+        and for a blocker with no outline it is `a` itself. Measured against
+        `b` rather than as a plain minimum so it holds for a blocker on either
+        side of the observer and never needs to know which way is clockwise.
+        """
+
+        if not self.outline:
+            return self.a
+        ref = initial_bearing(position, self.b)
+
+        def round_from_b(p: tuple[float, float]) -> float:
+            return (initial_bearing(position, p) - ref + 180.0) % 360.0 - 180.0
+
+        side = 1.0 if round_from_b(self.a) >= 0 else -1.0
+        return max(self.outline + (self.a,), key=lambda p: side * round_from_b(p))
 
 
 @dataclass(frozen=True)
@@ -82,6 +113,12 @@ class Spot:
     #: window are blocker-derived, so the window is a function of position and
     #: the blockers, and not of the chord.
     position_verified: bool = False
+    #: The ENC chart cells the chord was read from; empty for a hand trace.
+    #: A digitised break with no cells is standing on aerial imagery, and the
+    #: surface says so - POSITION sets the window (~4.4 degrees per 500 m), so
+    #: a provenance line naming only charts would imply the aperture was
+    #: charted end to end when its observer end is not.
+    cells: tuple[str, ...] = ()
     #: Whether the SHORELINE CHORD has been digitised. Separate because it is a
     #: separate claim about a separate quantity. The chord sets the normal, and
     #: the normal moves the window by exactly nothing — but it is what the
@@ -156,6 +193,7 @@ def load(path: Path = SPOTS_FILE) -> tuple[list[Spot], list[Blocker]]:
             shoreline=(tuple(s["shoreline"][0]), tuple(s["shoreline"][1])),
             position_verified=s.get("position_verified", False),
             shoreline_verified=s.get("shoreline_verified", False),
+            cells=tuple(s.get("provenance", {}).get("cells", ()) or ()),
             notes=s.get("notes", ""),
         )
         for s in data["spots"]
@@ -169,6 +207,7 @@ def load(path: Path = SPOTS_FILE) -> tuple[list[Spot], list[Blocker]]:
             tip_verified=b.get("tip_verified", False),
             cells=tuple(b.get("provenance", {}).get("cells", ()) or ()),
             chart_product=b.get("provenance", {}).get("chart_product", ""),
+            outline=tuple(tuple(p) for p in b.get("outline", ()) or ()),
         )
         for b in data["blockers"]
     ]
@@ -189,7 +228,8 @@ def blocked_sector(spot: Spot, blocker: Blocker) -> tuple[float, float] | None:
     [-90, +90] and every comparison is ordinary.
     """
 
-    ra = _relative(initial_bearing(spot.position, blocker.a), spot.normal)
+    ra = _relative(initial_bearing(spot.position, blocker.a_seen_from(spot.position)),
+                   spot.normal)
     rb = _relative(initial_bearing(spot.position, blocker.b), spot.normal)
     low, high = sorted((ra, rb))
 
@@ -384,7 +424,8 @@ def window_entry(window: "Window") -> dict:
     }
 
 
-def geometry_provenance(blockers: list[Blocker]) -> dict:
+def geometry_provenance(blockers: list[Blocker],
+                        spots: list[Spot] | None = None) -> dict:
     """What the published windows are standing on, for the surface to print.
 
     Derived from `spots.json` rather than written into the page, because a
@@ -395,7 +436,13 @@ def geometry_provenance(blockers: list[Blocker]) -> dict:
     `cells` are ENC chart cells and `imagery` names the blockers that came
     from aerial imagery instead. Both are listed: a surface that printed only
     the charts would imply the whole aperture was charted, and Point Loma's
-    tip — the highest-leverage coordinate in the repository — is not.
+    tip — the highest-leverage coordinate in the repository — was not, until
+    2026-09-22.
+
+    `spots` are the breaks the surface publishes. Once the tip was charted the
+    only imagery left in the aperture was its OTHER end: the break positions,
+    which set the window as surely as any blocker does. They are listed under
+    `breaks_from_imagery` for the same reason the tip used to be listed.
     """
 
     cells: list[str] = []
@@ -413,11 +460,13 @@ def geometry_provenance(blockers: list[Blocker]) -> dict:
         "chart_product": product,
         "cells": sorted(cells),
         "from_imagery": imagery,
+        "breaks_from_imagery": [s.id for s in (spots or [])
+                                if s.position_verified and not s.cells],
         "unverified": sorted(b.name for b in blockers if not b.tip_verified),
     }
 
 
-def geometry_line(blockers: list[Blocker]) -> str:
+def geometry_line(blockers: list[Blocker], spots: list[Spot] | None = None) -> str:
     """The "standing on" sentence, composed from the same dict the card uses.
 
     One source for one fact. The line this replaced was written by hand and
@@ -426,13 +475,15 @@ def geometry_line(blockers: list[Blocker]) -> str:
     the Baja coast were charted.
     """
 
-    got = geometry_provenance(blockers)
+    got = geometry_provenance(blockers, spots)
     parts = ["digitised"]
     if got["cells"]:
         product = got["chart_product"] or "NOAA ENC"
         parts.append(f"{product}, cells {', '.join(got['cells'])}")
     if got["from_imagery"]:
         parts.append("aerial imagery for " + ", ".join(got["from_imagery"]))
+    if got["breaks_from_imagery"]:
+        parts.append("aerial imagery for the break positions")
     line = " — ".join([parts[0], "; ".join(parts[1:])]) if len(parts) > 1 else parts[0]
     if got["unverified"]:
         line += " — ESTIMATED: " + ", ".join(got["unverified"])
@@ -532,7 +583,7 @@ def describe(spot: Spot, blockers: list[Blocker]) -> list[str]:
     for blocker in blockers:
         sector = blocked_sector(spot, blocker)
         distance = min(
-            great_circle_km(spot.position, blocker.a),
+            great_circle_km(spot.position, blocker.a_seen_from(spot.position)),
             great_circle_km(spot.position, blocker.b),
         )
         if sector is None:

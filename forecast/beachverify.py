@@ -2,8 +2,8 @@
 
     python -m forecast.beachverify
 
-The geometry says Coronado's three breaks hold 42.8, 49.1 and 56.3 degrees of
-open window, cutting off at 242.2, 250.3 and 259.9 degrees. That is the
+The geometry says Coronado's three breaks hold 41.1, 47.7 and 54.9 degrees of
+west window, cutting off at 241.7, 250.3 and 260.0 degrees. That is the
 project's central claim and nothing has ever checked it against the ocean.
 
 This module is what checks it, and the thing that makes it a test rather than a

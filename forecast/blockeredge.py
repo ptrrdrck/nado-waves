@@ -231,7 +231,7 @@ def edges(
 def claimed_edges(spot: Spot, blocker: Blocker) -> tuple[float, float]:
     """What `spots.json` says this blocker's edges are, low first."""
 
-    a = initial_bearing(spot.position, blocker.a)
+    a = initial_bearing(spot.position, blocker.a_seen_from(spot.position))
     b = initial_bearing(spot.position, blocker.b)
     return (min(a, b), max(a, b))
 

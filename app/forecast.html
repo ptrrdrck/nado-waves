@@ -369,8 +369,8 @@ function windowList(windows) {
 // read from, and if a blocker is re-digitised from another chart this line
 // follows it. Naming the usage band alone would name the drawer rather than
 // the chart, and naming only the charts would imply the whole aperture was
-// charted -- Point Loma's tip, the highest-leverage coordinate here, is
-// imagery.
+// charted. Point Loma's tip was imagery until 2026-09-22; what is left is the
+// aperture's other end, the break positions, and they set the window too.
 function provenanceLine(geom) {
   if (!geom) return "";
   const bits = [];
@@ -378,12 +378,15 @@ function provenanceLine(geom) {
     bits.push(`NOAA ENC chart${geom.cells.length > 1 ? "s" : ""} `
       + geom.cells.join(", "));
   }
-  // Named even though it is one blocker of four, because Point Loma forms an
-  // edge printed directly above this line. A provenance that said only "NOAA
-  // ENC" would let a reader take the whole aperture as charted, and the tip
-  // is the highest-leverage coordinate in the repository.
+  // Named even when it is one input of many, because every edge printed
+  // directly above this line runs from a break to a blocker. A provenance that
+  // said only "NOAA ENC" would let a reader take the whole aperture as
+  // charted.
   if (geom.from_imagery && geom.from_imagery.length) {
     bits.push(`${geom.from_imagery.map(shortBlocker).join(", ")} from imagery`);
+  }
+  if (geom.breaks_from_imagery && geom.breaks_from_imagery.length) {
+    bits.push("break positions from imagery");
   }
   if (!bits.length) return "";
   let line = `geometry modelled from ${bits.join("; ")}`;

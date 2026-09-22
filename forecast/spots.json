@@ -7,10 +7,10 @@
     "segments, because the window varies along its own length by nearly as much",
     "as it varies between the named beaches. The west edge of the swell window",
     "IS the bearing to the Point Loma tip, and that bearing sweeps as you walk",
-    "the sand: measured, 242.2 degrees at the north break to 259.9 at the south,",
-    "giving 41.6 / 47.7 / 54.7 degrees of open window across 2.8 km. For scale,",
-    "the whole Breakers-to-Gator spread is 26.1 to 64.6. A single number for",
-    "'Coronado' averages across a 13.5-degree spread and is wrong at both ends.",
+    "the sand: measured, 241.7 degrees at the north break to 260.0 at the south,",
+    "giving 41.1 / 47.7 / 54.9 degrees of open window across 2.8 km. For scale,",
+    "the whole Breakers-to-Gator spread is 23.1 to 62.2. A single number for",
+    "'Coronado' averages across a 13.8-degree spread and is wrong at both ends.",
     "",
     "WHAT MATTERS IN THESE COORDINATES, measured rather than assumed:",
     "",
@@ -32,8 +32,10 @@
     "  It is simply not the thing that decides which swell arrives.",
     "",
     "  THE POINT LOMA TIP carries the west edge for every spot in this file.",
-    "  100 m of tip error moves that edge about 1 degree. It is one point and",
-    "  it is load-bearing for all of them.",
+    "  100 m of tip error moves that edge about 1 degree. It is NOT one point:",
+    "  charted 2026-09-22, it is a rounded headland whose tangent lands on a",
+    "  different vertex for each break, so the blocker carries an `outline`",
+    "  and each break takes its own edge off it.",
     "",
     "`position` is OPTIONAL and derived from the shoreline midpoint when",
     "omitted. It is written out only for the un-digitised spots, which predate",
@@ -67,7 +69,7 @@
         "date": "2026-09-14",
         "caveat": "Imagery splice. The northern point sits about 284 m seaward of the waterline trend through the center and south breaks, and the southern point about 61 m seaward, which rotates this chord roughly 19 degrees off the local coast trend (102.8 rather than about 122). MEASURED CONSEQUENCE: the swell window does not move at all (chord-invariance), and undoing the full 284 m cross-shore offset would widen it by 0.93 degrees. So the position is usable and the window here is sound. The NORMAL is not: at 192.8 it is about 19 degrees off, and it must not be trusted for wind fetch or refraction until the imagery is re-digitised. Hence shoreline_verified false."
       },
-      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: west window 41.6 degrees, cut off at 242.2. Also 164.7-187.4 to the south and a 192.6-198.6 channel between the islands."
+      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: west window 41.1 degrees, cut off at 241.7. Also 164.7-187.4 to the south and a 192.6-198.6 channel between the islands."
     },
     {
       "id": "coronado_center",
@@ -111,7 +113,7 @@
         "by": "ptrrdrck",
         "date": "2026-09-14"
       },
-      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest west window: 54.7 degrees, holding to 259.9. South window 168.5-191.1; island channel 196.8-203.0."
+      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest west window: 54.9 degrees, holding to 260.0. South window 168.5-191.1; island channel 196.8-203.0."
     },
     {
       "id": "nasni_breakers",
@@ -160,22 +162,63 @@
     {
       "name": "Point Loma peninsula",
       "a": [
-        32.6648144,
-        -117.2427037
+        32.6657656,
+        -117.2395835
       ],
       "b": [
-        32.72,
-        -117.253
+        32.7493007,
+        -117.2531966
       ],
       "continues": "b",
       "tip_verified": true,
       "provenance": {
-        "method": "seaward-most waterline point digitised from Google Earth imagery",
-        "by": "ptrrdrck",
-        "date": "2026-09-14",
-        "note": "Replaced an estimate 136 m away, which moved every west edge by only 0.2 to 0.5 degrees - the old guess was good. `b` is still an estimate, but it only says the ridge runs north and does not end, and the shadow is clipped at the seaward half-plane long before it."
+        "method": "per-break tangent to the charted tip, NOAA ENC approach band (enc_approach/88) via collector.shoreline region=point_loma, read by forecast.blockeredge",
+        "by": "collector.shoreline region=point_loma",
+        "date": "2026-09-22",
+        "note": "Replaced a Google Earth trace of the seaward-most waterline point (32.6648144, -117.2427037, digitised 2026-09-14). The tip is a rounded headland and the breaks see it from bearings 18 degrees apart, so each break's tangent lands on a DIFFERENT charted vertex - up to 330 m apart around the curve - and no single point is right for all of them: the north break's tangent vertex puts the south break's edge 0.41 degrees out, the south break's puts the north's 0.67 out. Hence `outline`: the convex hull of the 218 charted vertices south of 32.672 N (only a hull vertex can ever be a tangent), and geometry takes the edge per break. `a` is the center break's tangent vertex and stands for the tip in any single-point use. Moves against the imagery trace: north -0.53, center +0.01, south +0.17 degrees. The coastal band (enc_coastal/70) agrees to within 0.25 degrees on every Coronado break. The harbour band (enc_harbour/84) is finer but its coastline has a 336 m HOLE at the tip (part 19 ends at 32.66539, -117.24137; the next line starts at 32.66663, -117.24464), presumably carried by another layer such as shoreline construction; its south-break tangent sits on that line end and is not used. `b` is the northernmost ocean-side charted vertex in the extract, at Ocean Beach; it only says the ridge runs north and does not end, and it is clipped by the query envelope, not by the coast.",
+        "cells": [
+          "US4CA74M.000",
+          "US4CA1BX.000"
+        ],
+        "chart_product": "NOAA ENC, approach band (usage band 4)"
       },
-      "notes": "The tip is `a`; the ridge runs north from there and does not end, so everything past `b` is land too. `a` carries the west edge of every spot in this file."
+      "notes": "The tip is `outline`, with `a` as its representative vertex; the ridge runs north from there and does not end, so everything past `b` is land too. The tip carries the west edge of every spot in this file, per break, at about 1 degree per 100 m.",
+      "outline": [
+        [32.6713303, -117.2455855],
+        [32.6696523, -117.2455245],
+        [32.669607, -117.2455203],
+        [32.6695413, -117.2455142],
+        [32.6694742, -117.2455079],
+        [32.6675657, -117.2450977],
+        [32.6664501, -117.2446766],
+        [32.6663611, -117.2446101],
+        [32.6663487, -117.2445978],
+        [32.6663011, -117.2445504],
+        [32.666272, -117.2445214],
+        [32.6652743, -117.243389],
+        [32.6652229, -117.2433131],
+        [32.6651506, -117.2431314],
+        [32.6650918, -117.2429657],
+        [32.665033, -117.2427626],
+        [32.6650036, -117.242661],
+        [32.6650172, -117.2425328],
+        [32.6657656, -117.2395835],
+        [32.6658641, -117.2393439],
+        [32.6659023, -117.239251],
+        [32.6660117, -117.2390663],
+        [32.666664, -117.2382812],
+        [32.666669, -117.238276],
+        [32.6667559, -117.2381864],
+        [32.6668163, -117.2381242],
+        [32.6679416, -117.2372055],
+        [32.6680726, -117.2371215],
+        [32.6681366, -117.2370963],
+        [32.6713646, -117.2362443],
+        [32.6715157, -117.2362214],
+        [32.6716352, -117.2362517],
+        [32.671962, -117.2363585],
+        [32.6719068, -117.2455799]
+      ]
     },
     {
       "name": "Coronado Islands (south group)",
