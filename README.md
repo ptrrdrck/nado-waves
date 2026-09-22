@@ -11,9 +11,9 @@ Point Loma sits directly across their swell window. Computed from coordinates:
 
 | spot | west window | cuts off at | south window | island channel | coordinates |
 |---|---|---|---|---|---|
-| Coronado — north break | 41.6° | 242.2° | 164.7–187.4° | 192.6–198.6° | digitised |
-| Coronado — center break | 47.7° | 250.3° | 166.4–189.1° | 194.4–200.5° | digitised |
-| Coronado — south break | 54.7° | 259.9° | 168.5–191.1° | 196.8–203.0° | digitised |
+| Coronado — north break | 41.3° | 241.9° | 164.6–187.4° | 192.6–198.6° | charted |
+| Coronado — center break | 47.6° | 250.2° | 166.4–189.1° | 194.4–200.5° | charted |
+| Coronado — south break | 54.9° | 260.1° | 168.5–191.2° | 196.8–203.0° | charted |
 
 Every edge in that table is formed by land. There used to be one window per
 break, because `geometry.py` also reported a south-east arc the surface
@@ -31,6 +31,16 @@ screen: modelling the group as a single blocker claimed that channel was land
 and pushed its Fresnel number from ~1.6 to ~7, which silenced the diffraction
 flag that BRIEFING §10 exists to raise.
 
+On 2026-09-22 the Point Loma tip followed — the last blocker that was a Google
+Earth trace. It is a rounded headland, and each break's tangent lands on a
+different charted vertex up to 330 m apart, so the tip is carried as a charted
+outline and each break takes its own edge off it: north moved −0.5°, center
+0.0°, south +0.2°. Later the same day the three break chords followed: each
+endpoint is the charted vertex nearest the original trace, which moved them
+3–38 m. **Every coordinate in Coronado's aperture now comes from NOAA's ENC.**
+What the chart cannot supply is where along the coast each break sits — that
+alongshore choice is still the one made by hand.
+
 The forecast and the app cover **these three breaks only**. Breakers (NASNI)
 and Gator (NAB) are still in `spots.json` for the geometry, and out of
 everything downstream: they are the two spots whose coordinates remain
@@ -38,10 +48,11 @@ estimated.
 
 **Coronado is three rows because it is not one beach.** The west edge of the
 window is the bearing to the Point Loma tip, and that bearing sweeps as you walk
-the sand — 17° of it across 2.8 km. The spread between Coronado's own ends is a
+the sand — 18° of it across 2.8 km. The spread between Coronado's own ends is a
 third of the entire Breakers-to-Gator range.
 
-At Breakers the shadow edge sits about **one degree** from the shore normal, so
+At Breakers the shadow edge sits about **three degrees** from the shore normal
+(on estimated coordinates), so
 a few degrees of incident-direction error moves the beach across the boundary
 between "in the window" and "behind the peninsula". That is why a
 general-purpose forecast is fragile here and reliable a few miles north.

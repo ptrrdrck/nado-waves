@@ -94,7 +94,13 @@ forecaster actually verifies against, Surfline included.
    beach at all, from coordinates alone. Coronado's three breaks digitised
    2026-09-14; the Coronado Islands and the Baja coast charted from NOAA's ENC
    2026-09-20, which split the islands in two and closed the southern arc on
-   land. Every window edge in the file now stands on a blocker.
+   land; the Point Loma tip charted 2026-09-22, per break; and the same day
+   the three break chords themselves, each endpoint the harbour-band vertex
+   nearest the hand trace (BRIEFING §27). **Every coordinate the Coronado
+   aperture uses now comes from NOAA's ENC** — except WHERE along the coast
+   each break sits, which is a surfer's choice and no chart can make. If a
+   break is ever traced from imagery again, `breaks_from_imagery` names it on
+   the surface.
 2. **A verification series. This blocks every accuracy CLAIM; it does not block
    construction.** BRIEFING §7 lists the candidates. It is also the only item
    here whose cost is wall-clock rather than work — a log started today is thin
@@ -237,12 +243,18 @@ forecaster actually verifies against, Surfline included.
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),
                         shoreline.py (NOAA's ENC coastline, by named REGION —
-                        `coronado` checks the hand-traced chords, `baja` carries
-                        the islands and the Mexican coast — run on Actions),
+                        `coronado` carries the break chords, `baja` carries
+                        the islands and the Mexican coast, `point_loma` the
+                        tip — run on Actions),
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
+    app/geometry.html   template for the model-geometry drawing; filled by
+                        `python -m forecast.geomviz OUT.html` from spots.json,
+                        never hand-edited with coordinates. `forecast.publish`
+                        ships it as `geometry.html` in BOTH bundles, linked
+                        from the foot of the live page
     app/beachlog.html   the phone form, owner build (shared store)
     app/beachlog-observer.html  same file, observer build — no sign-in, entries
                         stay on the phone and are handed back as text. The two
@@ -261,6 +273,8 @@ forecaster actually verifies against, Surfline included.
                         swept over scale; reports, never edits    [built]
       blockeredge.py    a blocker's edges read off the charted coast, against
                         what spots.json claims; reports, never edits  [built]
+      geomviz.py        draws the vertices the model uses, the ray to each
+                        edge's vertex, and the distances between them  [built]
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
@@ -279,7 +293,9 @@ forecaster actually verifies against, Surfline included.
                         region. `_coronado` (harbour 904 pts, approach 689,
                         coastal 312) and `_baja` (harbour 2428, approach 3691,
                         coastal 1431 - the islands and the Mexican coast to
-                        32.383, where NOAA's charts stop). A CHART product,
+                        32.383, where NOAA's charts stop) and `_point_loma`
+                        (harbour 2815, approach 1612, coastal 879 — the
+                        harbour band is holed at the tip). A CHART product,
                         generalised, not survey-grade MHW. Every file is
                         clipped by its own query envelope on all four edges,
                         which is why the region is in the filename.
@@ -298,19 +314,29 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
 ## Design rules that are easy to erode
 
 - **The three beaches are not one beach — and Coronado is not one beach.**
-  Breakers keeps 26° of west window and Gator 62°, and Gator alone holds west
+  Breakers keeps 23° of west window and Gator 62°, and Gator alone holds west
   swell. But the same mechanism runs along Coronado's own sand: the west edge
   IS the bearing to the Point Loma tip, which sweeps as you walk, giving
-  **41.6° / 47.7° / 54.7°** at the north, center and south breaks across 2.8 km.
-  That 13.1° spread is a third of the entire Breakers-to-Gator range. Any
+  **41.3° / 47.6° / 54.9°** at the north, center and south breaks across 2.8 km.
+  That 13.6° spread is a third of the entire Breakers-to-Gator range. Any
   surface showing one number for "Coronado" is averaging across it. (Those were
-  42.8 / 49.1 / 56.3 until 2026-09-20; charting the Coronado Islands moved the
-  window's LOW edge 1.2–1.9° and left the spread, which is a Point Loma
-  quantity, alone.)
-- **The Point Loma tip is one point and it carries every west edge.** 100 m of
-  error there moves an edge ~1°. It is the highest-leverage coordinate in the
+  42.8 / 49.1 / 56.3 until 2026-09-20, when charting the Coronado Islands moved
+  the LOW edge 1.2–1.9°; 41.6 / 47.7 / 54.7 until 2026-09-22, when charting
+  the Point Loma tip moved the HIGH edge −0.53 / +0.01 / +0.17; and 41.1 /
+  47.7 / 54.9 for the rest of that day, until the break chords were charted
+  and north's position moved 30 m.)
+- **The Point Loma tip carries every west edge, and it is not one point.** 100 m
+  of error there moves an edge ~1°; it is the highest-leverage geometry in the
   repository. Measured 2026-09-18: 250 m of tip error moves a Coronado edge
   2.2–2.8°, against 0.46° for the same error on the Coronado Islands.
+  **Charted 2026-09-22 from NOAA's ENC** (BRIEFING §26): the tip is a rounded
+  headland, each break's tangent lands on a different charted vertex up to
+  330 m apart, and any single point is wrong by up to 0.67° somewhere. So the
+  blocker carries an `outline` (the convex hull of the charted tip — only a
+  hull vertex can be a tangent) and `Blocker.a_seen_from` takes the edge per
+  break. **Never collapse it back to one point.** The approach band is used,
+  not the finer harbour band: the harbour coastline has a 336 m hole across
+  the tip, and a tangent on a line end is missing data, not coast.
 - **The Coronado Islands are not a switch, and they are not one island.**
   Charted 2026-09-20 from NOAA's ENC: **two** islands with **6.1° of open
   channel** between them, stable from a 0.3 km to a 3 km clustering distance
@@ -367,9 +393,10 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   hoisted above the break cards because KNZY and 9410170 feed all three and
   repeating them three times is noise. **The offshore/onshore reading is not
   hoisted**, because it is derived from the shore normal and Coronado's three
-  normals span 29° (192.8 / 214.2 / 221.5) — measured 2026-09-18, a 290° wind
-  reads cross-shore at north and centre and onshore at south, on the same
-  reading. Hoist the measurement; keep the interpretation where it is made.
+  normals span 27° (194.1 / 213.9 / 220.9, charted 2026-09-22; they were
+  192.8 / 214.2 / 221.5 on the traced chords) — a 290° wind reads cross-shore
+  at north and centre and onshore at south, on the same reading. Hoist the
+  measurement; keep the interpretation where it is made.
 - **"At the buoy" means no aperture at all — `transform.at_buoy`, not
   `through(spectrum, spot, [])`.** The latter still applies that spot's seaward
   half-plane, which excludes 304–124° and dropped **12–26% of the energy** out
@@ -418,15 +445,18 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   turn as two claims. The Now/Forecast split is about the reader always knowing
   which chain they are looking at, not about a tab being chemically pure; an
   unlabelled turn would have broken it, a labelled one demonstrates it.
-- **The shore normal is the highest-leverage input to the wind reading, and
-  two of three are unchecked.** Measured 2026-09-20 (BRIEFING §20): the verdict
+- **The shore normal is the highest-leverage input to the wind reading.**
+  Measured 2026-09-20 (BRIEFING §20): the verdict
   boundaries sit at fixed angles from the normal, which puts six of the nine
   boundaries for Coronado's breaks inside 265–330°, and **62.6% of a three-year
   wind record sits in 270–330°**. So error lands where the data is: 1° of
-  normal error changes the verdict on **4.2%** of readings, 5° on 21%, and
-  `coronado_north`'s known ~19° imagery-splice error on about **70%**. That is
-  roughly twice what a uniform wind rose would cost. The north card's wind line
-  is close to uninformative until the chord is re-digitised.
+  normal error changes the verdict on **4.2%** of readings and 5° on 21% —
+  roughly twice what a uniform wind rose would cost. `coronado_north`'s
+  imagery-splice caveat claimed ~19° (~70% of verdicts); §23 measured 1.7° and
+  charting the chord (BRIEFING §27) moved it 1.3°, and the flag is retired.
+  All three normals are now read off the ENC harbour band, and they agree with
+  §23's 400 m principal-axis fits — a different method on the same chart —
+  within 0.3°.
 - **Past a few hundred metres on a curving coast, a circular window is not a
   chord.** Measured 2026-09-20 (BRIEFING §23): two independent chart bands of
   the same coast agree within **0.3° up to 800 m**, and disagree by **18.6° at
@@ -436,9 +466,9 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   curvature alarm, never as a normal. `REPORT_SCALE_M` at 400 m sits inside the
   agreeing range.
 - **A normal is a property of a chord, not of a point.** The same beach gives
-  102.8° over north's 547 m chord, 124.2° over centre's 285 m, 131.5° over
-  south's 471 m and 121.3° over the whole 2.8 km — 28.7° of spread, all of it
-  real. Any verification that does not state its chord length has verified
+  104.1° over north's 530 m chord, 123.9° over centre's 285 m, 130.9° over
+  south's 461 m and 120.8° over the whole 2.75 km — 26.8° of spread, all of it
+  real (charted chords; the traced ones gave 102.8 / 124.2 / 131.5 / 121.3). Any verification that does not state its chord length has verified
   nothing. `forecast/shorenormal.py` therefore reports a SWEEP over scale, and
   `residual_m` says whether the break sits on a straight stretch or a curve.
 - **There are two shore normals and they are not the same claim.** The

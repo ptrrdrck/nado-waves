@@ -80,17 +80,18 @@ class TestTheSwellWindowExcludesUnmodelledCoast:
         assert all(w["confidence"] == "high" for w in (south, channel, west))
 
     def test_the_west_window_matches_the_briefing_figures(self):
-        """41.6 / 47.7 / 54.7 degrees, where README, BRIEFING §2a and
-        CLAUDE.md quoted 42.8 / 49.1 / 56.3. The low edge moved when the
-        Coronado Islands were charted — the estimate it replaced understated
-        the island shadow by 1.2 to 1.9 degrees. The spread across the beach,
-        which is what §2a is about, is a Point Loma quantity and unchanged at
-        about 13 degrees. Edges are published rounded to 0.1°, so a span taken
+        """41.3 / 47.6 / 54.9 degrees. The low edge moved when the Coronado
+        Islands were charted (2026-09-20, from 42.8 / 49.1 / 56.3); the high
+        edge when the Point Loma tip was (2026-09-22, to 41.1 / 47.7 / 54.9),
+        each break taking its own tangent off the charted tip; and north's
+        again the same day when the break chords were read off the ENC and
+        its position moved 30 m (BRIEFING §27). The spread across the beach,
+        which is what §2a is about, is 13.6 degrees. Edges are published rounded to 0.1°, so a span taken
         from them can differ by that much; the tolerance is the rounding."""
 
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
-        expected = {"coronado_north": 41.6, "coronado_center": 47.7,
-                    "coronado_south": 54.7}
+        expected = {"coronado_north": 41.3, "coronado_center": 47.6,
+                    "coronado_south": 54.9}
         for entry in got.breaks:
             west = entry.swell_window[-1]
             assert west["to"] - west["from"] == pytest.approx(expected[entry.id], abs=0.1)
@@ -200,16 +201,22 @@ class TestWind:
         assert live.offshore_component(centre.normal, centre.normal) == pytest.approx(-1.0)
 
     def test_an_unverified_chord_flags_the_offshore_call(self):
-        """The window does not depend on the chord, but offshore/onshore does —
-        it is computed from the normal. Coronado's north break has a digitised
-        position and an unverified chord, so the two claims differ there."""
+        """The window does not depend on the chord, but offshore/onshore does -
+        it is computed from the normal. A break with a digitised position and
+        an unverified chord must say so on the wind line. Coronado's north
+        break was that case until its chord was charted (BRIEFING §27), so the
+        case is built here rather than borrowed from the file."""
+
+        from dataclasses import replace
 
         wind = live.wind_measurement({"observed_utc": "2026-09-18T05:56:00Z",
                                       "wind_from_deg": "280", "wind_kt": "8",
                                       "gust_kt": "", "variable": ""})
-        _, note = live.wind_at_break(BY_ID["coronado_north"], wind)
+        unverified = replace(BY_ID["coronado_north"], shoreline_verified=False)
+        _, note = live.wind_at_break(unverified, wind)
         assert "unverified" in note
-        assert live.wind_at_break(BY_ID["coronado_center"], wind)[1] == ""
+        for sid in ("coronado_north", "coronado_center", "coronado_south"):
+            assert live.wind_at_break(BY_ID[sid], wind)[1] == "", sid
 
     def test_a_variable_wind_yields_no_direction(self):
         wind = live.wind_measurement({"observed_utc": "x", "variable": "1", "wind_kt": "3"})

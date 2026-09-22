@@ -7,12 +7,12 @@ Run it on Actions. Every NOAA coastal host is denied at CONNECT from a Claude
 session — measured 2026-09-20, `chs.coast.noaa.gov`, `coast.noaa.gov`,
 `geodesy.noaa.gov` and `maps.coast.noaa.gov` all answered 403 (BRIEFING §8).
 
-WHY THIS EXISTS. `forecast/spots.json` carries three shoreline chords traced by
+WHY THIS EXISTS. `forecast/spots.json` carried three shoreline chords traced by
 hand from Google Earth. They set each break's seaward normal, which is the only
 thing standing behind the offshore/onshore/cross-shore reading on the app
-surface. One of the three, `coronado_north`, is known by its own provenance to
-be about 19 degrees off from an imagery splice. Nothing independent has ever
-checked the other two.
+surface. This collector checked them (BRIEFING §21, §23) and, since
+2026-09-22, is where they come from: each chord endpoint is the charted
+harbour-band vertex nearest the original trace (BRIEFING §27).
 
 That matters more than it sounds. Measured (BRIEFING §20): the verdict
 boundaries sit at fixed angles from the normal, which puts six of the nine
@@ -133,9 +133,21 @@ WANTED = re.compile(r"shorelin|cusp|coalne|coast.?line|\bmhw\b|coastal[_ ]?surve
 #:   seen almost exactly edge-on — so the edge is a tangent, and a tangent is
 #:   decided by whichever vertex the chart happened to place furthest seaward.
 #:   Same shape as the Point Loma tip, and the same leverage.
+#: - `point_loma` — the peninsula west of the harbour channel, tip to Ocean
+#:   Beach. It exists to find the one vertex that carries the WEST edge of
+#:   every Coronado window: the seaward-most point of the tip as seen from each
+#:   break. Until this region existed that vertex was a Google Earth trace, and
+#:   it is the highest-leverage coordinate in the repository (~1 degree per
+#:   100 m). Neither other box reaches it: `coronado` stops at -117.22 and
+#:   `baja` at 32.66, and the tip sits at about 32.665, -117.243. The floor
+#:   sits 2.5 km of open water south of the tip, so the tip is inside the
+#:   envelope on every side and cannot be the box's own corner. The east edge
+#:   stops at -117.226 so the far side of the channel -- North Island -- stays
+#:   out of the file rather than being filtered out downstream.
 REGIONS: dict[str, tuple[float, float, float, float]] = {
     "coronado": (-117.2200, 32.6550, -117.1500, 32.7060),
     "baja": (-117.4000, 31.6000, -116.5500, 32.6600),
+    "point_loma": (-117.3000, 32.6400, -117.2260, 32.7500),
 }
 
 #: The default region, kept as a module constant because every existing caller

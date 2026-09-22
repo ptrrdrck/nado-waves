@@ -232,9 +232,10 @@ def fresnel_number(spot: Spot, blocker: Blocker, period_s: float) -> float:
     values and for why this is reported rather than corrected for.
     """
 
-    w = great_circle_km(blocker.a, blocker.b) * 1000.0
+    a = blocker.a_seen_from(spot.position)
+    w = great_circle_km(a, blocker.b) * 1000.0
     length = min(
-        great_circle_km(spot.position, blocker.a),
+        great_circle_km(spot.position, a),
         great_circle_km(spot.position, blocker.b),
     ) * 1000.0
     lam = wavelength(period_s)

@@ -111,12 +111,11 @@ def test_verification_is_two_claims_and_a_claim_carries_its_provenance():
     assert not BY_ID["nasni_breakers"].position_verified
     assert not BY_ID["nab_gator"].position_verified
 
-    # And `verified` stays the conservative reading: the north break has a
-    # digitised position and a spliced chord, so it is not simply "verified".
-    assert BY_ID["coronado_north"].position_verified
-    assert not BY_ID["coronado_north"].shoreline_verified
-    assert not BY_ID["coronado_north"].verified
-    assert BY_ID["coronado_center"].verified
+    # All three Coronado chords are read off the ENC since 2026-09-22, which
+    # retired the north break's imagery splice; `verified` is still the
+    # conservative reading and still needs both claims.
+    for sid in ("coronado_north", "coronado_center", "coronado_south"):
+        assert BY_ID[sid].verified, sid
 
 
 def _rotate_chord(spot: Spot, degrees: float) -> Spot:
@@ -173,10 +172,10 @@ def test_the_shoreline_chord_does_not_move_the_swell_window():
     Coronado Islands to the east — so the seaward half-plane clip never binds
     there and the normal is irrelevant to which swell arrives.
 
-    This matters beyond pedantry: it is why Coronado's north break keeps a
-    trustworthy window despite an imagery splice that rotated its chord about
-    19 degrees, and it is what says digitising effort belongs on positions and
-    on the Point Loma tip rather than on chord angles.
+    This matters beyond pedantry: it is why Coronado's north break kept a
+    trustworthy window while its imagery chord was in doubt, and it is what
+    says digitising effort belongs on positions and on the Point Loma tip
+    rather than on chord angles.
     """
 
     for spot in SPOTS:
@@ -266,3 +265,93 @@ def test_blocker_entirely_behind_the_beach_is_ignored():
 def test_spots_file_documents_what_it_leaves_out():
     data = json.loads(Path("forecast/spots.json").read_text())
     assert data["_missing"], "the omissions list is part of the model"
+
+
+# --- a rounded tip: the tangent is per observer -------------------------------
+
+class TestTipOutline:
+    """Charted 2026-09-22 (BRIEFING §26). The Point Loma tip is a rounded
+    headland, and the breaks look at it from bearings 18 degrees apart, so
+    each break's tangent lands on a different charted vertex. A single `a`
+    was wrong by up to 0.67 degrees somewhere - as large as the correction."""
+
+    def test_no_outline_means_a_is_the_edge_for_everyone(self):
+        from forecast.geometry import Blocker
+
+        b = Blocker("x", (32.0, -117.0), (32.1, -117.0))
+        assert b.a_seen_from((32.5, -117.5)) == (32.0, -117.0)
+
+    def test_the_tangent_is_taken_per_observer(self):
+        """Two observers either side of a round tip see its two shoulders."""
+
+        from forecast.geometry import Blocker
+
+        tip = ((32.000, -117.000), (31.999, -117.001), (31.999, -116.999))
+        b = Blocker("x", tip[0], (32.05, -117.0), "b", outline=tip)
+        west = b.a_seen_from((32.02, -117.05))
+        east = b.a_seen_from((32.02, -116.95))
+        assert west != east
+
+    def test_point_loma_hands_each_coronado_break_its_own_vertex(self):
+        spots, blockers = load()
+        loma = next(b for b in blockers if b.name == "Point Loma peninsula")
+        assert loma.outline, "the tip should be a charted outline"
+        seen = {s.id: loma.a_seen_from(s.position) for s in spots
+                if s.id.startswith("coronado_")}
+        assert len(set(seen.values())) == 3
+
+    def test_no_blocker_is_standing_on_imagery_any_more(self):
+        """The last imagery-derived blocker was the tip. If one comes back the
+        surface's provenance line must name it, and this test says so first."""
+
+        from forecast.geometry import geometry_provenance
+
+        _, blockers = load()
+        got = geometry_provenance(blockers)
+        assert got["from_imagery"] == []
+        assert "US4CA74M.000" in got["cells"]
+
+    def test_the_break_positions_are_charted_and_named(self):
+        """The aperture's observer end came off the ENC on 2026-09-22 (BRIEFING
+        §27). Its cell must reach the provenance line beside the blockers'."""
+
+        from forecast.geometry import geometry_line, geometry_provenance
+
+        spots, blockers = load()
+        coronado = [s for s in spots if s.id.startswith("coronado_")]
+        got = geometry_provenance(blockers, coronado)
+        assert got["breaks_from_imagery"] == []
+        for spot in coronado:
+            assert spot.cells and set(spot.cells) <= set(got["cells"])
+        assert "imagery" not in geometry_line(blockers, coronado)
+
+    def test_an_imagery_break_is_still_named(self):
+        """The guard stays: a digitised break with no chart cell is imagery,
+        and the line has to say so."""
+
+        from dataclasses import replace
+        from forecast.geometry import geometry_line, geometry_provenance
+
+        spots, blockers = load()
+        traced = [replace(s, cells=()) for s in spots if s.id.startswith("coronado_")]
+        assert geometry_provenance(blockers, traced)["breaks_from_imagery"]
+        assert "imagery for the break positions" in geometry_line(blockers, traced)
+
+
+def test_every_coronado_chord_endpoint_is_a_charted_vertex():
+    """BRIEFING §27: the chords are read off the ENC harbour band, vertex for
+    vertex. Not near it - ON it, and carrying the cell it came from."""
+
+    import csv
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "data" / "shoreline" / "enc_harbour_84_coronado.csv"
+    if not path.exists():
+        pytest.skip("the Coronado extract has not been collected")
+    with path.open() as fh:
+        cells = {(float(r["lat"]), float(r["lon"])): r["cell"] for r in csv.DictReader(fh)}
+    for sid in ("coronado_north", "coronado_center", "coronado_south"):
+        spot = BY_ID[sid]
+        for end in spot.shoreline:
+            assert tuple(end) in cells, (sid, end)
+            assert cells[tuple(end)] in spot.cells

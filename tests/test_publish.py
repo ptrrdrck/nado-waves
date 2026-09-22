@@ -30,7 +30,8 @@ def forecast(hours: int = 25, breaks: int = 3) -> dict:
         "geometry": {
             "chart_product": "NOAA ENC, approach band (usage band 4)",
             "cells": ["US4CA1BX.000", "US4CA74M.000"],
-            "from_imagery": ["Point Loma peninsula"],
+            "from_imagery": [],
+            "breaks_from_imagery": ["coronado_north", "coronado_center", "coronado_south"],
             "unverified": [],
         },
         "warnings": [],
@@ -197,7 +198,8 @@ class TestItRefusesToPublishNothing:
 class TestTheBundleIsServable:
     def test_every_file_pages_needs_is_present(self, tmp_path):
         written = publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
-        assert set(written) == {"index.html", "forecast.json", ".nojekyll", "README.md"}
+        assert set(written) == {"index.html", "forecast.json", ".nojekyll", "README.md",
+                                "geometry.html"}
         for name in written:
             assert (tmp_path / "site" / name).exists()
 
@@ -337,3 +339,39 @@ class TestTheObservedJobShipsThePageToo:
 
         assert "forecast.json" not in written
         assert not (out / "forecast.json").exists()
+
+
+class TestGeometryPage:
+    """The drawing of the model's geometry ships beside the page that links to
+    it, from both jobs, built from spots.json at publish time."""
+
+    def test_the_full_bundle_carries_it_filled(self, tmp_path):
+        publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
+        page = (tmp_path / "site" / "geometry.html").read_text()
+        assert page.startswith("<!doctype html>")
+        assert "const MODEL = {" in page and "/*__MODEL__*/" not in page
+
+    def test_the_hourly_bundle_carries_it_too(self, tmp_path):
+        """index.html links to it from both jobs, so both must ship it."""
+
+        data = write(tmp_path / "d", forecast())
+        (data / "live" / "now.json").write_text("{}")
+        publish.build_now_only(tmp_path / "now", data_dir=data)
+        assert (tmp_path / "now" / "geometry.html").exists()
+
+    def test_the_live_page_links_to_it_outside_the_rewritten_footer(self):
+        assert 'href="geometry.html"' in PAGE_SOURCE
+        foot = PAGE_SOURCE.index('<footer id="foot"></footer>')
+        assert PAGE_SOURCE.index('href="geometry.html"') > foot
+
+    def test_it_links_back(self):
+        assert 'href="./"' in (PAGE.parent / "geometry.html").read_text()
+
+    def test_it_refuses_the_vocabulary_of_accuracy_too(self, tmp_path):
+        """Same rule as the forecast page, same list: it is on the same site."""
+
+        publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
+        text = (tmp_path / "site" / "geometry.html").read_text().lower()
+        for word in ("rmse", "accuracy", "within a foot", "confidence interval",
+                     "error bar of", "% accurate"):
+            assert word not in text, word

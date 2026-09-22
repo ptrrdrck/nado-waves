@@ -14,6 +14,8 @@ The bundle:
     index.html      app/forecast.html inside a standalone HTML document
     forecast.json   data/live/forecast.json, thinned to what the page shows
     now.json        data/live/now.json — the observed reading, if there is one
+    geometry.html   the model's geometry, drawn by forecast.geomviz from
+                    spots.json; linked from the foot of index.html
     .nojekyll       Pages must serve the files as-is, not run Jekyll over them
     README.md       says what the repository is and where to edit it
 
@@ -92,7 +94,8 @@ Beach, rebuilt after each GFS-Wave cycle.
 This repository is a delivery surface and nothing else. `index.html` is built
 from `app/forecast.html` in the private `nado-waves` repository, which holds the
 geometry, the transform and the tests, and `forecast.json` is written there by
-`forecast/live.py`. Both are pushed here by a workflow. **Edit them there** —
+`forecast/live.py`. `geometry.html` is drawn there from the same geometry file
+the forecast reads, by `forecast/geomviz.py`. Both are pushed here by a workflow. **Edit them there** —
 anything committed directly to this repository is overwritten by the next cycle.
 
 ## What the page shows, and what it does not
@@ -176,6 +179,21 @@ def thin(forecast: dict, *, step: int = HOUR_STEP) -> dict:
     return out
 
 
+def geometry_page(data_dir: Path = DEFAULT_DATA_DIR) -> str:
+    """`app/geometry.html` filled from spots.json, as a standalone document.
+
+    Built every time the bundle is, from the same file the forecast reads, so
+    the drawing cannot lag the geometry it draws. It is in BOTH builds for the
+    reason the page is (see `build_now_only`): index.html links to it, and a
+    link published an hour before its target is a broken link for an hour.
+    """
+
+    from . import geomviz
+
+    return wrap(geomviz.render(geomviz.build(data_dir=data_dir)),
+                app_title="Coronado aperture")
+
+
 def build(
     out_dir: Path,
     *,
@@ -211,6 +229,10 @@ def build(
         encoding="utf-8",
     )
     written["index.html"] = index.stat().st_size
+
+    geometry = out_dir / "geometry.html"
+    geometry.write_text(geometry_page(data_dir), encoding="utf-8")
+    written["geometry.html"] = geometry.stat().st_size
 
     payload = out_dir / "forecast.json"
     payload.write_text(
@@ -282,6 +304,10 @@ def build_now_only(
         encoding="utf-8",
     )
     written["index.html"] = index.stat().st_size
+
+    geometry = out_dir / "geometry.html"
+    geometry.write_text(geometry_page(data_dir), encoding="utf-8")
+    written["geometry.html"] = geometry.stat().st_size
 
     target = out_dir / "now.json"
     target.write_text(

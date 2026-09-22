@@ -33,7 +33,7 @@ Agreement is worthless without the days that could have disagreed.
 The geometry's prediction is **conditional on swell direction**, and only some
 days discriminate:
 
-| swell from | north (cuts 242.2°) | center (250.3°) | south (259.9°) | geometry predicts |
+| swell from | north (cuts 241.9°) | center (250.2°) | south (260.1°) | geometry predicts |
 |---|---|---|---|---|
 | 210° | open | open | open | **nothing** — control |
 | 245° | blocked | open | open | south bigger |

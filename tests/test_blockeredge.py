@@ -115,6 +115,23 @@ class TestFeatures:
         assert main(32.45, -117.10)
         assert not main(32.60, -117.13)
 
+    def test_point_loma_stops_at_the_channel(self):
+        """North Island is the far side of the harbour entrance. Counted as
+        Point Loma it could not lower the edge from Coronado - it bears higher
+        than the tip - but a drawing of 'the vertices the model uses' would
+        then show land the model never meant."""
+
+        loma = mod.FEATURES["Point Loma peninsula"]["keep"]
+        assert loma(32.665, -117.243)           # the tip
+        assert loma(32.686, -117.2335)          # Ballast Point
+        assert not loma(32.688, -117.2175)      # Zuniga Point, North Island
+        assert not loma(32.44, -117.30)         # the northern island
+
+    def test_point_loma_claims_only_its_low_edge(self):
+        """The peninsula continues north; its high side is the half-plane."""
+
+        assert mod.FEATURES["Point Loma peninsula"]["edge"] == "low"
+
     def test_only_the_mainland_continues(self):
         assert mod.FEATURES["Baja mainland"]["continues"]
         for name in mod.FEATURES:
@@ -234,3 +251,54 @@ class TestAgainstTheStoredExtract:
         for sid in ("coronado_north", "coronado_center", "coronado_south"):
             gap = north[sid].low.bearing_deg - south[sid].high.bearing_deg
             assert 5.9 < gap < 6.4
+
+
+@pytest.mark.skipif(not (REAL / "enc_approach_88_point_loma.csv").exists(),
+                    reason="the Point Loma extract has not been collected")
+class TestPointLomaAgainstTheStoredExtract:
+    """Measured 2026-09-22 on the extract NOAA's ENC actually served."""
+
+    CORONADO = ("coronado_north", "coronado_center", "coronado_south")
+
+    def rows(self, source):
+        return {r.spot_id: r for r in mod.report()
+                if r.feature == "Point Loma peninsula" and r.source == source}
+
+    def test_spots_json_now_carries_what_the_chart_draws(self):
+        """The outline in spots.json is a hull of the approach extract, so it
+        must reproduce the extract's own tangent at every spot exactly."""
+
+        for sid, row in self.rows("enc_approach_88_point_loma").items():
+            assert abs(row.moves[0]) < 0.01, sid
+
+    def test_two_chart_bands_agree_on_the_tip(self):
+        a = self.rows("enc_approach_88_point_loma")
+        c = self.rows("enc_coastal_70_point_loma")
+        for sid in self.CORONADO:
+            assert abs(a[sid].low.bearing_deg - c[sid].low.bearing_deg) < 0.3
+
+    def test_the_breaks_see_three_different_vertices(self):
+        rows = self.rows("enc_approach_88_point_loma")
+        assert len({rows[s].low.vertex for s in self.CORONADO}) == 3
+
+    def test_the_harbour_band_has_a_hole_at_the_tip(self):
+        """Why the finer band is NOT the one used. Its coastline stops 336 m
+        short across the tip, and its south-break tangent sits on that line
+        end - an edge formed by missing data, reading 0.17 degrees wide. If
+        this ever fails, NOAA has filled the hole and the harbour band should
+        be reconsidered."""
+
+        import csv
+        from collections import defaultdict
+        from forecast.swell import great_circle_km
+
+        parts = defaultdict(list)
+        with (REAL / "enc_harbour_84_point_loma.csv").open() as fh:
+            for r in csv.DictReader(fh):
+                parts[r["part"]].append((float(r["lat"]), float(r["lon"])))
+        ends = [(k, p) for k, v in parts.items() for p in (v[0], v[-1])]
+        loose = [p for k, p in ends
+                 if p[0] < 32.672 and p[1] < -117.23
+                 and min(great_circle_km(p, q) for j, q in ends
+                         if (j, q) != (k, p)) > 0.1]
+        assert loose, "the harbour band's tip hole has closed"

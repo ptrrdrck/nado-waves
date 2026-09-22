@@ -19,6 +19,10 @@ north's own 547 m chord, 124.2 over centre's 285 m, 131.5 over south's 471 m,
 121.3 over the whole 2.8 km beach. That is a 28.7-degree spread at one beach,
 all of it real, none of it error.
 
+Since 2026-09-22 the chords in `spots.json` are themselves read off the ENC
+harbour band (BRIEFING §27), so comparing them with that band is no longer an
+independent check; the approach and coastal bands still are.
+
 So the output is a SWEEP over scales, not a single number. A break whose normal
 is stable across 200 m to 2 km sits on a straight stretch and the number can be
 trusted. One that swings is on a curve, and no single normal is right for it —

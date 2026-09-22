@@ -65,7 +65,31 @@ BORDER_LAT = 32.5343
 #: the link distance, so they are not modelled.
 ISLAND_SPLIT_LAT = 32.43
 
+#: The far side of the harbour channel. The `point_loma` box already stops
+#: at -117.226 so North Island is not fetched at all; this is the same line
+#: written as a filter, so a wider box later cannot quietly let Zuniga Point
+#: into the peninsula. Ballast Point, the Point Loma side of the channel, sits
+#: at about -117.234.
+CHANNEL_LON = -117.226
+
+#: A floor under the peninsula, well south of the tip (about 32.665) and well
+#: north of the Coronado Islands (32.45), so no charted vertex can be claimed
+#: by two features even if a box is widened later.
+PENINSULA_FLOOR_LAT = 32.62
+
 FEATURES: dict[str, dict] = {
+    "Point Loma peninsula": {
+        "region": "point_loma",
+        "keep": lambda lat, lon: lon < CHANNEL_LON and lat >= PENINSULA_FLOOR_LAT,
+        "note": "the tip, 5-7 km out; its LOW edge is the west edge of every window",
+        # The land continues NORTH, not south: the vertex that forms the edge
+        # is the southern end of the peninsula by construction, so the
+        # southern data-limit alarm would fire on exactly the geometry it
+        # exists to exonerate (the islands' mistake, see DATA_LIMIT_DEG). The
+        # envelope floor sits 2.5 km of open water south of the tip instead.
+        "continues": False,
+        "edge": "low",
+    },
     "Coronado Islands (south group)": {
         "region": "baja",
         "keep": lambda lat, lon: lon < -117.20 and lat < ISLAND_SPLIT_LAT,
@@ -207,7 +231,7 @@ def edges(
 def claimed_edges(spot: Spot, blocker: Blocker) -> tuple[float, float]:
     """What `spots.json` says this blocker's edges are, low first."""
 
-    a = initial_bearing(spot.position, blocker.a)
+    a = initial_bearing(spot.position, blocker.a_seen_from(spot.position))
     b = initial_bearing(spot.position, blocker.b)
     return (min(a, b), max(a, b))
 
@@ -267,8 +291,14 @@ def format_report(rows: list[FeatureReport]) -> str:
             elif row.meaningful == "low":
                 hi = "(half-plane)"
             moves = row.moves
-            vs = "not in spots.json" if moves is None else \
-                 f"{moves[0]:+.2f} / {moves[1]:+.2f}"
+            if moves is None:
+                vs = "not in spots.json"
+            elif row.meaningful == "low":
+                vs = f"{moves[0]:+.2f} / —"
+            elif row.meaningful == "high":
+                vs = f"— / {moves[1]:+.2f}"
+            else:
+                vs = f"{moves[0]:+.2f} / {moves[1]:+.2f}"
             width = "—" if row.width_deg is None else f"{row.width_deg:.2f}"
             edge = row.high if row.meaningful != "low" else row.low
             lines.append(
