@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Re-enable every workflow
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const workflows = await github.paginate(
@@ -67,7 +67,7 @@ jobs:
             echo "::notice title=Keepalive::No KEEPALIVE_TOKEN secret set. Relying on the API re-enable alone. See README."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: ${{ steps.token.outputs.present == 'true' }}
         with:
           token: ${{ secrets.KEEPALIVE_TOKEN }}
