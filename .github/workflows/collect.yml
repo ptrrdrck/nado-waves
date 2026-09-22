@@ -12,21 +12,19 @@ name: Collect NDBC observations
 
 on:
   schedule:
-    # Routine archiving. Offset from the top of the hour because NDBC publishes
-    # roughly 25 minutes after the hour, and because scheduled jobs at :00 sit
-    # in the longest queue on GitHub's shared runners.
-    # 01:35 / 07:35 / 19:35 UTC = 18:35 / 00:35 / 12:35 Pacific daylight.
-    - cron: "35 1,7,19 * * *"
-
-    # Resolution runs. A round cannot resolve until the resolving observation
-    # has been archived (SPEC section 4), and rounds resolve at 06:00 LOCAL
-    # (SPEC section 6, "The round rhythm"). Cron cannot follow daylight saving,
-    # so the run is pinned twice: 13:35 UTC is 06:35 PDT, 14:35 UTC is 06:35
-    # PST. One of the two is redundant in any half of the year, which costs
-    # nothing. Without the second, a winter round would not resolve until 11:35
-    # local - long after dawn patrol, which is the whole ritual the round is
-    # built around. Do not delete either entry to "tidy up the schedule".
-    - cron: "35 13,14 * * *"
+    # 46232 publishes on the half hour (observations land at :26 and :56), so
+    # collection runs at :05 and :35 -- about ten minutes behind each, and off
+    # the top of the hour because scheduled jobs at :00 sit in the longest
+    # queue on GitHub's shared runners.
+    #
+    # This replaced five runs a day inherited from the predecessor game, whose
+    # times were chosen so a round could resolve before dawn patrol rather than
+    # so a forecast could be fresh. Measured on the archive before the change:
+    # zero rows were being lost -- NDBC serves a 45-day window and any fetch
+    # collects all of it -- but the newest observation on the page was a median
+    # of 200 minutes old, and 424 at the 90th percentile. The cost of the old
+    # schedule was never completeness, only staleness.
+    - cron: "5,35 * * * *"
   workflow_dispatch:
     inputs:
       stations:

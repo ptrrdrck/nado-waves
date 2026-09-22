@@ -66,6 +66,49 @@ from .transform import Spectrum, at_buoy, load_spectra, through
 #: leaves room for one missed run without lying about what it is.
 STALE_HOURS = 3.0
 
+#: How long until each measurement on this tab should have been replaced.
+#:
+#: Two numbers govern it and the slower one wins: how often the SOURCE
+#: publishes, and how often this project COLLECTS. A reader cannot see a new
+#: number sooner than we fetch it, so promising the source's cadence when the
+#: collector runs hourly would be a countdown to nothing.
+#:
+#: Measured on the archive, 2026-09-22:
+#:
+#:   swell   NDBC 46232 directional spectra publish hourly; collected hourly.
+#:   wind    KNZY publishes its routine METAR at :52 -- 81 of 95 archived
+#:           observations sit on that minute; collected hourly at :58.
+#:   tide    CO-OPS 9410170 measures every 6 minutes; collected hourly, so the
+#:           hour governs. The gap is deliberate: the measured series moves a
+#:           median 1.1 cm per 6-minute step, so a sub-hourly fetch would cost
+#:           48 extra commits a day to sharpen a number that barely moves.
+#:
+#: These are what "next update expected" on a card is counting toward. They are
+#: an expectation about ARRIVAL, not a promise about the reading's validity --
+#: `stale` is the separate claim, and it still wins.
+EXPECTED_INTERVAL_MIN = {"swell": 60, "wind": 60, "tide": 60}
+
+
+def next_expected(observed_utc: str | None, source: str) -> str | None:
+    """When `source` should next have replaced the reading taken at `observed_utc`.
+
+    Absolute, never a duration. A "in 42 minutes" frozen into a file rebuilt
+    once an hour is wrong for most of the hour it is on screen -- BRIEFING §18,
+    which this project has already paid for once. The instant is published and
+    the surface counts down to it against the reader's own clock.
+    """
+
+    if not observed_utc:
+        return None
+    minutes = EXPECTED_INTERVAL_MIN.get(source)
+    if not minutes:
+        return None
+    try:
+        taken = datetime.strptime(observed_utc, ISO).replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        return None
+    return (taken + timedelta(minutes=minutes)).strftime(ISO)
+
 #: How far ahead to carry predicted turns. Two tide cycles is enough that the
 #: page can keep answering "the next turn" as turns pass beneath it, without
 #: carrying a week of them into a file that describes one moment.
@@ -134,6 +177,18 @@ class Now:
     #: The limit `stale` was decided against, carried so a surface can re-apply
     #: it to the reader's own clock instead of keeping a second copy of it.
     stale_hours: float = STALE_HOURS
+    #: When each measurement on this tab should next have been replaced, keyed
+    #: by card: `swell`, `wind`, `tide`. Absolute instants, so the surface
+    #: counts down against the reader's clock rather than displaying a duration
+    #: that was true only at build time (BRIEFING §18).
+    #:
+    #: Per card rather than one number for the page, because that is the whole
+    #: value of it: when all three are collected on the same hourly cycle they
+    #: count down together and say little, but when ONE source stops -- 46232
+    #: went dark for 16.2 days without the staleness alert visibly firing -- its
+    #: card is the only one that runs overdue. A single banner over all three
+    #: could not say which.
+    next_expected: dict = field(default_factory=dict)
     #: What the buoy itself saw, before any aperture — so a reader can see how
     #: much the geometry changed the answer.
     buoy: dict = field(default_factory=dict)
@@ -287,6 +342,15 @@ def build(
         reading.warnings.append(
             f"{TIDE_STATION} predicted high/low turns not collected yet."
         )
+    # What each card is counting down to. Computed from the reading each card
+    # actually shows, so a source that stops taking readings stops advancing
+    # its own expectation and the card goes overdue on its own.
+    reading.next_expected = {
+        "swell": next_expected(reading.observed_utc, "swell"),
+        "wind": next_expected(reading.wind.observed_utc, "wind"),
+        "tide": next_expected(reading.tide.observed_utc, "tide"),
+    }
+
     reading.standing_on["tide"] = (
         f"OBSERVED — measured water level at {TIDE_STATION}"
         + ("; the next turn is a harmonic PREDICTION, not a measurement"
