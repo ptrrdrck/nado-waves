@@ -527,6 +527,23 @@ class TestRegions:
         for lat, lon in ((32.553, -117.130), (32.525, -117.124), (32.362, -117.060)):
             assert ymin <= lat <= ymax and xmin <= lon <= xmax
 
+    def test_point_loma_holds_the_tip_well_inside_its_box(self):
+        """The tip is the vertex the region exists to find. On the envelope's
+        edge it would be the box's corner, not the coast's - the §24 fault -
+        so it must sit at least a kilometre inside on the three sides it can
+        touch. The north side is the peninsula running on, and is clipped."""
+
+        xmin, ymin, xmax, ymax = mod.REGIONS["point_loma"]
+        tip_lat, tip_lon = 32.6648, -117.2427       # the imagery trace
+        assert tip_lat - ymin > 0.009                # >1 km of sea south
+        assert tip_lon - xmin > 0.01 and xmax - tip_lon > 0.01
+
+    def test_point_loma_leaves_north_island_out(self):
+        """Zuniga Point sits at about -117.2175; the channel is between."""
+
+        _, _, xmax, _ = mod.REGIONS["point_loma"]
+        assert xmax < -117.22
+
     def test_every_region_is_a_well_formed_box(self):
         for name, (xmin, ymin, xmax, ymax) in mod.REGIONS.items():
             assert xmin < xmax and ymin < ymax, name

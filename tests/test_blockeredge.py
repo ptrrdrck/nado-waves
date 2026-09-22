@@ -115,6 +115,23 @@ class TestFeatures:
         assert main(32.45, -117.10)
         assert not main(32.60, -117.13)
 
+    def test_point_loma_stops_at_the_channel(self):
+        """North Island is the far side of the harbour entrance. Counted as
+        Point Loma it could not lower the edge from Coronado - it bears higher
+        than the tip - but a drawing of 'the vertices the model uses' would
+        then show land the model never meant."""
+
+        loma = mod.FEATURES["Point Loma peninsula"]["keep"]
+        assert loma(32.665, -117.243)           # the tip
+        assert loma(32.686, -117.2335)          # Ballast Point
+        assert not loma(32.688, -117.2175)      # Zuniga Point, North Island
+        assert not loma(32.44, -117.30)         # the northern island
+
+    def test_point_loma_claims_only_its_low_edge(self):
+        """The peninsula continues north; its high side is the half-plane."""
+
+        assert mod.FEATURES["Point Loma peninsula"]["edge"] == "low"
+
     def test_only_the_mainland_continues(self):
         assert mod.FEATURES["Baja mainland"]["continues"]
         for name in mod.FEATURES:

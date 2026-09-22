@@ -41,6 +41,7 @@ on:
         options:
           - coronado
           - baja
+          - point_loma
 
 permissions:
   contents: write
@@ -74,10 +75,10 @@ jobs:
       # Runs whatever the fetch did. With no stored vertices it prints the
       # "nothing is inferred from the absence" notice, which is the honest
       # output and worth having in the log either way. Skipped for the Baja
-      # box: `forecast.shorenormal` fits the Coronado chords, and a Baja
-      # extract has nothing to compare them to.
+      # and Point Loma boxes: `forecast.shorenormal` fits the Coronado chords,
+      # and neither extract has anything to compare them to.
       - name: Compare against the digitised chords
-        if: ${{ !inputs.probe_only && inputs.region != 'baja' }}
+        if: ${{ !inputs.probe_only && (inputs.region == 'coronado' || inputs.region == '') }}
         continue-on-error: true
         run: python -m forecast.shorenormal | tee -a "$GITHUB_STEP_SUMMARY"
 
