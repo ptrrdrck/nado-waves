@@ -543,7 +543,7 @@ class TestTheUpdateCountdown:
         shows the failure it expects."""
 
         assert "Overdue by ${hms(now - due)}" in SOURCE
-        assert "Next update expected in ${hms(due - now)}" in SOURCE
+        assert "Update in ${hms(due - now)}" in SOURCE
         assert "el.classList.toggle(\"over\", past || forced)" in SOURCE
 
     def test_a_forced_overdue_with_no_elapsed_deadline_shows_no_figure(self):
@@ -570,22 +570,33 @@ class TestTheUpdateCountdown:
         assert "document.querySelectorAll(\"[data-due]\")" in SOURCE
 
     HMS_CASES = [
-        (0, "0:00:00"),
-        (1_000, "0:00:01"),
-        (59_000, "0:00:59"),
-        (60_000, "0:01:00"),
-        (3_599_000, "0:59:59"),
-        (3_600_000, "1:00:00"),
+        (0, "0:00"),
+        (1_000, "0:01"),
+        (42_000, "0:42"),
+        (59_000, "0:59"),
+        (60_000, "1:00"),
+        (3_542_000, "59:02"),
+        (3_599_000, "59:59"),
+        (3_600_000, "1:00:00"),         # the hour appears only once there is one
         (45_296_000, "12:34:56"),
-        (360_000_000, "100:00:00"),   # 46232 was dark for 389 hours
-        (-5_000, "0:00:05"),          # sign is carried by the wording, not here
+        (86_399_000, "23:59:59"),       # last second before a day exists
+        (86_400_000, "1d 0:00:00"),
+        (360_000_000, "4d 4:00:00"),
+        (1_400_000_000, "16d 4:53:20"),  # 46232's outage, as a reader meets it
+        (-5_000, "0:05"),               # sign is carried by the wording, not here
     ]
 
-    def test_the_clock_formats_as_h_mm_ss(self):
+    def test_the_clock_drops_units_it_does_not_need(self):
         """Ran in node: "0:1:5" versus "0:01:05" is a property of the
-        arithmetic and a grep cannot tell them apart. Hours deliberately do not
-        wrap at 24 -- an outage measured in days should read as one number, not
-        reset every midnight."""
+        arithmetic and a grep cannot tell them apart.
+
+        Leading units are dropped while they are zero, so a card read at a
+        glance does not spend three characters saying "0:".
+
+        Hours previously ran on without wrapping, so an outage would read as
+        one number. That produced "389:00:00" for 46232's sixteen dark days,
+        which is one number and not a legible one; past 24 h it now reads
+        "16d 4:53:20"."""
 
         node = shutil.which("node")
         if node is None:

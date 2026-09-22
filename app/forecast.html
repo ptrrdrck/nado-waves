@@ -70,7 +70,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tabs button[aria-selected="true"]{background:var(--surf);color:var(--surf-ink)}
 .tabs button:focus-visible{outline:2px solid var(--surf);outline-offset:2px}
 
-/* "Next update expected in h:mm:ss" at the end of a provenance line. Muted
+/* "Update in m:ss" at the end of a provenance line. Muted
    while it counts down; the signal colour once the update it promised has not
    arrived, beside the reading it qualifies rather than in a banner over all
    three. `nowrap` because a clock broken across two lines is unreadable. */
@@ -469,13 +469,26 @@ function nowIsStale() {
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
+// Elapsed time with the leading units dropped while they are zero. A card read
+// at a glance should not spend three characters saying "0:", so 59 minutes is
+// "59:07" rather than "0:59:07", and 42 seconds is "0:42".
+//
+// Days appear only past 24 h. Hours used to run on without wrapping, so that
+// an outage read as one number -- but the number it produced for 46232's
+// sixteen dark days was "389:00:00", which nobody reads as a fortnight.
+// "16d 5:00:00" says the same thing and says it immediately.
 function hms(ms) {
   const total = Math.floor(Math.abs(ms) / 1000);
-  return `${Math.floor(total / 3600)}:${pad2(Math.floor((total % 3600) / 60))}`
-    + `:${pad2(total % 60)}`;
+  const s = total % 60;
+  const m = Math.floor(total / 60) % 60;
+  const h = Math.floor(total / 3600) % 24;
+  const d = Math.floor(total / 86400);
+  if (d) return `${d}d ${h}:${pad2(m)}:${pad2(s)}`;
+  if (h) return `${h}:${pad2(m)}:${pad2(s)}`;
+  return `${m}:${pad2(s)}`;
 }
 
-// "Next update expected in h:mm:ss", and "Overdue by h:mm:ss" once it is not.
+// "Update in m:ss", and "Overdue by m:ss" once the update has not come.
 //
 // The instant comes from now.json's `next_expected`, one per card, and the
 // duration is derived HERE rather than published -- the same reason the ages
@@ -510,7 +523,7 @@ function tickDue() {
     // and "overdue by -0:04:11" would be worse than saying nothing.
     el.textContent = past ? `Overdue by ${hms(now - due)}.`
       : forced ? "Overdue."
-      : `Next update expected in ${hms(due - now)}.`;
+      : `Update in ${hms(due - now)}.`;
   });
 }
 
