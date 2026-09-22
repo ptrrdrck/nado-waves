@@ -66,48 +66,66 @@ from .transform import Spectrum, at_buoy, load_spectra, through
 #: leaves room for one missed run without lying about what it is.
 STALE_HOURS = 3.0
 
-#: How long until each measurement on this tab should have been replaced.
+#: How often each SOURCE publishes a new reading. Measured on the archive,
+#: 2026-09-22:
 #:
-#: Two numbers govern it and the slower one wins: how often the SOURCE
-#: publishes, and how often this project COLLECTS. A reader cannot see a new
-#: number sooner than we fetch it, so promising the source's cadence when the
-#: collector runs hourly would be a countdown to nothing.
+#:   swell   NDBC 46232 directional spectra, hourly, on the hour.
+#:   wind    KNZY, hourly -- 81 of 95 archived observations sit on :52 -- plus
+#:           the occasional SPECI between them.
+#:   tide    CO-OPS 9410170, every 6 minutes.
+SOURCE_INTERVAL_MIN = {"swell": 60, "wind": 60, "tide": 6}
+
+#: How often `collect-beach-inputs` is scheduled to fetch them.
+COLLECT_INTERVAL_MIN = 10
+
+#: How many collection cycles may pass unseen before a card calls itself late.
 #:
-#: Measured on the archive, 2026-09-22:
+#: One. GitHub delays and drops scheduled runs -- an hourly cron delivered 28%
+#: of its runs over 72 hours, median gap 3.8 h -- so a single missed cycle is
+#: ordinary, and a card that reddened for it would be red more often than not.
+#: Two consecutive misses is twenty minutes of silence, which is worth seeing.
 #:
-#:   swell   NDBC 46232 directional spectra publish hourly; collected hourly.
-#:   wind    KNZY publishes its routine METAR at :52 -- 81 of 95 archived
-#:           observations sit on that minute; collected hourly at :58.
-#:   tide    CO-OPS 9410170 measures every 6 minutes; collected hourly, so the
-#:           hour governs. The gap is deliberate: the measured series moves a
-#:           median 1.1 cm per 6-minute step, so a sub-hourly fetch would cost
-#:           48 extra commits a day to sharpen a number that barely moves.
-#:
-#: These are what "next update expected" on a card is counting toward. They are
-#: an expectation about ARRIVAL, not a promise about the reading's validity --
-#: `stale` is the separate claim, and it still wins.
-EXPECTED_INTERVAL_MIN = {"swell": 60, "wind": 60, "tide": 60}
+#: This is the only number here that is a tolerance rather than a measurement,
+#: and it is deliberately small. Widening it to cover the scheduler's real
+#: behaviour would make the countdown agree with the collector no matter how
+#: badly the collector was doing, which is the failure this card exists to
+#: catch.
+MISSED_CYCLES_TOLERATED = 1
 
 
 def next_expected(observed_utc: str | None, source: str) -> str | None:
-    """When `source` should next have replaced the reading taken at `observed_utc`.
+    """When a reading newer than `observed_utc` should be VISIBLE on the page.
+
+    Three terms, and the middle one is the one that is easy to leave out:
+
+        the source's own interval   -- when it next takes a reading
+      + the collection interval     -- we cannot show it before we fetch it
+      + one tolerated missed cycle  -- see MISSED_CYCLES_TOLERATED
+
+    Counting only the first term is what the first version of this did, and it
+    made every card go red for a few minutes of every single cycle even when
+    nothing was wrong: KNZY publishes at :52 and a collector that visits ten
+    minutes later is not late, it is a collector. A deadline that a healthy
+    system misses on schedule teaches a reader to ignore it.
 
     Absolute, never a duration. A "in 42 minutes" frozen into a file rebuilt
-    once an hour is wrong for most of the hour it is on screen -- BRIEFING §18,
-    which this project has already paid for once. The instant is published and
-    the surface counts down to it against the reader's own clock.
+    every ten minutes is wrong for most of the time it is on screen --
+    BRIEFING §18, which this project has already paid for once. The instant is
+    published and the surface counts down to it against the reader's own clock.
     """
 
     if not observed_utc:
         return None
-    minutes = EXPECTED_INTERVAL_MIN.get(source)
-    if not minutes:
+    source_min = SOURCE_INTERVAL_MIN.get(source)
+    if not source_min:
         return None
     try:
         taken = datetime.strptime(observed_utc, ISO).replace(tzinfo=timezone.utc)
     except (ValueError, TypeError):
         return None
+    minutes = source_min + COLLECT_INTERVAL_MIN * (1 + MISSED_CYCLES_TOLERATED)
     return (taken + timedelta(minutes=minutes)).strftime(ISO)
+
 
 #: How far ahead to carry predicted turns. Two tide cycles is enough that the
 #: page can keep answering "the next turn" as turns pass beneath it, without

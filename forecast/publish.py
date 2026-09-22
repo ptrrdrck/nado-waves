@@ -241,14 +241,28 @@ def build(
     return written
 
 
-def build_now_only(out_dir: Path, *, data_dir: Path = DEFAULT_DATA_DIR) -> dict[str, int]:
-    """Just `now.json`, for the hourly job.
+def build_now_only(
+    out_dir: Path, *, data_dir: Path = DEFAULT_DATA_DIR, page: Path = PAGE_SOURCE
+) -> dict[str, int]:
+    """`now.json` AND the page, for the frequent observed-reading job.
 
-    The observed reading changes every hour and the forecast four times a day,
-    so the hourly publish copies one 2.6 KB file rather than rebuilding a 70 KB
-    bundle to leave most of it byte-identical. `publish-pages.sh` copies only
-    what it is given, so the forecast already in the public repository is left
-    exactly as the forecast job last wrote it.
+    Not the forecast. That is a 70 KB payload rebuilt from a live NOAA fetch
+    four times a day, and copying it every ten minutes would leave it
+    byte-identical almost every time. `publish-pages.sh` copies only what it is
+    given, so the forecast already in the public repository is left exactly as
+    the forecast job last wrote it.
+
+    The PAGE is here for a different reason, learned twice. `index.html` and
+    `forecast.json` ship together from the forecast job, and `now.json` ships
+    from this one, so a change to the page waited for the next forecast cycle
+    while the payload it reads went out immediately. BRIEFING §35 is the first
+    time that bit: an older-shaped `now.json` met a newer page. On 2026-09-22 it
+    bit the other way round, and the countdown code sat unpublished for a
+    quarter of an hour while the `next_expected` it needed was already live.
+
+    Publishing the page from both jobs closes it. It is 45 KB of static HTML
+    that git sees as unchanged whenever it has not changed, so the cost of
+    including it is a hash comparison.
     """
 
     source = Path(data_dir) / "live" / "now.json"
@@ -259,12 +273,23 @@ def build_now_only(out_dir: Path, *, data_dir: Path = DEFAULT_DATA_DIR) -> dict[
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
+
+    written: dict[str, int] = {}
+
+    index = out_dir / "index.html"
+    index.write_text(
+        wrap(repoint(page.read_text(encoding="utf-8")), app_title="Nado Waves"),
+        encoding="utf-8",
+    )
+    written["index.html"] = index.stat().st_size
+
     target = out_dir / "now.json"
     target.write_text(
         json.dumps(json.loads(source.read_text(encoding="utf-8")), separators=(",", ":")),
         encoding="utf-8",
     )
-    return {"now.json": target.stat().st_size}
+    written["now.json"] = target.stat().st_size
+    return written
 
 
 def main(argv: list[str] | None = None) -> int:

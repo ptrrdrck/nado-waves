@@ -24,12 +24,24 @@ name: Collect beach inputs
 
 on:
   schedule:
-    # KNZY publishes its routine METAR at :52 -- 81 of 95 archived observations
-    # sit on that minute. Collecting at :45 therefore missed every one by seven
-    # minutes and picked it up on the NEXT hour's run, which is why the measured
-    # median wind latency was 110 minutes for an hourly source. :58 catches the
-    # same cycle it was always meant to.
-    - cron: "58 * * * *"
+    # Every ten minutes, and the minute is not the point.
+    #
+    # It was, briefly. This ran at :45 against KNZY's :52 METAR, and moving it
+    # to :58 was supposed to stop every routine observation waiting an extra
+    # hour. Then the schedule itself was measured: an HOURLY cron delivered 20
+    # runs in 72.3 hours -- 28% -- with a median gap of 3.8 h, firing at 18
+    # different minutes and never once at the :45 it asked for. GitHub delays
+    # and drops scheduled runs, so a cron minute is a request, not a time.
+    #
+    # That makes frequency the only lever available here. At the measured
+    # delivery rate a ten-minute cron lands a run roughly every 36 minutes
+    # instead of every 3.8 hours; if the public repository is scheduled better
+    # than the private one was, it lands more often still. Nothing is lost by
+    # over-asking: a run that finds no new rows commits nothing.
+    #
+    # The 28% was measured entirely while this repository was private and under
+    # a minutes quota. Re-measure before concluding it is the steady state.
+    - cron: "*/10 * * * *"
   workflow_dispatch:
     inputs:
       station:
@@ -175,7 +187,15 @@ jobs:
           REASON: "Publish observed reading"
         run: |
           set -euo pipefail
-          # Only now.json: publish-pages.sh copies what it is given, so the
-          # forecast already in the public repository is left untouched.
+          # now.json AND index.html, but not the forecast. publish-pages.sh
+          # copies what it is given, so the forecast already in the public
+          # repository is left exactly as the forecast job last wrote it.
+          #
+          # The page is here because it and its payload used to reach the
+          # public repository on different cadences -- the page four times a
+          # day with the forecast, now.json every cycle -- so a change to one
+          # waited on the other. Both directions of that gap have now bitten
+          # (BRIEFING §35, and the countdown on 2026-09-22). Both jobs write
+          # byte-identical index.html; a test pins that.
           python -m forecast.publish --only-now --out build/now
           .github/scripts/publish-pages.sh
