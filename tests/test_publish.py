@@ -274,3 +274,66 @@ class TestTheTideTurnsSurviveThinning:
     def test_thinning_stays_idempotent_with_turns_present(self):
         once = publish.thin(self.forecast(), step=3)
         assert publish.thin(once, step=3) == once
+
+
+class TestTheObservedJobShipsThePageToo:
+    """The page and its payload must not reach the public repository on
+    different cadences.
+
+    They did. `index.html` and `forecast.json` ship from the forecast job, four
+    times a day; `now.json` ships from the observed job, every ten minutes.
+    BRIEFING §35 caught that gap one way round -- a newer page met an
+    older-shaped `now.json`. On 2026-09-22 it bit the other way: `now.json`
+    carried `next_expected` for fifteen minutes before the page that reads it
+    was published, so the countdown simply did not appear.
+
+    Publishing the page from BOTH jobs closes the gap in both directions. It is
+    45 KB of static HTML that git sees as unchanged whenever it has not
+    changed.
+    """
+
+    def test_the_now_only_bundle_carries_the_page(self, tmp_path):
+        (tmp_path / "live").mkdir()
+        (tmp_path / "live" / "now.json").write_text(
+            json.dumps({"generated_utc": "2026-09-22T08:00:00Z"}), encoding="utf-8"
+        )
+        out = tmp_path / "bundle"
+        written = publish.build_now_only(out, data_dir=tmp_path)
+
+        assert "index.html" in written
+        assert "now.json" in written
+        assert (out / "index.html").exists()
+
+    def test_it_is_the_same_page_the_forecast_job_publishes(self, tmp_path):
+        """Two jobs writing the same filename must write the same bytes, or
+        whichever ran last would decide which page the reader got."""
+
+        (tmp_path / "live").mkdir()
+        (tmp_path / "live" / "now.json").write_text(
+            json.dumps({"generated_utc": "2026-09-22T08:00:00Z"}), encoding="utf-8"
+        )
+        (tmp_path / "live" / "forecast.json").write_text(
+            json.dumps(forecast()), encoding="utf-8"
+        )
+        only_now = tmp_path / "a"
+        publish.build_now_only(only_now, data_dir=tmp_path)
+
+        full = tmp_path / "b"
+        publish.build(full, data_dir=tmp_path)
+
+        assert (only_now / "index.html").read_bytes() == (full / "index.html").read_bytes()
+
+    def test_it_still_refuses_to_ship_the_forecast(self, tmp_path):
+        """The reason the observed job is separate: `forecast.json` is rebuilt
+        from a live NOAA fetch four times a day, and copying it every ten
+        minutes would leave it byte-identical almost every time."""
+
+        (tmp_path / "live").mkdir()
+        (tmp_path / "live" / "now.json").write_text(
+            json.dumps({"generated_utc": "2026-09-22T08:00:00Z"}), encoding="utf-8"
+        )
+        out = tmp_path / "bundle"
+        written = publish.build_now_only(out, data_dir=tmp_path)
+
+        assert "forecast.json" not in written
+        assert not (out / "forecast.json").exists()
