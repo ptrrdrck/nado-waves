@@ -76,7 +76,13 @@ STALE_HOURS = 3.0
 SOURCE_INTERVAL_MIN = {"swell": 60, "wind": 60, "tide": 6}
 
 #: How often `collect-beach-inputs` is scheduled to fetch them.
-COLLECT_INTERVAL_MIN = 10
+#:
+#: This must match the cron in `.github/workflows/collect-beach-inputs.yml`.
+#: If the page promises a cadence the collector is not keeping, every card
+#: calls itself late on a schedule nobody asked it to keep -- which is what a
+#: `*/10` cron and this number at 10 did for half a day, while GitHub was
+#: actually delivering about one run every four hours.
+COLLECT_INTERVAL_MIN = 60
 
 #: How many collection cycles may pass unseen before a card calls itself late.
 #:

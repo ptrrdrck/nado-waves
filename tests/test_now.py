@@ -275,7 +275,7 @@ class TestWhenEachSourceIsNextDue:
         for once."""
 
         got = now_mod.next_expected("2026-09-19T00:00:00Z", "wind")
-        assert got == "2026-09-19T01:20:00Z"   # 60 source + 10 collect + 10 slack
+        assert got == "2026-09-19T03:00:00Z"   # 60 source + 10 collect + 10 slack
 
     def test_the_deadline_includes_the_time_it_takes_to_COLLECT(self):
         """The term that is easy to leave out, and was.
@@ -322,7 +322,7 @@ class TestWhenEachSourceIsNextDue:
 
         assert now_mod.SOURCE_INTERVAL_MIN["tide"] == 6
         got = now_mod.next_expected("2026-09-19T00:00:00Z", "tide")
-        assert got == "2026-09-19T00:26:00Z"   # 6 + 10 + 10, not 6
+        assert got == "2026-09-19T02:06:00Z"   # 6 + 60 + 60, not 6
 
     def test_a_missing_or_unparseable_reading_expects_nothing(self):
         assert now_mod.next_expected(None, "tide") is None
@@ -339,7 +339,7 @@ class TestWhenEachSourceIsNextDue:
         assert set(got.next_expected) == {"swell", "wind", "tide"}
         # The spectrum is the only source with a reading in this fixture, so it
         # is the only one that can name a deadline.
-        assert got.next_expected["swell"] == "2026-09-19T01:50:00Z"
+        assert got.next_expected["swell"] == "2026-09-19T03:30:00Z"
         assert got.next_expected["wind"] is None
         assert got.next_expected["tide"] is None
 
@@ -350,6 +350,38 @@ class TestWhenEachSourceIsNextDue:
 
         old = MOMENT - timedelta(hours=9)
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(old))
-        assert got.next_expected["swell"] == "2026-09-18T16:50:00Z"
+        assert got.next_expected["swell"] == "2026-09-18T18:30:00Z"
         assert got.next_expected["swell"] < got.generated_utc
         assert got.stale
+
+    def test_the_promised_cadence_matches_the_cron_that_keeps_it(self):
+        """The bug this pins cost half a day of cards that were red for no
+        reason: the workflow asked for `*/10` while GitHub delivered about one
+        run every four hours, and COLLECT_INTERVAL_MIN said 10 to match the
+        request rather than the reality.
+
+        A page that promises a cadence the collector is not scheduled to keep
+        calls itself late on a schedule nobody asked it to keep. The two live
+        in different files and nothing else makes them agree."""
+
+        import re
+        from pathlib import Path
+
+        workflow = (Path(__file__).resolve().parent.parent
+                    / ".github" / "workflows" / "collect-beach-inputs.yml").read_text()
+        crons = re.findall(r'- cron: "([^"]+)"', workflow)
+        assert len(crons) == 1, f"expected one schedule, found {crons}"
+        minute, hour = crons[0].split()[0], crons[0].split()[1]
+
+        if minute.startswith("*/"):
+            every = int(minute[2:])
+        elif "," in minute:
+            every = 60 // (minute.count(",") + 1)
+        else:
+            assert hour == "*", f"cannot read a cadence from {crons[0]!r}"
+            every = 60
+
+        assert now_mod.COLLECT_INTERVAL_MIN == every, (
+            f"cron asks every {every} min, COLLECT_INTERVAL_MIN says "
+            f"{now_mod.COLLECT_INTERVAL_MIN}"
+        )

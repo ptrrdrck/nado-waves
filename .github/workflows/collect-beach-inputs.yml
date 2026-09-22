@@ -24,24 +24,29 @@ name: Collect beach inputs
 
 on:
   schedule:
-    # Every ten minutes, and the minute is not the point.
+    # Hourly, because asking for more does not get more.
     #
-    # It was, briefly. This ran at :45 against KNZY's :52 METAR, and moving it
-    # to :58 was supposed to stop every routine observation waiting an extra
-    # hour. Then the schedule itself was measured: an HOURLY cron delivered 20
-    # runs in 72.3 hours -- 28% -- with a median gap of 3.8 h, firing at 18
-    # different minutes and never once at the :45 it asked for. GitHub delays
-    # and drops scheduled runs, so a cron minute is a request, not a time.
+    # Measured across four schedules on this account, the rate GitHub actually
+    # DELIVERS is pinned near 0.2 runs an hour whatever the cron asks for:
     #
-    # That makes frequency the only lever available here. At the measured
-    # delivery rate a ten-minute cron lands a run roughly every 36 minutes
-    # instead of every 3.8 hours; if the public repository is scheduled better
-    # than the private one was, it lands more often still. Nothing is lost by
-    # over-asking: a run that finds no new rows commits nothing.
+    #   asked 0.21/h (5 a day)   ->  0.18/h    84%
+    #   asked 1.00/h (hourly)    ->  0.26/h    26%
+    #   asked 2.00/h (:05,:35)   ->  0.22/h    11%
+    #   asked 6.00/h (*/10)      ->  0.12/h     2%
     #
-    # The 28% was measured entirely while this repository was private and under
-    # a minutes quota. Re-measure before concluding it is the steady state.
-    - cron: "*/10 * * * *"
+    # Over a 29x range in what was requested the delivered rate barely moves,
+    # and */10 came out LOWER per hour than hourly did. Frequency is not a
+    # lever here; asking harder is throttled harder. This replaced a */10 that
+    # produced exactly one scheduled run in the five hours after it merged.
+    #
+    # Hourly is kept because it delivers marginally the best absolute rate of
+    # the four, and because it is what `COLLECT_INTERVAL_MIN` in forecast/now.py
+    # promises the countdown. The two must agree or the cards call themselves
+    # late on a cadence nobody asked them to keep.
+    #
+    # This is a floor, not a plan. Reliable collection needs a trigger that is
+    # not GitHub's scheduler at all.
+    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
       station:
