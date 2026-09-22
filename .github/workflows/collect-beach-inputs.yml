@@ -24,7 +24,12 @@ name: Collect beach inputs
 
 on:
   schedule:
-    - cron: "45 * * * *"
+    # KNZY publishes its routine METAR at :52 -- 81 of 95 archived observations
+    # sit on that minute. Collecting at :45 therefore missed every one by seven
+    # minutes and picked it up on the NEXT hour's run, which is why the measured
+    # median wind latency was 110 minutes for an hourly source. :58 catches the
+    # same cycle it was always meant to.
+    - cron: "58 * * * *"
   workflow_dispatch:
     inputs:
       station:
@@ -50,9 +55,9 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 

@@ -70,6 +70,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tabs button[aria-selected="true"]{background:var(--surf);color:var(--surf-ink)}
 .tabs button:focus-visible{outline:2px solid var(--surf);outline-offset:2px}
 
+/* "Next update expected in h:mm:ss" at the end of a provenance line. Muted
+   while it counts down; the signal colour once the update it promised has not
+   arrived, beside the reading it qualifies rather than in a banner over all
+   three. `nowrap` because a clock broken across two lines is unreadable. */
+.due{white-space:nowrap}
+.due.over{color:var(--signal);font-weight:600}
+
 /* A stale observation is not "now". Loud, above everything it qualifies. */
 .stale{background:var(--signal-wash);border:1px solid var(--signal);color:var(--ink);
        border-radius:var(--r);padding:10px 12px;font-size:13.5px;margin:0}
@@ -449,6 +456,64 @@ function observedAt(iso) {
   return when(iso) + (age ? ` &mdash; ${age}` : "");
 }
 
+// The build's flag is a floor, never a ceiling: an open page can age a reading
+// into staleness, but it cannot un-stale one the build already refused to call
+// current. Extracted so the CARDS can ask, because they are built before the
+// answer used to be worked out.
+function nowIsStale() {
+  if (!NOW) return false;
+  const observedAge = ageHours(NOW.observed_utc);
+  const limit = NOW.stale_hours != null ? NOW.stale_hours : 3;
+  return NOW.stale || (observedAge != null && observedAge > limit);
+}
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+function hms(ms) {
+  const total = Math.floor(Math.abs(ms) / 1000);
+  return `${Math.floor(total / 3600)}:${pad2(Math.floor((total % 3600) / 60))}`
+    + `:${pad2(total % 60)}`;
+}
+
+// "Next update expected in h:mm:ss", and "Overdue by h:mm:ss" once it is not.
+//
+// The instant comes from now.json's `next_expected`, one per card, and the
+// duration is derived HERE rather than published -- the same reason the ages
+// beside it are (BRIEFING §18): a duration frozen into a file rebuilt once an
+// hour is wrong for most of the hour it spends on screen.
+//
+// It flips to overdue and turns red rather than rolling silently to the next
+// slot. A countdown that always looked healthy is the fault this project has
+// already met twice -- the staleness alert that never visibly fired through
+// 46232's 16.2 dark days, and the archive job that read a 404 as "no cycle
+// this hour" for three days. Monitoring that only shows the failure it expects
+// is not monitoring.
+//
+// Rendered empty and filled by `tickDue`, so one second's tick rewrites three
+// short strings instead of re-rendering every card.
+function dueSpan(iso, {forceOver = false} = {}) {
+  if (!iso) return "";
+  return ` <span class="due" data-due="${iso}"`
+    + (forceOver ? ' data-force-over="1"' : "") + "></span>";
+}
+
+function tickDue() {
+  const now = Date.now();
+  document.querySelectorAll("[data-due]").forEach((el) => {
+    const due = new Date(el.getAttribute("data-due")).getTime();
+    if (!Number.isFinite(due)) { el.textContent = ""; return; }
+    const past = now >= due;
+    const forced = el.getAttribute("data-force-over") === "1";
+    el.classList.toggle("over", past || forced);
+    // Only a genuinely elapsed deadline gets a figure. `forceOver` without one
+    // means the build refused the reading for a reason that is not its age,
+    // and "overdue by -0:04:11" would be worse than saying nothing.
+    el.textContent = past ? `Overdue by ${hms(now - due)}.`
+      : forced ? "Overdue."
+      : `Next update expected in ${hms(due - now)}.`;
+  });
+}
+
 // The tide's next turning point, and which way it is running into it.
 //
 // The direction is read off the TURN, never differenced from the water level.
@@ -536,14 +601,14 @@ function trainList(trains, {limit = 4} = {}) {
 
 // The swell card, for either chain. Same shape, different provenance: an
 // observed spectrum on one tab and a modelled one on the other.
-function swellCard({label, buoy, source}) {
+function swellCard({label, buoy, source, due = ""}) {
   return `<div class="cond">
     <span class="lbl">${label}</span>
     ${buoy && buoy.hs_m != null
       ? `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
         + trainList(buoy.trains)
       : '<span class="val"><span class="unit">no spectrum</span></span>'}
-    <span class="src">${period(source)}</span>
+    <span class="src">${period(source)}${due}</span>
   </div>`;
 }
 
@@ -561,12 +626,17 @@ function renderConditions(index) {
     // they cannot already see. The card carries what the buoy saw AND where
     // it was seen, which is why the separate provenance line below the cards
     // is gone: the measurement and its source belong together.
+    // The swell card is the one that can be forced overdue by the build: the
+    // countdown only knows the hour it expected, and `stale` knows the reasons
+    // it cannot see.
+    const due = (NOW && NOW.next_expected) || {};
     rows.push(swellCard({
       label: "Swell",
       buoy,
       source: NOW && NOW.station_name
         ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${observedAt(NOW.observed_utc)}`
         : "",
+      due: dueSpan(due.swell, {forceOver: nowIsStale()}),
     }));
 
     rows.push(`<div class="cond">
@@ -577,7 +647,7 @@ function renderConditions(index) {
         : '<span class="unit">not collected</span>'}</span>
       <span class="src">${period(wind.from_deg != null
         ? `${wind.station_name} (${wind.station}), observed ${observedAt(wind.observed_utc)}`
-        : (wind.note || ""))}</span>
+        : (wind.note || ""))}${wind.from_deg != null ? dueSpan(due.wind) : ""}</span>
     </div>`);
     // The turn is asked for against the READER's clock, not the build's, so
     // it keeps being the next turn as turns pass beneath an open page.
@@ -589,7 +659,7 @@ function renderConditions(index) {
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
       <span class="src">${period(tide.height_m != null
         ? `${NOW.tide_station_name} (${NOW.tide_station}), measured ${observedAt(tide.observed_utc)}`
-        : (tide.note || ""))}</span>
+        : (tide.note || ""))}${tide.height_m != null ? dueSpan(due.tide) : ""}</span>
     </div>`);
   } else {
     const wind = DATA.wind || {};
@@ -638,6 +708,9 @@ function renderConditions(index) {
   }
 
   $("conditions").innerHTML = rows.join("");
+  // Fill the countdowns now rather than leaving them blank until the first
+  // second's tick lands.
+  tickDue();
 }
 
 // The two chains stand on different things and name them in different words,
@@ -765,18 +838,16 @@ function show() {
   renderBreaks(0);
   renderStanding(NOW.standing_on || {});
 
-  // The build's flag is a floor, never a ceiling: an open page can age a
-  // reading into staleness, but it cannot un-stale one the build already
-  // refused to call current.
-  const observedAge = ageHours(NOW.observed_utc);
-  const limit = NOW.stale_hours != null ? NOW.stale_hours : 3;
-  const stale = NOW.stale || (observedAge != null && observedAge > limit);
-  $("stale").hidden = !stale;
-  if (stale) {
-    $("stale").innerHTML = `<b>This is not current.</b> The newest spectrum is `
-      + `from ${when(NOW.observed_utc)}, ${ago(observedAge)}, so it is shown as `
-      + `a reading from then and nothing more.`;
-  }
+  // No banner over the cards. It spoke for all three at once while naming only
+  // the spectrum, so a fresh wind reading sat under a banner calling it not
+  // current, and a dead wind station sat under nothing at all. The same judgement now renders
+  // on the card whose own source is late, in red, beside the reading it
+  // qualifies -- see `dueSpan` and `nowIsStale`, which is where the floor the
+  // build set is still applied.
+  //
+  // The banner element stays for the case below, where there is no reading to
+  // put a card under at all.
+  $("stale").hidden = true;
 
   // The buoy's reading and its provenance now live on the swell card, at the
   // top, beside the wind and tide it sits with. Nothing is left to say down
@@ -864,6 +935,11 @@ function boot(data, observed) {
   // The observed age moves whether or not anything else does, so the observed
   // tab is redrawn on the minute rather than only on load or a tab change.
   setInterval(() => { if (MODE === "now") show(); }, 60000);
+
+  // A second's tick for the countdowns alone. The minute tick above re-renders
+  // the whole page, which is the right cadence for "2 h ago" and far too heavy
+  // for a clock that has to move every second.
+  setInterval(tickDue, 1000);
 
   renderFooter();
 

@@ -258,10 +258,23 @@ class TestTheTwoChains:
         assert "a model, not a measurement" in TEXT
 
     def test_a_stale_observation_is_not_rendered_as_current(self):
-        """NDBC has served 306-hour-old content behind an HTTP 200."""
+        """NDBC has served 306-hour-old content behind an HTTP 200.
 
-        assert "This is not current" in TEXT
+        The banner that used to say so above the cards is gone. It spoke for
+        all three cards at once while naming only the spectrum, so a fresh wind
+        reading sat under a notice calling it not current and a dead wind
+        station sat under nothing at all. The judgement now lands on the card
+        whose own source is late: the swell card is forced overdue by the
+        build's flag, and overdue renders in the signal colour.
+
+        What must not come back is a page that renders a stale reading with no
+        mark on it at all, so the three halves are pinned together here.
+        """
+
         assert "NOW.stale" in SOURCE
+        assert "forceOver: nowIsStale()" in SOURCE
+        assert "function nowIsStale()" in SOURCE
+        assert ".due.over{color:var(--signal)" in SOURCE
 
     def test_a_missing_observation_says_so_and_points_at_the_forecast(self):
         assert "No current observation" in TEXT
@@ -503,6 +516,97 @@ class TestTheProvenanceLines:
 
         assert "stale_hours" in Now.__dataclass_fields__
         assert Now.__dataclass_fields__["stale_hours"].default == STALE_HOURS
+
+
+class TestTheUpdateCountdown:
+    """"Next update expected in h:mm:ss" is a claim about ARRIVAL, and a claim
+    that can be wrong needs to be able to say so on screen."""
+
+    def test_the_deadline_is_published_absolute_and_counted_down_here(self):
+        """BRIEFING §18: a now-relative number frozen into a static file is
+        wrong for most of the hour it spends on screen. now.json publishes the
+        INSTANT each card is waiting on; the page does the arithmetic against
+        the reader's own clock, exactly as it already does for "2 h ago"."""
+
+        from forecast.now import Now
+
+        assert "next_expected" in Now.__dataclass_fields__
+        assert "NOW.next_expected" in SOURCE
+        # Derived in the browser, not read out of the file.
+        assert "Date.now()" in SOURCE
+
+    def test_an_elapsed_deadline_goes_overdue_rather_than_rolling_on(self):
+        """A countdown that silently restarted at the next slot would have
+        looked healthy through all 16.2 days 46232 was dark. Same fault as the
+        staleness alert that never visibly fired and the archive job that read
+        a 404 as "no cycle this hour" for three days: monitoring that only
+        shows the failure it expects."""
+
+        assert "Overdue by ${hms(now - due)}" in SOURCE
+        assert "Next update expected in ${hms(due - now)}" in SOURCE
+        assert "el.classList.toggle(\"over\", past || forced)" in SOURCE
+
+    def test_a_forced_overdue_with_no_elapsed_deadline_shows_no_figure(self):
+        """`forceOver` says the build refused the reading for a reason that is
+        not its age. "Overdue by -0:04:11" would be worse than saying nothing,
+        so only a genuinely elapsed deadline gets a number."""
+
+        assert 'forced ? "Overdue."' in SOURCE
+
+    def test_each_card_counts_down_its_own_source(self):
+        """The point of three countdowns rather than one banner: when a single
+        source stops, its card is the only one that runs overdue. A banner over
+        all three could not say which."""
+
+        assert "due.swell" in SOURCE
+        assert "due.wind" in SOURCE
+        assert "due.tide" in SOURCE
+
+    def test_the_second_tick_does_not_redraw_the_whole_page(self):
+        """The minute tick re-renders and is right for "2 h ago". A clock that
+        moves every second rewriting every card sixty times a minute is not."""
+
+        assert "setInterval(tickDue, 1000)" in SOURCE
+        assert "document.querySelectorAll(\"[data-due]\")" in SOURCE
+
+    HMS_CASES = [
+        (0, "0:00:00"),
+        (1_000, "0:00:01"),
+        (59_000, "0:00:59"),
+        (60_000, "0:01:00"),
+        (3_599_000, "0:59:59"),
+        (3_600_000, "1:00:00"),
+        (45_296_000, "12:34:56"),
+        (360_000_000, "100:00:00"),   # 46232 was dark for 389 hours
+        (-5_000, "0:00:05"),          # sign is carried by the wording, not here
+    ]
+
+    def test_the_clock_formats_as_h_mm_ss(self):
+        """Ran in node: "0:1:5" versus "0:01:05" is a property of the
+        arithmetic and a grep cannot tell them apart. Hours deliberately do not
+        wrap at 24 -- an outage measured in days should read as one number, not
+        reset every midnight."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+
+        start = SOURCE.index("const pad2 =")
+        body = SOURCE[start:SOURCE.index("\n}\n", SOURCE.index("function hms(ms) {")) + 2]
+        script = body + "\n" + "\n".join(
+            f"console.log(JSON.stringify(hms({ms!r})));" for ms, _ in self.HMS_CASES
+        )
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True,
+                             check=True).stdout.split("\n")
+        got = [json.loads(line) for line in out if line.strip()]
+        assert got == [want for _, want in self.HMS_CASES]
+
+    def test_a_card_with_no_reading_gets_no_countdown(self):
+        """Counting down to the next wind observation under "not collected"
+        would promise a replacement for something that was never there."""
+
+        assert 'wind.from_deg != null ? dueSpan(due.wind) : ""' in SOURCE
+        assert 'tide.height_m != null ? dueSpan(due.tide) : ""' in SOURCE
 
 
 class TestTheAgeFormatter:

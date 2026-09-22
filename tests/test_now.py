@@ -262,3 +262,54 @@ class TestTheBuoyViewIsUnclipped:
         assert got.buoy["trains"]
         # And the beaches still get almost none of it.
         assert all(b.fraction < 0.35 for b in got.breaks)
+
+
+class TestWhenEachSourceIsNextDue:
+    """`next_expected` is what the surface counts down to. It is an expectation
+    about ARRIVAL, computed per source, and deliberately not a claim that the
+    reading is still good — `stale` is that, separately."""
+
+    def test_it_is_an_instant_not_a_duration(self):
+        """A "in 42 minutes" baked into a file rebuilt once an hour is wrong
+        for most of the hour it is on screen. BRIEFING §18, already paid for
+        once."""
+
+        got = now_mod.next_expected("2026-09-19T00:00:00Z", "wind")
+        assert got == "2026-09-19T01:00:00Z"
+
+    def test_the_slower_of_source_and_collector_governs(self):
+        """CO-OPS measures every 6 minutes and this project collects hourly. A
+        countdown promising the source's cadence would reach zero ten times
+        before anything could possibly appear."""
+
+        assert now_mod.EXPECTED_INTERVAL_MIN["tide"] == 60
+
+    def test_a_missing_or_unparseable_reading_expects_nothing(self):
+        assert now_mod.next_expected(None, "tide") is None
+        assert now_mod.next_expected("not-a-timestamp", "tide") is None
+        assert now_mod.next_expected("2026-09-19T00:00:00Z", "nonesuch") is None
+
+    def test_each_card_tracks_its_own_source(self, tmp_path):
+        """The whole point of three countdowns rather than one banner: when a
+        single source stops, only its card runs overdue. 46232 went dark for
+        16.2 days while wind and tide kept arriving."""
+
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT,
+                            spectrum=spectrum(MOMENT))
+        assert set(got.next_expected) == {"swell", "wind", "tide"}
+        # The spectrum is the only source with a reading in this fixture, so it
+        # is the only one that can name a deadline.
+        assert got.next_expected["swell"] == "2026-09-19T01:30:00Z"
+        assert got.next_expected["wind"] is None
+        assert got.next_expected["tide"] is None
+
+    def test_the_deadline_follows_the_reading_not_the_build(self, tmp_path):
+        """An old reading does not get a fresh deadline because the build ran.
+        If it did, a dead source would look punctual for as long as the
+        collector kept publishing."""
+
+        old = MOMENT - timedelta(hours=9)
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(old))
+        assert got.next_expected["swell"] == "2026-09-18T16:30:00Z"
+        assert got.next_expected["swell"] < got.generated_utc
+        assert got.stale
