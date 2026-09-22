@@ -14,11 +14,16 @@
 # is distinguishable from an outage in the run status alone — the distinction
 # BRIEFING section 8 records as having cost hours to make by hand.
 #
-# Cadence: NDBC publishes spectra roughly hourly and METAR arrives hourly with
-# specials in between, so hourly at :45 catches both without hammering either.
-# Tide predictions run four days ahead and barely change; they are re-fetched
-# on the same pass because the request is trivial and one schedule is easier to
-# reason about than three.
+# Cadence: NDBC publishes spectra roughly hourly, METAR arrives hourly with
+# specials in between, and the tide gauge measures every six minutes. Hourly
+# collection catches the first two close to when they land and undersamples the
+# third on purpose -- the measured water level moves a median 1.1 cm per
+# six-minute step. Tide PREDICTIONS run four days ahead and barely change; they
+# ride the same pass because the request is trivial and one schedule is easier
+# to reason about than three.
+#
+# The cron below is a floor rather than the plan. See docs/collection_trigger.md
+# for why, and for the trigger that is meant to keep the real cadence.
 
 name: Collect beach inputs
 
@@ -47,6 +52,27 @@ on:
     # This is a floor, not a plan. Reliable collection needs a trigger that is
     # not GitHub's scheduler at all.
     - cron: "0 * * * *"
+
+  # The trigger that is meant to do the actual work.
+  #
+  # A `repository_dispatch` is an API call, not a scheduled event, so it is not
+  # subject to the throttle the cron comment above measures. Anything that can
+  # make an authenticated POST on a timer can drive this at whatever cadence it
+  # keeps -- see docs/collection_trigger.md for the request and the token it
+  # needs.
+  #
+  # Chosen over the two alternatives on cost. Getting spacing between runs
+  # INSIDE Actions means a job that sleeps, and a sleeping job holds a runner
+  # for the whole gap: roughly 24 runner-hours a day whether the spacing is ten
+  # minutes or sixty, which is an always-on server wearing a workflow's
+  # clothes. Driven from outside, each run is the ~25 seconds it already takes
+  # -- about ten runner-minutes a day for hourly collection.
+  #
+  # Nothing here depends on it. Until something starts calling, the cron above
+  # is the only trigger and this line is inert.
+  repository_dispatch:
+    types: [collect]
+
   workflow_dispatch:
     inputs:
       station:
