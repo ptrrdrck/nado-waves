@@ -1,10 +1,9 @@
 # =============================================================================
-# Beat the Buoy — .gitignore
+# nado-waves — .gitignore
 #
 # IMPORTANT: collected buoy observations are COMMITTED to this repo on purpose.
-# Do not add data/ or *.csv rules here. See SPEC.md section 4 ("Storing the
-# data"). The 45-day NDBC retention window means anything not committed is
-# gone forever.
+# Do not add data/ or *.csv rules here. See CLAUDE.md, "Non-negotiables". The
+# 45-day NDBC retention window means anything not committed is gone forever.
 # =============================================================================
 
 # --- Secrets and environment -------------------------------------------------

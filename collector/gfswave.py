@@ -18,8 +18,8 @@ not just served live. The NOAA Open Data bucket retains every cycle back to
 with the GFS v16 wave implementation). Our buoy archive covers 2023-2025. The
 overlap is three full years of forecast/observation pairs available *today* —
 so forecast error can be measured now rather than after six months of
-archiving forward. This is the opposite of the `collector/forecast.py`
-situation, where history genuinely was unrecoverable.
+archiving forward. This is the opposite of the Open-Meteo situation the
+predecessor hit, where history genuinely was unrecoverable.
 
 Two conventions in the bulletin that are easy to get wrong:
 

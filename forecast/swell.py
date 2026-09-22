@@ -37,7 +37,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from collector.common import DEFAULT_DATA_DIR
-from .stats import LEAGUE_TZ
+from .stats import LOCAL_TZ
 from .stats import load_column
 
 EARTH_RADIUS_KM = 6371.0
@@ -141,7 +141,7 @@ def arriving_energy(
     data_dir: Path,
     sentinel: str,
     target: str,
-    tz: ZoneInfo = LEAGUE_TZ,
+    tz: ZoneInfo = LOCAL_TZ,
     tolerance: float = AIM_TOLERANCE_DEG,
 ) -> tuple[dict, float, int, int]:
     """Peak `H²T` predicted to land at `target` on each local day."""
@@ -170,7 +170,7 @@ def arriving_energy(
     return landing, distance, seen, aimed
 
 
-def daily_peak(data_dir: Path, station: str, tz: ZoneInfo = LEAGUE_TZ) -> dict:
+def daily_peak(data_dir: Path, station: str, tz: ZoneInfo = LOCAL_TZ) -> dict:
     """The resolution rule: peak wave height in the local day."""
 
     out: dict = {}

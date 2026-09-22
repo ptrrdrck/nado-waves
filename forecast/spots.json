@@ -63,7 +63,7 @@
       "shoreline_verified": false,
       "provenance": {
         "method": "waterline digitised from Google Earth imagery",
-        "by": "pete@lftlc.xyz",
+        "by": "ptrrdrck",
         "date": "2026-09-14",
         "caveat": "Imagery splice. The northern point sits about 284 m seaward of the waterline trend through the center and south breaks, and the southern point about 61 m seaward, which rotates this chord roughly 19 degrees off the local coast trend (102.8 rather than about 122). MEASURED CONSEQUENCE: the swell window does not move at all (chord-invariance), and undoing the full 284 m cross-shore offset would widen it by 0.93 degrees. So the position is usable and the window here is sound. The NORMAL is not: at 192.8 it is about 19 degrees off, and it must not be trusted for wind fetch or refraction until the imagery is re-digitised. Hence shoreline_verified false."
       },
@@ -86,7 +86,7 @@
       "shoreline_verified": true,
       "provenance": {
         "method": "waterline digitised from Google Earth imagery",
-        "by": "pete@lftlc.xyz",
+        "by": "ptrrdrck",
         "date": "2026-09-14"
       },
       "notes": "In front of the Hotel del. The successor to the old estimated `coronado_central` and the reference break for this project. West window 47.7 degrees, cut off at 250.3; south window 166.4-189.1; island channel 194.4-200.5."
@@ -108,7 +108,7 @@
       "shoreline_verified": true,
       "provenance": {
         "method": "waterline digitised from Google Earth imagery",
-        "by": "pete@lftlc.xyz",
+        "by": "ptrrdrck",
         "date": "2026-09-14"
       },
       "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest west window: 54.7 degrees, holding to 259.9. South window 168.5-191.1; island channel 196.8-203.0."
@@ -171,7 +171,7 @@
       "tip_verified": true,
       "provenance": {
         "method": "seaward-most waterline point digitised from Google Earth imagery",
-        "by": "pete@lftlc.xyz",
+        "by": "ptrrdrck",
         "date": "2026-09-14",
         "note": "Replaced an estimate 136 m away, which moved every west edge by only 0.2 to 0.5 degrees - the old guess was good. `b` is still an estimate, but it only says the ridge runs north and does not end, and the shadow is clipped at the seaward half-plane long before it."
       },

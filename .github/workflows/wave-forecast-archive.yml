@@ -98,7 +98,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          git config user.name "beat-the-buoy collector"
+          git config user.name "nado-waves collector"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Deliberately scoped: this job must never touch data/observations.
