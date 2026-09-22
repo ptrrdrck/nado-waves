@@ -67,8 +67,8 @@ def test_the_guard_still_fires_for_a_spot_the_land_does_not_surround(
 @pytest.mark.parametrize(
     "spot_id,low,high",
     [
-        ("coronado_north", 200.6, 241.7),
-        ("coronado_center", 202.6, 250.3),
+        ("coronado_north", 200.6, 241.9),
+        ("coronado_center", 202.6, 250.2),
         ("coronado_south", 205.2, 260.0),
         ("nasni_breakers", 196.9, 220.0),
         ("nab_gator", 207.8, 270.0),
@@ -84,7 +84,9 @@ def test_the_west_window_reproduces_the_published_numbers(
     north / center / south when the Point Loma tip was charted on 2026-09-22
     - per break, off the tip's outline, because each break's tangent lands
     on a different vertex of a rounded headland. The widths are now
-    41.1 / 47.7 / 54.9 (were 41.6 / 47.7 / 54.7, and 42.8 / 49.1 / 56.3
+    41.1 / 47.7 / 54.9 then, and 41.3 / 47.6 / 54.9 once the break chords
+    themselves were read off the ENC the same day (BRIEFING §27)
+    (were 41.6 / 47.7 / 54.7, and 42.8 / 49.1 / 56.3
     before the islands). Breakers moves most, 2.6 degrees, being nearest the
     tip - and it is still standing on an estimated position.
     """
@@ -99,7 +101,8 @@ def test_the_west_window_reproduces_the_published_numbers(
 def test_the_spread_along_coronados_sand_survives_the_island_charting():
     """BRIEFING section 2a's headline. It is a Point Loma quantity, so it
     moved when the tip was charted: 13.1 on the imagery trace, 13.8 on the
-    chart, because the north break's edge swung west and the south's east."""
+    chart, because the north break's edge swung west and the south's east;
+    13.6 once the breaks themselves were charted."""
 
     from forecast.geometry import load
     spots, blockers = load()
@@ -109,7 +112,7 @@ def test_the_spread_along_coronados_sand_survives_the_island_charting():
         low, high = swell_window(by_id[sid], blockers)[-1]
         widths[sid] = high - low
     spread = widths["coronado_south"] - widths["coronado_north"]
-    assert spread == pytest.approx(13.8, abs=0.3)
+    assert spread == pytest.approx(13.6, abs=0.3)
 
 
 # --- the criterion ----------------------------------------------------------

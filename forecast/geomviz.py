@@ -103,6 +103,7 @@ def build(spots_path: Path | None = None, data_dir: Path = DEFAULT_DATA_DIR,
             "chord_m": round(great_circle_km(*spot.shoreline) * 1000.0, 1),
             "normal": round(spot.normal, 2),
             "source": "imagery" if not spot.cells else "chart",
+            "cells": list(spot.cells),
             "method": prov.get("method", ""), "date": prov.get("date", ""),
             "windows": windows,
         })

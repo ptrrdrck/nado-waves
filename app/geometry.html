@@ -457,7 +457,7 @@ function draw() {
     label(MODEL.buoy.position, `buoy ${MODEL.buoy.id}`, 10, 4, "t-soft");
   }
 
-  // breaks: chord (imagery), position, normal
+  // breaks: chord, position, normal
   for (const b of MODEL.breaks) {
     const on = state.breaks.has(b.id);
     const col = cssv(BREAK_VAR[b.id]);
@@ -468,8 +468,9 @@ function draw() {
       const o = S(b.position);
       el("line", {x1: o[0], y1: o[1], x2: nEnd[0], y2: nEnd[1], stroke: col, "stroke-width": 1.5, "stroke-opacity": on ? 0.9 : 0.3, "marker-end": "none"}, g.mark);
     }
-    b.chord.forEach((p, i) => vtx(p, `<b>${short(b.id)} chord · end ${i + 1}</b><br>${b.method}, ${b.date}<br>chord ${fmtDist(b.chord_m / 1000)}<br><span class="coord">${fmtLL(p)}</span>`, {imagery: true, r: 3.5, color: col}));
-    vtx(b.position, `<b>${b.name}</b><br>position = chord midpoint (imagery)<br>faces ${fmtBrg(b.normal)}<br>${b.windows.map(w => `${fmtBrg(w.from)}–${fmtBrg(w.to)}`).join(" · ")}<br><span class="coord">${fmtLL(b.position)}</span>`, {r: 4.5, color: col});
+    const charted = b.source === "chart";
+    b.chord.forEach((p, i) => vtx(p, `<b>${short(b.id)} chord · end ${i + 1}</b><br>${charted ? "NOAA ENC harbour-band vertex" : "traced from imagery"}, ${b.date}<br>chord ${fmtDist(b.chord_m / 1000)}<br><span class="coord">${fmtLL(p)}</span>`, {imagery: !charted, r: 3.5, color: col}));
+    vtx(b.position, `<b>${b.name}</b><br>position = chord midpoint (${charted ? "charted" : "imagery"})<br>faces ${fmtBrg(b.normal)}<br>${b.windows.map(w => `${fmtBrg(w.from)}–${fmtBrg(w.to)}`).join(" · ")}<br><span class="coord">${fmtLL(b.position)}</span>`, {r: 4.5, color: col});
     if (view.s > 40) label(b.position, short(b.id), 12, 5, "t-lbl t-cond");
   }
   if (view.s <= 40) label(C.position, "Coronado breaks", 14, 5, "t-lbl t-cond");
@@ -552,7 +553,7 @@ document.getElementById("legend").innerHTML = [
   `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.6"/></svg>ray: break → the vertex forming that edge</span>`,
   `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 4"/></svg>the edge carried on past it</span>`,
   `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--land-edge)"/></svg>charted vertex (NOAA ENC)</span>`,
-  `<span><svg width="14" height="14"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="none" stroke="var(--ink)" stroke-width="1.8"/></svg>traced from imagery</span>`,
+  `<span><svg width="14" height="14"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-dasharray="2 2"/></svg>imagery trace (retired, tip view)</span>`,
   `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--land-edge)" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/></svg>land continues</span>`,
   `<span><svg width="14" height="14"><path d="M7,1 L13,12 L1,12 Z" fill="var(--surf)"/></svg>buoy ${MODEL.buoy.id}</span>`,
 ].join("");
@@ -560,8 +561,10 @@ document.getElementById("legend").innerHTML = [
 // ---------- status ----------
 const charted = MODEL.blockers.filter(b => b.cells.length).length;
 const imageryBreaks = MODEL.breaks.filter(b => b.source === "imagery").length;
+const chartedBreaks = MODEL.breaks.length - imageryBreaks;
 document.getElementById("status").innerHTML =
   `<span class="pill"><i></i>${charted} of ${MODEL.blockers.length} blockers from NOAA ENC</span>` +
+  (chartedBreaks ? `<span class="pill"><i></i>${chartedBreaks} of ${MODEL.breaks.length} break chords from NOAA ENC</span>` : "") +
   (imageryBreaks ? `<span class="pill"><i class="ring"></i>${imageryBreaks} break positions still traced from imagery</span>` : "");
 
 // ---------- tables ----------
@@ -581,7 +584,7 @@ document.getElementById("wtable").innerHTML =
 
 const vrows = [];
 for (const b of MODEL.breaks) {
-  b.chord.forEach((p, i) => vrows.push([`${short(b.id)} chord end ${i + 1}`, p, "imagery", b.date]));
+  b.chord.forEach((p, i) => vrows.push([`${short(b.id)} chord end ${i + 1}`, p, b.source === "chart" ? "ENC" : "imagery", b.date]));
 }
 for (const {v, ids} of Object.values(Object.entries(tangentOf).reduce((m, [id, v]) => ((m[v.join()] ||= {v, ids: []}).ids.push(id), m), {})))
   vrows.push([`Point Loma tangent (${ids.map(short).join(", ")})`, v, "ENC", loma.date]);
@@ -597,6 +600,6 @@ document.getElementById("dtable").innerHTML = `<thead><tr><th>Between</th><th>Di
   MODEL.distances.map(d => `<tr><td>${d.label}${d.note ? `<br><span class="note">${d.note}</span>` : ""}</td><td class="num">${fmtDist(d.km)}</td></tr>`).join("") + `</tbody>`;
 
 document.getElementById("foot").textContent =
-  `Built from forecast/spots.json by forecast/geomviz.py. Blockers: ${MODEL.blockers.map(b => `${vbl(b.name)} ${b.cells.length ? "ENC " + b.cells.join("/") : "imagery"} (${b.date})`).join("; ")}. ` +
+  `Built from forecast/spots.json by forecast/geomviz.py. Break chords: ${MODEL.breaks.map(b => `${short(b.id)} ${b.source === "chart" ? "ENC " + b.cells.join("/") : "imagery"}`).join("; ")}; where along the coast each break sits is still chosen by hand. Blockers: ${MODEL.blockers.map(b => `${vbl(b.name)} ${b.cells.length ? "ENC " + b.cells.join("/") : "imagery"} (${b.date})`).join("; ")}. ` +
   `Distances are great-circle; the map is a local equirectangular projection centred on the center break. Geometry only — this page says which bearings can reach each break, not how big anything is.`;
 </script>

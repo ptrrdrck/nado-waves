@@ -7,12 +7,12 @@ Run it on Actions. Every NOAA coastal host is denied at CONNECT from a Claude
 session — measured 2026-09-20, `chs.coast.noaa.gov`, `coast.noaa.gov`,
 `geodesy.noaa.gov` and `maps.coast.noaa.gov` all answered 403 (BRIEFING §8).
 
-WHY THIS EXISTS. `forecast/spots.json` carries three shoreline chords traced by
+WHY THIS EXISTS. `forecast/spots.json` carried three shoreline chords traced by
 hand from Google Earth. They set each break's seaward normal, which is the only
 thing standing behind the offshore/onshore/cross-shore reading on the app
-surface. One of the three, `coronado_north`, is known by its own provenance to
-be about 19 degrees off from an imagery splice. Nothing independent has ever
-checked the other two.
+surface. This collector checked them (BRIEFING §21, §23) and, since
+2026-09-22, is where they come from: each chord endpoint is the charted
+harbour-band vertex nearest the original trace (BRIEFING §27).
 
 That matters more than it sounds. Measured (BRIEFING §20): the verdict
 boundaries sit at fixed angles from the normal, which puts six of the nine

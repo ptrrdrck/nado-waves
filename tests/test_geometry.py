@@ -111,12 +111,11 @@ def test_verification_is_two_claims_and_a_claim_carries_its_provenance():
     assert not BY_ID["nasni_breakers"].position_verified
     assert not BY_ID["nab_gator"].position_verified
 
-    # And `verified` stays the conservative reading: the north break has a
-    # digitised position and a spliced chord, so it is not simply "verified".
-    assert BY_ID["coronado_north"].position_verified
-    assert not BY_ID["coronado_north"].shoreline_verified
-    assert not BY_ID["coronado_north"].verified
-    assert BY_ID["coronado_center"].verified
+    # All three Coronado chords are read off the ENC since 2026-09-22, which
+    # retired the north break's imagery splice; `verified` is still the
+    # conservative reading and still needs both claims.
+    for sid in ("coronado_north", "coronado_center", "coronado_south"):
+        assert BY_ID[sid].verified, sid
 
 
 def _rotate_chord(spot: Spot, degrees: float) -> Spot:
@@ -173,10 +172,10 @@ def test_the_shoreline_chord_does_not_move_the_swell_window():
     Coronado Islands to the east — so the seaward half-plane clip never binds
     there and the normal is irrelevant to which swell arrives.
 
-    This matters beyond pedantry: it is why Coronado's north break keeps a
-    trustworthy window despite an imagery splice that rotated its chord about
-    19 degrees, and it is what says digitising effort belongs on positions and
-    on the Point Loma tip rather than on chord angles.
+    This matters beyond pedantry: it is why Coronado's north break kept a
+    trustworthy window while its imagery chord was in doubt, and it is what
+    says digitising effort belongs on positions and on the Point Loma tip
+    rather than on chord angles.
     """
 
     for spot in SPOTS:
@@ -312,14 +311,47 @@ class TestTipOutline:
         assert got["from_imagery"] == []
         assert "US4CA74M.000" in got["cells"]
 
-    def test_the_break_positions_are_still_named_as_imagery(self):
-        """With the tip charted, the only imagery left in the aperture is its
-        observer end. It must still reach the surface's provenance line."""
+    def test_the_break_positions_are_charted_and_named(self):
+        """The aperture's observer end came off the ENC on 2026-09-22 (BRIEFING
+        §27). Its cell must reach the provenance line beside the blockers'."""
 
         from forecast.geometry import geometry_line, geometry_provenance
 
         spots, blockers = load()
         coronado = [s for s in spots if s.id.startswith("coronado_")]
         got = geometry_provenance(blockers, coronado)
-        assert got["breaks_from_imagery"] == [s.id for s in coronado]
-        assert "imagery for the break positions" in geometry_line(blockers, coronado)
+        assert got["breaks_from_imagery"] == []
+        for spot in coronado:
+            assert spot.cells and set(spot.cells) <= set(got["cells"])
+        assert "imagery" not in geometry_line(blockers, coronado)
+
+    def test_an_imagery_break_is_still_named(self):
+        """The guard stays: a digitised break with no chart cell is imagery,
+        and the line has to say so."""
+
+        from dataclasses import replace
+        from forecast.geometry import geometry_line, geometry_provenance
+
+        spots, blockers = load()
+        traced = [replace(s, cells=()) for s in spots if s.id.startswith("coronado_")]
+        assert geometry_provenance(blockers, traced)["breaks_from_imagery"]
+        assert "imagery for the break positions" in geometry_line(blockers, traced)
+
+
+def test_every_coronado_chord_endpoint_is_a_charted_vertex():
+    """BRIEFING §27: the chords are read off the ENC harbour band, vertex for
+    vertex. Not near it - ON it, and carrying the cell it came from."""
+
+    import csv
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "data" / "shoreline" / "enc_harbour_84_coronado.csv"
+    if not path.exists():
+        pytest.skip("the Coronado extract has not been collected")
+    with path.open() as fh:
+        cells = {(float(r["lat"]), float(r["lon"])): r["cell"] for r in csv.DictReader(fh)}
+    for sid in ("coronado_north", "coronado_center", "coronado_south"):
+        spot = BY_ID[sid]
+        for end in spot.shoreline:
+            assert tuple(end) in cells, (sid, end)
+            assert cells[tuple(end)] in spot.cells

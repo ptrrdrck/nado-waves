@@ -7,10 +7,10 @@
     "segments, because the window varies along its own length by nearly as much",
     "as it varies between the named beaches. The west edge of the swell window",
     "IS the bearing to the Point Loma tip, and that bearing sweeps as you walk",
-    "the sand: measured, 241.7 degrees at the north break to 260.0 at the south,",
-    "giving 41.1 / 47.7 / 54.9 degrees of open window across 2.8 km. For scale,",
+    "the sand: measured, 241.9 degrees at the north break to 260.1 at the south,",
+    "giving 41.3 / 47.6 / 54.9 degrees of open window across 2.8 km. For scale,",
     "the whole Breakers-to-Gator spread is 23.1 to 62.2. A single number for",
-    "'Coronado' averages across a 13.8-degree spread and is wrong at both ends.",
+    "'Coronado' averages across a 13.6-degree spread and is wrong at both ends.",
     "",
     "WHAT MATTERS IN THESE COORDINATES, measured rather than assumed:",
     "",
@@ -53,67 +53,81 @@
       "name": "Coronado Central Beach — north break",
       "shoreline": [
         [
-          32.6866337,
-          -117.1975652
+          32.6864195,
+          -117.1975908
         ],
         [
-          32.6855447,
-          -117.1918651
+          32.6852611,
+          -117.1920941
         ]
       ],
       "position_verified": true,
-      "shoreline_verified": false,
+      "shoreline_verified": true,
       "provenance": {
-        "method": "waterline digitised from Google Earth imagery",
-        "by": "ptrrdrck",
-        "date": "2026-09-14",
-        "caveat": "Imagery splice. The northern point sits about 284 m seaward of the waterline trend through the center and south breaks, and the southern point about 61 m seaward, which rotates this chord roughly 19 degrees off the local coast trend (102.8 rather than about 122). MEASURED CONSEQUENCE: the swell window does not move at all (chord-invariance), and undoing the full 284 m cross-shore offset would widen it by 0.93 degrees. So the position is usable and the window here is sound. The NORMAL is not: at 192.8 it is about 19 degrees off, and it must not be trusted for wind fetch or refraction until the imagery is re-digitised. Hence shoreline_verified false."
+        "method": "chord endpoints are the NOAA ENC harbour-band (enc_harbour/84) coastline vertices nearest the 2026-09-14 Google Earth trace, via collector.shoreline region=coronado",
+        "by": "collector.shoreline region=coronado",
+        "date": "2026-09-22",
+        "note": "The chart says where the COAST is; it cannot say where along it the BREAK is, so the alongshore location is still the one chosen by hand on 2026-09-14 and only the coordinates are charted. Replaced trace (32.6866337, -117.1975652) / (32.6855447, -117.1918651); endpoints moved 23.9 m and 38.1 m. No loose line ends within 300 m of either endpoint on this band, so neither can be a chart gap (the Point Loma harbour-band fault, BRIEFING §26). A chart coastline is generalised and referenced to a tidal datum, not a waterline on the day of an image: expect offsets of tens of metres against any trace and do not read them as error.",
+        "cells": [
+          "US5SANCD.000"
+        ],
+        "chart_product": "NOAA ENC, harbour band (usage band 5)"
       },
-      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: west window 41.1 degrees, cut off at 241.7. Also 164.7-187.4 to the south and a 192.6-198.6 channel between the islands."
+      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: west window 41.3 degrees, cut off at 241.9. Also 164.6-187.4 to the south and a 192.6-198.6 channel between the islands."
     },
     {
       "id": "coronado_center",
       "name": "Coronado Central Beach — center break",
       "shoreline": [
         [
-          32.6828541,
-          -117.1866803
+          32.6829186,
+          -117.1865783
         ],
         [
-          32.6814135,
-          -117.1841649
+          32.6814913,
+          -117.1840551
         ]
       ],
       "position_verified": true,
       "shoreline_verified": true,
       "provenance": {
-        "method": "waterline digitised from Google Earth imagery",
-        "by": "ptrrdrck",
-        "date": "2026-09-14"
+        "method": "chord endpoints are the NOAA ENC harbour-band (enc_harbour/84) coastline vertices nearest the 2026-09-14 Google Earth trace, via collector.shoreline region=coronado",
+        "by": "collector.shoreline region=coronado",
+        "date": "2026-09-22",
+        "note": "The chart says where the COAST is; it cannot say where along it the BREAK is, so the alongshore location is still the one chosen by hand on 2026-09-14 and only the coordinates are charted. Replaced trace (32.6828541, -117.1866803) / (32.6814135, -117.1841649); endpoints moved 11.9 m and 13.4 m. No loose line ends within 300 m of either endpoint on this band, so neither can be a chart gap (the Point Loma harbour-band fault, BRIEFING §26). A chart coastline is generalised and referenced to a tidal datum, not a waterline on the day of an image: expect offsets of tens of metres against any trace and do not read them as error.",
+        "cells": [
+          "US5SANCD.000"
+        ],
+        "chart_product": "NOAA ENC, harbour band (usage band 5)"
       },
-      "notes": "In front of the Hotel del. The successor to the old estimated `coronado_central` and the reference break for this project. West window 47.7 degrees, cut off at 250.3; south window 166.4-189.1; island channel 194.4-200.5."
+      "notes": "In front of the Hotel del. The successor to the old estimated `coronado_central` and the reference break for this project. West window 47.6 degrees, cut off at 250.2; south window 166.4-189.1; island channel 194.4-200.5."
     },
     {
       "id": "coronado_south",
       "name": "Coronado Central Beach — south break",
       "shoreline": [
         [
-          32.6765368,
-          -117.1761219
+          32.6764674,
+          -117.1760775
         ],
         [
-          32.6737318,
-          -117.1723572
+          32.6737531,
+          -117.1723552
         ]
       ],
       "position_verified": true,
       "shoreline_verified": true,
       "provenance": {
-        "method": "waterline digitised from Google Earth imagery",
-        "by": "ptrrdrck",
-        "date": "2026-09-14"
+        "method": "chord endpoints are the NOAA ENC harbour-band (enc_harbour/84) coastline vertices nearest the 2026-09-14 Google Earth trace, via collector.shoreline region=coronado",
+        "by": "collector.shoreline region=coronado",
+        "date": "2026-09-22",
+        "note": "The chart says where the COAST is; it cannot say where along it the BREAK is, so the alongshore location is still the one chosen by hand on 2026-09-14 and only the coordinates are charted. Replaced trace (32.6765368, -117.1761219) / (32.6737318, -117.1723572); endpoints moved 8.8 m and 2.4 m. No loose line ends within 300 m of either endpoint on this band, so neither can be a chart gap (the Point Loma harbour-band fault, BRIEFING §26). A chart coastline is generalised and referenced to a tidal datum, not a waterline on the day of an image: expect offsets of tens of metres against any trace and do not read them as error.",
+        "cells": [
+          "US5SANCD.000"
+        ],
+        "chart_product": "NOAA ENC, harbour band (usage band 5)"
       },
-      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest west window: 54.9 degrees, holding to 260.0. South window 168.5-191.1; island channel 196.8-203.0."
+      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest west window: 54.9 degrees, holding to 260.1. South window 168.5-191.2; island channel 196.8-203.0."
     },
     {
       "id": "nasni_breakers",
@@ -299,7 +313,6 @@
   "_missing": [
     "Zuniga Jetty and the harbour-entrance shoal, which matter for Breakers Beach and probably narrow its window further. Not included because inventing coordinates for them would put false precision into the one number this module exists to compute.",
     "The shelf itself. This is a geometric blocking model only - it says what is BLOCKED, not what refraction and shoaling do to what gets through.",
-    "Digitised coordinates for Breakers and Gator. Scoped out for now; their windows are computed from estimates and are flagged accordingly.",
-    "A re-digitised north-break chord, once the Google Earth imagery splice at the north end of Coronado is resolved. Position is fine; the normal is about 19 degrees off."
+    "Digitised coordinates for Breakers and Gator. Scoped out for now; their windows are computed from estimates and are flagged accordingly."
   ]
 }

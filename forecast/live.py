@@ -94,7 +94,7 @@ class WindAtTime:
 
     The *measurement* is station-level and lives on the forecast. What each
     break makes of it is not: offshore and onshore are relative to a shore
-    normal, and Coronado's three normals span 29° (192.8 / 214.2 / 221.5), so
+    normal, and Coronado's three normals span 27° (194.1 / 213.9 / 220.9), so
     the same wind can be cross at the north break and onshore at the south.
     That part stays on the break, as `BreakForecast.wind_offshore`.
     """
@@ -346,10 +346,11 @@ def wind_at_break(spot: Spot, wind: WindAtTime) -> tuple[float | None, str]:
         return None, ""
     note = ""
     if not spot.shoreline_verified:
-        # The normal comes from the chord. Coronado's north break has a
-        # digitised position and an unverified chord sitting ~19° off the local
-        # coast trend (BRIEFING §9), so this is the one thing about that break
-        # the window's provenance does NOT cover.
+        # The normal comes from the chord. An unverified chord - an estimate,
+        # as Breakers' and Gator's still are - leaves the window's provenance
+        # intact and this reading a guess. (Coronado's north break carried
+        # this flag for an imagery splice until its chord was read off the
+        # ENC on 2026-09-22, BRIEFING §27.)
         note = "shore normal unverified here, so offshore/onshore is a guess"
     return round(offshore_component(wind.from_deg, spot.normal), 3), note
 

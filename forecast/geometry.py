@@ -447,15 +447,26 @@ def geometry_provenance(blockers: list[Blocker],
 
     cells: list[str] = []
     imagery: list[str] = []
-    product = ""
+    products: list[str] = []
     for blocker in blockers:
         if blocker.cells:
-            product = product or blocker.chart_product
+            if blocker.chart_product and blocker.chart_product not in products:
+                products.append(blocker.chart_product)
             for cell in blocker.cells:
                 if cell not in cells:
                     cells.append(cell)
         else:
             imagery.append(blocker.name)
+    # The breaks' own cells, since 2026-09-22. A different usage band from the
+    # blockers (harbour, not approach), so the product is only named when
+    # every charted input shares one.
+    for spot in spots or []:
+        for cell in spot.cells:
+            if cell not in cells:
+                cells.append(cell)
+        if spot.cells and "NOAA ENC, harbour band (usage band 5)" not in products:
+            products.append("NOAA ENC, harbour band (usage band 5)")
+    product = products[0] if len(products) == 1 else ("NOAA ENC" if products else "")
     return {
         "chart_product": product,
         "cells": sorted(cells),

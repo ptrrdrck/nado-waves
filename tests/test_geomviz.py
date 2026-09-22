@@ -33,8 +33,8 @@ def test_every_edge_has_a_vertex():
             assert all(e["blocker"] and e["vertex"] for e in w["edges"])
 
 
-def test_the_break_positions_are_labelled_imagery():
-    assert {b["source"] for b in mod.build()["breaks"]} == {"imagery"}
+def test_the_break_positions_are_labelled_by_source():
+    assert {b["source"] for b in mod.build()["breaks"]} == {"chart"}
 
 
 def test_the_buoy_is_read_not_typed():
