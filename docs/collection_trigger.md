@@ -68,11 +68,25 @@ Content-Type:  application/json
 {"event_type": "collect"}
 ```
 
-A success is **HTTP 204** with an empty body. Anything else is a failure worth
-seeing — in particular `404` means the token cannot reach the repository, which
-is what an expired or under-scoped token looks like from here. GitHub does not
-return `401` for that case, so a scheduler that only checks for 2xx will report
-a dead trigger as healthy.
+A success is **HTTP 204** with an empty body. Anything else is a failure, and
+the code says which kind:
+
+| code | means | fix |
+|---|---|---|
+| **204** | fired | — |
+| **401** | GitHub got **no usable credentials**. The `Authorization` header did not arrive, or the token is expired or malformed. | Check the header is actually being sent, as one header named `Authorization` with the value `Bearer <token>` |
+| **404** | credentials were fine, but that token **cannot see this repository**. GitHub hides repositories a token cannot reach rather than admitting they exist. | Widen the token's repository access, or add Contents: write |
+| **415** | the body was sent without `Content-Type: application/json` | Add that header |
+| **422** | the JSON parsed but `event_type` is missing or wrong | It must be exactly `collect` |
+
+The 401/404 split is the one worth internalising: **401 is "who are you",
+404 is "you may not know".** A scheduler that only checks for 2xx reports
+either as healthy while collection silently falls back to the throttled cron.
+
+All three headers are required. `Content-Type` in particular is easy to leave
+off, because many HTTP clients default a request body to
+`application/x-www-form-urlencoded` and the call fails with 415 rather than
+anything mentioning authentication.
 
 As curl:
 
@@ -87,6 +101,29 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 `event_type` must be `collect`. The workflow listens for that one name and
 ignores every other dispatch, so other automation can share the endpoint
 without starting a collection.
+
+## Setting it up on cron-job.org
+
+The failure you will hit first is **401**, and it is almost always the header
+not arriving rather than the token being wrong. Things to check, in order:
+
+1. **Request method is POST.** A GET to this endpoint cannot work.
+2. **The header is in the headers list, split correctly.** cron-job.org takes a
+   key and a value as separate fields. The key is `Authorization` with no
+   colon; the value is `Bearer ghp_...` including the word `Bearer` and the
+   space. Pasting the whole line into the key field is the usual mistake and
+   produces exactly this 401.
+3. **`Content-Type: application/json` is present** as a second header.
+4. **`Accept: application/vnd.github+json`** as a third. Optional in practice,
+   but it pins the API version.
+5. **The body is `{"event_type":"collect"}`** in the request-body field, not in
+   the URL.
+6. **Save the job before using Test run.** A test run executes the saved
+   configuration, so headers typed but not saved are not sent — which looks
+   identical to headers configured wrongly.
+
+A green test run shows **204** and an empty response body. If it shows 200 with
+HTML, the URL is wrong.
 
 ## The token
 
@@ -107,7 +144,7 @@ repository, which is recoverable from history. It is still a real key in a
 third party's hands, so:
 
 - set an expiry and put the date somewhere you will see it;
-- when it expires the dispatch starts returning `404` and collection silently
+- when it expires the dispatch starts returning **401** and collection silently
   falls back to the throttled cron — the Now cards will go red, which is the
   point of them, but nothing will say why.
 
