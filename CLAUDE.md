@@ -128,6 +128,20 @@ forecaster actually verifies against, Surfline included.
    staleness alert never visibly fired. The anchor buoy for every transform
    here can disappear for a fortnight without notice, and BRIEFING §3a says no
    other station in the array can stand in for it.
+3a. **The nearshore transform — built and SHIPPED 2026-09-25, by the owner's
+   decision.** `forecast/raytrace.py` (precompute, numpy) traces rays backward
+   from the 5 m contour off each break over the USGS CoNED + GMRT seabed
+   (`collector/bathymetry.py`) — refraction and shoaling, Point Loma and Baja
+   as land, the Coronado Islands by Fresnel diffraction — into
+   `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
+   spectrum through them and adds fetch-limited local chop over closed fetches.
+   **The number on every break card is this nearshore figure**, on both chains;
+   the straight-line window figure survives only inside the card's
+   buoy-to-break paragraph. Buoy spectra are read by **maximum entropy**
+   (`Spectrum.spread = "mem"`), which also stops the buoy's own Hs reading ~5%
+   high. Measured in BRIEFING §28–§29: it REVERSES the south/north ordering in
+   south-swell season. It is physics, not calibration, and it is unverified —
+   the observation log decides between it and the aperture, not this file.
 4. **The forecast — built, `forecast/live.py`.** GFS-Wave at 46232 through the
    transform, with wind and 9410170 tide as context. Writes
    `data/live/forecast.json` (gitignored — derived, see Infrastructure).
@@ -568,6 +582,17 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   breaking depth is what refraction will need. `Spot.normal` is currently one
   number doing both jobs, and checking it against a shoreline verifies only the
   first.
+- **The seabed transform is physics, never "calibration".** Calibration is the
+  level reserved for fitting to the observation log (build order 5), and
+  `info.html` names it as its own confidence level. Refraction, shoaling and
+  diffraction are modelled from surveyed inputs and fitted to nothing; calling
+  them calibration would claim a level the project has not reached.
+  `tests/test_app_surface.py` keeps the word out of the card's paragraph.
+- **The nearshore figure is at 5 m of water, not at the sand.** The 10 m
+  contour MOP uses lay 2.2 km off the north break, outside Point Loma's shadow,
+  and described a different place (BRIEFING §29). Moving `raytrace.H_REF`
+  changes what every number on the page means; rebuild the tables and re-read
+  §29 before doing it.
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.

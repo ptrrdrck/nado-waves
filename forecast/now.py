@@ -59,6 +59,7 @@ from .live import (
     wind_measurement,
 )
 from .tideturns import read_turns, turns_between
+from .nearshore import carry, density_grids, load_tables, local_sea, summarise
 from .transform import Spectrum, at_buoy, load_spectra, through
 
 #: Older than this and the spectrum is not "now". NDBC publishes hourly and the
@@ -324,6 +325,14 @@ class NowBreak:
     wind_offshore: float | None = None
     wind_note: str = ""
     diffraction_suspect: list[str] = field(default_factory=list)
+    #: The number the card shows: the buoy's swell carried over the seabed to
+    #: `nearshore.depth_m` of water off the break (refraction, shoaling, the
+    #: Coronado Islands diffracted, Point Loma and Baja as land), with local
+    #: wind chop added in energy. `hs_in_window_m` above stays the
+    #: straight-line window figure; `nearshore.effects` carries the chain from
+    #: one to the other. None when the transfer tables are missing.
+    hs_nearshore_m: float | None = None
+    nearshore: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -473,17 +482,25 @@ def build(
         standing_on={
             "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),
             "waves": f"OBSERVED — NDBC directional spectrum at {STATION}, "
-                     f"measured r1/r2, no assumed spread",
+                     f"measured r1/r2, no assumed spread; directions rebuilt from "
+                     f"them by maximum entropy",
             "wind": f"OBSERVED — {WIND_STATION} METAR",
             # Rewritten below once the turn is known: the card carries a measured
         # level AND a predicted turn, and a row claiming the whole thing was
         # observed would be the exact confusion this block exists to prevent.
         "tide": f"OBSERVED — measured water level at {TIDE_STATION}, not a prediction",
-            "calibration": "none — no offshore-to-face transfer, no shoaling, no refraction",
+            "seabed": "MODELLED — refraction and shoaling over the USGS CoNED and GMRT "
+                      "seabed to 5 m of water off each break, the Coronado Islands by "
+                      "diffraction; linear, no breaking, unverified",
+            "local chop": f"MODELLED — fetch-limited growth from the {WIND_STATION} wind, "
+                          f"only over fetches closed by land",
+            "calibration": "none — nothing has been fitted to an observation; "
+                           "no offshore-to-face transfer",
             "observation at the beach": "none — data/beach_log/ is empty; "
                                         "nothing has measured these breaks",
-            "claim": "observed at a buoy 29 km offshore and put through the beach's "
-                     "aperture; not a wave height at the beach, and not verified there",
+            "claim": "observed at a buoy 29 km offshore and carried by physics to 5 m "
+                     "of water off each break; not a surf height at the sand, and not "
+                     "verified there",
         },
         warnings=warnings,
     )
@@ -548,6 +565,10 @@ def build(
     # `through(..., [])`: the latter still clips to a spot's seaward half-plane,
     # which dropped 12-26% of the energy out of the train list while leaving the
     # headline Hs whole, so the trains did not sum to the number above them.
+    # Maximum-entropy directions on every number this tab shows (owner's
+    # decision, 2026-09-25, after BRIEFING §28). It also stops the buoy's own
+    # height reading ~5% high: the Fourier shape's clamping added energy.
+    spectrum = spectrum.with_spread("mem")
     raw = at_buoy(spectrum)
     reading.buoy = {
         "hs_m": round(raw.hs_m, 3),
@@ -559,10 +580,25 @@ def build(
         "trains": as_trains(raw.trains),
     }
 
+    try:
+        tables = load_tables()
+    except (FileNotFoundError, ValueError) as exc:
+        tables = {}
+        reading.warnings.append(f"nearshore tables unavailable ({exc}); showing window energy")
+    grids = density_grids(spectrum) if tables else {}
+
     for break_id in BREAKS:
         spot: Spot = by_id[break_id]
         got = through(spectrum, spot, blockers)
         offshore, note = wind_at_break(spot, reading.wind)
+        near_hs, near = None, {}
+        if break_id in tables:
+            table = tables[break_id]
+            carried = carry(spectrum, table, grids)
+            chop = local_sea(table, spot.normal, reading.wind.speed_kt, reading.wind.from_deg)
+            near = summarise(carried, chop, buoy_hs_m=raw.hs_m,
+                             window_hs_m=got.hs_in_window_m, depth_m=table.start_depth_m)
+            near_hs = near["hs_m"]
         reading.breaks.append(NowBreak(
             id=spot.id,
             name=spot.name,
@@ -572,11 +608,13 @@ def build(
             normal_is_a_guess=not spot.shoreline_verified,
             hs_in_window_m=round(got.hs_in_window_m, 3),
             fraction=round(got.fraction, 4) if not math.isnan(got.fraction) else None,
-            peak_period_s=None if math.isnan(got.peak_period_s) else round(got.peak_period_s, 1),
-            peak_direction_deg=(
-                None if math.isnan(got.peak_direction_deg) else round(got.peak_direction_deg)
-            ),
-            trains=as_trains(got.trains),
+            # The leading train of what ARRIVES, not of the straight-line window.
+            peak_period_s=(near["trains"][0]["period_s"] if near.get("trains") else
+                           None if math.isnan(got.peak_period_s) else round(got.peak_period_s, 1)),
+            peak_direction_deg=(near["trains"][0]["from_deg"] if near.get("trains") else
+                                None if math.isnan(got.peak_direction_deg)
+                                else round(got.peak_direction_deg)),
+            trains=near.get("trains") or as_trains(got.trains),
             taken_by=[
                 {"blocker": r.blocker, "share": round(r.share, 4), "verified": r.verified}
                 for r in got.removed if r.share >= 0.005
@@ -584,7 +622,13 @@ def build(
             wind_offshore=offshore,
             wind_note=note,
             diffraction_suspect=got.diffraction_suspect,
+            hs_nearshore_m=near_hs,
+            nearshore=near,
         ))
+    if spectrum.mem_fallback_bins:
+        reading.warnings.append(
+            f"{spectrum.mem_fallback_bins} frequency bin(s) could not be read by maximum "
+            f"entropy and used NDBC's two-term series instead")
 
     return reading
 
@@ -630,7 +674,7 @@ def format_table(reading: Now) -> str:
                          f"from {t['from_deg']:3}°  {'(wind sea)' if t['wind_sea'] else ''}")
         lines.append("")
 
-    lines.append(f"{'break':10s} {'window Hs':>16s} {'thru':>6s} {'peak T':>7s} {'from':>6s}  wind")
+    lines.append(f"{'break':10s} {'at 5 m':>16s} {'window Hs':>16s} {'peak T':>7s} {'from':>6s}  wind")
     for entry in reading.breaks:
         # "Coronado Central Beach - north break" truncates to an identical
         # prefix for all three, which is the one thing the table must not do.
@@ -639,15 +683,16 @@ def format_table(reading: Now) -> str:
         if entry.wind_offshore is not None:
             sense = ("offshore" if entry.wind_offshore > 0.3
                      else "onshore" if entry.wind_offshore < -0.3 else "cross")
+        near = fmt_height(entry.hs_nearshore_m) if entry.hs_nearshore_m is not None else "—"
         lines.append(
-            f"{label:10s} {fmt_height(entry.hs_in_window_m):>16s} "
-            f"{100*(entry.fraction or 0):5.0f}% {entry.peak_period_s or 0:6.1f}s "
+            f"{label:10s} {near:>16s} {fmt_height(entry.hs_in_window_m):>16s} "
+            f"{entry.peak_period_s or 0:6.1f}s "
             f"{entry.peak_direction_deg or 0:5.0f}°  {sense}"
         )
     lines += [
         "",
-        "Observed at a buoy 29 km offshore and put through each beach's aperture.",
-        "Not shoaled, not refracted, and never measured at the beach itself.",
+        "Observed at a buoy 29 km offshore and carried over the seabed to 5 m of water",
+        "off each break. Not broken, not a surf height, and never measured at the beach.",
     ]
     return "\n".join(lines)
 

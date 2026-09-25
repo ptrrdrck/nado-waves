@@ -110,10 +110,17 @@ def shoaling_squared(freq: float, h: float) -> float:
 
 # ------------------------------------------------------------------ spectra
 
-def fourier_density(spectrum: Spectrum, index: int) -> list[float]:
-    """The shipped D(θ)·c11 on a 1° grid, per radian (transform.Spectrum.density)."""
+def density_grids(spectrum) -> dict[int, list[float]]:
+    """E(f, θ) on a 1° grid per frequency bin, per radian, from whatever the
+    spectrum is: an NDBC `Spectrum` (Fourier or MEM, its own `spread`) or a
+    WAVEWATCH III `GridSpectrum`. Computed once per spectrum and shared by
+    the three breaks."""
 
-    return [spectrum.density(index, n + 0.5) for n in range(360)]
+    out = {}
+    for i, c11 in enumerate(spectrum.c11):
+        if c11 > 0 and not math.isnan(c11):
+            out[i] = [spectrum.density(i, n + 0.5) for n in range(360)]
+    return out
 
 
 def at(grid: list[float], deg: float) -> float:
@@ -132,33 +139,41 @@ class Nearshore:
     hs_equivalent: float
     hs_islands_geometric: float
     hs_no_islands: float
-    #: Energy-weighted mean heading AT 10 m and where that energy came from.
+    #: Energy-weighted mean heading AT the start depth and where that energy
+    #: came from offshore.
     near_from_deg: float
     off_from_deg: float
     peak_period_s: float
     unmatched_bins: int = 0
+    #: The arriving energy split into trains, each headed by where its energy
+    #: came FROM offshore — the frame the window drawing is in.
+    trains: list = field(default_factory=list)
 
 
-def carry(spectrum: Spectrum, table: Table, density=fourier_density) -> Nearshore:
+def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -> Nearshore:
     """Integrate S_off(f, θ0)·gain over the nearshore headings, per frequency."""
 
+    from .transform import split_trains
+
+    grids = density_grids(spectrum) if grids is None else grids
     freqs = sorted(table.by_freq)
     e10 = e_eq = e_geo = e_none = 0.0
     sn = cn = so = co = 0.0
-    best_bin, best_energy = None, -1.0
+    per_bin: list[tuple[int, float]] = []
+    bin_sin: dict[int, float] = {}
+    bin_cos: dict[int, float] = {}
     unmatched = 0
     for i, f in enumerate(spectrum.frequencies):
-        c11 = spectrum.c11[i]
-        if not (c11 > 0) or math.isnan(c11):
+        grid = grids.get(i)
+        if grid is None:
             continue
         near = min(freqs, key=lambda t: abs(t - f))
         if abs(near - f) > 0.05 * f:
             unmatched += 1
             continue
-        grid = density(spectrum, i)
         width = spectrum.bin_width(i)
         ks2 = shoaling_squared(f, table.start_depth_m)
-        bin_e = 0.0
+        bin_e = bs = bc = 0.0
         for ray in table.by_freq[near]:
             s = at(grid, ray.off_from) * width * ray.width_rad * ray.gain
             e = s * ray.island_factor
@@ -171,14 +186,19 @@ def carry(spectrum: Spectrum, table: Table, density=fourier_density) -> Nearshor
             sn += e * math.sin(t); cn += e * math.cos(t)
             t = math.radians(ray.off_from)
             so += e * math.sin(t); co += e * math.cos(t)
-        if bin_e > best_energy:
-            best_bin, best_energy = f, bin_e
+            bs += e * math.sin(t); bc += e * math.cos(t)
+        per_bin.append((i, bin_e))
+        bin_sin[i], bin_cos[i] = bs, bc
+    peak = max(per_bin, key=lambda item: item[1]) if per_bin else None
     hs = lambda m0: 4.0 * math.sqrt(max(m0, 0.0))
     return Nearshore(
         table.break_id, hs(e10), hs(e_eq), hs(e_geo), hs(e_none),
         math.degrees(math.atan2(sn, cn)) % 360 if e10 > 0 else float("nan"),
         math.degrees(math.atan2(so, co)) % 360 if e10 > 0 else float("nan"),
-        1.0 / best_bin if best_bin else float("nan"), unmatched)
+        1.0 / spectrum.frequencies[peak[0]] if peak and peak[1] > 0 else float("nan"),
+        unmatched,
+        split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos) if e10 > 0 else [],
+    )
 
 
 # ------------------------------------------------------------------ local sea
@@ -219,6 +239,114 @@ def local_sea(table: Table, normal_deg: float, wind_kt: float | None,
     hs = min(4.13e-2 * math.sqrt(x), 211.5) * ustar ** 2 / G
     tp = min(0.751 * x ** (1.0 / 3.0), 239.8) * ustar / G
     return LocalSea(hs, tp, wind_from_deg, fetch_km)
+
+
+# ------------------------------------------------------------------ surfaces
+
+def train_dicts(trains) -> list[dict]:
+    return [
+        {
+            "hs_m": round(t.hs_m, 3),
+            "period_s": round(t.period_s, 1),
+            "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
+            "share": round(t.share, 4),
+            "wind_sea": t.is_wind_sea,
+        }
+        for t in trains
+    ]
+
+
+def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
+              window_hs_m: float, depth_m: float) -> dict:
+    """What a surface shows for one break: the number, its trains, and the
+    chain of effects that turned the buoy's reading into it.
+
+    `hs_m` is the swell at the start depth with local chop added in energy —
+    they are different waves on the same water, and heights of independent
+    trains add as squares. Local chop is listed as its own train, tagged.
+    """
+
+    local_hs = local.hs_m if local else 0.0
+    total = math.sqrt(near.hs_ref ** 2 + local_hs ** 2)
+    trains = train_dicts(near.trains[:3])
+    if local:
+        trains.append({"hs_m": round(local.hs_m, 3), "period_s": round(local.tp_s, 1),
+                       "from_deg": round(local.from_deg), "share": None,
+                       "wind_sea": True, "local": True})
+    islands = (1.0 - near.hs_equivalent / near.hs_no_islands) if near.hs_no_islands > 0 else 0.0
+    return {
+        "hs_m": round(total, 3),
+        "depth_m": round(depth_m, 1),
+        "trains": trains,
+        "effects": {
+            "buoy_hs_m": round(buoy_hs_m, 3),
+            "window_hs_m": round(window_hs_m, 3),
+            "seabed_hs_m": round(near.hs_equivalent, 3),
+            "shoaled_hs_m": round(near.hs_ref, 3),
+            "islands_pct": round(100.0 * islands, 1),
+            "local": ({"hs_m": round(local.hs_m, 3), "tp_s": round(local.tp_s, 1),
+                       "from_deg": round(local.from_deg), "fetch_km": round(local.fetch_km, 1)}
+                      if local else None),
+        },
+    }
+
+
+def spectrum_from_partitions(parts: list[tuple[float, float, float, bool]], time,
+                             frequencies: list[float]) -> Spectrum:
+    """A buoy-style spectrum rebuilt from GFS-Wave partitions, for the
+    fallback path when the model's own directional grid is unavailable.
+
+    Each (hs, tp, from_deg, wind_sea) becomes a Pierson-Moskowitz shape with
+    the energy its Hs demands, and the assumed spread
+    (`transform.spread_for`, BRIEFING §11) as its circular moments; the
+    partitions add per frequency as energy and as moment vectors. Read back
+    by maximum entropy, like the observed buoy. The assumed spread is exactly
+    what the spectral path exists to avoid, and the forecast says which it
+    used (`wave_source`).
+    """
+
+    import cmath
+
+    from .transform import moments_for_spread, spread_for
+
+    n = len(frequencies)
+    width = [(frequencies[min(i + 1, n - 1)] - frequencies[max(i - 1, 0)])
+             / (2.0 if 0 < i < n - 1 else 1.0) for i in range(n)]
+    c11 = [0.0] * n
+    m1 = [0j] * n
+    m2 = [0j] * n
+    for hs, tp, from_deg, wind_sea in parts:
+        if not hs or not tp or hs <= 0 or tp <= 0:
+            continue
+        fp = 1.0 / tp
+        shape = [math.exp(-1.25 * (fp / f) ** 4) * (f / fp) ** -5 if f > 0 else 0.0
+                 for f in frequencies]
+        m0 = sum(v * w for v, w in zip(shape, width)) or 1.0
+        scale = (hs / 4.0) ** 2 / m0
+        r1, r2 = moments_for_spread(spread_for(tp, wind_sea))
+        a = math.radians(from_deg)
+        for i, v in enumerate(shape):
+            e = v * scale
+            c11[i] += e
+            m1[i] += e * r1 * cmath.exp(1j * a)
+            m2[i] += e * r2 * cmath.exp(2j * a)
+    a1, a2, r1s, r2s = [], [], [], []
+    for i in range(n):
+        if c11[i] > 0:
+            v1, v2 = m1[i] / c11[i], m2[i] / c11[i]
+            r1s.append(abs(v1)); a1.append(math.degrees(cmath.phase(v1)) % 360.0)
+            r2s.append(abs(v2)); a2.append((math.degrees(cmath.phase(v2)) / 2.0) % 180.0)
+        else:
+            r1s.append(0.0); a1.append(0.0); r2s.append(0.0); a2.append(0.0)
+    return Spectrum(time, list(frequencies), c11, a1, a2, r1s, r2s, spread="mem")
+
+
+def table_frequencies(tables: dict[str, "Table"]) -> list[float]:
+    return sorted(next(iter(tables.values())).by_freq) if tables else []
+
+
+def load_tables(directory: Path = TABLE_DIR) -> dict[str, Table]:
+    return {sid: Table.load(sid, directory) for sid in BREAKS}
 
 
 # ------------------------------------------------------------------ report

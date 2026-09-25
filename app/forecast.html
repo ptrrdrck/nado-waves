@@ -146,7 +146,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
        font-variant-numeric:tabular-nums}
 .train .ht{font-weight:600;min-width:112px}
 .train .tp{color:var(--soft);min-width:48px}
-.train .dr{color:var(--soft);flex:1}
+.train .dr{color:var(--soft);flex:1;white-space:nowrap}
 .train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
 .train.lead .ht,.train.lead .dr{color:var(--ink)}
 .train:not(.lead){opacity:.72}
@@ -172,6 +172,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
       padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:11px}
 .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .quiet{font-size:13.5px;color:var(--soft)}
+/* The buoy-to-break paragraph reads as prose, not a data row. */
+.quiet.nearshore{margin:0;line-height:1.45}
 .quiet b{color:var(--ink);font-weight:600}
 .rows{display:flex;flex-direction:column;gap:5px;font-size:13.5px}
 .row{display:flex;align-items:flex-start;gap:8px}
@@ -664,7 +666,12 @@ function sense(offshore) {
 function cardsForNow() {
   return (NOW.breaks || []).map((b) => ({
     id: b.id, name: b.name,
-    hsWindow: b.hs_in_window_m, hsOffshore: NOW.buoy && NOW.buoy.hs_m,
+    // The nearshore figure when the payload has it; an older now.json (the
+    // publish script keeps the previous one when a build fails) still shows
+    // its window energy rather than nothing.
+    hsWindow: b.hs_nearshore_m != null ? b.hs_nearshore_m : b.hs_in_window_m,
+    hsOffshore: NOW.buoy && NOW.buoy.hs_m,
+    nearshore: b.nearshore || {},
     fraction: b.fraction,
     period: b.peak_period_s, direction: b.peak_direction_deg,
     swellWindow: b.swell_window || [],
@@ -681,7 +688,9 @@ function cardsForForecast(index) {
       const h = b.hours[index] || {};
       return {
         id: b.id, name: b.name,
-        hsWindow: h.hs_window_m, hsOffshore: h.hs_offshore_m,
+        hsWindow: h.hs_nearshore_m != null ? h.hs_nearshore_m : h.hs_window_m,
+        hsOffshore: h.hs_offshore_m,
+        nearshore: h.nearshore || {},
         fraction: h.fraction,
         period: h.dominant_period_s, direction: h.dominant_from_deg,
         swellWindow: b.swell_window || [],
@@ -703,7 +712,8 @@ function trainList(trains, {limit = 4} = {}) {
       <span class="ht">${height(t.hs_m)}</span>
       <span class="tp">${t.period_s.toFixed(1)} s</span>
       <span class="dr">${compass(t.from_deg)}</span>
-      ${t.wind_sea ? '<span class="tag">wind sea</span>' : ""}
+      ${t.local ? '<span class="tag">local chop</span>'
+        : t.wind_sea ? '<span class="tag">wind sea</span>' : ""}
     </div>`).join("") + `</div>`;
 }
 
@@ -772,6 +782,40 @@ function breakPanel(c) {
     <div>
       <div class="lbl">taking the swell</div>
       <div class="rows">${taken || '<div class="quiet">nothing blocked</div>'}</div>
+    </div>
+
+    ${nearshoreParagraph(c)}`;
+}
+
+// How the number at the top of the card was made from the buoy's, in one
+// short paragraph: the straight-line windows, then the seabed, the shoaling
+// into shallow water, the islands and the local wind. Composed from the
+// payload's `nearshore.effects`, never from constants, so it describes the
+// reading on screen. Physics, not calibration: nothing here is fitted to an
+// observation, and info.html says so.
+function nearshoreParagraph(c) {
+  const n = c.nearshore || {};
+  const e = n.effects;
+  if (!e || e.window_hs_m == null || e.seabed_hs_m == null || e.shoaled_hs_m == null) return "";
+  const depth = n.depth_m != null
+    ? `${Math.round(n.depth_m * FT_PER_M)} ft (${Math.round(n.depth_m)} m)` : "shallow";
+  const change = e.window_hs_m > 0 ? Math.round(100 * (e.seabed_hs_m / e.window_hs_m - 1)) : null;
+  const bend = change == null ? "" : change === 0 ? " (no change)"
+    : ` (${change > 0 ? "+" : ""}${change}%)`;
+  const shoal = e.shoaled_hs_m > e.seabed_hs_m * 1.005 ? "lifts it to"
+    : e.shoaled_hs_m < e.seabed_hs_m * 0.995 ? "lowers it to" : "leaves it at";
+  const islands = e.islands_pct == null ? ""
+    : e.islands_pct < 1 ? " The Coronado Islands take under 1% of it."
+    : ` The Coronado Islands take ${Math.round(e.islands_pct)}% of it.`;
+  const local = e.local
+    ? ` Local wind adds ${height(e.local.hs_m)} of chop at ${e.local.tp_s.toFixed(1)} s.`
+    : "";
+  return `<div>
+      <div class="lbl">from the buoy to the break</div>
+      <p class="quiet nearshore">Of the buoy's ${height(e.buoy_hs_m)}, the straight-line
+      windows let ${height(e.window_hs_m)} through. Bending over the seabed on the way
+      in makes that ${height(e.seabed_hs_m)}${bend}, and shoaling into ${depth} of water
+      ${shoal} ${height(e.shoaled_hs_m)}.${islands}${local}</p>
     </div>`;
 }
 
@@ -859,8 +903,10 @@ function windowDrawing(c) {
   // the heads came out black and grey. The leg stops inside the head, where
   // the triangle is wider than the stroke, so it never shows either side of
   // the tip.
+  // Local chop is made by the wind over the last few kilometres, not
+  // carried in from the ocean, so it gets no arrow from the rim.
   const arrows = (c.trains || []).map((t, i) => ({t, i, a: rel(t.from_deg)}))
-    .filter(({t, a}) => isFinite(t.from_deg) && a > -90 && a < 90)
+    .filter(({t, a}) => !t.local && isFinite(t.from_deg) && a > -90 && a < 90)
     .reverse()
     .map(({i, a}) => {
       const lead = i === 0;
@@ -878,7 +924,7 @@ function windowDrawing(c) {
     }).join("");
 
   const said = wins.map((win) => `${Math.round(win.from)} to ${Math.round(win.to)} degrees`).join(", ");
-  const trains = (c.trains || []).filter((t) => isFinite(t.from_deg))
+  const trains = (c.trains || []).filter((t) => !t.local && isFinite(t.from_deg))
     .map((t) => `${Math.round(t.from_deg)}`).join(", ");
   const label = `Swell windows facing ${compass(c.normal)}: ${said}.`
     + (trains ? ` Swell arriving from ${trains} degrees.` : "");

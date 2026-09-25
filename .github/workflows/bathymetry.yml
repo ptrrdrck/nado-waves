@@ -18,15 +18,6 @@ name: Bathymetry
 
 on:
   workflow_dispatch:
-  # TEMPORARY, remove before this branch is merged: workflow_dispatch only
-  # works once a workflow is on the default branch, and the outer grid and
-  # the datum can only be fetched from a runner. Scoped to this branch and to
-  # the collector itself.
-  push:
-    branches: ["claude/blissful-ptolemy-akmirq"]
-    paths:
-      - "collector/bathymetry.py"
-      - ".github/workflows/bathymetry.yml"
 
 permissions:
   contents: write

@@ -88,6 +88,41 @@ class Spectrum:
     a2: list[float]
     r1: list[float]
     r2: list[float]
+    #: How the four moments are turned back into D(θ): "fourier", NDBC's
+    #: two-term series, or "mem", maximum entropy (Lygre & Krogstad 1986).
+    #: The SHIPPED surfaces use "mem" by the owner's decision of 2026-09-25,
+    #: after BRIEFING §28 measured what the choice moves. The default stays
+    #: "fourier" so every measurement made before that — §10 to §28 — still
+    #: means what it said.
+    spread: str = "fourier"
+    _mem: dict = field(default_factory=dict, compare=False, repr=False)
+
+    def with_spread(self, kind: str) -> "Spectrum":
+        from dataclasses import replace
+
+        return replace(self, spread=kind, _mem={})
+
+    @property
+    def mem_fallback_bins(self) -> int:
+        """Bins read with Fourier because MEM could not be: degenerate r1, or
+        moments no distribution can have (0.7% of archived bins, §28). Counted
+        and reported, never silently patched."""
+
+        return sum(1 for v in self._mem.values() if v is None)
+
+    def _mem_bin(self, index: int):
+        if index not in self._mem:
+            from .spreadmethod import R1_CEILING, Unrealisable, mem
+
+            vals = (self.r1[index], self.r2[index], self.a1[index], self.a2[index])
+            if any(v is None or math.isnan(v) for v in vals) or vals[0] >= R1_CEILING:
+                self._mem[index] = None
+            else:
+                try:
+                    self._mem[index] = mem(*vals)
+                except (Unrealisable, ZeroDivisionError, ValueError):
+                    self._mem[index] = None
+        return self._mem[index]
 
     def __post_init__(self) -> None:
         n = len(self.frequencies)
@@ -119,6 +154,13 @@ class Spectrum:
         it silently *subtracts* energy and can make a windowed total exceed the
         unwindowed one. Clamped at zero, which is the standard treatment.
         """
+
+        if self.spread == "mem":
+            dist = self._mem_bin(index)
+            if dist is not None:
+                # MEM is integrated exactly per 1° bin (spreadmethod.mem), so
+                # the density is that bin's share per radian.
+                return self.c11[index] * dist[int(theta % 360.0) % 360] / math.radians(1.0)
 
         t = math.radians(theta)
         d = (1.0 / math.pi) * (
