@@ -187,7 +187,27 @@ class TestTheBreakDrawing:
 
     def test_the_arrows_are_the_breaks_trains_with_the_leader_emphasised(self):
         assert "c.trains" in self.DRAW and "buoy" not in self.DRAW
-        assert 'i === 0 ? " lead"' in self.DRAW
+        assert "const lead = i === 0;" in self.DRAW
+
+    def test_an_arrowhead_is_the_colour_of_its_leg(self):
+        """A marker's `context-stroke` fill is not supported everywhere, and
+        where it is not the heads came out black and grey. The head is drawn
+        as its own shape in the leg's colour, faded with it as one group."""
+
+        assert "<marker" not in self.DRAW and "context-stroke" not in SOURCE
+        assert ".aperture .swell polygon{fill:var(--surf)}" in SOURCE
+        assert ".aperture .swell line{stroke:var(--surf)" in SOURCE
+
+    def test_the_leg_stops_inside_the_head(self):
+        assert "tip + 0.6 * len" in self.DRAW
+
+    def test_shadows_and_rays_reach_the_outer_edge_of_the_rim(self):
+        """The rim is a stroke centred on r; ending at r stops halfway
+        through it."""
+
+        assert "const outer = r + DRAW.rim / 2;" in self.DRAW
+        assert "wedge(a0, a1, outer)" in self.DRAW
+        assert "at(a, outer)" in self.DRAW
 
     def test_a_train_from_behind_the_beach_is_not_drawn(self):
         assert "a > -90 && a < 90" in self.DRAW
