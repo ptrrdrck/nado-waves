@@ -190,6 +190,21 @@ forecaster actually verifies against, Surfline included.
   Keeping it inside Actions was rejected on cost: spacing runs apart needs a
   job that sleeps, and a sleeping job holds a runner for the gap, ~24
   runner-hours a day at any cadence.
+- **An update countdown is three real events on the clock, not intervals added
+  to the reading on screen.** `forecast/now.py` walks: the next time the source
+  PUBLISHES (`PUBLISH_MINUTES` — swell `:00`, wind `:52`, tide every 6 from
+  `:00`, all measured), plus how long until that is FETCHABLE
+  (`PUBLISH_LAG_MIN` — 27 min for the swell's jitter, 0 for the others), rounded
+  up to the next COLLECTION from `EXTERNAL_TRIGGER_CRON`; the page then adds its
+  own refresh interval, because only it knows that. The first version added
+  `source interval + 2 × collection interval` to the reading on screen instead,
+  which charged a tide sample due in ninety seconds a full six minutes and then
+  twenty more as slack — **over twenty minutes of countdown for a source that
+  publishes every six.** There is no slack term now: the external trigger lands
+  on time to the second, so a missed collection is a real failure and the card
+  should say so. **46232's `:26`/`:56` is STANDARD MET**, a different product in
+  `data/observations/` that no card reads; the Now tab's swell is the hourly
+  directional spectrum.
 - **A cadence promised on screen must match the trigger that keeps it.**
   `COLLECT_INTERVAL_MIN` in `forecast/now.py` feeds each Now card's countdown.
   When the cron said `*/10` and GitHub was delivering one run every four hours,

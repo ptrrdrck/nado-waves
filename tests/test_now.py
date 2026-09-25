@@ -265,69 +265,76 @@ class TestTheBuoyViewIsUnclipped:
 
 
 class TestWhenEachSourceIsNextDue:
-    """`next_expected` is what the surface counts down to. It is an expectation
-    about ARRIVAL, computed per source, and deliberately not a claim that the
-    reading is still good — `stale` is that, separately."""
+    """`next_expected` is what the surface counts down to. Three real events on
+    the clock -- the next publish, the lag until it is fetchable, the next
+    collection -- rather than intervals added to the reading on screen."""
 
-    def test_it_is_an_instant_not_a_duration(self):
-        """A "in 42 minutes" baked into a file rebuilt every ten minutes is
-        wrong for most of the time it is on screen. BRIEFING §18, already paid
-        for once."""
+    def test_it_lands_on_the_next_collection_after_the_next_publish(self):
+        """The tide publishes every six minutes from :00 and is collected at
+        :05/:15/:25/:35/:45/:55. A sample stamped :24 is followed by one at
+        :30, which the :35 collection picks up."""
 
-        got = now_mod.next_expected("2026-09-19T00:00:00Z", "wind")
-        assert got == "2026-09-19T01:20:00Z"   # 60 source + 10 collect + 10 slack
+        assert now_mod.next_expected("2026-09-25T04:24:00Z", "tide") == "2026-09-25T04:35:00Z"
 
-    def test_the_deadline_includes_the_time_it_takes_to_COLLECT(self):
-        """The term that is easy to leave out, and was.
+    def test_the_tide_is_not_charged_a_whole_interval_it_has_already_spent(self):
+        """The bug this replaces. The old formula added `source interval +
+        2 x collection interval` to the reading on screen, so a tide sample due
+        in ninety seconds was still given six minutes, and then twenty more as
+        slack -- a countdown over twenty minutes for a source that publishes
+        every six, which is what made it obviously wrong on screen."""
 
-        KNZY publishes at :52. A collector that visits ten minutes later is not
-        late, it is a collector — but a deadline of observed+60 has already
-        passed by then, so every card went red for a few minutes of every cycle
-        with nothing wrong. A deadline a healthy system misses on schedule
-        teaches a reader to ignore it."""
+        stamped = "2026-09-25T04:24:00Z"
+        due = datetime.strptime(now_mod.next_expected(stamped, "tide"), now_mod.ISO)
+        gap = (due - datetime.strptime(stamped, now_mod.ISO)).total_seconds() / 60
+        assert gap <= 16, f"tide waits {gap:.0f} min for a six-minute source"
 
-        taken = "2026-09-19T00:00:00Z"
-        for name, src in now_mod.SOURCE_INTERVAL_MIN.items():
-            due = datetime.strptime(now_mod.next_expected(taken, name), now_mod.ISO)
-            gap = (due - datetime.strptime(taken, now_mod.ISO)).total_seconds() / 60
-            assert gap > src, f"{name} allows no time to fetch the next reading"
+    def test_the_wind_waits_for_its_own_minute(self):
+        """KNZY publishes at :52 and nowhere else, so a 03:52 reading is not
+        followed until 04:52 however often anything is collected. The :55 run
+        is the first that can carry it."""
 
-    def test_a_healthy_cycle_never_reaches_its_deadline(self):
-        """The property the whole change exists for. Worst case in normal
-        operation: a reading is taken, the collector misses one cycle, and
-        catches it on the next. That must still land inside the deadline."""
+        assert now_mod.next_expected("2026-09-25T03:52:00Z", "wind") == "2026-09-25T04:55:00Z"
 
-        taken = datetime(2026, 9, 19, 0, 52, tzinfo=timezone.utc)
-        for name, src in now_mod.SOURCE_INTERVAL_MIN.items():
-            due = datetime.strptime(
-                now_mod.next_expected(taken.strftime(now_mod.ISO), name), now_mod.ISO
-            ).replace(tzinfo=timezone.utc)
-            # next reading exists at taken+src; seen one missed cycle later.
-            worst = taken + timedelta(
-                minutes=src + now_mod.COLLECT_INTERVAL_MIN * (1 + now_mod.MISSED_CYCLES_TOLERATED)
-            )
-            assert worst <= due, f"{name} would redden on a healthy cycle"
+    def test_the_swell_is_charged_its_publication_jitter(self):
+        """The spectrum stamped 05:00 is not fetchable at 05:00 -- measured, it
+        appears anywhere from H+7 to H+27. The deadline uses the upper bound,
+        so a card is not red on every hour that runs late."""
 
-    def test_the_tolerance_is_small_enough_to_still_catch_a_dead_source(self):
-        """Widening the slack to cover the scheduler's real behaviour — 28%
-        delivery, 3.8 h median gap — would make the countdown agree with the
-        collector no matter how badly the collector was doing. One cycle."""
+        assert now_mod.PUBLISH_LAG_MIN["swell"] == now_mod.SPECTRA_PUBLISHED_MIN[1]
+        assert now_mod.next_expected("2026-09-25T04:00:00Z", "swell") == "2026-09-25T05:35:00Z"
 
-        assert now_mod.MISSED_CYCLES_TOLERATED == 1
+    def test_the_publish_minutes_are_the_measured_ones(self):
+        """46232 also publishes standard met at :26 and :56. That is a
+        different product, in data/observations/, that no card reads -- the Now
+        tab's swell is the directional spectrum, stamped on the hour."""
 
-    def test_the_tide_is_not_promised_its_own_six_minutes(self):
-        """CO-OPS measures every 6 minutes and this project collects every 10.
-        A countdown promising the source's cadence would reach zero before
-        anything could possibly appear."""
+        assert now_mod.PUBLISH_MINUTES["swell"] == (0,)
+        assert now_mod.PUBLISH_MINUTES["wind"] == (52,)
+        assert now_mod.PUBLISH_MINUTES["tide"] == tuple(range(0, 60, 6))
+        assert 26 not in now_mod.PUBLISH_MINUTES["swell"]
 
-        assert now_mod.SOURCE_INTERVAL_MIN["tide"] == 6
-        got = now_mod.next_expected("2026-09-19T00:00:00Z", "tide")
-        assert got == "2026-09-19T00:26:00Z"   # 6 + 10 + 10, not 6
+    def test_the_collection_marks_come_from_the_trigger_that_keeps_them(self):
+        """Not from a second copy of the schedule. The cron is the one place
+        the collection times are written down."""
+
+        assert now_mod._collect_minutes() == (5, 15, 25, 35, 45, 55)
+
+    def test_a_deadline_is_never_before_the_reading_it_follows(self):
+        """Swept across a whole hour of stamps, for every source: the next
+        publish is strictly after the reading, and collection cannot precede
+        it."""
+
+        base = datetime(2026, 9, 25, 4, 0, tzinfo=timezone.utc)
+        for minute in range(60):
+            stamped = (base + timedelta(minutes=minute)).strftime(now_mod.ISO)
+            for source in now_mod.PUBLISH_MINUTES:
+                due = now_mod.next_expected(stamped, source)
+                assert due > stamped, f"{source} at :{minute:02d} due {due} <= {stamped}"
 
     def test_a_missing_or_unparseable_reading_expects_nothing(self):
         assert now_mod.next_expected(None, "tide") is None
         assert now_mod.next_expected("not-a-timestamp", "tide") is None
-        assert now_mod.next_expected("2026-09-19T00:00:00Z", "nonesuch") is None
+        assert now_mod.next_expected("2026-09-25T04:00:00Z", "nonesuch") is None
 
     def test_each_card_tracks_its_own_source(self, tmp_path):
         """The whole point of three countdowns rather than one banner: when a
@@ -339,7 +346,7 @@ class TestWhenEachSourceIsNextDue:
         assert set(got.next_expected) == {"swell", "wind", "tide"}
         # The spectrum is the only source with a reading in this fixture, so it
         # is the only one that can name a deadline.
-        assert got.next_expected["swell"] == "2026-09-19T01:50:00Z"
+        assert got.next_expected["swell"] is not None
         assert got.next_expected["wind"] is None
         assert got.next_expected["tide"] is None
 
@@ -350,9 +357,17 @@ class TestWhenEachSourceIsNextDue:
 
         old = MOMENT - timedelta(hours=9)
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(old))
-        assert got.next_expected["swell"] == "2026-09-18T16:50:00Z"
         assert got.next_expected["swell"] < got.generated_utc
         assert got.stale
+
+    def test_there_is_no_slack_term_any_more(self, tmp_path):
+        """There used to be one, because GitHub's scheduler delivered about a
+        quarter of what it was asked for and a card with no tolerance was red
+        more often than not. The trigger is external now and lands on time to
+        the second, so a missed collection is a real failure and the card
+        should say so."""
+
+        assert not hasattr(now_mod, "MISSED_CYCLES_TOLERATED")
 
     def test_the_promised_cadence_matches_the_schedule_that_keeps_it(self):
         """The bug this pins cost half a day of cards that were red for no
