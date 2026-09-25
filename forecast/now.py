@@ -66,19 +66,6 @@ from .transform import Spectrum, at_buoy, load_spectra, through
 #: leaves room for one missed run without lying about what it is.
 STALE_HOURS = 3.0
 
-#: How often each SOURCE publishes a new reading. Measured on the archive,
-#: 2026-09-22:
-#:
-#:   swell   NDBC 46232 directional spectra, hourly, on the hour.
-#:   wind    KNZY, hourly -- 81 of 95 archived observations sit on :52 -- plus
-#:           the occasional SPECI between them.
-#:   tide    CO-OPS 9410170, every 6 minutes.
-#:
-#: Those are the STAMPS the readings carry. When a reading becomes fetchable is
-#: a separate question, and for the spectra it is not a fixed minute -- see
-#: SPECTRA_PUBLISHED_MIN.
-SOURCE_INTERVAL_MIN = {"swell": 60, "wind": 60, "tide": 6}
-
 #: When 46232's hourly spectrum actually becomes FETCHABLE, past its own hour.
 #:
 #: Measured 2026-09-25 by bracketing: for each spectrum hour, the latest
@@ -92,7 +79,6 @@ SOURCE_INTERVAL_MIN = {"swell": 60, "wind": 60, "tide": 6}
 #:
 #: 23Z was still absent at H+16.7 while 01Z had already landed by H+15.0, so
 #: publication is not on a schedule -- it jitters across roughly H+7 to H+27.
-#: The tightest single upper bound anywhere in the archive is H+7.0.
 #:
 #: **This is why the trigger is not phase-locked to the swell.** A cadence
 #: aligned to one minute would be early on some hours and twenty minutes late
@@ -106,59 +92,108 @@ SPECTRA_PUBLISHED_MIN = (7, 27)
 #:
 #: `5,15,25,35,45,55` -- every ten minutes, offset five. The offset is chosen
 #: for the wind: KNZY publishes at :52 and the :55 run catches it three minutes
-#: later, against a measured median of 110 minutes before any of this. The
-#: spectra land within ten minutes of publication wherever in their jitter
-#: window they fall, and the tide within ten of any six-minute sample.
+#: later, against a measured median of 110 minutes before any of this.
 #:
 #: **The GitHub cron is NOT this schedule.** It is an hourly backstop, and it
 #: is deliberately slower: GitHub throttles scheduled runs to about 0.2 an hour
 #: whatever is asked (see docs/collection_trigger.md), so a cron written to
-#: match this would be a promise GitHub cannot keep. `repository_dispatch` from
-#: outside keeps it -- measured landing at :00:13 and :01:00:13, on time to the
-#: second.
+#: match this would be a promise GitHub cannot keep.
 #:
 #: Nothing in this repository can verify the external schedule. A test pins
-#: that this constant matches EXTERNAL_TRIGGER_CRON and that the backstop cron
-#: is not faster; keeping EXTERNAL_TRIGGER_CRON true to what cron-job.org is
-#: set to is a human obligation.
+#: that COLLECT_INTERVAL_MIN matches it and that the backstop cron is not
+#: faster; keeping EXTERNAL_TRIGGER_CRON true to what cron-job.org is set to is
+#: a human obligation.
 EXTERNAL_TRIGGER_CRON = "5,15,25,35,45,55 * * * *"
 COLLECT_INTERVAL_MIN = 10
 
-#: How many collection cycles may pass unseen before a card calls itself late.
+#: WHEN each source publishes, as minutes past the hour. Measured on the
+#: archive 2026-09-25, on the newest rows of each file:
 #:
-#: One. GitHub delays and drops scheduled runs -- an hourly cron delivered 28%
-#: of its runs over 72 hours, median gap 3.8 h -- so a single missed cycle is
-#: ordinary, and a card that reddened for it would be red more often than not.
-#: Two consecutive misses is twenty minutes of silence, which is worth seeing.
+#:   swell   spectra stamps, 864 of 864 on :00. Hourly, on the hour.
+#:   wind    KNZY routine METAR, 152 of 174 on :52; the rest are SPECIs
+#:           between, which arrive early and cost nothing to wait for.
+#:   tide    CO-OPS 9410170, every 6 minutes from :00, all ten marks even.
 #:
-#: This is the only number here that is a tolerance rather than a measurement,
-#: and it is deliberately small. Widening it to cover the scheduler's real
-#: behaviour would make the countdown agree with the collector no matter how
-#: badly the collector was doing, which is the failure this card exists to
-#: catch.
-MISSED_CYCLES_TOLERATED = 1
+#: 46232 also publishes STANDARD MET at :26 and :56 — a different product, in
+#: `data/observations/`, that no card on this page reads. The Now tab's swell
+#: is the directional spectrum, and that is hourly.
+PUBLISH_MINUTES = {
+    "swell": (0,),
+    "wind": (52,),
+    "tide": tuple(range(0, 60, 6)),
+}
+
+#: How long after its own stamp each source becomes FETCHABLE.
+#:
+#: Zero for wind and tide: a :52 METAR was in hand by the :55 collection, and
+#: a :24 tide sample by the :25 one, so the collection schedule already absorbs
+#: whatever lag there is.
+#:
+#: 27 for the swell, which is the UPPER bound of the jitter measured in
+#: SPECTRA_PUBLISHED_MIN rather than its middle. The countdown is a promise
+#: that something newer will be on screen by then; anchoring it on the typical
+#: case would make the card red on every hour that ran late, which is most of
+#: what "jitter" means.
+PUBLISH_LAG_MIN = {"swell": 27, "wind": 0, "tide": 0}
+
+
+def _collect_minutes() -> tuple[int, ...]:
+    """The minutes past the hour the external trigger fires, from its cron."""
+
+    field = EXTERNAL_TRIGGER_CRON.split()[0]
+    if field.startswith("*/"):
+        return tuple(range(0, 60, int(field[2:])))
+    if field == "*":
+        return tuple(range(60))
+    return tuple(sorted(int(m) for m in field.split(",")))
+
+
+def _next_mark(after: datetime, minutes: tuple[int, ...]) -> datetime:
+    """The first instant STRICTLY after `after` landing on one of `minutes`."""
+
+    t = after.replace(second=0, microsecond=0) + timedelta(minutes=1)
+    while t.minute not in minutes:
+        t += timedelta(minutes=1)
+    return t
+
+
+def _mark_at_or_after(moment: datetime, minutes: tuple[int, ...]) -> datetime:
+    """The first instant AT OR AFTER `moment` landing on one of `minutes`."""
+
+    t = moment.replace(second=0, microsecond=0)
+    if t < moment:
+        t += timedelta(minutes=1)
+    while t.minute not in minutes:
+        t += timedelta(minutes=1)
+    return t
 
 
 def next_expected(observed_utc: str | None, source: str) -> str | None:
     """When a reading newer than `observed_utc` should be IN THIS FILE.
 
     Not when a reader sees one. The surface refetches on its own interval and
-    adds that leg itself, because this module cannot know it. Counting only to
-    the file had the countdown reach zero while the file was already fresh and
-    the screen had simply not caught up -- the page reporting its own latency
-    as the source being late.
+    adds that leg itself, because this module cannot know it.
 
-    Three terms, and the middle one is the one that is easy to leave out:
+    Three steps, each a real event on the clock rather than an interval added
+    to the last reading:
 
-        the source's own interval   -- when it next takes a reading
-      + the collection interval     -- we cannot show it before we fetch it
-      + one tolerated missed cycle  -- see MISSED_CYCLES_TOLERATED
+        1. the next time this source PUBLISHES, from PUBLISH_MINUTES
+        2. plus however long it takes to become fetchable, PUBLISH_LAG_MIN
+        3. rounded up to the next COLLECTION, from EXTERNAL_TRIGGER_CRON
 
-    Counting only the first term is what the first version of this did, and it
-    made every card go red for a few minutes of every single cycle even when
-    nothing was wrong: KNZY publishes at :52 and a collector that visits ten
-    minutes later is not late, it is a collector. A deadline that a healthy
-    system misses on schedule teaches a reader to ignore it.
+    The earlier version added `source interval + 2 x collection interval` to
+    the reading on screen, which was wrong in both directions at once. It
+    ignored where in its own cycle the source actually was -- a tide sample due
+    in ninety seconds got a full six minutes -- and then doubled the collection
+    interval as slack. For the tide that produced a countdown over twenty
+    minutes for a source that publishes every six, which is what made it
+    obviously wrong on screen.
+
+    There is no slack term now. There used to be one because GitHub's scheduler
+    delivered about a quarter of what it was asked for, so a card with no
+    tolerance was red more often than not. The trigger is external now and
+    lands on time to the second, so a missed collection is a real failure and
+    the card should say so.
 
     Absolute, never a duration. A "in 42 minutes" frozen into a file rebuilt
     every ten minutes is wrong for most of the time it is on screen --
@@ -168,15 +203,17 @@ def next_expected(observed_utc: str | None, source: str) -> str | None:
 
     if not observed_utc:
         return None
-    source_min = SOURCE_INTERVAL_MIN.get(source)
-    if not source_min:
+    marks = PUBLISH_MINUTES.get(source)
+    if not marks:
         return None
     try:
         taken = datetime.strptime(observed_utc, ISO).replace(tzinfo=timezone.utc)
     except (ValueError, TypeError):
         return None
-    minutes = source_min + COLLECT_INTERVAL_MIN * (1 + MISSED_CYCLES_TOLERATED)
-    return (taken + timedelta(minutes=minutes)).strftime(ISO)
+
+    published = _next_mark(taken, marks)
+    fetchable = published + timedelta(minutes=PUBLISH_LAG_MIN.get(source, 0))
+    return _mark_at_or_after(fetchable, _collect_minutes()).strftime(ISO)
 
 
 #: How far ahead to carry predicted turns. Two tide cycles is enough that the
