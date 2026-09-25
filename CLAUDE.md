@@ -390,9 +390,10 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   they come FROM.** `collector.gfswave` flips it once, on the way in. Do not
   flip it again. Measured: 29° mean error with the flip, 151° without.
 - **One station's reading is not one beach's condition.** Wind and tide are
-  hoisted above the break cards because KNZY and 9410170 feed all three and
-  repeating them three times is noise. **The offshore/onshore reading is not
-  hoisted**, because it is derived from the shore normal and Coronado's three
+  hoisted out of the breaks — their own cards, beside the Swell card whose
+  tabs are the three breaks (ranked by window energy, buoy always last) —
+  because KNZY and 9410170 feed all three and repeating them three times is
+  noise. **The offshore/onshore reading is not hoisted**, because it is derived from the shore normal and Coronado's three
   normals span 27° (194.1 / 213.9 / 220.9, charted 2026-09-22; they were
   192.8 / 214.2 / 221.5 on the traced chords) — a 290° wind reads cross-shore
   at north and centre and onshore at south, on the same reading. Hoist the

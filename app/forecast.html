@@ -95,6 +95,22 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* Metric, in parentheses after the imperial value it restates. */
 .unit{font-weight:400;color:var(--soft)}
 .cond .src{font-size:12px;color:var(--faint)}
+
+/* The swell card holds the three breaks and the buoy as tabs. Quieter than
+   the Now/Forecast control above it, so the two levels of choice never read
+   as the same control: a raised chip on a sunken track rather than a solid
+   fill. `nowrap` because a buoy's name split over two lines at phone width
+   reads as two tabs. */
+.cond.swell{gap:8px}
+.subtabs{display:flex;gap:3px;background:var(--paper);border:1px solid var(--line);
+         border-radius:8px;padding:3px}
+.subtabs button{flex:1 1 auto;font:inherit;font-family:"Barlow Condensed",Archivo,sans-serif;
+                font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:14px;
+                padding:6px 4px;border:0;border-radius:6px;cursor:pointer;white-space:nowrap;
+                background:transparent;color:var(--soft)}
+.subtabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.subtabs button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.pane{display:flex;flex-direction:column;gap:11px;padding-top:4px}
 /* Where the tide is going next. Dim like any other supporting line, with the
    direction itself at full ink because that is the word being read. */
 /* Inline, not flex: the height carries its own metric span and flex would
@@ -208,7 +224,11 @@ a{color:var(--surf)}
 .geolink{margin:0;font-size:13px}
 select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px solid var(--line-strong);
        background:var(--card);color:var(--ink)}
-@media(max-width:380px){ h1{font-size:29px} }
+@media(max-width:380px){
+  h1{font-size:29px}
+  /* Four tabs in 290 px, and the fallback font is wider than Barlow. */
+  .subtabs button{font-size:13px;letter-spacing:.02em;padding:6px 2px}
+}
 </style>
 
 <div class="wrap">
@@ -238,13 +258,13 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
     <button type="button" id="later" aria-label="Later">&#8594;</button>
   </nav>
 
-  <!-- Wind and tide sit above the breaks because one station feeds all three.
-       Only the offshore/onshore reading is per-break, and that stays on the
-       cards: the three shore normals span 29 degrees. -->
-  <section class="conditions" id="conditions"></section>
-
+  <!-- One Swell card with a tab per break and the buoy last, then wind and
+       tide. Wind and tide are cards of their own, never repeated inside a
+       break's tab, because one station feeds all three. Only the
+       offshore/onshore reading is per-break, and that stays in each break's
+       tab: the three shore normals span 27 degrees. -->
   <section id="panel" role="tabpanel">
-    <div id="breaks" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div class="conditions" id="conditions"></div>
   </section>
 
   <p class="source" id="cycle">loading&hellip;</p>
@@ -276,8 +296,9 @@ const PARAM = new URLSearchParams(location.search);
 const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
 const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
 
-// North to south along the sand. The order is the point: the west edge of the
-// window is the bearing to the Point Loma tip and it sweeps as you walk.
+// North to south along the sand: the west edge of the window is the bearing
+// to the Point Loma tip and it sweeps as you walk. This is the scope and the
+// tie-break; the swell card's tabs are ranked by window energy (`rankByEnergy`).
 const ORDER = ["coronado_north", "coronado_center", "coronado_south"];
 const SHORT = {coronado_north: "North", coronado_center: "Center", coronado_south: "South"};
 
@@ -569,6 +590,11 @@ let MODE = "now";     // which chain is on screen
 let TIDE_BY_TIME = {};
 let STEPS = [];      // indices into each break's hours that the picker offers
 let CURSOR = 0;      // position within STEPS
+// The swell tab the reader chose, by id, so it survives a re-render, an hour
+// change and a re-ranking. null until they choose: the card then opens on
+// whichever break holds the most energy at the moment on screen.
+let SWELL_TAB = null;
+const BUOY_TAB = "buoy";
 
 function sense(offshore) {
   if (offshore == null) return null;
@@ -623,20 +649,145 @@ function trainList(trains, {limit = 4} = {}) {
     </div>`).join("") + `</div>`;
 }
 
+// Breaks, most window energy first. That ordering IS the claim the page makes
+// -- which break holds more of the swell -- so the tab row states it before a
+// number is read. A break with no number is not ranked above one with a
+// number, and ties fall back to north-to-south rather than to file order.
+function rankByEnergy(cards) {
+  const energy = (c) => (c.hsWindow != null && isFinite(c.hsWindow) ? c.hsWindow : -Infinity);
+  const place = (c) => { const i = ORDER.indexOf(c.id); return i < 0 ? ORDER.length : i; };
+  return cards.slice().sort((a, b) => (energy(b) - energy(a)) || (place(a) - place(b)));
+}
+
+// One break's tab. What used to be its own card, less the title, which is on
+// the tab now.
+function breakPanel(c, prov) {
+  const taken = (c.takenBy || []).map((tb) => `
+    <div class="row">
+      <span class="seg${tb.blocker === AWAY ? " horizon" : (tb.verified ? "" : " guess")}"></span>
+      <span class="who">${tb.blocker === AWAY
+        ? AWAY + ' <span class="est">(nothing blocks it &mdash; it is aimed elsewhere)</span>'
+        : tb.blocker + (tb.verified ? "" : ' <span class="est">estimated</span>')}</span>
+      <span class="amt">${Math.round(tb.share * 100)}%</span>
+    </div>`).join("");
+
+  const senseText = sense(c.windOffshore);
+
+  // The windows LEAD. They are the only thing in this tab that is the same
+  // whichever tab you are on and whatever the weather is doing -- the fixed
+  // geometry the rest of the tab is a consequence of -- and they are what
+  // differs between the three breaks when every other number looks alike.
+  return `
+    <div>
+      <div class="lbl">swell windows</div>
+      ${windowList(c.swellWindow)}
+      ${prov ? `<div class="prov">${prov}</div>` : ""}
+    </div>
+
+    <div class="quiet">
+      window energy <b>${height(c.hsWindow)}</b>
+      of <b>${height(c.hsOffshore)}</b> ${MODE === "now" ? "at the buoy" : "offshore"}
+    </div>
+
+    ${c.trains && c.trains.length ? `
+    <div>
+      <div class="lbl">swell reaching here</div>
+      ${trainList(c.trains, {limit: 3})}
+    </div>` : `
+    <div class="quiet">
+      peak <b>${c.period ? c.period.toFixed(1) + " s" : "—"}</b>
+      from <b>${compass(c.direction)}</b>
+    </div>`}
+
+    <div>
+      <div class="lbl">taking the swell</div>
+      <div class="rows">${taken || '<div class="quiet">nothing blocked</div>'}</div>
+    </div>
+
+    ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
+      c.windNote ? ` <span class="est">&mdash; ${c.windNote}</span>` : ""}</div>` : ""}`;
+}
+
+// The buoy's tab: the offshore spectrum itself, before any aperture.
+function buoyPanel(buoy) {
+  return buoy && buoy.hs_m != null
+    ? `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
+      + trainList(buoy.trains)
+    : '<span class="val"><span class="unit">no spectrum</span></span>';
+}
+
 // The swell card, for either chain. Same shape, different provenance: an
 // observed spectrum on one tab and a modelled one on the other.
-function swellCard({label, buoy, source, due = ""}) {
-  return `<div class="cond">
+//
+// One tab per break, ranked by window energy, and the buoy ALWAYS last: it is
+// the input the three are derived from, not a fourth break to rank against
+// them. Its title comes from the file, never typed.
+//
+// The provenance line sits under the tabs rather than inside the buoy's,
+// because every tab is that one spectrum, through an aperture or not -- and a
+// stale reading has to be marked whichever tab is open. Tucked into the
+// buoy's tab, an overdue spectrum would sit behind three tabs of window
+// energy derived from it with no mark on any of them.
+function swellCard({label, buoy, station, cards, prov, source, due = ""}) {
+  const tabs = rankByEnergy(cards || []).map((c) => ({
+    id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c, prov),
+  }));
+  tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy", body: buoyPanel(buoy)});
+  const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
+
+  return `<div class="cond swell">
     <span class="lbl">${label}</span>
-    ${buoy && buoy.hs_m != null
-      ? `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
-        + trainList(buoy.trains)
-      : '<span class="val"><span class="unit">no spectrum</span></span>'}
+    <div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoy">
+      ${tabs.map((tab) => `<button type="button" role="tab" id="swell-tab-${tab.id}"
+        data-swell-tab="${tab.id}" aria-controls="swell-pane-${tab.id}"
+        aria-selected="${tab.id === chosen}" tabindex="${tab.id === chosen ? 0 : -1}"
+        >${tab.title}</button>`).join("")}
+    </div>
+    ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
+      aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
     <span class="src">${period(source)}${due}</span>
   </div>`;
 }
 
-function renderConditions(index) {
+// Switching tabs flips attributes rather than re-rendering, so focus stays on
+// the tab the reader is on and the countdowns keep their place.
+function selectSwellTab(id, {focus = false} = {}) {
+  SWELL_TAB = id;
+  document.querySelectorAll("[data-swell-tab]").forEach((btn) => {
+    const on = btn.getAttribute("data-swell-tab") === id;
+    btn.setAttribute("aria-selected", String(on));
+    btn.tabIndex = on ? 0 : -1;
+    const pane = $(btn.getAttribute("aria-controls"));
+    if (pane) pane.hidden = !on;
+    if (on && focus) btn.focus();
+  });
+}
+
+// Delegated once, on the strip, because the card is rebuilt on every render.
+// Arrow keys move along the row the way a tablist is expected to.
+function wireSwellTabs() {
+  const strip = $("conditions");
+  strip.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-swell-tab]");
+    if (btn) selectSwellTab(btn.getAttribute("data-swell-tab"));
+  });
+  strip.addEventListener("keydown", (e) => {
+    const btn = e.target.closest("[data-swell-tab]");
+    if (!btn) return;
+    const all = [...strip.querySelectorAll("[data-swell-tab]")];
+    const at = all.indexOf(btn);
+    const to = e.key === "ArrowRight" ? (at + 1) % all.length
+      : e.key === "ArrowLeft" ? (at - 1 + all.length) % all.length
+      : e.key === "Home" ? 0
+      : e.key === "End" ? all.length - 1
+      : null;
+    if (to == null) return;
+    e.preventDefault();
+    selectSwellTab(all[to].getAttribute("data-swell-tab"), {focus: true});
+  });
+}
+
+function renderConditions(index, cards, prov) {
   const rows = [];
 
   if (MODE === "now") {
@@ -657,6 +808,8 @@ function renderConditions(index) {
     rows.push(swellCard({
       label: "Swell",
       buoy,
+      station: NOW && NOW.station,
+      cards, prov,
       source: NOW && NOW.station_name
         ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${observedAt(NOW.observed_utc)}`
         : "",
@@ -699,6 +852,8 @@ function renderConditions(index) {
     rows.push(swellCard({
       label: "Swell",
       buoy,
+      station: DATA.station,
+      cards, prov,
       source: buoy
         ? `GFS-Wave at ${DATA.station_name} (NDBC ${DATA.station}) for ${stampWhen}`
           + ` &mdash; forecast, not a measurement`
@@ -755,67 +910,14 @@ function renderStanding(standing) {
 }
 
 function renderBreaks(index) {
-  renderConditions(index);
-
   const cards = MODE === "now" ? cardsForNow() : cardsForForecast(index);
   // One blocker set serves all three breaks, so the provenance is computed
-  // once per render rather than per card. It comes from whichever file is on
+  // once per render rather than per tab. It comes from whichever file is on
   // screen: the two chains carry the same geometry, and reading it from the
   // other one would be the cross-tab leak the Now/Forecast split exists to
   // prevent.
   const prov = provenanceLine((MODE === "now" ? NOW : DATA).geometry);
-
-  $("breaks").innerHTML = cards.map((c) => {
-    const taken = (c.takenBy || []).map((t) => `
-      <div class="row">
-        <span class="seg${t.blocker === AWAY ? " horizon" : (t.verified ? "" : " guess")}"></span>
-        <span class="who">${t.blocker === AWAY
-          ? AWAY + ' <span class="est">(nothing blocks it &mdash; it is aimed elsewhere)</span>'
-          : t.blocker + (t.verified ? "" : ' <span class="est">estimated</span>')}</span>
-        <span class="amt">${Math.round(t.share * 100)}%</span>
-      </div>`).join("");
-
-    const senseText = sense(c.windOffshore);
-
-    // The windows LEAD. They are the only thing on this card that is the same
-    // whichever tab you are on and whatever the weather is doing -- the fixed
-    // geometry the rest of the card is a consequence of -- and they are what
-    // differs between the three breaks when every other number looks alike.
-    return `<article class="card">
-      <div class="card-top">
-        <h2>${SHORT[c.id] || c.name}</h2>
-      </div>
-
-      <div>
-        <div class="lbl">swell windows</div>
-        ${windowList(c.swellWindow)}
-        ${prov ? `<div class="prov">${prov}</div>` : ""}
-      </div>
-
-      <div class="quiet">
-        window energy <b>${height(c.hsWindow)}</b>
-        of <b>${height(c.hsOffshore)}</b> ${MODE === "now" ? "at the buoy" : "offshore"}
-      </div>
-
-      ${c.trains && c.trains.length ? `
-      <div>
-        <div class="lbl">swell reaching here</div>
-        ${trainList(c.trains, {limit: 3})}
-      </div>` : `
-      <div class="quiet">
-        peak <b>${c.period ? c.period.toFixed(1) + " s" : "\u2014"}</b>
-        from <b>${compass(c.direction)}</b>
-      </div>`}
-
-      <div>
-        <div class="lbl">taking the swell</div>
-        <div class="rows">${taken || '<div class="quiet">nothing blocked</div>'}</div>
-      </div>
-
-      ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
-        c.windNote ? ` <span class="est">&mdash; ${c.windNote}</span>` : ""}</div>` : ""}
-    </article>`;
-  }).join("");
+  renderConditions(index, cards, prov);
 }
 
 function show() {
@@ -847,7 +949,6 @@ function show() {
   // Now. If there is nothing usable, say why and point at the other chain
   // rather than rendering something that looks current and is not.
   if (!NOW || !NOW.breaks || !NOW.breaks.length) {
-    $("breaks").innerHTML = "";
     $("conditions").innerHTML = "";
     $("stale").hidden = false;
     $("stale").innerHTML = `<b>No current observation.</b> `
@@ -908,6 +1009,7 @@ function boot(data, observed) {
   NOW = observed;
   $("tab-now").onclick = () => setMode("now");
   $("tab-forecast").onclick = () => setMode("forecast");
+  wireSwellTabs();
 
   if (data.warnings && data.warnings.length) {
     $("warnings").hidden = false;
@@ -918,7 +1020,7 @@ function boot(data, observed) {
 
   const first = (data.breaks[0] || {}).hours || [];
   if (!first.length) {
-    $("breaks").innerHTML = '<p class="warn">No forecast hours in this file.</p>';
+    $("conditions").innerHTML = '<p class="warn">No forecast hours in this file.</p>';
     return;
   }
   // Keyed on lead_h and carrying the real array index, so the same page works
