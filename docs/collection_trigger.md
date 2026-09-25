@@ -182,24 +182,51 @@ routine METAR at **:52** — 81 of 95 archived observations sit on that minute �
 and the `:55` run catches it three minutes later. That is against a measured
 median wind latency of **110 minutes** before any of this.
 
-| source | stamps | fetchable | worst wait for a collection |
-|---|---|---|---|
-| wind | `:52`, pinned | H+3 | **3 min** |
-| swell | `:00` | H+7..H+27, jittering | **10 min** |
-| tide | every 6 min | H+3..H+7 | **10 min** |
+| source | stamps | fetchable, typical | fetchable, worst seen | wait for a collection |
+|---|---|---|---|---|
+| wind | `:52`, pinned | H+3 | H+3.2 | **3 min** |
+| swell | `:00` | H+15 | H+35.3 | **10 min** |
+| tide | every 6 min | H+5 | H+13.4 | **10 min** |
 
-The middle column is the one that is easy to skip, and skipping it is what made
-the tide card read overdue on a reading eight minutes old. **A stamp minute is
-not a publication minute.** Every row was bracketed the same way — between the
-last collection that did not have a sample and the first that did — and no
-source in this table has ever been fetchable at its own stamp. The tide's lag
-is only a few minutes, but it is comparable to the six-minute sample interval,
-so treating it as zero does not shave the countdown slightly: it promises the
-*next* sample before it exists and loses a whole collection slot.
+The middle columns are the ones that are easy to skip, and skipping them is what
+made the tide card read overdue on a reading eight minutes old. **A stamp minute
+is not a publication minute.** Every row was bracketed the same way — between
+the last collection that did not have a sample and the first that did — and no
+source in this table has ever been fetchable at its own stamp.
 
-`PUBLISH_LAG_MIN` in `forecast/now.py` carries the middle column, and a test
-holds it against `first_seen_utc` in the archive: a source the data has never
-seen inside a minute of its stamp may not be modelled as instant.
+There are two columns rather than one because **the lag is a distribution, and a
+single number cannot both promise and accuse.** The swell is the case that
+proves it. Bracketed against the collection log on 2026-09-25:
+
+| spectrum | absent at | present by |
+|---|---|---|
+| 09-24 23Z | H+16.4 | H+27.0 |
+| 09-25 01Z | H+0.2 | **H+15.0** |
+| 09-25 02Z | H+25.1 | **H+35.3** |
+| 09-25 03Z | H+5.1 | H+15.3 |
+| 09-25 04Z | H+10.9 | H+15.3 |
+| 09-25 05Z | H+5.1 | H+15.3 |
+
+Four of six land by H+15 — three consecutive hours on the very same collection —
+and `02Z` did not appear until H+35.3. A single value had to sit at one end or
+the other. It sat at 27: above the typical and below the worst, so it was
+twelve minutes pessimistic on the common hour *and* would still have gone red on
+`02Z`. On an hourly source that meant promising **100 minutes from stamp to
+screen where 80 was honest** — a countdown a reader learns to discount, which is
+no better than one that cries wolf.
+
+So `forecast/now.py` carries both: `PUBLISH_LAG_MIN` (typical) is what the
+countdown runs to, and `PUBLISH_LAG_LATE_MIN` (worst seen) is the only thing
+that turns a card red. Between them the card says the update is due and does not
+accuse anyone. A test holds the typical value against `first_seen_utc` in the
+archive — a source the data has never seen inside a minute of its stamp may not
+be modelled as instant — and another holds `late >= expected` for every stamp
+minute, since a card reddening before its own countdown expired would be
+accusing a source of missing a deadline it had not reached.
+
+The spectra files carry no `first_seen_utc`, so their bracketing uses git
+history instead: each collection commits the file, so the commit time *is* when
+that row first existed here.
 
 ### What it costs
 

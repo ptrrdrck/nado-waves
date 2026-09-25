@@ -808,7 +808,11 @@ class TestTheUpdateCountdown:
         while the file was already fresh and the screen had not caught up —
         the page reporting its own latency as the source being late."""
 
-        assert "new Date(at + NOW_REFRESH_MS).toISOString()" in SOURCE
+        assert "new Date(ms + NOW_REFRESH_MS).toISOString()" in SOURCE
+        # Applied to BOTH instants: a late bound that skipped the refresh leg
+        # would redden the card for the page's own latency.
+        assert "plusRefresh(at)" in SOURCE
+        assert "plusRefresh(Number.isFinite(lateAt)" in SOURCE
 
     def test_the_refresh_interval_is_declared_before_the_countdown_uses_it(self):
         """`dueSpan` reads NOW_REFRESH_MS. A `const` used above its own line is
@@ -836,9 +840,47 @@ class TestTheUpdateCountdown:
         a 404 as "no cycle this hour" for three days: monitoring that only
         shows the failure it expects."""
 
-        assert "Overdue by ${hms(now - due)}" in SOURCE
+        assert "Overdue by ${hms(now - late)}" in SOURCE
         assert "Update in ${hms(due - now)}" in SOURCE
-        assert "el.classList.toggle(\"over\", past || forced)" in SOURCE
+        assert 'el.classList.toggle("over", now >= late || forced)' in SOURCE
+
+    def test_a_due_update_is_not_yet_an_accusation(self):
+        """Red is reserved for `overdue_after`, not `next_expected`.
+
+        A publication delay is a distribution, so the instant an update becomes
+        expected is not the instant its absence is a fault. The swell is the
+        case that forced the split: its spectra usually land by H+15 but one
+        measured hour took H+35, so a single deadline either reddened that hour
+        or quoted H+27 to every other one -- and it quoted H+27, which is how an
+        hourly source came to promise 100 minutes from stamp to screen.
+
+        Between the two the card says the update is due, in the resting colour.
+        A card that is red whenever a source runs at the slow end of its own
+        measured range is the card nobody reads on the day collection dies."""
+
+        assert 'now >= due ? "Update due."' in SOURCE
+        # And the red class keys off `late`, never `due`.
+        assert 'toggle("over", now >= due' not in SOURCE
+
+    def test_both_instants_are_published_and_read(self):
+        """`overdue_after` is computed in now.py beside `next_expected`, from the
+        same reading, so the two cannot drift apart per card."""
+
+        from forecast.now import Now
+
+        assert "overdue_after" in Now.__dataclass_fields__
+        assert "NOW.overdue_after" in SOURCE
+        for source in ("swell", "wind", "tide"):
+            assert f"late.{source}" in SOURCE
+
+    def test_a_payload_without_the_late_bound_still_reddens(self):
+        """`overdue_after` is newer than the pages already published. A bundle
+        that predates it must behave as it did before the split -- the old
+        single deadline doing both jobs -- rather than never turning red, which
+        is the failure mode this project has now met three times."""
+
+        assert "Math.max(lateAt, at) : at" in SOURCE
+        assert "Math.max(parsedLate, due) : due" in SOURCE
 
     def test_a_forced_overdue_with_no_elapsed_deadline_shows_no_figure(self):
         """`forceOver` says the build refused the reading for a reason that is
@@ -910,8 +952,8 @@ class TestTheUpdateCountdown:
         """Counting down to the next wind observation under "not collected"
         would promise a replacement for something that was never there."""
 
-        assert 'wind.from_deg != null ? dueSpan(due.wind) : ""' in SOURCE
-        assert 'tide.height_m != null ? dueSpan(due.tide) : ""' in SOURCE
+        assert 'wind.from_deg != null ? dueSpan(due.wind, late.wind) : ""' in SOURCE
+        assert 'tide.height_m != null ? dueSpan(due.tide, late.tide) : ""' in SOURCE
 
 
 class TestTheAgeFormatter:

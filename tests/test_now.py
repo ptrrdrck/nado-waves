@@ -271,13 +271,16 @@ class TestWhenEachSourceIsNextDue:
 
     def test_it_lands_on_the_next_collection_after_the_next_publish(self):
         """The tide publishes every six minutes from :00 and is collected at
-        :05/:15/:25/:35/:45/:55. A sample stamped :24 is followed by one at
-        :30 -- which the :35 collection does NOT pick up, because CO-OPS has
-        not written it yet: the measured lag is up to seven minutes, so :30
-        becomes fetchable at :37 and the :45 run is the first that can carry
-        it."""
+        :05/:15/:25/:35/:45/:55. A sample stamped :24 is followed by one at :30,
+        which CO-OPS does not write at :30 -- the measured floor is about five
+        minutes -- so it becomes fetchable at :35 and the :35 run carries it.
 
-        assert now_mod.next_expected("2026-09-25T04:24:00Z", "tide") == "2026-09-25T04:45:00Z"
+        The LATE bound is what differs: eight minutes puts it at :38, and the
+        next collection is still :45. So `overdue_after` sits a slot behind, and
+        the card has a real window in which the update is due without being a
+        fault."""
+
+        assert now_mod.next_expected("2026-09-25T04:24:00Z", "tide") == "2026-09-25T04:35:00Z"
 
     def test_no_source_is_charged_slack_on_top_of_the_rounding(self):
         """The bug this replaces, stated as a mechanism rather than a number.
@@ -373,13 +376,38 @@ class TestWhenEachSourceIsNextDue:
             f"source has not published"
         )
 
-    def test_the_swell_is_charged_its_publication_jitter(self):
-        """The spectrum stamped 05:00 is not fetchable at 05:00 -- measured, it
-        appears anywhere from H+7 to H+27. The deadline uses the upper bound,
-        so a card is not red on every hour that runs late."""
+    def test_the_swell_is_charged_its_publication_jitter_at_both_ends(self):
+        """The spectrum stamped 05:00 is not fetchable at 05:00. Bracketed
+        against the collection log, four of six measured hours landed by H+15
+        and one took until H+35.3 -- so the two ends of SPECTRA_PUBLISHED_MIN
+        carry the two deadlines, the typical one for the countdown and the
+        measured worst for the accusation.
 
-        assert now_mod.PUBLISH_LAG_MIN["swell"] == now_mod.SPECTRA_PUBLISHED_MIN[1]
-        assert now_mod.next_expected("2026-09-25T04:00:00Z", "swell") == "2026-09-25T05:35:00Z"
+        The single value that used to do both was 27: above the typical, below
+        the observed worst, and therefore wrong for both jobs at once. It made
+        an hourly source promise 100 minutes from stamp to screen when 80 was
+        honest, and it would still have gone red on the H+35 hour."""
+
+        assert now_mod.PUBLISH_LAG_MIN["swell"] == now_mod.SPECTRA_PUBLISHED_MIN[0]
+        assert now_mod.PUBLISH_LAG_LATE_MIN["swell"] == now_mod.SPECTRA_PUBLISHED_MIN[1]
+        assert now_mod.next_expected("2026-09-25T04:00:00Z", "swell") == "2026-09-25T05:15:00Z"
+        assert now_mod.overdue_after("2026-09-25T04:00:00Z", "swell") == "2026-09-25T05:45:00Z"
+
+    def test_no_source_is_accused_before_it_is_merely_expected(self):
+        """`overdue_after` may equal `next_expected` -- at today's cadence the
+        tide's two lags round to the same collection -- but it may never precede
+        it. A card that reddened before its own countdown expired would be
+        accusing a source of missing a deadline it had not reached."""
+
+        for source in now_mod.PUBLISH_MINUTES:
+            assert (
+                now_mod.PUBLISH_LAG_LATE_MIN[source] >= now_mod.PUBLISH_LAG_MIN[source]
+            ), f"{source} is late before it is expected"
+            for minute in range(60):
+                stamped = f"2026-09-25T04:{minute:02d}:00Z"
+                due = now_mod.next_expected(stamped, source)
+                late = now_mod.overdue_after(stamped, source)
+                assert late >= due, f"{source} stamped :{minute:02d}: {late} < {due}"
 
     def test_the_publish_minutes_are_the_measured_ones(self):
         """46232 also publishes standard met at :26 and :56. That is a
