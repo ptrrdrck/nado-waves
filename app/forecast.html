@@ -224,7 +224,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    The chord and the break on it are the site blue, and so is the swell --
    the two things in the drawing that are not geometry-as-obstacle. */
 .aperture{display:block;width:100%;max-width:360px;height:auto;margin:0 auto;overflow:visible}
-.aperture .sea{fill:none;stroke:var(--line-strong);stroke-width:1}
+.aperture .sea{fill:none;stroke:var(--line-strong);stroke-width:1} /* = DRAW.rim */
 .aperture .shadow{fill:var(--faint);fill-opacity:.38;stroke:none}
 .aperture .ray{stroke:var(--soft);stroke-width:1}
 .aperture .deg{font-size:11px;font-weight:600;fill:var(--ink);
@@ -232,8 +232,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .aperture .chord{stroke:var(--surf);stroke-width:4;stroke-linecap:round}
 .aperture .spot{fill:var(--surf)}
 .aperture .faces{font-size:11px;fill:var(--faint);text-anchor:middle}
-.aperture .swell{stroke:var(--surf);stroke-width:1.75;stroke-linecap:round;opacity:.45}
-.aperture .swell.lead{stroke-width:3;opacity:1}
+/* Opacity on the group, so the leg and head fade as one shape rather than
+   darkening where they overlap. */
+.aperture .swell{opacity:.45}
+.aperture .swell line{stroke:var(--surf);stroke-width:1.75;stroke-linecap:round}
+.aperture .swell polygon{fill:var(--surf)}
+.aperture .swell.lead{opacity:1}
+.aperture .swell.lead line{stroke-width:3}
 
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
@@ -792,7 +797,7 @@ function breakPanel(c) {
 //
 // A payload without a normal is not drawn with a guessed one -- the drawing
 // is simply left out, and the list beneath it still says everything.
-const DRAW = {w: 320, h: 174, cx: 160, cy: 146, r: 124};
+const DRAW = {w: 320, h: 174, cx: 160, cy: 146, r: 124, rim: 1};
 
 function windowDrawing(c) {
   if (c.normal == null || !isFinite(c.normal)) return "";
@@ -804,8 +809,11 @@ function windowDrawing(c) {
     return [cx + rad * Math.sin(t), cy - rad * Math.cos(t)];
   };
   const xy = (p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
-  const wedge = (a0, a1) =>
-    `M${cx},${cy} L${xy(at(a0, r))} A${r},${r} 0 0 1 ${xy(at(a1, r))} Z`;
+  const wedge = (a0, a1, rad = r) =>
+    `M${cx},${cy} L${xy(at(a0, rad))} A${rad},${rad} 0 0 1 ${xy(at(a1, rad))} Z`;
+  // The rim is a stroke centred on r, so anything ending AT r stops halfway
+  // through it. Shadows and rays run to its outer edge instead.
+  const outer = r + DRAW.rim / 2;
 
   const wins = (c.swellWindow || [])
     .filter((win) => win && isFinite(win.from) && isFinite(win.to))
@@ -823,12 +831,12 @@ function windowDrawing(c) {
   });
   if (from < 90) shadows.push([from, 90]);
   const shading = shadows.map(([a0, a1]) =>
-    `<path class="shadow" d="${wedge(a0, a1)}"/>`).join("");
+    `<path class="shadow" d="${wedge(a0, a1, outer)}"/>`).join("");
 
   // Every edge is a ray from the break to the rim.
   const edges = wins.flatMap((win) => [win.a0, win.a1]);
   const rays = edges.map((a) => {
-    const [x, y] = at(a, r);
+    const [x, y] = at(a, outer);
     return `<line class="ray" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
   }).join("");
   const first = wins[0], last = wins[wins.length - 1];
@@ -845,14 +853,28 @@ function windowDrawing(c) {
   // train is never hidden under a shadow it has leaked past. A train from
   // behind the beach is not drawn: it cannot arrive, and an arrow pointing out
   // of the sand would say it could.
+  //
+  // The head is its own triangle rather than an SVG marker: a marker cannot
+  // take its colour from the line it sits on in every browser, and on some
+  // the heads came out black and grey. The leg stops inside the head, where
+  // the triangle is wider than the stroke, so it never shows either side of
+  // the tip.
   const arrows = (c.trains || []).map((t, i) => ({t, i, a: rel(t.from_deg)}))
     .filter(({t, a}) => isFinite(t.from_deg) && a > -90 && a < 90)
     .reverse()
     .map(({i, a}) => {
+      const lead = i === 0;
+      const len = lead ? 10 : 8, half = lead ? 4.5 : 3.5;
+      const tip = r * 0.62;
       const [x0, y0] = at(a, r * 0.95);
-      const [x1, y1] = at(a, r * 0.62);
-      return `<line class="swell${i === 0 ? " lead" : ""}" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}"`
-        + ` x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" marker-end="url(#head-${c.id})"/>`;
+      const [x1, y1] = at(a, tip + 0.6 * len);
+      const t = a * Math.PI / 180;
+      const [bx, by] = at(a, tip + len);
+      const [px, py] = [Math.cos(t) * half, Math.sin(t) * half];
+      const head = `${xy(at(a, tip))} ${xy([bx + px, by + py])} ${xy([bx - px, by - py])}`;
+      return `<g class="swell${lead ? " lead" : ""}">`
+        + `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`
+        + `<polygon points="${head}"/></g>`;
     }).join("");
 
   const said = wins.map((win) => `${Math.round(win.from)} to ${Math.round(win.to)} degrees`).join(", ");
@@ -862,9 +884,6 @@ function windowDrawing(c) {
     + (trains ? ` Swell arriving from ${trains} degrees.` : "");
 
   return `<svg class="aperture" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">
-    <defs><marker id="head-${c.id}" viewBox="0 0 10 10" refX="7" refY="5"
-      markerWidth="7" markerHeight="7" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
     <path class="sea" d="${wedge(-90, 90)}"/>
     ${shading}${rays}${labels}${arrows}
     <line class="chord" x1="${cx - r}" y1="${cy}" x2="${cx + r}" y2="${cy}"/>
