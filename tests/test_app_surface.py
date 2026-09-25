@@ -161,12 +161,12 @@ class TestTheBreakCard:
 
 
 class TestTheBreakDrawing:
-    """Each break's windows drawn facing the way the break faces: land shaded,
-    edges as labelled rays, the break's own trains as arrows. An illustration,
-    not a chart -- no scale, no distances, no pan or zoom."""
+    """Each break's windows drawn facing the way the break faces: blocker
+    shadows shaded grey, edges as rays, the break's own trains as arrows. An
+    illustration, not a chart -- no scale, no distances, no pan or zoom."""
 
     DRAW = SOURCE[SOURCE.index("function windowDrawing"):]
-    DRAW = DRAW[:DRAW.index("function fan(")]
+    DRAW = DRAW[:DRAW.index("// The buoy's tab")]
 
     def test_it_is_turned_to_the_breaks_own_normal(self):
         """The three normals span 27 degrees, so the drawing reads each
@@ -178,10 +178,12 @@ class TestTheBreakDrawing:
     def test_without_a_normal_it_is_left_out_rather_than_guessed(self):
         assert 'if (c.normal == null || !isFinite(c.normal)) return "";' in self.DRAW
 
-    def test_the_land_is_named_from_the_payload_never_typed(self):
-        assert "win.opened_by" in self.DRAW and ".closed_by" in self.DRAW
-        for typed in ("Point Loma", "Baja", "Islands"):
-            assert typed not in self.DRAW
+    def test_nothing_in_it_is_named_or_typed(self):
+        """Blockers are not named in the drawing; the list below it does
+        that. Nothing about the coast is typed in either."""
+
+        assert "shortBlocker" not in self.DRAW
+        assert "opened_by" not in self.DRAW and "closed_by" not in self.DRAW
 
     def test_the_arrows_are_the_breaks_trains_with_the_leader_emphasised(self):
         assert "c.trains" in self.DRAW and "buoy" not in self.DRAW
@@ -194,12 +196,18 @@ class TestTheBreakDrawing:
         for handler in ("wheel", "zoom", "pointerdown", "touchstart"):
             assert handler not in self.DRAW
 
-    def test_crowded_edge_labels_are_fanned_not_stacked(self):
-        """The gap between the islands puts four edges inside about thirteen degrees.
-        The text moves; the ray stays on the true bearing."""
+    def test_only_the_two_outer_edges_are_labelled(self):
+        """The Baja tangent and the Point Loma tip bound the whole aperture.
+        The island edges are drawn as rays but carry no label -- four of them
+        inside about thirteen degrees was more text than the drawing holds."""
 
-        assert "fan(edges.map((e) => e.a)" in self.DRAW
-        assert 'class="leader"' in self.DRAW
+        assert "[[first.a0, first.from], [last.a1, last.to]]" in self.DRAW
+        assert 'class="ray"' in self.DRAW
+
+    def test_the_shadows_are_grey_and_the_chord_is_blue(self):
+        assert ".aperture .shadow{fill:var(--faint)" in SOURCE
+        assert ".aperture .chord{stroke:var(--surf)" in SOURCE
+        assert ".aperture .spot{fill:var(--surf)" in SOURCE
 
 
 class TestTheGeometryProvenance:
