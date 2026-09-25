@@ -956,6 +956,64 @@ class TestTheUpdateCountdown:
         assert 'tide.height_m != null ? dueSpan(due.tide, late.tide) : ""' in SOURCE
 
 
+class TestTheCdnCannotServeAStalePayload:
+    """GitHub Pages serves everything through Fastly with `Cache-Control:
+    max-age=600` and offers no way to change it. Ten minutes of permitted
+    staleness against a ten-minute collection cadence means a cache HIT can hand
+    a reader a payload one whole collection behind -- whose own age line would
+    then be honest about a reading that had already been superseded.
+
+    Measured on the live bundle 2026-09-25T15:48:58Z: `max-age=600`, `Age: 0`,
+    `x-cache: MISS`, `Last-Modified 15:45:44`. That response came from origin and
+    was not stale, so `cache: "no-store"` was honoured there -- but honouring a
+    client `no-cache` is Fastly configuration rather than a guarantee, and it
+    says nothing about what another edge node holds for the next reader."""
+
+    def test_every_payload_fetch_carries_a_unique_url(self):
+        """A bare `fetch(SOURCE)` is one a shared cache is free to answer."""
+
+        assert 'fetch(SOURCE,' not in SOURCE
+        assert 'fetch(NOW_SOURCE,' not in SOURCE
+        assert SOURCE.count("fetch(fresh(SOURCE)") == 2       # boot + refresh
+        assert SOURCE.count("fetch(fresh(NOW_SOURCE)") == 2
+
+    def test_no_store_is_kept_as_well(self):
+        """Different caches. The query parameter defeats shared ones; `no-store`
+        defeats this browser's own. Dropping either leaves a gap."""
+
+        assert SOURCE.count('{cache: "no-store"}') == 4
+
+    def test_fresh_appends_without_breaking_an_existing_query(self):
+        """`SOURCE` is overridable via `?data=`, so the URL may already carry a
+        query string. Ran in node: whether the separator is `?` or `&` is
+        arithmetic on the input, and a grep cannot tell a correct one from a
+        broken one."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+
+        start = SOURCE.index("function fresh(url) {")
+        body = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        script = body + """
+const plain = fresh("now.json");
+const queried = fresh("d.json?data=x");
+console.log(JSON.stringify({
+  plain, queried,
+  plainOnce: (plain.match(/\\?/g) || []).length,
+  queriedKeeps: queried.includes("data=x"),
+  queriedJoins: queried.includes("?data=x&v="),
+  unique: fresh("a") !== fresh("a") || Date.now() === Date.now(),
+}));
+"""
+        got = json.loads(subprocess.run([node, "-e", script], capture_output=True,
+                                        text=True, check=True).stdout)
+        assert got["plainOnce"] == 1, got["plain"]
+        assert got["plain"].startswith("now.json?v=")
+        assert got["queriedKeeps"], got["queried"]
+        assert got["queriedJoins"], got["queried"]
+
+
 class TestTheAgeFormatter:
     """Ran in node, because "1.02 h ago" versus "1 h 1 min ago" is a property
     of the arithmetic and a grep cannot tell them apart."""

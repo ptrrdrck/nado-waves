@@ -151,9 +151,12 @@ forecaster actually verifies against, Surfline included.
    the cycle line; the live page links to it beneath Geometry. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
-   says so and points at Forecast rather than falling back silently. This repository is private, so Pages cannot serve
-   it and a published page cannot fetch `data/live/forecast.json` across the
-   boundary. The forecast workflow builds a flat bundle (`index.html` +
+   says so and points at Forecast rather than falling back silently. The
+   delivery repository is separate because `data/live/` is gitignored here, so
+   there is nothing at `data/live/forecast.json` for a published page to fetch —
+   not, as this said until 2026-09-25, because this repository is private. It
+   has been public since the Actions-limit switch, and the split survived that
+   change for its other reasons. The forecast workflow builds a flat bundle (`index.html` +
    3-hourly `forecast.json` + `.nojekyll` + README) and pushes it to the
    **public** `nado-waves-forecast`, the same pattern `nado-waves-log` uses for
    the observer form. **This repository stays the system of record; nothing is
@@ -250,6 +253,22 @@ forecaster actually verifies against, Surfline included.
   design since. Whether it was ever *delivered* in that window is still
   unchased. A station that had never reported at all had no date to age from
   and alerted forever; `first_checked_utc` fixes that.
+- **GitHub Pages caches for ten minutes and you cannot change it.** Measured on
+  the live bundle 2026-09-25T15:48:58Z: Pages serves through Fastly with
+  `Cache-Control: max-age=600`, and Pages exposes no header configuration, so
+  this cannot be fixed on the publishing side. Ten minutes of permitted
+  staleness against a ten-minute collection cadence means a cache HIT can hand a
+  reader a `now.json` one whole collection behind — and its age line would be
+  honest about a reading that had already been superseded. So every payload
+  fetch carries a `?v=<epoch ms>` (`fresh()` in `app/forecast.html`): a distinct
+  URL cannot be answered from any cache by definition, which turns a policy we
+  do not control into arithmetic we do. `cache: "no-store"` stays alongside it —
+  the parameter defeats shared caches, `no-store` defeats the browser's own, and
+  they are different caches. **The sample that confirmed the mechanism was
+  itself a MISS** (`Age: 0`, `x-cache: MISS`, `Last-Modified` 3m14s before
+  `Date`), so `no-store` was honoured there; the reason to fix it anyway is that
+  honouring a client `no-cache` is Fastly CONFIGURATION rather than a guarantee,
+  and says nothing about what another edge node holds for the next reader.
 - **Egress from a Claude session is policy-controlled and changes mid-session.**
   A 403 at CONNECT is a denial, not throttling: check
   `$HTTPS_PROXY/__agentproxy/status`, report the blocked host, do not route
