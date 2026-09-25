@@ -115,9 +115,9 @@ class TestProvenanceIsVisible:
         assert "open_windows" not in SOURCE
 
 
-class TestTheWindowsLeadTheCard:
-    """Three windows per break, every edge on land, and they are the only
-    thing on the card that is the same whichever tab you are on."""
+class TestTheBreakCard:
+    """Three windows per break, every edge on land, beneath the energy that
+    gets through them."""
 
     def test_the_card_names_each_window_by_the_land_either_side(self):
         """Never by a hardcoded "south / channel / west". The page would keep
@@ -128,9 +128,21 @@ class TestTheWindowsLeadTheCard:
         for hardcoded in ("island channel", "south window", "west window"):
             assert hardcoded not in SOURCE.lower()
 
-    def test_the_windows_come_before_the_energy_on_the_card(self):
+    def test_the_reading_leads_the_card_and_the_geometry_follows(self):
+        """Changed 2026-09-25 by decision: the break's window energy opens its
+        tab, untitled, in the buoy tab's "combined" shape, with the buoy's own
+        figure beneath it as a provenance line; then the trains, untitled and
+        listed as the buoy tab lists them; then the wind reading; then a rule,
+        and the windows and the shares below it."""
+
         card = SOURCE[SOURCE.index("function breakPanel"):]
-        assert card.index("windowList") < card.index("window energy")
+        card = card[:card.index("function buoyPanel")]
+        order = ("in window", "at the buoy", "trainList(c.trains)",
+                 "wind is <b>", "<hr>", "windowList", "taking the swell")
+        at = [card.index(mark) for mark in order]
+        assert at == sorted(at)
+        for gone in ("window energy", "swell reaching here"):
+            assert gone not in card
 
     def test_a_window_carries_its_span_not_just_its_edges(self):
         """23, 6 and 42 degrees. Three identical rows of numbers would read as
@@ -149,35 +161,24 @@ class TestTheWindowsLeadTheCard:
 
 class TestTheGeometryProvenance:
     """The aperture is the one thing on this page with a citable source, and
-    a reader who wants to check it can pull the chart."""
+    a reader who wants to check it can pull the chart.
 
-    def test_the_card_names_the_enc_charts(self):
-        assert "NOAA ENC chart" in SOURCE
-        assert "geometry modelled from" in SOURCE
+    Taken off the break cards 2026-09-25 by decision. It is not lost:
+    geometry.html, linked from the foot of the live page, names the ENC cell
+    behind every vertex and marks anything still traced from imagery."""
 
-    def test_the_line_is_composed_from_the_file_not_written_into_the_page(self):
-        """A hardcoded provenance is a claim that stops being checked. The
-        cells live in spots.json and the page reads whatever is there."""
+    GEOMETRY = (APP.parent / "geometry.html").read_text(encoding="utf-8")
 
-        assert "geom.cells" in SOURCE
-        for cell in ("US4CA1BX", "US4CA74M"):
-            assert cell not in SOURCE
+    def test_the_break_card_no_longer_carries_it(self):
+        assert "geometry modelled from" not in SOURCE
+        assert "provenanceLine" not in SOURCE
 
-    def test_imagery_is_named_beside_the_charts(self):
-        """Every edge printed above the line runs from a break to a blocker.
-        The blockers are charted as of 2026-09-22; the break positions are
-        still imagery, and "NOAA ENC" alone would let a reader take the whole
-        aperture as charted."""
+    def test_the_geometry_page_names_the_charts_and_the_imagery(self):
+        assert "NOAA ENC" in self.GEOMETRY
+        assert "traced from imagery" in self.GEOMETRY
 
-        assert "from_imagery" in SOURCE
-        assert "from imagery" in SOURCE
-        assert "breaks_from_imagery" in SOURCE
-
-    def test_the_provenance_reads_from_the_tab_on_screen(self):
-        """The two chains carry the same geometry. Reading it from the other
-        file would be the cross-tab leak the Now/Forecast split prevents."""
-
-        assert 'provenanceLine((MODE === "now" ? NOW : DATA).geometry)' in SOURCE
+    def test_the_live_page_still_links_to_it(self):
+        assert 'href="geometry.html"' in SOURCE
 
     def test_the_assumed_spread_is_shown_rather_than_hidden(self):
         assert "spread_assumption" in INFO
@@ -490,8 +491,16 @@ class TestWaveTrainsOnScreen:
     def test_wind_sea_is_labelled(self):
         assert "wind sea" in TEXT
 
-    def test_the_break_card_says_these_are_the_ones_reaching_here(self):
-        assert "swell reaching here" in TEXT
+    def test_the_break_card_lists_its_own_trains_under_the_window_figure(self):
+        """Untitled since 2026-09-25, as the buoy tab's are. What says these
+        are the trains reaching the break rather than the buoy's is that they
+        are the break's own list, directly under its "in window" figure, on
+        its own tab."""
+
+        card = SOURCE[SOURCE.index("function breakPanel"):]
+        card = card[:card.index("function buoyPanel")]
+        assert "trainList(c.trains)" in card and "buoy.trains" not in card
+        assert card.index("in window") < card.index("trainList(c.trains)")
 
     def test_the_swell_card_is_styled_like_wind_and_tide(self):
         """Same .cond card in the same strip, not a dashed aside."""
@@ -1201,7 +1210,7 @@ class TestTheWindowBlockSurvivesAnOlderPayload:
         goes stale -- which is exactly when nobody is watching."""
 
         block = SOURCE[SOURCE.index("function windowList"):]
-        block = block[:block.index("function provenanceLine")]
+        block = block[:block.index("function compass")]
         assert "no open window" in block
         assert "older than the page" in block
         assert block.index("given.length") < block.index("no open window")
