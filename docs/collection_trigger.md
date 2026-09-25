@@ -150,17 +150,74 @@ third party's hands, so:
 
 ## Choosing a cadence
 
-Hourly is enough. The sources are hourly (spectra, METAR) and six-minutely
-(tide), and the tide moves a median 1.1 cm per step, so finer collection buys a
-sharper number nobody can read at the cost of more commits.
+**Every ten minutes, at `5,15,25,35,45,55`.**
 
-**If you change the cadence, change `COLLECT_INTERVAL_MIN` in
-`forecast/now.py` to match.** The countdown on each card is
-`observed + source interval + collection interval + one tolerated missed
-cycle`, so a page promising a cadence the trigger is not keeping will call
-itself late on a schedule nobody asked it to keep. That exact mismatch shipped
-once. `tests/test_now.py` reads the cron out of the workflow and fails if the
-two disagree — but it cannot see an external scheduler, so this one is on you.
+The offset is the interesting half, and it is not chosen for the swell.
+
+### When the spectra actually appear
+
+The timestamp a spectrum carries is its hour. When it becomes *fetchable* is a
+different number, and it was measured on 2026-09-25 by bracketing each hour
+between the last collection that did not have it and the first that did:
+
+| spectrum hour | not there at | there at |
+|---|---|---|
+| 09-25 01Z | H+0.5 | H+15.0 |
+| 09-24 23Z | H+16.7 | H+27.0 |
+| 09-24 22Z | H+7.0 | H+76.7 |
+
+23Z was **still absent at H+16.7** while 01Z had **already landed by H+15.0**.
+Those two cannot both be true of a fixed publication minute, so there is not
+one: it jitters across roughly **H+7 to H+27**.
+
+### Which is why the phase is spent elsewhere
+
+Aligning the trigger to a single minute would be early on some hours and twenty
+minutes late on others. Against a jittering source, **only the interval bounds
+staleness** — a ten-minute cadence catches the spectrum within ten minutes
+wherever in its window it lands, whatever the offset.
+
+So the offset goes to the one source that *is* pinned. KNZY publishes its
+routine METAR at **:52** — 81 of 95 archived observations sit on that minute —
+and the `:55` run catches it three minutes later. That is against a measured
+median wind latency of **110 minutes** before any of this.
+
+| source | publishes | worst wait |
+|---|---|---|
+| wind | `:52`, pinned | **3 min** |
+| swell | H+7..H+27, jittering | **10 min** |
+| tide | every 6 min | **10 min** |
+
+### What it costs
+
+144 runs a day at roughly 20 seconds each — about **48 minutes of runner time a
+day**, against 5,000 API calls an hour of headroom and 144 used. The real cost
+is commits: the tide moves every run, so this is ~144 commits a day against 24
+at hourly. Worth knowing before going finer still; it is the reason the tide is
+not collected at its own six-minute cadence.
+
+## Keeping the two numbers together
+
+`COLLECT_INTERVAL_MIN` in `forecast/now.py` feeds every card's countdown, and it
+must equal what this scheduler actually runs. If the page promises a cadence
+the trigger is not keeping, the cards report the gap between the request and
+reality rather than anything about the data — which is exactly what happened
+when a `*/10` cron met GitHub's one-run-every-four-hours.
+
+`forecast/now.py` therefore declares **`EXTERNAL_TRIGGER_CRON`**, and three
+tests hold the pieces together:
+
+- `COLLECT_INTERVAL_MIN` must match the spacing `EXTERNAL_TRIGGER_CRON` implies,
+  and that schedule must be evenly spaced;
+- the GitHub cron must stay an hourly **backstop**, never written to match the
+  promised cadence — GitHub cannot keep it;
+- the last run of each hour must land after `:52` and within five minutes of it,
+  so the wind offset cannot be lost by accident.
+
+**Nothing in this repository can reach cron-job.org.** If you change the
+interval there, change `EXTERNAL_TRIGGER_CRON` to match in the same sitting —
+the tests will then carry the rest. That one step is a human obligation and the
+only part of this with no safety net.
 
 ## What stays as it is
 

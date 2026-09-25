@@ -275,7 +275,7 @@ class TestWhenEachSourceIsNextDue:
         for once."""
 
         got = now_mod.next_expected("2026-09-19T00:00:00Z", "wind")
-        assert got == "2026-09-19T03:00:00Z"   # 60 source + 10 collect + 10 slack
+        assert got == "2026-09-19T01:20:00Z"   # 60 source + 10 collect + 10 slack
 
     def test_the_deadline_includes_the_time_it_takes_to_COLLECT(self):
         """The term that is easy to leave out, and was.
@@ -322,7 +322,7 @@ class TestWhenEachSourceIsNextDue:
 
         assert now_mod.SOURCE_INTERVAL_MIN["tide"] == 6
         got = now_mod.next_expected("2026-09-19T00:00:00Z", "tide")
-        assert got == "2026-09-19T02:06:00Z"   # 6 + 60 + 60, not 6
+        assert got == "2026-09-19T00:26:00Z"   # 6 + 10 + 10, not 6
 
     def test_a_missing_or_unparseable_reading_expects_nothing(self):
         assert now_mod.next_expected(None, "tide") is None
@@ -339,7 +339,7 @@ class TestWhenEachSourceIsNextDue:
         assert set(got.next_expected) == {"swell", "wind", "tide"}
         # The spectrum is the only source with a reading in this fixture, so it
         # is the only one that can name a deadline.
-        assert got.next_expected["swell"] == "2026-09-19T03:30:00Z"
+        assert got.next_expected["swell"] == "2026-09-19T01:50:00Z"
         assert got.next_expected["wind"] is None
         assert got.next_expected["tide"] is None
 
@@ -350,19 +350,44 @@ class TestWhenEachSourceIsNextDue:
 
         old = MOMENT - timedelta(hours=9)
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(old))
-        assert got.next_expected["swell"] == "2026-09-18T18:30:00Z"
+        assert got.next_expected["swell"] == "2026-09-18T16:50:00Z"
         assert got.next_expected["swell"] < got.generated_utc
         assert got.stale
 
-    def test_the_promised_cadence_matches_the_cron_that_keeps_it(self):
+    def test_the_promised_cadence_matches_the_schedule_that_keeps_it(self):
         """The bug this pins cost half a day of cards that were red for no
         reason: the workflow asked for `*/10` while GitHub delivered about one
         run every four hours, and COLLECT_INTERVAL_MIN said 10 to match the
         request rather than the reality.
 
-        A page that promises a cadence the collector is not scheduled to keep
-        calls itself late on a schedule nobody asked it to keep. The two live
-        in different files and nothing else makes them agree."""
+        The trigger is now external, so what the countdown must agree with is
+        EXTERNAL_TRIGGER_CRON, not the workflow. Nothing here can reach
+        cron-job.org to check that constant is true -- keeping it true is a
+        human obligation, stated where it is declared. What a test CAN do is
+        refuse to let the two numbers drift apart in the file."""
+
+        minute = now_mod.EXTERNAL_TRIGGER_CRON.split()[0]
+        if minute.startswith("*/"):
+            every = int(minute[2:])
+        elif "," in minute:
+            marks = sorted(int(m) for m in minute.split(","))
+            gaps = {b - a for a, b in zip(marks, marks[1:])}
+            gaps.add(60 - marks[-1] + marks[0])
+            assert len(gaps) == 1, f"{minute} is not evenly spaced: gaps {gaps}"
+            every = gaps.pop()
+        else:
+            every = 60
+
+        assert now_mod.COLLECT_INTERVAL_MIN == every, (
+            f"external trigger runs every {every} min, COLLECT_INTERVAL_MIN "
+            f"says {now_mod.COLLECT_INTERVAL_MIN}"
+        )
+
+    def test_the_github_cron_is_a_backstop_and_not_the_promise(self):
+        """GitHub throttles scheduled runs to about 0.2 an hour whatever the
+        cron asks, so a workflow schedule written to match the promised cadence
+        would be a promise GitHub cannot keep. It must be slower, and the
+        countdown must not be derived from it."""
 
         import re
         from pathlib import Path
@@ -370,18 +395,39 @@ class TestWhenEachSourceIsNextDue:
         workflow = (Path(__file__).resolve().parent.parent
                     / ".github" / "workflows" / "collect-beach-inputs.yml").read_text()
         crons = re.findall(r'- cron: "([^"]+)"', workflow)
-        assert len(crons) == 1, f"expected one schedule, found {crons}"
+        assert len(crons) == 1, f"expected one backstop schedule, found {crons}"
+
         minute, hour = crons[0].split()[0], crons[0].split()[1]
+        assert not minute.startswith("*/"), (
+            f"backstop cron {crons[0]!r} asks for sub-hourly runs GitHub will not deliver"
+        )
+        assert "," not in minute and hour == "*", (
+            f"backstop cron {crons[0]!r} is not the plain hourly schedule expected"
+        )
+        assert now_mod.COLLECT_INTERVAL_MIN < 60, (
+            "the external trigger should be faster than the hourly backstop; "
+            "if it is not, the backstop is the real trigger and this file is "
+            "describing a schedule nobody keeps"
+        )
 
-        if minute.startswith("*/"):
-            every = int(minute[2:])
-        elif "," in minute:
-            every = 60 // (minute.count(",") + 1)
-        else:
-            assert hour == "*", f"cannot read a cadence from {crons[0]!r}"
-            every = 60
+    def test_the_phase_is_spent_on_the_source_that_is_pinned(self):
+        """The spectra jitter across roughly H+7..H+27, so no offset can be
+        right for them on every hour -- only the interval bounds their
+        staleness. KNZY's :52 is pinned, so the offset is chosen there: the
+        last run of each hour must land after :52 and inside the same hour."""
 
-        assert now_mod.COLLECT_INTERVAL_MIN == every, (
-            f"cron asks every {every} min, COLLECT_INTERVAL_MIN says "
-            f"{now_mod.COLLECT_INTERVAL_MIN}"
+        lo, hi = now_mod.SPECTRA_PUBLISHED_MIN
+        assert hi - lo >= 10, (
+            "if the spectra stopped jittering, phase-locking to them would beat "
+            "spending the offset on the wind — revisit this"
+        )
+
+        marks = sorted(int(m) for m in now_mod.EXTERNAL_TRIGGER_CRON.split()[0].split(","))
+        assert 52 < marks[-1] <= 59, (
+            f"last run of the hour is :{marks[-1]:02d}; KNZY publishes at :52 and "
+            f"would wait for the next hour"
+        )
+        assert marks[-1] - 52 <= 5, (
+            f"last run is {marks[-1] - 52} min after KNZY's :52 — the offset is "
+            f"the only thing buying that, so it should be tight"
         )
