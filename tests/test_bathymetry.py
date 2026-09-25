@@ -71,13 +71,22 @@ def test_a_datum_response_without_navd88_is_refused(monkeypatch):
 
 
 def test_a_grid_stored_without_a_datum_says_so():
-    for grid in bathymetry.GRIDS:
+    """Checked on whichever grids are stored: `outer` comes only from the
+    workflow, because gmrt.org is denied from a session."""
+
+    stored = [g for g in bathymetry.GRIDS if (ROOT / "data" / "bathymetry" / f"{g}.json").exists()]
+    assert {"nearshore", "regional"} <= set(stored)
+    for grid in stored:
         meta = json.loads((ROOT / "data" / "bathymetry" / f"{grid}.json").read_text())
         datum = meta["datum"]
         assert datum["msl_above_navd88_m"] is None or isinstance(datum["msl_above_navd88_m"], float)
         if datum["msl_above_navd88_m"] is None:
             assert "not fetched" in datum["note"]
-        assert "Coronado Islands" in meta["not_covered"]
+        if bathymetry.GRIDS[grid][2] == "coned":
+            assert meta["vertical_datum"] == "NAVD88"
+            assert "Coronado Islands" in meta["not_covered"]
+        else:
+            assert meta["vertical_datum"] == "MSL"
 
 
 def test_the_stored_grid_puts_the_charted_coast_near_mean_high_water():
