@@ -140,7 +140,13 @@ MISSED_CYCLES_TOLERATED = 1
 
 
 def next_expected(observed_utc: str | None, source: str) -> str | None:
-    """When a reading newer than `observed_utc` should be VISIBLE on the page.
+    """When a reading newer than `observed_utc` should be IN THIS FILE.
+
+    Not when a reader sees one. The surface refetches on its own interval and
+    adds that leg itself, because this module cannot know it. Counting only to
+    the file had the countdown reach zero while the file was already fresh and
+    the screen had simply not caught up -- the page reporting its own latency
+    as the source being late.
 
     Three terms, and the middle one is the one that is easy to leave out:
 
