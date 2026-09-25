@@ -1,0 +1,69 @@
+# Fetch the seabed around Coronado for refraction and shoaling, and the
+# MSL-to-NAVD88 offset at NOAA 9410170 that turns the grid's elevations into
+# depths.
+#
+# Why a workflow: the grid itself is readable from a session (NOAA's public
+# AWS bucket answers), but CO-OPS is denied at CONNECT from one, measured
+# 2026-09-25, so a session can only store the grids with the datum recorded as
+# not fetched. This run fills it in.
+#
+# ON DEMAND, not scheduled: a published survey, not a stream. Nothing is lost
+# by not fetching it today.
+#
+# Exit 2 from the collector is the datum fetch failing; the grids are then not
+# rewritten, so a failed run never replaces a datum-complete file with one
+# that is not.
+
+name: Bathymetry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bathymetry
+  cancel-in-progress: false
+
+jobs:
+  bathymetry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-precompute.txt
+
+      - name: Fetch the grids and the datum
+        run: python -m collector.bathymetry | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves collector"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/bathymetry
+
+          if git diff --cached --quiet; then
+            echo "No bathymetry change to commit."
+            exit 0
+          fi
+
+          git commit \
+            -m "data: seabed grids and the 9410170 datum offset" \
+            -m "Automated commit from .github/workflows/bathymetry.yml."
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then exit 0; fi
+            git pull --rebase origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+          echo "::error title=Push failed::Could not push the bathymetry after 4 attempts."
+          exit 1

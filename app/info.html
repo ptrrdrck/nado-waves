@@ -73,15 +73,19 @@ a{color:var(--surf)}
 
   <p class="blind">
     <b>Nothing has ever measured a wave at these three breaks.</b>
-    This is a <b>physically derived</b> aperture, not an accurate forecast, and
+    This is <b>physically derived</b>, not an accurate forecast, and
     it carries no error bar because there is nothing to compute one against.
     What it claims is <b>which break holds more of today's swell</b> — not how
     big it is.
   </p>
 
   <p class="blind">
-    Window energy is the energy aimed at a break. It is <b>not a wave
-    height at the beach</b>: no shoaling, no refraction, no offshore-to-face transfer.
+    Each break's number is the buoy's swell carried by physics to about
+    <b>5 m of water</b> off the break: through the windows the coast leaves open,
+    bent over the seabed, lifted or lowered by shoaling, with the Coronado
+    Islands diffracted and local wind chop added. It is still <b>not a wave
+    height at the beach</b> as a surfer would call it: no breaking, no
+    offshore-to-face transfer, and nothing has checked it against the sand.
   </p>
 
   <section class="card">
@@ -152,8 +156,8 @@ function renderNow(NOW) {
   // attribute the model's properties to the observation, so this note names
   // the buoy and nothing else.
   $("foot-now").innerHTML = `Observed at ${NOW.station_name} (NDBC ${NOW.station}),
-    a buoy 29 km offshore, and put through each break's aperture; nothing here
-    is measured at the sand.`;
+    a buoy 29 km offshore, and carried over the seabed to 5 m of water off each
+    break; nothing here is measured at the sand.`;
 }
 
 function renderForecast(DATA) {

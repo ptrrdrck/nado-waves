@@ -252,8 +252,22 @@ class TestOutput:
         assert blob["station"] == "46232"
         assert len(blob["breaks"]) == 3
 
-    def test_the_table_never_calls_the_number_a_wave_height(self):
+    def test_the_table_never_calls_the_number_a_surf_height(self):
+        """Refraction and shoaling are modelled since 2026-09-25, so the old
+        "no shoaling, no refraction" disclaimer would now be false. What is
+        still true, and still said: it is not a surf height at the sand."""
+
         text = " ".join(live.format_table(live.build(bulletin=bulletin(SOUTH), now=CYCLE)).split())
-        assert "not a wave height at the beach" in text
-        assert "no shoaling, no refraction" in text
+        assert "Neither is a surf height at the sand" in text
+        assert "no breaking" in text
         assert "nothing here carries an error bar" in text
+
+    def test_every_hour_carries_the_nearshore_chain(self):
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
+        for entry in got.breaks:
+            for hour in entry.hours:
+                assert hour.hs_nearshore_m is not None
+                effects = hour.nearshore["effects"]
+                assert effects["window_hs_m"] == pytest.approx(hour.hs_window_m, abs=1e-3)
+                assert effects["buoy_hs_m"] == pytest.approx(hour.hs_offshore_m, abs=1e-3)
+        assert got.standing_on["seabed"].startswith("MODELLED")

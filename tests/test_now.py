@@ -207,7 +207,8 @@ class TestOutput:
     def test_the_table_never_calls_it_a_height_at_the_beach(self, tmp_path):
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
         text = " ".join(now_mod.format_table(got).split())
-        assert "never measured at the beach itself" in text
+        assert "never measured at the beach" in text
+        assert "not a surf height" in text
 
 
 class TestWaveTrains:
@@ -224,18 +225,37 @@ class TestWaveTrains:
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
         assert all(b.trains for b in got.breaks)
 
-    def test_a_breaks_trains_are_no_larger_than_the_buoys(self, tmp_path):
-        """The aperture only ever removes energy."""
+    def test_the_straight_line_window_never_exceeds_the_buoy(self, tmp_path):
+        """The aperture only ever removes energy. The nearshore number may
+        exceed it, legitimately: shoaling into 5 m lifts long-period swell, so
+        the old "no larger than the buoy" rule now holds for the window only."""
 
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
-        biggest_at_buoy = max(t["hs_m"] for t in got.buoy["trains"])
         for entry in got.breaks:
-            assert max(t["hs_m"] for t in entry.trains) <= biggest_at_buoy + 1e-9
+            assert entry.hs_in_window_m <= got.buoy["hs_m"] + 1e-9
+            effects = entry.nearshore["effects"]
+            assert effects["window_hs_m"] == pytest.approx(entry.hs_in_window_m, abs=1e-3)
+
+    def test_each_break_carries_the_chain_from_buoy_to_nearshore(self, tmp_path):
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        for entry in got.breaks:
+            effects = entry.nearshore["effects"]
+            assert set(effects) >= {"buoy_hs_m", "window_hs_m", "seabed_hs_m",
+                                    "shoaled_hs_m", "islands_pct", "local"}
+            assert entry.hs_nearshore_m == entry.nearshore["hs_m"]
+            assert entry.nearshore["depth_m"] == pytest.approx(5.0, abs=0.2)
+
+    def test_the_shipped_spread_is_maximum_entropy(self, tmp_path):
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        assert "maximum entropy" in got.standing_on["waves"]
+        assert got.standing_on["seabed"].startswith("MODELLED")
 
     def test_trains_are_ordered_largest_first(self, tmp_path):
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
         for entry in got.breaks:
-            heights = [t["hs_m"] for t in entry.trains]
+            # Local chop is appended after the swell trains, tagged; the
+            # swell trains themselves are largest first.
+            heights = [t["hs_m"] for t in entry.trains if not t.get("local")]
             assert heights == sorted(heights, reverse=True)
 
     def test_the_table_lists_the_buoys_trains(self, tmp_path):

@@ -1,0 +1,10 @@
+# For the ONE-OFF precompute jobs only: collector.bathymetry (reading the USGS
+# CoNED grid through its overviews) and forecast.raytrace (building the
+# refraction transfer tables). Neither runs on the forecast path.
+#
+# The collector and the live forecast stay standard-library only, for the
+# reason requirements-dev.txt gives: nothing to break the archiving job when an
+# upstream package publishes a bad release. The forecast only READS the tables
+# these jobs write.
+numpy>=2.0
+rasterio>=1.4

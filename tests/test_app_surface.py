@@ -83,8 +83,14 @@ class TestItSaysWhatItIsStandingOn:
     def test_it_says_the_number_is_not_a_wave_height_at_the_beach(self):
         assert "not a wave height" in INFO_TEXT and "at the beach" in INFO_TEXT
 
-    def test_it_names_the_missing_shoaling_and_refraction(self):
-        assert "no shoaling" in INFO_TEXT and "no refraction" in INFO_TEXT
+    def test_it_names_what_is_modelled_and_what_is_still_missing(self):
+        """Refraction and shoaling are modelled since 2026-09-25, so the page
+        says so — and says what is still absent: breaking, the transfer to a
+        surf height, and any check against the beach."""
+
+        assert "bent over the seabed" in INFO_TEXT and "shoaling" in INFO_TEXT
+        assert "no breaking" in INFO_TEXT
+        assert "nothing has checked it" in INFO_TEXT
 
 
 class TestScope:
@@ -529,7 +535,7 @@ class TestItMatchesTheLiveOutput:
             known |= {f.name for f in fields(cls)}
         known |= {"blocker", "share", "verified"}       # taken_by entries
         known |= {"swell_deg", "wind_sea_deg", "note"}  # spread_assumption
-        known |= {"hs_m", "period_s", "from_deg", "wind_sea"}  # train entries
+        known |= {"hs_m", "period_s", "from_deg", "wind_sea", "local"}  # train entries
         known |= {"peak_period_s", "peak_direction_deg", "frequency_bins"}  # buoy
         known |= {"age_hours", "observed_utc", "trains", "height_m", "kind"}
 
@@ -538,6 +544,46 @@ class TestItMatchesTheLiveOutput:
                             "toFixed", "textContent", "innerHTML"}:
                 continue
             assert accessor in known, f"page reads unknown field {accessor!r}"
+
+
+class TestTheNearshoreParagraph:
+    """Each break card says how its number was made from the buoy's."""
+
+    PARA = SOURCE[SOURCE.index("function nearshoreParagraph"):]
+    PARA = PARA[:PARA.index("\n}\n")]
+
+    def test_every_field_it_reads_is_one_the_forecast_writes(self):
+        from forecast.nearshore import LocalSea, Nearshore, summarise
+
+        near = Nearshore("x", 1.0, 0.9, 0.8, 0.95, 200.0, 210.0, 12.0)
+        out = summarise(near, LocalSea(0.1, 1.2, 290.0, 3.0),
+                        buoy_hs_m=1.2, window_hs_m=0.8, depth_m=5.0)
+        effects, local = out["effects"], out["effects"]["local"]
+        for key in re.findall(r"\be\.([a-z_]+)", self.PARA):
+            if key != "local":
+                assert key in effects, key
+        for key in re.findall(r"\be\.local\.([a-z_]+)", self.PARA):
+            assert key in local, key
+        for key in re.findall(r"\bn\.([a-z_]+)", self.PARA):
+            assert key in out, key
+
+    def test_it_comes_last_on_the_card(self):
+        card = SOURCE[SOURCE.index("function breakPanel"):]
+        card = card[:card.index("function nearshoreParagraph")]
+        assert card.index("taking the swell") < card.index("nearshoreParagraph(c)")
+
+    def test_it_does_not_call_the_physics_calibration(self):
+        """Calibration is the level reserved for fitting to observations."""
+
+        assert "calibrat" not in self.PARA.lower().replace("physics, not calibration", "")
+
+    def test_the_headline_prefers_the_nearshore_figure(self):
+        assert "b.hs_nearshore_m != null ? b.hs_nearshore_m : b.hs_in_window_m" in SOURCE
+        assert "h.hs_nearshore_m != null ? h.hs_nearshore_m : h.hs_window_m" in SOURCE
+
+    def test_local_chop_is_listed_but_not_drawn_as_arriving_from_the_ocean(self):
+        assert "local chop" in SOURCE
+        assert "!t.local && isFinite(t.from_deg)" in SOURCE
 
 
 class TestWaveTrainsOnScreen:

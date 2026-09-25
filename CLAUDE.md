@@ -128,6 +128,20 @@ forecaster actually verifies against, Surfline included.
    staleness alert never visibly fired. The anchor buoy for every transform
    here can disappear for a fortnight without notice, and BRIEFING §3a says no
    other station in the array can stand in for it.
+3a. **The nearshore transform — built and SHIPPED 2026-09-25, by the owner's
+   decision.** `forecast/raytrace.py` (precompute, numpy) traces rays backward
+   from the 5 m contour off each break over the USGS CoNED + GMRT seabed
+   (`collector/bathymetry.py`) — refraction and shoaling, Point Loma and Baja
+   as land, the Coronado Islands by Fresnel diffraction — into
+   `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
+   spectrum through them and adds fetch-limited local chop over closed fetches.
+   **The number on every break card is this nearshore figure**, on both chains;
+   the straight-line window figure survives only inside the card's
+   buoy-to-break paragraph. Buoy spectra are read by **maximum entropy**
+   (`Spectrum.spread = "mem"`), which also stops the buoy's own Hs reading ~5%
+   high. Measured in BRIEFING §28–§29: it REVERSES the south/north ordering in
+   south-swell season. It is physics, not calibration, and it is unverified —
+   the observation log decides between it and the aperture, not this file.
 4. **The forecast — built, `forecast/live.py`.** GFS-Wave at 46232 through the
    transform, with wind and 9410170 tide as context. Writes
    `data/live/forecast.json` (gitignored — derived, see Infrastructure).
@@ -312,7 +326,10 @@ forecaster actually verifies against, Surfline included.
                         tip — run on Actions),
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
-                        beachlog.py + beachlog_import.py (the observation log)
+                        beachlog.py + beachlog_import.py (the observation log),
+                        bathymetry.py (USGS CoNED seabed, regional 32 m and
+                        nearshore 8 m, NAVD88; the MSL offset is fetched from
+                        CO-OPS on Actions — needs requirements-precompute.txt)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/info.html       the caveat, the cycle line and each chain's
                         standing-on block; shipped by `forecast.publish` in
@@ -330,6 +347,19 @@ forecaster actually verifies against, Surfline included.
     forecast/
       geometry.py       which bearings reach each beach          [built]
       transform.py      spectrum -> energy through the aperture   [built]
+      spreadmethod.py   Fourier vs maximum-entropy D(f, θ) from the same
+                        four buoy moments, over the archive; reports,
+                        never edits (BRIEFING §28)              [built]
+      raytrace.py       PRECOMPUTE (numpy): backward rays from the 10 m
+                        contour off each break to deep water over the seabed
+                        grids — refraction and shoaling (S·c·cg invariant),
+                        Point Loma and Baja as land, the Coronado Islands as
+                        Fresnel diffraction, plus each break's wind fetch.
+                        Writes data/nearshore/; never imported by the
+                        forecast                                  [built]
+      nearshore.py      carries a spectrum through those tables, pure
+                        Python; local fetch-limited chop over CLOSED fetches
+                        only; reports against the aperture          [built]
       live.py           the live forecast, Coronado only          [built]
       now.py            the OBSERVED reading, measurements only    [built]
       publish.py        the public delivery bundle                 [built]
@@ -345,6 +375,7 @@ forecaster actually verifies against, Surfline included.
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
+      utm.py            lat/lon <-> UTM 11 metres, pure Python (the grids' CRS)
       stats.py          load_column, least_squares, rmse, circular means
       dispersion.py     swell-arrival detection and the 1/T fit
       forensics.py      read a swell's origin off the buoy record
@@ -366,6 +397,13 @@ forecaster actually verifies against, Surfline included.
                         generalised, not survey-grade MHW. Every file is
                         clipped by its own query envelope on all four edges,
                         which is why the region is in the filename.
+    data/bathymetry/    CoNED seabed grids (.npz, decimetres NAVD88) + a JSON
+                        sidecar each. Does NOT cover the Coronado Islands or
+                        Baja (south of 32.49 N); those stay charted blockers.
+    data/nearshore/     per-break transfer tables from forecast.raytrace:
+                        <break>.csv (one row per period x 0.5° heading at
+                        10 m), <break>.json (start point, datum, grids),
+                        <break>_fetch.csv (open water upwind, per 1° of wind)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
@@ -544,6 +582,17 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   breaking depth is what refraction will need. `Spot.normal` is currently one
   number doing both jobs, and checking it against a shoreline verifies only the
   first.
+- **The seabed transform is physics, never "calibration".** Calibration is the
+  level reserved for fitting to the observation log (build order 5), and
+  `info.html` names it as its own confidence level. Refraction, shoaling and
+  diffraction are modelled from surveyed inputs and fitted to nothing; calling
+  them calibration would claim a level the project has not reached.
+  `tests/test_app_surface.py` keeps the word out of the card's paragraph.
+- **The nearshore figure is at 5 m of water, not at the sand.** The 10 m
+  contour MOP uses lay 2.2 km off the north break, outside Point Loma's shadow,
+  and described a different place (BRIEFING §29). Moving `raytrace.H_REF`
+  changes what every number on the page means; rebuild the tables and re-read
+  §29 before doing it.
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.

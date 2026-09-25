@@ -1,0 +1,27 @@
+{
+  "break": "coronado_north",
+  "start_lat": 32.68472,
+  "start_lon": -117.195172,
+  "start_depth_m": 5.05,
+  "h_ref_m": 5.0,
+  "dir_step_deg": 0.5,
+  "depth_datum": "MSL",
+  "msl_above_navd88_m": 0.765,
+  "grids": [
+    "nearshore",
+    "regional",
+    "outer"
+  ],
+  "islands": [
+    {
+      "name": "Coronado Islands (south group)",
+      "ring_depth_m": 61.5,
+      "radius_m": 2421
+    },
+    {
+      "name": "Coronado Islands (north)",
+      "ring_depth_m": 268.9,
+      "radius_m": 1105
+    }
+  ]
+}

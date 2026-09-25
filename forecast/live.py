@@ -50,6 +50,8 @@ from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, pa
 
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
+from .nearshore import (carry, density_grids, load_tables, local_sea, spectrum_from_partitions,
+                        summarise, table_frequencies)
 from .units import height as fmt_height, speed as fmt_speed
 from .tideturns import read_turns, turns_between
 from .transform import (
@@ -147,6 +149,12 @@ class Hour:
     #: dominant blocker is the estimated Coronado Islands as less certain than
     #: one governed by the digitised Point Loma tip.
     taken_by: list[dict] = field(default_factory=list)
+    #: The number the card shows: the modelled spectrum carried over the
+    #: seabed to 5 m of water off the break, with local chop from the model's
+    #: own wind. `hs_window_m` stays the straight-line window figure, and
+    #: `nearshore.effects` is the chain between them (forecast.nearshore).
+    hs_nearshore_m: float | None = None
+    nearshore: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -406,7 +414,13 @@ def build(
         standing_on={
             "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),
             "model": "GFS-Wave, unassimilated; 0.9–1.0 ft (0.26–0.31 m) low bias at the buoy, not corrected here",
-            "calibration": "none — no offshore-to-face transfer, no shoaling, no refraction, no band",
+            "seabed": "MODELLED — refraction and shoaling over the USGS CoNED and GMRT "
+                      "seabed to 5 m of water off each break, the Coronado Islands by "
+                      "diffraction; linear, no breaking, unverified",
+            "local chop": "MODELLED — fetch-limited growth from the model's own wind, "
+                          "only over fetches closed by land",
+            "calibration": "none — nothing has been fitted to an observation; "
+                           "no offshore-to-face transfer, no band",
             "observation": "none — data/beach_log/ is empty; nothing has measured these breaks",
             "claim": "physically derived, not accurate; ordinal and differential, not a height at the beach",
         },
@@ -494,6 +508,30 @@ def build(
             )
         ]
 
+    try:
+        tables = load_tables()
+    except (FileNotFoundError, ValueError) as exc:
+        tables = {}
+        forecast.warnings.append(f"nearshore tables unavailable ({exc}); showing window energy")
+    freqs = table_frequencies(tables)
+
+    # One spectrum per hour, shared by the three breaks: the model's own grid
+    # when there is one, otherwise the partitions rebuilt into a spectrum and
+    # read by maximum entropy like the observed buoy.
+    carried_input: dict = {}
+    if tables:
+        for row in rows:
+            record = spectra.get(row.valid_utc)
+            if record is not None:
+                sp = GridSpectrum(record.time, record.frequencies, record.directions, record.energy)
+                wind = (record.wind_kt, record.wind_from_deg)
+            else:
+                parts = [(p.hs_m, p.tp_s, float(from_direction(p.toward_deg)), p.wind_sea)
+                         for p in row.partitions]
+                sp = spectrum_from_partitions(parts, row.valid_utc, freqs)
+                wind = (None, None)
+            carried_input[row.valid_utc] = (sp, density_grids(sp), wind)
+
     for break_id in BREAKS:
         spot = by_id[break_id]
         entry = BreakForecast(
@@ -563,6 +601,17 @@ def build(
                 for name, share in sorted(shares.items(), key=lambda kv: -kv[1])
                 if share >= 0.005
             ]
+            near: dict = {}
+            if row.valid_utc in carried_input:
+                sp, grids, (wind_kt, wind_from) = carried_input[row.valid_utc]
+                table = tables[break_id]
+                chop = local_sea(table, spot.normal, wind_kt, wind_from)
+                near = summarise(carry(sp, table, grids), chop, buoy_hs_m=hs_offshore,
+                                 window_hs_m=hs_window, depth_m=table.start_depth_m)
+                hour_trains = near["trains"]
+                if near["trains"]:
+                    dominant_tp = near["trains"][0]["period_s"]
+                    dominant_dir = near["trains"][0]["from_deg"]
             entry.hours.append(Hour(
                 valid_utc=row.valid_utc.strftime(ISO),
                 lead_h=row.lead_hours,
@@ -575,6 +624,8 @@ def build(
                 wind_kt=hour_wind_kt,
                 trains=hour_trains,
                 taken_by=taken_by,
+                hs_nearshore_m=near.get("hs_m"),
+                nearshore=near,
             ))
         forecast.breaks.append(entry)
 
@@ -634,8 +685,9 @@ def format_table(forecast: Forecast, *, rows: int = 8) -> str:
         lines.append("")
 
     lines += [
-        "Window height is offshore energy aimed at the break, not a wave height",
-        "at the beach: no shoaling, no refraction, no offshore-to-face transfer.",
+        "Window height is offshore energy aimed at the break; the nearshore figure",
+        "carries it over the seabed to 5 m of water. Neither is a surf height at the",
+        "sand: no breaking, no offshore-to-face transfer.",
         "No verification series exists, so nothing here carries an error bar.",
     ]
     return "\n".join(lines)
