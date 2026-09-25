@@ -330,6 +330,9 @@ forecaster actually verifies against, Surfline included.
     forecast/
       geometry.py       which bearings reach each beach          [built]
       transform.py      spectrum -> energy through the aperture   [built]
+      spreadmethod.py   Fourier vs maximum-entropy D(f, θ) from the same
+                        four buoy moments, over the archive; reports,
+                        never edits (BRIEFING §28)              [built]
       live.py           the live forecast, Coronado only          [built]
       now.py            the OBSERVED reading, measurements only    [built]
       publish.py        the public delivery bundle                 [built]
