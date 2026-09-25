@@ -4,3 +4,8 @@
 #
 # These are for the test suite only.
 pytest>=8.0
+
+# numpy only so the suite can check the precompute (forecast.raytrace and the
+# stored bathymetry) against its textbook controls. Nothing on the forecast
+# path imports it; those tests skip where it is absent.
+numpy>=2.0

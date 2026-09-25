@@ -1,0 +1,10 @@
+{
+  "break": "coronado_south",
+  "start_lat": 32.669757,
+  "start_lon": -117.179681,
+  "start_depth_m": 10.01,
+  "h_ref_m": 10.0,
+  "dir_step_deg": 0.5,
+  "depth_datum": "NAVD88 (MSL offset not fetched; depths about a metre shallow)",
+  "msl_above_navd88_m": null
+}

@@ -8,22 +8,22 @@
   "nodata": -32768,
   "cell_m": 32.0,
   "shape": [
-    841,
-    931
+    1123,
+    1486
   ],
   "transform": [
     32.0,
     0.0,
-    457056.0,
+    448064.0,
     0.0,
     -32.0,
-    3626528.0
+    3635552.0
   ],
   "bounds_utm": [
-    457056.0,
+    448064.0,
     3599616.0,
-    486848.0,
-    3626528.0
+    495616.0,
+    3635552.0
   ],
   "resampling": "average of the 1 m cells, via the source's overviews",
   "not_covered": "the Coronado Islands and the Baja coast (south of the source's 32.49 N edge, Mexican waters)",
@@ -33,10 +33,10 @@
     "note": "not fetched: CO-OPS is denied from a session; run the workflow"
   },
   "stats": {
-    "cells": 782971,
-    "nodata_cells": 0,
+    "cells": 1668778,
+    "nodata_cells": 5615,
     "min_elevation_m": -1345.4425048828125,
-    "max_elevation_m": 128.79904174804688
+    "max_elevation_m": 390.7237854003906
   },
-  "retrieved_utc": "2026-09-25T20:07:56Z"
+  "retrieved_utc": "2026-09-25T20:14:44Z"
 }
