@@ -1,7 +1,7 @@
 {
-  "break": "coronado_south",
-  "start_lat": 32.67354,
-  "start_lon": -117.175819,
+  "break": "coronado_center",
+  "start_lat": 32.680946,
+  "start_lon": -117.186314,
   "start_depth_m": 5.03,
   "h_ref_m": 5.0,
   "dir_step_deg": 0.5,

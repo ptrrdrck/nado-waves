@@ -336,6 +336,16 @@ forecaster actually verifies against, Surfline included.
       spreadmethod.py   Fourier vs maximum-entropy D(f, θ) from the same
                         four buoy moments, over the archive; reports,
                         never edits (BRIEFING §28)              [built]
+      raytrace.py       PRECOMPUTE (numpy): backward rays from the 10 m
+                        contour off each break to deep water over the seabed
+                        grids — refraction and shoaling (S·c·cg invariant),
+                        Point Loma and Baja as land, the Coronado Islands as
+                        Fresnel diffraction, plus each break's wind fetch.
+                        Writes data/nearshore/; never imported by the
+                        forecast                                  [built]
+      nearshore.py      carries a spectrum through those tables, pure
+                        Python; local fetch-limited chop over CLOSED fetches
+                        only; reports against the aperture          [built]
       live.py           the live forecast, Coronado only          [built]
       now.py            the OBSERVED reading, measurements only    [built]
       publish.py        the public delivery bundle                 [built]
@@ -376,6 +386,10 @@ forecaster actually verifies against, Surfline included.
     data/bathymetry/    CoNED seabed grids (.npz, decimetres NAVD88) + a JSON
                         sidecar each. Does NOT cover the Coronado Islands or
                         Baja (south of 32.49 N); those stay charted blockers.
+    data/nearshore/     per-break transfer tables from forecast.raytrace:
+                        <break>.csv (one row per period x 0.5° heading at
+                        10 m), <break>.json (start point, datum, grids),
+                        <break>_fetch.csv (open water upwind, per 1° of wind)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions

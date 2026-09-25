@@ -118,3 +118,59 @@ def test_the_deep_water_leg_is_tested_against_the_charted_blockers():
     lat, lon = loma.a[0], loma.a[1] - 0.05
     assert straight_line_blocker(blockers, lat, lon, 270.0) is None
     assert straight_line_blocker(blockers, lat, lon, 45.0) == loma.name
+
+
+# ------------------------------------------------------------ diffraction
+
+from forecast.raytrace import Island, fresnel, island_transmission, slit  # noqa: E402
+
+
+def test_fresnel_integrals_match_the_tabulated_values():
+    c, s = fresnel(np.array([1.0, 0.5, -1.0, 60.0]))
+    assert c[0] == pytest.approx(0.7798934, abs=1e-6)
+    assert s[0] == pytest.approx(0.4382591, abs=1e-6)
+    assert c[1] == pytest.approx(0.4923442, abs=1e-6)
+    assert (c[2], s[2]) == pytest.approx((-c[0], -s[0]))
+    assert (c[3], s[3]) == pytest.approx((0.5, 0.5), abs=0.01)
+
+
+def test_a_straight_edge_leaves_a_quarter_of_the_energy_on_the_shadow_line():
+    field = 1.0 - slit(np.array([0.0]), np.array([1e6]))
+    assert abs(field[0]) ** 2 == pytest.approx(0.25, abs=1e-4)
+
+
+def _through_strip(width, distance, period, offset):
+    """A ray passing `offset` metres from the centre of a strip `width` wide,
+    `distance` from the observer, in deep water."""
+
+    island = Island("strip", (offset - width / 2, 0.0), (offset + width / 2, 0.0),
+                    (offset, 0.0), width / 2, depth=5000.0)
+    n = 1
+    passes = {"strip": (np.zeros(n), np.zeros(n), np.full(n, math.pi / 2),
+                        np.full(n, distance), np.ones(n, bool))}
+    factor, geo = island_transmission(passes, [island], period)
+    return float(factor[0]), float(geo[0])
+
+
+def test_a_wide_island_close_by_casts_a_real_shadow():
+    """Fresnel number W²/(λD) = 3000²/(225·3000) ≈ 13: the geometric limit."""
+
+    factor, geo = _through_strip(3000.0, 3000.0, 12.0, 0.0)
+    assert geo == 0.0
+    assert factor < 0.05
+
+
+def test_a_small_island_far_off_barely_shadows():
+    """W²/(λD) = 300²/(351·31000) ≈ 0.008: the shadow is filled in, which is
+    what the locals say about the Coronado Islands and what a hard block
+    cannot say."""
+
+    factor, geo = _through_strip(300.0, 31000.0, 15.0, 0.0)
+    assert geo == 0.0
+    assert factor > 0.8
+
+
+def test_far_to_the_side_of_an_island_the_wave_is_untouched():
+    factor, geo = _through_strip(3000.0, 3000.0, 12.0, 20000.0)
+    assert geo == 1.0
+    assert factor == pytest.approx(1.0, abs=0.02)
