@@ -125,16 +125,32 @@ PUBLISH_MINUTES = {
 
 #: How long after its own stamp each source becomes FETCHABLE.
 #:
-#: Zero for wind and tide: a :52 METAR was in hand by the :55 collection, and
-#: a :24 tide sample by the :25 one, so the collection schedule already absorbs
-#: whatever lag there is.
+#: **A stamp minute is not a publication minute, for any of the three.** Every
+#: value here is the UPPER bound of a measured range rather than its middle,
+#: because the countdown is a promise that something newer will be on screen by
+#: then. Anchored on the typical case, the card goes red on every cycle that
+#: runs late -- which is most of what a range means.
 #:
-#: 27 for the swell, which is the UPPER bound of the jitter measured in
-#: SPECTRA_PUBLISHED_MIN rather than its middle. The countdown is a promise
-#: that something newer will be on screen by then; anchoring it on the typical
-#: case would make the card red on every hour that ran late, which is most of
-#: what "jitter" means.
-PUBLISH_LAG_MIN = {"swell": 27, "wind": 0, "tide": 0}
+#: 27 for the swell: the top of the H+7..H+27 jitter in SPECTRA_PUBLISHED_MIN.
+#:
+#: 7 for the tide. This was 0, on the claim that a :24 sample was in hand by
+#: the :25 collection, and the archive falsifies it: no 9410170 sample has
+#: ever been fetchable within 4.9 minutes of its own stamp. Bracketed on
+#: 2026-09-25 between the last collection without each sample and the first
+#: with it, the lag runs about **H+3 to H+7** -- 01:36 was in hand by H+4.9
+#: while 00:54 was still absent at H+6.4, which no single publication minute
+#: explains. Taken as 0 the countdown promised the NEXT 6-minute sample about
+#: seven minutes before CO-OPS had written it, and since that is more than half
+#: the sample interval it lost a whole collection slot: the tide card read
+#: overdue by minutes on a reading that was not late at all.
+#:
+#: 3 for the wind, the measured floor (no KNZY METAR seen inside H+3.2, and
+#: one still absent at H+0.7). It changes no deadline at today's cadence --
+#: 3 minutes past :52 rounds onto the :55 collection, which is measured to
+#: catch it, first seen at :55:15 -- but it is the reason that works, and a
+#: cadence offset moved inside three minutes of :52 would now say so instead
+#: of silently claiming a run catches a METAR it cannot see.
+PUBLISH_LAG_MIN = {"swell": 27, "wind": 3, "tide": 7}
 
 
 def _collect_minutes() -> tuple[int, ...]:

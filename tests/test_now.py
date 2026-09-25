@@ -272,21 +272,45 @@ class TestWhenEachSourceIsNextDue:
     def test_it_lands_on_the_next_collection_after_the_next_publish(self):
         """The tide publishes every six minutes from :00 and is collected at
         :05/:15/:25/:35/:45/:55. A sample stamped :24 is followed by one at
-        :30, which the :35 collection picks up."""
+        :30 -- which the :35 collection does NOT pick up, because CO-OPS has
+        not written it yet: the measured lag is up to seven minutes, so :30
+        becomes fetchable at :37 and the :45 run is the first that can carry
+        it."""
 
-        assert now_mod.next_expected("2026-09-25T04:24:00Z", "tide") == "2026-09-25T04:35:00Z"
+        assert now_mod.next_expected("2026-09-25T04:24:00Z", "tide") == "2026-09-25T04:45:00Z"
 
-    def test_the_tide_is_not_charged_a_whole_interval_it_has_already_spent(self):
-        """The bug this replaces. The old formula added `source interval +
-        2 x collection interval` to the reading on screen, so a tide sample due
-        in ninety seconds was still given six minutes, and then twenty more as
-        slack -- a countdown over twenty minutes for a source that publishes
-        every six, which is what made it obviously wrong on screen."""
+    def test_no_source_is_charged_slack_on_top_of_the_rounding(self):
+        """The bug this replaces, stated as a mechanism rather than a number.
 
-        stamped = "2026-09-25T04:24:00Z"
-        due = datetime.strptime(now_mod.next_expected(stamped, "tide"), now_mod.ISO)
-        gap = (due - datetime.strptime(stamped, now_mod.ISO)).total_seconds() / 60
-        assert gap <= 16, f"tide waits {gap:.0f} min for a six-minute source"
+        The old formula added `source interval + 2 x collection interval` to the
+        reading on screen: a tide sample due in ninety seconds was charged a
+        full six minutes and then twenty more as slack. The slack term is gone,
+        and what bounds it now is that rounding up to a collection mark can only
+        ever cost LESS than one collection interval -- never two, and never a
+        fixed cushion on top.
+
+        Deliberately not asserted as "the tide waits under N minutes". It can
+        legitimately wait 21: six for the next sample, seven until CO-OPS
+        publishes it, eight to the following collection. Every one of those is
+        measured, and an assertion on the total would fail on a real lag
+        rather than on an invented one."""
+
+        for source, marks in now_mod.PUBLISH_MINUTES.items():
+            lag = timedelta(minutes=now_mod.PUBLISH_LAG_MIN.get(source, 0))
+            for minute in range(60):
+                stamped = f"2026-09-25T04:{minute:02d}:00Z"
+                due = datetime.strptime(now_mod.next_expected(stamped, source), now_mod.ISO)
+                published = now_mod._next_mark(
+                    datetime.strptime(stamped, now_mod.ISO), marks
+                )
+                fetchable = published + lag
+                rounding = (due - fetchable).total_seconds() / 60
+                assert 0 <= rounding < now_mod.COLLECT_INTERVAL_MIN, (
+                    f"{source} stamped :{minute:02d} is fetchable at "
+                    f"{fetchable:%H:%M} but not promised until {due:%H:%M} -- "
+                    f"{rounding:.0f} min of rounding against a "
+                    f"{now_mod.COLLECT_INTERVAL_MIN}-minute cadence"
+                )
 
     def test_the_wind_waits_for_its_own_minute(self):
         """KNZY publishes at :52 and nowhere else, so a 03:52 reading is not
@@ -294,6 +318,60 @@ class TestWhenEachSourceIsNextDue:
         is the first that can carry it."""
 
         assert now_mod.next_expected("2026-09-25T03:52:00Z", "wind") == "2026-09-25T04:55:00Z"
+
+    @pytest.mark.parametrize(
+        "source,path,stamp_column",
+        [
+            ("tide", "data/tide/9410170_observed.csv", "time_utc"),
+            ("wind", "data/wind/KNZY.csv", "observed_utc"),
+        ],
+    )
+    def test_no_source_claims_a_lag_the_archive_has_never_achieved(
+        self, source, path, stamp_column
+    ):
+        """The bug that produced a red tide card on a reading eight minutes old.
+
+        `PUBLISH_LAG_MIN["tide"]` was 0, on the reasoning that the collection
+        schedule absorbs whatever lag there is. The archive says otherwise: it
+        carries `first_seen_utc` beside every stamp, and the smallest gap
+        between them is over four minutes for the tide and over three for the
+        wind. Nothing has ever been fetchable at its own stamp minute.
+
+        A lag of zero for a source that is never instant does not merely
+        mis-time the countdown, it promises data that does not exist yet, and
+        for a six-minute source a seven-minute error costs a whole collection
+        slot. So this asserts the shape rather than a number: if the archive has
+        never seen a source inside a minute of its stamp, the model may not
+        claim it is fetchable there.
+
+        Measured (bracketing each sample between the last collection without it
+        and the first with it) the tide runs about H+3 to H+7 and the wind sits
+        near H+3; the constants take the upper end, as the swell's 27 does."""
+
+        rows = list(csv.DictReader((Path(path)).open()))
+        if not rows:
+            pytest.skip(f"{path} is empty")
+
+        gaps = []
+        for row in rows:
+            try:
+                stamp = datetime.strptime(row[stamp_column], now_mod.ISO)
+                seen = datetime.strptime(row["first_seen_utc"], now_mod.ISO)
+            except (ValueError, KeyError, TypeError):
+                continue
+            gaps.append((seen - stamp).total_seconds() / 60)
+
+        assert gaps, f"{path} has no usable first_seen_utc"
+        floor = min(gaps)
+        if floor <= 1.0:
+            pytest.skip(f"{source} has been seen at its own stamp ({floor:.1f} min)")
+
+        assert now_mod.PUBLISH_LAG_MIN[source] >= int(floor), (
+            f"{source} is modelled as fetchable {now_mod.PUBLISH_LAG_MIN[source]} "
+            f"min after its stamp, but the archive has never had one sooner "
+            f"than {floor:.1f} min -- the countdown is promising a reading the "
+            f"source has not published"
+        )
 
     def test_the_swell_is_charged_its_publication_jitter(self):
         """The spectrum stamped 05:00 is not fetchable at 05:00 -- measured, it

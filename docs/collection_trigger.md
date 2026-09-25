@@ -182,11 +182,24 @@ routine METAR at **:52** — 81 of 95 archived observations sit on that minute �
 and the `:55` run catches it three minutes later. That is against a measured
 median wind latency of **110 minutes** before any of this.
 
-| source | publishes | worst wait |
-|---|---|---|
-| wind | `:52`, pinned | **3 min** |
-| swell | H+7..H+27, jittering | **10 min** |
-| tide | every 6 min | **10 min** |
+| source | stamps | fetchable | worst wait for a collection |
+|---|---|---|---|
+| wind | `:52`, pinned | H+3 | **3 min** |
+| swell | `:00` | H+7..H+27, jittering | **10 min** |
+| tide | every 6 min | H+3..H+7 | **10 min** |
+
+The middle column is the one that is easy to skip, and skipping it is what made
+the tide card read overdue on a reading eight minutes old. **A stamp minute is
+not a publication minute.** Every row was bracketed the same way — between the
+last collection that did not have a sample and the first that did — and no
+source in this table has ever been fetchable at its own stamp. The tide's lag
+is only a few minutes, but it is comparable to the six-minute sample interval,
+so treating it as zero does not shave the countdown slightly: it promises the
+*next* sample before it exists and loses a whole collection slot.
+
+`PUBLISH_LAG_MIN` in `forecast/now.py` carries the middle column, and a test
+holds it against `first_seen_utc` in the archive: a source the data has never
+seen inside a minute of its stamp may not be modelled as instant.
 
 ### What it costs
 
