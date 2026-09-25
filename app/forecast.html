@@ -214,10 +214,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .win.soft .bar{background:repeating-linear-gradient(45deg,var(--sand-deep),
                var(--sand-deep) 3px,transparent 3px,transparent 6px);
                outline:1px dashed var(--line-strong)}
-/* A footnote to the window block, not a fourth window. Without the rule it
-   read as one more edge label in the same faint grey. */
-.prov{font-size:12px;color:var(--faint);margin-top:9px;padding-top:8px;
-      border-top:1px solid var(--line)}
+/* Between what the swell is doing at a break and the fixed geometry that
+   shapes it: everything above the rule changes with the reading, everything
+   below it (bar the shares) is the same on every reading. */
+.pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}
 
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
@@ -383,38 +383,6 @@ function windowList(windows) {
       <span class="bar" style="width:${Math.max(3, 100 * spans[i] / widest)}%"></span>
     </div>`;
   }).join("") + `</div>`;
-}
-
-// Where the aperture itself came from. Composed from the file, never written
-// into the page: spots.json carries the ENC cell each blocker endpoint was
-// read from, and if a blocker is re-digitised from another chart this line
-// follows it. Naming the usage band alone would name the drawer rather than
-// the chart, and naming only the charts would imply the whole aperture was
-// charted. Point Loma's tip was imagery until 2026-09-22; what is left is the
-// aperture's other end, the break positions, and they set the window too.
-function provenanceLine(geom) {
-  if (!geom) return "";
-  const bits = [];
-  if (geom.cells && geom.cells.length) {
-    bits.push(`NOAA ENC chart${geom.cells.length > 1 ? "s" : ""} `
-      + geom.cells.join(", "));
-  }
-  // Named even when it is one input of many, because every edge printed
-  // directly above this line runs from a break to a blocker. A provenance that
-  // said only "NOAA ENC" would let a reader take the whole aperture as
-  // charted.
-  if (geom.from_imagery && geom.from_imagery.length) {
-    bits.push(`${geom.from_imagery.map(shortBlocker).join(", ")} from imagery`);
-  }
-  if (geom.breaks_from_imagery && geom.breaks_from_imagery.length) {
-    bits.push("break positions from imagery");
-  }
-  if (!bits.length) return "";
-  let line = `geometry modelled from ${bits.join("; ")}`;
-  if (geom.unverified && geom.unverified.length) {
-    line += `. ESTIMATED: ${geom.unverified.map(shortBlocker).join(", ")}`;
-  }
-  return period(line);
 }
 
 function compass(deg) {
@@ -728,7 +696,7 @@ function rankByEnergy(cards) {
 
 // One break's tab. What used to be its own card, less the title, which is on
 // the tab now.
-function breakPanel(c, prov) {
+function breakPanel(c) {
   const taken = (c.takenBy || []).map((tb) => `
     <div class="row">
       <span class="seg${tb.blocker === AWAY ? " horizon" : (tb.verified ? "" : " guess")}"></span>
@@ -740,13 +708,16 @@ function breakPanel(c, prov) {
 
   const senseText = sense(c.windOffshore);
 
-  // The energy through the window LEADS, untitled, in the buoy tab's own shape: the value
-  // line there says "combined", here "in window", so flipping between a break
-  // and the buoy compares one number with the number it was derived from.
-  // The buoy's figure sits beneath it in the provenance style because that is
-  // what it is -- where the number above came from -- and it is the same
-  // spectrum on either chain: the forecast's is GFS-Wave AT 46232.
-  // The windows follow as the fixed geometry the energy is a consequence of.
+  // The energy through the window LEADS, untitled, in the buoy tab's own
+  // shape: the value line there says "combined", here "in window", and the
+  // trains beneath it are listed the same way, so flipping between a break and
+  // the buoy compares like with like. The buoy's figure sits under the value
+  // in the provenance style because that is what it is -- where the number
+  // above came from -- and it is the same spectrum on either chain: the
+  // forecast's is GFS-Wave AT 46232.
+  //
+  // The rule splits the reading from the geometry. The windows' own chart
+  // provenance is on geometry.html, vertex by vertex, one tap away.
   return `
     <div>
       <span class="val">${c.hsWindow != null
@@ -757,29 +728,26 @@ function breakPanel(c, prov) {
         : ""}
     </div>
 
-    <div>
-      <div class="lbl">swell windows</div>
-      ${windowList(c.swellWindow)}
-      ${prov ? `<div class="prov">${prov}</div>` : ""}
-    </div>
-
-    ${c.trains && c.trains.length ? `
-    <div>
-      <div class="lbl">swell reaching here</div>
-      ${trainList(c.trains, {limit: 3})}
-    </div>` : `
+    ${c.trains && c.trains.length ? trainList(c.trains) : `
     <div class="quiet">
       peak <b>${c.period ? c.period.toFixed(1) + " s" : "—"}</b>
       from <b>${compass(c.direction)}</b>
     </div>`}
 
+    ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
+      c.windNote ? ` <span class="est">&mdash; ${c.windNote}</span>` : ""}</div>` : ""}
+
+    <hr>
+
+    <div>
+      <div class="lbl">swell windows</div>
+      ${windowList(c.swellWindow)}
+    </div>
+
     <div>
       <div class="lbl">taking the swell</div>
       <div class="rows">${taken || '<div class="quiet">nothing blocked</div>'}</div>
-    </div>
-
-    ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
-      c.windNote ? ` <span class="est">&mdash; ${c.windNote}</span>` : ""}</div>` : ""}`;
+    </div>`;
 }
 
 // The buoy's tab: the offshore spectrum itself, before any aperture.
@@ -802,9 +770,9 @@ function buoyPanel(buoy) {
 // stale reading has to be marked whichever tab is open. Tucked into the
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
-function swellCard({label, buoy, station, cards, prov, source, due = ""}) {
+function swellCard({label, buoy, station, cards, source, due = ""}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
-    id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c, prov),
+    id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c),
   }));
   tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy", body: buoyPanel(buoy)});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
@@ -862,7 +830,7 @@ function wireSwellTabs() {
   });
 }
 
-function renderConditions(index, cards, prov) {
+function renderConditions(index, cards) {
   const rows = [];
 
   if (MODE === "now") {
@@ -885,7 +853,7 @@ function renderConditions(index, cards, prov) {
       label: "Swell",
       buoy,
       station: NOW && NOW.station,
-      cards, prov,
+      cards,
       source: NOW && NOW.station_name
         ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${observedAt(NOW.observed_utc)}`
         : "",
@@ -929,7 +897,7 @@ function renderConditions(index, cards, prov) {
       label: "Swell",
       buoy,
       station: DATA.station,
-      cards, prov,
+      cards,
       source: buoy
         ? `GFS-Wave at ${DATA.station_name} (NDBC ${DATA.station}) for ${stampWhen}`
           + ` &mdash; forecast, not a measurement`
@@ -970,13 +938,7 @@ function renderConditions(index, cards, prov) {
 
 function renderBreaks(index) {
   const cards = MODE === "now" ? cardsForNow() : cardsForForecast(index);
-  // One blocker set serves all three breaks, so the provenance is computed
-  // once per render rather than per tab. It comes from whichever file is on
-  // screen: the two chains carry the same geometry, and reading it from the
-  // other one would be the cross-tab leak the Now/Forecast split exists to
-  // prevent.
-  const prov = provenanceLine((MODE === "now" ? NOW : DATA).geometry);
-  renderConditions(index, cards, prov);
+  renderConditions(index, cards);
 }
 
 function show() {
