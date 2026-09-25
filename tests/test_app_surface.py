@@ -106,7 +106,7 @@ class TestTheWindowsLeadTheCard:
             assert hardcoded not in SOURCE.lower()
 
     def test_the_windows_come_before_the_energy_on_the_card(self):
-        card = SOURCE[SOURCE.index('<article class="card">'):]
+        card = SOURCE[SOURCE.index("function breakPanel"):]
         assert card.index("windowList") < card.index("window energy")
 
     def test_a_window_carries_its_span_not_just_its_edges(self):
@@ -186,8 +186,19 @@ class TestTheSeekBar:
 
 
 class TestWindAndTideAreHoisted:
-    def test_they_render_above_the_breaks_not_inside_each_card(self):
-        assert SOURCE.index('id="conditions"') < SOURCE.index('id="breaks"')
+    def test_they_are_cards_of_their_own_not_inside_a_break_tab(self):
+        """The breaks are tabs of the swell card now, so wind and tide sit
+        beside that card rather than above three. What the rule is for is
+        unchanged: one station feeds all three breaks, so its reading is never
+        repeated inside a break's tab."""
+
+        panel = SOURCE[SOURCE.index("function breakPanel"):SOURCE.index("function buoyPanel")]
+        for reading in ("wind.from_deg", "wind.speed_kt", "tide.height_m", ">Wind<", ">Tide<"):
+            assert reading not in panel, reading
+        block = SOURCE[SOURCE.index("function renderConditions"):]
+        swell = block.index("rows.push(swellCard({")
+        assert swell < block.index('<span class="lbl">Wind</span>')
+        assert swell < block.index('<span class="lbl">Tide</span>')
 
     def test_each_carries_its_source_underneath(self):
         assert "station_name" in SOURCE and "tide_station_name" in SOURCE
@@ -349,7 +360,8 @@ class TestTheSourceLine:
         """Forecast only. On the observed side the provenance moved up onto
         the swell card, so there is nothing left to say down here."""
 
-        assert SOURCE.index('id="breaks"') < SOURCE.index('id="cycle"')
+        assert SOURCE.index('id="conditions"') < SOURCE.index('id="cycle"')
+        assert 'id="breaks"' not in SOURCE
         assert "Latest data from the" in TEXT
         assert '$("cycle").innerHTML = "";' in SOURCE
         assert "Latest data from the" in TEXT
@@ -439,8 +451,8 @@ class TestWaveTrainsOnScreen:
         """Same .cond card in the same strip, not a dashed aside."""
 
         swell = SOURCE.index('label: "Swell"')
-        assert SOURCE.count('class="cond"') >= 3
-        assert SOURCE.rindex('<div class="cond">', 0, swell) > 0
+        assert SOURCE.count('class="cond"') >= 2
+        assert SOURCE.rindex('<div class="cond swell">', 0, swell) > 0
 
     def test_the_footer_does_not_describe_the_forecast_on_the_observed_tab(self):
         """Printing a model's build time and spread under a measurement would
@@ -472,6 +484,90 @@ class TestTheSwellCardIsOnBothTabs:
 
     def test_a_cycle_without_a_spectrum_says_why_there_are_no_trains(self):
         assert "spectral product was unavailable" in TEXT
+
+
+class TestTheBreaksAreTabsOfTheSwellCard:
+    """One Swell card: a tab per break, ranked by window energy, and the buoy
+    always last. The ranking is the page's claim -- which break holds more of
+    the swell -- stated before a number is read."""
+
+    RANK_CASES = [
+        # (window energies north, center, south) -> expected tab order
+        ((0.683, 0.750, 0.822), ["coronado_south", "coronado_center", "coronado_north"]),
+        ((0.90, 0.40, 0.60), ["coronado_north", "coronado_south", "coronado_center"]),
+        # A tie falls back to north-to-south, never to file order.
+        ((0.50, 0.50, 0.50), ["coronado_north", "coronado_center", "coronado_south"]),
+        # A missing number is not ranked above a real one, even a zero.
+        ((None, 0.0, 0.30), ["coronado_south", "coronado_center", "coronado_north"]),
+    ]
+
+    def test_breaks_are_ranked_by_window_energy(self):
+        """Ran in node: the comparator's handling of ties and missing numbers
+        is arithmetic, and a grep cannot tell a correct sort from a wrong one.
+        The cards are fed in south-to-north order so a sort that fell back to
+        input order on a tie would fail the tie case."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+
+        order = SOURCE[SOURCE.index("const ORDER ="):]
+        order = order[:order.index("\n") + 1]
+        start = SOURCE.index("function rankByEnergy(cards) {")
+        body = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        ids = ["coronado_north", "coronado_center", "coronado_south"]
+        lines = []
+        for energies, _ in self.RANK_CASES:
+            cards = [{"id": i, "hsWindow": e} for i, e in zip(ids, energies)][::-1]
+            lines.append(f"console.log(JSON.stringify(rankByEnergy({json.dumps(cards)})"
+                         ".map((c) => c.id)));")
+        out = subprocess.run([node, "-e", order + body + "\n" + "\n".join(lines)],
+                             capture_output=True, text=True, check=True).stdout
+        got = [json.loads(line) for line in out.splitlines() if line.strip()]
+        assert got == [want for _, want in self.RANK_CASES]
+
+    def test_the_buoy_tab_is_always_last(self):
+        card = SOURCE[SOURCE.index("function swellCard"):]
+        card = card[:card.index("\n}\n")]
+        assert card.index("rankByEnergy(cards") < card.index("tabs.push({id: BUOY_TAB")
+
+    def test_the_buoy_tab_is_titled_from_the_file_not_typed(self):
+        assert "`Buoy ${station}`" in SOURCE
+        assert "station: NOW && NOW.station" in SOURCE
+        assert "station: DATA.station" in SOURCE
+        assert "Buoy 46232" not in SOURCE
+
+    def test_the_break_tabs_carry_the_break_names(self):
+        assert 'SHORT = {coronado_north: "North", coronado_center: "Center", coronado_south: "South"}' in SOURCE
+        assert "title: SHORT[c.id] || c.name" in SOURCE
+
+    def test_the_provenance_and_countdown_show_whichever_tab_is_open(self):
+        """Every tab is the one spectrum, through an aperture or not. Inside
+        the buoy's tab an overdue reading would sit behind three tabs of
+        window energy derived from it with no mark on any of them."""
+
+        card = SOURCE[SOURCE.index("function swellCard"):]
+        card = card[:card.index("\n}\n")]
+        assert card.rindex('class="pane"') < card.index('<span class="src">${period(source)}${due}')
+        panel = SOURCE[SOURCE.index("function buoyPanel"):]
+        panel = panel[:panel.index("\n}\n")]
+        assert 'class="src"' not in panel and "dueSpan" not in panel
+
+    def test_it_is_a_real_tablist(self):
+        assert 'class="subtabs" role="tablist"' in SOURCE
+        assert 'role="tab" id="swell-tab-${tab.id}"' in SOURCE
+        assert 'role="tabpanel" id="swell-pane-${tab.id}"' in SOURCE
+        assert 'aria-controls="swell-pane-${tab.id}"' in SOURCE
+        assert '"ArrowRight"' in SOURCE and '"ArrowLeft"' in SOURCE
+
+    def test_the_readers_choice_survives_a_re_render(self):
+        """The minute tick and the seek bar rebuild the card. A choice held by
+        id survives that and a re-ranking; with no choice made, the card opens
+        on the leader of the moment on screen."""
+
+        assert "let SWELL_TAB = null" in SOURCE
+        assert "tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id" in SOURCE
+        assert "SWELL_TAB = id" in SOURCE
 
 
 class TestTheProvenanceLines:
