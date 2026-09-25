@@ -199,7 +199,7 @@ class TestTheBundleIsServable:
     def test_every_file_pages_needs_is_present(self, tmp_path):
         written = publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
         assert set(written) == {"index.html", "forecast.json", ".nojekyll", "README.md",
-                                "geometry.html"}
+                                "geometry.html", "info.html"}
         for name in written:
             assert (tmp_path / "site" / name).exists()
 
@@ -359,10 +359,10 @@ class TestGeometryPage:
         publish.build_now_only(tmp_path / "now", data_dir=data)
         assert (tmp_path / "now" / "geometry.html").exists()
 
-    def test_the_live_page_links_to_it_outside_the_rewritten_footer(self):
+    def test_the_live_page_links_to_it_below_the_cards(self):
         assert 'href="geometry.html"' in PAGE_SOURCE
-        foot = PAGE_SOURCE.index('<footer id="foot"></footer>')
-        assert PAGE_SOURCE.index('href="geometry.html"') > foot
+        cards = PAGE_SOURCE.index('id="conditions"')
+        assert PAGE_SOURCE.index('href="geometry.html"') > cards
 
     def test_it_links_back(self):
         assert 'href="./"' in (PAGE.parent / "geometry.html").read_text()

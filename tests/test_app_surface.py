@@ -4,6 +4,11 @@ CLAUDE.md: "Until a verification series exists, the output is *physically
 derived*, never *accurate*. That distinction belongs in the UI, not only the
 README." A README can be honest while the screen quietly is not, so the screen
 gets its own test.
+
+The caveat, the cycle line, each chain's standing-on block and its footnote
+live on `app/info.html`, linked from the foot of the main page, so the rules
+that govern them are pinned there (`INFO`) and the vocabulary rule is pinned on
+both pages.
 """
 
 from __future__ import annotations
@@ -20,6 +25,9 @@ import pytest
 APP = Path(__file__).resolve().parent.parent / "app" / "forecast.html"
 SOURCE = APP.read_text(encoding="utf-8")
 TEXT = re.sub(r"\s+", " ", SOURCE)
+INFO_PAGE = APP.parent / "info.html"
+INFO = INFO_PAGE.read_text(encoding="utf-8")
+INFO_TEXT = re.sub(r"\s+", " ", INFO)
 
 
 class TestItSaysWhatItIsStandingOn:
@@ -29,22 +37,36 @@ class TestItSaysWhatItIsStandingOn:
         keys the file carries. That the keys are the right ones is pinned on
         the data side, in test_live and test_now."""
 
-        assert "Object.keys(standing" in SOURCE
+        assert "Object.keys(standing" in INFO
 
     def test_a_none_value_is_marked_rather_than_rendered_flat(self):
         """'calibration: none' and 'observation at the beach: none' are the
         two lines that matter most, so they are not allowed to read as
         ordinary prose."""
 
-        assert '/^none/i.test(value)' in SOURCE
-        assert '.none{' in SOURCE
+        assert '/^none/i.test(value)' in INFO
+        assert '.none{' in INFO
 
     def test_the_page_states_nothing_has_measured_these_breaks(self):
-        assert "Nothing has ever measured a wave at these three breaks" in TEXT
+        assert "Nothing has ever measured a wave at these three breaks" in INFO_TEXT
 
     def test_the_page_says_physically_derived_and_not_accurate(self):
-        assert "physically derived" in TEXT
-        assert "not an accurate forecast" in TEXT
+        assert "physically derived" in INFO_TEXT
+        assert "not an accurate forecast" in INFO_TEXT
+
+    def test_the_main_page_links_to_where_that_is_said(self):
+        """Moved one tap away, so the tap has to be there: Info, directly
+        beneath Geometry, outside anything a render rewrites."""
+
+        links = SOURCE[SOURCE.index('<nav class="links"'):]
+        links = links[:links.index("</nav>")]
+        assert '<a href="geometry.html">Geometry</a>' in links
+        assert '<a href="info.html">Info</a>' in links
+        assert links.index('href="geometry.html"') < links.index('href="info.html"')
+        assert SOURCE.index('id="conditions"') < SOURCE.index('<nav class="links"')
+
+    def test_info_links_back(self):
+        assert 'href="./"' in INFO
 
     def test_the_page_refuses_the_words_a_verified_forecast_would_use(self):
         """No accuracy figure may appear without naming a verification series,
@@ -53,15 +75,16 @@ class TestItSaysWhatItIsStandingOn:
 
         banned = ("RMSE", "accuracy", "within a foot", "confidence interval",
                   "error bar of", "% accurate")
-        lowered = TEXT.lower()
-        for word in banned:
-            assert word.lower() not in lowered, f"app surface claims {word!r}"
+        for page in (TEXT, INFO_TEXT):
+            lowered = page.lower()
+            for word in banned:
+                assert word.lower() not in lowered, f"app surface claims {word!r}"
 
     def test_it_says_the_number_is_not_a_wave_height_at_the_beach(self):
-        assert "not a wave height" in TEXT and "at the beach" in TEXT
+        assert "not a wave height" in INFO_TEXT and "at the beach" in INFO_TEXT
 
     def test_it_names_the_missing_shoaling_and_refraction(self):
-        assert "no shoaling" in TEXT and "no refraction" in TEXT
+        assert "no shoaling" in INFO_TEXT and "no refraction" in INFO_TEXT
 
 
 class TestScope:
@@ -157,8 +180,8 @@ class TestTheGeometryProvenance:
         assert 'provenanceLine((MODE === "now" ? NOW : DATA).geometry)' in SOURCE
 
     def test_the_assumed_spread_is_shown_rather_than_hidden(self):
-        assert "spread_assumption" in SOURCE
-        assert "Directional spread is assumed" in TEXT
+        assert "spread_assumption" in INFO
+        assert "Directional spread is assumed" in INFO_TEXT
 
 
 class TestTheSeekBar:
@@ -243,8 +266,29 @@ class TestTheTwoChains:
         assert 'role="tablist"' in SOURCE
 
     def test_it_opens_on_now(self):
+        """On a fresh visit. Only a value the page itself stored can open it
+        on Forecast; anything else in storage opens on Now."""
+
         assert 'setMode("now")' in SOURCE
         assert "Opens on Now" in SOURCE
+        assert 'setMode(recall(KEEP.mode) === "forecast" ? "forecast" : "now")' in SOURCE
+
+    def test_the_tab_choices_survive_a_refresh_but_not_a_new_visit(self):
+        """sessionStorage, not localStorage: a reload keeps the reader where
+        they were, and a new visit still opens on Now."""
+
+        assert "remember(KEEP.mode, mode)" in SOURCE
+        assert "remember(KEEP.swell, id)" in SOURCE
+        assert "SWELL_TAB = recall(KEEP.swell)" in SOURCE
+        assert "localStorage." not in SOURCE
+
+    def test_storage_that_throws_does_not_break_the_page(self):
+        """Private modes and blocked site data throw on the accessor itself."""
+
+        for fn in ("function recall", "function remember"):
+            body = SOURCE[SOURCE.index(fn):]
+            body = body[:body.index("\n}\n")]
+            assert "try {" in body and "sessionStorage" in body
 
     def test_the_hour_picker_belongs_to_the_forecast_only(self):
         assert '$("seek").hidden = !forecasting' in SOURCE
@@ -252,11 +296,14 @@ class TestTheTwoChains:
     def test_each_chain_has_its_own_standing_on_block(self):
         """Rendered from whatever keys the file carries, because the two name
         different things — the Now side has no 'model' row and the Forecast
-        side has no 'waves observed' row."""
+        side has no 'waves observed' row. On info.html both are shown, each
+        under its own heading and each from its own file."""
 
-        assert "Object.keys(standing" in SOURCE
-        assert "renderStanding(NOW.standing_on" in SOURCE
-        assert "renderStanding(DATA.standing_on" in SOURCE
+        assert "Object.keys(standing" in INFO
+        assert 'renderStanding($("standing-now"), NOW.standing_on' in INFO
+        assert 'renderStanding($("standing-forecast"), DATA.standing_on' in INFO
+        assert "What Now is standing on" in INFO
+        assert "What Forecast is standing on" in INFO
 
     def test_now_labels_its_inputs_as_measurements(self):
         """The card titles are bare quantities, so the word that says these
@@ -308,8 +355,8 @@ class TestTheTwoChains:
         """The spectral path assumes no spread, and printing 'assumed at
         undefined' is worse than saying nothing."""
 
-        assert "spread.swell_deg != null" in SOURCE
-        assert "no spread is assumed" in TEXT
+        assert "spread.swell_deg != null" in INFO
+        assert "no spread is assumed" in INFO_TEXT
 
 
 class TestUnits:
@@ -356,19 +403,18 @@ class TestTheSourceLine:
     def test_the_page_has_no_title_heading(self):
         assert "<h1>" not in SOURCE
 
-    def test_the_cycle_line_explains_itself_and_sits_below_the_breaks(self):
-        """Forecast only. On the observed side the provenance moved up onto
-        the swell card, so there is nothing left to say down here."""
+    def test_the_cycle_line_explains_itself_and_sits_with_the_forecast(self):
+        """Forecast only, on info.html inside the Forecast block. On the
+        observed side the provenance is on the swell card."""
 
-        assert SOURCE.index('id="conditions"') < SOURCE.index('id="cycle"')
-        assert 'id="breaks"' not in SOURCE
-        assert "Latest data from the" in TEXT
-        assert '$("cycle").innerHTML = "";' in SOURCE
-        assert "Latest data from the" in TEXT
-        assert "model run of" in TEXT and "offshore buoy" in TEXT
+        assert 'id="cycle"' not in SOURCE and 'id="breaks"' not in SOURCE
+        forecast = INFO.index("What Forecast is standing on")
+        assert INFO.index('id="cycle"') > forecast
+        assert "Latest data from the" in INFO_TEXT
+        assert "model run of" in INFO_TEXT and "offshore buoy" in INFO_TEXT
 
     def test_it_names_the_buoy_rather_than_only_its_number(self):
-        assert "DATA.station_name" in SOURCE and "NDBC ${DATA.station}" in SOURCE
+        assert "DATA.station_name" in INFO and "NDBC ${DATA.station}" in INFO
         assert "NOW.station_name" in SOURCE and "NDBC ${NOW.station}" in SOURCE
 
 
@@ -458,9 +504,10 @@ class TestWaveTrainsOnScreen:
         """Printing a model's build time and spread under a measurement would
         attribute the model's properties to the observation."""
 
-        assert "function renderFooter" in SOURCE
-        assert 'if (MODE === "now")' in SOURCE
-        assert "nothing here is measured at the sand" in TEXT
+        now = INFO[INFO.index("function renderNow"):]
+        now = now[:now.index("\n}\n")]
+        assert "nothing here is measured at the sand" in re.sub(r"\s+", " ", now)
+        assert "DATA" not in now and "spread_assumption" not in now
 
 
 class TestTheSwellCardIsOnBothTabs:

@@ -1,0 +1,208 @@
+<title>Nado Waves — Info</title>
+<meta name="description" content="What the Coronado swell aperture is standing on, and what it does not claim. Not a verified forecast.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Tokens are app/forecast.html's, so the pages read as one product. */
+:root{
+  --paper:#EAEEEC; --card:#F6F8F7; --ink:#16232B; --soft:#53656E; --faint:#7C8C93;
+  --line:#CBD5D1; --line-strong:#AFBDB8;
+  --surf:#1565C0; --surf-ink:#FFFFFF; --surf-wash:#DCE7F7;
+  --signal:#C62828; --signal-wash:#F9DEDE;
+  --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
+  --r:10px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+    --line:#283C46; --line-strong:#3A525E;
+    --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
+    --signal:#FF6B6B; --signal-wash:#3A1C1C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+  --line:#283C46; --line-strong:#3A525E;
+  --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
+  --signal:#FF6B6B; --signal-wash:#3A1C1C;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  background:var(--paper); color:var(--ink);
+  font:400 17px/1.5 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-text-size-adjust:100%; padding:0 16px 48px; margin:0;
+}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding-block:18px 0}
+h2{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:700;font-size:21px;
+   letter-spacing:.01em;margin:0}
+a{color:var(--surf)}
+.back{align-self:flex-start;font-size:14px;text-decoration:none;font-weight:500}
+.back:hover{text-decoration:underline}
+.back:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
+
+/* The caveat is part of the product, not a footnote. */
+.blind{font-size:13px;color:var(--soft);border-left:3px solid var(--signal);
+       padding:8px 0 8px 11px;margin:0;background:linear-gradient(90deg,var(--signal-wash),transparent 70%)}
+.blind b{color:var(--ink);font-weight:600}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+      padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:11px}
+.source{font-size:12.5px;color:var(--soft);margin:0}
+.source b{color:var(--ink);font-weight:600}
+
+.standing{display:grid;grid-template-columns:auto 1fr;gap:5px 11px;font-size:13.5px;margin:0}
+.standing dt{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
+             text-transform:uppercase;letter-spacing:.07em;color:var(--soft);font-size:13px}
+.standing dd{margin:0}
+.none{color:var(--signal);font-weight:600}
+
+.note{font-size:12.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:11px;margin:0}
+</style>
+
+<div class="wrap">
+  <!-- The main page's tail, moved here: the caveat, and each chain's
+       standing-on block with the footnote that belongs to it. Both chains
+       are shown, each under its own heading and each rendered only from its
+       own file, because the Now/Forecast split is about the reader always
+       knowing which chain a line belongs to. -->
+  <a class="back" href="./">&larr; Back to the forecast</a>
+
+  <p class="blind">
+    <b>Nothing has ever measured a wave at these three breaks.</b>
+    This is a <b>physically derived</b> aperture, not an accurate forecast, and
+    it carries no error bar because there is nothing to compute one against.
+    What it claims is <b>which break holds more of today's swell</b> — not how
+    big it is.
+  </p>
+
+  <p class="blind">
+    Window energy is the energy aimed at a break. It is <b>not a wave
+    height at the beach</b>: no shoaling, no refraction, no offshore-to-face transfer.
+  </p>
+
+  <section class="card">
+    <h2>What Now is standing on</h2>
+    <dl class="standing" id="standing-now"></dl>
+    <p class="note" id="foot-now">loading&hellip;</p>
+  </section>
+
+  <section class="card">
+    <h2>What Forecast is standing on</h2>
+    <p class="source" id="cycle">loading&hellip;</p>
+    <dl class="standing" id="standing-forecast"></dl>
+    <p class="note" id="foot-forecast"></p>
+  </section>
+</div>
+
+<script>
+// Same sources as app/forecast.html, and the same ?data= / ?now= overrides,
+// so forecast.publish repoints both pages the same way.
+const PARAM = new URLSearchParams(location.search);
+const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
+const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
+
+// The main page's cadences. Nothing here ages on the minute, but the cycle
+// line and the build time do move, and a page left open should follow them.
+const NOW_REFRESH_MS = 5 * 60 * 1000;
+const FORECAST_REFRESH_MS = 60 * 60 * 1000;
+
+const $ = (id) => document.getElementById(id);
+
+function when(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "long", month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit",
+  });
+}
+
+// The two chains stand on different things and name them in different words,
+// so the block is rendered from whatever keys the file carries rather than a
+// fixed list. "claim" is pinned last because it is the conclusion, and a value
+// beginning "none" is marked, because those are the lines that matter most.
+function renderStanding(el, standing) {
+  const keys = Object.keys(standing || {}).filter((k) => k !== "claim");
+  if (standing && standing.claim) keys.push("claim");
+  const label = (k) => k === "claim"
+    ? "What it claims"
+    : k.charAt(0).toUpperCase() + k.slice(1);
+  el.innerHTML = keys.map((key) => {
+    const value = standing[key] || "—";
+    const bare = /^none/i.test(value) ? ' class="none"' : "";
+    return `<dt>${label(key)}</dt><dd${bare}>${value}</dd>`;
+  }).join("");
+}
+
+// Each chain from its own file and nothing else: reading one block's text
+// from the other file would be the cross-chain leak the split exists to
+// prevent.
+function renderNow(NOW) {
+  if (!NOW || !NOW.breaks || !NOW.breaks.length) {
+    renderStanding($("standing-now"), (NOW && NOW.standing_on) || {});
+    $("foot-now").innerHTML = `<span class="none">No current observation.</span> `
+      + ((NOW && NOW.warnings && NOW.warnings.join(" ")) ||
+         "now.json could not be loaded.");
+    return;
+  }
+  renderStanding($("standing-now"), NOW.standing_on || {});
+  // Printing a model's build time and spread under a measurement would
+  // attribute the model's properties to the observation, so this note names
+  // the buoy and nothing else.
+  $("foot-now").innerHTML = `Observed at ${NOW.station_name} (NDBC ${NOW.station}),
+    a buoy 29 km offshore, and put through each break's aperture; nothing here
+    is measured at the sand.`;
+}
+
+function renderForecast(DATA) {
+  renderStanding($("standing-forecast"), DATA.standing_on || {});
+  $("cycle").innerHTML = DATA.cycle_utc
+    ? `Latest data from the <b>GFS-Wave</b> model run of `
+      + `<b>${when(DATA.cycle_utc)}</b>, for the offshore buoy `
+      + `<b>${DATA.station_name}</b> (NDBC ${DATA.station}).`
+    : "No GFS-Wave cycle was available, so there is nothing to show.";
+  const spread = DATA.spread_assumption || {};
+  const assumed = spread.swell_deg != null
+    ? `Directional spread is assumed at ${spread.swell_deg}° for swell and `
+      + `${spread.wind_sea_deg}° for wind sea — ${spread.note || ""}`
+    : `The forecast uses the model's own directional spectrum, so no spread is assumed.`;
+  $("foot-forecast").innerHTML = `${assumed} Forecast generated ${DATA.generated_utc}.`;
+}
+
+// Loaded independently: one chain's file failing says so in its own card and
+// leaves the other alone. A refresh that fails keeps what is on screen.
+let LOADED = {now: false, forecast: false};
+
+function loadNow() {
+  fetch(NOW_SOURCE, {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null)
+    .then((observed) => {
+      if (!observed && LOADED.now) return;
+      LOADED.now = LOADED.now || !!observed;
+      renderNow(observed);
+    });
+}
+
+function loadForecast() {
+  fetch(SOURCE, {cache: "no-store"})
+    .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then((data) => {
+      LOADED.forecast = true;
+      renderForecast(data);
+    })
+    .catch((err) => {
+      if (LOADED.forecast) return;
+      $("cycle").textContent = "Could not load " + SOURCE + " (" + err.message + "). Run "
+        + "`python -m forecast.live` to write it, and open this page over HTTP "
+        + "rather than from the filesystem.";
+    });
+}
+
+loadNow();
+loadForecast();
+setInterval(loadNow, NOW_REFRESH_MS);
+setInterval(loadForecast, FORECAST_REFRESH_MS);
+</script>
