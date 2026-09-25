@@ -452,7 +452,7 @@ class TestWaveTrainsOnScreen:
 
         swell = SOURCE.index('label: "Swell"')
         assert SOURCE.count('class="cond"') >= 2
-        assert SOURCE.rindex('<div class="cond swell">', 0, swell) > 0
+        assert SOURCE.rindex('<div class="cond swell"', 0, swell) > 0
 
     def test_the_footer_does_not_describe_the_forecast_on_the_observed_tab(self):
         """Printing a model's build time and spread under a measurement would
@@ -692,9 +692,82 @@ class TestThePageRefetchesWhatItShows:
         assert "if (!adoptForecast(data, null)) return;" in SOURCE
 
 
+class TestAnUpdateAnnouncesItself:
+    """A refresh that silently swapped the numbers would make the whole point
+    of collecting every ten minutes invisible."""
+
+    def test_every_card_carries_a_stable_key(self):
+        """Keyed rather than positional: the swell tabs re-rank by energy, so a
+        card can move in the strip without its contents changing."""
+
+        assert SOURCE.count('data-card="') == 5   # swell, then wind/tide on both tabs
+        assert 'data-card="swell"' in SOURCE
+
+    def test_the_flash_compares_either_side_of_the_same_render(self):
+        """The snapshot and the comparison must straddle one re-render. Across
+        any longer gap every card differs, because the age and the countdown
+        are always moving."""
+
+        start = SOURCE.index("function showAndFlash()")
+        body = SOURCE[start:SOURCE.index("\n}\n", start)]
+        assert body.index("cardText()") < body.index("show()") < body.index("flashChanged")
+
+    def test_clock_derived_text_is_excluded_from_the_comparison(self):
+        """Measured: without this the wind card flashed alongside the tide on a
+        refresh that only moved the tide. `show()` re-runs `tickDue`, so a
+        snapshot and a render either side of a second boundary disagree on the
+        countdown — and at a minute boundary, on the age.
+
+        Both are marked in the DOM rather than stripped by pattern, so the rule
+        survives the wording changing."""
+
+        assert 'const VOLATILE = "[data-due], .age"' in SOURCE
+        assert 'copy.querySelectorAll(VOLATILE).forEach((v) => v.remove())' in SOURCE
+        assert '<span class="age">${age}</span>' in SOURCE
+
+    def test_navigation_does_not_flash(self):
+        """Stepping the forecast to +48 h re-renders without a refresh. Only
+        the two refresh paths go through `showAndFlash`."""
+
+        assert SOURCE.count("showAndFlash()") == 3          # the definition, and two callers
+        for nav in ('$("earlier").onclick', '$("later").onclick', '$("when").onchange'):
+            start = SOURCE.index(nav)
+            assert "showAndFlash" not in SOURCE[start:start + 200], f"{nav} flashes"
+
+    def test_the_flash_settles_back_rather_than_ending_on_a_literal(self):
+        """Animating to a fixed colour would be wrong in one of the two themes.
+        Each keyframe sets only `from`, so the card returns to whatever it
+        rests at."""
+
+        assert "@keyframes freshen" in SOURCE
+        assert "from { border-color: var(--surf); background: var(--surf-wash); }" in SOURCE
+        assert "from { color: var(--surf); }" in SOURCE
+        assert ".cond.fresh .val, .cond.fresh .src" in SOURCE
+
+    def test_an_update_is_worth_noticing_not_enduring(self):
+        assert "prefers-reduced-motion: reduce" in SOURCE
+        start = SOURCE.index("prefers-reduced-motion: reduce")
+        assert "animation: none" in SOURCE[start:start + 200]
+
+
 class TestTheUpdateCountdown:
     """"Next update expected in h:mm:ss" is a claim about ARRIVAL, and a claim
     that can be wrong needs to be able to say so on screen."""
+
+    def test_the_countdown_targets_when_it_will_be_DISPLAYED(self):
+        """`next_expected` is when a newer reading should be in now.json. The
+        reader sees nothing until the page refetches, so the last leg is added
+        on the page, where it is known. Without it the countdown reached zero
+        while the file was already fresh and the screen had not caught up —
+        the page reporting its own latency as the source being late."""
+
+        assert "new Date(at + NOW_REFRESH_MS).toISOString()" in SOURCE
+
+    def test_the_refresh_interval_is_declared_before_the_countdown_uses_it(self):
+        """`dueSpan` reads NOW_REFRESH_MS. A `const` used above its own line is
+        a ReferenceError waiting for the first caller that moves."""
+
+        assert SOURCE.index("const NOW_REFRESH_MS") < SOURCE.index("function dueSpan")
 
     def test_the_deadline_is_published_absolute_and_counted_down_here(self):
         """BRIEFING §18: a now-relative number frozen into a static file is

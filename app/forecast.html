@@ -70,6 +70,25 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tabs button[aria-selected="true"]{background:var(--surf);color:var(--surf-ink)}
 .tabs button:focus-visible{outline:2px solid var(--surf);outline-offset:2px}
 
+/* A card whose contents just changed on a refresh.
+   The border and a wash carry the card; the value and the provenance line
+   brighten with them, so the eye lands on what moved rather than on the box.
+   Both settle back to the resting colour rather than to a literal, so the
+   animation is correct in either theme without being written twice. */
+@keyframes freshen {
+  from { border-color: var(--surf); background: var(--surf-wash); }
+}
+@keyframes freshen-ink {
+  from { color: var(--surf); }
+}
+.cond.fresh { animation: freshen 1.8s ease-out; }
+.cond.fresh .val, .cond.fresh .src { animation: freshen-ink 1.8s ease-out; }
+
+/* An update is worth noticing, not worth enduring. */
+@media (prefers-reduced-motion: reduce) {
+  .cond.fresh, .cond.fresh .val, .cond.fresh .src { animation: none; }
+}
+
 /* "Update in m:ss" at the end of a provenance line. Muted
    while it counts down; the signal colour once the update it promised has not
    arrived, beside the reading it qualifies rather than in a banner over all
@@ -485,7 +504,11 @@ function turnClock(iso, fromIso) {
 function observedAt(iso) {
   if (!iso) return "";
   const age = ago(ageHours(iso));
-  return when(iso) + (age ? ` &mdash; ${age}` : "");
+  // The age is wrapped because it is derived from the READER's clock rather
+  // than from the payload, which makes it volatile between two renders that
+  // straddle a minute. `cardText` strips everything so marked before comparing,
+  // so a card is never flashed for a string that was only ever going to change.
+  return when(iso) + (age ? ` &mdash; <span class="age">${age}</span>` : "");
 }
 
 // The build's flag is a floor, never a ceiling: an open page can age a reading
@@ -520,6 +543,22 @@ function hms(ms) {
   return `${m}:${pad2(s)}`;
 }
 
+// How often the page refetches each payload.
+//
+// Declared here rather than beside the refresh functions because `dueSpan`,
+// just below, adds NOW_REFRESH_MS to every countdown -- a `const` used before
+// its own line is a ReferenceError waiting for the first caller that moves.
+//
+// now.json is ~6 KB and changes every collection; forecast.json is ~128 KB and
+// changes four times a day, so refetching them together would be twenty times
+// the bytes for nothing, on a phone at the beach.
+//
+// NOW_REFRESH_MS must not be slower than collection or the page becomes the
+// bottleneck rather than the trigger. A test pins it against
+// COLLECT_INTERVAL_MIN.
+const NOW_REFRESH_MS = 5 * 60 * 1000;
+const FORECAST_REFRESH_MS = 60 * 60 * 1000;
+
 // "Update in m:ss", and "Overdue by m:ss" once the update has not come.
 //
 // The instant comes from now.json's `next_expected`, one per card, and the
@@ -536,9 +575,26 @@ function hms(ms) {
 //
 // Rendered empty and filled by `tickDue`, so one second's tick rewrites three
 // short strings instead of re-rendering every card.
+//
+// It counts to DISPLAYED, not to collected. `next_expected` in now.json is
+// when a newer reading should be in the FILE -- it is computed from the
+// source's own cadence and the collector's, and it cannot know about this
+// page. The reader sees nothing until the page refetches, so the last leg is
+// added here, where it is known.
+//
+//     next_expected  (source + collection, from now.py)
+//   + NOW_REFRESH_MS (this page's own leg)
+//   = when the reader should be looking at something newer
+//
+// Without that last term the countdown reached zero while the file was
+// already fresh and the screen simply had not caught up -- reporting the
+// page's own latency as the source being late.
 function dueSpan(iso, {forceOver = false} = {}) {
   if (!iso) return "";
-  return ` <span class="due" data-due="${iso}"`
+  const at = new Date(iso).getTime();
+  if (!Number.isFinite(at)) return "";
+  const shown = new Date(at + NOW_REFRESH_MS).toISOString().replace(/\.\d+Z$/, "Z");
+  return ` <span class="due" data-due="${shown}"`
     + (forceOver ? ' data-force-over="1"' : "") + "></span>";
 }
 
@@ -735,7 +791,7 @@ function swellCard({label, buoy, station, cards, prov, source, due = ""}) {
   tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy", body: buoyPanel(buoy)});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
 
-  return `<div class="cond swell">
+  return `<div class="cond swell" data-card="swell">
     <span class="lbl">${label}</span>
     <div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoy">
       ${tabs.map((tab) => `<button type="button" role="tab" id="swell-tab-${tab.id}"
@@ -816,7 +872,7 @@ function renderConditions(index, cards, prov) {
       due: dueSpan(due.swell, {forceOver: nowIsStale()}),
     }));
 
-    rows.push(`<div class="cond">
+    rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
       <span class="val">${wind.from_deg != null
         ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
@@ -828,7 +884,7 @@ function renderConditions(index, cards, prov) {
     </div>`);
     // The turn is asked for against the READER's clock, not the build's, so
     // it keeps being the next turn as turns pass beneath an open page.
-    rows.push(`<div class="cond">
+    rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
       <span class="val">${tide.height_m != null
         ? height(tide.height_m)
@@ -860,7 +916,7 @@ function renderConditions(index, cards, prov) {
         : `the spectral product was unavailable for this cycle, so there are no trains`,
     }));
 
-    rows.push(`<div class="cond">
+    rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
       <span class="val">${modelled
         ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
@@ -873,7 +929,7 @@ function renderConditions(index, cards, prov) {
           ? `${wind.station_name} (${wind.station}), observed ${observedAt(wind.observed_utc)}`
           : (wind.note || ""))}</span>
     </div>`);
-    rows.push(`<div class="cond">
+    rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
       <span class="val">${tide.height_m != null
         ? height(tide.height_m)
@@ -1004,6 +1060,61 @@ function setMode(mode) {
   show();
 }
 
+// What each card currently reads, keyed by `data-card`.
+//
+// Keyed rather than positional because the swell tabs re-rank by energy and a
+// card can move in the strip without its contents changing.
+// Everything on the page that is derived from the reader's clock rather than
+// from the payload. These change on their own schedule, so comparing them
+// would flash cards that had not changed.
+//
+// Measured: without this, the wind card flashed alongside the tide on a
+// refresh that only moved the tide. `show()` re-runs `tickDue`, so a snapshot
+// and a render either side of a second boundary disagree on the countdown --
+// and at a minute boundary, on the age. Both are marked in the DOM rather than
+// stripped by pattern, so the rule stays true as the wording changes.
+const VOLATILE = "[data-due], .age";
+
+function cardText() {
+  const out = new Map();
+  document.querySelectorAll("[data-card]").forEach((el) => {
+    const copy = el.cloneNode(true);
+    copy.querySelectorAll(VOLATILE).forEach((v) => v.remove());
+    out.set(el.getAttribute("data-card"),
+            copy.textContent.replace(/\s+/g, " ").trim());
+  });
+  return out;
+}
+
+// Flash the cards whose rendered text changed across a refresh.
+//
+// The snapshot and the comparison sit either side of the SAME re-render,
+// milliseconds apart, which is what makes this work: the clock-derived parts --
+// "4 min ago", "Update in 4:59" -- read identically across that gap, so only
+// real new data differs. Comparing across any longer interval would flash every
+// card every time, because those two strings are always changing.
+//
+// It follows that navigation never flashes. Stepping the forecast to +48 h
+// re-renders without a refresh, and nothing here runs.
+function flashChanged(before) {
+  const after = cardText();
+  document.querySelectorAll("[data-card]").forEach((el) => {
+    const key = el.getAttribute("data-card");
+    const was = before.get(key), now = after.get(key);
+    if (was === undefined || was === now) return;
+    el.classList.remove("fresh");
+    void el.offsetWidth;   // reflow, so a flash still mid-flight restarts
+    el.classList.add("fresh");
+  });
+}
+
+// Re-render and flash whatever that changed, as one move.
+function showAndFlash() {
+  const before = cardText();
+  show();
+  flashChanged(before);
+}
+
 // REFRESH.
 //
 // The page fetched both payloads once, at load, and never again. The minute
@@ -1017,11 +1128,8 @@ function setMode(mode) {
 // forecast.json is ~128 KB and changes four times a day, so refetching it as
 // often would be twenty times the bytes for nothing.
 //
-// NOW_REFRESH_MS must not be slower than collection or the page becomes the
-// bottleneck rather than the trigger. A test pins it against
-// COLLECT_INTERVAL_MIN.
-const NOW_REFRESH_MS = 5 * 60 * 1000;
-const FORECAST_REFRESH_MS = 60 * 60 * 1000;
+// The two intervals themselves are declared far above, beside the countdown
+// that has to add NOW_REFRESH_MS to what now.json publishes.
 
 // Both keep what is on screen when a fetch fails or returns something
 // unusable. Blanking the page because one request lost would be worse than
@@ -1034,7 +1142,7 @@ function refreshNow() {
       if (!observed || !observed.generated_utc) return;
       if (NOW && observed.generated_utc === NOW.generated_utc) return;
       NOW = observed;
-      if (MODE === "now") show();
+      if (MODE === "now") showAndFlash();
     })
     .catch(() => {});
 }
@@ -1046,7 +1154,7 @@ function refreshForecast() {
       if (!data || !data.breaks || !data.generated_utc) return;
       if (DATA && data.generated_utc === DATA.generated_utc) return;
       if (!adoptForecast(data, currentHour())) return;
-      if (MODE === "forecast") show();
+      if (MODE === "forecast") showAndFlash();
       renderFooter();
     })
     .catch(() => {});
