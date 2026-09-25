@@ -1090,12 +1090,49 @@ function showAndFlash() {
 // The two intervals themselves are declared far above, beside the countdown
 // that has to add NOW_REFRESH_MS to what now.json publishes.
 
+// A unique URL per fetch, because `no-store` alone is not enough against a
+// shared cache.
+//
+// GitHub Pages serves every file through Fastly with **`Cache-Control:
+// max-age=600`**, and Pages gives you no way to change it -- there is no
+// header configuration, so this cannot be fixed on the publishing side.
+// Measured on the live bundle 2026-09-25T15:48:58Z:
+//
+//     Cache-Control: max-age=600
+//     Age: 0            x-cache: MISS      x-cache-hits: 0
+//     Last-Modified: Fri, 25 Sep 2026 15:45:44 GMT
+//     Via: 1.1 varnish  x-served-by: cache-bur-kbur8200041-BUR
+//
+// Ten minutes of permitted staleness against a ten-minute collection cadence:
+// a cache HIT inside that window can serve a reader a now.json one whole
+// collection behind, and its own age line would then be honest about a reading
+// that was already superseded.
+//
+// That sample was a MISS with Age 0, so it came from origin and was NOT stale
+// -- `cache: "no-store"` reached the CDN as `Cache-Control: no-cache` and was
+// honoured. The mechanism is measured; that instance is not an instance of it.
+// The reason to fix it anyway is that honouring a client `no-cache` is Fastly
+// CONFIGURATION, not a guarantee, and it says nothing about what some other
+// edge node has already cached for the next reader. A distinct URL cannot be
+// answered from any cache by definition, which turns a policy we do not
+// control into arithmetic we do.
+//
+// `no-store` stays alongside it: the query parameter defeats shared caches,
+// `no-store` defeats this browser's own. They are different caches.
+//
+// Cost: every fetch is a guaranteed origin miss. now.json is 1.5 KB gzipped on
+// a five-minute refresh, so this is a rounding error against the bandwidth of
+// the page that fetches it.
+function fresh(url) {
+  return url + (url.includes("?") ? "&" : "?") + "v=" + Date.now();
+}
+
 // Both keep what is on screen when a fetch fails or returns something
 // unusable. Blanking the page because one request lost would be worse than
 // showing a reading whose own age line already says how old it is -- and on a
 // phone at the beach, a lost request is the normal case, not the exception.
 function refreshNow() {
-  fetch(NOW_SOURCE, {cache: "no-store"})
+  fetch(fresh(NOW_SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
     .then((observed) => {
       if (!observed || !observed.generated_utc) return;
@@ -1107,7 +1144,7 @@ function refreshNow() {
 }
 
 function refreshForecast() {
-  fetch(SOURCE, {cache: "no-store"})
+  fetch(fresh(SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
     .then((data) => {
       if (!data || !data.breaks || !data.generated_utc) return;
@@ -1222,11 +1259,11 @@ function boot(data, observed) {
 }
 
 Promise.all([
-  fetch(SOURCE, {cache: "no-store"})
+  fetch(fresh(SOURCE), {cache: "no-store"})
     .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }),
   // now.json may legitimately be absent -- it is published by a different job
   // on a different schedule. Absent is handled; wrong is not.
-  fetch(NOW_SOURCE, {cache: "no-store"})
+  fetch(fresh(NOW_SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null),
 ])
