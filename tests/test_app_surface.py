@@ -616,6 +616,82 @@ class TestTheProvenanceLines:
         assert Now.__dataclass_fields__["stale_hours"].default == STALE_HOURS
 
 
+class TestThePageRefetchesWhatItShows:
+    """The page fetched both payloads once, at load, and never again.
+
+    The minute tick re-rendered from memory, so a tab left open showed the age
+    climbing and the countdown running against a payload that had stopped
+    moving. With collection every ten minutes the repository was six times
+    fresher than any open tab, and every improvement upstream stopped at the
+    browser.
+    """
+
+    def test_both_payloads_are_refetched_on_a_timer(self):
+        assert "setInterval(refreshNow, NOW_REFRESH_MS)" in SOURCE
+        assert "setInterval(refreshForecast, FORECAST_REFRESH_MS)" in SOURCE
+
+    def test_the_observed_chain_is_refetched_at_least_as_often_as_it_is_collected(self):
+        """If the page refreshed more slowly than the collector publishes, the
+        page would be the bottleneck rather than the trigger — the same class
+        of mismatch as a countdown promising a cadence nobody keeps."""
+
+        from forecast.now import COLLECT_INTERVAL_MIN
+
+        found = re.search(r"const NOW_REFRESH_MS = (\d+) \* 60 \* 1000", SOURCE)
+        assert found, "NOW_REFRESH_MS is not in the minutes form this test reads"
+        assert int(found.group(1)) <= COLLECT_INTERVAL_MIN, (
+            f"page refreshes every {found.group(1)} min, collector runs every "
+            f"{COLLECT_INTERVAL_MIN}"
+        )
+
+    def test_the_forecast_is_refetched_far_less_often_than_the_observation(self):
+        """now.json is ~6 KB and changes every collection; forecast.json is
+        ~128 KB and changes four times a day. Refetching them together would be
+        twenty times the bytes for nothing, on a phone at the beach."""
+
+        now_min = int(re.search(r"const NOW_REFRESH_MS = (\d+) \* 60 \* 1000", SOURCE).group(1))
+        fc = re.search(r"const FORECAST_REFRESH_MS = (\d+) \* 60 \* 1000", SOURCE)
+        assert fc, "FORECAST_REFRESH_MS is not in the minutes form this test reads"
+        assert int(fc.group(1)) >= now_min * 4, (
+            f"forecast refreshes every {fc.group(1)} min against the observation's "
+            f"{now_min} — not enough separation to be worth two timers"
+        )
+
+    def test_a_failed_refresh_keeps_what_is_on_screen(self):
+        """A lost request is the normal case on a phone at the beach, not the
+        exception. Blanking the page for one would be worse than showing a
+        reading whose own age line already says how old it is."""
+
+        for fn in ("function refreshNow()", "function refreshForecast()"):
+            start = SOURCE.index(fn)
+            body = SOURCE[start:SOURCE.index("\n}\n", start)]
+            assert ".catch(() => {})" in body, f"{fn} does not swallow a failed fetch"
+            assert "r.ok ? r.json() : null" in body, f"{fn} treats a non-200 as data"
+
+    def test_an_unchanged_payload_does_not_re_render(self):
+        assert "observed.generated_utc === NOW.generated_utc" in SOURCE
+        assert "data.generated_utc === DATA.generated_utc" in SOURCE
+
+    def test_a_new_cycle_keeps_the_hour_the_reader_chose(self):
+        """A refresh that yanked someone from +48 h back to now would be a
+        worse bug than the staleness it fixes. `adoptForecast` takes the
+        valid_utc on screen and puts them back on it when the new cycle still
+        carries that hour."""
+
+        assert "adoptForecast(data, currentHour())" in SOURCE
+        assert "function currentHour()" in SOURCE
+        assert "STEPS.findIndex((i) => first[i].valid_utc === keep)" in SOURCE
+
+    def test_boot_and_the_refresh_build_the_forecast_state_the_same_way(self):
+        """A new cycle changes which hours exist, so the picker has to be
+        rebuilt against them. Two code paths doing that separately is how one
+        of them ends up offering indices into an array that no longer has that
+        shape."""
+
+        assert SOURCE.count("function adoptForecast(") == 1
+        assert "if (!adoptForecast(data, null)) return;" in SOURCE
+
+
 class TestTheUpdateCountdown:
     """"Next update expected in h:mm:ss" is a claim about ARRIVAL, and a claim
     that can be wrong needs to be able to say so on screen."""

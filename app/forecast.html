@@ -1004,24 +1004,84 @@ function setMode(mode) {
   show();
 }
 
-function boot(data, observed) {
-  DATA = data;
-  NOW = observed;
-  $("tab-now").onclick = () => setMode("now");
-  $("tab-forecast").onclick = () => setMode("forecast");
-  wireSwellTabs();
+// REFRESH.
+//
+// The page fetched both payloads once, at load, and never again. The minute
+// tick re-rendered from memory, so on a tab left open the age climbed and the
+// countdown ran -- truthfully, about a payload that had stopped moving. With
+// collection every ten minutes the repository was six times fresher than any
+// open tab, and every improvement upstream stopped at the browser.
+//
+// The two chains are refetched on their own cadences because they move on
+// their own cadences. now.json is ~6 KB and changes every collection;
+// forecast.json is ~128 KB and changes four times a day, so refetching it as
+// often would be twenty times the bytes for nothing.
+//
+// NOW_REFRESH_MS must not be slower than collection or the page becomes the
+// bottleneck rather than the trigger. A test pins it against
+// COLLECT_INTERVAL_MIN.
+const NOW_REFRESH_MS = 5 * 60 * 1000;
+const FORECAST_REFRESH_MS = 60 * 60 * 1000;
 
-  if (data.warnings && data.warnings.length) {
-    $("warnings").hidden = false;
-    $("warnings").textContent = data.warnings.join("  ·  ");
-  }
+// Both keep what is on screen when a fetch fails or returns something
+// unusable. Blanking the page because one request lost would be worse than
+// showing a reading whose own age line already says how old it is -- and on a
+// phone at the beach, a lost request is the normal case, not the exception.
+function refreshNow() {
+  fetch(NOW_SOURCE, {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((observed) => {
+      if (!observed || !observed.generated_utc) return;
+      if (NOW && observed.generated_utc === NOW.generated_utc) return;
+      NOW = observed;
+      if (MODE === "now") show();
+    })
+    .catch(() => {});
+}
+
+function refreshForecast() {
+  fetch(SOURCE, {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (!data || !data.breaks || !data.generated_utc) return;
+      if (DATA && data.generated_utc === DATA.generated_utc) return;
+      if (!adoptForecast(data, currentHour())) return;
+      if (MODE === "forecast") show();
+      renderFooter();
+    })
+    .catch(() => {});
+}
+
+// The valid_utc the picker is sitting on, or null. Read before adopting a new
+// cycle so the reader can be put back on the hour they chose.
+function currentHour() {
+  const hours = ((DATA && DATA.breaks && DATA.breaks[0]) || {}).hours || [];
+  const step = STEPS[CURSOR];
+  return step != null && hours[step] ? hours[step].valid_utc : null;
+}
+
+// Everything on the page derived from forecast.json. Called at boot and again
+// whenever a NEWER cycle arrives, because a new cycle changes which hours
+// exist: the picker has to be rebuilt against them or it offers indices into
+// an array that no longer has that shape.
+//
+// `keep` is the valid_utc the reader was looking at. If the new cycle still
+// carries that hour they stay on it; a refresh that yanked someone from +48 h
+// back to now would be a worse bug than the staleness it fixed.
+function adoptForecast(data, keep) {
+  DATA = data;
+
+  const notes = (data.warnings && data.warnings.length) ? data.warnings : null;
+  $("warnings").hidden = !notes;
+  if (notes) $("warnings").textContent = notes.join("  ·  ");
 
   TIDE_BY_TIME = Object.fromEntries((data.tide || []).map((t) => [t.valid_utc, t]));
 
   const first = (data.breaks[0] || {}).hours || [];
   if (!first.length) {
+    STEPS = [];
     $("conditions").innerHTML = '<p class="warn">No forecast hours in this file.</p>';
-    return;
+    return false;
   }
   // Keyed on lead_h and carrying the real array index, so the same page works
   // against the hourly file in the repository and the 3-hourly file published
@@ -1033,6 +1093,12 @@ function boot(data, observed) {
     .map((i) => `<option value="${i}">${when(first[i].valid_utc)}</option>`)
     .join("");
 
+  const kept = keep == null ? -1 : STEPS.findIndex((i) => first[i].valid_utc === keep);
+  if (kept >= 0) {
+    CURSOR = kept;
+    return true;
+  }
+
   // Open on the hour nearest NOW, not on the first hour of the cycle. A
   // GFS-Wave cycle publishes about five hours after its nominal time, so hour
   // zero is already in the past when anyone loads the page — it opened on
@@ -1043,6 +1109,17 @@ function boot(data, observed) {
     const delta = Math.abs(new Date(first[step].valid_utc).getTime() - now);
     if (delta < Math.abs(new Date(first[STEPS[best]].valid_utc).getTime() - now)) best = n;
   });
+  CURSOR = best;
+  return true;
+}
+
+function boot(data, observed) {
+  NOW = observed;
+  $("tab-now").onclick = () => setMode("now");
+  $("tab-forecast").onclick = () => setMode("forecast");
+  wireSwellTabs();
+
+  if (!adoptForecast(data, null)) return;
 
   $("when").onchange = (e) => {
     const index = Number(e.target.value);
@@ -1052,7 +1129,8 @@ function boot(data, observed) {
   $("earlier").onclick = () => { if (CURSOR > 0) { CURSOR -= 1; show(); } };
   $("later").onclick = () => { if (CURSOR < STEPS.length - 1) { CURSOR += 1; show(); } };
 
-  CURSOR = best;
+  // `adoptForecast` has already put CURSOR on the hour nearest now.
+  //
   // Opens on Now: it is what someone standing on the sand wants, and if the
   // observed chain is broken the tab says so rather than hiding it behind a
   // silent fallback to the model.
@@ -1066,6 +1144,11 @@ function boot(data, observed) {
   // the whole page, which is the right cadence for "2 h ago" and far too heavy
   // for a clock that has to move every second.
   setInterval(tickDue, 1000);
+
+  // And the payloads themselves, which used to be fetched once and never
+  // again. See REFRESH above.
+  setInterval(refreshNow, NOW_REFRESH_MS);
+  setInterval(refreshForecast, FORECAST_REFRESH_MS);
 
   renderFooter();
 
