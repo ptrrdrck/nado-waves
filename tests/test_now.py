@@ -173,6 +173,16 @@ class TestTheApertureStillApplies:
         assert got.breaks[0].peak_period_s is not None
         assert got.breaks[0].peak_direction_deg is not None
 
+    def test_each_break_carries_its_own_shore_normal(self, tmp_path):
+        """The page turns each break's drawing to face its own normal, and
+        the three span 27 degrees, so one shared figure would misdraw two."""
+
+        normals = {s.id: round(s.normal, 1) for s in SPOTS}
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        for b in got.breaks:
+            assert b.shore_normal_deg == normals[b.id]
+            assert b.normal_is_a_guess is False
+
 
 class TestOutput:
     def test_json_round_trips(self, tmp_path):
