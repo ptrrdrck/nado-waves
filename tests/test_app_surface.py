@@ -591,8 +591,14 @@ class TestTheCalculationLine:
         assert effects["refracted_hs_m"] == 0.8     # islands as hard shadow
         assert effects["seabed_hs_m"] == 0.9        # islands diffracted
 
-    def test_it_is_styled_as_a_provenance_line(self):
-        assert '<div class="src">${steps.join(" ")}</div>' in self.LINE
+    def test_it_is_styled_as_the_leading_train_line(self):
+        """Owner's call, 2026-09-25: the train line's size and grey, with the
+        heights and percentages in its ink and weight."""
+
+        assert '<div class="calc">${steps.join(" ")}</div>' in self.LINE
+        assert ".calc{font-size:14px;color:var(--soft)" in SOURCE
+        assert ".calc b{color:var(--ink);font-weight:600;white-space:nowrap}" in SOURCE
+        assert "const ht = (m) => `<b>${height(m)}</b>`;" in self.LINE
 
     def test_the_headline_names_its_depth(self):
         label = SOURCE[SOURCE.index("function depthLabel"):]

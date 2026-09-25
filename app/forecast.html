@@ -150,6 +150,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
 .train.lead .ht,.train.lead .dr{color:var(--ink)}
 .train:not(.lead){opacity:.72}
+/* The break card's calculation line, in the leading train's type: its size
+   and softer grey for the words, its ink and weight for the heights and
+   percentages. The metric in parentheses keeps the page-wide .unit style. */
+.calc{font-size:14px;color:var(--soft);line-height:1.45;font-variant-numeric:tabular-nums}
+.calc b{color:var(--ink);font-weight:600;white-space:nowrap}
 
 /* Earlier / later seek bar. */
 .seek{display:flex;align-items:stretch;gap:8px}
@@ -795,7 +800,7 @@ function pct(to, from) {
   if (!(from > 0) || to == null) return "";
   const p = 100 * (to / from - 1);
   const v = Math.abs(p) < 1 ? p.toFixed(1) : String(Math.round(p));
-  return ` (${p > 0 ? "+" : p < 0 ? "\u2212" : ""}${v.replace("-", "")}%)`;
+  return ` (<b>${p > 0 ? "+" : p < 0 ? "\u2212" : ""}${v.replace("-", "")}%</b>)`;
 }
 
 // How the headline was made from the buoy's reading, one effect at a time,
@@ -815,25 +820,28 @@ function calculationLine(c) {
   }
   const depth = n.depth_m != null
     ? `${Math.round(n.depth_m * FT_PER_M)} ft (${Math.round(n.depth_m)} m)` : "shallow";
+  // Heights and percentages in the leading train's ink and weight; the
+  // words between them in its softer grey, so the eye reads the numbers.
+  const ht = (m) => `<b>${height(m)}</b>`;
   const refracted = e.refracted_hs_m != null ? e.refracted_hs_m : e.seabed_hs_m;
   const steps = [
-    `${height(e.window_hs_m)} through the windows of ${height(e.buoy_hs_m)} at the buoy`
+    `${ht(e.window_hs_m)} through the windows of ${ht(e.buoy_hs_m)} at the buoy`
       + `${pct(e.window_hs_m, e.buoy_hs_m)}.`,
-    `Refraction over the seabed makes that ${height(refracted)}${pct(refracted, e.window_hs_m)}.`,
+    `Refraction over the seabed makes that ${ht(refracted)}${pct(refracted, e.window_hs_m)}.`,
   ];
   if (e.refracted_hs_m != null && e.seabed_hs_m != null) {
-    steps.push(`Diffraction around the Coronado Islands makes that ${height(e.seabed_hs_m)}`
+    steps.push(`Diffraction around the Coronado Islands makes that ${ht(e.seabed_hs_m)}`
       + `${pct(e.seabed_hs_m, e.refracted_hs_m)}.`);
   }
   const before = e.seabed_hs_m != null ? e.seabed_hs_m : refracted;
   const verb = e.shoaled_hs_m >= before ? "lifts" : "lowers";
-  steps.push(`Shoaling into ${depth} of water ${verb} it to ${height(e.shoaled_hs_m)}`
+  steps.push(`Shoaling into ${depth} of water ${verb} it to ${ht(e.shoaled_hs_m)}`
     + `${pct(e.shoaled_hs_m, before)}.`);
   if (e.local && n.hs_m != null) {
-    steps.push(`Local wind chop at ${e.local.tp_s.toFixed(1)} s makes that ${height(n.hs_m)}`
+    steps.push(`Local wind chop at ${e.local.tp_s.toFixed(1)} s makes that ${ht(n.hs_m)}`
       + `${pct(n.hs_m, e.shoaled_hs_m)}.`);
   }
-  return `<div class="src">${steps.join(" ")}</div>`;
+  return `<div class="calc">${steps.join(" ")}</div>`;
 }
 
 const DRAW = {w: 320, h: 174, cx: 160, cy: 146, r: 124, rim: 1};
