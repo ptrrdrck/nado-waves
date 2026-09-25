@@ -194,7 +194,10 @@ forecaster actually verifies against, Surfline included.
   to the reading on screen.** `forecast/now.py` walks: the next time the source
   PUBLISHES (`PUBLISH_MINUTES` — swell `:00`, wind `:52`, tide every 6 from
   `:00`, all measured), plus how long until that is FETCHABLE
-  (`PUBLISH_LAG_MIN` — 27 min for the swell's jitter, 0 for the others), rounded
+  (`PUBLISH_LAG_MIN` — 27 min for the swell's jitter, 7 for the tide, 3 for
+  the wind; **no source is fetchable at its own stamp minute**, and modelling
+  the tide as though it were promised a sample CO-OPS had not written yet,
+  turning a reading eight minutes old into a red card), rounded
   up to the next COLLECTION from `EXTERNAL_TRIGGER_CRON`; the page then adds its
   own refresh interval, because only it knows that. The first version added
   `source interval + 2 × collection interval` to the reading on screen instead,
