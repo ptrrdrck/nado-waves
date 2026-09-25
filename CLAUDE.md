@@ -194,12 +194,23 @@ forecaster actually verifies against, Surfline included.
   to the reading on screen.** `forecast/now.py` walks: the next time the source
   PUBLISHES (`PUBLISH_MINUTES` — swell `:00`, wind `:52`, tide every 6 from
   `:00`, all measured), plus how long until that is FETCHABLE
-  (`PUBLISH_LAG_MIN` — 27 min for the swell's jitter, 7 for the tide, 3 for
-  the wind; **no source is fetchable at its own stamp minute**, and modelling
-  the tide as though it were promised a sample CO-OPS had not written yet,
-  turning a reading eight minutes old into a red card), rounded
+  (**no source is fetchable at its own stamp minute** — modelling the tide as
+  though it were promised a sample CO-OPS had not written yet, turning a reading
+  eight minutes old into a red card), rounded
   up to the next COLLECTION from `EXTERNAL_TRIGGER_CRON`; the page then adds its
-  own refresh interval, because only it knows that. The first version added
+  own refresh interval, because only it knows that.
+- **The lag is a distribution, so it takes two numbers, not one.** A single
+  deadline has to choose between crying wolf and quoting a figure that almost
+  never applies, and both are dishonest on screen. `PUBLISH_LAG_MIN` is the
+  measured typical and the countdown runs to it; `PUBLISH_LAG_LATE_MIN` is the
+  measured worst and the card only turns red past that, saying "update due" in
+  between without claiming anything is wrong. Measured 2026-09-25 by bracketing
+  each hour against the collection log: **4 of 6 spectra land by H+15 and one
+  took H+35.3**, so the old single value of 27 was above the typical AND below
+  the worst — twelve minutes pessimistic on the common hour, promising an hourly
+  source **100 minutes from stamp to screen where 80 was honest**, and still red
+  on the late one. Swell 15/36, tide 5/8, wind 3/4. n = 6 for the swell, which
+  is thin; revisit as the archive fills. The first version added
   `source interval + 2 × collection interval` to the reading on screen instead,
   which charged a tide sample due in ninety seconds a full six minutes and then
   twenty more as slack — **over twenty minutes of countdown for a source that

@@ -589,12 +589,28 @@ const FORECAST_REFRESH_MS = 60 * 60 * 1000;
 // Without that last term the countdown reached zero while the file was
 // already fresh and the screen simply had not caught up -- reporting the
 // page's own latency as the source being late.
-function dueSpan(iso, {forceOver = false} = {}) {
+//
+// TWO instants, not one, because a publication delay is a distribution and one
+// deadline cannot both promise and accuse. `next_expected` is when the update
+// should land; `overdue_after` is when its absence is a fault. The swell is why:
+// its spectra usually appear by H+15 but one measured hour took H+35, so a
+// single number was either red on that hour or quoting H+27 to everyone else --
+// and it quoted H+27, promising 100 minutes from stamp to screen on an hourly
+// source when 80 was honest. See PUBLISH_LAG_MIN in forecast/now.py.
+//
+// Both get this page's refresh leg added, for the same reason: the reader sees
+// nothing until the page refetches.
+function dueSpan(iso, lateIso, {forceOver = false} = {}) {
   if (!iso) return "";
   const at = new Date(iso).getTime();
   if (!Number.isFinite(at)) return "";
-  const shown = new Date(at + NOW_REFRESH_MS).toISOString().replace(/\.\d+Z$/, "Z");
-  return ` <span class="due" data-due="${shown}"`
+  const plusRefresh = (ms) =>
+    new Date(ms + NOW_REFRESH_MS).toISOString().replace(/\.\d+Z$/, "Z");
+  const lateAt = lateIso ? new Date(lateIso).getTime() : NaN;
+  // Falling back to `at` keeps a payload without `overdue_after` behaving
+  // exactly as it did before the two split, rather than never going red.
+  const late = plusRefresh(Number.isFinite(lateAt) ? Math.max(lateAt, at) : at);
+  return ` <span class="due" data-due="${plusRefresh(at)}" data-late="${late}"`
     + (forceOver ? ' data-force-over="1"' : "") + "></span>";
 }
 
@@ -603,14 +619,20 @@ function tickDue() {
   document.querySelectorAll("[data-due]").forEach((el) => {
     const due = new Date(el.getAttribute("data-due")).getTime();
     if (!Number.isFinite(due)) { el.textContent = ""; return; }
-    const past = now >= due;
+    const parsedLate = new Date(el.getAttribute("data-late")).getTime();
+    const late = Number.isFinite(parsedLate) ? Math.max(parsedLate, due) : due;
     const forced = el.getAttribute("data-force-over") === "1";
-    el.classList.toggle("over", past || forced);
+    // Three states. Red is reserved for the last one: between `due` and `late`
+    // the update is expected and nothing has gone wrong, and saying so in the
+    // resting colour is what stops the card crying wolf on every cycle that
+    // runs at the slow end of its measured range.
+    el.classList.toggle("over", now >= late || forced);
     // Only a genuinely elapsed deadline gets a figure. `forceOver` without one
     // means the build refused the reading for a reason that is not its age,
     // and "overdue by -0:04:11" would be worse than saying nothing.
-    el.textContent = past ? `Overdue by ${hms(now - due)}.`
+    el.textContent = now >= late ? `Overdue by ${hms(now - late)}.`
       : forced ? "Overdue."
+      : now >= due ? "Update due."
       : `Update in ${hms(due - now)}.`;
   });
 }
@@ -861,6 +883,7 @@ function renderConditions(index, cards, prov) {
     // countdown only knows the hour it expected, and `stale` knows the reasons
     // it cannot see.
     const due = (NOW && NOW.next_expected) || {};
+    const late = (NOW && NOW.overdue_after) || {};
     rows.push(swellCard({
       label: "Swell",
       buoy,
@@ -869,7 +892,7 @@ function renderConditions(index, cards, prov) {
       source: NOW && NOW.station_name
         ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${observedAt(NOW.observed_utc)}`
         : "",
-      due: dueSpan(due.swell, {forceOver: nowIsStale()}),
+      due: dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),
     }));
 
     rows.push(`<div class="cond" data-card="wind">
@@ -880,7 +903,7 @@ function renderConditions(index, cards, prov) {
         : '<span class="unit">not collected</span>'}</span>
       <span class="src">${period(wind.from_deg != null
         ? `${wind.station_name} (${wind.station}), observed ${observedAt(wind.observed_utc)}`
-        : (wind.note || ""))}${wind.from_deg != null ? dueSpan(due.wind) : ""}</span>
+        : (wind.note || ""))}${wind.from_deg != null ? dueSpan(due.wind, late.wind) : ""}</span>
     </div>`);
     // The turn is asked for against the READER's clock, not the build's, so
     // it keeps being the next turn as turns pass beneath an open page.
@@ -892,7 +915,7 @@ function renderConditions(index, cards, prov) {
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
       <span class="src">${period(tide.height_m != null
         ? `${NOW.tide_station_name} (${NOW.tide_station}), measured ${observedAt(tide.observed_utc)}`
-        : (tide.note || ""))}${tide.height_m != null ? dueSpan(due.tide) : ""}</span>
+        : (tide.note || ""))}${tide.height_m != null ? dueSpan(due.tide, late.tide) : ""}</span>
     </div>`);
   } else {
     const wind = DATA.wind || {};

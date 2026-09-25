@@ -85,7 +85,7 @@ STALE_HOURS = 3.0
 #: on others. Against a jittering source the only thing that bounds staleness
 #: is the INTERVAL, so the phase is spent on the one source that is pinned:
 #: KNZY's :52 METAR.
-SPECTRA_PUBLISHED_MIN = (7, 27)
+SPECTRA_PUBLISHED_MIN = (15, 36)
 
 #: The schedule the external trigger actually keeps, and the cadence the
 #: countdown promises. These two must agree; the rest is arithmetic.
@@ -123,34 +123,67 @@ PUBLISH_MINUTES = {
     "tide": tuple(range(0, 60, 6)),
 }
 
-#: How long after its own stamp each source becomes FETCHABLE.
+#: How long after its own stamp each source is EXPECTED to be fetchable, and
+#: how long before it is genuinely LATE. **Two numbers, because one cannot do
+#: both jobs.**
 #:
-#: **A stamp minute is not a publication minute, for any of the three.** Every
-#: value here is the UPPER bound of a measured range rather than its middle,
-#: because the countdown is a promise that something newer will be on screen by
-#: then. Anchored on the typical case, the card goes red on every cycle that
-#: runs late -- which is most of what a range means.
+#: A stamp minute is not a publication minute for any of the three, and the
+#: delay is a distribution rather than a constant. A single value has to choose
+#: which end of it to stand on, and both choices are wrong in public:
 #:
-#: 27 for the swell: the top of the H+7..H+27 jitter in SPECTRA_PUBLISHED_MIN.
+#:   * the TYPICAL case makes the card red on every cycle that runs late, which
+#:     is what "jitter" means -- and a card that cries wolf is the one nobody
+#:     reads on the day collection actually dies;
+#:   * the WORST case makes the countdown quote a deadline that almost never
+#:     applies. The swell sat here: 27 minutes, against a measured typical of
+#:     15, so an hourly source was promised 100 minutes from stamp to screen
+#:     when 80 was the honest figure. A countdown you learn to discount is not
+#:     information either.
 #:
-#: 7 for the tide. This was 0, on the claim that a :24 sample was in hand by
-#: the :25 collection, and the archive falsifies it: no 9410170 sample has
-#: ever been fetchable within 4.9 minutes of its own stamp. Bracketed on
-#: 2026-09-25 between the last collection without each sample and the first
-#: with it, the lag runs about **H+3 to H+7** -- 01:36 was in hand by H+4.9
-#: while 00:54 was still absent at H+6.4, which no single publication minute
-#: explains. Taken as 0 the countdown promised the NEXT 6-minute sample about
-#: seven minutes before CO-OPS had written it, and since that is more than half
-#: the sample interval it lost a whole collection slot: the tide card read
-#: overdue by minutes on a reading that was not late at all.
+#: So the countdown runs to PUBLISH_LAG_MIN and the card only turns red past
+#: PUBLISH_LAG_LATE_MIN. Between the two it says the update is due without
+#: claiming anything is wrong, which is the truth in that window.
 #:
-#: 3 for the wind, the measured floor (no KNZY METAR seen inside H+3.2, and
-#: one still absent at H+0.7). It changes no deadline at today's cadence --
-#: 3 minutes past :52 rounds onto the :55 collection, which is measured to
-#: catch it, first seen at :55:15 -- but it is the reason that works, and a
-#: cadence offset moved inside three minutes of :52 would now say so instead
-#: of silently claiming a run catches a METAR it cannot see.
-PUBLISH_LAG_MIN = {"swell": 27, "wind": 3, "tide": 7}
+#: **swell, 15 expected / 36 late.** 46232's spectra, bracketed 2026-09-25
+#: against the collection log (git history is the first-seen record, since the
+#: spectra files carry no first_seen_utc column):
+#:
+#:     spectrum   absent at   present by
+#:     09-24 23Z    H+16.4      H+27.0
+#:     09-25 01Z    H+ 0.2      H+15.0
+#:     09-25 02Z    H+25.1      H+35.3
+#:     09-25 03Z    H+ 5.1      H+15.3
+#:     09-25 04Z    H+10.9      H+15.3
+#:     09-25 05Z    H+ 5.1      H+15.3
+#:
+#: Four of six land by H+15 -- three consecutive hours on exactly the same
+#: collection -- and 02Z did not appear until H+35.3. The old 27 was neither:
+#: twelve minutes pessimistic on the common hour AND still red on 02Z. n = 6,
+#: which is thin; revisit as the archive fills.
+#:
+#: **tide, 5 expected / 8 late.** 9410170 was modelled at 0 on the claim that a
+#: :24 sample was in hand by the :25 collection, and the archive falsifies it:
+#: no sample has ever been fetchable within 4.9 minutes of its own stamp.
+#: Bracketed the same way, 01:36 was in hand by H+4.9 while 00:54 was still
+#: absent at H+6.4. Over the window where the 10-minute cadence ran unbroken,
+#: first-seen runs H+5.2 to H+13.4, median 9.3.
+#:
+#: Three minutes is narrower than the collection interval, so the rounding
+#: absorbs the difference on 6 of the tide's 10 stamp phases and separates them
+#: by one slot on the other 4 -- checked, not assumed. That is a fact about the
+#: interval rather than about the tide: change the cadence and the proportion
+#: moves.
+#:
+#: **wind, 3 expected / 4 late.** KNZY's routine METAR at :52, measured floor
+#: H+3.2 with one still absent at H+0.7. Three minutes past :52 rounds onto the
+#: :55 collection, measured to catch it at :55:15, so the countdown lands where
+#: it already did -- but it is now the REASON that works rather than luck, and
+#: an offset moved inside three minutes of :52 would say so instead of silently
+#: claiming a run catches a METAR it cannot see. The fourth minute crosses the
+#: mark, which is the point: it buys the card one collection of grace before it
+#: accuses a station that publishes on a pinned minute 81 times in 95.
+PUBLISH_LAG_MIN = {"swell": SPECTRA_PUBLISHED_MIN[0], "wind": 3, "tide": 5}
+PUBLISH_LAG_LATE_MIN = {"swell": SPECTRA_PUBLISHED_MIN[1], "wind": 4, "tide": 8}
 
 
 def _collect_minutes() -> tuple[int, ...]:
@@ -217,6 +250,28 @@ def next_expected(observed_utc: str | None, source: str) -> str | None:
     published and the surface counts down to it against the reader's own clock.
     """
 
+    return _deadline(observed_utc, source, PUBLISH_LAG_MIN)
+
+
+def overdue_after(observed_utc: str | None, source: str) -> str | None:
+    """When a reading newer than `observed_utc` is genuinely LATE.
+
+    The same three steps as `next_expected`, on PUBLISH_LAG_LATE_MIN instead of
+    PUBLISH_LAG_MIN. This is the instant a surface may start calling a source
+    overdue; `next_expected` is only the instant it stops promising more.
+
+    Between the two the honest report is that the update is due and nothing is
+    wrong yet. Collapsing them into one number forces a choice between a card
+    that cries wolf on every late cycle and a countdown quoting a deadline that
+    almost never applies -- see PUBLISH_LAG_MIN for what each cost.
+    """
+
+    return _deadline(observed_utc, source, PUBLISH_LAG_LATE_MIN)
+
+
+def _deadline(observed_utc: str | None, source: str, lags: dict) -> str | None:
+    """`next_expected` and `overdue_after` differ only in which lag they use."""
+
     if not observed_utc:
         return None
     marks = PUBLISH_MINUTES.get(source)
@@ -228,7 +283,7 @@ def next_expected(observed_utc: str | None, source: str) -> str | None:
         return None
 
     published = _next_mark(taken, marks)
-    fetchable = published + timedelta(minutes=PUBLISH_LAG_MIN.get(source, 0))
+    fetchable = published + timedelta(minutes=lags.get(source, 0))
     return _mark_at_or_after(fetchable, _collect_minutes()).strftime(ISO)
 
 
@@ -312,6 +367,7 @@ class Now:
     #: card is the only one that runs overdue. A single banner over all three
     #: could not say which.
     next_expected: dict = field(default_factory=dict)
+    overdue_after: dict = field(default_factory=dict)
     #: What the buoy itself saw, before any aperture — so a reader can see how
     #: much the geometry changed the answer.
     buoy: dict = field(default_factory=dict)
@@ -465,14 +521,17 @@ def build(
         reading.warnings.append(
             f"{TIDE_STATION} predicted high/low turns not collected yet."
         )
-    # What each card is counting down to. Computed from the reading each card
-    # actually shows, so a source that stops taking readings stops advancing
-    # its own expectation and the card goes overdue on its own.
-    reading.next_expected = {
-        "swell": next_expected(reading.observed_utc, "swell"),
-        "wind": next_expected(reading.wind.observed_utc, "wind"),
-        "tide": next_expected(reading.tide.observed_utc, "tide"),
+    # What each card is counting down to, and when it may start calling the
+    # source late -- two instants, not one. Computed from the reading each card
+    # actually shows, so a source that stops taking readings stops advancing its
+    # own expectation and the card goes overdue on its own.
+    stamps = {
+        "swell": reading.observed_utc,
+        "wind": reading.wind.observed_utc,
+        "tide": reading.tide.observed_utc,
     }
+    reading.next_expected = {k: next_expected(v, k) for k, v in stamps.items()}
+    reading.overdue_after = {k: overdue_after(v, k) for k, v in stamps.items()}
 
     reading.standing_on["tide"] = (
         f"OBSERVED — measured water level at {TIDE_STATION}"
