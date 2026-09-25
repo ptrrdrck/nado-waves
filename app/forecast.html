@@ -109,6 +109,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* Metric, in parentheses after the imperial value it restates. */
 .unit{font-weight:400;color:var(--soft)}
 .cond .src{font-size:12px;color:var(--faint)}
+/* A number inside a provenance line ("of 3.8 ft (1.15 m) at the buoy") stays
+   in that line's grey; the darker metric would lift it out of the footnote. */
+.cond .src .unit{color:inherit}
 
 /* The swell card holds the three breaks and the buoy as tabs. Quieter than
    the Now/Forecast control above it, so the two levels of choice never read
@@ -737,20 +740,27 @@ function breakPanel(c, prov) {
 
   const senseText = sense(c.windOffshore);
 
-  // The windows LEAD. They are the only thing in this tab that is the same
-  // whichever tab you are on and whatever the weather is doing -- the fixed
-  // geometry the rest of the tab is a consequence of -- and they are what
-  // differs between the three breaks when every other number looks alike.
+  // The energy through the window LEADS, untitled, in the buoy tab's own shape: the value
+  // line there says "combined", here "in window", so flipping between a break
+  // and the buoy compares one number with the number it was derived from.
+  // The buoy's figure sits beneath it in the provenance style because that is
+  // what it is -- where the number above came from -- and it is the same
+  // spectrum on either chain: the forecast's is GFS-Wave AT 46232.
+  // The windows follow as the fixed geometry the energy is a consequence of.
   return `
+    <div>
+      <span class="val">${c.hsWindow != null
+        ? `${height(c.hsWindow)} <span class="unit">in window</span>`
+        : '<span class="unit">no spectrum</span>'}</span>
+      ${c.hsOffshore != null
+        ? `<div class="src">${period(`of ${height(c.hsOffshore)} at the buoy`)}</div>`
+        : ""}
+    </div>
+
     <div>
       <div class="lbl">swell windows</div>
       ${windowList(c.swellWindow)}
       ${prov ? `<div class="prov">${prov}</div>` : ""}
-    </div>
-
-    <div class="quiet">
-      window energy <b>${height(c.hsWindow)}</b>
-      of <b>${height(c.hsOffshore)}</b> ${MODE === "now" ? "at the buoy" : "offshore"}
     </div>
 
     ${c.trains && c.trains.length ? `

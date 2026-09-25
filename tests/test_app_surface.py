@@ -115,9 +115,9 @@ class TestProvenanceIsVisible:
         assert "open_windows" not in SOURCE
 
 
-class TestTheWindowsLeadTheCard:
-    """Three windows per break, every edge on land, and they are the only
-    thing on the card that is the same whichever tab you are on."""
+class TestTheBreakCard:
+    """Three windows per break, every edge on land, beneath the energy that
+    gets through them."""
 
     def test_the_card_names_each_window_by_the_land_either_side(self):
         """Never by a hardcoded "south / channel / west". The page would keep
@@ -128,9 +128,16 @@ class TestTheWindowsLeadTheCard:
         for hardcoded in ("island channel", "south window", "west window"):
             assert hardcoded not in SOURCE.lower()
 
-    def test_the_windows_come_before_the_energy_on_the_card(self):
+    def test_the_energy_leads_the_card_and_the_windows_follow(self):
+        """Changed 2026-09-25 by decision: the break's window energy opens its
+        tab, untitled, in the buoy tab's "combined" shape, with the buoy's own
+        figure beneath it as a provenance line. The windows follow it."""
+
         card = SOURCE[SOURCE.index("function breakPanel"):]
-        assert card.index("windowList") < card.index("window energy")
+        card = card[:card.index("function buoyPanel")]
+        assert card.index("in window") < card.index("windowList")
+        assert "at the buoy" in card
+        assert "window energy" not in card
 
     def test_a_window_carries_its_span_not_just_its_edges(self):
         """23, 6 and 42 degrees. Three identical rows of numbers would read as
