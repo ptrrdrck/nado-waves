@@ -195,8 +195,20 @@ forecaster actually verifies against, Surfline included.
   When the cron said `*/10` and GitHub was delivering one run every four hours,
   every card called itself late against a schedule nobody was keeping — the
   countdown reported the gap between the request and reality rather than
-  anything about the data. `tests/test_now.py` reads the cron out of the
-  workflow and fails if the two disagree; it cannot see an external scheduler.
+  anything about the data. The trigger is now external, so `now.py` declares
+  `EXTERNAL_TRIGGER_CRON` and `tests/test_now.py` pins the interval to it, pins
+  the GitHub cron to being a slower backstop, and pins the wind offset.
+  **No test can reach cron-job.org** — changing the interval there without
+  changing `EXTERNAL_TRIGGER_CRON` is the one move nothing catches.
+- **46232's spectra do not publish on a fixed minute.** Measured 2026-09-25 by
+  bracketing each hour between the last collection without it and the first
+  with it: 23Z was still absent at H+16.7 while 01Z had landed by H+15.0, so
+  there is no single publication minute — it jitters across roughly **H+7 to
+  H+27**. A trigger phase-locked to the swell would therefore be early on some
+  hours and twenty minutes late on others; only the INTERVAL bounds staleness
+  against a jittering source. The phase is spent instead on KNZY's `:52`,
+  which is pinned (81 of 95 archived observations), and the `:55` run catches
+  it three minutes later against a measured median of 110.
 - **Keep the staleness alert** — no new observation in 48 hours, notify. A
   silently dead collector loses days that cannot be recovered. It did not
   visibly fire for 46232's 16-day outage; **partly explained** (BRIEFING §8):

@@ -73,16 +73,56 @@ STALE_HOURS = 3.0
 #:   wind    KNZY, hourly -- 81 of 95 archived observations sit on :52 -- plus
 #:           the occasional SPECI between them.
 #:   tide    CO-OPS 9410170, every 6 minutes.
+#:
+#: Those are the STAMPS the readings carry. When a reading becomes fetchable is
+#: a separate question, and for the spectra it is not a fixed minute -- see
+#: SPECTRA_PUBLISHED_MIN.
 SOURCE_INTERVAL_MIN = {"swell": 60, "wind": 60, "tide": 6}
 
-#: How often `collect-beach-inputs` is scheduled to fetch them.
+#: When 46232's hourly spectrum actually becomes FETCHABLE, past its own hour.
 #:
-#: This must match the cron in `.github/workflows/collect-beach-inputs.yml`.
-#: If the page promises a cadence the collector is not keeping, every card
-#: calls itself late on a schedule nobody asked it to keep -- which is what a
-#: `*/10` cron and this number at 10 did for half a day, while GitHub was
-#: actually delivering about one run every four hours.
-COLLECT_INTERVAL_MIN = 60
+#: Measured 2026-09-25 by bracketing: for each spectrum hour, the latest
+#: collection that did not yet have it and the earliest that did. Three usable
+#: brackets, and they do not agree on a minute:
+#:
+#:     hour        not there at   there at
+#:     09-25 01Z      H+0.5         H+15.0
+#:     09-24 23Z      H+16.7        H+27.0
+#:     09-24 22Z      H+7.0         H+76.7
+#:
+#: 23Z was still absent at H+16.7 while 01Z had already landed by H+15.0, so
+#: publication is not on a schedule -- it jitters across roughly H+7 to H+27.
+#: The tightest single upper bound anywhere in the archive is H+7.0.
+#:
+#: **This is why the trigger is not phase-locked to the swell.** A cadence
+#: aligned to one minute would be early on some hours and twenty minutes late
+#: on others. Against a jittering source the only thing that bounds staleness
+#: is the INTERVAL, so the phase is spent on the one source that is pinned:
+#: KNZY's :52 METAR.
+SPECTRA_PUBLISHED_MIN = (7, 27)
+
+#: The schedule the external trigger actually keeps, and the cadence the
+#: countdown promises. These two must agree; the rest is arithmetic.
+#:
+#: `5,15,25,35,45,55` -- every ten minutes, offset five. The offset is chosen
+#: for the wind: KNZY publishes at :52 and the :55 run catches it three minutes
+#: later, against a measured median of 110 minutes before any of this. The
+#: spectra land within ten minutes of publication wherever in their jitter
+#: window they fall, and the tide within ten of any six-minute sample.
+#:
+#: **The GitHub cron is NOT this schedule.** It is an hourly backstop, and it
+#: is deliberately slower: GitHub throttles scheduled runs to about 0.2 an hour
+#: whatever is asked (see docs/collection_trigger.md), so a cron written to
+#: match this would be a promise GitHub cannot keep. `repository_dispatch` from
+#: outside keeps it -- measured landing at :00:13 and :01:00:13, on time to the
+#: second.
+#:
+#: Nothing in this repository can verify the external schedule. A test pins
+#: that this constant matches EXTERNAL_TRIGGER_CRON and that the backstop cron
+#: is not faster; keeping EXTERNAL_TRIGGER_CRON true to what cron-job.org is
+#: set to is a human obligation.
+EXTERNAL_TRIGGER_CRON = "5,15,25,35,45,55 * * * *"
+COLLECT_INTERVAL_MIN = 10
 
 #: How many collection cycles may pass unseen before a card calls itself late.
 #:
