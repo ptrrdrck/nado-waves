@@ -1,0 +1,42 @@
+{
+  "grid": "nearshore",
+  "source": "USGS CoNED Southern California topobathymetric DEM, 2016 (1 m, NAVD88)",
+  "source_url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/dem/CA_Southern_CoNED_DEM_2016_8658/CA_Southern_CoNED_DEM_2016_m8658_EPSG-26911.vrt",
+  "crs": "EPSG:26911",
+  "vertical_datum": "NAVD88",
+  "units": "decimetres, elevation (negative is below NAVD88)",
+  "nodata": -32768,
+  "cell_m": 8.0,
+  "shape": [
+    927,
+    1047
+  ],
+  "transform": [
+    8.0,
+    0.0,
+    478472.0,
+    0.0,
+    -8.0,
+    3619544.0
+  ],
+  "bounds_utm": [
+    478472.0,
+    3612128.0,
+    486848.0,
+    3619544.0
+  ],
+  "resampling": "average of the 1 m cells, via the source's overviews",
+  "not_covered": "the Coronado Islands and the Baja coast (south of the source's 32.49 N edge, Mexican waters)",
+  "datum": {
+    "station": "9410170",
+    "msl_above_navd88_m": null,
+    "note": "not fetched: CO-OPS is denied from a session; run the workflow"
+  },
+  "stats": {
+    "cells": 970569,
+    "nodata_cells": 0,
+    "min_elevation_m": -18.777414321899414,
+    "max_elevation_m": 55.161895751953125
+  },
+  "retrieved_utc": "2026-09-25T20:07:58Z"
+}

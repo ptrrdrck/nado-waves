@@ -312,7 +312,10 @@ forecaster actually verifies against, Surfline included.
                         tip — run on Actions),
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
-                        beachlog.py + beachlog_import.py (the observation log)
+                        beachlog.py + beachlog_import.py (the observation log),
+                        bathymetry.py (USGS CoNED seabed, regional 32 m and
+                        nearshore 8 m, NAVD88; the MSL offset is fetched from
+                        CO-OPS on Actions — needs requirements-precompute.txt)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/info.html       the caveat, the cycle line and each chain's
                         standing-on block; shipped by `forecast.publish` in
@@ -348,6 +351,7 @@ forecaster actually verifies against, Surfline included.
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
+      utm.py            lat/lon <-> UTM 11 metres, pure Python (the grids' CRS)
       stats.py          load_column, least_squares, rmse, circular means
       dispersion.py     swell-arrival detection and the 1/T fit
       forensics.py      read a swell's origin off the buoy record
@@ -369,6 +373,9 @@ forecaster actually verifies against, Surfline included.
                         generalised, not survey-grade MHW. Every file is
                         clipped by its own query envelope on all four edges,
                         which is why the region is in the filename.
+    data/bathymetry/    CoNED seabed grids (.npz, decimetres NAVD88) + a JSON
+                        sidecar each. Does NOT cover the Coronado Islands or
+                        Baja (south of 32.49 N); those stay charted blockers.
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
