@@ -172,8 +172,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
       padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:11px}
 .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .quiet{font-size:13.5px;color:var(--soft)}
-/* The buoy-to-break paragraph reads as prose, not a data row. */
-.quiet.nearshore{margin:0;line-height:1.45}
 .quiet b{color:var(--ink);font-weight:600}
 .rows{display:flex;flex-direction:column;gap:5px;font-size:13.5px}
 .row{display:flex;align-items:flex-start;gap:8px}
@@ -752,14 +750,9 @@ function breakPanel(c) {
   // The rule splits the reading from the geometry. The windows' own chart
   // provenance is on geometry.html, vertex by vertex, one tap away.
   return `
-    <div>
-      <span class="val">${c.hsWindow != null
-        ? `${height(c.hsWindow)} <span class="unit">in window</span>`
-        : '<span class="unit">no spectrum</span>'}</span>
-      ${c.hsOffshore != null
-        ? `<div class="src">${period(`of ${height(c.hsOffshore)} at the buoy`)}</div>`
-        : ""}
-    </div>
+    <span class="val">${c.hsWindow != null
+      ? `${height(c.hsWindow)} <span class="unit">${depthLabel(c)}</span>`
+      : '<span class="unit">no spectrum</span>'}</span>
 
     ${c.trains && c.trains.length ? trainList(c.trains) : `
     <div class="quiet">
@@ -767,12 +760,14 @@ function breakPanel(c) {
       from <b>${compass(c.direction)}</b>
     </div>`}
 
-    ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
-      c.windNote ? ` <span class="est">&mdash; ${c.windNote}</span>` : ""}</div>` : ""}
+    ${windowDrawing(c)}
+
+    ${calculationLine(c)}
 
     <hr>
 
-    ${windowDrawing(c)}
+    ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
+      c.windNote ? ` <span class="est">&mdash; ${c.windNote}</span>` : ""}</div>` : ""}
 
     <div>
       <div class="lbl">swell windows</div>
@@ -782,65 +777,65 @@ function breakPanel(c) {
     <div>
       <div class="lbl">taking the swell</div>
       <div class="rows">${taken || '<div class="quiet">nothing blocked</div>'}</div>
-    </div>
-
-    ${nearshoreParagraph(c)}`;
-}
-
-// How the number at the top of the card was made from the buoy's, in one
-// short paragraph: the straight-line windows, then the seabed, the shoaling
-// into shallow water, the islands and the local wind. Composed from the
-// payload's `nearshore.effects`, never from constants, so it describes the
-// reading on screen. Physics, not calibration: nothing here is fitted to an
-// observation, and info.html says so.
-function nearshoreParagraph(c) {
-  const n = c.nearshore || {};
-  const e = n.effects;
-  if (!e || e.window_hs_m == null || e.seabed_hs_m == null || e.shoaled_hs_m == null) return "";
-  const depth = n.depth_m != null
-    ? `${Math.round(n.depth_m * FT_PER_M)} ft (${Math.round(n.depth_m)} m)` : "shallow";
-  const change = e.window_hs_m > 0 ? Math.round(100 * (e.seabed_hs_m / e.window_hs_m - 1)) : null;
-  const bend = change == null ? "" : change === 0 ? " (no change)"
-    : ` (${change > 0 ? "+" : ""}${change}%)`;
-  const shoal = e.shoaled_hs_m > e.seabed_hs_m * 1.005 ? "lifts it to"
-    : e.shoaled_hs_m < e.seabed_hs_m * 0.995 ? "lowers it to" : "leaves it at";
-  const islands = e.islands_pct == null ? ""
-    : e.islands_pct < 1 ? " The Coronado Islands take under 1% of it."
-    : ` The Coronado Islands take ${Math.round(e.islands_pct)}% of it.`;
-  const local = e.local
-    ? ` Local wind adds ${height(e.local.hs_m)} of chop at ${e.local.tp_s.toFixed(1)} s.`
-    : "";
-  return `<div>
-      <div class="lbl">from the buoy to the break</div>
-      <p class="quiet nearshore">Of the buoy's ${height(e.buoy_hs_m)}, the straight-line
-      windows let ${height(e.window_hs_m)} through. Bending over the seabed on the way
-      in makes that ${height(e.seabed_hs_m)}${bend}, and shoaling into ${depth} of water
-      ${shoal} ${height(e.shoaled_hs_m)}.${islands}${local}</p>
     </div>`;
 }
 
-// One break's windows, drawn facing the way the break faces.
+// What the headline number is: a height at the depth the rays start from.
+// An older payload without the nearshore block still says "in window",
+// because that is what its number is.
+function depthLabel(c) {
+  const d = (c.nearshore || {}).depth_m;
+  return d != null && isFinite(d)
+    ? `at ${Math.round(d * FT_PER_M)} ft (${Math.round(d)} m) depth` : "in window";
+}
+
+// A step's change as a signed percentage; one decimal under 1%, so a small
+// effect reads as small rather than as zero.
+function pct(to, from) {
+  if (!(from > 0) || to == null) return "";
+  const p = 100 * (to / from - 1);
+  const v = Math.abs(p) < 1 ? p.toFixed(1) : String(Math.round(p));
+  return ` (${p > 0 ? "+" : p < 0 ? "\u2212" : ""}${v.replace("-", "")}%)`;
+}
+
+// How the headline was made from the buoy's reading, one effect at a time,
+// each in the same form: what it makes the height, and by how much. Styled
+// as the card's provenance line, because that is what it is. Composed from
+// the payload's `nearshore.effects`, never from constants.
 //
-// North-up is the geometry page's job, where the three breaks share one map.
-// Here there is one break, so the drawing is turned until its seaward normal
-// points up: the flat edge is the break's chord, the arc is everything it
-// faces, and standing on the sand looking out, left on the drawing is left in
-// front of you. A 90-degree half either side of the normal is exactly the
-// seaward half-plane the geometry already clips to, so nothing drawn falls
-// outside it.
-//
-// It is an illustration, not a chart: no scale, no distances, no pan or zoom.
-// What it carries is angular and nothing else -- the window edges as rays,
-// everything between the windows shaded grey as the shadow a blocker casts,
-// and the break's own trains as arrows, the leader bold and the rest faded as
-// the list above them is. Only the two OUTER edges are labelled -- the Baja
-// tangent and the Point Loma tip, which bound the whole aperture; the island
-// edges between them are drawn but not labelled, and the list below gives
-// their numbers. Nothing is typed in: the windows and the normal come from
-// the payload, so a re-charted edge redraws itself.
-//
-// A payload without a normal is not drawn with a guessed one -- the drawing
-// is simply left out, and the list beneath it still says everything.
+// The islands are a hard shadow in the window figure and in the refraction
+// step alike, so refraction is the seabed alone, and the diffraction step is
+// only what diffraction changes about the islands (forecast.nearshore.summarise).
+function calculationLine(c) {
+  const n = c.nearshore || {};
+  const e = n.effects;
+  if (!e || e.window_hs_m == null || e.shoaled_hs_m == null) {
+    return c.hsOffshore != null
+      ? `<div class="src">${period(`of ${height(c.hsOffshore)} at the buoy`)}</div>` : "";
+  }
+  const depth = n.depth_m != null
+    ? `${Math.round(n.depth_m * FT_PER_M)} ft (${Math.round(n.depth_m)} m)` : "shallow";
+  const refracted = e.refracted_hs_m != null ? e.refracted_hs_m : e.seabed_hs_m;
+  const steps = [
+    `${height(e.window_hs_m)} through the windows of ${height(e.buoy_hs_m)} at the buoy`
+      + `${pct(e.window_hs_m, e.buoy_hs_m)}.`,
+    `Refraction over the seabed makes that ${height(refracted)}${pct(refracted, e.window_hs_m)}.`,
+  ];
+  if (e.refracted_hs_m != null && e.seabed_hs_m != null) {
+    steps.push(`Diffraction around the Coronado Islands makes that ${height(e.seabed_hs_m)}`
+      + `${pct(e.seabed_hs_m, e.refracted_hs_m)}.`);
+  }
+  const before = e.seabed_hs_m != null ? e.seabed_hs_m : refracted;
+  const verb = e.shoaled_hs_m >= before ? "lifts" : "lowers";
+  steps.push(`Shoaling into ${depth} of water ${verb} it to ${height(e.shoaled_hs_m)}`
+    + `${pct(e.shoaled_hs_m, before)}.`);
+  if (e.local && n.hs_m != null) {
+    steps.push(`Local wind chop at ${e.local.tp_s.toFixed(1)} s makes that ${height(n.hs_m)}`
+      + `${pct(n.hs_m, e.shoaled_hs_m)}.`);
+  }
+  return `<div class="src">${steps.join(" ")}</div>`;
+}
+
 const DRAW = {w: 320, h: 174, cx: 160, cy: 146, r: 124, rim: 1};
 
 function windowDrawing(c) {

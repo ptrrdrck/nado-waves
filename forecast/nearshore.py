@@ -281,6 +281,12 @@ def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
         "effects": {
             "buoy_hs_m": round(buoy_hs_m, 3),
             "window_hs_m": round(window_hs_m, 3),
+            # Refraction alone: the seabed result with the islands still a
+            # hard shadow, exactly as the straight-line window treats them, so
+            # window -> refracted is the seabed and nothing else, and
+            # refracted -> seabed is what diffraction changes about the
+            # islands and nothing else.
+            "refracted_hs_m": round(near.hs_islands_geometric, 3),
             "seabed_hs_m": round(near.hs_equivalent, 3),
             "shoaled_hs_m": round(near.hs_ref, 3),
             "islands_pct": round(100.0 * islands, 1),

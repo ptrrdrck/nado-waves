@@ -135,9 +135,13 @@ forecaster actually verifies against, Surfline included.
    as land, the Coronado Islands by Fresnel diffraction — into
    `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
    spectrum through them and adds fetch-limited local chop over closed fetches.
-   **The number on every break card is this nearshore figure**, on both chains;
-   the straight-line window figure survives only inside the card's
-   buoy-to-break paragraph. Buoy spectra are read by **maximum entropy**
+   **The number on every break card is this nearshore figure**, labelled with
+   its depth, on both chains; the straight-line window figure survives only in
+   the card's calculation line under the drawing, which states each effect in
+   one form — windows, refraction, island diffraction, shoaling, local chop —
+   with its percentage. Refraction is measured with the islands still a hard
+   shadow, as the window treats them, so the diffraction step is only what
+   diffraction changes about the islands (`nearshore.summarise`). Buoy spectra are read by **maximum entropy**
    (`Spectrum.spread = "mem"`), which also stops the buoy's own Hs reading ~5%
    high. Measured in BRIEFING §28–§29: it REVERSES the south/north ordering in
    south-swell season. It is physics, not calibration, and it is unverified —

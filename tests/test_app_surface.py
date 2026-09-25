@@ -135,21 +135,21 @@ class TestTheBreakCard:
             assert hardcoded not in SOURCE.lower()
 
     def test_the_reading_leads_the_card_and_the_geometry_follows(self):
-        """Changed 2026-09-25 by decision: the break's window energy opens its
-        tab, untitled, in the buoy tab's "combined" shape, with the buoy's own
-        figure beneath it as a provenance line; then the trains, untitled and
-        listed as the buoy tab lists them; then the wind reading; then a rule,
-        and the windows and the shares below it."""
+        """Owner's layout, 2026-09-25: the nearshore height labelled with its
+        depth; the trains; the drawing; the line stating how the height was
+        calculated, in the provenance style; a rule; the wind reading; then
+        the windows and the shares."""
 
-        card = SOURCE[SOURCE.index("function breakPanel"):]
-        card = card[:card.index("function buoyPanel")]
-        order = ("in window", "at the buoy", "trainList(c.trains)",
-                 "wind is <b>", "<hr>", "windowDrawing(c)", "windowList",
+        panel = SOURCE[SOURCE.index("function breakPanel"):]
+        panel = panel[:panel.index("function depthLabel")]
+        order = ("depthLabel(c)", "trainList(c.trains)", "windowDrawing(c)",
+                 "calculationLine(c)", "<hr>", "wind is <b>", "windowList",
                  "taking the swell")
-        at = [card.index(mark) for mark in order]
+        at = [panel.index(mark) for mark in order]
         assert at == sorted(at)
         for gone in ("window energy", "swell reaching here"):
-            assert gone not in card
+            assert gone not in panel
+        assert "from the buoy to the break" not in SOURCE
 
     def test_a_window_carries_its_span_not_just_its_edges(self):
         """23, 6 and 42 degrees. Three identical rows of numbers would read as
@@ -546,11 +546,12 @@ class TestItMatchesTheLiveOutput:
             assert accessor in known, f"page reads unknown field {accessor!r}"
 
 
-class TestTheNearshoreParagraph:
-    """Each break card says how its number was made from the buoy's."""
+class TestTheCalculationLine:
+    """Each break card states how its number was made from the buoy's, one
+    effect at a time, in the provenance style under the drawing."""
 
-    PARA = SOURCE[SOURCE.index("function nearshoreParagraph"):]
-    PARA = PARA[:PARA.index("\n}\n")]
+    LINE = SOURCE[SOURCE.index("function calculationLine"):]
+    LINE = LINE[:LINE.index("\n}\n")]
 
     def test_every_field_it_reads_is_one_the_forecast_writes(self):
         from forecast.nearshore import LocalSea, Nearshore, summarise
@@ -559,23 +560,50 @@ class TestTheNearshoreParagraph:
         out = summarise(near, LocalSea(0.1, 1.2, 290.0, 3.0),
                         buoy_hs_m=1.2, window_hs_m=0.8, depth_m=5.0)
         effects, local = out["effects"], out["effects"]["local"]
-        for key in re.findall(r"\be\.([a-z_]+)", self.PARA):
+        found = re.findall(r"\be\.([a-z_]+)", self.LINE)
+        assert found
+        for key in found:
             if key != "local":
                 assert key in effects, key
-        for key in re.findall(r"\be\.local\.([a-z_]+)", self.PARA):
+        for key in re.findall(r"\be\.local\.([a-z_]+)", self.LINE):
             assert key in local, key
-        for key in re.findall(r"\bn\.([a-z_]+)", self.PARA):
+        for key in re.findall(r"\bn\.([a-z_]+)", self.LINE):
             assert key in out, key
 
-    def test_it_comes_last_on_the_card(self):
-        card = SOURCE[SOURCE.index("function breakPanel"):]
-        card = card[:card.index("function nearshoreParagraph")]
-        assert card.index("taking the swell") < card.index("nearshoreParagraph(c)")
+    def test_each_effect_is_stated_in_one_form(self):
+        for effect in ("through the windows of", "Refraction over the seabed makes that",
+                       "Diffraction around the Coronado Islands makes that",
+                       "Shoaling into", "Local wind chop at"):
+            assert effect in self.LINE
+        assert self.LINE.count("pct(") >= 5
+
+    def test_refraction_and_diffraction_are_separated_honestly(self):
+        """The window treats the islands as a hard shadow, so refraction is
+        measured with that same shadow in, and diffraction is only what it
+        changes about the islands."""
+
+        assert "pct(refracted, e.window_hs_m)" in self.LINE
+        assert "pct(e.seabed_hs_m, e.refracted_hs_m)" in self.LINE
+        from forecast.nearshore import Nearshore, summarise
+
+        near = Nearshore("x", 1.0, 0.9, 0.8, 0.95, 200.0, 210.0, 12.0)
+        effects = summarise(near, None, buoy_hs_m=1.2, window_hs_m=0.8, depth_m=5.0)["effects"]
+        assert effects["refracted_hs_m"] == 0.8     # islands as hard shadow
+        assert effects["seabed_hs_m"] == 0.9        # islands diffracted
+
+    def test_it_is_styled_as_a_provenance_line(self):
+        assert '<div class="src">${steps.join(" ")}</div>' in self.LINE
+
+    def test_the_headline_names_its_depth(self):
+        label = SOURCE[SOURCE.index("function depthLabel"):]
+        label = label[:label.index("\n}\n")]
+        assert "ft (${Math.round(d)} m) depth" in label
+        assert '"in window"' in label           # an older payload says what its number is
 
     def test_it_does_not_call_the_physics_calibration(self):
         """Calibration is the level reserved for fitting to observations."""
 
-        assert "calibrat" not in self.PARA.lower().replace("physics, not calibration", "")
+        assert "calibrat" not in self.LINE.lower()
 
     def test_the_headline_prefers_the_nearshore_figure(self):
         assert "b.hs_nearshore_m != null ? b.hs_nearshore_m : b.hs_in_window_m" in SOURCE
