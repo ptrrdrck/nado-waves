@@ -219,6 +219,22 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    below it (bar the shares) is the same on every reading. */
 .pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}
 
+/* The break's windows, drawn facing the way the break faces. The shadows are
+   grey, not sand: they are where a blocker casts shadow, not the land itself.
+   The chord and the break on it are the site blue, and so is the swell --
+   the two things in the drawing that are not geometry-as-obstacle. */
+.aperture{display:block;width:100%;max-width:360px;height:auto;margin:0 auto;overflow:visible}
+.aperture .sea{fill:none;stroke:var(--line-strong);stroke-width:1}
+.aperture .shadow{fill:var(--faint);fill-opacity:.38;stroke:none}
+.aperture .ray{stroke:var(--soft);stroke-width:1}
+.aperture .deg{font-size:11px;font-weight:600;fill:var(--ink);
+               font-variant-numeric:tabular-nums;dominant-baseline:middle}
+.aperture .chord{stroke:var(--surf);stroke-width:4;stroke-linecap:round}
+.aperture .spot{fill:var(--surf)}
+.aperture .faces{font-size:11px;fill:var(--faint);text-anchor:middle}
+.aperture .swell{stroke:var(--surf);stroke-width:1.75;stroke-linecap:round;opacity:.45}
+.aperture .swell.lead{stroke-width:3;opacity:1}
+
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
 th:first-child,td:first-child{text-align:left}
@@ -647,6 +663,7 @@ function cardsForNow() {
     fraction: b.fraction,
     period: b.peak_period_s, direction: b.peak_direction_deg,
     swellWindow: b.swell_window || [],
+    normal: b.shore_normal_deg, normalGuess: b.normal_is_a_guess,
     trains: b.trains || [],
     takenBy: b.taken_by || [],
     windOffshore: b.wind_offshore, windNote: b.wind_note,
@@ -663,6 +680,7 @@ function cardsForForecast(index) {
         fraction: h.fraction,
         period: h.dominant_period_s, direction: h.dominant_from_deg,
         swellWindow: b.swell_window || [],
+        normal: b.shore_normal_deg, normalGuess: b.normal_is_a_guess,
         trains: h.trains || [],
         takenBy: h.taken_by || [],
         windOffshore: b.wind_offshore, windNote: b.wind_note,
@@ -739,6 +757,8 @@ function breakPanel(c) {
 
     <hr>
 
+    ${windowDrawing(c)}
+
     <div>
       <div class="lbl">swell windows</div>
       ${windowList(c.swellWindow)}
@@ -748,6 +768,109 @@ function breakPanel(c) {
       <div class="lbl">taking the swell</div>
       <div class="rows">${taken || '<div class="quiet">nothing blocked</div>'}</div>
     </div>`;
+}
+
+// One break's windows, drawn facing the way the break faces.
+//
+// North-up is the geometry page's job, where the three breaks share one map.
+// Here there is one break, so the drawing is turned until its seaward normal
+// points up: the flat edge is the break's chord, the arc is everything it
+// faces, and standing on the sand looking out, left on the drawing is left in
+// front of you. A 90-degree half either side of the normal is exactly the
+// seaward half-plane the geometry already clips to, so nothing drawn falls
+// outside it.
+//
+// It is an illustration, not a chart: no scale, no distances, no pan or zoom.
+// What it carries is angular and nothing else -- the window edges as rays,
+// everything between the windows shaded grey as the shadow a blocker casts,
+// and the break's own trains as arrows, the leader bold and the rest faded as
+// the list above them is. Only the two OUTER edges are labelled -- the Baja
+// tangent and the Point Loma tip, which bound the whole aperture; the island
+// edges between them are drawn but not labelled, and the list below gives
+// their numbers. Nothing is typed in: the windows and the normal come from
+// the payload, so a re-charted edge redraws itself.
+//
+// A payload without a normal is not drawn with a guessed one -- the drawing
+// is simply left out, and the list beneath it still says everything.
+const DRAW = {w: 320, h: 174, cx: 160, cy: 146, r: 124};
+
+function windowDrawing(c) {
+  if (c.normal == null || !isFinite(c.normal)) return "";
+  const {w, h, cx, cy, r} = DRAW;
+  // Bearing -> angle off the normal, -180..180. Negative is the reader's left.
+  const rel = (b) => ((b - c.normal) % 360 + 540) % 360 - 180;
+  const at = (a, rad) => {
+    const t = a * Math.PI / 180;
+    return [cx + rad * Math.sin(t), cy - rad * Math.cos(t)];
+  };
+  const xy = (p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+  const wedge = (a0, a1) =>
+    `M${cx},${cy} L${xy(at(a0, r))} A${r},${r} 0 0 1 ${xy(at(a1, r))} Z`;
+
+  const wins = (c.swellWindow || [])
+    .filter((win) => win && isFinite(win.from) && isFinite(win.to))
+    .map((win) => ({...win, a0: rel(win.from), a1: rel(win.to)}))
+    .filter((win) => win.a0 >= -90 && win.a1 <= 90 && win.a0 < win.a1)
+    .sort((p, q) => p.a0 - q.a0);
+  if (!wins.length) return "";
+
+  // The shadows are whatever the windows leave.
+  const shadows = [];
+  let from = -90;
+  wins.forEach((win) => {
+    if (win.a0 > from) shadows.push([from, win.a0]);
+    from = win.a1;
+  });
+  if (from < 90) shadows.push([from, 90]);
+  const shading = shadows.map(([a0, a1]) =>
+    `<path class="shadow" d="${wedge(a0, a1)}"/>`).join("");
+
+  // Every edge is a ray from the break to the rim.
+  const edges = wins.flatMap((win) => [win.a0, win.a1]);
+  const rays = edges.map((a) => {
+    const [x, y] = at(a, r);
+    return `<line class="ray" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+  }).join("");
+  const first = wins[0], last = wins[wins.length - 1];
+  const labels = [[first.a0, first.from], [last.a1, last.to]].map(([a, b]) => {
+    const [x, y] = at(a, r + 12);
+    const s = Math.sin(a * Math.PI / 180);
+    const anchor = s > 0.25 ? "start" : s < -0.25 ? "end" : "middle";
+    return `<text class="deg" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}">${Math.round(b)}°</text>`;
+  }).join("");
+
+  // Arrows come in from the rim along the heading each train arrives from,
+  // and stop well short of the break: trains a few degrees apart would
+  // otherwise meet in one knot of arrowheads at the centre. Drawn last so a
+  // train is never hidden under a shadow it has leaked past. A train from
+  // behind the beach is not drawn: it cannot arrive, and an arrow pointing out
+  // of the sand would say it could.
+  const arrows = (c.trains || []).map((t, i) => ({t, i, a: rel(t.from_deg)}))
+    .filter(({t, a}) => isFinite(t.from_deg) && a > -90 && a < 90)
+    .reverse()
+    .map(({i, a}) => {
+      const [x0, y0] = at(a, r * 0.95);
+      const [x1, y1] = at(a, r * 0.62);
+      return `<line class="swell${i === 0 ? " lead" : ""}" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}"`
+        + ` x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" marker-end="url(#head-${c.id})"/>`;
+    }).join("");
+
+  const said = wins.map((win) => `${Math.round(win.from)} to ${Math.round(win.to)} degrees`).join(", ");
+  const trains = (c.trains || []).filter((t) => isFinite(t.from_deg))
+    .map((t) => `${Math.round(t.from_deg)}`).join(", ");
+  const label = `Swell windows facing ${compass(c.normal)}: ${said}.`
+    + (trains ? ` Swell arriving from ${trains} degrees.` : "");
+
+  return `<svg class="aperture" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">
+    <defs><marker id="head-${c.id}" viewBox="0 0 10 10" refX="7" refY="5"
+      markerWidth="7" markerHeight="7" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+    <path class="sea" d="${wedge(-90, 90)}"/>
+    ${shading}${rays}${labels}${arrows}
+    <line class="chord" x1="${cx - r}" y1="${cy}" x2="${cx + r}" y2="${cy}"/>
+    <circle class="spot" cx="${cx}" cy="${cy}" r="4"/>
+    <text class="faces" x="${cx}" y="${cy + 20}">facing ${compass(c.normal)}</text>
+  </svg>`;
 }
 
 // The buoy's tab: the offshore spectrum itself, before any aperture.

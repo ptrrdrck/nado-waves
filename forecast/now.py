@@ -302,6 +302,10 @@ class NowBreak:
     #: forecast's — carried here so the surface renders one kind of card from
     #: either source rather than reaching across files for it.
     swell_window: list[list[float]]
+    #: The seaward normal, which the page turns to face up when it draws the
+    #: windows. Same names as the forecast's, for the same one-card reason.
+    shore_normal_deg: float
+    normal_is_a_guess: bool
     #: Offshore energy aimed at this break, as Hs. NOT a height at the beach.
     hs_in_window_m: float
     #: Share of the buoy's total energy that the aperture lets through.
@@ -564,6 +568,8 @@ def build(
             name=spot.name,
             confidence=HIGH if spot.position_verified else LOW,
             swell_window=[window_entry(w) for w in swell_windows(spot, blockers)],
+            shore_normal_deg=round(spot.normal, 1),
+            normal_is_a_guess=not spot.shoreline_verified,
             hs_in_window_m=round(got.hs_in_window_m, 3),
             fraction=round(got.fraction, 4) if not math.isnan(got.fraction) else None,
             peak_period_s=None if math.isnan(got.peak_period_s) else round(got.peak_period_s, 1),
