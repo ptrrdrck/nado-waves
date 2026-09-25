@@ -16,6 +16,8 @@ The bundle:
     now.json        data/live/now.json — the observed reading, if there is one
     geometry.html   the model's geometry, drawn by forecast.geomviz from
                     spots.json; linked from the foot of index.html
+    info.html       app/info.html: the caveat and each chain's standing-on
+                    block; linked beneath geometry.html
     .nojekyll       Pages must serve the files as-is, not run Jekyll over them
     README.md       says what the repository is and where to edit it
 
@@ -50,6 +52,7 @@ from collector.common import DEFAULT_DATA_DIR
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 PAGE_SOURCE = REPO_ROOT / "app" / "forecast.html"
+INFO_SOURCE = REPO_ROOT / "app" / "info.html"
 
 #: Publish every Nth forecast hour. Must match the `lead_h % 3` filter in
 #: app/forecast.html — the page renders nothing between these, so anything
@@ -95,7 +98,8 @@ This repository is a delivery surface and nothing else. `index.html` is built
 from `app/forecast.html` in the private `nado-waves` repository, which holds the
 geometry, the transform and the tests, and `forecast.json` is written there by
 `forecast/live.py`. `geometry.html` is drawn there from the same geometry file
-the forecast reads, by `forecast/geomviz.py`. Both are pushed here by a workflow. **Edit them there** —
+the forecast reads, by `forecast/geomviz.py`, and `info.html` is built from
+`app/info.html`. All three are pushed here by a workflow. **Edit them there** —
 anything committed directly to this repository is overwritten by the next cycle.
 
 ## What the page shows, and what it does not
@@ -107,8 +111,8 @@ as you walk the sand.
 
 **Nothing has ever measured a wave at these three breaks.** The output is
 *physically derived*, never accurate, and carries no error bar because there is
-nothing to compute one against. The page states what it is standing on —
-geometry, model, calibration, observation — and two of those read *none*.
+nothing to compute one against. `info.html` states what each tab is standing
+on — geometry, model, calibration, observation — and two of those read *none*.
 
 Window energy is the offshore energy aimed at a break. It is **not a wave height
 at the beach**: no shoaling, no refraction, no offshore-to-face transfer.
@@ -125,13 +129,13 @@ of paths and of links, not a browser security boundary.
 """
 
 
-def repoint(fragment: str) -> str:
+def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
     """Point the page at the bundle's flat `forecast.json`."""
 
     for repo_path in (REPO_DATA_PATH, REPO_NOW_PATH):
         if repo_path not in fragment:
             raise ValueError(
-                f"{PAGE_SOURCE.name} no longer fetches {repo_path!r}. The "
+                f"{name} no longer fetches {repo_path!r}. The "
                 f"publisher rewrites that path for the flat bundle; if the page "
                 f"changed how it loads data, this has to change with it."
             )
@@ -194,6 +198,17 @@ def geometry_page(data_dir: Path = DEFAULT_DATA_DIR) -> str:
                 app_title="Coronado aperture")
 
 
+def info_page(info: Path = INFO_SOURCE) -> str:
+    """`app/info.html` as a standalone document, repointed like the page.
+
+    In BOTH builds for the reason `geometry_page` is: index.html links to it,
+    and it reads both payloads, so it has to ship wherever either of them does.
+    """
+
+    return wrap(repoint(info.read_text(encoding="utf-8"), name=info.name),
+                app_title="Nado Waves")
+
+
 def build(
     out_dir: Path,
     *,
@@ -233,6 +248,10 @@ def build(
     geometry = out_dir / "geometry.html"
     geometry.write_text(geometry_page(data_dir), encoding="utf-8")
     written["geometry.html"] = geometry.stat().st_size
+
+    info = out_dir / "info.html"
+    info.write_text(info_page(), encoding="utf-8")
+    written["info.html"] = info.stat().st_size
 
     payload = out_dir / "forecast.json"
     payload.write_text(
@@ -308,6 +327,10 @@ def build_now_only(
     geometry = out_dir / "geometry.html"
     geometry.write_text(geometry_page(data_dir), encoding="utf-8")
     written["geometry.html"] = geometry.stat().st_size
+
+    info = out_dir / "info.html"
+    info.write_text(info_page(), encoding="utf-8")
+    written["info.html"] = info.stat().st_size
 
     target = out_dir / "now.json"
     target.write_text(

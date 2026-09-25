@@ -54,11 +54,6 @@ h2{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:700;font-size:2
 header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--line);padding-bottom:14px}
 .head-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
-/* The caveat is part of the product, not a footnote. */
-.blind{font-size:13px;color:var(--soft);border-left:3px solid var(--signal);
-       padding:8px 0 8px 11px;margin:0;background:linear-gradient(90deg,var(--signal-wash),transparent 70%)}
-.blind b{color:var(--ink);font-weight:600}
-
 /* The two chains. A segmented control rather than a dropdown: there are
    exactly two and the choice is the first thing a reader makes. */
 .tabs{display:flex;gap:0;background:var(--card);border:1px solid var(--line);
@@ -170,10 +165,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                   border:0;padding:0;cursor:pointer;font:inherit}
 .seek-when:focus-within{outline:2px solid var(--surf);outline-offset:2px}
 
-.source{font-size:12.5px;color:var(--soft);margin:0;text-align:center;
-        border-top:1px solid var(--line);padding-top:12px}
-.source b{color:var(--ink);font-weight:600}
-
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
       padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:11px}
 .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
@@ -230,17 +221,12 @@ th,td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
 th:first-child,td:first-child{text-align:left}
 th{color:var(--soft);font-weight:600;font-size:12px}
 
-.standing{display:grid;grid-template-columns:auto 1fr;gap:5px 11px;font-size:13.5px}
-.standing dt{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
-             text-transform:uppercase;letter-spacing:.07em;color:var(--soft);font-size:13px}
-.standing dd{margin:0}
-.none{color:var(--signal);font-weight:600}
 
 .warn{font-size:13px;color:var(--soft);background:var(--signal-wash);border:1px dashed var(--signal);
       border-radius:var(--r);padding:9px 11px;margin:0}
-footer{font-size:12.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:12px}
 a{color:var(--surf)}
-.geolink{margin:0;font-size:13px}
+.links{margin:0;font-size:13px;display:flex;flex-direction:column;gap:4px;
+       border-top:1px solid var(--line);padding-top:12px}
 select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px solid var(--line-strong);
        background:var(--card);color:var(--ink)}
 @media(max-width:380px){
@@ -254,7 +240,7 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
   <!-- Two evidence chains, not two views of one. Now is built only from
        measurements; Forecast is built only from a model. They share the
        geometry and nothing else, which is why each carries its own
-       "standing on" block further down. -->
+       "standing on" block on info.html. -->
   <nav class="tabs" role="tablist" aria-label="Now or forecast">
     <button type="button" id="tab-now" role="tab" aria-selected="true"
             aria-controls="panel">Now</button>
@@ -286,26 +272,13 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
     <div class="conditions" id="conditions"></div>
   </section>
 
-  <p class="source" id="cycle">loading&hellip;</p>
-
-  <p class="blind">
-    <b>Nothing has ever measured a wave at these three breaks.</b>
-    This is a <b>physically derived</b> aperture, not an accurate forecast, and
-    it carries no error bar because there is nothing to compute one against.
-    What it claims is <b>which break holds more of today's swell</b> — not how
-    big it is.
-  </p>
-
-  <section class="card">
-    <h2>What this is standing on</h2>
-    <dl class="standing" id="standing"></dl>
-  </section>
-
-  <footer id="foot"></footer>
-  <!-- Static, outside #foot: renderFooter rewrites that per tab, and this link
-       belongs to both. geometry.html is built by forecast.publish from
-       spots.json and ships beside this page in the bundle. -->
-  <p class="geolink"><a href="geometry.html">Geometry: every vertex behind these windows →</a></p>
+  <!-- The caveat, the cycle line, each chain's standing-on block and its
+       footnote live on info.html. geometry.html is built by forecast.publish
+       from spots.json; both ship beside this page in the bundle. -->
+  <nav class="links" aria-label="More">
+    <a href="geometry.html">Geometry</a>
+    <a href="info.html">Info</a>
+  </nav>
 </div>
 
 <script>
@@ -674,6 +647,19 @@ let CURSOR = 0;      // position within STEPS
 let SWELL_TAB = null;
 const BUOY_TAB = "buoy";
 
+// Both tab choices survive a refresh. sessionStorage rather than localStorage:
+// a reload, or a trip to info.html and back, keeps the reader where they were,
+// while a fresh visit still opens on Now -- see `boot`. Every access is
+// guarded, because private modes and blocked site data throw on the accessor
+// itself, and a page that cannot remember a tab must still render.
+const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab"};
+function recall(key) {
+  try { return sessionStorage.getItem(key); } catch (e) { return null; }
+}
+function remember(key, value) {
+  try { sessionStorage.setItem(key, value); } catch (e) { /* not remembered */ }
+}
+
 function sense(offshore) {
   if (offshore == null) return null;
   return offshore > 0.3 ? "offshore" : offshore < -0.3 ? "onshore" : "cross-shore";
@@ -831,6 +817,7 @@ function swellCard({label, buoy, station, cards, prov, source, due = ""}) {
 // the tab the reader is on and the countdowns keep their place.
 function selectSwellTab(id, {focus = false} = {}) {
   SWELL_TAB = id;
+  remember(KEEP.swell, id);
   document.querySelectorAll("[data-swell-tab]").forEach((btn) => {
     const on = btn.getAttribute("data-swell-tab") === id;
     btn.setAttribute("aria-selected", String(on));
@@ -971,23 +958,6 @@ function renderConditions(index, cards, prov) {
   tickDue();
 }
 
-// The two chains stand on different things and name them in different words,
-// so the block is rendered from whatever keys the file carries rather than a
-// fixed list. "claim" is pinned last because it is the conclusion, and a value
-// beginning "none" is marked, because those are the lines that matter most.
-function renderStanding(standing) {
-  const keys = Object.keys(standing || {}).filter((k) => k !== "claim");
-  if (standing && standing.claim) keys.push("claim");
-  const label = (k) => k === "claim"
-    ? "So the claim is"
-    : k.charAt(0).toUpperCase() + k.slice(1);
-  $("standing").innerHTML = keys.map((key) => {
-    const value = standing[key] || "\u2014";
-    const bare = /^none/i.test(value) ? ' class="none"' : "";
-    return `<dt>${label(key)}</dt><dd${bare}>${value}</dd>`;
-  }).join("");
-}
-
 function renderBreaks(index) {
   const cards = MODE === "now" ? cardsForNow() : cardsForForecast(index);
   // One blocker set serves all three breaks, so the provenance is computed
@@ -1005,8 +975,6 @@ function show() {
   $("tab-now").setAttribute("aria-selected", String(!forecasting));
   $("tab-forecast").setAttribute("aria-selected", String(forecasting));
 
-  renderFooter();
-
   if (forecasting) {
     const index = STEPS[CURSOR];
     const first = (DATA.breaks[0] || {}).hours || [];
@@ -1015,13 +983,7 @@ function show() {
     $("earlier").disabled = CURSOR === 0;
     $("later").disabled = CURSOR === STEPS.length - 1;
     renderBreaks(index);
-    renderStanding(DATA.standing_on || {});
     $("stale").hidden = true;
-    $("cycle").innerHTML = DATA.cycle_utc
-      ? `Latest data from the <b>GFS-Wave</b> model run of `
-        + `<b>${when(DATA.cycle_utc)}</b>, for the offshore buoy `
-        + `<b>${DATA.station_name}</b> (NDBC ${DATA.station}).`
-      : "No GFS-Wave cycle was available, so there is nothing to show.";
     return;
   }
 
@@ -1034,13 +996,10 @@ function show() {
       + ((NOW && NOW.warnings && NOW.warnings.join(" ")) ||
          "now.json could not be loaded.")
       + ` Switch to <b>Forecast</b> for the modelled view.`;
-    $("cycle").innerHTML = "";
-    renderStanding((NOW && NOW.standing_on) || {});
     return;
   }
 
   renderBreaks(0);
-  renderStanding(NOW.standing_on || {});
 
   // No banner over the cards. It spoke for all three at once while naming only
   // the spectrum, so a fresh wind reading sat under a banner calling it not
@@ -1052,34 +1011,11 @@ function show() {
   // The banner element stays for the case below, where there is no reading to
   // put a card under at all.
   $("stale").hidden = true;
-
-  // The buoy's reading and its provenance now live on the swell card, at the
-  // top, beside the wind and tide it sits with. Nothing is left to say down
-  // here on the observed side.
-  $("cycle").innerHTML = "";
-}
-
-// The footer differs by tab: the spread note and the build time describe the
-// forecast, and printing them under an observed reading would attribute a
-// model's properties to a measurement.
-function renderFooter() {
-  const shared = `Window energy is the energy aimed at a break. It is <b>not a wave
-    height at the beach</b>: no shoaling, no refraction, no offshore-to-face transfer.`;
-  if (MODE === "now") {
-    $("foot").innerHTML = shared + ` Observed at a buoy 29 km offshore and put
-      through each break's aperture; nothing here is measured at the sand.`;
-    return;
-  }
-  const spread = (DATA && DATA.spread_assumption) || {};
-  const assumed = spread.swell_deg != null
-    ? `Directional spread is assumed at ${spread.swell_deg}\u00B0 for swell and `
-      + `${spread.wind_sea_deg}\u00B0 for wind sea \u2014 ${spread.note || ""}`
-    : `The forecast uses the model's own directional spectrum, so no spread is assumed.`;
-  $("foot").innerHTML = `${shared} ${assumed} Forecast generated ${DATA.generated_utc}.`;
 }
 
 function setMode(mode) {
   MODE = mode;
+  remember(KEEP.mode, mode);
   show();
 }
 
@@ -1178,7 +1114,6 @@ function refreshForecast() {
       if (DATA && data.generated_utc === DATA.generated_utc) return;
       if (!adoptForecast(data, currentHour())) return;
       if (MODE === "forecast") showAndFlash();
-      renderFooter();
     })
     .catch(() => {});
 }
@@ -1264,8 +1199,12 @@ function boot(data, observed) {
   //
   // Opens on Now: it is what someone standing on the sand wants, and if the
   // observed chain is broken the tab says so rather than hiding it behind a
-  // silent fallback to the model.
-  setMode("now");
+  // silent fallback to the model. A refresh puts the reader back on the tab
+  // THEY chose, which is not a fallback; anything unrecognised in storage
+  // opens on Now. The swell tab is restored by id, and one that no longer
+  // exists falls through to the leader, as an unmade choice does.
+  SWELL_TAB = recall(KEEP.swell);
+  setMode(recall(KEEP.mode) === "forecast" ? "forecast" : "now");
 
   // The observed age moves whether or not anything else does, so the observed
   // tab is redrawn on the minute rather than only on load or a tab change.
@@ -1280,9 +1219,6 @@ function boot(data, observed) {
   // again. See REFRESH above.
   setInterval(refreshNow, NOW_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
-
-  renderFooter();
-
 }
 
 Promise.all([
@@ -1296,7 +1232,6 @@ Promise.all([
 ])
   .then(([forecast, observed]) => boot(forecast, observed))
   .catch((err) => {
-    $("cycle").textContent = "no data";
     $("warnings").hidden = false;
     $("warnings").textContent =
       "Could not load " + SOURCE + " (" + err.message + "). Run "

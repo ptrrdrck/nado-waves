@@ -146,7 +146,11 @@ forecaster actually verifies against, Surfline included.
    (`now.json`: NDBC directional spectrum, KNZY METAR, measured water level);
    *Forecast* only from a model (`forecast.json`: GFS-Wave). Each renders its
    own "standing on" block from whatever keys its file carries, because the
-   two name different levels. Opens on Now; a stale or missing observation
+   two name different levels — both on `app/info.html`, each under its own
+   heading and from its own file, beside the "physically derived" caveat and
+   the cycle line; the live page links to it beneath Geometry. Opens on Now;
+   a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
+   still opens on Now); a stale or missing observation
    says so and points at Forecast rather than falling back silently. This repository is private, so Pages cannot serve
    it and a published page cannot fetch `data/live/forecast.json` across the
    boundary. The forecast workflow builds a flat bundle (`index.html` +
@@ -162,8 +166,8 @@ forecaster actually verifies against, Surfline included.
    window only (BRIEFING §12), no ratio and no confidence badge — a ratio
    against the smallest of three is circular when all three are on screen.
    States all four levels
-   (geometry / model / calibration / observation) on screen, not just in the
-   README. **Coronado's three breaks only, by decision (2026-09-18).** Breakers
+   (geometry / model / calibration / observation) on screen — on
+   `info.html`, one tap from the live page — not just in the README. **Coronado's three breaks only, by decision (2026-09-18).** Breakers
    and Gator are out of the forecast and the app. They are not equivalent to
    Coronado north and south — measured, they differ on 17.6% and 13.5% of
    archive swell hours — but they are the two spots still standing on estimated
@@ -291,6 +295,9 @@ forecaster actually verifies against, Surfline included.
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
+    app/info.html       the caveat, the cycle line and each chain's
+                        standing-on block; shipped by `forecast.publish` in
+                        BOTH bundles, linked beneath Geometry
     app/geometry.html   template for the model-geometry drawing; filled by
                         `python -m forecast.geomviz OUT.html` from spots.json,
                         never hand-edited with coordinates. `forecast.publish`
