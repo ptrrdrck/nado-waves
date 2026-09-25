@@ -29,8 +29,9 @@
   "not_covered": "the Coronado Islands and the Baja coast (south of the source's 32.49 N edge, Mexican waters)",
   "datum": {
     "station": "9410170",
-    "msl_above_navd88_m": null,
-    "note": "not fetched: CO-OPS is denied from a session; run the workflow"
+    "msl_above_navd88_m": 0.765,
+    "epoch": "1983-2001",
+    "source": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9410170/datums.json?units=metric"
   },
   "stats": {
     "cells": 1668778,
@@ -38,5 +39,5 @@
     "min_elevation_m": -1345.4425048828125,
     "max_elevation_m": 390.7237854003906
   },
-  "retrieved_utc": "2026-09-25T20:14:44Z"
+  "retrieved_utc": "2026-09-25T20:16:12Z"
 }
