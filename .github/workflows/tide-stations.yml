@@ -9,9 +9,6 @@ name: Tide stations
 
 on:
   workflow_dispatch:
-  push:
-    branches: [claude/blissful-ptolemy-akmirq]   # TEMPORARY: remove before merge
-    paths: [collector/tidestations.py, .github/workflows/tide-stations.yml]
 
 permissions:
   contents: write

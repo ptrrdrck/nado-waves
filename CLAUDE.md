@@ -136,13 +136,22 @@ forecaster actually verifies against, Surfline included.
    the islands as land; and diffraction at every window edge (the islands by
    the two-edge Babinet factor, the Point Loma tip and the Baja tangent by the
    straight-edge one), each ray carrying a hard-edged and a diffracting
-   answer — into `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
+   answer, and bottom friction along each ray's path (JONSWAP, C_b = 0.038,
+   from the literature and never tuned; its own factor per ray) — into
+   `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
    spectrum through them and adds fetch-limited local chop over closed fetches.
-   **The number on every break card is this nearshore figure**, labelled with
-   its depth, on both chains; the straight-line window figure survives only in
+   **Then the surf zone, SHIPPED 2026-09-26** (BRIEFING §32):
+   `forecast/surfzone.py` carries that sea from 5 m in over each break's
+   surveyed profile (`<break>_profile.csv`, the 2016 CoNED beach, not this
+   season's bars) at the tide of the moment, Battjes–Janssen breaking with
+   Battjes–Stive's γ, and reports the largest Hs and the depth it breaks in.
+   **The number on every break card is that breaking height**, labelled with
+   its depth, on both chains — a significant height, never a face height; the
+   5 m figure stands in only when there is no tide, never a breaking height at
+   an assumed one. The straight-line window figure survives only in
    the card's calculation line under the drawing, which states each effect in
-   one form — windows, refraction, island diffraction, shoaling, local chop —
-   with its percentage. Refraction is measured with every edge still a hard
+   one form — windows, refraction and diffraction, bottom friction, shoaling,
+   local chop, breaking — with its percentage. Refraction is measured with every edge still a hard
    shadow, as the window treats them, and diffraction is only what softening
    the edges changes (`nearshore.summarise`). **Diffraction is computed on the
    bent rays, not straight lines**: the ray that grazes an edge is itself
@@ -330,6 +339,9 @@ forecaster actually verifies against, Surfline included.
                         wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),
+                        tidestations.py (every CO-OPS station near the breaks,
+                        their offsets and datums, and a 30-day comparison
+                        window — run on Actions; BRIEFING §32),
                         shoreline.py (NOAA's ENC coastline, by named REGION —
                         `coronado` carries the break chords, `baja` carries
                         the islands and the Mexican coast, `point_loma` the
@@ -365,12 +377,18 @@ forecaster actually verifies against, Surfline included.
                         grids — refraction and shoaling (S·c·cg invariant),
                         islands' shelves included; diffraction at the islands,
                         the Point Loma tip and the Baja tangent, hard and soft
-                        per ray; plus each break's wind fetch.
+                        per ray; bottom friction per ray; plus each break's
+                        wind fetch and cross-shore profile.
                         Writes data/nearshore/; never imported by the
                         forecast                                  [built]
       nearshore.py      carries a spectrum through those tables, pure
                         Python; local fetch-limited chop over CLOSED fetches
                         only; reports against the aperture          [built]
+      surfzone.py       5 m to the break on each profile at the tide,
+                        Battjes–Janssen, pure Python                [built]
+      tidesite.py       the bay gauge's level carried to the open coast
+                        (x0.944, measured against La Jolla), and the
+                        measured departure from the epoch prediction [built]
       live.py           the live forecast, Coronado only          [built]
       now.py            the OBSERVED reading, measurements only    [built]
       publish.py        the public delivery bundle                 [built]
@@ -414,8 +432,11 @@ forecaster actually verifies against, Surfline included.
     data/nearshore/     per-break transfer tables from forecast.raytrace:
                         <break>.csv (one row per period x 0.5° heading at
                         5 m: hard-edged gain, diffracting gain and the heading
-                        each reads), <break>.json (start point, datum, grids),
-                        <break>_fetch.csv (open water upwind, per 1° of wind)
+                        each reads, and the friction factor of each),
+                        <break>.json (start point, datum, grids),
+                        <break>_fetch.csv (open water upwind, per 1° of wind),
+                        <break>_profile.csv (depth below MSL every 2 m from the
+                        start point to dry sand, along the normal)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
@@ -600,11 +621,25 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   diffraction are modelled from surveyed inputs and fitted to nothing; calling
   them calibration would claim a level the project has not reached.
   `tests/test_app_surface.py` keeps the word out of the card's paragraph.
-- **The nearshore figure is at 5 m of water, not at the sand.** The 10 m
-  contour MOP uses lay 2.2 km off the north break, outside Point Loma's shadow,
-  and described a different place (BRIEFING §29). Moving `raytrace.H_REF`
-  changes what every number on the page means; rebuild the tables and re-read
-  §29 before doing it.
+- **The transfer tables stop at 5 m of water; the surf zone takes it from
+  there.** The 10 m contour MOP uses lay 2.2 km off the north break, outside
+  Point Loma's shadow, and described a different place (BRIEFING §29). Moving
+  `raytrace.H_REF` moves where the tables hand over to `surfzone`; rebuild
+  the tables AND the profiles and re-read §29 and §32 before doing it.
+- **The breaking height is a significant height, not a face height**, and the
+  profile is a 2016 survey. Measured over the archive (BRIEFING §32): breaking
+  lifts the 5 m figure ~20–23% into ~1.7–1.9 m of water, and the whole tide
+  range moves the break point 34–53 m while changing the height under 2% —
+  on a barless profile the tide decides WHERE it breaks, not how big. A
+  season's sandbar would change that, and nothing here knows where it is.
+- **9410170 is inside the bay; the breaks are not.** The open coast swings
+  0.944× as far and leads by ~3 min (measured against La Jolla, and CO-OPS's
+  Imperial Beach and Point Loma offsets agree). The card shows the gauge,
+  labelled as the gauge; the breaking depth uses the open coast
+  (`forecast.tidesite`). And the harmonic prediction is on the 1983–2001
+  epoch: the measured level ran ~0.23 m above it in Sept 2026, so the
+  forecast carries the last 3 days' measured departure forward — and computes
+  no breaking at all without one.
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.

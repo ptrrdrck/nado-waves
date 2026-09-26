@@ -11,7 +11,10 @@ WHAT IT GIVES, per break and spectrum:
   water off the break: refraction over the seabed (the islands' own shelves
   included), shoaling, and diffraction at every window edge — the Coronado
   Islands, the Point Loma tip and the Baja tangent. Linear theory, no breaking.
-- `hs_equivalent` — the same with shoaling divided back out, per frequency.
+- `hs_equivalent` — the same with shoaling divided back out, per frequency,
+  and without bottom friction.
+- `hs_friction` — `hs_equivalent` after bottom friction along each ray's
+  path (JONSWAP law, `raytrace.friction_rate`). `hs_ref` includes it.
 - `hs_hard` — refraction with every window edge a HARD shadow and shoaling
   divided out. Against the aperture's `hs_in_window_m` (straight lines, hard
   edges) it is the seabed alone; `hs_equivalent` against it is diffraction
@@ -59,6 +62,11 @@ class Ray:
     #: diffracts round the edge for one that does not (raytrace.table).
     diff_off_from: float
     diff_gain: float
+    #: Share of each answer's energy flux left after bottom friction along its
+    #: path over the shelf. Stored apart from the gains so friction can be
+    #: stated as its own effect; 1 for a table built before it was modelled.
+    friction: float = 1.0
+    diff_friction: float = 1.0
 
 
 @dataclass
@@ -80,7 +88,9 @@ class Table:
                 by_freq.setdefault(float(row["freq_hz"]), []).append(Ray(
                     float(row["near_from_deg"]), math.radians(float(row["near_width_deg"])),
                     float(row["off_from_deg"]), gain,
-                    float(row["diff_off_from_deg"]), diff_gain))
+                    float(row["diff_off_from_deg"]), diff_gain,
+                    float(row.get("friction") or 1.0),
+                    float(row.get("diff_friction") or 1.0)))
         fetch = []
         path = directory / f"{break_id}_fetch.csv"
         if path.exists():
@@ -148,6 +158,9 @@ class Nearshore:
     off_from_deg: float
     peak_period_s: float
     unmatched_bins: int = 0
+    #: Shoaling divided out, bottom friction in: between `hs_equivalent` and
+    #: `hs_ref` in the chain of effects. None from a caller that predates it.
+    hs_friction: float | None = None
     #: The arriving energy split into trains, each headed by where its energy
     #: came FROM offshore — the frame the window drawing is in.
     trains: list = field(default_factory=list)
@@ -160,7 +173,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
 
     grids = density_grids(spectrum) if grids is None else grids
     freqs = sorted(table.by_freq)
-    e10 = e_eq = e_hard = 0.0
+    e10 = e_eq = e_hard = e_fric = 0.0
     sn = cn = so = co = 0.0
     per_bin: list[tuple[int, float]] = []
     bin_sin: dict[int, float] = {}
@@ -183,9 +196,11 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
             if ray.diff_gain <= 0:
                 continue
             e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain
+            e_eq += e / ks2
+            e *= ray.diff_friction
+            e_fric += e / ks2
             e10 += e
             bin_e += e
-            e_eq += e / ks2
             t = math.radians(ray.near_from)
             sn += e * math.sin(t); cn += e * math.cos(t)
             t = math.radians(ray.diff_off_from)
@@ -201,6 +216,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         math.degrees(math.atan2(so, co)) % 360 if e10 > 0 else float("nan"),
         1.0 / spectrum.frequencies[peak[0]] if peak and peak[1] > 0 else float("nan"),
         unmatched,
+        hs(e_fric),
         split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos) if e10 > 0 else [],
     )
 
@@ -261,14 +277,26 @@ def train_dicts(trains) -> list[dict]:
 
 
 def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
-              window_hs_m: float, depth_m: float) -> dict:
+              window_hs_m: float, depth_m: float, profile=None, tide_m: float | None = None,
+              normal_deg: float | None = None) -> dict:
     """What a surface shows for one break: the number, its trains, and the
     chain of effects that turned the buoy's reading into it.
 
-    `hs_m` is the swell at the start depth with local chop added in energy —
-    they are different waves on the same water, and heights of independent
-    trains add as squares. Local chop is listed as its own train, tagged.
+    The swell at the start depth and local chop add in energy — different
+    waves on the same water, and heights of independent trains add as
+    squares. Local chop is listed as its own train, tagged.
+
+    With a `profile` and the open-coast `tide_m`, that sea is then carried in
+    to where it breaks (`forecast.surfzone`), and `hs_m` is the breaking
+    height. The trains are scaled with it, all by the same factor: a bulk
+    breaking model dissipates each part of the spectrum in proportion to its
+    energy (as SWAN distributes Battjes-Janssen), so the trains still sum to
+    the number above them. Without a profile or a tide, `hs_m` stays the
+    figure at the start depth and `breaking` is None — never a breaking height
+    at an assumed tide.
     """
+
+    from .surfzone import break_on
 
     local_hs = local.hs_m if local else 0.0
     total = math.sqrt(near.hs_ref ** 2 + local_hs ** 2)
@@ -277,10 +305,24 @@ def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
         trains.append({"hs_m": round(local.hs_m, 3), "period_s": round(local.tp_s, 1),
                        "from_deg": round(local.from_deg), "share": None,
                        "wind_sea": True, "local": True})
+    broke = None
+    if profile is not None and tide_m is not None and total > 0:
+        period = near.peak_period_s if near.peak_period_s == near.peak_period_s else (
+            local.tp_s if local else float("nan"))
+        angle = (((near.near_from_deg - normal_deg + 180.0) % 360.0) - 180.0
+                 if normal_deg is not None and near.near_from_deg == near.near_from_deg else 0.0)
+        broke = break_on(profile, hs_start_m=total, period_s=period,
+                         start_depth_m=depth_m, angle_deg=angle, tide_m=tide_m)
+    headline = broke.hs_m if broke else total
+    if broke and total > 0:
+        scale = headline / total
+        for t in trains:
+            t["hs_m"] = round(t["hs_m"] * scale, 3)
     return {
-        "hs_m": round(total, 3),
+        "hs_m": round(headline, 3),
         "depth_m": round(depth_m, 1),
         "trains": trains,
+        "breaking": broke.as_dict() if broke else None,
         "effects": {
             "buoy_hs_m": round(buoy_hs_m, 3),
             "window_hs_m": round(window_hs_m, 3),
@@ -289,10 +331,17 @@ def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
             # refracted is the seabed and nothing else. Diffraction alone:
             # the same rays with every edge diffracting (islands, Point Loma
             # tip, Baja tangent), so refracted -> diffracted is that and
-            # nothing else. Shoaling is then divided back in.
+            # nothing else. Then bottom friction, then shoaling divided
+            # back in.
             "refracted_hs_m": round(near.hs_hard, 3),
             "diffracted_hs_m": round(near.hs_equivalent, 3),
+            # Bottom friction along each ray's path, shoaling still out.
+            "friction_hs_m": round(near.hs_friction if near.hs_friction is not None
+                                   else near.hs_equivalent, 3),
             "shoaled_hs_m": round(near.hs_ref, 3),
+            # Swell and local chop together at the start depth: what breaking
+            # starts from.
+            "with_chop_hs_m": round(total, 3),
             "local": ({"hs_m": round(local.hs_m, 3), "tp_s": round(local.tp_s, 1),
                        "from_deg": round(local.from_deg), "fetch_km": round(local.fetch_km, 1)}
                       if local else None),
@@ -397,6 +446,8 @@ def report(spectra: list[Spectrum]) -> str:
         h10 = [n.hs_ref / a for a, n, _ in r]
         refr = [n.hs_hard / a for a, n, _ in r]
         diff = [n.hs_equivalent / n.hs_hard - 1 for _, n, _ in r if n.hs_hard > 0]
+        fric = [n.hs_friction / n.hs_equivalent - 1 for _, n, _ in r
+                if n.hs_equivalent > 0 and n.hs_friction is not None]
         out.append(f"\n  {sid}  (n = {len(r)}, aperture Hs median {_pct(ap, .5):.2f} m)")
         out.append(f"    refraction, hard edges:               {_pct(refr, .5):.3f} "
                    f"[{_pct(refr, .1):.3f}, {_pct(refr, .9):.3f}]")
@@ -406,6 +457,10 @@ def report(spectra: list[Spectrum]) -> str:
                    f"[{_pct(h10, .1):.3f}, {_pct(h10, .9):.3f}]")
         out.append(f"    height diffraction adds to hard edges: {100 * _pct(diff, .5):+.1f}% "
                    f"[{100 * _pct(diff, .1):+.1f}, {100 * _pct(diff, .9):+.1f}]")
+        if fric:
+            out.append(f"    height bottom friction takes:         {100 * _pct(fric, .5):+.2f}% "
+                       f"[{100 * _pct(fric, .1):+.2f}, {100 * _pct(fric, .9):+.2f}]; "
+                       f"worst {100 * min(fric):+.1f}%")
     south = rows["coronado_south"]
     north = rows["coronado_north"]
     if south and north and len(south) == len(north):

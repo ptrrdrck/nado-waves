@@ -202,3 +202,44 @@ def test_a_longer_wave_reaches_further_into_the_shadow():
 
     off, depth, dist = np.array([-300.0]), np.array([30.0]), np.array([5000.0])
     assert edge_factor(off, depth, dist, 16.0)[0] > edge_factor(off, depth, dist, 8.0)[0]
+
+
+# ------------------------------------------------------------ bottom friction
+
+from forecast.raytrace import C_BOTTOM, friction_rate, wavenumber  # noqa: E402
+
+
+@pytest.mark.parametrize("period", [8.0, 16.0])
+def test_friction_along_a_ray_is_the_jonswap_integral(period):
+    """Straight out from a planar beach, the factor the tracer stores is
+    exp(−∫ C_b·ω²/(g²·sinh²kh·cg) ds), integrated here independently over
+    depth (ds = dh / slope) from the start depth to deep water."""
+
+    bathy = planar()
+    x0, y0 = start(bathy)
+    rays = trace(bathy, x0, y0, np.array([0.0]), period)
+    assert rays.status[0] == DEEP
+
+    omega = 2 * math.pi / period
+    h = np.linspace(10.0, G * period ** 2 / (2 * math.pi), 200_001)
+    k = wavenumber(omega, h)
+    _, cg, _ = speeds(omega, h)
+    rate = C_BOTTOM * omega ** 2 / (G ** 2 * np.sinh(k * h) ** 2 * cg)
+    expected = math.exp(-float(np.sum(0.5 * (rate[1:] + rate[:-1]) * np.diff(h))) / SLOPE)
+    assert float(rays.friction[0]) == pytest.approx(expected, rel=0.01)
+    assert expected < 1.0
+
+
+def test_long_swell_loses_more_to_the_bottom_than_short():
+    """A 16 s wave feels the bottom from ten times as deep as an 8 s one."""
+
+    bathy = planar()
+    x0, y0 = start(bathy)
+    short = trace(bathy, x0, y0, np.array([0.0]), 8.0).friction[0]
+    long_ = trace(bathy, x0, y0, np.array([0.0]), 16.0).friction[0]
+    assert long_ < short < 1.0
+
+
+def test_deep_water_has_no_bottom_friction():
+    omega = 2 * math.pi / 10.0
+    assert float(friction_rate(omega, np.array([2000.0]))[0]) < 1e-12

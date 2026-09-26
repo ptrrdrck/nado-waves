@@ -80,12 +80,15 @@ a{color:var(--surf)}
   </p>
 
   <p class="blind">
-    Each break's number is the buoy's swell carried by physics to about
-    <b>5 m of water</b> off the break: through the windows the coast leaves open,
-    bent over the seabed, lifted or lowered by shoaling, with the Coronado
-    Islands diffracted and local wind chop added. It is still <b>not a wave
-    height at the beach</b> as a surfer would call it: no breaking, no
-    offshore-to-face transfer, and nothing has checked it against the sand.
+    Each break's number is the buoy's swell carried by physics to <b>where it
+    breaks</b>: through the windows the coast leaves open, bent over the seabed
+    and slowed by its friction, diffracted round every window edge, lifted by
+    shoaling into 5 m of water with local wind chop added, then carried in over the
+    surveyed beach profile at the tide of the moment until it breaks. It is
+    still <b>not a wave height at the beach</b> as a surfer would call it: a
+    significant height, not a face height, and the step from one to the other
+    has not been fitted; the beach profile is a 2016 survey rather than this
+    season's sandbars; and nothing has checked it against the sand.
   </p>
 
   <section class="card">
@@ -156,8 +159,8 @@ function renderNow(NOW) {
   // attribute the model's properties to the observation, so this note names
   // the buoy and nothing else.
   $("foot-now").innerHTML = `Observed at ${NOW.station_name} (NDBC ${NOW.station}),
-    a buoy 29 km offshore, and carried over the seabed to 5 m of water off each
-    break; nothing here is measured at the sand.`;
+    a buoy 29 km offshore, and carried over the seabed to where it breaks off
+    each break; nothing here is measured at the sand.`;
 }
 
 function renderForecast(DATA) {

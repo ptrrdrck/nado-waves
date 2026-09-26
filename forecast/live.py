@@ -54,6 +54,8 @@ from .nearshore import (carry, density_grids, load_tables, local_sea, spectrum_f
                         summarise, table_frequencies)
 from .units import height as fmt_height, speed as fmt_speed
 from .tideturns import read_turns, turns_between
+from .surfzone import load_profiles
+from .tidesite import anomaly, forecast_level, msl_above_mllw, predicted_series
 from .transform import (
     GridSpectrum,
     at_buoy,
@@ -76,6 +78,17 @@ WIND_STATION_NAME = "NAS North Island"
 
 TIDE_STATION = "9410170"
 TIDE_STATION_NAME = "San Diego, CA"
+
+#: What the nearshore chain stands on, shared by both tabs.
+SEABED_LINE = ("MODELLED — refraction, shoaling and bottom friction over the USGS CoNED "
+               "and GMRT seabed to 5 m of water off each break; diffraction at the "
+               "Coronado Islands, the Point Loma tip and the Baja tangent; linear, "
+               "unverified")
+SURF_ZONE_LINE = ("MODELLED — Battjes-Janssen breaking straight in from 5 m on the 2016 "
+                  "CoNED profile (not this season's sandbars), breaker index from "
+                  "Battjes & Stive; depth from {tide} at 9410170 carried to the open "
+                  "coast (x0.944, measured against La Jolla); a significant height, "
+                  "not a face height")
 
 #: Breaks the app surface covers. Coronado only, by decision.
 BREAKS = ("coronado_north", "coronado_center", "coronado_south")
@@ -151,7 +164,9 @@ class Hour:
     taken_by: list[dict] = field(default_factory=list)
     #: The number the card shows: the modelled spectrum carried over the
     #: seabed to 5 m of water off the break, with local chop from the model's
-    #: own wind. `hs_window_m` stays the straight-line window figure, and
+    #: own wind, then in to where it breaks at the hour's tide (the 5 m figure
+    #: when the tide is not available). `hs_window_m` stays the straight-line
+    #: window figure, and
     #: `nearshore.effects` is the chain between them (forecast.nearshore).
     hs_nearshore_m: float | None = None
     nearshore: dict = field(default_factory=dict)
@@ -213,6 +228,9 @@ class Forecast:
     tide_turns: list[dict] = field(default_factory=list)
     tide_station: str = TIDE_STATION
     tide_station_name: str = TIDE_STATION_NAME
+    #: Measured minus predicted at the gauge over the last 3 days, carried
+    #: forward into the depth the waves break in. None when not computed.
+    tide_departure_m: float | None = None
     breaks: list[BreakForecast] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     #: "spectrum" when the model's own directional grid was available, and
@@ -414,11 +432,11 @@ def build(
         standing_on={
             "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),
             "model": "GFS-Wave, unassimilated; 0.9–1.0 ft (0.26–0.31 m) low bias at the buoy, not corrected here",
-            "seabed": "MODELLED — refraction and shoaling over the USGS CoNED and GMRT "
-                      "seabed to 5 m of water off each break, the Coronado Islands by "
-                      "diffraction; linear, no breaking, unverified",
+            "seabed": SEABED_LINE,
             "local chop": "MODELLED — fetch-limited growth from the model's own wind, "
                           "only over fetches closed by land",
+            "surf zone": SURF_ZONE_LINE.format(
+                tide="the harmonic prediction plus the last 3 days' measured departure"),
             "calibration": "none — nothing has been fitted to an observation; "
                            "no offshore-to-face transfer, no band",
             "observation": "none — data/beach_log/ is empty; nothing has measured these breaks",
@@ -515,6 +533,29 @@ def build(
         forecast.warnings.append(f"nearshore tables unavailable ({exc}); showing window energy")
     freqs = table_frequencies(tables)
 
+    # The tide at the open coast for each hour: the bay's prediction carried
+    # through the measured transfer, plus the departure the gauge has measured
+    # from that prediction over the last three days (persistence — the epoch
+    # prediction alone put every break ~0.2 m too shallow, BRIEFING §32). No
+    # measured departure, no breaking: the 5 m figure is shown instead.
+    profiles, tide_series, departure, msl = {}, [], None, None
+    if tables:
+        try:
+            profiles = load_profiles()
+            msl = msl_above_mllw(data_dir)
+            tide_series = predicted_series(data_dir)
+            departure, pairs = anomaly(data_dir, datetime.strptime(generated, ISO)
+                                       .replace(tzinfo=timezone.utc))
+        except (FileNotFoundError, KeyError, ValueError) as exc:
+            profiles = {}
+            forecast.warnings.append(f"surf zone unavailable ({exc}); no breaking")
+        if profiles and departure is None:
+            profiles = {}
+            forecast.warnings.append(f"no measured departure from the {TIDE_STATION} "
+                                     "prediction in the last 3 days; no breaking")
+        elif profiles:
+            forecast.tide_departure_m = round(departure, 3)
+
     # One spectrum per hour, shared by the three breaks: the model's own grid
     # when there is one, otherwise the partitions rebuilt into a spectrum and
     # read by maximum entropy like the observed buoy.
@@ -606,8 +647,12 @@ def build(
                 sp, grids, (wind_kt, wind_from) = carried_input[row.valid_utc]
                 table = tables[break_id]
                 chop = local_sea(table, spot.normal, wind_kt, wind_from)
+                level = (forecast_level(tide_series, row.valid_utc, departure, msl)
+                         if profiles else None)
                 near = summarise(carry(sp, table, grids), chop, buoy_hs_m=hs_offshore,
-                                 window_hs_m=hs_window, depth_m=table.start_depth_m)
+                                 window_hs_m=hs_window, depth_m=table.start_depth_m,
+                                 profile=profiles.get(break_id), tide_m=level,
+                                 normal_deg=spot.normal)
                 hour_trains = near["trains"]
                 if near["trains"]:
                     dominant_tp = near["trains"][0]["period_s"]
@@ -686,8 +731,9 @@ def format_table(forecast: Forecast, *, rows: int = 8) -> str:
 
     lines += [
         "Window height is offshore energy aimed at the break; the nearshore figure",
-        "carries it over the seabed to 5 m of water. Neither is a surf height at the",
-        "sand: no breaking, no offshore-to-face transfer.",
+        "carries it over the seabed to 5 m of water and in to where it breaks at the",
+        "hour's tide. Neither is a surf height at the sand: a significant height,",
+        "with no offshore-to-face transfer.",
         "No verification series exists, so nothing here carries an error bar.",
     ]
     return "\n".join(lines)

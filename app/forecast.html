@@ -785,11 +785,23 @@ function breakPanel(c) {
     </div>`;
 }
 
-// What the headline number is: a height at the depth the rays start from.
-// An older payload without the nearshore block still says "in window",
-// because that is what its number is.
+// A depth for a label: whole feet, metres to one decimal below ten.
+function depthText(m) {
+  return `${Math.round(m * FT_PER_M)} ft (${m < 10 ? m.toFixed(1) : Math.round(m)} m)`;
+}
+
+// What the headline number is. Where it breaks, when the payload carries the
+// surf zone; otherwise a height at the depth the rays start from (no current
+// tide); and an older payload without the nearshore block still says "in
+// window", because that is what its number is.
 function depthLabel(c) {
-  const d = (c.nearshore || {}).depth_m;
+  const n = c.nearshore || {};
+  const b = n.breaking;
+  if (b && b.depth_m != null) {
+    return b.outside_start ? `breaking at ${depthText(n.depth_m)} depth or deeper`
+      : `breaking at ${depthText(b.depth_m)} depth`;
+  }
+  const d = n.depth_m;
   return d != null && isFinite(d)
     ? `at ${Math.round(d * FT_PER_M)} ft (${Math.round(d)} m) depth` : "in window";
 }
@@ -840,13 +852,32 @@ function calculationLine(c) {
     `Refraction and diffraction at the windows' edges change the swell by `
       + `${change(refracted, e.window_hs_m)} and ${change(diffracted, refracted)}, respectively.`,
   ];
-  const before = diffracted;
+  // Bottom friction along the rays' paths over the shelf, before shoaling
+  // divides back in (forecast.raytrace.friction_rate). Absent from a payload
+  // built before it was modelled.
+  let before = diffracted;
+  if (e.friction_hs_m != null) {
+    steps.push(`Bottom friction over the shelf changes it by ${change(e.friction_hs_m, diffracted)}.`);
+    before = e.friction_hs_m;
+  }
   const verb = e.shoaled_hs_m >= before ? "lifts" : "lowers";
   steps.push(`Shoaling into ${depth} of water ${verb} it to ${ht(e.shoaled_hs_m)}`
     + `${pct(e.shoaled_hs_m, before)}.`);
-  if (e.local && n.hs_m != null) {
-    steps.push(`Local wind chop at ${e.local.tp_s.toFixed(1)} s makes that ${ht(n.hs_m)}`
-      + `${pct(n.hs_m, e.shoaled_hs_m)}.`);
+  // Swell and chop together at the start depth; an older payload's `hs_m` is
+  // that figure, a newer one's is the breaking height.
+  const withChop = e.with_chop_hs_m != null ? e.with_chop_hs_m : n.hs_m;
+  if (e.local && withChop != null) {
+    steps.push(`Local wind chop at ${e.local.tp_s.toFixed(1)} s makes that ${ht(withChop)}`
+      + `${pct(withChop, e.shoaled_hs_m)}.`);
+  }
+  // Then in to where it breaks, at this tide (forecast.surfzone).
+  const b = n.breaking;
+  if (b && b.hs_m != null && withChop != null) {
+    steps.push(b.outside_start
+      ? `At this tide it is already breaking in ${depth} of water, so the break is `
+        + `further out and ${ht(b.hs_m)} is an upper bound.`
+      : `At this tide it breaks in ${depthText(b.depth_m)} of water at ${ht(b.hs_m)}`
+        + `${pct(b.hs_m, withChop)}.`);
   }
   return `<div class="calc">${steps.join(" ")}</div>`;
 }
