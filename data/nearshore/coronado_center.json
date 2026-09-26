@@ -14,18 +14,18 @@
   ],
   "islands": [
     {
-      "name": "Coronado Islands (south group)",
+      "name": "Coronado Islands (South group)",
       "ring_depth_m": 61.5,
       "radius_m": 2421
     },
     {
-      "name": "Coronado Islands (north)",
+      "name": "Coronado Islands (North group)",
       "ring_depth_m": 268.9,
       "radius_m": 1105
     }
   ],
   "diffracting_edges": [
-    "Baja mainland",
+    "Baja peninsula",
     "Point Loma peninsula"
   ],
   "bottom_friction": {

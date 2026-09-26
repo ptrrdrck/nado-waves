@@ -154,8 +154,8 @@ def distances(breaks: list[dict], by_name: dict[str, Blocker],
             add("tip", "spread of the three tangent vertices", far[0], far[1],
                 "why no single point can stand for the tip")
 
-    south = by_name.get("Coronado Islands (south group)")
-    north = by_name.get("Coronado Islands (north)")
+    south = by_name.get("Coronado Islands (South group)")
+    north = by_name.get("Coronado Islands (North group)")
     if south and north:
         add("islands", "south group, end to end", south.a, south.b,
             "the screen the model draws for three islands")
@@ -165,13 +165,13 @@ def distances(breaks: list[dict], by_name: dict[str, Blocker],
         add("islands", "channel between the islands", gap[0], gap[1],
             "open water the old one-blocker model called land")
 
-    baja = by_name.get("Baja mainland")
+    baja = by_name.get("Baja peninsula")
     center = ids.get("coronado_center")
     if baja and center:
         add("far", "center → Baja tangent", center["position"], baja.a,
             "one vertex carries every south edge")
     if south and center:
-        add("far", "center → Coronado Islands (north)", center["position"], north.b, "")
+        add("far", "center → Coronado Islands (North group)", center["position"], north.b, "")
     if buoy and center:
         add("far", f"center → buoy {BUOY}", center["position"], buoy,
             "the anchor sits outside the beach's shadow")
