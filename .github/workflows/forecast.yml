@@ -102,28 +102,44 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Deliberately scoped: this job never touches the collected series.
-          git add data/forecast_log 2>/dev/null || true
+          commit_log() {
+            git add data/forecast_log 2>/dev/null || true
+            if git diff --cached --quiet; then
+              return 1
+            fi
+            rows=$(git diff --cached --numstat -- data/forecast_log \
+              | awk '{sum += $1} END {print sum + 0}')
+            git commit -q \
+              -m "data: log forecast build" \
+              -m "${rows} row(s) added. Automated commit from .github/workflows/forecast.yml."
+          }
 
-          if git diff --cached --quiet; then
+          if ! commit_log; then
             echo "No new forecast log rows to commit."
             exit 0
           fi
 
-          rows=$(git diff --cached --numstat -- data/forecast_log \
-            | awk '{sum += $1} END {print sum + 0}')
-          git commit \
-            -m "data: log forecast build" \
-            -m "${rows} row(s) added. Automated commit from .github/workflows/forecast.yml."
-
-          # The collector pushes hourly to the same branch. Rebase and retry.
+          # Another job can push to the same files between checkout and here --
+          # the shown-hours seed did on 2026-09-26, both appending to one JSONL.
+          # Rebasing an append onto an append conflicts, and the old loop then
+          # pushed an unchanged HEAD, read "Everything up-to-date" as success and
+          # lost the build's rows. So a rejected push starts again from the new
+          # tip and re-appends this build (data/live is gitignored, so the reset
+          # keeps it; the append is idempotent on generated_utc).
           for attempt in 1 2 3 4; do
             if git push origin "HEAD:${BRANCH}"; then
               echo "Pushed on attempt ${attempt}."
               exit 0
             fi
-            echo "Push failed (attempt ${attempt}); rebasing and retrying."
-            git pull --rebase --autostash origin "${BRANCH}" || true
+            echo "Push failed (attempt ${attempt}); re-appending onto the new ${BRANCH}."
             sleep $((2 ** attempt))
+            git fetch -q origin "${BRANCH}"
+            git reset -q --hard "origin/${BRANCH}"
+            python -m forecast.forecastlog
+            if ! commit_log; then
+              echo "This build's rows are already on ${BRANCH}."
+              exit 0
+            fi
           done
 
           echo "::error title=Forecast log push failed::Could not push the forecast log"

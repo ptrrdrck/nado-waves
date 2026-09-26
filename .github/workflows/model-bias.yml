@@ -93,7 +93,14 @@ jobs:
               exit 0
             fi
             echo "Push failed (attempt ${attempt}); rebasing and retrying."
-            git pull --rebase --autostash origin "${BRANCH}" || true
+            # Nothing else writes these paths, so a conflict means something
+            # is wrong: stop loudly rather than push an unchanged HEAD and
+            # read "Everything up-to-date" as success.
+            if ! git pull -q --rebase --autostash origin "${BRANCH}"; then
+              git rebase --abort || true
+              echo "::error title=Model bias rebase conflict::Another job changed the recomputed log or the report"
+              exit 1
+            fi
             sleep $((2 ** attempt))
           done
 

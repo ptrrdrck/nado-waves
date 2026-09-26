@@ -76,26 +76,40 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Deliberately scoped: the shown log, nothing else.
-          git add data/forecast_log/46232_shown 2>/dev/null || true
+          commit_seed() {
+            git add data/forecast_log/46232_shown 2>/dev/null || true
+            if git diff --cached --quiet; then
+              return 1
+            fi
+            git commit -q \
+              -m "data: seed shown forecast hours from the published history" \
+              -m "Automated commit from .github/workflows/seed-shown.yml."
+          }
 
-          if git diff --cached --quiet; then
+          if ! commit_seed; then
             echo "Nothing new to seed."
             echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          git commit \
-            -m "data: seed shown forecast hours from the published history" \
-            -m "Automated commit from .github/workflows/seed-shown.yml."
-
+          # The forecast job appends to the same JSONL, so a rebase can
+          # conflict; start again from the new tip and re-seed instead (the
+          # seed is idempotent). See forecast.yml's commit step.
           for attempt in 1 2 3 4; do
             if git push origin "HEAD:${BRANCH}"; then
               echo "pushed=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            echo "Push failed (attempt ${attempt}); rebasing and retrying."
-            git pull --rebase --autostash origin "${BRANCH}" || true
+            echo "Push failed (attempt ${attempt}); re-seeding onto the new ${BRANCH}."
             sleep $((2 ** attempt))
+            git fetch -q origin "${BRANCH}"
+            git reset -q --hard "origin/${BRANCH}"
+            python -m forecast.forecastlog --seed-shown seed/*.json
+            if ! commit_seed; then
+              echo "Already seeded on ${BRANCH}."
+              echo "pushed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           done
 
           echo "::error title=Seed push failed::Could not push the shown log"
