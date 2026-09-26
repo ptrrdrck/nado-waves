@@ -474,8 +474,14 @@ def build(
     )
 
     # Before this build is logged, so the past is only what earlier builds said.
+    # Each with the full hour its own build showed, where that was kept. A
+    # build is picked only for hours after it was published, and keeps them
+    # up to 48 h ahead, so builds up to 96 h old can still be the one shown.
+    since = (datetime.strptime(generated, ISO)
+             - timedelta(hours=forecastlog.PAST_HOURS)).strftime(ISO)
     forecast.past = forecastlog.past_hours(
-        forecastlog.read(forecastlog.log_dir(data_dir)), generated)
+        forecastlog.read(forecastlog.log_dir(data_dir)), generated,
+        shown=forecastlog.read_shown(forecastlog.shown_dir(data_dir), since=since))
 
     if bulletin is None:
         forecast.warnings.append("No GFS-Wave cycle available; no forecast produced.")
@@ -548,10 +554,14 @@ def build(
         ))
 
     if rows and all_turns:
+        # From the earliest past hour too, or a past card's tide line would
+        # name the first turn of THIS run rather than the one after its hour.
+        start = rows[0].valid_utc
+        if forecast.past:
+            start = min(start, datetime.strptime(forecast.past[0]["valid_utc"], ISO)
+                        .replace(tzinfo=timezone.utc))
         forecast.tide_turns = [
-            t.as_dict() for t in turns_between(
-                all_turns, rows[0].valid_utc, rows[-1].valid_utc,
-            )
+            t.as_dict() for t in turns_between(all_turns, start, rows[-1].valid_utc)
         ]
 
     try:
@@ -788,10 +798,13 @@ def main(argv: list[str] | None = None) -> int:
     # The permanent record of what was built -- only for the live data
     # directory's own forecast, never for a copy written somewhere else.
     if args.out is None:
-        logged = forecastlog.append(json.loads(out.read_text(encoding="utf-8")),
-                                    forecastlog.log_dir(args.data_dir),
+        built = json.loads(out.read_text(encoding="utf-8"))
+        logged = forecastlog.append(built, forecastlog.log_dir(args.data_dir),
                                     build_sha=os.environ.get("GITHUB_SHA", "")[:7])
         print(f"Logged {logged} row(s) to {forecastlog.log_dir(args.data_dir)}")
+        # And the hours it can be shown for, in full, for its past cards.
+        shown = forecastlog.append_shown(built, forecastlog.shown_dir(args.data_dir))
+        print(f"Logged {shown} shown hour(s) to {forecastlog.shown_dir(args.data_dir)}")
     return 0 if forecast.breaks else 1
 
 

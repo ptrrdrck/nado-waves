@@ -14,7 +14,12 @@ one row per site, the numbers a reader saw and the few a later comparison needs.
 
 It is never shown by itself. `forecast.live` reads it back for the 48 hours the
 page reaches into the past (`past_hours`), and `forecast.modelbias` pairs it
-with the measured reading at each hour. The measured side is NOT stored here:
+with the measured reading at each hour.
+
+Beside it, ``46232_shown/YYYY-MM.jsonl`` keeps each build's hours IN FULL for
+the 48 h after it was published — what a past card needs to be drawn as it
+was (`append_shown`). ``--seed-shown`` fills it for builds logged before it
+existed, from the files the delivery repository actually published. The measured side is NOT stored here:
 it is recomputable from the committed archive, with any version of the chain.
 
 One file per month of `generated_utc`, so a commit rewrites a bounded file and
@@ -162,8 +167,121 @@ def _parse(stamp: str) -> datetime:
     return datetime.strptime(stamp, ISO).replace(tzinfo=timezone.utc)
 
 
+# --- What each build SHOWED, in full ------------------------------------------
+#
+# The CSV above keeps a headline per hour, forever, for the bias report. The
+# page's past hours need more: the trains, what takes the swell, and the
+# calculation behind the headline, so that 11 AM reads the same after 11 AM as
+# it did before (owner's report, 2026-09-26: an earlier run's hour had lost its
+# drawing and calculation because only the headline had been kept).
+#
+# So every build also writes, for each offered hour it covers from its own
+# publication to `SHOWN_AHEAD_HOURS` later, the hour exactly as forecast.json
+# carried it: each break's hour, the buoy and the tide. Only those hours can
+# ever be picked as "what the page showed" (a build is chosen for an hour only
+# if it was published before it), and 48 h ahead covers a day of missed
+# builds. About 85 KB a build, appended, so git stores only the additions.
+
+#: How far past its own publication a build's hours are kept in full.
+SHOWN_AHEAD_HOURS = PAST_HOURS
+
+
+def shown_dir(data_dir: Path = DEFAULT_DATA_DIR, station: str = STATION) -> Path:
+    return Path(data_dir) / "forecast_log" / f"{station}_shown"
+
+
+def shown_lines(forecast: dict, *, step: int = HOUR_STEP,
+                ahead: int = SHOWN_AHEAD_HOURS) -> list[dict]:
+    """The hours this build could be shown for, in full, from its forecast.json.
+
+    Works on the hourly file `live.write` writes and on the 3-hourly one the
+    delivery repository holds, which is what `--seed-shown` reads.
+    """
+
+    breaks = forecast.get("breaks") or []
+    if not breaks or not forecast.get("cycle_utc") or not forecast.get("generated_utc"):
+        return []
+    generated = forecast["generated_utc"]
+    limit = _parse(generated) + timedelta(hours=ahead)
+    buoy = {b.get("valid_utc"): b for b in forecast.get("buoy") or []}
+    tide = {t.get("valid_utc"): t for t in forecast.get("tide") or []}
+    out = []
+    for n, hour in enumerate(breaks[0].get("hours") or []):
+        valid = hour.get("valid_utc", "")
+        if hour.get("lead_h", 0) % step or valid < generated or _parse(valid) > limit:
+            continue
+        hours = {}
+        for entry in breaks:
+            theirs = entry.get("hours") or []
+            if n < len(theirs) and theirs[n].get("valid_utc") == valid:
+                hours[entry["id"]] = theirs[n]
+        out.append({
+            "generated_utc": generated, "cycle_utc": forecast["cycle_utc"],
+            "valid_utc": valid, "lead_h": hour.get("lead_h"),
+            "wave_source": forecast.get("wave_source", ""),
+            "buoy": buoy.get(valid), "tide": tide.get(valid), "breaks": hours,
+        })
+    return out
+
+
+def _shown_prefix(generated_utc: str) -> str:
+    """How every line of one build starts: `generated_utc` is its first key."""
+
+    return json.dumps({"generated_utc": generated_utc}, separators=(",", ":"))[:-1]
+
+
+def append_shown(forecast: dict, directory: Path) -> int:
+    """Append this build's shown hours. Returns how many (0 if already logged)."""
+
+    lines = shown_lines(forecast)
+    if not lines:
+        return 0
+    generated = forecast["generated_utc"]
+    path = directory / f"{generated[:7]}.jsonl"
+    prefix = _shown_prefix(generated)
+    if path.exists():
+        with path.open(encoding="utf-8") as fh:
+            if any(line.startswith(prefix) for line in fh):
+                return 0
+    directory.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        for line in lines:
+            fh.write(json.dumps(line, separators=(",", ":")) + "\n")
+    return len(lines)
+
+
+def _month_after(month: str) -> str:
+    year, mon = int(month[:4]), int(month[5:7])
+    return f"{year + mon // 12:04d}-{mon % 12 + 1:02d}"
+
+
+def read_shown(directory: Path, *, since: str = "") -> dict[tuple[str, str], dict]:
+    """Shown hours keyed by (generated_utc, valid_utc), valid at or after `since`.
+
+    A month's file holds builds from that month, whose hours reach at most
+    48 h into the next, so older files are not opened at all.
+    """
+
+    out: dict[tuple[str, str], dict] = {}
+    if not directory.is_dir():
+        return out
+    for path in sorted(directory.glob("*.jsonl")):
+        if since and _month_after(path.stem) < since[:7]:
+            continue
+        with path.open(encoding="utf-8") as fh:
+            for raw in fh:
+                if not raw.strip():
+                    continue
+                line = json.loads(raw)
+                if since and line.get("valid_utc", "") < since:
+                    continue
+                out[(line["generated_utc"], line["valid_utc"])] = line
+    return out
+
+
 def past_hours(logged: list[dict], generated_utc: str, *,
-               hours: int = PAST_HOURS, step: int = HOUR_STEP) -> list[dict]:
+               hours: int = PAST_HOURS, step: int = HOUR_STEP,
+               shown: dict[tuple[str, str], dict] | None = None) -> list[dict]:
     """What the page showed for each offered hour in the `hours` before `generated_utc`.
 
     For each hour, the row from the LATEST build whose `generated_utc` is at or
@@ -172,8 +290,13 @@ def past_hours(logged: list[dict], generated_utc: str, *,
     after its nominal time, so they were already past when it appeared — and
     neither is a later cycle's view of an hour that had gone by. An hour no
     build covered in advance is left out, never filled from a later one.
+
+    With `shown` (`read_shown`), each hour also carries `detail`: that SAME
+    build's hour in full, so the page can draw the card it drew then. Never
+    another build's: an hour whose own build kept no detail has none.
     """
 
+    kept = shown or {}
     until = _parse(generated_utc)
     since = until - timedelta(hours=hours)
     # valid_utc -> generated_utc -> site -> row
@@ -196,8 +319,11 @@ def past_hours(logged: list[dict], generated_utc: str, *,
         shown = builds[max(builds)]
         buoy = shown.get(BUOY)
         any_row = next(iter(shown.values()))
+        detail = kept.get((any_row["generated_utc"], valid))
         out.append({
             "valid_utc": valid,
+            "detail": ({"buoy": detail.get("buoy"), "tide": detail.get("tide"),
+                        "breaks": detail.get("breaks") or {}} if detail else None),
             "generated_utc": any_row["generated_utc"],
             "cycle_utc": any_row["cycle_utc"],
             "lead_h": int(any_row["lead_h"]),
@@ -224,12 +350,54 @@ def _entry(row: dict) -> dict:
     }
 
 
+def seed_shown(forecasts: list[dict], data_dir: Path = DEFAULT_DATA_DIR) -> list[str]:
+    """Fill the shown log for builds logged before it existed, from what was published.
+
+    The delivery repository's history holds every forecast.json the page was
+    served, so for a build logged with headlines only, its published file IS
+    the full detail of what was shown. The control makes that a check rather
+    than an assumption: a file is used only if its build is already in the
+    headline log AND every headline it carries matches the logged one.
+    Anything else is reported and skipped, never guessed at. Idempotent.
+    """
+
+    logged: dict[str, dict[tuple[str, str], str]] = {}
+    for row in read(log_dir(data_dir)):
+        logged.setdefault(row["generated_utc"], {})[(row["valid_utc"], row["site"])] = row["hs_m"]
+    report = []
+    for forecast in forecasts:
+        generated = forecast.get("generated_utc", "?")
+        mine = logged.get(generated)
+        if not mine:
+            report.append(f"{generated}: not in the headline log; skipped")
+            continue
+        theirs = {(r["valid_utc"], r["site"]): r["hs_m"] for r in rows(forecast)}
+        both = set(mine) & set(theirs)
+        wrong = [k for k in both if mine[k] != theirs[k]]
+        if not both or wrong:
+            report.append(f"{generated}: {len(wrong)} of {len(both)} headlines differ "
+                          f"from the log; skipped")
+            continue
+        n = append_shown(forecast, shown_dir(data_dir))
+        report.append(f"{generated}: {len(both)} headlines match; "
+                      + (f"{n} shown hour(s) seeded" if n else "already seeded"))
+    return report
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--forecast", type=Path, default=None,
                         help="default: <data-dir>/live/forecast.json")
+    parser.add_argument("--seed-shown", type=Path, nargs="+", metavar="FILE",
+                        help="published forecast.json files to fill the shown log from")
     args = parser.parse_args(argv)
+
+    if args.seed_shown:
+        files = [json.loads(p.read_text(encoding="utf-8")) for p in args.seed_shown]
+        for line in seed_shown(files, args.data_dir):
+            print(line)
+        return 0
 
     source = args.forecast or Path(args.data_dir) / "live" / "forecast.json"
     forecast = json.loads(source.read_text(encoding="utf-8"))
@@ -237,6 +405,8 @@ def main(argv: list[str] | None = None) -> int:
     written = append(forecast, log_dir(args.data_dir), build_sha=sha)
     print(f"{written} row(s) logged for build {forecast.get('generated_utc')}"
           if written else f"build {forecast.get('generated_utc')} already logged, or empty")
+    shown = append_shown(forecast, shown_dir(args.data_dir))
+    print(f"{shown} shown hour(s) logged")
     return 0
 
 

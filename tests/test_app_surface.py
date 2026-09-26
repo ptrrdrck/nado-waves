@@ -750,6 +750,7 @@ class TestItMatchesTheLiveOutput:
         known |= {"hs_m", "period_s", "from_deg", "wind_sea", "local"}  # train entries
         known |= {"peak_period_s", "peak_direction_deg", "frequency_bins"}  # buoy
         known |= {"age_hours", "observed_utc", "trains", "height_m", "kind"}
+        known |= {"detail"}  # `past` entries: forecastlog.past_hours
 
         for accessor in re.findall(r"\b(?:hour|entry|data|t|spread)\.([a-z_]{3,})\b", SOURCE):
             if accessor in {"map", "filter", "find", "join", "length", "split",
@@ -1556,7 +1557,7 @@ class TestTheTideSaysWhichWayItIsGoing:
     def test_the_forecast_tab_does_not_repeat_the_tag(self):
         """Everything on that tab is a model and its provenance says so."""
 
-        assert "turnLine(DATA.tide_turns || [], stamp.valid_utc)" in SOURCE
+        assert "turnLine(DATA.tide_turns || [], step.valid_utc)" in SOURCE
 
     def test_the_observed_turn_is_asked_for_against_the_readers_clock(self):
         """BRIEFING §18: a 'next turn' baked in at build time stops being the
@@ -1623,7 +1624,7 @@ class TestEveryMeasurementSaysHowOldItIs:
         exactly when how old the substitute is matters."""
 
         wind_block = SOURCE[SOURCE.index("GFS-Wave at the buoy for ${stampWhen}"):]
-        assert "observed ${observedAt(wind.observed_utc)}" in wind_block[:400]
+        assert "observed ${observedAt(fallback.observed_utc)}" in wind_block[:400]
 
     def test_a_prediction_is_never_given_an_age(self):
         """A modelled wind or a harmonic tide is a forecast FOR a moment, not a
@@ -1683,3 +1684,56 @@ class TestPastHoursAreExplained:
         assert "what this page showed for that hour" in INFO_TEXT
         assert "the same chain" in INFO_TEXT
         assert "does not check the beach" in INFO_TEXT
+
+
+class TestAPastHourKeepsItsCard:
+    """Owner's report, 2026-09-26: the 11 AM hour, once past, had lost the
+    drawing and the calculation it showed as a forecast. A past hour whose
+    build kept its full hour is drawn from it, through the same card as a
+    current hour; one that kept only a headline says so."""
+
+    def _cards(self, detail):
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        fns = ""
+        for name in ("cardsForForecast", "measuredAt", "pastNearshore"):
+            start = SOURCE.index(f"function {name}(")
+            fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        order = SOURCE[SOURCE.index("const ORDER ="):]
+        order = order[:order.index("\n") + 1]
+        hour = {"valid_utc": "2026-09-26T18:00:00Z", "hs_nearshore_m": 0.55,
+                "nearshore": {"effects": {"window_hs_m": 0.8, "shoaled_hs_m": 0.41}},
+                "trains": [{"hs_m": 0.51, "period_s": 10.4, "from_deg": 215}],
+                "taken_by": [{"blocker": "Point Loma peninsula", "share": 0.3}]}
+        entry = {"valid_utc": "2026-09-26T18:00:00Z", "cycle_utc": "2026-09-26T12:00:00Z",
+                 "breaks": {"coronado_south": {"hs_m": 0.55, "hs_basis": "breaking",
+                                               "depth_m": 1.4}},
+                 "detail": {"breaks": {"coronado_south": hour}} if detail else None}
+        script = (
+            order + "let MEASURED = null; Date.now = () => Date.UTC(2026, 8, 26, 23);\n"
+            "const DATA = {breaks: [{id: 'coronado_south', name: 'South', swell_window: [],"
+            " hours: [{valid_utc: '2026-09-26T21:00:00Z', trains: [], nearshore: {}}]}]};\n"
+            + fns +
+            f"const step = {{valid_utc: '2026-09-26T18:00:00Z', from: 'past', entry: {json.dumps(entry)}}};\n"
+            "const c = cardsForForecast(step)[0];\n"
+            "console.log(JSON.stringify({past: !!c.past, trains: c.trains.length,"
+            " takenBy: c.takenBy.length, effects: !!(c.nearshore && c.nearshore.effects),"
+            " hs: c.hsWindow}));\n"
+            "const cycle = cardsForForecast({valid_utc: '2026-09-26T21:00:00Z', from: 'cycle',"
+            " index: 0})[0]; console.log(JSON.stringify({past: !!cycle.past}));\n"
+        )
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True,
+                             check=True).stdout.splitlines()
+        return [json.loads(line) for line in out if line.strip()]
+
+    def test_with_its_builds_detail_it_is_the_full_card(self):
+        got, cycle = self._cards(detail=True)
+        assert got == {"past": False, "trains": 1, "takenBy": 1, "effects": True, "hs": 0.55}
+        assert cycle == {"past": False}
+
+    def test_without_it_the_card_says_the_calculation_was_not_kept(self):
+        got, _ = self._cards(detail=False)
+        assert got["past"] is True and got["effects"] is False
+        assert "The calculation for this hour was not kept." in SOURCE
+        assert "Only the headline is kept" not in SOURCE

@@ -199,8 +199,11 @@ forecaster actually verifies against, Surfline included.
    **The Forecast tab reaches 48 h back** (owner's decision, 2026-09-26). For a
    past hour it shows what the page showed then: the newest run published
    before that hour, from `forecast.json`'s `past`, read back from the
-   permanent log. Under it, in blue, is the measured chain rebuilt for that
-   hour (`measured.json`). It opens on the first hour not yet passed, never
+   permanent log — **the full card, drawing and calculation table included**,
+   from that build's own hour as it was published (`46232_shown/`). A past
+   hour whose build kept only a headline says "The calculation for this hour
+   was not kept" rather than borrowing another build's detail. Under it, in
+   blue, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
@@ -442,8 +445,13 @@ forecaster actually verifies against, Surfline included.
     data/forecast_log/  46232/YYYY-MM.csv: what every forecast build said,
                         3-hourly, one row per site (forecast.forecastlog).
                         PERMANENT and never published: the one input to the
-                        bias report nothing can rebuild. 46232_recomputed/ is
-                        past cycles rebuilt later (model-bias.yml), kept apart
+                        bias report nothing can rebuild. 46232_shown/ is each
+                        build's hours IN FULL for the 48 h after it was
+                        published (JSONL, ~85 KB a build): what a past card is
+                        drawn from; `seed-shown.yml` fills it for the first
+                        builds from the delivery repo's published history,
+                        headline-checked. 46232_recomputed/ is past cycles
+                        rebuilt later (model-bias.yml), kept apart
     data/spectra/       NDBC directional spectra, five components per station
     data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
                         _observed (measured), _predicted (hourly harmonic),

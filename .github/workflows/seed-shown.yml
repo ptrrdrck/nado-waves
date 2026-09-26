@@ -1,0 +1,111 @@
+# Fill data/forecast_log/46232_shown/ for builds logged before it existed,
+# from the forecast.json files the delivery repository actually published.
+#
+# The shown log keeps each build's hours in full so that a past hour on the
+# Forecast tab is drawn exactly as it was shown -- trains, drawing, calculation
+# table. The first builds logged on 2026-09-26 (17:28Z, 18:45Z, 20:05Z) kept
+# only headlines. Their published files are in nado-waves-forecast's history,
+# and that history is the record of what was shown, so this reads them back.
+#
+# `forecast.forecastlog --seed-shown` uses a file only if its build is already
+# in the headline log AND every headline it carries matches the logged one;
+# anything else is reported and skipped. It is idempotent, so running this
+# again adds nothing. Dispatch only: it is a one-off, kept for the record.
+
+name: Seed shown forecast hours
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Published builds from this instant (UTC)"
+        required: false
+        default: "2026-09-26T17:00:00Z"
+
+permissions:
+  contents: write
+  # To start "Build forecast" afterwards, so `past` carries the seeded hours.
+  actions: write
+
+concurrency:
+  group: forecast-log
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Read the published forecast.json history
+        env:
+          PAGES_REPO: ${{ vars.PAGES_REPO || 'ptrrdrck/nado-waves-forecast' }}
+          SINCE: ${{ inputs.since }}
+        run: |
+          set -euo pipefail
+          git clone --quiet "https://github.com/${PAGES_REPO}.git" published
+          mkdir -p seed
+          for sha in $(git -C published log --format=%H --since="${SINCE}" -- forecast.json); do
+            git -C published show "${sha}:forecast.json" > "seed/${sha}.json"
+          done
+          echo "$(ls seed | wc -l) published forecast.json file(s) since ${SINCE}"
+
+      - name: Seed, with the headline control
+        run: |
+          set -euo pipefail
+          if ls seed/*.json >/dev/null 2>&1; then
+            python -m forecast.forecastlog --seed-shown seed/*.json | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Nothing published since then." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Commit and push
+        id: commit
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves forecast"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Deliberately scoped: the shown log, nothing else.
+          git add data/forecast_log/46232_shown 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "Nothing new to seed."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit \
+            -m "data: seed shown forecast hours from the published history" \
+            -m "Automated commit from .github/workflows/seed-shown.yml."
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "pushed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}); rebasing and retrying."
+            git pull --rebase --autostash origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+
+          echo "::error title=Seed push failed::Could not push the shown log"
+          exit 1
+
+      # forecast.json's `past` is built by the forecast job; until it runs
+      # again the page cannot see what was just seeded.
+      - name: Rebuild the forecast
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: gh workflow run forecast.yml --ref "${BRANCH}"
