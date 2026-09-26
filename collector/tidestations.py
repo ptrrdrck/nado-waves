@@ -28,6 +28,9 @@ This collects the evidence and decides nothing:
                                       can be MEASURED between them rather than
                                       assumed (forecast/tidesite.py)
 
+and CO-OPS's tidal datums for the gauges, so a level on MLLW can be put on
+MSL — the datum the seabed grids are on — from a published number.
+
 No coordinate is typed here. Every position comes from CO-OPS's metadata, and
 the breaks' from spots.json.
 """
@@ -146,6 +149,15 @@ def main(argv: list[str] | None = None) -> int:
         if station["type"] == "S":
             station["offsets"] = offsets(station["id"])
 
+    datums = {}
+    for station_id in (REFERENCE, *[s["id"] for s in levels if s["id"] != REFERENCE]):
+        try:
+            body = get_json(f"{MDAPI}/stations/{station_id}/datums.json?units=metric")
+            datums[station_id] = {d["name"]: d["value"] for d in body.get("datums", [])}
+            datums[station_id]["epoch"] = body.get("epoch", "")
+        except Exception as exc:  # noqa: BLE001 — recorded, not fatal
+            datums[station_id] = {"error": f"{exc.__class__.__name__}: {exc}"[:300]}
+
     out = args.data_dir / "tide"
     fetched: dict[str, str] = {}
     for station in levels:
@@ -173,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
         "breaks": {b.id: list(b.position) for b in breaks},
         "prediction_stations": predictions,
         "water_level_stations": levels,
+        "datums_m": datums,
         "comparison_window_utc": [begin.strftime(ISO), end.strftime(ISO)],
         "comparison_fetch": fetched,
     }
