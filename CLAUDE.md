@@ -336,6 +336,14 @@ forecaster actually verifies against, Surfline included.
   for three days. `collector.gfswave` now checks the tar before believing a
   404. Same shape as the staleness alert missing 46232's outage: the monitoring
   watched for the failure it expected.
+- **A rejected push of an append-only log re-appends; it never rebases.**
+  Measured 2026-09-26: the forecast build and the shown-hours seed both
+  appended to one JSONL, the rebase conflicted, and the old retry loop
+  (`git pull --rebase ... || true`) pushed an unchanged HEAD, read
+  "Everything up-to-date" as success and lost the build's rows. `forecast.yml`
+  and `seed-shown.yml` now reset to the new tip and re-run their idempotent
+  append; `model-bias.yml` aborts loudly. The same `|| true` loop is still in
+  the collectors' workflows, where each file has a single writer.
 - **`data/live/` is gitignored, and that is not a breach of "data is tracked".**
   That rule guards the irreplaceable NDBC archive and the collected series; a
   forecast rebuilt every cycle from committed inputs is neither, and the public
