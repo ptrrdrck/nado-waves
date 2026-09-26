@@ -131,17 +131,23 @@ forecaster actually verifies against, Surfline included.
 3a. **The nearshore transform — built and SHIPPED 2026-09-25, by the owner's
    decision.** `forecast/raytrace.py` (precompute, numpy) traces rays backward
    from the 5 m contour off each break over the USGS CoNED + GMRT seabed
-   (`collector/bathymetry.py`) — refraction and shoaling, Point Loma and Baja
-   as land, the Coronado Islands by Fresnel diffraction — into
-   `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
+   (`collector/bathymetry.py`) — refraction and shoaling over the whole
+   seabed, the Coronado Islands' own shelves included; Point Loma, Baja and
+   the islands as land; and diffraction at every window edge (the islands by
+   the two-edge Babinet factor, the Point Loma tip and the Baja tangent by the
+   straight-edge one), each ray carrying a hard-edged and a diffracting
+   answer — into `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
    spectrum through them and adds fetch-limited local chop over closed fetches.
    **The number on every break card is this nearshore figure**, labelled with
    its depth, on both chains; the straight-line window figure survives only in
    the card's calculation line under the drawing, which states each effect in
    one form — windows, refraction, island diffraction, shoaling, local chop —
-   with its percentage. Refraction is measured with the islands still a hard
-   shadow, as the window treats them, so the diffraction step is only what
-   diffraction changes about the islands (`nearshore.summarise`). Buoy spectra are read by **maximum entropy**
+   with its percentage. Refraction is measured with every edge still a hard
+   shadow, as the window treats them, and diffraction is only what softening
+   the edges changes (`nearshore.summarise`). **Diffraction is computed on the
+   bent rays, not straight lines**: the ray that grazes an edge is itself
+   refracted between the edge and the beach, and that is where the shadow
+   boundary sits as seen from the break (BRIEFING §31). Buoy spectra are read by **maximum entropy**
    (`Spectrum.spread = "mem"`), which also stops the buoy's own Hs reading ~5%
    high. Measured in BRIEFING §28–§29: it REVERSES the south/north ordering in
    south-swell season. It is physics, not calibration, and it is unverified —
@@ -354,11 +360,12 @@ forecaster actually verifies against, Surfline included.
       spreadmethod.py   Fourier vs maximum-entropy D(f, θ) from the same
                         four buoy moments, over the archive; reports,
                         never edits (BRIEFING §28)              [built]
-      raytrace.py       PRECOMPUTE (numpy): backward rays from the 10 m
+      raytrace.py       PRECOMPUTE (numpy): backward rays from the 5 m
                         contour off each break to deep water over the seabed
                         grids — refraction and shoaling (S·c·cg invariant),
-                        Point Loma and Baja as land, the Coronado Islands as
-                        Fresnel diffraction, plus each break's wind fetch.
+                        islands' shelves included; diffraction at the islands,
+                        the Point Loma tip and the Baja tangent, hard and soft
+                        per ray; plus each break's wind fetch.
                         Writes data/nearshore/; never imported by the
                         forecast                                  [built]
       nearshore.py      carries a spectrum through those tables, pure
@@ -406,7 +413,8 @@ forecaster actually verifies against, Surfline included.
                         Baja (south of 32.49 N); those stay charted blockers.
     data/nearshore/     per-break transfer tables from forecast.raytrace:
                         <break>.csv (one row per period x 0.5° heading at
-                        10 m), <break>.json (start point, datum, grids),
+                        5 m: hard-edged gain, diffracting gain and the heading
+                        each reads), <break>.json (start point, datum, grids),
                         <break>_fetch.csv (open water upwind, per 1° of wind)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable

@@ -34,9 +34,9 @@ def open_table(depth=4000.0, step=0.5, normal=None):
     by_freq = {}
     for f in [0.025 + 0.0075 * i for i in range(48)]:
         ks2 = shoaling_squared(f, depth)
-        by_freq[f] = [Ray((normal - 90.0 + step / 2 + step * k) % 360.0, math.radians(step),
-                          (normal - 90.0 + step / 2 + step * k) % 360.0, ks2, 1.0, 1.0)
-                      for k in range(int(180 / step))]
+        by_freq[f] = [Ray(h, math.radians(step), h, ks2, h, ks2)
+                      for h in ((normal - 90.0 + step / 2 + step * k) % 360.0
+                                for k in range(int(180 / step)))]
     return Table("test", depth, by_freq)
 
 
@@ -52,14 +52,33 @@ def test_a_table_with_nothing_in_the_way_reproduces_the_aperture_with_no_blocker
     assert got.hs_ref == pytest.approx(got.hs_equivalent, rel=1e-6)
 
 
-def test_islands_factor_and_geometric_are_kept_apart():
+def test_hard_and_diffracted_edges_are_kept_apart():
+    """A band of headings shadowed hard but partly lit by diffraction: the
+    hard figure loses it all, the diffracted one keeps some, and the open
+    table keeps everything."""
+
     table = open_table()
     for rays in table.by_freq.values():
         for ray in rays:
             if 195.0 <= ray.near_from <= 205.0:
-                ray.island_factor, ray.island_geometric = 0.9, 0.0
+                ray.gain, ray.diff_gain = 0.0, 0.25 * ray.diff_gain
     got = carry(synthetic(200.0, hs=1.5, spread_deg=15.0), table)
-    assert got.hs_islands_geometric < got.hs_equivalent < got.hs_no_islands
+    full = carry(synthetic(200.0, hs=1.5, spread_deg=15.0), open_table())
+    assert got.hs_hard < got.hs_equivalent < full.hs_equivalent
+
+
+def test_a_diffracted_ray_reads_the_spectrum_at_its_own_heading():
+    """A ray the land stops takes the energy that diffracts round the edge,
+    which comes from the heading of the ray that clears it."""
+
+    table = open_table()
+    for rays in table.by_freq.values():
+        for ray in rays:
+            ray.gain = 0.0
+            ray.diff_off_from = 200.0
+    got = carry(synthetic(200.0, hs=1.5, spread_deg=5.0), table)
+    assert got.hs_hard == 0.0
+    assert got.off_from_deg == pytest.approx(200.0, abs=0.5)
 
 
 def fetch_table():

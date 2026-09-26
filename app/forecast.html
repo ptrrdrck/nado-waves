@@ -823,17 +823,24 @@ function calculationLine(c) {
   // Heights and percentages in the leading train's ink and weight; the
   // words between them in its softer grey, so the eye reads the numbers.
   const ht = (m) => `<b>${height(m)}</b>`;
-  const refracted = e.refracted_hs_m != null ? e.refracted_hs_m : e.seabed_hs_m;
+  // The seabed, then diffraction at every window edge (the Coronado Islands,
+  // the Point Loma tip, the Baja tangent), both on the bent rays and both as
+  // a signed change: refraction against the straight-line window,
+  // diffraction against the hard-edged refraction (forecast.nearshore).
+  // `seabed_hs_m` is the older payload's name for the diffracted figure.
+  const diffracted = e.diffracted_hs_m != null ? e.diffracted_hs_m : e.seabed_hs_m;
+  const refracted = e.refracted_hs_m != null ? e.refracted_hs_m : diffracted;
+  const change = (to, from) => {
+    const d = to - from;
+    return `<b>${d < 0 ? "\u2212" : "+"}${height(Math.abs(d))}</b>${pct(to, from)}`;
+  };
   const steps = [
     `${ht(e.window_hs_m)} through the windows of ${ht(e.buoy_hs_m)} at the buoy`
       + `${pct(e.window_hs_m, e.buoy_hs_m)}.`,
-    `Refraction over the seabed makes that ${ht(refracted)}${pct(refracted, e.window_hs_m)}.`,
+    `Refraction and diffraction at the windows' edges change the swell by `
+      + `${change(refracted, e.window_hs_m)} and ${change(diffracted, refracted)}, respectively.`,
   ];
-  if (e.refracted_hs_m != null && e.seabed_hs_m != null) {
-    steps.push(`Diffraction around the Coronado Islands makes that ${ht(e.seabed_hs_m)}`
-      + `${pct(e.seabed_hs_m, e.refracted_hs_m)}.`);
-  }
-  const before = e.seabed_hs_m != null ? e.seabed_hs_m : refracted;
+  const before = diffracted;
   const verb = e.shoaled_hs_m >= before ? "lifts" : "lowers";
   steps.push(`Shoaling into ${depth} of water ${verb} it to ${ht(e.shoaled_hs_m)}`
     + `${pct(e.shoaled_hs_m, before)}.`);

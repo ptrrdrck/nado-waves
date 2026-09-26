@@ -240,8 +240,8 @@ class TestWaveTrains:
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
         for entry in got.breaks:
             effects = entry.nearshore["effects"]
-            assert set(effects) >= {"buoy_hs_m", "window_hs_m", "seabed_hs_m",
-                                    "shoaled_hs_m", "islands_pct", "local"}
+            assert set(effects) >= {"buoy_hs_m", "window_hs_m", "refracted_hs_m",
+                                    "diffracted_hs_m", "shoaled_hs_m", "local"}
             assert entry.hs_nearshore_m == entry.nearshore["hs_m"]
             assert entry.nearshore["depth_m"] == pytest.approx(5.0, abs=0.2)
 
