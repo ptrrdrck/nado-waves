@@ -25,6 +25,23 @@ name: Build forecast
 on:
   schedule:
     - cron: "40 5,11,17,23 * * *"
+  # A merge that changes what the forecast computes or how the page reads it.
+  # Without this the page (republished by every collection) could run new code
+  # against a forecast.json built by the old code for up to six hours -- the
+  # Forecast tab then showed none of the surf-zone work while Now showed all
+  # of it (2026-09-26). The paths leave out the collectors' hourly data
+  # commits, which change neither.
+  push:
+    branches: [master]
+    paths:
+      - "forecast/**"
+      - "app/**"
+      - "collector/gfswave.py"
+      - "collector/wavespec.py"
+      - "data/nearshore/**"
+      - "data/tide/stations.json"
+      - "data/tide/comparison/**"
+      - ".github/workflows/forecast.yml"
   workflow_dispatch:
     inputs:
       hours:

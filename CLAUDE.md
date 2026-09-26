@@ -535,7 +535,12 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   normals span 27° (194.1 / 213.9 / 220.9, charted 2026-09-22; they were
   192.8 / 214.2 / 221.5 on the traced chords) — a 290° wind reads cross-shore
   at north and centre and onshore at south, on the same reading. Hoist the
-  measurement; keep the interpretation where it is made.
+  measurement; keep the interpretation where it is made. Since 2026-09-26
+  (owner's layout) the verdict sits on the Wind card as one line per break —
+  "offshore at this break" — shown only for the break whose swell tab is open
+  and hidden on the buoy's, so it is still per break. **Now tab only**: the
+  forecast's wind is GFS-Wave's at the buoy, 29 km offshore, not KNZY's at
+  the beach, and a verdict against the shore normal needs the local wind.
 - **"At the buoy" means no aperture at all — `transform.at_buoy`, not
   `through(spectrum, spot, [])`.** The latter still applies that spot's seaward
   half-plane, which excludes 304–124° and dropped **12–26% of the energy** out

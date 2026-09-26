@@ -159,10 +159,12 @@ class TestTheBreakCard:
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         panel = panel[:panel.index("function depthLabel")]
         order = ("depthLabel(c)", "trainList(c.trains)", "windowDrawing(c)",
-                 "calculationLine(c)", "<hr>", "wind is <b>", "windowList",
+                 "calculationLine(c)", "<hr>", "windowList",
                  "taking the swell")
         at = [panel.index(mark) for mark in order]
         assert at == sorted(at)
+        # The wind verdict moved to the Wind card (owner's call, 2026-09-26).
+        assert "wind is" not in panel and "windOffshore" not in panel
         for gone in ("window energy", "swell reaching here"):
             assert gone not in panel
         assert "from the buoy to the break" not in SOURCE
@@ -342,12 +344,33 @@ class TestWindAndTideAreHoisted:
         assert "hour.wind_from_deg != null" in SOURCE
         assert "wind.station_name" in SOURCE
 
-    def test_the_per_break_offshore_reading_stays_on_the_card(self):
-        """One station, so one wind — but the three shore normals span 29°, so
-        what that wind MEANS is per break."""
+    def test_the_per_break_offshore_reading_stays_per_break(self):
+        """One station, so one wind — but the three shore normals span 27°, so
+        what that wind MEANS is per break. It sits on the Wind card as one
+        line per break, shown only for the break whose swell tab is open, and
+        says so ("at this break")."""
 
-        assert "c.windOffshore" in SOURCE
-        assert "wind is <b>${senseText}</b> here" in SOURCE
+        fn = SOURCE[SOURCE.index("function windAtBreaks"):]
+        fn = fn[:fn.index("\n}\n")]
+        assert "c.windOffshore" in fn
+        assert "<b>${s}</b> at this break" in fn
+        assert 'data-wind-for="${c.id}"' in fn and "c.id === SWELL_TAB" in fn
+        select = SOURCE[SOURCE.index("function selectSwellTab"):]
+        select = select[:select.index("\n}\n")]
+        assert "[data-wind-for]" in select        # it follows the tab
+
+    def test_the_verdict_is_on_the_observed_tab_only(self):
+        """The forecast's wind is GFS-Wave's at the buoy, not KNZY's at the
+        beach, and a verdict against the shore normal needs the local wind."""
+
+        assert SOURCE.count("? windAtBreaks(cards) :") == 1      # one call, not the definition
+        now = SOURCE[SOURCE.index('if (MODE === "now") {'):]
+        now = now[:now.index("  } else {")]
+        assert "windAtBreaks(cards)" in now
+
+    def test_it_is_styled_as_the_tides_next_turn(self):
+        fn = SOURCE[SOURCE.index("function windAtBreaks"):]
+        assert '<span class="turn"' in fn[:800]
 
 
 class TestTheTwoChains:

@@ -751,8 +751,6 @@ function breakPanel(c) {
       <span class="amt">${Math.round(tb.share * 100)}%</span>
     </div>`).join("");
 
-  const senseText = sense(c.windOffshore);
-
   // The energy through the window LEADS, untitled, in the buoy tab's own
   // shape: the value line there says "combined", here "in window", and the
   // trains beneath it are listed the same way, so flipping between a break and
@@ -779,9 +777,6 @@ function breakPanel(c) {
     ${calculationLine(c)}
 
     <hr>
-
-    ${senseText ? `<div class="quiet">wind is <b>${senseText}</b> here${
-      c.windNote ? ` <span class="est">&mdash; ${c.windNote}</span>` : ""}</div>` : ""}
 
     <div>
       <div class="lbl">swell windows</div>
@@ -1014,6 +1009,8 @@ function swellCard({label, buoy, station, cards, source, due = ""}) {
   }));
   tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy", body: buoyPanel(buoy)});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
+  // The Wind card, built after this one, shows the line for the open tab.
+  SWELL_TAB = chosen;
 
   return `<div class="cond swell" data-card="swell">
     <span class="lbl">${label}</span>
@@ -1029,11 +1026,35 @@ function swellCard({label, buoy, station, cards, source, due = ""}) {
   </div>`;
 }
 
+// What the measured wind means at each break, on the Wind card, one line per
+// break and only the one whose swell tab is open. The measurement is hoisted;
+// the interpretation is not, because it is made against each break's own
+// shore normal and those span 27° -- the same wind reads cross-shore at north
+// and onshore at south. So the line names its break ("at this break") and
+// changes with the tab; on the buoy's tab there is no shore and no line.
+//
+// Now tab only (owner's decision, 2026-09-26). The forecast's wind is
+// GFS-Wave's at the buoy, 29 km offshore, which is not the wind KNZY measures
+// at the beach, and a verdict against the shore normal needs the local one.
+function windAtBreaks(cards) {
+  return (cards || []).map((c) => {
+    const s = sense(c.windOffshore);
+    if (!s) return "";
+    return `<span class="turn" data-wind-for="${c.id}"${c.id === SWELL_TAB ? "" : " hidden"}>`
+      + `<b>${s}</b> at this break`
+      + (c.windNote ? ` <span class="tag">${c.windNote}</span>` : "")
+      + `</span>`;
+  }).join("");
+}
+
 // Switching tabs flips attributes rather than re-rendering, so focus stays on
 // the tab the reader is on and the countdowns keep their place.
 function selectSwellTab(id, {focus = false} = {}) {
   SWELL_TAB = id;
   remember(KEEP.swell, id);
+  document.querySelectorAll("[data-wind-for]").forEach((line) => {
+    line.hidden = line.getAttribute("data-wind-for") !== id;
+  });
   document.querySelectorAll("[data-swell-tab]").forEach((btn) => {
     const on = btn.getAttribute("data-swell-tab") === id;
     btn.setAttribute("aria-selected", String(on));
@@ -1104,6 +1125,7 @@ function renderConditions(index, cards) {
         ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
+      ${wind.from_deg != null ? windAtBreaks(cards) : ""}
       <span class="src">${period(wind.from_deg != null
         ? `${wind.station_name} (${wind.station}), observed ${observedAt(wind.observed_utc)}`
         : (wind.note || ""))}${wind.from_deg != null ? dueSpan(due.wind, late.wind) : ""}</span>
