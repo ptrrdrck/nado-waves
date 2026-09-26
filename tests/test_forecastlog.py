@@ -129,3 +129,69 @@ class TestPastHours:
     def test_empty_log_empty_past(self, tmp_path):
         assert forecastlog.past_hours(forecastlog.read(tmp_path / "none"),
                                       stamp(GENERATED)) == []
+
+
+class TestTheShownLog:
+    """Past cards are drawn from what their own build showed, in full."""
+
+    def test_only_hours_from_publication_to_48_h_ahead(self, tmp_path):
+        f = forecast(CYCLE, GENERATED, hours=72)
+        lines = forecastlog.shown_lines(f)
+        valid = [l["valid_utc"] for l in lines]
+        assert valid[0] == "2026-09-26T06:00:00Z"     # first offered hour after 05:40
+        assert valid[-1] <= stamp(GENERATED + timedelta(hours=48))
+        assert all(set(l["breaks"]) == set(BREAKS) for l in lines)
+        assert lines[0]["breaks"]["coronado_north"]["nearshore"]["effects"]["with_chop_hs_m"] == 0.35
+        assert lines[0]["buoy"]["hs_m"] == 1.0
+
+    def test_idempotent_on_the_build(self, tmp_path):
+        f = forecast(CYCLE, GENERATED, hours=24)
+        n = forecastlog.append_shown(f, tmp_path)
+        assert n > 0 and forecastlog.append_shown(f, tmp_path) == 0
+        assert len(forecastlog.read_shown(tmp_path)) == n
+
+    def test_past_carries_the_detail_of_its_own_build_only(self, tmp_path):
+        early = forecast(CYCLE - timedelta(hours=6), GENERATED - timedelta(hours=6),
+                         hours=30, base=1.0)
+        late = forecast(CYCLE, GENERATED, hours=24, base=2.0)
+        for f in (early, late):
+            forecastlog.append(f, tmp_path / "log")
+        # Only the EARLY build kept detail: the late one's hours must not
+        # borrow it, and must not borrow the early build's either.
+        forecastlog.append_shown(early, tmp_path / "shown")
+        past = forecastlog.past_hours(
+            forecastlog.read(tmp_path / "log"), stamp(GENERATED + timedelta(hours=9)),
+            shown=forecastlog.read_shown(tmp_path / "shown"))
+        by = {p["valid_utc"]: p for p in past}
+        assert by["2026-09-26T03:00:00Z"]["detail"]["buoy"]["hs_m"] == 1.0
+        assert by["2026-09-26T06:00:00Z"]["detail"] is None
+
+    def test_old_months_are_not_opened(self, tmp_path):
+        tmp_path.mkdir(exist_ok=True)
+        (tmp_path / "2026-07.jsonl").write_text("not json\n")
+        forecastlog.append_shown(forecast(CYCLE, GENERATED), tmp_path)
+        assert forecastlog.read_shown(tmp_path, since="2026-09-24T00:00:00Z")
+
+
+class TestTheSeed:
+    """Builds logged before the shown log existed are filled from what the
+    delivery repository published -- only where that file IS the logged build."""
+
+    def test_a_published_file_matching_the_log_is_seeded(self, tmp_path):
+        f = forecast(CYCLE, GENERATED, hours=24)
+        forecastlog.append(f, forecastlog.log_dir(tmp_path))
+        published = publish.thin(f)
+        report = forecastlog.seed_shown([published], tmp_path)
+        assert "headlines match" in report[0] and "seeded" in report[0]
+        assert forecastlog.read_shown(forecastlog.shown_dir(tmp_path))
+        assert "already seeded" in forecastlog.seed_shown([published], tmp_path)[0]
+
+    def test_a_file_whose_headlines_differ_is_refused(self, tmp_path):
+        forecastlog.append(forecast(CYCLE, GENERATED, hours=24), forecastlog.log_dir(tmp_path))
+        other = forecast(CYCLE, GENERATED, hours=24, base=1.5)
+        assert "differ" in forecastlog.seed_shown([other], tmp_path)[0]
+        assert not forecastlog.read_shown(forecastlog.shown_dir(tmp_path))
+
+    def test_an_unlogged_build_is_refused(self, tmp_path):
+        report = forecastlog.seed_shown([forecast(CYCLE, GENERATED)], tmp_path)
+        assert "not in the headline log" in report[0]

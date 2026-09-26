@@ -295,3 +295,16 @@ class TestThePastComesFromTheLog:
 
     def test_no_log_no_past(self, tmp_path):
         assert live.build(bulletin=bulletin(SOUTH), now=CYCLE, data_dir=tmp_path).past == []
+
+    def test_past_hours_carry_their_own_builds_detail(self, tmp_path):
+        from forecast import forecastlog
+
+        earlier = json.loads(json.dumps(asdict(
+            live.build(bulletin=bulletin(SOUTH, hours=13), now=CYCLE, data_dir=tmp_path))))
+        forecastlog.append(earlier, forecastlog.log_dir(tmp_path))
+        forecastlog.append_shown(earlier, forecastlog.shown_dir(tmp_path))
+        later = live.build(bulletin=bulletin(SOUTH, hours=13),
+                           now=CYCLE + timedelta(hours=12), data_dir=tmp_path)
+        detail = later.past[1]["detail"]
+        assert set(detail["breaks"]) == {b.id for b in later.breaks}
+        assert detail["breaks"]["coronado_north"]["valid_utc"] == later.past[1]["valid_utc"]

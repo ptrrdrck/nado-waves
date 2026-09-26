@@ -759,7 +759,12 @@ function cardsForForecast(step) {
   const measured = measuredAt(step.valid_utc);
   return ORDER.map((id) => DATA.breaks.find((b) => b.id === id)).filter(Boolean)
     .map((b) => {
-      if (step.from === "past") {
+      // An earlier run's hour is drawn from the hour its own build showed,
+      // kept in full (forecast.forecastlog, `46232_shown/`), through exactly
+      // the card a current hour gets: drawing, trains, calculation table.
+      const detail = step.from === "past" && step.entry.detail;
+      const kept = detail && (detail.breaks || {})[b.id];
+      if (step.from === "past" && !kept) {
         const e = ((step.entry || {}).breaks || {})[b.id] || {};
         return {
           id: b.id, name: b.name, past: true, measured,
@@ -769,7 +774,7 @@ function cardsForForecast(step) {
           windOffshore: b.wind_offshore, windNote: b.wind_note,
         };
       }
-      const h = b.hours[step.index] || {};
+      const h = kept || b.hours[step.index] || {};
       return {
         id: b.id, name: b.name, measured,
         hsWindow: h.hs_nearshore_m != null ? h.hs_nearshore_m : h.hs_window_m,
@@ -880,9 +885,10 @@ function breakPanel(c) {
       : '<span class="unit">no spectrum</span>'}</span>`;
   const measured = measuredLine(c.measured, (m) => (m.breaks || {})[c.id]);
 
-  // An earlier run's hour: only its headline and peak were kept (the log is
-  // permanent, so it stays small), so the card says so rather than borrowing
-  // this run's detail for an hour this run never forecast.
+  // An earlier run's hour whose build kept only its headline: logged before
+  // full hours were (2026-09-26) and not filled from what was published. The
+  // card says so rather than borrowing this run's detail for an hour this run
+  // never forecast.
   if (c.past) {
     return `${value}
     <div class="quiet">
@@ -891,7 +897,7 @@ function breakPanel(c) {
     </div>
     ${measured}
     ${windowList(c.swellWindow)}
-    <div class="src">Only the headline is kept for earlier runs, not the calculation.</div>`;
+    <div class="src">The calculation for this hour was not kept.</div>`;
   }
 
   const drawing = windowDrawing(c);
@@ -1505,8 +1511,13 @@ function renderConditions(step, cards) {
   } else {
     const wind = DATA.wind || {};
     const past = step.from === "past";
-    const stamp = past ? null : ((DATA.breaks[0] || {}).hours || [])[step.index];
-    const tide = TIDE_BY_TIME[step.valid_utc] || {};
+    // An earlier run's hour in full, when its build kept it: the model's wind
+    // is on each break's hour, the buoy and the tide beside them.
+    const detail = past ? step.entry.detail : null;
+    const stamp = past
+      ? (detail ? Object.values(detail.breaks || {})[0] || null : null)
+      : ((DATA.breaks[0] || {}).hours || [])[step.index];
+    const tide = (detail && detail.tide) || TIDE_BY_TIME[step.valid_utc] || {};
     const hour = stamp || {};
     const stampWhen = when(step.valid_utc);
     const modelled = hour.wind_from_deg != null;
@@ -1515,7 +1526,7 @@ function renderConditions(step, cards) {
 
     // Same card as the observed tab, so a reader comparing the two is
     // comparing like with like rather than two different presentations.
-    const buoy = past ? step.entry.buoy
+    const buoy = past ? ((detail && detail.buoy) || step.entry.buoy)
       : (DATA.buoy || []).find((b) => b.valid_utc === step.valid_utc);
     rows.push(swellCard({
       label: "Swell",
@@ -1539,7 +1550,7 @@ function renderConditions(step, cards) {
     const blueTide = got && got.tide_m != null
       ? `<div class="measured"><span class="lbl">Measured at ${DATA.tide_station || "the gauge"},`
         + ` carried to the coast</span><span class="mval">${height(got.tide_m)}</span></div>` : "";
-    if (past) {
+    if (past && !detail) {
       rows.push(`<div class="cond" data-card="wind">
         <span class="lbl">Wind</span>
         <span class="val"><span class="unit">not kept for earlier runs</span></span>
@@ -1556,29 +1567,32 @@ function renderConditions(step, cards) {
       return;
     }
 
+    // Today's KNZY reading stands in for a run without model wind -- but never
+    // under a past hour, where it would be a reading from the wrong time.
+    const fallback = past ? {note: "not kept for earlier runs"} : wind;
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
       <span class="val">${modelled
         ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
-        : wind.from_deg != null
-          ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
-          : '<span class="unit">not collected yet</span>'}</span>
+        : fallback.from_deg != null
+          ? `${compass(fallback.from_deg)} <span class="unit">at</span> ${speed(fallback.speed_kt || 0)}`
+          : `<span class="unit">${past ? fallback.note : "not collected yet"}</span>`}</span>
       ${blueWind}
       <span class="src">${period(modelled
         ? `GFS-Wave at the buoy for ${stampWhen} &mdash; forecast, not a measurement`
-        : wind.from_deg != null
-          ? `${wind.station_name} (${wind.station}), observed ${observedAt(wind.observed_utc)}`
-          : (wind.note || ""))}</span>
+        : fallback.from_deg != null
+          ? `${fallback.station_name} (${fallback.station}), observed ${observedAt(fallback.observed_utc)}`
+          : (past ? "" : (fallback.note || "")))}</span>
     </div>`);
     rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
       <span class="val">${tide.height_m != null
         ? height(tide.height_m)
         : '<span class="unit">not collected for this hour</span>'}</span>
-      ${blueTide}
       ${stamp && stamp.valid_utc
-        ? turnLine(DATA.tide_turns || [], stamp.valid_utc)
+        ? turnLine(DATA.tide_turns || [], step.valid_utc)
         : ""}
+      ${blueTide}
       <span class="src">${period(`${tideSource(DATA)}, `
         + `harmonic prediction for ${stampWhen} &mdash; a model, not a measurement`)}</span>
     </div>`);
