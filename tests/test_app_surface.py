@@ -151,15 +151,15 @@ class TestTheBreakCard:
             assert hardcoded not in SOURCE.lower()
 
     def test_the_reading_leads_the_card_and_the_geometry_follows(self):
-        """Owner's layout, 2026-09-25: the nearshore height labelled with its
-        depth; the trains; the drawing; the line stating how the height was
-        calculated, in the provenance style; a rule; the wind reading; then
-        the windows and the shares."""
+        """Owner's layout, 2026-09-25, and the calculation's fold-out,
+        2026-09-26: the nearshore height labelled with its depth, with the
+        table of how it was calculated folding out beneath it; the trains;
+        the drawing."""
 
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         panel = panel[:panel.index("function depthLabel")]
-        order = ("depthLabel(c)", "trainList(c.trains)",
-                 "drawing || windowList(c.swellWindow)", "calculationLine(c)")
+        order = ("depthLabel(c)", "calculationTable(c)", 'id="calc-${c.id}"',
+                 "trainList(c.trains)", "drawing || windowList(c.swellWindow)")
         at = [panel.index(mark) for mark in order]
         assert at == sorted(at)
         # The windows and the shares are in the drawing now (2026-09-26); the
@@ -758,11 +758,11 @@ class TestItMatchesTheLiveOutput:
             assert accessor in known, f"page reads unknown field {accessor!r}"
 
 
-class TestTheCalculationLine:
+class TestTheCalculationTable:
     """Each break card states how its number was made from the buoy's, one
-    effect at a time, in the provenance style under the drawing."""
+    effect per row, in a table folding out under the headline."""
 
-    LINE = SOURCE[SOURCE.index("function calculationLine"):]
+    LINE = SOURCE[SOURCE.index("function calculationTable"):]
     LINE = LINE[:LINE.index("\n}\n")]
 
     def test_every_field_it_reads_is_one_the_forecast_writes(self):
@@ -786,21 +786,35 @@ class TestTheCalculationLine:
         for key in re.findall(r"\bn\.([a-z_]+)", self.LINE):
             assert key in out, key
 
-    def test_each_effect_is_stated_in_one_form(self):
-        for effect in ("through the windows of",
-                       "Refraction and diffraction at the windows' edges change the swell by",
-                       "respectively", "Bottom friction over the shelf", "Shoaling into",
-                       "Local wind chop at", "At this tide it breaks in"):
-            assert effect in self.LINE
-        assert self.LINE.count("pct(") >= 4
+    def test_its_columns_are_the_owners(self):
+        heads = re.findall(r'<th scope="col">([^<]+)</th>', self.LINE)
+        assert heads == ["Calc", "Change", "%", "Hs"]
+
+    def test_each_effect_has_its_row_in_order(self):
+        rows = re.findall(r'row\("([^"]+)"', self.LINE)
+        assert rows == ["Buoy", "Windows", "Refraction", "Diffraction",
+                        "Bottom friction", "Shoaling", "Local chop", "Wave break"]
+
+    def test_each_change_is_against_the_step_before(self):
+        for call in ('row("Windows", e.window_hs_m, e.buoy_hs_m)',
+                     'row("Diffraction", diffracted, refracted)',
+                     'row("Bottom friction", e.friction_hs_m, diffracted)',
+                     'row("Shoaling", e.shoaled_hs_m, before',
+                     'row("Local chop", withChop, e.shoaled_hs_m',
+                     'row("Wave break", b.hs_m, withChop'):
+            assert call in self.LINE, call
+        # The percentage is the change as a share of the step before it.
+        assert "pct(to, from)" in self.LINE and "change(to, from)" in self.LINE
+        fn = SOURCE[SOURCE.index("function pct("):]
+        assert "100 * (to / from - 1)" in fn[:fn.index("\n}\n")]
 
     def test_refraction_and_diffraction_are_separated_honestly(self):
         """The window treats every edge as a hard shadow, so refraction is
         measured with hard edges too, and diffraction is only what softening
         the edges — islands, Point Loma tip, Baja tangent — changes."""
 
-        assert "change(refracted, e.window_hs_m)" in self.LINE
-        assert "change(diffracted, refracted)" in self.LINE
+        assert 'row("Refraction", refracted, e.window_hs_m)' in self.LINE
+        assert 'row("Diffraction", diffracted, refracted)' in self.LINE
         from forecast.nearshore import Nearshore, summarise
 
         near = Nearshore("x", 1.0, 0.9, 0.8, 200.0, 210.0, 12.0)
@@ -808,14 +822,13 @@ class TestTheCalculationLine:
         assert effects["refracted_hs_m"] == 0.8     # every edge hard
         assert effects["diffracted_hs_m"] == 0.9    # every edge diffracting
 
-    def test_it_is_styled_as_the_leading_train_line(self):
-        """Owner's call, 2026-09-25: the train line's size and grey, with the
-        heights and percentages in its ink and weight."""
+    def test_friction_and_chop_rows_appear_only_when_modelled(self):
+        assert "if (e.friction_hs_m != null) {" in self.LINE
+        assert "if (e.local && withChop != null) {" in self.LINE
 
-        assert '<div class="calc">${steps.join(" ")}</div>' in self.LINE
-        assert ".calc{font-size:14px;color:var(--soft)" in SOURCE
-        assert ".calc b{color:var(--ink);font-weight:600;white-space:nowrap}" in SOURCE
-        assert "const ht = (m) => `<b>${height(m)}</b>`;" in self.LINE
+    def test_heights_use_the_one_conversion(self):
+        assert "FT_PER_M" not in self.LINE and "3.28" not in self.LINE
+        assert "height(to)" in self.LINE and "height(Math.abs(d))" in self.LINE
 
     def test_the_headline_names_its_depth(self):
         label = SOURCE[SOURCE.index("function depthLabel"):]
@@ -823,11 +836,35 @@ class TestTheCalculationLine:
         assert "ft (${Math.round(d)} m) depth" in label
         assert '"in window"' in label           # an older payload says what its number is
 
-    def test_friction_and_breaking_are_stated_in_the_same_form(self):
-        assert "Bottom friction over the shelf changes it by ${change(e.friction_hs_m, diffracted)}" in self.LINE
-        assert "At this tide it breaks in ${depthText(b.depth_m)} of water at ${ht(b.hs_m)}" in self.LINE
-        # A break already under way at the start depth is not claimed as found.
+    def test_a_break_under_way_at_the_start_depth_is_a_bound(self):
+        """Not claimed as a break point found: its height is marked as an
+        upper bound in the table and said so beneath it."""
+
+        assert "bound: !!b.outside_start" in self.LINE
+        assert '${bound ? "\\u2264 " : ""}' in self.LINE
         assert "is an upper bound" in self.LINE
+
+    def test_the_caret_folds_the_table_under_the_headline(self):
+        """Owner's design, 2026-09-26: a caret at the right end of the
+        headline, up while closed and down while open, one state for every
+        break, kept across a refresh like the tab choices."""
+
+        toggle = SOURCE[SOURCE.index("function calcToggle"):]
+        toggle = toggle[:toggle.index("\n}\n")]
+        assert 'aria-controls="calc-${id}"' in toggle
+        assert 'aria-expanded="${CALC_OPEN}"' in toggle
+        assert "<path d=\"M3.5 10 8 5.5 12.5 10\"/>" in toggle     # drawn pointing up
+        assert '.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}' in SOURCE
+        assert 'calc: "nado-waves.calc"' in SOURCE
+        assert 'CALC_OPEN = recall(KEEP.calc) === "open";' in SOURCE
+        assert 'if (e.target.closest("[data-calc-toggle]")) setCalcOpen(!CALC_OPEN);' in SOURCE
+        panel = SOURCE[SOURCE.index("function breakPanel"):]
+        panel = panel[:panel.index("function depthText")]
+        # An earlier run's hour keeps only its headline: no caret, no table.
+        past = panel[panel.index("if (c.past) {"):panel.index("const drawing")]
+        assert "calcToggle" not in past and "calculationTable" not in past
+        # Nothing to tabulate: no caret, and the buoy's figure stays a footnote.
+        assert "const offshore = !table && c.hsOffshore != null" in panel
 
     def test_every_breaking_field_it_reads_is_one_the_surf_zone_writes(self):
         from forecast.surfzone import Breaking

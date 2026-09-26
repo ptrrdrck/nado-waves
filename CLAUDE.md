@@ -149,9 +149,11 @@ forecaster actually verifies against, Surfline included.
    its depth, on both chains — a significant height, never a face height; the
    5 m figure stands in only when there is no tide, never a breaking height at
    an assumed one. The straight-line window figure survives only in
-   the card's calculation line under the drawing, which states each effect in
-   one form — windows, refraction and diffraction, bottom friction, shoaling,
-   local chop, breaking — with its percentage. Refraction is measured with every edge still a hard
+   the card's calculation table, which folds out under the headline from a
+   caret at its end (up closed, down open; owner's design 2026-09-26) and
+   gives each effect one row — buoy, windows, refraction, diffraction, bottom
+   friction, shoaling, local chop, wave break — as Calc / Change / % / Hs, the
+   percentage against the row before. Refraction is measured with every edge still a hard
    shadow, as the window treats them, and diffraction is only what softening
    the edges changes (`nearshore.summarise`). **Diffraction is computed on the
    bent rays, not straight lines**: the ray that grazes an edge is itself

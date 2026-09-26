@@ -153,11 +153,27 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
 .train.lead .ht,.train.lead .dr{color:var(--ink)}
 .train:not(.lead){opacity:.72}
-/* The break card's calculation line, in the leading train's type: its size
-   and softer grey for the words, its ink and weight for the heights and
-   percentages. The metric in parentheses keeps the page-wide .unit style. */
-.calc{font-size:14px;color:var(--soft);line-height:1.45;font-variant-numeric:tabular-nums}
-.calc b{color:var(--ink);font-weight:600;white-space:nowrap}
+/* The break card's headline with its caret at the right end. The caret
+   points up while the calculation is folded away and down once it is open
+   beneath the line (owner's design, 2026-09-26). */
+.val-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.calc-toggle{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 0;
+             padding:0;border:0;border-radius:6px;background:transparent;color:var(--soft);cursor:pointer}
+.calc-toggle:hover{color:var(--ink)}
+.calc-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.calc-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
+                 stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
+.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion: reduce){ .calc-toggle svg{transition:none} }
+/* The calculation, one effect per row. Heights in the leading train's ink and
+   weight, the metric under the imperial so four columns fit a phone. */
+.calc-fold{display:flex;flex-direction:column;gap:6px}
+.calc-table th[scope="row"]{font-weight:400;color:var(--soft);font-size:13px;vertical-align:top}
+.calc-table th[scope="row"] .unit{display:block;font-size:11.5px;color:var(--faint)}
+.calc-table td{color:var(--ink);font-weight:600;vertical-align:top}
+.calc-table td .unit{display:block;font-size:11.5px}
+.calc-table tbody tr:last-child td{border-bottom:0}
+.calc-table tbody tr:last-child th{border-bottom:0}
 
 /* The measured reading under a past forecast hour: 46232's own spectrum at
    that hour, carried in by the same chain. Blue, and on a wash with a rule
@@ -693,7 +709,8 @@ const BUOY_TAB = "buoy";
 // while a fresh visit still opens on Now -- see `boot`. Every access is
 // guarded, because private modes and blocked site data throw on the accessor
 // itself, and a page that cannot remember a tab must still render.
-const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab"};
+const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
+              calc: "nado-waves.calc"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -878,10 +895,20 @@ function breakPanel(c) {
   }
 
   const drawing = windowDrawing(c);
+  // How the headline was made folds out beneath it, from a caret at the end
+  // of the line (owner's layout, 2026-09-26). Without the effects to tabulate
+  // there is no caret, and the buoy's figure stays as a provenance line.
+  const table = calculationTable(c);
+  const head = table
+    ? `<div class="val-row">${value}${calcToggle(c.id)}</div>
+    <div class="calc-fold" id="calc-${c.id}"${CALC_OPEN ? "" : " hidden"}>${table}</div>`
+    : value;
+  const offshore = !table && c.hsOffshore != null
+    ? `<div class="src">${period(`of ${height(c.hsOffshore)} at the buoy`)}</div>` : "";
   // The forecast's own numbers first, then the measurement under them, then
   // the geometry: the blue line never sits between two forecast lines.
   return `
-    ${value}
+    ${head}
 
     ${c.trains && c.trains.length ? trainList(c.trains) : `
     <div class="quiet">
@@ -893,7 +920,7 @@ function breakPanel(c) {
 
     ${drawing || windowList(c.swellWindow)}
 
-    ${calculationLine(c)}`;
+    ${offshore}`;
 }
 
 // A depth for a label: whole feet, metres to one decimal below ten.
@@ -917,35 +944,29 @@ function depthLabel(c) {
     ? `at ${Math.round(d * FT_PER_M)} ft (${Math.round(d)} m) depth` : "in window";
 }
 
-// A step's change as a signed percentage; one decimal under 1%, so a small
-// effect reads as small rather than as zero.
+// A step's change as a signed percentage of the step before it; one decimal
+// under 1%, so a small effect reads as small rather than as zero.
 function pct(to, from) {
   if (!(from > 0) || to == null) return "";
   const p = 100 * (to / from - 1);
   const v = Math.abs(p) < 1 ? p.toFixed(1) : String(Math.round(p));
-  return ` (<b>${p > 0 ? "+" : p < 0 ? "\u2212" : ""}${v.replace("-", "")}%</b>)`;
+  return `${p > 0 ? "+" : p < 0 ? "\u2212" : ""}${v.replace("-", "")}%`;
 }
 
-// How the headline was made from the buoy's reading, one effect at a time,
-// each in the same form: what it makes the height, and by how much. Styled
-// as the card's provenance line, because that is what it is. Composed from
-// the payload's `nearshore.effects`, never from constants.
+// How the headline was made from the buoy's reading, one effect per row:
+// what it changes the height by, that change as a share of the step before,
+// and the height it leaves. Folds out under the headline from the caret at
+// its end (owner's layout, 2026-09-26). Composed from the payload's
+// `nearshore.effects`, never from constants; null when a payload carries no
+// effects, and the card then keeps its one provenance line instead.
 //
 // The islands are a hard shadow in the window figure and in the refraction
 // step alike, so refraction is the seabed alone, and the diffraction step is
-// only what diffraction changes about the islands (forecast.nearshore.summarise).
-function calculationLine(c) {
+// only what diffraction changes about the edges (forecast.nearshore.summarise).
+function calculationTable(c) {
   const n = c.nearshore || {};
   const e = n.effects;
-  if (!e || e.window_hs_m == null || e.shoaled_hs_m == null) {
-    return c.hsOffshore != null
-      ? `<div class="src">${period(`of ${height(c.hsOffshore)} at the buoy`)}</div>` : "";
-  }
-  const depth = n.depth_m != null
-    ? `${Math.round(n.depth_m * FT_PER_M)} ft (${Math.round(n.depth_m)} m)` : "shallow";
-  // Heights and percentages in the leading train's ink and weight; the
-  // words between them in its softer grey, so the eye reads the numbers.
-  const ht = (m) => `<b>${height(m)}</b>`;
+  if (!e || e.window_hs_m == null || e.shoaled_hs_m == null) return null;
   // The seabed, then diffraction at every window edge (the Coronado Islands,
   // the Point Loma tip, the Baja tangent), both on the bent rays and both as
   // a signed change: refraction against the straight-line window,
@@ -955,42 +976,76 @@ function calculationLine(c) {
   const refracted = e.refracted_hs_m != null ? e.refracted_hs_m : diffracted;
   const change = (to, from) => {
     const d = to - from;
-    return `<b>${d < 0 ? "\u2212" : "+"}${height(Math.abs(d))}</b>${pct(to, from)}`;
+    return `${d < 0 ? "\u2212" : "+"}${height(Math.abs(d))}`;
   };
-  const steps = [
-    `${ht(e.window_hs_m)} through the windows of ${ht(e.buoy_hs_m)} at the buoy`
-      + `${pct(e.window_hs_m, e.buoy_hs_m)}.`,
-    `Refraction and diffraction at the windows' edges change the swell by `
-      + `${change(refracted, e.window_hs_m)} and ${change(diffracted, refracted)}, respectively.`,
-  ];
+  const rows = [];
+  const row = (calc, to, from, {note = "", bound = false} = {}) => rows.push(
+    `<tr><th scope="row">${calc}${note ? ` <span class="unit">${note}</span>` : ""}</th>`
+    + `<td>${from == null ? "\u2014" : change(to, from)}</td>`
+    + `<td>${from == null ? "\u2014" : pct(to, from)}</td>`
+    + `<td>${bound ? "\u2264 " : ""}${height(to)}</td></tr>`);
+  row("Buoy", e.buoy_hs_m, null);
+  row("Windows", e.window_hs_m, e.buoy_hs_m);
+  row("Refraction", refracted, e.window_hs_m);
+  row("Diffraction", diffracted, refracted);
   // Bottom friction along the rays' paths over the shelf, before shoaling
   // divides back in (forecast.raytrace.friction_rate). Absent from a payload
   // built before it was modelled.
   let before = diffracted;
   if (e.friction_hs_m != null) {
-    steps.push(`Bottom friction over the shelf changes it by ${change(e.friction_hs_m, diffracted)}.`);
+    row("Bottom friction", e.friction_hs_m, diffracted);
     before = e.friction_hs_m;
   }
-  const verb = e.shoaled_hs_m >= before ? "lifts" : "lowers";
-  steps.push(`Shoaling into ${depth} of water ${verb} it to ${ht(e.shoaled_hs_m)}`
-    + `${pct(e.shoaled_hs_m, before)}.`);
+  const start = n.depth_m != null ? `to ${depthText(n.depth_m)}` : "";
+  row("Shoaling", e.shoaled_hs_m, before, {note: start});
   // Swell and chop together at the start depth; an older payload's `hs_m` is
-  // that figure, a newer one's is the breaking height.
+  // that figure, a newer one's is the breaking height. Not a step the swell
+  // takes, but without its row the column would not arrive at the headline.
   const withChop = e.with_chop_hs_m != null ? e.with_chop_hs_m : n.hs_m;
   if (e.local && withChop != null) {
-    steps.push(`Local wind chop at ${e.local.tp_s.toFixed(1)} s makes that ${ht(withChop)}`
-      + `${pct(withChop, e.shoaled_hs_m)}.`);
+    row("Local chop", withChop, e.shoaled_hs_m, {note: `${e.local.tp_s.toFixed(1)} s`});
   }
-  // Then in to where it breaks, at this tide (forecast.surfzone).
+  // Then in to where it breaks, at this tide (forecast.surfzone). Already
+  // breaking at the start depth means the break is further out, and the
+  // figure is an upper bound rather than a break point found.
   const b = n.breaking;
+  let foot = "";
   if (b && b.hs_m != null && withChop != null) {
-    steps.push(b.outside_start
-      ? `At this tide it is already breaking in ${depth} of water, so the break is `
-        + `further out and ${ht(b.hs_m)} is an upper bound.`
-      : `At this tide it breaks in ${depthText(b.depth_m)} of water at ${ht(b.hs_m)}`
-        + `${pct(b.hs_m, withChop)}.`);
+    row("Wave break", b.hs_m, withChop, {bound: !!b.outside_start});
+    if (b.outside_start) {
+      const depth = n.depth_m != null ? depthText(n.depth_m) : "shallow";
+      foot = `<div class="quiet">At this tide it is already breaking in ${depth}`
+        + ` of water, so the break is further out and the last height is an upper bound.</div>`;
+    }
   }
-  return `<div class="calc">${steps.join(" ")}</div>`;
+  return `<table class="calc-table">
+      <thead><tr><th scope="col">Calc</th><th scope="col">Change</th>`
+    + `<th scope="col">%</th><th scope="col">Hs</th></tr></thead>
+      <tbody>${rows.join("")}</tbody>
+    </table>${foot}`;
+}
+
+// The caret at the end of the headline. One state for every break, so
+// flipping between breaks keeps the table open, and kept across a refresh
+// the way the tab choices are.
+let CALC_OPEN = false;
+function calcToggle(id) {
+  return `<button type="button" class="calc-toggle" data-calc-toggle
+    aria-controls="calc-${id}" aria-expanded="${CALC_OPEN}"
+    aria-label="How this height was calculated"><svg viewBox="0 0 16 16" aria-hidden="true">`
+    + `<path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`;
+}
+
+// Flips every caret and table in place rather than re-rendering, so the
+// countdowns and the drawing's picks keep their place.
+function setCalcOpen(open) {
+  CALC_OPEN = open;
+  remember(KEEP.calc, open ? "open" : "closed");
+  document.querySelectorAll("[data-calc-toggle]").forEach((btn) => {
+    btn.setAttribute("aria-expanded", String(open));
+    const fold = $(btn.getAttribute("aria-controls"));
+    if (fold) fold.hidden = !open;
+  });
 }
 
 // Larger than the first version (r 124 -> 140 in the same 320 box): the
@@ -1376,6 +1431,7 @@ function wireSwellTabs() {
   strip.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-swell-tab]");
     if (btn) selectSwellTab(btn.getAttribute("data-swell-tab"));
+    if (e.target.closest("[data-calc-toggle]")) setCalcOpen(!CALC_OPEN);
   });
   strip.addEventListener("keydown", (e) => {
     const btn = e.target.closest("[data-swell-tab]");
@@ -1876,6 +1932,8 @@ function boot(data, observed, measured) {
   // opens on Now. The swell tab is restored by id, and one that no longer
   // exists falls through to the leader, as an unmade choice does.
   SWELL_TAB = recall(KEEP.swell);
+  // The calculation table opens as the reader left it; anything else, closed.
+  CALC_OPEN = recall(KEEP.calc) === "open";
   setMode(recall(KEEP.mode) === "forecast" ? "forecast" : "now");
 
   // The observed age moves whether or not anything else does, so the observed
