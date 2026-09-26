@@ -1,0 +1,234 @@
+{
+  "fetched_utc": "2026-09-26T01:55:16Z",
+  "radius_km": 30.0,
+  "datum": "MLLW",
+  "reference_in_use": "9410170",
+  "breaks": {
+    "coronado_north": [
+      32.685840299999995,
+      -117.19484245000001
+    ],
+    "coronado_center": [
+      32.68220495,
+      -117.18531669999999
+    ],
+    "coronado_south": [
+      32.67511025,
+      -117.17421635
+    ]
+  },
+  "prediction_stations": [
+    {
+      "id": "9410170",
+      "name": "SAN DIEGO (Broadway)",
+      "lat": 32.71555555555555,
+      "lon": -117.1766666666667,
+      "type": "R",
+      "reference_id": "",
+      "km_from": {
+        "coronado_north": 3.72,
+        "coronado_center": 3.8,
+        "coronado_south": 4.5
+      }
+    },
+    {
+      "id": "TWC0405",
+      "name": "Point Loma",
+      "lat": 32.666666666667005,
+      "lon": -117.23333333333005,
+      "type": "S",
+      "reference_id": "9410170",
+      "km_from": {
+        "coronado_north": 4.19,
+        "coronado_center": 4.81,
+        "coronado_south": 5.61
+      },
+      "offsets": {
+        "refStationId": "9410170",
+        "type": "S",
+        "heightOffsetHighTide": 0.92,
+        "heightOffsetLowTide": 0.92,
+        "timeOffsetHighTide": -9,
+        "timeOffsetLowTide": -2,
+        "heightAdjustedType": "R",
+        "self": null
+      }
+    },
+    {
+      "id": "9410166",
+      "name": "San Diego, Quarantine Station",
+      "lat": 32.7033,
+      "lon": -117.235,
+      "type": "S",
+      "reference_id": "9410170",
+      "km_from": {
+        "coronado_north": 4.23,
+        "coronado_center": 5.21,
+        "coronado_south": 6.49
+      },
+      "offsets": {
+        "refStationId": "9410170",
+        "type": "S",
+        "heightOffsetHighTide": 0.96,
+        "heightOffsetLowTide": 0.96,
+        "timeOffsetHighTide": -4,
+        "timeOffsetLowTide": 2,
+        "heightAdjustedType": "R",
+        "self": null
+      }
+    },
+    {
+      "id": "9410152",
+      "name": "National City, San Diego Bay",
+      "lat": 32.665,
+      "lon": -117.118,
+      "type": "S",
+      "reference_id": "9410170",
+      "km_from": {
+        "coronado_north": 7.56,
+        "coronado_center": 6.58,
+        "coronado_south": 5.38
+      },
+      "offsets": {
+        "refStationId": "9410170",
+        "type": "S",
+        "heightOffsetHighTide": 0.2,
+        "heightOffsetLowTide": 0.0,
+        "timeOffsetHighTide": 4,
+        "timeOffsetLowTide": 10,
+        "heightAdjustedType": "F",
+        "self": null
+      }
+    },
+    {
+      "id": "9410135",
+      "name": "South San Diego Bay",
+      "lat": 32.62910079956055,
+      "lon": -117.10780334472656,
+      "type": "R",
+      "reference_id": "",
+      "km_from": {
+        "coronado_north": 10.31,
+        "coronado_center": 9.36,
+        "coronado_south": 8.05
+      }
+    },
+    {
+      "id": "TWC0413",
+      "name": "Quivira Basin, Mission Bay",
+      "lat": 32.76666666666701,
+      "lon": -117.23333333333005,
+      "type": "S",
+      "reference_id": "9410170",
+      "km_from": {
+        "coronado_north": 9.68,
+        "coronado_center": 10.41,
+        "coronado_south": 11.59
+      },
+      "offsets": {
+        "refStationId": "9410170",
+        "type": "S",
+        "heightOffsetHighTide": 0.95,
+        "heightOffsetLowTide": 0.95,
+        "timeOffsetHighTide": 5,
+        "timeOffsetLowTide": 4,
+        "heightAdjustedType": "R",
+        "self": null
+      }
+    },
+    {
+      "id": "9410120",
+      "name": "Imperial Beach",
+      "lat": 32.5783,
+      "lon": -117.135,
+      "type": "S",
+      "reference_id": "9410170",
+      "km_from": {
+        "coronado_north": 13.21,
+        "coronado_center": 12.48,
+        "coronado_south": 11.37
+      },
+      "offsets": {
+        "refStationId": "9410170",
+        "type": "S",
+        "heightOffsetHighTide": 0.93,
+        "heightOffsetLowTide": 0.96,
+        "timeOffsetHighTide": 0,
+        "timeOffsetLowTide": -3,
+        "heightAdjustedType": "R",
+        "self": null
+      }
+    },
+    {
+      "id": "9410196",
+      "name": "Mission Bay, Campland",
+      "lat": 32.793701171875,
+      "lon": -117.22380065917969,
+      "type": "R",
+      "reference_id": "",
+      "km_from": {
+        "coronado_north": 12.3,
+        "coronado_center": 12.91,
+        "coronado_south": 13.98
+      }
+    },
+    {
+      "id": "9410230",
+      "name": "La Jolla (Scripps Institution Wharf)",
+      "lat": 32.86688888888889,
+      "lon": -117.2571388888889,
+      "type": "R",
+      "reference_id": "",
+      "km_from": {
+        "coronado_north": 20.96,
+        "coronado_center": 21.61,
+        "coronado_south": 22.69
+      }
+    }
+  ],
+  "water_level_stations": [
+    {
+      "id": "9410170",
+      "name": "San Diego",
+      "lat": 32.715557,
+      "lon": -117.17667,
+      "type": "",
+      "reference_id": "",
+      "km_from": {
+        "coronado_north": 3.72,
+        "coronado_center": 3.8,
+        "coronado_south": 4.5
+      }
+    },
+    {
+      "id": "9410230",
+      "name": "La Jolla",
+      "lat": 32.86689,
+      "lon": -117.25714,
+      "type": "",
+      "reference_id": "",
+      "km_from": {
+        "coronado_north": 20.96,
+        "coronado_center": 21.61,
+        "coronado_south": 22.69
+      }
+    }
+  ],
+  "comparison_window_utc": [
+    "2026-08-27T01:55:16Z",
+    "2026-09-26T01:55:16Z"
+  ],
+  "comparison_fetch": {
+    "9410170 water_level": "7198 rows",
+    "9410230 water_level": "7151 rows",
+    "9410170 hilo": "110 rows",
+    "TWC0405 hilo": "112 rows",
+    "9410166 hilo": "112 rows",
+    "9410152 hilo": "114 rows",
+    "9410135 hilo": "110 rows",
+    "TWC0413 hilo": "110 rows",
+    "9410120 hilo": "110 rows",
+    "9410196 hilo": "108 rows",
+    "9410230 hilo": "108 rows"
+  }
+}
