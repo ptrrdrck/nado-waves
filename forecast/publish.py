@@ -114,8 +114,12 @@ as you walk the sand.
 nothing to compute one against. `info.html` states what each tab is standing
 on — geometry, model, calibration, observation — and two of those read *none*.
 
-Window energy is the offshore energy aimed at a break. It is **not a wave height
-at the beach**: no shoaling, no refraction, no offshore-to-face transfer.
+Each break's number is the offshore spectrum carried by physics to where it
+breaks: refraction, bottom friction and diffraction over the seabed, shoaling
+to 5 m of water, then breaking on the surveyed beach profile at the tide. It is
+**not a wave height at the beach** as a surfer calls it: a significant height,
+not a face height, and the transfer between them has never been fitted, because
+nothing has observed these beaches.
 
 ## Why it is separate from the observation log
 

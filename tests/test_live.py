@@ -259,7 +259,7 @@ class TestOutput:
 
         text = " ".join(live.format_table(live.build(bulletin=bulletin(SOUTH), now=CYCLE)).split())
         assert "Neither is a surf height at the sand" in text
-        assert "no breaking" in text
+        assert "no offshore-to-face transfer" in text
         assert "nothing here carries an error bar" in text
 
     def test_every_hour_carries_the_nearshore_chain(self):

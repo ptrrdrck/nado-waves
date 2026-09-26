@@ -39,9 +39,14 @@ the depth changes (shoaling). This traces that, the way CDIP's MOP does
    tangent by the straight-edge one. Each ray carries a hard-edged and a
    diffracting answer, so the two effects are measured apart.
 
+6. Bottom friction along each ray's path over the shelf (`friction_rate`,
+   the JONSWAP law), stored as its own factor per ray beside the gain so the
+   surface can state it as its own effect.
+
 WHAT IT IS NOT. Refraction and diffraction are computed separately and
 combined per ray, not solved together as the mild-slope equation would; no
-breaking, no bottom friction, no currents, no wind input.
+currents, no wind input. Breaking is inshore of the table's start depth and
+lives in `forecast.surfzone`.
 The result is the spectrum at `H_REF` (5) metres of water off each break — still
 not a face height at the sand, and still unverified: nothing observes the
 beach. Depth is below MSL when the sidecar carries CO-OPS's MSL/NAVD88 offset,
@@ -91,6 +96,12 @@ H_LAND = 0.3
 STEP_FRACTION = 0.5
 #: Rays longer than this without reaching deep water are stopped and flagged.
 MAX_PATH_M = 80_000.0
+#: Bottom friction, the JONSWAP coefficient (Hasselmann et al. 1973), m²/s³.
+#: 0.038 is SWAN's default and what Zijlema, van Vledder & Holthuijsen (2012)
+#: recommend for swell and wind sea alike. Taken from the literature, never
+#: tuned: fitting it to anything is calibration, and there is nothing
+#: observed at these beaches to fit it to.
+C_BOTTOM = 0.038
 
 
 # ------------------------------------------------------------------ physics
@@ -107,6 +118,23 @@ def wavenumber(omega: float | np.ndarray, h: np.ndarray) -> np.ndarray:
         df = G * th + G * k * h * (1.0 - th * th)
         k = k - f / df
     return k
+
+
+def friction_rate(omega: float, h: np.ndarray) -> np.ndarray:
+    """Fraction of the energy flux bottom friction removes per metre of ray.
+
+    The JONSWAP source term is S = −C_b·ω²/(g²·sinh²(kh))·E, linear in E, so
+    along a ray d(flux)/ds = −flux·C_b·ω²/(g²·sinh²(kh)·cg). Linear is what
+    makes it a per-ray FACTOR that can be stored in the table with the rest
+    of the transfer; a friction law that depends on the orbital velocity
+    (Madsen's) depends on the wave height and could not be precomputed.
+    """
+
+    h = np.maximum(h, 1e-3)
+    k = wavenumber(omega, h)
+    kh = np.minimum(k * h, 300.0)
+    _, cg, _ = speeds(omega, h)
+    return C_BOTTOM * omega ** 2 / (G ** 2 * np.sinh(kh) ** 2 * cg)
 
 
 def speeds(omega: float, h: np.ndarray):
@@ -429,6 +457,9 @@ class Rays:
     #: near each ray comes to a headland's charted edge vertices, for the
     #: straight-edge diffraction factor.
     edges: dict | None = None
+    #: exp(−∫ friction_rate ds) along the traced path: the share of the energy
+    #: flux bottom friction leaves. The straight deep-water leg adds nothing.
+    friction: np.ndarray | None = None
 
 
 def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
@@ -458,6 +489,7 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
                       np.full(n, np.nan), np.zeros(n, bool)] for i in islands}
     edges = edges or {}
     near_edge = {name: [np.full(n, np.inf), np.zeros(n), np.full(n, np.nan)] for name in edges}
+    lost = np.zeros(n)
 
     def ahead(island, xa, ya, ba):
         return np.cos(ba) * (island.centre[0] - xa) + np.sin(ba) * (island.centre[1] - ya)
@@ -505,6 +537,9 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
             break
         idx, xa, ya, ba = idx[go], xa[go], ya[go], ba[go]
         k1, ds = k1[go], STEP_FRACTION * cell[go]
+        wet = covered[go] & np.isfinite(h[go])
+        if wet.any():
+            lost[idx[wet]] += friction_rate(omega, h[go][wet]) * ds[wet]
 
         # Midpoint (RK2) step along the look-back direction.
         xm = xa + 0.5 * ds * np.cos(ba)
@@ -541,7 +576,8 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
 
     passes = {name: tuple(v) for name, v in abeam.items()} if islands else None
     return Rays(compass_from(beta), status, x, y, exit_depth, path, passes,
-                {name: tuple(v) for name, v in near_edge.items()} if edges else None)
+                {name: tuple(v) for name, v in near_edge.items()} if edges else None,
+                np.exp(-lost))
 
 
 # ------------------------------------------------------------------ blockers
@@ -591,6 +627,7 @@ def start_point(bathy: Bathymetry, spot: Spot, h_ref: float = H_REF) -> tuple[fl
 
 FIELDS = ["period_s", "freq_hz", "near_from_deg", "near_width_deg",
           "off_from_deg", "gain", "diff_off_from_deg", "diff_gain",
+          "friction", "diff_friction",
           "status", "blocker", "exit_depth_m", "path_km"]
 
 
@@ -688,6 +725,7 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
         # Diffraction, ray by ray.
         diff_off = rays.off_from_deg.copy()
         diff_t = np.zeros(near.size)
+        diff_fric = rays.friction.copy()
         isl, _ = island_transmission(rays.passes or {}, islands, period)
         isl = np.ones(near.size) if isl is None else isl
         edge_t = np.ones(near.size)
@@ -710,6 +748,7 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                     continue
                 diff_off[i] = again.off_from_deg[k]
                 diff_t[i] = f2[k]
+                diff_fric[i] = again.friction[k]
 
         clear_idx = np.flatnonzero(clear)
         for i in np.flatnonzero(rays.status == LAND):
@@ -721,6 +760,9 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                 continue
             nearest = clear_idx[np.argmin(np.abs(((near[clear_idx] - near[i] + 180.0) % 360.0) - 180.0))]
             diff_off[i] = rays.off_from_deg[nearest]
+            # The energy that bends round the edge crosses the shelf beside the
+            # ray that clears it, and takes that ray's friction.
+            diff_fric[i] = rays.friction[nearest]
             diff_t[i] = float(edge_factor(np.array([-dist[i]]), np.array([depth[i]]),
                                           np.array([along[i]]), period)[0]) * isl[nearest]
 
@@ -732,6 +774,8 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                 "gain": f"{gain:.5f}" if clear[i] else "0",
                 "diff_off_from_deg": f"{diff_off[i]:.2f}",
                 "diff_gain": f"{gain * diff_t[i]:.5f}" if diff_t[i] > 0 else "0",
+                "friction": f"{rays.friction[i]:.5f}",
+                "diff_friction": f"{diff_fric[i]:.5f}",
                 "status": rays.status[i], "blocker": who[i],
                 "exit_depth_m": f"{rays.exit_depth[i]:.1f}" if np.isfinite(rays.exit_depth[i]) else "",
                 "path_km": f"{rays.path_m[i] / 1000.0:.2f}",
@@ -744,7 +788,8 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
             "msl_above_navd88_m": bathy.msl_offset_m, "grids": list(bathy.names),
             "islands": [{"name": i.name, "ring_depth_m": round(i.depth, 1),
                          "radius_m": round(i.radius)} for i in islands],
-            "diffracting_edges": sorted(edges)}
+            "diffracting_edges": sorted(edges),
+            "bottom_friction": {"law": "JONSWAP", "c_bottom_m2_s3": C_BOTTOM}}
     return rows, meta
 
 
@@ -783,6 +828,52 @@ def fetch_table(bathy: Bathymetry, spot: Spot, step_m: float = 20.0) -> list[dic
     return rows
 
 
+PROFILE_FIELDS = ["distance_m", "depth_m"]
+#: Profile spacing. The nearshore grid is 8 m; 2 m keeps the bilinear
+#: interpolation's own shape without adding anything the survey did not see.
+PROFILE_STEP_M = 2.0
+#: Where a profile stops: this far above MSL is dry at any tide the gauge has
+#: recorded (MHHW is about 0.85 m above MSL at 9410170, and the present
+#: anomaly adds ~0.3 m).
+PROFILE_DRY_M = 2.5
+
+
+def profile(bathy: Bathymetry, spot: Spot) -> list[dict]:
+    """Depth below MSL along the break's normal, from the table's start point
+    shoreward until the sand is `PROFILE_DRY_M` above MSL.
+
+    What `forecast.surfzone` breaks the waves on. One line, straight in: the
+    wave field inside 5 m is treated as alongshore-uniform, which is the
+    assumption every 1-D surf-zone model makes. It is the 2016 CoNED survey's
+    beach; sandbars move with the seasons and nothing here knows where they
+    are now.
+    """
+
+    xs, ys, _ = start_point(bathy, spot)
+    shoreward = float(beta_from_compass(np.array([spot.normal]))[0]) + math.pi
+    rows = []
+    for i in range(5000):
+        d = i * PROFILE_STEP_M
+        h, *_ , covered = bathy.sample(np.array([xs + d * math.cos(shoreward)]),
+                                       np.array([ys + d * math.sin(shoreward)]))
+        if not covered[0] or not np.isfinite(h[0]):
+            break
+        rows.append({"distance_m": f"{d:.1f}", "depth_m": f"{h[0]:.3f}"})
+        if h[0] <= -PROFILE_DRY_M:
+            break
+    return rows
+
+
+def write_profile(rows: list[dict], break_id: str, out_dir: Path = OUT_DIR) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{break_id}_profile.csv"
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=PROFILE_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+    return path
+
+
 def write(rows: list[dict], meta: dict, out_dir: Path = OUT_DIR) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{meta['break']}.csv"
@@ -809,6 +900,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--break", dest="only", choices=BREAKS)
     parser.add_argument("--fetch-only", action="store_true",
                         help="rebuild the local-sea fetch tables and nothing else")
+    parser.add_argument("--profile-only", action="store_true",
+                        help="rebuild the surf-zone profiles and nothing else")
     args = parser.parse_args(argv)
 
     bathy = Bathymetry.load()
@@ -817,6 +910,10 @@ def main(argv: list[str] | None = None) -> int:
     freqs = frequencies()
     for sid in BREAKS:
         if args.only and sid != args.only:
+            continue
+        prof = write_profile(profile(bathy, by_id[sid]), sid)
+        print(f"{sid}: profile -> {prof}")
+        if args.profile_only:
             continue
         fetch = write_fetch(fetch_table(bathy, by_id[sid]), sid)
         print(f"{sid}: fetch -> {fetch}")

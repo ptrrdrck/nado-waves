@@ -46,6 +46,8 @@ from .geometry import (HIGH, LOW, Spot, geometry_line,
                        swell_windows, window_entry)
 from .units import height as fmt_height, speed as fmt_speed
 from .live import (
+    SEABED_LINE,
+    SURF_ZONE_LINE,
     STATION,
     TIDE_STATION,
     TIDE_STATION_NAME,
@@ -60,6 +62,8 @@ from .live import (
 )
 from .tideturns import read_turns, turns_between
 from .nearshore import carry, density_grids, load_tables, local_sea, summarise
+from .surfzone import load_profiles
+from .tidesite import LEAD_MIN, RATIO, SITE_NAME, coast_height, coast_level, coast_turn, msl_above_mllw
 from .transform import Spectrum, at_buoy, load_spectra, through
 
 #: Older than this and the spectrum is not "now". NDBC publishes hourly and the
@@ -326,9 +330,11 @@ class NowBreak:
     wind_note: str = ""
     diffraction_suspect: list[str] = field(default_factory=list)
     #: The number the card shows: the buoy's swell carried over the seabed to
-    #: `nearshore.depth_m` of water off the break (refraction, shoaling, the
-    #: Coronado Islands diffracted, Point Loma and Baja as land), with local
-    #: wind chop added in energy. `hs_in_window_m` above stays the
+    #: `nearshore.depth_m` of water off the break (refraction, bottom friction,
+    #: shoaling, diffraction at every window edge), with local wind chop added
+    #: in energy, then in to where it breaks at the measured tide
+    #: (`nearshore.breaking`; the 5 m figure when there is no current tide).
+    #: `hs_in_window_m` above stays the
     #: straight-line window figure; `nearshore.effects` carries the chain from
     #: one to the other. None when the transfer tables are missing.
     hs_nearshore_m: float | None = None
@@ -344,6 +350,8 @@ class NowTide:
     kind: str = "observed"
     age_minutes: float | None = None
     note: str = ""
+    #: The gauge's own reading on its MLLW, before it is carried to the coast.
+    gauge_height_m: float | None = None
 
 
 @dataclass
@@ -388,12 +396,18 @@ class Now:
     tide: NowTide = field(default_factory=NowTide)
     tide_station: str = TIDE_STATION
     tide_station_name: str = TIDE_STATION_NAME
+    #: Where the Tide card's numbers are: the gauge carried to the beach.
+    tide_site: str = SITE_NAME
     breaks: list[NowBreak] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     @property
     def usable(self) -> bool:
         return bool(self.breaks) and not self.stale
+
+
+RATIO_TEXT = f"{RATIO:.3f}"
+LEAD_TEXT = f"{LEAD_MIN} min"
 
 
 def read_measured_tide(data_dir: Path, *, now: datetime) -> NowTide:
@@ -489,18 +503,17 @@ def build(
         # level AND a predicted turn, and a row claiming the whole thing was
         # observed would be the exact confusion this block exists to prevent.
         "tide": f"OBSERVED — measured water level at {TIDE_STATION}, not a prediction",
-            "seabed": "MODELLED — refraction and shoaling over the USGS CoNED and GMRT "
-                      "seabed to 5 m of water off each break, the Coronado Islands by "
-                      "diffraction; linear, no breaking, unverified",
+            "seabed": SEABED_LINE,
             "local chop": f"MODELLED — fetch-limited growth from the {WIND_STATION} wind, "
                           f"only over fetches closed by land",
+            "surf zone": SURF_ZONE_LINE.format(tide="the measured level"),
             "calibration": "none — nothing has been fitted to an observation; "
                            "no offshore-to-face transfer",
             "observation at the beach": "none — data/beach_log/ is empty; "
                                         "nothing has measured these breaks",
-            "claim": "observed at a buoy 29 km offshore and carried by physics to 5 m "
-                     "of water off each break; not a surf height at the sand, and not "
-                     "verified there",
+            "claim": "observed at a buoy 29 km offshore and carried by physics to where "
+                     "the waves break off each break; a significant height, not a face "
+                     "height, and not verified there",
         },
         warnings=warnings,
     )
@@ -523,6 +536,13 @@ def build(
     if wind_row is None:
         reading.warnings.append(f"{WIND_STATION} wind not collected yet.")
     reading.tide = read_measured_tide(data_dir, now=moment)
+    # The gauge is inside the bay; the card is about the beach. The measured
+    # reading is carried to the open coast (forecast.tidesite) and keeps the
+    # gauge's own stamp, which is what the update countdown runs from. The raw
+    # reading stays alongside it, so the card's number can always be traced.
+    if reading.tide.height_m is not None:
+        reading.tide.gauge_height_m = reading.tide.height_m
+        reading.tide.height_m = round(coast_height(reading.tide.height_m), 3)
     if reading.tide.height_m is None:
         reading.warnings.append(f"{TIDE_STATION} measured water level not available.")
 
@@ -534,7 +554,7 @@ def build(
     # would go stale the moment it passed, on a page that may sit open for
     # hours. The surface picks from the list against the reader's own clock.
     turns = turns_between(
-        read_turns(data_dir, TIDE_STATION),
+        [coast_turn(t) for t in read_turns(data_dir, TIDE_STATION)],
         moment, moment + timedelta(hours=TURN_WINDOW_HOURS),
     )
     reading.tide_turns = [t.as_dict() for t in turns]
@@ -555,8 +575,11 @@ def build(
     reading.overdue_after = {k: overdue_after(v, k) for k, v in stamps.items()}
 
     reading.standing_on["tide"] = (
-        f"OBSERVED — measured water level at {TIDE_STATION}"
-        + ("; the next turn is a harmonic PREDICTION, not a measurement"
+        f"OBSERVED — measured water level at {TIDE_STATION}, inside San Diego Bay, "
+        f"carried to Coronado's open coast (x{RATIO_TEXT} on MLLW, measured against "
+        f"La Jolla)"
+        + ("; the next turn is a harmonic PREDICTION carried the same way "
+           f"({LEAD_TEXT} earlier), not a measurement"
            if turns else ", and no predicted turn is collected")
     )
 
@@ -587,6 +610,26 @@ def build(
         reading.warnings.append(f"nearshore tables unavailable ({exc}); showing window energy")
     grids = density_grids(spectrum) if tables else {}
 
+    # The depth the waves break in needs the tide at the open coast, now. A
+    # stale gauge is not now, and no gauge is no breaking: the 5 m figure is
+    # shown instead, never a breaking height at an assumed tide.
+    profiles, tide_coast = {}, None
+    if tables:
+        try:
+            profiles = load_profiles()
+        except (FileNotFoundError, ValueError) as exc:
+            reading.warnings.append(f"surf-zone profiles unavailable ({exc}); no breaking")
+    if profiles and reading.tide.height_m is not None and not reading.tide.note:
+        try:
+            # From the gauge's own reading: `coast_level` is the transfer, and
+            # the card's height has already been through it once.
+            tide_coast = coast_level(reading.tide.gauge_height_m, msl_above_mllw(data_dir))
+        except (FileNotFoundError, KeyError, ValueError) as exc:
+            reading.warnings.append(f"{TIDE_STATION} datums unavailable ({exc}); no breaking")
+    elif profiles:
+        reading.warnings.append("no current measured tide, so no breaking height; "
+                                "showing the figure at 5 m")
+
     for break_id in BREAKS:
         spot: Spot = by_id[break_id]
         got = through(spectrum, spot, blockers)
@@ -597,7 +640,9 @@ def build(
             carried = carry(spectrum, table, grids)
             chop = local_sea(table, spot.normal, reading.wind.speed_kt, reading.wind.from_deg)
             near = summarise(carried, chop, buoy_hs_m=raw.hs_m,
-                             window_hs_m=got.hs_in_window_m, depth_m=table.start_depth_m)
+                             window_hs_m=got.hs_in_window_m, depth_m=table.start_depth_m,
+                             profile=profiles.get(break_id), tide_m=tide_coast,
+                             normal_deg=spot.normal)
             near_hs = near["hs_m"]
         reading.breaks.append(NowBreak(
             id=spot.id,
@@ -663,8 +708,8 @@ def format_table(reading: Now) -> str:
                      f"{wind.station_name} ({wind.station}), {wind.observed_utc}")
     tide = reading.tide
     if tide.height_m is not None:
-        lines.append(f"tide  {fmt_height(tide.height_m)} MEASURED   {reading.tide_station_name} "
-                     f"({reading.tide_station}), {tide.observed_utc}")
+        lines.append(f"tide  {fmt_height(tide.height_m)} at the {reading.tide_site}, MEASURED at "
+                     f"{reading.tide_station_name} ({reading.tide_station}), {tide.observed_utc}")
     lines.append("")
 
     if reading.buoy.get("trains"):
@@ -674,7 +719,7 @@ def format_table(reading: Now) -> str:
                          f"from {t['from_deg']:3}°  {'(wind sea)' if t['wind_sea'] else ''}")
         lines.append("")
 
-    lines.append(f"{'break':10s} {'at 5 m':>16s} {'window Hs':>16s} {'peak T':>7s} {'from':>6s}  wind")
+    lines.append(f"{'break':10s} {'breaking':>16s} {'window Hs':>16s} {'peak T':>7s} {'from':>6s}  wind")
     for entry in reading.breaks:
         # "Coronado Central Beach - north break" truncates to an identical
         # prefix for all three, which is the one thing the table must not do.
@@ -691,8 +736,9 @@ def format_table(reading: Now) -> str:
         )
     lines += [
         "",
-        "Observed at a buoy 29 km offshore and carried over the seabed to 5 m of water",
-        "off each break. Not broken, not a surf height, and never measured at the beach.",
+        "Observed at a buoy 29 km offshore and carried over the seabed to where it breaks",
+        "off each break (the 5 m figure when there is no current tide). A significant",
+        "height, not a surf height, and never measured at the beach.",
     ]
     return "\n".join(lines)
 

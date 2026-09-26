@@ -1,0 +1,52 @@
+# Which tide stations describe the water level at Coronado's breaks, and how
+# far the bay gauge 9410170 is from the open coast in time and height.
+#
+# Why a workflow: CO-OPS is denied at CONNECT from a Claude session
+# (BRIEFING section 8). ON DEMAND: a station survey and a 30-day comparison
+# window, not a stream.
+
+name: Tide stations
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tide-stations
+  cancel-in-progress: false
+
+jobs:
+  stations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Survey the stations and fetch the comparison window
+        run: python -m collector.tidestations
+
+      - name: Commit and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "nado-waves collector"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/tide/stations.json data/tide/comparison
+          if git diff --cached --quiet; then
+            echo "No change to commit."
+            exit 0
+          fi
+          git commit -m "data: tide stations near the breaks and a 30-day comparison" \
+            -m "Automated commit from .github/workflows/tide-stations.yml."
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then exit 0; fi
+            git pull --rebase origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+          exit 1

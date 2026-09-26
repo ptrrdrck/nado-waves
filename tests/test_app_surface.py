@@ -84,13 +84,29 @@ class TestItSaysWhatItIsStandingOn:
         assert "not a wave height" in INFO_TEXT and "at the beach" in INFO_TEXT
 
     def test_it_names_what_is_modelled_and_what_is_still_missing(self):
-        """Refraction and shoaling are modelled since 2026-09-25, so the page
-        says so — and says what is still absent: breaking, the transfer to a
-        surf height, and any check against the beach."""
+        """Refraction and shoaling are modelled since 2026-09-25, friction and
+        breaking since 2026-09-26, so the page says so — and says what is
+        still absent: the transfer to a surf height, this season's sand, and
+        any check against the beach."""
 
         assert "bent over the seabed" in INFO_TEXT and "shoaling" in INFO_TEXT
-        assert "no breaking" in INFO_TEXT
+        assert "friction" in INFO_TEXT and "until it breaks" in INFO_TEXT
+        assert "not a face height" in INFO_TEXT and "has not been fitted" in INFO_TEXT
+        assert "2016 survey" in INFO_TEXT
         assert "nothing has checked it" in INFO_TEXT
+
+
+class TestTheTideCardSaysWhereItIs:
+    """The numbers are the open coast's; the source line says so and names
+    the gauge they were carried from, on both tabs."""
+
+    def test_both_tabs_use_one_source_line(self):
+        assert SOURCE.count("tideSource(NOW)") == 1
+        assert SOURCE.count("tideSource(DATA)") == 1
+        fn = SOURCE[SOURCE.index("function tideSource"):]
+        fn = fn[:fn.index("\n}\n")]
+        assert "carried from" in fn
+        assert "payload.tide_site ?" in fn        # an older payload is the gauge's own
 
 
 class TestScope:
@@ -577,7 +593,8 @@ class TestTheCalculationLine:
     def test_each_effect_is_stated_in_one_form(self):
         for effect in ("through the windows of",
                        "Refraction and diffraction at the windows' edges change the swell by",
-                       "respectively", "Shoaling into", "Local wind chop at"):
+                       "respectively", "Bottom friction over the shelf", "Shoaling into",
+                       "Local wind chop at", "At this tide it breaks in"):
             assert effect in self.LINE
         assert self.LINE.count("pct(") >= 4
 
@@ -609,6 +626,56 @@ class TestTheCalculationLine:
         label = label[:label.index("\n}\n")]
         assert "ft (${Math.round(d)} m) depth" in label
         assert '"in window"' in label           # an older payload says what its number is
+
+    def test_friction_and_breaking_are_stated_in_the_same_form(self):
+        assert "Bottom friction over the shelf changes it by ${change(e.friction_hs_m, diffracted)}" in self.LINE
+        assert "At this tide it breaks in ${depthText(b.depth_m)} of water at ${ht(b.hs_m)}" in self.LINE
+        # A break already under way at the start depth is not claimed as found.
+        assert "is an upper bound" in self.LINE
+
+    def test_every_breaking_field_it_reads_is_one_the_surf_zone_writes(self):
+        from forecast.surfzone import Breaking
+
+        written = Breaking(1.0, 2.0, 50.0, 0.3, 0.55, 0.1, False).as_dict()
+        for text in (self.LINE, SOURCE[SOURCE.index("function depthLabel"):]):
+            for key in re.findall(r"\bb\.([a-z_]+)", text[:3000]):
+                assert key in written, key
+
+    def test_the_headline_names_where_it_breaks(self):
+        label = SOURCE[SOURCE.index("function depthLabel"):]
+        label = label[:label.index("\n}\n")]
+        assert "breaking at ${depthText(b.depth_m)} depth" in label
+
+    def test_the_trains_still_sum_to_the_breaking_headline(self):
+        """Breaking scales every train by one factor, so the list under the
+        number adds up to it in energy, as it did at 5 m."""
+
+        import math
+
+        from forecast.nearshore import LocalSea, Nearshore, summarise
+        from forecast.surfzone import Profile
+        from forecast.transform import Train
+
+        near = Nearshore("x", 1.0, 0.9, 0.8, 200.0, 210.0, 12.0,
+                         trains=[Train(0.9, 12.0, 205.0, 0.81),
+                                 Train(math.sqrt(0.19), 7.0, 250.0, 0.19)])
+        flat = Profile("p", [2.0 * i for i in range(300)], [5.0 - 0.06 * i for i in range(300)])
+        out = summarise(near, LocalSea(0.2, 2.0, 280.0, 3.0), buoy_hs_m=1.2, window_hs_m=0.8,
+                        depth_m=5.0, profile=flat, tide_m=0.2, normal_deg=200.0)
+        assert out["breaking"] is not None
+        assert out["hs_m"] == out["breaking"]["hs_m"]
+        total = math.sqrt(sum(t["hs_m"] ** 2 for t in out["trains"]))
+        assert total == pytest.approx(out["hs_m"], rel=0.01)
+
+    def test_no_tide_no_breaking_height(self):
+        from forecast.nearshore import Nearshore, summarise
+        from forecast.surfzone import Profile
+
+        near = Nearshore("x", 1.0, 0.9, 0.8, 200.0, 210.0, 12.0)
+        flat = Profile("p", [0.0, 400.0], [5.0, -3.0])
+        out = summarise(near, None, buoy_hs_m=1.2, window_hs_m=0.8, depth_m=5.0,
+                        profile=flat, tide_m=None, normal_deg=200.0)
+        assert out["breaking"] is None and out["hs_m"] == 1.0
 
     def test_it_does_not_call_the_physics_calibration(self):
         """Calibration is the level reserved for fitting to observations."""
