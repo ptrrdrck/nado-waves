@@ -22,11 +22,11 @@ the depth changes (shoaling). This traces that, the way CDIP's MOP does
    0.001%; stopping at L0/2 left c 0.4% short and each heading ~0.2° short of
    Snell, measured on the planar control)
    and the rest of the path is a straight line, which is then tested against
-   the charted blockers in `spots.json` — the Coronado Islands and Baja lie
-   south of the grid, so this is where they act. Or it stops on land (the
-   heading receives nothing), or at the grid's edge — counted as deep if the
-   water there is already past L0/2, and flagged `grid edge` with its depth
-   otherwise.
+   the charted blockers in `spots.json`. Or it stops on land — Point Loma,
+   the Baja coast and the Coronado Islands are all land in the grids, and a
+   ray crossing an island's own shelf refracts over it — or at the grid's
+   edge, counted as deep if the water there is already past L0/2 and flagged
+   `grid edge` with its depth otherwise.
 4. Energy along a ray: for stationary linear refraction S(f, θ)·c·c_g is
    invariant (Longuet-Higgins 1957), so the spectral density arriving at the
    start point from heading θn is S_off(f, θ0)·(c0·cg0)/(c·cg), with θ0 the
@@ -34,8 +34,14 @@ the depth changes (shoaling). This traces that, the way CDIP's MOP does
    AND shoaling together; `tests/test_raytrace.py` checks it against Snell's
    law and the textbook Ks²·Kr² on a planar beach.
 
-WHAT IT IS NOT. No diffraction here (the islands' Fresnel correction is layered
-on separately), no breaking, no bottom friction, no currents, no wind input.
+5. Diffraction at every window edge, on those bent rays (`table`): the
+   islands by the two-edge Babinet factor, the Point Loma tip and the Baja
+   tangent by the straight-edge one. Each ray carries a hard-edged and a
+   diffracting answer, so the two effects are measured apart.
+
+WHAT IT IS NOT. Refraction and diffraction are computed separately and
+combined per ray, not solved together as the mild-slope equation would; no
+breaking, no bottom friction, no currents, no wind input.
 The result is the spectrum at `H_REF` (5) metres of water off each break — still
 not a face height at the sand, and still unverified: nothing observes the
 beach. Depth is below MSL when the sidecar carries CO-OPS's MSL/NAVD88 offset,
@@ -253,10 +259,11 @@ def islands_from(blockers: list[Blocker]) -> list[Island]:
 def transparent(bathy: "Bathymetry", islands: list[Island]) -> "Bathymetry":
     """A copy with each island's disc filled at the depth of the water around it.
 
-    This removes the island's own shelf as well as its land, so rays neither
-    stop on the island nor refract around its shoals; the Fresnel factor then
-    carries the island's whole effect. That is the flat-bottom assumption the
-    Fresnel solution itself makes, stated rather than hidden.
+    Used ONLY to re-trace rays that land on an island, so the energy that
+    diffracts into the island's shadow has a path onward to deep water. Every
+    other ray crosses the real seabed, the islands' own shelves included,
+    since 2026-09-25 (it used to be every ray, which removed the shelf
+    refraction the locals' shadow-filling partly comes from).
     """
 
     grids = []
@@ -364,6 +371,34 @@ def island_transmission(passes: dict[str, tuple], islands: list[Island],
     return np.abs(field) ** 2, geo
 
 
+#: Past this Fresnel distance from an edge the straight-edge factor is left at
+#: 1. The lit-side ripple decays only as 1/u and sums to nothing across a
+#: spectrum; applying it to every ray in the table would add noise, not
+#: physics.
+EDGE_U_MAX = 4.0
+
+
+def edge_factor(offset_m: np.ndarray, depth_m: np.ndarray, dist_m: np.ndarray,
+                period_s: float) -> np.ndarray:
+    """Energy factor from diffraction by a straight edge (a headland tip).
+
+    Babinet again: a half-plane is the open wave minus the wave through a
+    slit from the edge to infinity. `offset_m` is signed: positive where the
+    ray clears the edge by that much, negative where it runs that far into
+    the land's shadow. At the edge itself the factor is exactly 1/4.
+    u = offset·sqrt(2/(λ·D)), λ at the depth beside the edge, D the path from
+    there to the break.
+    """
+
+    omega = 2.0 * math.pi / period_s
+    k = wavenumber(omega, np.maximum(np.asarray(depth_m, float), 1.0))
+    lam = 2.0 * math.pi / k
+    u = np.asarray(offset_m, float) * np.sqrt(2.0 / (lam * np.maximum(dist_m, 1.0)))
+    field = 1.0 - slit(u, np.full_like(u, 1e6))
+    out = np.abs(field) ** 2
+    return np.where(u > EDGE_U_MAX, 1.0, out)
+
+
 # ------------------------------------------------------------------ rays
 
 LAND, DEEP, EDGE, LONG = "land", "deep", "grid edge", "too long"
@@ -390,10 +425,15 @@ class Rays:
     #: island name -> (x, y, beta, path, seen) where each ray has the island
     #: abeam; `seen` is False for rays that never get there (landed first).
     passes: dict | None = None
+    #: edge name -> (closest distance, path there, depth there) per ray: how
+    #: near each ray comes to a headland's charted edge vertices, for the
+    #: straight-edge diffraction factor.
+    edges: dict | None = None
 
 
 def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
-          period_s: float, islands: list[Island] | None = None) -> Rays:
+          period_s: float, islands: list[Island] | None = None,
+          edges: dict[str, np.ndarray] | None = None) -> Rays:
     """Trace every heading at one period, seaward, until deep water, land or edge.
 
     With `islands`, also records where each ray has each island abeam — the
@@ -416,6 +456,8 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     islands = islands or []
     abeam = {i.name: [np.full(n, np.nan), np.full(n, np.nan), np.full(n, np.nan),
                       np.full(n, np.nan), np.zeros(n, bool)] for i in islands}
+    edges = edges or {}
+    near_edge = {name: [np.full(n, np.inf), np.zeros(n), np.full(n, np.nan)] for name in edges}
 
     def ahead(island, xa, ya, ba):
         return np.cos(ba) * (island.centre[0] - xa) + np.sin(ba) * (island.centre[1] - ya)
@@ -447,6 +489,13 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
             hit = mask & (status[idx] == "")
             status[idx[hit]] = label
             exit_depth[idx[hit]] = np.where(covered[hit], h[hit], exit_depth[idx[hit]])
+        for name, points in edges.items():
+            rec = near_edge[name]
+            d = np.min(np.hypot(xa[:, None] - points[None, :, 0],
+                                ya[:, None] - points[None, :, 1]), axis=1)
+            closer = covered & (d < rec[0][idx])
+            j = idx[closer]
+            rec[0][j], rec[1][j], rec[2][j] = d[closer], path[j], h[closer]
         done = status[idx] != ""
         active[idx[done]] = False
         seen = covered & ~done
@@ -491,7 +540,8 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
         rec[4][status == LAND] = False
 
     passes = {name: tuple(v) for name, v in abeam.items()} if islands else None
-    return Rays(compass_from(beta), status, x, y, exit_depth, path, passes)
+    return Rays(compass_from(beta), status, x, y, exit_depth, path, passes,
+                {name: tuple(v) for name, v in near_edge.items()} if edges else None)
 
 
 # ------------------------------------------------------------------ blockers
@@ -539,8 +589,9 @@ def start_point(bathy: Bathymetry, spot: Spot, h_ref: float = H_REF) -> tuple[fl
 
 # ------------------------------------------------------------------ tables
 
-FIELDS = ["period_s", "freq_hz", "near_from_deg", "near_width_deg", "off_from_deg",
-          "gain", "island_factor", "island_geometric", "status", "blocker", "exit_depth_m", "path_km"]
+FIELDS = ["period_s", "freq_hz", "near_from_deg", "near_width_deg",
+          "off_from_deg", "gain", "diff_off_from_deg", "diff_gain",
+          "status", "blocker", "exit_depth_m", "path_km"]
 
 
 def frequencies() -> list[float]:
@@ -565,20 +616,53 @@ def landed_on(blockers: list[Blocker], x: float, y: float) -> str:
     return name
 
 
+#: Headlands whose EDGES diffract: Point Loma's tip (every west edge) and the
+#: Baja tangent (every south edge). Named by prefix so the charted names in
+#: spots.json stay the only spelling.
+EDGE_BLOCKERS = ("Point Loma", "Baja")
+
+
+def edge_points(blockers: list[Blocker]) -> dict[str, np.ndarray]:
+    """UTM vertices a headland's shadow edge can sit on: the tangent vertex
+    and, for Point Loma, the charted hull of its rounded tip."""
+
+    out = {}
+    for blocker in blockers:
+        if blocker.name.startswith(EDGE_BLOCKERS):
+            pts = [blocker.a, *blocker.outline]
+            out[blocker.name] = np.array([to_utm(*p) for p in pts])
+    return out
+
+
 def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
           freqs: list[float]) -> tuple[list[dict], dict]:
-    """One break's transfer table.
+    """One break's transfer table, with every window edge both hard and soft.
 
-    `gain` is (c0·cg0)/(c·cg) at the start depth for a ray that reaches the
-    offshore wave field, 0 for one that lands or runs into Point Loma or Baja.
-    `island_factor` multiplies it: the Fresnel-diffraction energy factor from
-    the Coronado Islands (1 where they are far off the ray). `island_geometric`
-    is what a hard shadow would have done instead (0 or 1), kept so the effect
-    of diffraction can be measured rather than asserted.
+    For each ray, two answers:
+
+    - `gain` at `off_from_deg`: HARD shadows. (c0·cg0)/(c·cg) at the start
+      depth for a ray that reaches the offshore wave field over the real
+      seabed — the islands' own shelves included — and 0 for one that lands or
+      whose deep-water leg runs into Point Loma or Baja.
+    - `diff_gain` at `diff_off_from_deg`: the same with every window edge
+      DIFFRACTING. The Coronado Islands by the two-edge (Babinet) factor at
+      the point each ray has them abeam; a ray that lands on an island takes
+      the path it would have had through it (re-traced with the island
+      see-through) and the same factor, which is small deep in its shadow.
+      Point Loma's tip and the Baja tangent by the straight-edge factor: a ray
+      clearing the edge gets its lit-side ripple, and a ray that lands on the
+      headland gets the energy of the nearest ray that clears it, scaled by
+      how far into the shadow it runs.
+
+    Diffraction is computed on the BENT rays, not straight lines: the ray
+    that grazes an edge is itself refracted between the edge and the beach,
+    and that bent ray is where the shadow boundary sits as seen from the
+    break. Hard minus window is the seabed; soft minus hard is diffraction.
     """
 
     islands = islands_from(blockers)
-    see_through = transparent(bathy, islands)
+    see_through = transparent(bathy, islands)    # also sets each island's ring depth
+    edges = edge_points(blockers)
     xs, ys, hs = start_point(bathy, spot)
     near = (spot.normal - 90.0 + DIR_STEP_DEG / 2.0
             + DIR_STEP_DEG * np.arange(int(round(180.0 / DIR_STEP_DEG)))) % 360.0
@@ -586,27 +670,69 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     for f in freqs:
         period = 1.0 / f
         omega = 2.0 * math.pi * f
-        rays = trace(see_through, xs, ys, near, period, islands)
-        factor, geometric = island_transmission(rays.passes or {}, islands, period)
+        rays = trace(bathy, xs, ys, near, period, islands, edges)
         c_n, cg_n, _ = speeds(omega, np.array([hs]))
         c0 = G / omega
         gain = (c0 * 0.5 * c0) / float(c_n[0] * cg_n[0])
-        for i, theta in enumerate(near):
-            status = rays.status[i]
-            if status == LAND:
-                blocker = landed_on(blockers, rays.exit_x[i], rays.exit_y[i])
+
+        who, clear = [], np.zeros(near.size, bool)
+        for i in range(near.size):
+            if rays.status[i] == LAND:
+                who.append(landed_on(blockers, rays.exit_x[i], rays.exit_y[i]))
             else:
                 lat, lon = from_utm(rays.exit_x[i], rays.exit_y[i])
-                blocker = straight_line_blocker(blockers, lat, lon, float(rays.off_from_deg[i])) or ""
-            open_ = status != LAND and not blocker
+                who.append(straight_line_blocker(blockers, lat, lon,
+                                                 float(rays.off_from_deg[i])) or "")
+                clear[i] = not who[i]
+
+        # Diffraction, ray by ray.
+        diff_off = rays.off_from_deg.copy()
+        diff_t = np.zeros(near.size)
+        isl, _ = island_transmission(rays.passes or {}, islands, period)
+        isl = np.ones(near.size) if isl is None else isl
+        edge_t = np.ones(near.size)
+        for name, (dist, along, depth) in (rays.edges or {}).items():
+            lit = clear & np.isfinite(depth)
+            if lit.any():
+                edge_t[lit] *= edge_factor(dist[lit], depth[lit], along[lit], period)
+        diff_t[clear] = (isl * edge_t)[clear]
+
+        on_island = np.array([w.startswith(ISLAND_PREFIX) for w in who]) & (rays.status == LAND)
+        if on_island.any():
+            again = trace(see_through, xs, ys, near[on_island], period, islands, edges)
+            f2, _ = island_transmission(again.passes or {}, islands, period)
+            f2 = np.ones(again.status.size) if f2 is None else f2
+            for k, i in enumerate(np.flatnonzero(on_island)):
+                if again.status[k] == LAND:
+                    continue
+                lat, lon = from_utm(again.exit_x[k], again.exit_y[k])
+                if straight_line_blocker(blockers, lat, lon, float(again.off_from_deg[k])):
+                    continue
+                diff_off[i] = again.off_from_deg[k]
+                diff_t[i] = f2[k]
+
+        clear_idx = np.flatnonzero(clear)
+        for i in np.flatnonzero(rays.status == LAND):
+            name = who[i]
+            if not name.startswith(EDGE_BLOCKERS) or not clear_idx.size or rays.edges is None:
+                continue
+            dist, along, depth = rays.edges[name]
+            if not np.isfinite(depth[i]):
+                continue
+            nearest = clear_idx[np.argmin(np.abs(((near[clear_idx] - near[i] + 180.0) % 360.0) - 180.0))]
+            diff_off[i] = rays.off_from_deg[nearest]
+            diff_t[i] = float(edge_factor(np.array([-dist[i]]), np.array([depth[i]]),
+                                          np.array([along[i]]), period)[0]) * isl[nearest]
+
+        for i, theta in enumerate(near):
             rows.append({
                 "period_s": f"{period:.3f}", "freq_hz": f"{f:.4f}",
                 "near_from_deg": f"{theta:.2f}", "near_width_deg": f"{DIR_STEP_DEG:g}",
                 "off_from_deg": f"{rays.off_from_deg[i]:.2f}",
-                "gain": f"{gain:.5f}" if open_ else "0",
-                "island_factor": f"{factor[i]:.4f}" if factor is not None else "1",
-                "island_geometric": f"{geometric[i]:.0f}" if geometric is not None else "1",
-                "status": status, "blocker": blocker,
+                "gain": f"{gain:.5f}" if clear[i] else "0",
+                "diff_off_from_deg": f"{diff_off[i]:.2f}",
+                "diff_gain": f"{gain * diff_t[i]:.5f}" if diff_t[i] > 0 else "0",
+                "status": rays.status[i], "blocker": who[i],
                 "exit_depth_m": f"{rays.exit_depth[i]:.1f}" if np.isfinite(rays.exit_depth[i]) else "",
                 "path_km": f"{rays.path_m[i] / 1000.0:.2f}",
             })
@@ -617,7 +743,8 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
             "NAVD88 (MSL offset not fetched; depths about a metre shallow)",
             "msl_above_navd88_m": bathy.msl_offset_m, "grids": list(bathy.names),
             "islands": [{"name": i.name, "ring_depth_m": round(i.depth, 1),
-                         "radius_m": round(i.radius)} for i in islands]}
+                         "radius_m": round(i.radius)} for i in islands],
+            "diffracting_edges": sorted(edges)}
     return rows, meta
 
 

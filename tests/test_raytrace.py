@@ -174,3 +174,31 @@ def test_far_to_the_side_of_an_island_the_wave_is_untouched():
     factor, geo = _through_strip(3000.0, 3000.0, 12.0, 20000.0)
     assert geo == 1.0
     assert factor == pytest.approx(1.0, abs=0.02)
+
+
+# ------------------------------------------------------------ headland edges
+
+from forecast.raytrace import edge_factor  # noqa: E402
+
+
+def test_a_headland_leaves_a_quarter_of_the_energy_on_its_shadow_line():
+    got = edge_factor(np.array([0.0]), np.array([30.0]), np.array([5000.0]), 12.0)
+    assert got[0] == pytest.approx(0.25, abs=1e-3)
+
+
+def test_deep_in_a_headlands_shadow_almost_nothing_arrives():
+    got = edge_factor(np.array([-2000.0]), np.array([30.0]), np.array([5000.0]), 12.0)
+    assert got[0] < 0.01
+
+
+def test_well_clear_of_a_headland_the_wave_is_untouched():
+    got = edge_factor(np.array([3000.0]), np.array([30.0]), np.array([5000.0]), 12.0)
+    assert got[0] == 1.0
+
+
+def test_a_longer_wave_reaches_further_into_the_shadow():
+    """The shadow fills with wavelength: at the same offset, a 16 s swell
+    keeps more than an 8 s one."""
+
+    off, depth, dist = np.array([-300.0]), np.array([30.0]), np.array([5000.0])
+    assert edge_factor(off, depth, dist, 16.0)[0] > edge_factor(off, depth, dist, 8.0)[0]

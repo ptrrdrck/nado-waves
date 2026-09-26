@@ -8,14 +8,14 @@ Pure Python; reads the transfer tables `forecast.raytrace` writes to
 WHAT IT GIVES, per break and spectrum:
 
 - `hs_ref` — Hs at the table's start point, `raytrace.H_REF` (5) metres of
-  water off the break: refraction over the seabed, shoaling, Point Loma and Baja as land,
-  the Coronado Islands as Fresnel diffraction. Linear theory, no breaking.
-- `hs_equivalent` — the same with shoaling divided back out, per frequency:
-  refraction and sheltering only. This is the like-for-like against the
-  aperture's `hs_in_window_m`, which has no seabed at all.
-- `hs_islands_geometric` / `hs_no_islands` — the same as `hs_equivalent` with
-  the islands as a hard shadow, and with no islands, so their effect is a
-  measured difference rather than a claim.
+  water off the break: refraction over the seabed (the islands' own shelves
+  included), shoaling, and diffraction at every window edge — the Coronado
+  Islands, the Point Loma tip and the Baja tangent. Linear theory, no breaking.
+- `hs_equivalent` — the same with shoaling divided back out, per frequency.
+- `hs_hard` — refraction with every window edge a HARD shadow and shoaling
+  divided out. Against the aperture's `hs_in_window_m` (straight lines, hard
+  edges) it is the seabed alone; `hs_equivalent` against it is diffraction
+  alone, measured rather than claimed.
 - `local` — fetch-limited wind sea from the measured wind, only where the
   fetch upwind of the break is closed by land (`raytrace.fetch_table`).
 
@@ -52,9 +52,13 @@ class Ray:
     near_from: float
     width_rad: float
     off_from: float
+    #: Hard window edges: the gain at `off_from`, 0 for a ray the land stops.
     gain: float
-    island_factor: float
-    island_geometric: float
+    #: Diffracting window edges: the gain at `diff_off_from` — the same heading
+    #: for a ray that clears every edge, and the heading of the energy that
+    #: diffracts round the edge for one that does not (raytrace.table).
+    diff_off_from: float
+    diff_gain: float
 
 
 @dataclass
@@ -70,13 +74,13 @@ class Table:
         by_freq: dict[float, list[Ray]] = {}
         with (directory / f"{break_id}.csv").open(newline="", encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
-                gain = float(row["gain"])
-                if gain <= 0.0:
-                    continue          # a ray that lands carries nothing
+                gain, diff_gain = float(row["gain"]), float(row["diff_gain"])
+                if gain <= 0.0 and diff_gain <= 0.0:
+                    continue          # carries nothing, hard or soft
                 by_freq.setdefault(float(row["freq_hz"]), []).append(Ray(
                     float(row["near_from_deg"]), math.radians(float(row["near_width_deg"])),
                     float(row["off_from_deg"]), gain,
-                    float(row["island_factor"]), float(row["island_geometric"])))
+                    float(row["diff_off_from_deg"]), diff_gain))
         fetch = []
         path = directory / f"{break_id}_fetch.csv"
         if path.exists():
@@ -137,8 +141,7 @@ class Nearshore:
     break_id: str
     hs_ref: float
     hs_equivalent: float
-    hs_islands_geometric: float
-    hs_no_islands: float
+    hs_hard: float
     #: Energy-weighted mean heading AT the start depth and where that energy
     #: came from offshore.
     near_from_deg: float
@@ -157,7 +160,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
 
     grids = density_grids(spectrum) if grids is None else grids
     freqs = sorted(table.by_freq)
-    e10 = e_eq = e_geo = e_none = 0.0
+    e10 = e_eq = e_hard = 0.0
     sn = cn = so = co = 0.0
     per_bin: list[tuple[int, float]] = []
     bin_sin: dict[int, float] = {}
@@ -175,16 +178,17 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         ks2 = shoaling_squared(f, table.start_depth_m)
         bin_e = bs = bc = 0.0
         for ray in table.by_freq[near]:
-            s = at(grid, ray.off_from) * width * ray.width_rad * ray.gain
-            e = s * ray.island_factor
+            if ray.gain > 0:
+                e_hard += at(grid, ray.off_from) * width * ray.width_rad * ray.gain / ks2
+            if ray.diff_gain <= 0:
+                continue
+            e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain
             e10 += e
             bin_e += e
             e_eq += e / ks2
-            e_geo += s * ray.island_geometric / ks2
-            e_none += s / ks2
             t = math.radians(ray.near_from)
             sn += e * math.sin(t); cn += e * math.cos(t)
-            t = math.radians(ray.off_from)
+            t = math.radians(ray.diff_off_from)
             so += e * math.sin(t); co += e * math.cos(t)
             bs += e * math.sin(t); bc += e * math.cos(t)
         per_bin.append((i, bin_e))
@@ -192,7 +196,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
     peak = max(per_bin, key=lambda item: item[1]) if per_bin else None
     hs = lambda m0: 4.0 * math.sqrt(max(m0, 0.0))
     return Nearshore(
-        table.break_id, hs(e10), hs(e_eq), hs(e_geo), hs(e_none),
+        table.break_id, hs(e10), hs(e_eq), hs(e_hard),
         math.degrees(math.atan2(sn, cn)) % 360 if e10 > 0 else float("nan"),
         math.degrees(math.atan2(so, co)) % 360 if e10 > 0 else float("nan"),
         1.0 / spectrum.frequencies[peak[0]] if peak and peak[1] > 0 else float("nan"),
@@ -273,7 +277,6 @@ def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
         trains.append({"hs_m": round(local.hs_m, 3), "period_s": round(local.tp_s, 1),
                        "from_deg": round(local.from_deg), "share": None,
                        "wind_sea": True, "local": True})
-    islands = (1.0 - near.hs_equivalent / near.hs_no_islands) if near.hs_no_islands > 0 else 0.0
     return {
         "hs_m": round(total, 3),
         "depth_m": round(depth_m, 1),
@@ -281,15 +284,15 @@ def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
         "effects": {
             "buoy_hs_m": round(buoy_hs_m, 3),
             "window_hs_m": round(window_hs_m, 3),
-            # Refraction alone: the seabed result with the islands still a
-            # hard shadow, exactly as the straight-line window treats them, so
-            # window -> refracted is the seabed and nothing else, and
-            # refracted -> seabed is what diffraction changes about the
-            # islands and nothing else.
-            "refracted_hs_m": round(near.hs_islands_geometric, 3),
-            "seabed_hs_m": round(near.hs_equivalent, 3),
+            # Refraction alone: bent rays with every window edge still a hard
+            # shadow, as the straight-line window treats them, so window ->
+            # refracted is the seabed and nothing else. Diffraction alone:
+            # the same rays with every edge diffracting (islands, Point Loma
+            # tip, Baja tangent), so refracted -> diffracted is that and
+            # nothing else. Shoaling is then divided back in.
+            "refracted_hs_m": round(near.hs_hard, 3),
+            "diffracted_hs_m": round(near.hs_equivalent, 3),
             "shoaled_hs_m": round(near.hs_ref, 3),
-            "islands_pct": round(100.0 * islands, 1),
             "local": ({"hs_m": round(local.hs_m, 3), "tp_s": round(local.tp_s, 1),
                        "from_deg": round(local.from_deg), "fetch_km": round(local.fetch_km, 1)}
                       if local else None),
@@ -374,11 +377,14 @@ def report(spectra: list[Spectrum]) -> str:
     tables = {sid: Table.load(sid) for sid in BREAKS}
     rows = {sid: [] for sid in BREAKS}
     for sp in spectra:
+        # What ships reads the buoy by maximum entropy; so does this report.
+        sp = sp.with_spread("mem")
+        grids = density_grids(sp)
         for sid in BREAKS:
             ap = through(sp, by_id[sid], blockers)
             if not (ap.hs_in_window_m > 0):
                 continue
-            ns = carry(sp, tables[sid])
+            ns = carry(sp, tables[sid], grids)
             rows[sid].append((ap.hs_in_window_m, ns, math.degrees(0)))
     out = [f"{len(spectra)} spectra from 46232. Ratios are nearshore / aperture, "
            "median [10th, 90th]."]
@@ -389,17 +395,17 @@ def report(spectra: list[Spectrum]) -> str:
         ap = [a for a, _, _ in r]
         eq = [n.hs_equivalent / a for a, n, _ in r]
         h10 = [n.hs_ref / a for a, n, _ in r]
-        isl_d = [1 - n.hs_equivalent / n.hs_no_islands for _, n, _ in r if n.hs_no_islands > 0]
-        isl_g = [1 - n.hs_islands_geometric / n.hs_no_islands for _, n, _ in r if n.hs_no_islands > 0]
+        refr = [n.hs_hard / a for a, n, _ in r]
+        diff = [n.hs_equivalent / n.hs_hard - 1 for _, n, _ in r if n.hs_hard > 0]
         out.append(f"\n  {sid}  (n = {len(r)}, aperture Hs median {_pct(ap, .5):.2f} m)")
-        out.append(f"    refraction + sheltering, no shoaling: {_pct(eq, .5):.3f} "
+        out.append(f"    refraction, hard edges:               {_pct(refr, .5):.3f} "
+                   f"[{_pct(refr, .1):.3f}, {_pct(refr, .9):.3f}]")
+        out.append(f"    + diffraction at every edge:          {_pct(eq, .5):.3f} "
                    f"[{_pct(eq, .1):.3f}, {_pct(eq, .9):.3f}]")
         out.append(f"    at {tables[sid].start_depth_m:.0f} m with shoaling:         {_pct(h10, .5):.3f} "
                    f"[{_pct(h10, .1):.3f}, {_pct(h10, .9):.3f}]")
-        out.append(f"    height the islands take, diffracted: {100 * _pct(isl_d, .5):.1f}% "
-                   f"[{100 * _pct(isl_d, .1):.1f}, {100 * _pct(isl_d, .9):.1f}]  "
-                   f"| as a hard shadow: {100 * _pct(isl_g, .5):.1f}% "
-                   f"[{100 * _pct(isl_g, .1):.1f}, {100 * _pct(isl_g, .9):.1f}]")
+        out.append(f"    height diffraction adds to hard edges: {100 * _pct(diff, .5):+.1f}% "
+                   f"[{100 * _pct(diff, .1):+.1f}, {100 * _pct(diff, .9):+.1f}]")
     south = rows["coronado_south"]
     north = rows["coronado_north"]
     if south and north and len(south) == len(north):

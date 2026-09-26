@@ -556,14 +556,18 @@ class TestTheCalculationLine:
     def test_every_field_it_reads_is_one_the_forecast_writes(self):
         from forecast.nearshore import LocalSea, Nearshore, summarise
 
-        near = Nearshore("x", 1.0, 0.9, 0.8, 0.95, 200.0, 210.0, 12.0)
+        near = Nearshore("x", 1.0, 0.9, 0.8, 200.0, 210.0, 12.0)
         out = summarise(near, LocalSea(0.1, 1.2, 290.0, 3.0),
                         buoy_hs_m=1.2, window_hs_m=0.8, depth_m=5.0)
         effects, local = out["effects"], out["effects"]["local"]
         found = re.findall(r"\be\.([a-z_]+)", self.LINE)
         assert found
+        # `seabed_hs_m` is read only as the older payload's name for the
+        # diffracted figure (a now.json can lag the page); it is the one
+        # name allowed to be absent from what the forecast writes today.
+        legacy = {"seabed_hs_m"}
         for key in found:
-            if key != "local":
+            if key != "local" and key not in legacy:
                 assert key in effects, key
         for key in re.findall(r"\be\.local\.([a-z_]+)", self.LINE):
             assert key in local, key
@@ -571,28 +575,34 @@ class TestTheCalculationLine:
             assert key in out, key
 
     def test_each_effect_is_stated_in_one_form(self):
-        for effect in ("through the windows of", "Refraction over the seabed makes that",
-                       "Diffraction around the Coronado Islands makes that",
-                       "Shoaling into", "Local wind chop at"):
+        for effect in ("through the windows of",
+                       "Refraction and diffraction at the windows' edges change the swell by",
+                       "respectively", "Shoaling into", "Local wind chop at"):
             assert effect in self.LINE
-        assert self.LINE.count("pct(") >= 5
+        assert self.LINE.count("pct(") >= 4
 
     def test_refraction_and_diffraction_are_separated_honestly(self):
-        """The window treats the islands as a hard shadow, so refraction is
-        measured with that same shadow in, and diffraction is only what it
-        changes about the islands."""
+        """The window treats every edge as a hard shadow, so refraction is
+        measured with hard edges too, and diffraction is only what softening
+        the edges — islands, Point Loma tip, Baja tangent — changes."""
 
-        assert "pct(refracted, e.window_hs_m)" in self.LINE
-        assert "pct(e.seabed_hs_m, e.refracted_hs_m)" in self.LINE
+        assert "change(refracted, e.window_hs_m)" in self.LINE
+        assert "change(diffracted, refracted)" in self.LINE
         from forecast.nearshore import Nearshore, summarise
 
-        near = Nearshore("x", 1.0, 0.9, 0.8, 0.95, 200.0, 210.0, 12.0)
+        near = Nearshore("x", 1.0, 0.9, 0.8, 200.0, 210.0, 12.0)
         effects = summarise(near, None, buoy_hs_m=1.2, window_hs_m=0.8, depth_m=5.0)["effects"]
-        assert effects["refracted_hs_m"] == 0.8     # islands as hard shadow
-        assert effects["seabed_hs_m"] == 0.9        # islands diffracted
+        assert effects["refracted_hs_m"] == 0.8     # every edge hard
+        assert effects["diffracted_hs_m"] == 0.9    # every edge diffracting
 
-    def test_it_is_styled_as_a_provenance_line(self):
-        assert '<div class="src">${steps.join(" ")}</div>' in self.LINE
+    def test_it_is_styled_as_the_leading_train_line(self):
+        """Owner's call, 2026-09-25: the train line's size and grey, with the
+        heights and percentages in its ink and weight."""
+
+        assert '<div class="calc">${steps.join(" ")}</div>' in self.LINE
+        assert ".calc{font-size:14px;color:var(--soft)" in SOURCE
+        assert ".calc b{color:var(--ink);font-weight:600;white-space:nowrap}" in SOURCE
+        assert "const ht = (m) => `<b>${height(m)}</b>`;" in self.LINE
 
     def test_the_headline_names_its_depth(self):
         label = SOURCE[SOURCE.index("function depthLabel"):]
