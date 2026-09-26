@@ -43,7 +43,7 @@ def forecast(hours: int = 25, breaks: int = 3) -> dict:
                 "confidence": "high",
                 "swell_window": [
                     {"from": 202.6, "to": 250.3,
-                     "opened_by": "Coronado Islands (north)",
+                     "opened_by": "Coronado Islands (North group)",
                      "closed_by": "Point Loma peninsula", "confidence": "high"},
                 ],
                 "shore_normal_deg": 214.2,

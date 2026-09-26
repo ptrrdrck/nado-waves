@@ -262,7 +262,7 @@ SWELL = (WIND_SEA_PERIOD_S, 1e9)
 WIND_SEA = (0.0, WIND_SEA_PERIOD_S)
 BANDS = {"all periods": None, f"swell (>= {WIND_SEA_PERIOD_S:g} s)": SWELL,
          f"wind sea (< {WIND_SEA_PERIOD_S:g} s)": WIND_SEA}
-CATEGORIES = (IN_WINDOW, "Point Loma peninsula", "Baja mainland", ISLANDS, SEAWARD_CLIP)
+CATEGORIES = (IN_WINDOW, "Point Loma peninsula", "Baja peninsula", ISLANDS, SEAWARD_CLIP)
 
 
 @dataclass
@@ -358,7 +358,7 @@ def _pct(values: list[float], q: float) -> float:
 
 
 SHORT = {IN_WINDOW: "in window", "Point Loma peninsula": "Point Loma",
-         "Baja mainland": "Baja", ISLANDS: "islands", SEAWARD_CLIP: "behind beach"}
+         "Baja peninsula": "Baja", ISLANDS: "islands", SEAWARD_CLIP: "behind beach"}
 
 #: Incoming-direction sectors for the split by where the swell is aimed.
 SECTORS = ((100, 200, "S of the islands"), (200, 240, "into the windows"),

@@ -194,9 +194,9 @@ const short = (id) => id.replace("coronado_", "");
 const cssv = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const SHORT_BLOCKER = {
   "Point Loma peninsula": "Point Loma",
-  "Coronado Islands (south group)": "Islands S",
-  "Coronado Islands (north)": "Islands N",
-  "Baja mainland": "Baja coast",
+  "Coronado Islands (South group)": "Islands S",
+  "Coronado Islands (North group)": "Islands N",
+  "Baja peninsula": "Baja",
 };
 
 // ---------- projection: local equirectangular, km, north up ----------
@@ -215,9 +215,9 @@ const el = (tag, attrs = {}, parent) => {
 };
 
 const loma = MODEL.blockers.find(b => b.name === "Point Loma peninsula");
-const islandsS = MODEL.blockers.find(b => b.name === "Coronado Islands (south group)");
-const islandsN = MODEL.blockers.find(b => b.name === "Coronado Islands (north)");
-const baja = MODEL.blockers.find(b => b.name === "Baja mainland");
+const islandsS = MODEL.blockers.find(b => b.name === "Coronado Islands (South group)");
+const islandsN = MODEL.blockers.find(b => b.name === "Coronado Islands (North group)");
+const baja = MODEL.blockers.find(b => b.name === "Baja peninsula");
 
 // The vertex each break takes off the tip, from the payload's own edges.
 const tangentOf = {};

@@ -235,7 +235,7 @@
       ]
     },
     {
-      "name": "Coronado Islands (south group)",
+      "name": "Coronado Islands (South group)",
       "a": [
         32.3944927,
         -117.2397568
@@ -260,7 +260,7 @@
       "notes": "Three islands close together; treated as one because their gaps are sub-degree and not stable under the clustering distance."
     },
     {
-      "name": "Coronado Islands (north)",
+      "name": "Coronado Islands (North group)",
       "a": [
         32.4355617,
         -117.2947326
@@ -285,7 +285,7 @@
       "notes": "Island, not a peninsula: the shadow closes on both sides."
     },
     {
-      "name": "Baja mainland",
+      "name": "Baja peninsula",
       "a": [
         32.4701509,
         -117.1245933

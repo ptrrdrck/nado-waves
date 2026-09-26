@@ -72,7 +72,7 @@ class TestTheSwellWindowExcludesUnmodelledCoast:
 
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
         south, channel, west = got.breaks[0].swell_window
-        assert south["opened_by"] == "Baja mainland"
+        assert south["opened_by"] == "Baja peninsula"
         assert "Islands" in south["closed_by"]
         assert "Islands" in channel["opened_by"] and "Islands" in channel["closed_by"]
         assert channel["opened_by"] != channel["closed_by"]

@@ -2,7 +2,7 @@
 
 The two coordinates per blocker in `forecast/spots.json` are the whole claim
 a window stands on, and two of the three blockers had never been near a chart:
-the Coronado Islands were an estimate, and the Baja mainland was absent, which
+the Coronado Islands were an estimate, and the Baja peninsula was absent, which
 is why every Coronado window's southern edge is currently the seaward
 half-plane rather than land.
 """
@@ -102,8 +102,8 @@ class TestFeatures:
                 assert sum(1 for k in keeps if k(lat, lon)) <= 1, (lat, lon)
 
     def test_the_two_islands_split_where_the_channel_is(self):
-        south = mod.FEATURES["Coronado Islands (south group)"]["keep"]
-        north = mod.FEATURES["Coronado Islands (north)"]["keep"]
+        south = mod.FEATURES["Coronado Islands (South group)"]["keep"]
+        north = mod.FEATURES["Coronado Islands (North group)"]["keep"]
         assert south(32.42, -117.26) and not north(32.42, -117.26)
         assert north(32.44, -117.30) and not south(32.44, -117.30)
 
@@ -111,7 +111,7 @@ class TestFeatures:
         """Otherwise the Silver Strand and San Diego Bay are counted as the
         Baja coast, and the reported width is redundancy, not a measurement."""
 
-        main = mod.FEATURES["Baja mainland"]["keep"]
+        main = mod.FEATURES["Baja peninsula"]["keep"]
         assert main(32.45, -117.10)
         assert not main(32.60, -117.13)
 
@@ -133,13 +133,13 @@ class TestFeatures:
         assert mod.FEATURES["Point Loma peninsula"]["edge"] == "low"
 
     def test_only_the_mainland_continues(self):
-        assert mod.FEATURES["Baja mainland"]["continues"]
+        assert mod.FEATURES["Baja peninsula"]["continues"]
         for name in mod.FEATURES:
             if "Islands" in name:
                 assert not mod.FEATURES[name]["continues"]
 
     def test_a_continuing_feature_reports_one_edge(self):
-        assert mod.FEATURES["Baja mainland"]["edge"] == "high"
+        assert mod.FEATURES["Baja peninsula"]["edge"] == "high"
         for name in mod.FEATURES:
             if "Islands" in name:
                 assert mod.FEATURES[name]["edge"] == "both"
@@ -170,7 +170,7 @@ class TestReport:
         write(tmp_path / "shoreline" / "enc_coastal_70_baja.csv",
               [(32.50, -117.12), (32.47, -117.124), (32.40, -117.09)])
         rows = mod.report(tmp_path)
-        main = [r for r in rows if r.feature == "Baja mainland"]
+        main = [r for r in rows if r.feature == "Baja peninsula"]
         assert main and all(r.width_deg is None for r in main)
 
 
@@ -188,7 +188,7 @@ class TestAgainstTheStoredExtract:
         """The whole result depends on this. If it fired, the number would be
         a floor rather than a tangent and no window could be widened."""
 
-        for row in self.rows("Baja mainland", "enc_approach_88_baja").values():
+        for row in self.rows("Baja peninsula", "enc_approach_88_baja").values():
             assert row.high is not None and not row.high.at_data_limit
 
     def test_two_chart_bands_agree_on_the_tangent(self):
@@ -197,13 +197,13 @@ class TestAgainstTheStoredExtract:
         An edge-on tangent 23 km out is a far better conditioned measurement
         than a principal axis on a bending beach."""
 
-        a = self.rows("Baja mainland", "enc_approach_88_baja")
-        c = self.rows("Baja mainland", "enc_coastal_70_baja")
+        a = self.rows("Baja peninsula", "enc_approach_88_baja")
+        c = self.rows("Baja peninsula", "enc_coastal_70_baja")
         for sid in ("coronado_north", "coronado_center", "coronado_south"):
             assert abs(a[sid].high.bearing_deg - c[sid].high.bearing_deg) < 0.3
 
     def test_the_tangent_falls_south_of_the_beach_and_north_of_rosarito(self):
-        row = self.rows("Baja mainland", "enc_approach_88_baja")["coronado_south"]
+        row = self.rows("Baja peninsula", "enc_approach_88_baja")["coronado_south"]
         assert 32.40 < row.high.vertex[0] < 32.53
         assert 20.0 < row.high.range_km < 30.0
 
@@ -212,13 +212,13 @@ class TestAgainstTheStoredExtract:
         13.5 degrees of spread along Coronado's sand comes from the Point Loma
         end of the window, not this one."""
 
-        rows = self.rows("Baja mainland", "enc_approach_88_baja")
+        rows = self.rows("Baja peninsula", "enc_approach_88_baja")
         seen = {rows[s].high.vertex for s in
                 ("coronado_north", "coronado_center", "coronado_south")}
         assert len(seen) == 1
 
-    @pytest.mark.parametrize("feature", ["Coronado Islands (south group)",
-                                         "Coronado Islands (north)"])
+    @pytest.mark.parametrize("feature", ["Coronado Islands (South group)",
+                                         "Coronado Islands (North group)"])
     def test_spots_json_now_carries_what_the_chart_draws(self, feature):
         """The check this module exists to make. The estimate these replaced
         was good — both edges within 1.6 degrees — and systematically NARROW,
@@ -230,8 +230,8 @@ class TestAgainstTheStoredExtract:
             low_move, high_move = rows[sid].moves
             assert abs(low_move) < 0.1 and abs(high_move) < 0.1
 
-    @pytest.mark.parametrize("feature", ["Coronado Islands (south group)",
-                                         "Coronado Islands (north)"])
+    @pytest.mark.parametrize("feature", ["Coronado Islands (South group)",
+                                         "Coronado Islands (North group)"])
     def test_two_bands_agree_on_the_islands_too(self, feature):
         a = self.rows(feature, "enc_approach_88_baja")
         c = self.rows(feature, "enc_coastal_70_baja")
@@ -246,8 +246,8 @@ class TestAgainstTheStoredExtract:
         degrees of water between them. The one-screen reading silenced the
         diffraction flag, which is the binary-blocker error at one scale up."""
 
-        south = self.rows("Coronado Islands (south group)", "enc_approach_88_baja")
-        north = self.rows("Coronado Islands (north)", "enc_approach_88_baja")
+        south = self.rows("Coronado Islands (South group)", "enc_approach_88_baja")
+        north = self.rows("Coronado Islands (North group)", "enc_approach_88_baja")
         for sid in ("coronado_north", "coronado_center", "coronado_south"):
             gap = north[sid].low.bearing_deg - south[sid].high.bearing_deg
             assert 5.9 < gap < 6.4

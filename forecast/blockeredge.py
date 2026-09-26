@@ -5,7 +5,7 @@ Run: ``python -m forecast.blockeredge``
 `forecast/geometry.py` turns two coordinates per blocker into a blocked
 sector. Those two coordinates are the whole claim, and until now two of the
 three came from somewhere other than a chart: the Coronado Islands were an
-estimate, and the Baja mainland was not in the file at all — which is why
+estimate, and the Baja peninsula was not in the file at all — which is why
 every Coronado window's southern edge is currently formed by the seaward
 half-plane instead of by land, the raw-arc problem BRIEFING §12 describes.
 
@@ -50,7 +50,7 @@ from .swell import great_circle_km, initial_bearing
 #: any chart scale, so one meridian separates them cleanly. Written as a
 #: filter rather than inferred from part numbers because ENC part numbering is
 #: a property of the query response, not of the coast.
-#: The land border at the coast. Everything south of it is the Baja mainland;
+#: The land border at the coast. Everything south of it is the Baja peninsula;
 #: the US coast between here and the beach is land too, but it sits at LOWER
 #: bearing than the tangent and is therefore already inside the shadow, so
 #: including it would only widen a reported width with redundancy.
@@ -90,7 +90,7 @@ FEATURES: dict[str, dict] = {
         "continues": False,
         "edge": "low",
     },
-    "Coronado Islands (south group)": {
+    "Coronado Islands (South group)": {
         "region": "baja",
         "keep": lambda lat, lon: lon < -117.20 and lat < ISLAND_SPLIT_LAT,
         "note": "three islands close together, 29-32 km out",
@@ -99,7 +99,7 @@ FEATURES: dict[str, dict] = {
         "continues": False,
         "edge": "both",
     },
-    "Coronado Islands (north)": {
+    "Coronado Islands (North group)": {
         "region": "baja",
         "keep": lambda lat, lon: (lon < -117.20 and lat < 32.50
                                   and lat >= ISLAND_SPLIT_LAT),
@@ -107,7 +107,7 @@ FEATURES: dict[str, dict] = {
         "continues": False,
         "edge": "both",
     },
-    "Baja mainland": {
+    "Baja peninsula": {
         "region": "baja",
         "keep": lambda lat, lon: lon > -117.20 and lat < BORDER_LAT,
         "note": "the coast running south from the border, seen edge-on",
