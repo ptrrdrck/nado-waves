@@ -88,12 +88,45 @@ class TestStaleIsNotNow:
         assert any("no 'now'" in w or "no usable spectrum" in w for w in got.warnings)
 
 
+class TestTheTideCardIsTheOpenCoast:
+    """9410170 is inside San Diego Bay; the card is about the beach. The
+    measured reading is carried to the open coast by the measured transfer
+    (forecast.tidesite), keeps the gauge's stamp for the countdown, and keeps
+    the gauge's own reading beside it."""
+
+    def test_the_card_height_is_the_gauge_carried_to_the_coast(self, tmp_path):
+        from forecast.tidesite import RATIO
+
+        write_tide(tmp_path, [("2026-09-19T00:18:00Z", "1.2")])
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        assert got.tide.gauge_height_m == 1.2
+        assert got.tide.height_m == round(RATIO * 1.2, 3)
+        assert got.tide.observed_utc == "2026-09-19T00:18:00Z"
+        assert got.tide_site == "Coronado open coast"
+
+    def test_the_turns_are_the_coast_turns(self, tmp_path):
+        from forecast.tidesite import LEAD_MIN, RATIO
+        from forecast.tideturns import Turn
+        from forecast.tidesite import coast_turn
+
+        turn = coast_turn(Turn("2026-09-19T03:00:00Z", 1.5, "high"))
+        assert turn.valid_utc == f"2026-09-19T02:{60 - LEAD_MIN:02d}:00Z"
+        assert turn.height_m == pytest.approx(RATIO * 1.5)
+        assert turn.event == "high"
+
+    def test_the_standing_on_row_names_both_places(self, tmp_path):
+        write_tide(tmp_path, [("2026-09-19T00:18:00Z", "1.2")])
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        row = got.standing_on["tide"]
+        assert "inside San Diego Bay" in row and "open coast" in row and "La Jolla" in row
+
+
 class TestTideIsAMeasurementNotAPrediction:
     def test_it_reads_the_observed_file_not_the_predicted_one(self, tmp_path):
         write_tide(tmp_path, [("2026-09-19T00:24:00Z", "1.476")], kind="observed")
         write_tide(tmp_path, [("2026-09-19T00:24:00Z", "9.999")], kind="predicted")
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
-        assert got.tide.height_m == 1.476
+        assert got.tide.gauge_height_m == 1.476
         assert got.tide.kind == "observed"
 
     def test_only_a_predicted_file_yields_no_tide_rather_than_a_model(self, tmp_path):
@@ -106,7 +139,7 @@ class TestTideIsAMeasurementNotAPrediction:
         write_tide(tmp_path, [("2026-09-19T00:24:00Z", "1.476"),
                               ("2026-09-19T00:00:00Z", "1.100")])
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
-        assert got.tide.height_m == 1.476
+        assert got.tide.gauge_height_m == 1.476
 
     def test_a_stalled_gauge_is_flagged(self, tmp_path):
         write_tide(tmp_path, [("2026-09-18T12:00:00Z", "1.000")])
@@ -117,7 +150,7 @@ class TestTideIsAMeasurementNotAPrediction:
         write_tide(tmp_path, [("2026-09-19T00:24:00Z", ""),
                               ("2026-09-19T00:18:00Z", "1.2")])
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
-        assert got.tide.height_m == 1.2
+        assert got.tide.gauge_height_m == 1.2
 
 
 class TestItSaysItIsObserved:

@@ -607,6 +607,15 @@ function tickDue() {
   });
 }
 
+// Where the Tide card's numbers are. The gauge is inside San Diego Bay and
+// the card is about the beach, so a payload that carries `tide_site` has
+// already moved the numbers to the open coast (forecast.tidesite) and says
+// both places; an older one is the gauge's own reading and says only that.
+function tideSource(payload) {
+  const gauge = `${payload.tide_station_name} (${payload.tide_station})`;
+  return payload.tide_site ? `${payload.tide_site}, carried from ${gauge}` : gauge;
+}
+
 // The tide's next turning point, and which way it is running into it.
 //
 // The direction is read off the TURN, never differenced from the water level.
@@ -1108,7 +1117,7 @@ function renderConditions(index, cards) {
         : '<span class="unit">not collected</span>'}</span>
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
       <span class="src">${period(tide.height_m != null
-        ? `${NOW.tide_station_name} (${NOW.tide_station}), measured ${observedAt(tide.observed_utc)}`
+        ? `${tideSource(NOW)}, measured ${observedAt(tide.observed_utc)}`
         : (tide.note || ""))}${tide.height_m != null ? dueSpan(due.tide, late.tide) : ""}</span>
     </div>`);
   } else {
@@ -1154,7 +1163,7 @@ function renderConditions(index, cards) {
       ${stamp && stamp.valid_utc
         ? turnLine(DATA.tide_turns || [], stamp.valid_utc)
         : ""}
-      <span class="src">${period(`${DATA.tide_station_name} (${DATA.tide_station}), `
+      <span class="src">${period(`${tideSource(DATA)}, `
         + `harmonic prediction for ${stampWhen} &mdash; a model, not a measurement`)}</span>
     </div>`);
   }

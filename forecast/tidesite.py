@@ -174,3 +174,41 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ------------------------------------------------------------------ the card
+
+#: What the Tide card is about, now that it is not the gauge's own reading.
+SITE_NAME = "Coronado open coast"
+
+
+def coast_height(bay_mllw_m: float) -> float:
+    """The card's height at the open coast, on its own MLLW.
+
+    CO-OPS's convention for a subordinate station (`heightAdjustedType` "R",
+    as Imperial Beach and Point Loma are published): the reference station's
+    height on MLLW times a ratio. The ratio is the one measured here. This is
+    the card's number; breaking uses `coast_level`, on MSL, because the seabed
+    grids are on MSL.
+    """
+
+    return RATIO * bay_mllw_m
+
+
+def coast_turn(turn):
+    """A predicted turn of the bay's tide as it happens on the open coast:
+    `LEAD_MIN` earlier, `RATIO` of the height."""
+
+    from .tideturns import Turn
+
+    when = datetime.strptime(turn.valid_utc, ISO).replace(tzinfo=timezone.utc)
+    return Turn((when - timedelta(minutes=LEAD_MIN)).strftime(ISO),
+                coast_height(turn.height_m), turn.event)
+
+
+def coast_predicted(predicted: list[tuple[datetime, float]], when: datetime) -> float | None:
+    """The open coast's predicted height at `when`, on its MLLW: the bay's
+    prediction `LEAD_MIN` later, scaled."""
+
+    value = interpolate(predicted, when + timedelta(minutes=LEAD_MIN))
+    return None if value is None else coast_height(value)

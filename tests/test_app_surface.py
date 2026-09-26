@@ -96,6 +96,19 @@ class TestItSaysWhatItIsStandingOn:
         assert "nothing has checked it" in INFO_TEXT
 
 
+class TestTheTideCardSaysWhereItIs:
+    """The numbers are the open coast's; the source line says so and names
+    the gauge they were carried from, on both tabs."""
+
+    def test_both_tabs_use_one_source_line(self):
+        assert SOURCE.count("tideSource(NOW)") == 1
+        assert SOURCE.count("tideSource(DATA)") == 1
+        fn = SOURCE[SOURCE.index("function tideSource"):]
+        fn = fn[:fn.index("\n}\n")]
+        assert "carried from" in fn
+        assert "payload.tide_site ?" in fn        # an older payload is the gauge's own
+
+
 class TestScope:
     def test_only_the_three_coronado_breaks_are_rendered(self):
         assert 'ORDER = ["coronado_north", "coronado_center", "coronado_south"]' in SOURCE

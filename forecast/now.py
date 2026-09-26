@@ -63,7 +63,7 @@ from .live import (
 from .tideturns import read_turns, turns_between
 from .nearshore import carry, density_grids, load_tables, local_sea, summarise
 from .surfzone import load_profiles
-from .tidesite import coast_level, msl_above_mllw
+from .tidesite import LEAD_MIN, RATIO, SITE_NAME, coast_height, coast_level, coast_turn, msl_above_mllw
 from .transform import Spectrum, at_buoy, load_spectra, through
 
 #: Older than this and the spectrum is not "now". NDBC publishes hourly and the
@@ -350,6 +350,8 @@ class NowTide:
     kind: str = "observed"
     age_minutes: float | None = None
     note: str = ""
+    #: The gauge's own reading on its MLLW, before it is carried to the coast.
+    gauge_height_m: float | None = None
 
 
 @dataclass
@@ -394,12 +396,18 @@ class Now:
     tide: NowTide = field(default_factory=NowTide)
     tide_station: str = TIDE_STATION
     tide_station_name: str = TIDE_STATION_NAME
+    #: Where the Tide card's numbers are: the gauge carried to the beach.
+    tide_site: str = SITE_NAME
     breaks: list[NowBreak] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     @property
     def usable(self) -> bool:
         return bool(self.breaks) and not self.stale
+
+
+RATIO_TEXT = f"{RATIO:.3f}"
+LEAD_TEXT = f"{LEAD_MIN} min"
 
 
 def read_measured_tide(data_dir: Path, *, now: datetime) -> NowTide:
@@ -528,6 +536,13 @@ def build(
     if wind_row is None:
         reading.warnings.append(f"{WIND_STATION} wind not collected yet.")
     reading.tide = read_measured_tide(data_dir, now=moment)
+    # The gauge is inside the bay; the card is about the beach. The measured
+    # reading is carried to the open coast (forecast.tidesite) and keeps the
+    # gauge's own stamp, which is what the update countdown runs from. The raw
+    # reading stays alongside it, so the card's number can always be traced.
+    if reading.tide.height_m is not None:
+        reading.tide.gauge_height_m = reading.tide.height_m
+        reading.tide.height_m = round(coast_height(reading.tide.height_m), 3)
     if reading.tide.height_m is None:
         reading.warnings.append(f"{TIDE_STATION} measured water level not available.")
 
@@ -539,7 +554,7 @@ def build(
     # would go stale the moment it passed, on a page that may sit open for
     # hours. The surface picks from the list against the reader's own clock.
     turns = turns_between(
-        read_turns(data_dir, TIDE_STATION),
+        [coast_turn(t) for t in read_turns(data_dir, TIDE_STATION)],
         moment, moment + timedelta(hours=TURN_WINDOW_HOURS),
     )
     reading.tide_turns = [t.as_dict() for t in turns]
@@ -560,8 +575,11 @@ def build(
     reading.overdue_after = {k: overdue_after(v, k) for k, v in stamps.items()}
 
     reading.standing_on["tide"] = (
-        f"OBSERVED — measured water level at {TIDE_STATION}"
-        + ("; the next turn is a harmonic PREDICTION, not a measurement"
+        f"OBSERVED — measured water level at {TIDE_STATION}, inside San Diego Bay, "
+        f"carried to Coronado's open coast (x{RATIO_TEXT} on MLLW, measured against "
+        f"La Jolla)"
+        + ("; the next turn is a harmonic PREDICTION carried the same way "
+           f"({LEAD_TEXT} earlier), not a measurement"
            if turns else ", and no predicted turn is collected")
     )
 
@@ -603,7 +621,9 @@ def build(
             reading.warnings.append(f"surf-zone profiles unavailable ({exc}); no breaking")
     if profiles and reading.tide.height_m is not None and not reading.tide.note:
         try:
-            tide_coast = coast_level(reading.tide.height_m, msl_above_mllw(data_dir))
+            # From the gauge's own reading: `coast_level` is the transfer, and
+            # the card's height has already been through it once.
+            tide_coast = coast_level(reading.tide.gauge_height_m, msl_above_mllw(data_dir))
         except (FileNotFoundError, KeyError, ValueError) as exc:
             reading.warnings.append(f"{TIDE_STATION} datums unavailable ({exc}); no breaking")
     elif profiles:
@@ -688,8 +708,8 @@ def format_table(reading: Now) -> str:
                      f"{wind.station_name} ({wind.station}), {wind.observed_utc}")
     tide = reading.tide
     if tide.height_m is not None:
-        lines.append(f"tide  {fmt_height(tide.height_m)} MEASURED   {reading.tide_station_name} "
-                     f"({reading.tide_station}), {tide.observed_utc}")
+        lines.append(f"tide  {fmt_height(tide.height_m)} at the {reading.tide_site}, MEASURED at "
+                     f"{reading.tide_station_name} ({reading.tide_station}), {tide.observed_utc}")
     lines.append("")
 
     if reading.buoy.get("trains"):

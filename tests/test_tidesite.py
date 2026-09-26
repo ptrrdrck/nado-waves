@@ -51,3 +51,11 @@ def test_the_forecast_level_leads_and_carries_the_departure():
     bay = 1.0 + LEAD_MIN / 60.0 + 0.2
     assert got == pytest.approx(OFFSET_M + RATIO * (bay - msl))
     assert forecast_level(HOURLY, T0 + timedelta(hours=5), 0.2, msl) is None
+
+
+def test_the_cards_forecast_height_is_the_bay_prediction_carried_to_the_coast():
+    from forecast.tidesite import coast_predicted
+
+    got = coast_predicted(HOURLY, T0 + timedelta(hours=1))
+    assert got == pytest.approx(RATIO * (1.0 + LEAD_MIN / 60.0))
+    assert coast_predicted(HOURLY, T0 + timedelta(hours=3)) is None   # past the series

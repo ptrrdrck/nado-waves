@@ -634,9 +634,14 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   season's sandbar would change that, and nothing here knows where it is.
 - **9410170 is inside the bay; the breaks are not.** The open coast swings
   0.944× as far and leads by ~3 min (measured against La Jolla, and CO-OPS's
-  Imperial Beach and Point Loma offsets agree). The card shows the gauge,
-  labelled as the gauge; the breaking depth uses the open coast
-  (`forecast.tidesite`). And the harmonic prediction is on the 1983–2001
+  Imperial Beach and Point Loma offsets agree). **The Tide card shows the open
+  coast** on both tabs (owner's decision, 2026-09-26): heights ×0.944 on MLLW,
+  CO-OPS's own subordinate-station convention, and predicted times 3 min
+  earlier; the source line names the gauge it was carried from, the measured
+  reading keeps the gauge's stamp for its countdown, and `gauge_height_m`
+  keeps the raw value. Breaking uses the MSL form (`tidesite.coast_level`)
+  from the gauge's raw reading — never from the card's, or the transfer runs
+  twice. And the harmonic prediction is on the 1983–2001
   epoch: the measured level ran ~0.23 m above it in Sept 2026, so the
   forecast carries the last 3 days' measured departure forward — and computes
   no breaking at all without one.

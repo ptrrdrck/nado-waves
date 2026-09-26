@@ -55,7 +55,8 @@ from .nearshore import (carry, density_grids, load_tables, local_sea, spectrum_f
 from .units import height as fmt_height, speed as fmt_speed
 from .tideturns import read_turns, turns_between
 from .surfzone import load_profiles
-from .tidesite import anomaly, forecast_level, msl_above_mllw, predicted_series
+from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, anomaly, coast_predicted, coast_turn,
+                       forecast_level, msl_above_mllw, predicted_series)
 from .transform import (
     GridSpectrum,
     at_buoy,
@@ -228,6 +229,8 @@ class Forecast:
     tide_turns: list[dict] = field(default_factory=list)
     tide_station: str = TIDE_STATION
     tide_station_name: str = TIDE_STATION_NAME
+    #: Where the Tide card's numbers are: the gauge carried to the beach.
+    tide_site: str = SITE_NAME
     #: Measured minus predicted at the gauge over the last 3 days, carried
     #: forward into the depth the waves break in. None when not computed.
     tide_departure_m: float | None = None
@@ -435,6 +438,9 @@ def build(
             "seabed": SEABED_LINE,
             "local chop": "MODELLED — fetch-limited growth from the model's own wind, "
                           "only over fetches closed by land",
+            "tide": f"PREDICTED — the harmonic prediction at {TIDE_STATION}, inside San "
+                    f"Diego Bay, carried to Coronado's open coast (x{RATIO:.3f} on MLLW, "
+                    f"{LEAD_MIN} min earlier, measured against La Jolla)",
             "surf zone": SURF_ZONE_LINE.format(
                 tide="the harmonic prediction plus the last 3 days' measured departure"),
             "calibration": "none — nothing has been fitted to an observation; "
@@ -458,12 +464,15 @@ def build(
 
     wind_row = read_latest_wind(data_dir)
     tide = read_tide(data_dir)
+    # The card's tide is the gauge's prediction carried to the open coast
+    # (forecast.tidesite): the height on the coast's MLLW, 3 min earlier.
+    bay_predicted = predicted_series(data_dir)
     forecast.wind = wind_measurement(wind_row)
     if wind_row is None:
         forecast.warnings.append(f"{WIND_STATION} wind not collected yet.")
     if not tide:
         forecast.warnings.append(f"{TIDE_STATION} tide not collected yet.")
-    all_turns = read_turns(data_dir, TIDE_STATION)
+    all_turns = [coast_turn(t) for t in read_turns(data_dir, TIDE_STATION)]
     if not all_turns:
         forecast.warnings.append(
             f"{TIDE_STATION} predicted high/low turns not collected yet."
@@ -512,11 +521,11 @@ def build(
                 ],
             })
 
-        value = tide.get(row.valid_utc.strftime(ISO)[:13])
+        value = coast_predicted(bay_predicted, row.valid_utc)
         forecast.tide.append(TideAtHour(
             valid_utc=row.valid_utc.strftime(ISO),
-            height_m=round(value[0], 3) if value else None,
-            kind=value[1] if value else None,
+            height_m=round(value, 3) if value is not None else None,
+            kind="predicted" if value is not None else None,
         ))
 
     if rows and all_turns:
@@ -703,7 +712,8 @@ def format_table(forecast: Forecast, *, rows: int = 8) -> str:
     covered = [t for t in forecast.tide if t.height_m is not None]
     lines.append(
         f"tide  {len(covered)}/{len(forecast.tide)} hours covered   "
-        f"{forecast.tide_station_name} ({forecast.tide_station}), harmonic prediction"
+        f"{forecast.tide_site}, harmonic prediction carried from "
+        f"{forecast.tide_station_name} ({forecast.tide_station})"
         if forecast.tide else "tide  — not collected"
     )
     lines.append("")
