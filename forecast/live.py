@@ -21,8 +21,12 @@ estimated, so dropping them costs nothing that was trustworthy.
   every lead at these buoys (BRIEFING §5). Not corrected for here: the bias was
   fitted against the BUOY, and correcting a beach forecast with it would import
   a calibration nobody has checked at the beach.
-* *Calibration* — **none.** No transfer from offshore Hs to face height, no
-  shoaling, no refraction, no band.
+  Whether that bias survives each break's windows is what `forecast.modelbias`
+  measures, against the permanent log `main()` appends to
+  (`forecast.forecastlog`).
+* *Calibration* — **none.** No transfer from Hs to face height, and no band.
+  Shoaling, refraction and breaking are modelled physics (`forecast.nearshore`,
+  `forecast.surfzone`), fitted to nothing, and are not calibration.
 * *Observation* — **none.** `data/beach_log/` is empty. Nothing has ever
   measured a wave at these three breaks.
 
@@ -39,6 +43,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -48,6 +53,7 @@ from collector.common import DEFAULT_DATA_DIR, ISO
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
+from . import forecastlog
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
 from .nearshore import (carry, density_grids, load_tables, local_sea, spectrum_from_partitions,
@@ -242,6 +248,11 @@ class Forecast:
     #: is entitled to say which.
     wave_source: str = "partitions"
     spread_assumption: dict = field(default_factory=dict)
+    #: What the page showed for each offered hour in the 48 h before this
+    #: build, read back from the permanent log (`forecast.forecastlog`): per
+    #: hour, the latest build generated at or before it. Headline numbers only
+    #: -- the log does not keep the detail an earlier card carried.
+    past: list[dict] = field(default_factory=list)
 
 
 def latest_cycle(now: datetime | None = None) -> datetime:
@@ -290,12 +301,16 @@ def fetch_spectra(
         return {}, str(exc)[-120:]
 
 
-def read_latest_wind(data_dir: Path) -> dict[str, str] | None:
+def read_latest_wind(data_dir: Path, *, until: datetime | None = None) -> dict[str, str] | None:
+    """The newest KNZY row; with `until`, the newest taken at or before it."""
+
     path = Path(data_dir) / "wind" / f"{WIND_STATION}.csv"
     if not path.exists():
         return None
+    bound = until.strftime(ISO) if until is not None else None
     with path.open(newline="", encoding="utf-8") as fh:
-        rows = [r for r in csv.DictReader(fh) if r.get("observed_utc")]
+        rows = [r for r in csv.DictReader(fh) if r.get("observed_utc")
+                and (bound is None or r["observed_utc"] <= bound)]
     return max(rows, key=lambda r: r["observed_utc"]) if rows else None
 
 
@@ -457,6 +472,10 @@ def build(
                     "collector.spectra has a series.",
         },
     )
+
+    # Before this build is logged, so the past is only what earlier builds said.
+    forecast.past = forecastlog.past_hours(
+        forecastlog.read(forecastlog.log_dir(data_dir)), generated)
 
     if bulletin is None:
         forecast.warnings.append("No GFS-Wave cycle available; no forecast produced.")
@@ -766,6 +785,13 @@ def main(argv: list[str] | None = None) -> int:
     out = args.out or (Path(args.data_dir) / "live" / "forecast.json")
     write(forecast, out)
     print(f"\nWrote {out}")
+    # The permanent record of what was built -- only for the live data
+    # directory's own forecast, never for a copy written somewhere else.
+    if args.out is None:
+        logged = forecastlog.append(json.loads(out.read_text(encoding="utf-8")),
+                                    forecastlog.log_dir(args.data_dir),
+                                    build_sha=os.environ.get("GITHUB_SHA", "")[:7])
+        print(f"Logged {logged} row(s) to {forecastlog.log_dir(args.data_dir)}")
     return 0 if forecast.breaks else 1
 
 

@@ -14,6 +14,8 @@ The bundle:
     index.html      app/forecast.html inside a standalone HTML document
     forecast.json   data/live/forecast.json, thinned to what the page shows
     now.json        data/live/now.json — the observed reading, if there is one
+    measured.json   data/live/measured.json — the observed chain rebuilt for
+                    each of the last 48 h, shown under past forecast hours
     geometry.html   the model's geometry, drawn by forecast.geomviz from
                     spots.json; linked from the foot of index.html
     info.html       app/info.html: the caveat and each chain's standing-on
@@ -73,6 +75,11 @@ REPO_DATA_PATH = "../data/live/forecast.json"
 BUNDLE_DATA_PATH = "forecast.json"
 REPO_NOW_PATH = "../data/live/now.json"
 BUNDLE_NOW_PATH = "now.json"
+#: The observed chain rebuilt for the past 48 h (`forecast.measured`), which the
+#: Forecast tab shows in blue under each hour that has gone by. Only the live
+#: page reads it, so it is repointed where present rather than required.
+REPO_MEASURED_PATH = "../data/live/measured.json"
+BUNDLE_MEASURED_PATH = "measured.json"
 
 DOCTYPE = "<!doctype html>"
 HEAD = """<html lang="en">
@@ -145,7 +152,26 @@ def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
             )
     return (fragment
             .replace(REPO_DATA_PATH, BUNDLE_DATA_PATH)
-            .replace(REPO_NOW_PATH, BUNDLE_NOW_PATH))
+            .replace(REPO_NOW_PATH, BUNDLE_NOW_PATH)
+            .replace(REPO_MEASURED_PATH, BUNDLE_MEASURED_PATH))
+
+
+def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
+    """`measured.json`, minified, when the collection job has built one.
+
+    In BOTH builds: it changes every collection (a past hour's measurement
+    lands), and the forecast job republishes the page that reads it.
+    """
+
+    source = Path(data_dir) / "live" / "measured.json"
+    if not source.exists():
+        return
+    target = out_dir / BUNDLE_MEASURED_PATH
+    target.write_text(
+        json.dumps(json.loads(source.read_text(encoding="utf-8")), separators=(",", ":")),
+        encoding="utf-8",
+    )
+    written[BUNDLE_MEASURED_PATH] = target.stat().st_size
 
 
 def wrap(fragment: str, *, app_title: str) -> str:
@@ -276,6 +302,8 @@ def build(
         )
         written["now.json"] = payload.stat().st_size
 
+    copy_measured(data_dir, out_dir, written)
+
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
     written[".nojekyll"] = 0
 
@@ -342,6 +370,7 @@ def build_now_only(
         encoding="utf-8",
     )
     written["now.json"] = target.stat().st_size
+    copy_measured(data_dir, out_dir, written)
     return written
 
 

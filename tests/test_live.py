@@ -9,6 +9,7 @@ than measured, so the claim has to survive being wrong about it.
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -271,3 +272,26 @@ class TestOutput:
                 assert effects["window_hs_m"] == pytest.approx(hour.hs_window_m, abs=1e-3)
                 assert effects["buoy_hs_m"] == pytest.approx(hour.hs_offshore_m, abs=1e-3)
         assert got.standing_on["seabed"].startswith("MODELLED")
+
+
+class TestThePastComesFromTheLog:
+    """The page reaches 48 h back into what it said. That can only come from
+    the permanent log, read BEFORE this build is appended to it -- otherwise
+    a build could claim to have been on screen for hours it was not."""
+
+    def test_past_is_read_from_the_data_directory_log(self, tmp_path):
+        from forecast import forecastlog
+
+        earlier = live.build(bulletin=bulletin(SOUTH, hours=13), now=CYCLE,
+                             data_dir=tmp_path)
+        forecastlog.append(json.loads(json.dumps(asdict(earlier))),
+                           forecastlog.log_dir(tmp_path))
+        later = live.build(bulletin=bulletin(SOUTH, hours=13),
+                           now=CYCLE + timedelta(hours=12), data_dir=tmp_path)
+        assert [p["valid_utc"] for p in later.past] == [
+            "2026-09-18T00:00:00Z", "2026-09-18T03:00:00Z",
+            "2026-09-18T06:00:00Z", "2026-09-18T09:00:00Z"]
+        assert later.past[0]["generated_utc"] == "2026-09-18T00:00:00Z"
+
+    def test_no_log_no_past(self, tmp_path):
+        assert live.build(bulletin=bulletin(SOUTH), now=CYCLE, data_dir=tmp_path).past == []

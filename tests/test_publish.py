@@ -171,7 +171,7 @@ class TestTheTideSeriesStaysAlignedWithTheHours:
             assert hour["valid_utc"] == tide["valid_utc"]
 
     def test_the_page_looks_tide_up_by_timestamp(self):
-        assert "TIDE_BY_TIME[stamp.valid_utc]" in PAGE_SOURCE
+        assert "TIDE_BY_TIME[step.valid_utc]" in PAGE_SOURCE
         assert "(DATA.tide || [])[index]" not in PAGE_SOURCE
 
 
@@ -375,3 +375,38 @@ class TestGeometryPage:
         for word in ("rmse", "accuracy", "within a foot", "confidence interval",
                      "error bar of", "% accurate"):
             assert word not in text, word
+
+
+class TestTheMeasuredSeriesShips:
+    """measured.json feeds the blue line under every past forecast hour. It is
+    rebuilt each collection, so both builds carry it when it exists."""
+
+    def data(self, tmp_path):
+        d = write(tmp_path / "d", forecast())
+        (d / "live" / "now.json").write_text("{}", encoding="utf-8")
+        (d / "live" / "measured.json").write_text(
+            json.dumps({"steps": [{"valid_utc": "2026-09-26T09:00:00Z", "gap": True}]}),
+            encoding="utf-8")
+        return d
+
+    def test_both_builds_ship_it(self, tmp_path):
+        d = self.data(tmp_path)
+        assert "measured.json" in publish.build(tmp_path / "site", data_dir=d)
+        assert "measured.json" in publish.build_now_only(tmp_path / "now", data_dir=d)
+        shipped = json.loads((tmp_path / "now" / "measured.json").read_text())
+        assert shipped["steps"][0]["gap"] is True
+
+    def test_absent_is_not_an_error(self, tmp_path):
+        d = write(tmp_path / "d", forecast())
+        assert "measured.json" not in publish.build(tmp_path / "site", data_dir=d)
+
+    def test_the_page_fetches_the_flat_path(self, tmp_path):
+        assert publish.REPO_MEASURED_PATH in PAGE_SOURCE
+        publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
+        index = (tmp_path / "site" / "index.html").read_text()
+        assert publish.BUNDLE_MEASURED_PATH in index
+        assert publish.REPO_MEASURED_PATH not in index
+
+    def test_the_past_survives_thinning(self):
+        data = {**forecast(), "past": [{"valid_utc": "2026-09-17T21:00:00Z", "lead_h": 21}]}
+        assert publish.thin(data)["past"] == data["past"]

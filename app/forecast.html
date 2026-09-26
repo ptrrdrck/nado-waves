@@ -14,6 +14,7 @@
   --sand:#D9C9A8; --sand-deep:#B9A47C;
   --signal:#C62828; --signal-wash:#F9DEDE;
   --ok:#2F7D4F;
+  --measured:#0B50C4; --measured-wash:#E4EDFC;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
 }
@@ -25,6 +26,7 @@
     --sand:#8C7A55; --sand-deep:#A8935F;
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
+    --measured:#8DBBFF; --measured-wash:#132A48;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
@@ -35,6 +37,7 @@
   --sand:#8C7A55; --sand-deep:#A8935F;
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
+  --measured:#8DBBFF; --measured-wash:#132A48;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
@@ -155,6 +158,20 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    percentages. The metric in parentheses keeps the page-wide .unit style. */
 .calc{font-size:14px;color:var(--soft);line-height:1.45;font-variant-numeric:tabular-nums}
 .calc b{color:var(--ink);font-weight:600;white-space:nowrap}
+
+/* The measured reading under a past forecast hour: 46232's own spectrum at
+   that hour, carried in by the same chain. Blue, and on a wash with a rule
+   down its edge, so it can never be read as part of the forecast above it;
+   its label names what it is on every line, not once per page. */
+.measured{display:flex;flex-direction:column;gap:1px;padding:6px 10px;
+          background:var(--measured-wash);border-left:3px solid var(--measured);
+          border-radius:0 6px 6px 0;color:var(--measured);font-variant-numeric:tabular-nums}
+.measured .lbl{font-size:12px;color:var(--measured)}
+.measured .mval{font-size:17px;font-weight:600;line-height:1.25}
+.measured .mval .unit,.measured .mpeak{color:var(--measured);font-size:13.5px;font-weight:400}
+.measured.none{font-size:13px}
+/* What a past hour's card came from: which run, how far ahead. */
+.from{font-size:12.5px;color:var(--soft)}
 
 /* Earlier / later seek bar. */
 .seek{display:flex;align-items:stretch;gap:8px}
@@ -326,6 +343,9 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
 const PARAM = new URLSearchParams(location.search);
 const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
 const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
+// The observed chain rebuilt for each of the last 48 h (forecast.measured),
+// shown in blue under every forecast hour that has gone by.
+const MEASURED_SOURCE = PARAM.get("measured") || "../data/live/measured.json";
 
 // North to south along the sand: the west edge of the window is the bearing
 // to the Point Loma tip and it sweeps as you walk. This is the scope and the
@@ -655,7 +675,11 @@ let DATA = null;      // forecast.json — the modelled chain
 let NOW = null;       // now.json     — the observed chain
 let MODE = "now";     // which chain is on screen
 let TIDE_BY_TIME = {};
-let STEPS = [];      // indices into each break's hours that the picker offers
+let MEASURED = null;  // measured.json — the observed chain, past hours only
+// The hours the picker offers, oldest first: {valid_utc, from, lead_h} plus
+// `index` into each break's hours for the current run ("cycle"), or `entry`
+// from forecast.json's `past` for an hour an earlier run was on screen for.
+let STEPS = [];
 let CURSOR = 0;      // position within STEPS
 let CHOSEN = null;   // valid_utc the reader stepped to themselves, or null
 // The swell tab the reader chose, by id, so it survives a re-render, an hour
@@ -705,12 +729,32 @@ function cardsForNow() {
   }));
 }
 
-function cardsForForecast(index) {
+// A logged headline's depth, in the nearshore block's shape so `depthLabel`
+// words it exactly as it words the full card's.
+function pastNearshore(e) {
+  if (!e) return {};
+  if (e.hs_basis === "breaking") return {breaking: {depth_m: e.depth_m}, depth_m: e.depth_m};
+  if (e.hs_basis === "5m") return {depth_m: e.depth_m};
+  return {};
+}
+
+function cardsForForecast(step) {
+  const measured = measuredAt(step.valid_utc);
   return ORDER.map((id) => DATA.breaks.find((b) => b.id === id)).filter(Boolean)
     .map((b) => {
-      const h = b.hours[index] || {};
+      if (step.from === "past") {
+        const e = ((step.entry || {}).breaks || {})[b.id] || {};
+        return {
+          id: b.id, name: b.name, past: true, measured,
+          hsWindow: e.hs_m, nearshore: pastNearshore(e),
+          period: e.period_s, direction: e.from_deg,
+          swellWindow: b.swell_window || [], trains: [], takenBy: [],
+          windOffshore: b.wind_offshore, windNote: b.wind_note,
+        };
+      }
+      const h = b.hours[step.index] || {};
       return {
-        id: b.id, name: b.name,
+        id: b.id, name: b.name, measured,
         hsWindow: h.hs_nearshore_m != null ? h.hs_nearshore_m : h.hs_window_m,
         hsOffshore: h.hs_offshore_m,
         nearshore: h.nearshore || {},
@@ -752,6 +796,55 @@ function rankByEnergy(cards) {
 
 // One break's tab. What used to be its own card, less the title, which is on
 // the tab now.
+// What 46232 measured at a step's hour, or why there is nothing to show.
+// Nothing at all for an hour still ahead: the line is only ever a comparison
+// with something that has already happened.
+function measuredAt(validUtc) {
+  if (!validUtc || new Date(validUtc).getTime() > Date.now()) return {state: "future"};
+  const hit = ((MEASURED && MEASURED.steps) || []).find((m) => m.valid_utc === validUtc);
+  if (hit) {
+    return hit.gap ? {state: "gap"} : hit.pending ? {state: "pending"}
+      : {state: "value", entry: hit};
+  }
+  const built = MEASURED && MEASURED.generated_utc;
+  return {state: built && validUtc > built ? "pending" : "none"};
+}
+
+// The blue line. Its label is on every line, never once per page, because it
+// sits inside a forecast card and must not be read as part of the forecast.
+// Both numbers go through the same windows, seabed and surf zone, so the
+// difference between them is the model's error AT THE BUOY carried in -- not
+// a check at the beach, which nothing measures. Hence "same chain", and no
+// difference or percentage between them: a number like that is a claim about
+// the forecast, and would need its verification series named beside it.
+function measuredLine(m, pick, {chain = true} = {}) {
+  if (!m || m.state === "future") return "";
+  const station = (MEASURED && MEASURED.station) || (DATA && DATA.station) || "the buoy";
+  const label = `Measured at ${station}${chain ? ", same chain" : ""}`;
+  if (m.state === "value") {
+    const v = pick(m.entry);
+    if (!v || v.hs_m == null) return "";
+    const basis = v.hs_basis === "buoy" ? "combined" : depthLabel({nearshore: pastNearshore(v)});
+    return `<div class="measured"><span class="lbl">${label}</span>
+      <span class="mval">${height(v.hs_m)} <span class="unit">${basis}</span></span>
+      ${v.period_s ? `<span class="mpeak">peak ${v.period_s.toFixed(1)} s from ${compass(v.from_deg)}</span>` : ""}
+    </div>`;
+  }
+  const why = m.state === "gap" ? `No ${station} spectrum for this hour &mdash; left as a gap, not filled`
+    : m.state === "pending" ? `${label}: not in yet`
+    : `${label}: no reading loaded for this hour`;
+  return `<div class="measured none">${why}</div>`;
+}
+
+// Which run a past hour's number came from, and how far ahead it was made.
+function fromLine(step) {
+  if (!step || new Date(step.valid_utc).getTime() > Date.now()) return "";
+  const run = step.from === "past" ? step.entry.cycle_utc : DATA.cycle_utc;
+  const lead = step.lead_h != null ? `, ${step.lead_h} h ahead` : "";
+  const shown = step.from === "past" ? " &mdash; what this page showed for that hour" : "";
+  return `<div class="from">Forecast from the ${run ? when(run) : "earlier"} run${lead}${shown}.</div>`;
+}
+
 function breakPanel(c) {
   // The energy through the window LEADS, untitled, in the buoy tab's own
   // shape: the value line there says "combined", here "in window", and the
@@ -765,17 +858,38 @@ function breakPanel(c) {
   // 2026-09-26), in place of the two lists that followed a rule here. When it
   // cannot be drawn, the list's own sentence says why. The windows' chart
   // provenance is on geometry.html, vertex by vertex, one tap away.
-  const drawing = windowDrawing(c);
-  return `
-    <span class="val">${c.hsWindow != null
+  const value = `<span class="val">${c.hsWindow != null
       ? `${height(c.hsWindow)} <span class="unit">${depthLabel(c)}</span>`
-      : '<span class="unit">no spectrum</span>'}</span>
+      : '<span class="unit">no spectrum</span>'}</span>`;
+  const measured = measuredLine(c.measured, (m) => (m.breaks || {})[c.id]);
+
+  // An earlier run's hour: only its headline and peak were kept (the log is
+  // permanent, so it stays small), so the card says so rather than borrowing
+  // this run's detail for an hour this run never forecast.
+  if (c.past) {
+    return `${value}
+    <div class="quiet">
+      peak <b>${c.period ? c.period.toFixed(1) + " s" : "—"}</b>
+      from <b>${compass(c.direction)}</b>
+    </div>
+    ${measured}
+    ${windowList(c.swellWindow)}
+    <div class="src">Only the headline is kept for earlier runs, not the calculation.</div>`;
+  }
+
+  const drawing = windowDrawing(c);
+  // The forecast's own numbers first, then the measurement under them, then
+  // the geometry: the blue line never sits between two forecast lines.
+  return `
+    ${value}
 
     ${c.trains && c.trains.length ? trainList(c.trains) : `
     <div class="quiet">
       peak <b>${c.period ? c.period.toFixed(1) + " s" : "—"}</b>
       from <b>${compass(c.direction)}</b>
     </div>`}
+
+    ${measured}
 
     ${drawing || windowList(c.swellWindow)}
 
@@ -1167,11 +1281,16 @@ function wireDrawings() {
 }
 
 // The buoy's tab: the offshore spectrum itself, before any aperture.
-function buoyPanel(buoy) {
-  return buoy && buoy.hs_m != null
-    ? `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
-      + trainList(buoy.trains)
-    : '<span class="val"><span class="unit">no spectrum</span></span>';
+function buoyPanel(buoy, measured = null) {
+  const line = measuredLine(measured, (m) => m.buoy, {chain: false});
+  if (!buoy || buoy.hs_m == null) {
+    return '<span class="val"><span class="unit">no spectrum</span></span>' + line;
+  }
+  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains)
+    : buoy.period_s ? `<div class="quiet">peak <b>${buoy.period_s.toFixed(1)} s</b>`
+      + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
+  return `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
+    + trains + line;
 }
 
 // The swell card, for either chain. Same shape, different provenance: an
@@ -1186,11 +1305,12 @@ function buoyPanel(buoy) {
 // stale reading has to be marked whichever tab is open. Tucked into the
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
-function swellCard({label, buoy, station, cards, source, due = ""}) {
+function swellCard({label, buoy, station, cards, source, due = "", measured = null, from = ""}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c),
   }));
-  tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy", body: buoyPanel(buoy)});
+  tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy",
+             body: buoyPanel(buoy, measured)});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
@@ -1205,6 +1325,7 @@ function swellCard({label, buoy, station, cards, source, due = ""}) {
     </div>
     ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
       aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
+    ${from}
     <span class="src">${period(source)}${due}</span>
   </div>`;
 }
@@ -1272,7 +1393,7 @@ function wireSwellTabs() {
   });
 }
 
-function renderConditions(index, cards) {
+function renderConditions(step, cards) {
   const rows = [];
 
   if (MODE === "now") {
@@ -1327,25 +1448,57 @@ function renderConditions(index, cards) {
     </div>`);
   } else {
     const wind = DATA.wind || {};
-    const stamp = ((DATA.breaks[0] || {}).hours || [])[index];
-    const tide = (stamp && TIDE_BY_TIME[stamp.valid_utc]) || {};
+    const past = step.from === "past";
+    const stamp = past ? null : ((DATA.breaks[0] || {}).hours || [])[step.index];
+    const tide = TIDE_BY_TIME[step.valid_utc] || {};
     const hour = stamp || {};
-    const stampWhen = stamp && stamp.valid_utc ? when(stamp.valid_utc) : "this hour";
+    const stampWhen = when(step.valid_utc);
     const modelled = hour.wind_from_deg != null;
+    const measured = measuredAt(step.valid_utc);
+    const got = measured.state === "value" ? measured.entry : null;
 
     // Same card as the observed tab, so a reader comparing the two is
     // comparing like with like rather than two different presentations.
-    const buoy = (DATA.buoy || []).find((b) => stamp && b.valid_utc === stamp.valid_utc);
+    const buoy = past ? step.entry.buoy
+      : (DATA.buoy || []).find((b) => b.valid_utc === step.valid_utc);
     rows.push(swellCard({
       label: "Swell",
       buoy,
       station: DATA.station,
       cards,
+      measured,
+      from: fromLine(step),
       source: buoy
         ? `GFS-Wave at ${DATA.station_name} (NDBC ${DATA.station}) for ${stampWhen}`
           + ` &mdash; forecast, not a measurement`
         : `the spectral product was unavailable for this cycle, so there are no trains`,
     }));
+
+    // Wind and tide under an earlier run's hour: the log kept neither, so
+    // those cards carry only the measurement, in the same blue and saying so.
+    const blueWind = got && got.wind_kt != null
+      ? `<div class="measured"><span class="lbl">Measured at ${(DATA.wind && DATA.wind.station) || "the airfield"}</span>`
+        + `<span class="mval">${got.wind_from_deg != null ? compass(got.wind_from_deg) + " " : ""}`
+        + `<span class="unit">at</span> ${speed(got.wind_kt)}</span></div>` : "";
+    const blueTide = got && got.tide_m != null
+      ? `<div class="measured"><span class="lbl">Measured at ${DATA.tide_station || "the gauge"},`
+        + ` carried to the coast</span><span class="mval">${height(got.tide_m)}</span></div>` : "";
+    if (past) {
+      rows.push(`<div class="cond" data-card="wind">
+        <span class="lbl">Wind</span>
+        <span class="val"><span class="unit">not kept for earlier runs</span></span>
+        ${blueWind}
+      </div>`);
+      rows.push(`<div class="cond" data-card="tide">
+        <span class="lbl">Tide</span>
+        <span class="val"><span class="unit">not kept for earlier runs</span></span>
+        ${blueTide}
+      </div>`);
+      $("conditions").innerHTML = rows.join("");
+      restorePicks();
+      tickDue();
+      return;
+    }
 
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
@@ -1354,6 +1507,7 @@ function renderConditions(index, cards) {
         : wind.from_deg != null
           ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
           : '<span class="unit">not collected yet</span>'}</span>
+      ${blueWind}
       <span class="src">${period(modelled
         ? `GFS-Wave at the buoy for ${stampWhen} &mdash; forecast, not a measurement`
         : wind.from_deg != null
@@ -1365,6 +1519,7 @@ function renderConditions(index, cards) {
       <span class="val">${tide.height_m != null
         ? height(tide.height_m)
         : '<span class="unit">not collected for this hour</span>'}</span>
+      ${blueTide}
       ${stamp && stamp.valid_utc
         ? turnLine(DATA.tide_turns || [], stamp.valid_utc)
         : ""}
@@ -1380,9 +1535,9 @@ function renderConditions(index, cards) {
   tickDue();
 }
 
-function renderBreaks(index) {
-  const cards = MODE === "now" ? cardsForNow() : cardsForForecast(index);
-  renderConditions(index, cards);
+function renderBreaks(step) {
+  const cards = MODE === "now" ? cardsForNow() : cardsForForecast(step);
+  renderConditions(step, cards);
 }
 
 function show() {
@@ -1392,16 +1547,15 @@ function show() {
   $("tab-forecast").setAttribute("aria-selected", String(forecasting));
 
   if (forecasting) {
-    const index = STEPS[CURSOR];
-    const first = (DATA.breaks[0] || {}).hours || [];
-    $("when-label").textContent = when(first[index].valid_utc);
-    $("when").value = String(index);
+    const step = STEPS[CURSOR];
+    $("when-label").textContent = when(step.valid_utc);
+    $("when").value = String(CURSOR);
     $("earlier").disabled = CURSOR === 0;
     $("later").disabled = CURSOR === STEPS.length - 1;
-    renderBreaks(index);
+    renderBreaks(step);
     // Only reachable by default when every hour in the file has gone by —
     // the forecast chain has stopped — and that must not read as upcoming.
-    const last = first[STEPS[STEPS.length - 1]];
+    const last = STEPS[STEPS.length - 1];
     const spent = new Date(last.valid_utc).getTime() < Date.now();
     $("stale").hidden = !spent;
     if (spent) {
@@ -1423,7 +1577,7 @@ function show() {
     return;
   }
 
-  renderBreaks(0);
+  renderBreaks(null);
 
   // No banner over the cards. It spoke for all three at once while naming only
   // the spectrum, so a fresh wind reading sat under a banner calling it not
@@ -1568,6 +1722,20 @@ function refreshNow() {
     .catch(() => {});
 }
 
+// Rebuilt with every collection, so a past hour's measurement lands on the
+// page within one refresh of the spectrum being collected.
+function refreshMeasured() {
+  fetch(fresh(MEASURED_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => {
+      if (!got || !got.generated_utc || !got.steps) return;
+      if (MEASURED && got.generated_utc === MEASURED.generated_utc) return;
+      MEASURED = got;
+      if (MODE === "forecast") showAndFlash();
+    })
+    .catch(() => {});
+}
+
 function refreshForecast() {
   fetch(fresh(SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
@@ -1583,9 +1751,8 @@ function refreshForecast() {
 // The valid_utc the picker is sitting on, or null. Read before adopting a new
 // cycle so the reader can be put back on the hour they chose.
 function currentHour() {
-  const hours = ((DATA && DATA.breaks && DATA.breaks[0]) || {}).hours || [];
   const step = STEPS[CURSOR];
-  return step != null && hours[step] ? hours[step].valid_utc : null;
+  return step ? step.valid_utc : null;
 }
 
 // Everything on the page derived from forecast.json. Called at boot and again
@@ -1615,17 +1782,29 @@ function adoptForecast(data, keep) {
   // against the hourly file in the repository and the 3-hourly file published
   // to the web. Filtering by array position and then multiplying the index by
   // three assumed hourly data, and would have silently shown the wrong hour.
-  STEPS = first.map((h, i) => ({h, i})).filter(({h}) => h.lead_h % 3 === 0).map(({i}) => i);
+  const cycle = first.map((h, i) => ({h, i})).filter(({h}) => h.lead_h % 3 === 0)
+    .map(({h, i}) => ({valid_utc: h.valid_utc, from: "cycle", index: i, lead_h: h.lead_h}));
+  // Before this run was published, an earlier run was on screen, and the log
+  // kept what it said (`past`, 48 h). This run's own first hours were already
+  // gone when it appeared, so for any hour the log covers, the log's entry is
+  // what a reader had in front of them; the run's own figure for
+  // that hour is used only where the log has nothing.
+  const generated = data.generated_utc || "";
+  const past = (data.past || []).filter((p) => p.valid_utc < generated)
+    .map((p) => ({valid_utc: p.valid_utc, from: "past", entry: p, lead_h: p.lead_h}));
+  const logged = new Set(past.map((p) => p.valid_utc));
+  STEPS = past.concat(cycle.filter((c) => c.valid_utc >= generated || !logged.has(c.valid_utc)))
+    .sort((a, b) => (a.valid_utc < b.valid_utc ? -1 : a.valid_utc > b.valid_utc ? 1 : 0));
 
   $("when").innerHTML = STEPS
-    .map((i) => `<option value="${i}">${when(first[i].valid_utc)}</option>`)
+    .map((step, n) => `<option value="${n}">${when(step.valid_utc)}</option>`)
     .join("");
 
   // Only an hour the reader stepped to is kept. The default hour is not a
   // choice, so it is re-derived: kept verbatim it would sit on 11 p.m. long
   // after 11 p.m. had passed.
   const kept = keep == null || keep !== CHOSEN
-    ? -1 : STEPS.findIndex((i) => first[i].valid_utc === keep);
+    ? -1 : STEPS.findIndex((step) => step.valid_utc === keep);
   if (kept >= 0) {
     CURSOR = kept;
     return true;
@@ -1646,9 +1825,8 @@ function adoptForecast(data, keep) {
 // If every hour in the file has passed, the last one is the least stale thing
 // there is; `show` says so rather than presenting it as upcoming.
 function firstUpcoming() {
-  const first = ((DATA && DATA.breaks && DATA.breaks[0]) || {}).hours || [];
   const now = Date.now();
-  const n = STEPS.findIndex((step) => new Date(first[step].valid_utc).getTime() >= now);
+  const n = STEPS.findIndex((step) => new Date(step.valid_utc).getTime() >= now);
   return n >= 0 ? n : Math.max(0, STEPS.length - 1);
 }
 
@@ -1673,8 +1851,9 @@ function choose(cursor) {
   show();
 }
 
-function boot(data, observed) {
+function boot(data, observed, measured) {
   NOW = observed;
+  MEASURED = measured;
   $("tab-now").onclick = () => setMode("now");
   $("tab-forecast").onclick = () => setMode("forecast");
   wireSwellTabs();
@@ -1683,8 +1862,7 @@ function boot(data, observed) {
   if (!adoptForecast(data, null)) return;
 
   $("when").onchange = (e) => {
-    const index = Number(e.target.value);
-    choose(Math.max(0, STEPS.indexOf(index)));
+    choose(Math.max(0, Math.min(STEPS.length - 1, Number(e.target.value))));
   };
   $("earlier").onclick = () => { if (CURSOR > 0) choose(CURSOR - 1); };
   $("later").onclick = () => { if (CURSOR < STEPS.length - 1) choose(CURSOR + 1); };
@@ -1715,6 +1893,7 @@ function boot(data, observed) {
   // And the payloads themselves, which used to be fetched once and never
   // again. See REFRESH above.
   setInterval(refreshNow, NOW_REFRESH_MS);
+  setInterval(refreshMeasured, NOW_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
 }
 
@@ -1726,8 +1905,12 @@ Promise.all([
   fetch(fresh(NOW_SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null),
+  // measured.json likewise: without it, past hours say no reading is loaded.
+  fetch(fresh(MEASURED_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null),
 ])
-  .then(([forecast, observed]) => boot(forecast, observed))
+  .then(([forecast, observed, measured]) => boot(forecast, observed, measured))
   .catch((err) => {
     $("warnings").hidden = false;
     $("warnings").textContent =

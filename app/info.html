@@ -103,6 +103,33 @@ a{color:var(--surf)}
     <dl class="standing" id="standing-forecast"></dl>
     <p class="note" id="foot-forecast"></p>
   </section>
+
+  <!-- The one place the two chains meet on screen, so it gets its own card
+       rather than a row in either block: the blue line under a past forecast
+       hour is the observed chain, and says so on every line. -->
+  <section class="card" id="past-hours">
+    <h2>Past hours: forecast against measurement</h2>
+    <p class="source">
+      The Forecast tab reaches 48 hours back. For each hour that has gone by,
+      the forecast figure is <b>what this page showed for that hour</b>: the
+      newest run that had been published before it, which is not always the
+      run on screen now. For older runs only the headline is kept, not the
+      calculation behind it.
+    </p>
+    <p class="source">
+      The blue line under it is what buoy 46232 <b>measured</b> at that hour,
+      carried in by <b>the same chain</b> the Now tab uses: the same windows,
+      seabed and surf zone, with the airfield's wind and the gauge's water
+      level from that hour. An hour with no buoy spectrum is shown as a gap.
+      It is never filled from the hour beside it.
+    </p>
+    <p class="note">
+      Because both figures go through the same physics, the difference
+      between them is the model's error <b>at the buoy</b>, carried in. It
+      does not check the beach. Nothing has been fitted from it, and nothing
+      here has been measured at the breaks.
+    </p>
+  </section>
 </div>
 
 <script>

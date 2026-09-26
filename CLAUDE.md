@@ -173,6 +173,18 @@ forecaster actually verifies against, Surfline included.
    route.
 5. **Calibration and honest bands**, reusing `forecast/verify.py` and
    `forecast/residual.py` against the verification series.
+   **Measured first, at the model level: `forecast/modelbias.py`** (owner's
+   decision, 2026-09-26). It asks whether BRIEFING §5's 0.26–0.31 m LOW bias
+   at 46232 survives each break's windows, by pairing
+   `data/forecast_log/` with the measured chain rebuilt for the same hours.
+   It reports and never edits. §4 already rules out a correction that keeps
+   adapting, so the form to test is a fixed one. Applying anything waits on
+   its numbers AND on what `info.html` calls it, because "calibration" is
+   reserved for the beach log. `model-bias.yml` rebuilds past cycles with
+   today's chain into `46232_recomputed/`, because GFS-Wave's spectrum is
+   recoverable to 2021 and the buoy's is archived from 2026-08-04, so the
+   report need not wait for the as-shown log to fill. The two logs are never
+   mixed.
 6. **App surface — built, `app/forecast.html`, published by
    `forecast/publish.py`.** **Two tabs, and they are two evidence chains
    rather than two views of one.** *Now* is built only from measurements
@@ -181,7 +193,13 @@ forecaster actually verifies against, Surfline included.
    own "standing on" block from whatever keys its file carries, because the
    two name different levels — both on `app/info.html`, each under its own
    heading and from its own file, beside the "physically derived" caveat and
-   the cycle line; the live page links to it beneath Geometry. Opens on Now;
+   the cycle line; the live page links to it beneath Geometry.
+   **The Forecast tab reaches 48 h back** (owner's decision, 2026-09-26). For a
+   past hour it shows what the page showed then: the newest run published
+   before that hour, from `forecast.json`'s `past`, read back from the
+   permanent log. Under it, in blue, is the measured chain rebuilt for that
+   hour (`measured.json`). It opens on the first hour not yet passed, never
+   one that has. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
    says so and points at Forecast rather than falling back silently. The
@@ -391,6 +409,12 @@ forecaster actually verifies against, Surfline included.
                         measured departure from the epoch prediction [built]
       live.py           the live forecast, Coronado only          [built]
       now.py            the OBSERVED reading, measurements only    [built]
+      forecastlog.py    the permanent record of what each build said,
+                        and the 48 h of it the page reads back     [built]
+      measured.py       the observed chain rebuilt for each past hour:
+                        exact-stamp spectrum, wind and tide as of then [built]
+      modelbias.py      GFS-Wave's bias at 46232 through each break's
+                        windows; reports, never edits              [built]
       publish.py        the public delivery bundle                 [built]
       units.py          ft/mph first, m/kt in parentheses -- display only
       tideturns.py      the next high/low, and why its direction is not
@@ -411,7 +435,13 @@ forecaster actually verifies against, Surfline included.
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
-    data/live/          forecast.json, what the app surface reads
+    data/live/          forecast.json, now.json and measured.json, what the
+                        app surface reads (derived, gitignored)
+    data/forecast_log/  46232/YYYY-MM.csv: what every forecast build said,
+                        3-hourly, one row per site (forecast.forecastlog).
+                        PERMANENT and never published: the one input to the
+                        bias report nothing can rebuild. 46232_recomputed/ is
+                        past cycles rebuilt later (model-bias.yml), kept apart
     data/spectra/       NDBC directional spectra, five components per station
     data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
                         _observed (measured), _predicted (hourly harmonic),
@@ -650,6 +680,15 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   epoch: the measured level ran ~0.23 m above it in Sept 2026, so the
   forecast carries the last 3 days' measured departure forward — and computes
   no breaking at all without one.
+- **The blue line under a past forecast hour is "measured at 46232, same
+  chain", never "what happened".** Both figures go through identical windows,
+  seabed and surf zone. Their difference is therefore the MODEL's error at the
+  buoy, carried in, and any physics error cancels out of it. It checks nothing
+  at the beach. No difference or percentage goes on screen: that would be a
+  claim about the forecast without a verification series named beside it. A
+  missing spectrum is a gap, never the hour beside it, and the newest hour
+  reads "not in yet" until a later spectrum has passed it
+  (`tests/test_app_surface.py` keeps "actual" off the page).
 - **Say what the forecast is standing on.** Geometry, model, calibration and
   observation are four different confidence levels, and the reader is entitled
   to know which one they are looking at.
