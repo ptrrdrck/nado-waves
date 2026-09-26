@@ -657,6 +657,7 @@ let MODE = "now";     // which chain is on screen
 let TIDE_BY_TIME = {};
 let STEPS = [];      // indices into each break's hours that the picker offers
 let CURSOR = 0;      // position within STEPS
+let CHOSEN = null;   // valid_utc the reader stepped to themselves, or null
 // The swell tab the reader chose, by id, so it survives a re-render, an hour
 // change and a re-ranking. null until they choose: the card then opens on
 // whichever break holds the most energy at the moment on screen.
@@ -1398,7 +1399,15 @@ function show() {
     $("earlier").disabled = CURSOR === 0;
     $("later").disabled = CURSOR === STEPS.length - 1;
     renderBreaks(index);
-    $("stale").hidden = true;
+    // Only reachable by default when every hour in the file has gone by —
+    // the forecast chain has stopped — and that must not read as upcoming.
+    const last = first[STEPS[STEPS.length - 1]];
+    const spent = new Date(last.valid_utc).getTime() < Date.now();
+    $("stale").hidden = !spent;
+    if (spent) {
+      $("stale").innerHTML = `<b>Every hour in this forecast has passed.</b> `
+        + `The newest cycle has not arrived; nothing here is upcoming.`;
+    }
     return;
   }
 
@@ -1430,6 +1439,7 @@ function show() {
 
 function setMode(mode) {
   MODE = mode;
+  if (mode === "forecast") advancePastDefault();
   remember(KEEP.mode, mode);
   show();
 }
@@ -1611,24 +1621,56 @@ function adoptForecast(data, keep) {
     .map((i) => `<option value="${i}">${when(first[i].valid_utc)}</option>`)
     .join("");
 
-  const kept = keep == null ? -1 : STEPS.findIndex((i) => first[i].valid_utc === keep);
+  // Only an hour the reader stepped to is kept. The default hour is not a
+  // choice, so it is re-derived: kept verbatim it would sit on 11 p.m. long
+  // after 11 p.m. had passed.
+  const kept = keep == null || keep !== CHOSEN
+    ? -1 : STEPS.findIndex((i) => first[i].valid_utc === keep);
   if (kept >= 0) {
     CURSOR = kept;
     return true;
   }
-
-  // Open on the hour nearest NOW, not on the first hour of the cycle. A
-  // GFS-Wave cycle publishes about five hours after its nominal time, so hour
-  // zero is already in the past when anyone loads the page — it opened on
-  // 5 a.m. for a reader standing on the sand at 2 p.m.
-  const now = Date.now();
-  let best = 0;
-  STEPS.forEach((step, n) => {
-    const delta = Math.abs(new Date(first[step].valid_utc).getTime() - now);
-    if (delta < Math.abs(new Date(first[STEPS[best]].valid_utc).getTime() - now)) best = n;
-  });
-  CURSOR = best;
+  CHOSEN = null;
+  CURSOR = firstUpcoming();
   return true;
+}
+
+// Open on the first hour that has NOT YET HAPPENED, never on one that has. A
+// GFS-Wave cycle publishes about five hours after its nominal time, so hour
+// zero is already in the past when anyone loads the page — it opened on
+// 5 a.m. for a reader standing on the sand at 2 p.m. Picking the hour nearest
+// now fixed that and kept half the bug: at 0:20 on Saturday the 3-hourly steps
+// are Friday 11 p.m. and Saturday 2 a.m., and nearest chose 11 p.m. — a
+// forecast for a time already gone, opened by default.
+//
+// If every hour in the file has passed, the last one is the least stale thing
+// there is; `show` says so rather than presenting it as upcoming.
+function firstUpcoming() {
+  const first = ((DATA && DATA.breaks && DATA.breaks[0]) || {}).hours || [];
+  const now = Date.now();
+  const n = STEPS.findIndex((step) => new Date(first[step].valid_utc).getTime() >= now);
+  return n >= 0 ? n : Math.max(0, STEPS.length - 1);
+}
+
+// Move a default cursor off an hour that has since passed. The page can sit
+// open for hours — on either tab — and the hour it opened on goes by; showing
+// it then would be opening on the past, one step removed. An hour the reader
+// stepped to is theirs, past or not, and is left alone. True if it moved.
+function advancePastDefault() {
+  const hour = currentHour();
+  if (hour == null || hour === CHOSEN) return false;
+  if (new Date(hour).getTime() >= Date.now()) return false;
+  const next = firstUpcoming();
+  if (next === CURSOR) return false;
+  CURSOR = next;
+  return true;
+}
+
+// The reader stepped the picker: that hour is now theirs.
+function choose(cursor) {
+  CURSOR = cursor;
+  CHOSEN = currentHour();
+  show();
 }
 
 function boot(data, observed) {
@@ -1642,13 +1684,12 @@ function boot(data, observed) {
 
   $("when").onchange = (e) => {
     const index = Number(e.target.value);
-    CURSOR = Math.max(0, STEPS.indexOf(index));
-    show();
+    choose(Math.max(0, STEPS.indexOf(index)));
   };
-  $("earlier").onclick = () => { if (CURSOR > 0) { CURSOR -= 1; show(); } };
-  $("later").onclick = () => { if (CURSOR < STEPS.length - 1) { CURSOR += 1; show(); } };
+  $("earlier").onclick = () => { if (CURSOR > 0) choose(CURSOR - 1); };
+  $("later").onclick = () => { if (CURSOR < STEPS.length - 1) choose(CURSOR + 1); };
 
-  // `adoptForecast` has already put CURSOR on the hour nearest now.
+  // `adoptForecast` has already put CURSOR on the first hour not yet passed.
   //
   // Opens on Now: it is what someone standing on the sand wants, and if the
   // observed chain is broken the tab says so rather than hiding it behind a
@@ -1662,6 +1703,9 @@ function boot(data, observed) {
   // The observed age moves whether or not anything else does, so the observed
   // tab is redrawn on the minute rather than only on load or a tab change.
   setInterval(() => { if (MODE === "now") show(); }, 60000);
+
+  // The forecast tab is redrawn only when its default hour has just passed.
+  setInterval(() => { if (MODE === "forecast" && advancePastDefault()) show(); }, 60000);
 
   // A second's tick for the countdowns alone. The minute tick above re-renders
   // the whole page, which is the right cadence for "2 h ago" and far too heavy
