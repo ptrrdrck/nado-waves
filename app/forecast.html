@@ -228,7 +228,17 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    grey, not sand: they are where a blocker casts shadow, not the land itself.
    The chord and the break on it are the site blue, and so is the swell --
    the two things in the drawing that are not geometry-as-obstacle. */
-.aperture{display:block;width:100%;max-width:360px;height:auto;margin:0 auto;overflow:visible}
+.aperture{display:block;width:100%;max-width:420px;height:auto;margin:0 auto;overflow:visible;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.aperture [data-pick]{outline:none}
+.aperture .win{fill:var(--surf);fill-opacity:0;stroke:none}
+.aperture .win.on{fill-opacity:.16}
+.aperture .shadow.on{fill:var(--soft);fill-opacity:.6}
+.aperture.picked .shadow:not(.on){fill-opacity:.2}
+.aperture.picked .swell:not(.on){opacity:.15}
+.aperture .swell.on{opacity:1}
+.aperture .swell.on line{stroke-width:3}
+.aperture .ray,.aperture .deg,.aperture .faces,.aperture .chord,.aperture .spot{pointer-events:none}
 .aperture .sea{fill:none;stroke:var(--line-strong);stroke-width:1} /* = DRAW.rim */
 .aperture .shadow{fill:var(--faint);fill-opacity:.38;stroke:none}
 .aperture .ray{stroke:var(--soft);stroke-width:1}
@@ -742,15 +752,6 @@ function rankByEnergy(cards) {
 // One break's tab. What used to be its own card, less the title, which is on
 // the tab now.
 function breakPanel(c) {
-  const taken = (c.takenBy || []).map((tb) => `
-    <div class="row">
-      <span class="seg${tb.blocker === AWAY ? " horizon" : (tb.verified ? "" : " guess")}"></span>
-      <span class="who">${tb.blocker === AWAY
-        ? AWAY + ' <span class="est">(nothing blocks it &mdash; it is aimed elsewhere)</span>'
-        : tb.blocker + (tb.verified ? "" : ' <span class="est">estimated</span>')}</span>
-      <span class="amt">${Math.round(tb.share * 100)}%</span>
-    </div>`).join("");
-
   // The energy through the window LEADS, untitled, in the buoy tab's own
   // shape: the value line there says "combined", here "in window", and the
   // trains beneath it are listed the same way, so flipping between a break and
@@ -759,8 +760,11 @@ function breakPanel(c) {
   // above came from -- and it is the same spectrum on either chain: the
   // forecast's is GFS-Wave AT 46232.
   //
-  // The rule splits the reading from the geometry. The windows' own chart
+  // The drawing carries the windows and what takes the swell (owner's design,
+  // 2026-09-26), in place of the two lists that followed a rule here. When it
+  // cannot be drawn, the list's own sentence says why. The windows' chart
   // provenance is on geometry.html, vertex by vertex, one tap away.
+  const drawing = windowDrawing(c);
   return `
     <span class="val">${c.hsWindow != null
       ? `${height(c.hsWindow)} <span class="unit">${depthLabel(c)}</span>`
@@ -772,21 +776,9 @@ function breakPanel(c) {
       from <b>${compass(c.direction)}</b>
     </div>`}
 
-    ${windowDrawing(c)}
+    ${drawing || windowList(c.swellWindow)}
 
-    ${calculationLine(c)}
-
-    <hr>
-
-    <div>
-      <div class="lbl">swell windows</div>
-      ${windowList(c.swellWindow)}
-    </div>
-
-    <div>
-      <div class="lbl">taking the swell</div>
-      <div class="rows">${taken || '<div class="quiet">nothing blocked</div>'}</div>
-    </div>`;
+    ${calculationLine(c)}`;
 }
 
 // A depth for a label: whole feet, metres to one decimal below ten.
@@ -886,13 +878,34 @@ function calculationLine(c) {
   return `<div class="calc">${steps.join(" ")}</div>`;
 }
 
-const DRAW = {w: 320, h: 174, cx: 160, cy: 146, r: 124, rim: 1};
+// Larger than the first version (r 124 -> 140 in the same 320 box): the
+// drawing is read AND tapped now, and a phone has room either side of it.
+const DRAW = {w: 320, h: 200, cx: 160, cy: 162, r: 140, rim: 1};
 
+// Plain text for SVG captions, which cannot hold the HTML `height()` returns.
+// Same one conversion constant, so the rule that a factor appears once holds.
+const heightText = (m) => `${(m * FT_PER_M).toFixed(1)} ft (${m.toFixed(2)} m)`;
+const svgText = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const shareText = (share) => {
+  const p = 100 * share;
+  return `${p < 1 ? p.toFixed(1) : Math.round(p)}%`;
+};
+
+// One break's windows, drawn facing the way the break faces, and a way into
+// what used to be two lists beneath it (owner's design, 2026-09-26). The
+// drawing IS the windows and the blockers now: tap a grey shadow for the land
+// casting it and the share of this swell it takes; tap a window for the land
+// either side and its width; tap an arrow for that train. Each shows only its
+// own edge headings and puts its line where "facing" was. Tap it again, or
+// the sand below the chord, to return to the default drawing. A mouse
+// previews on hover; the keyboard reaches every section with Tab.
 function windowDrawing(c) {
   if (c.normal == null || !isFinite(c.normal)) return "";
   const {w, h, cx, cy, r} = DRAW;
   // Bearing -> angle off the normal, -180..180. Negative is the reader's left.
   const rel = (b) => ((b - c.normal) % 360 + 540) % 360 - 180;
+  const bearing = (a) => ((c.normal + a) % 360 + 360) % 360;
   const at = (a, rad) => {
     const t = a * Math.PI / 180;
     return [cx + rad * Math.sin(t), cy - rad * Math.cos(t)];
@@ -911,29 +924,84 @@ function windowDrawing(c) {
     .sort((p, q) => p.a0 - q.a0);
   if (!wins.length) return "";
 
-  // The shadows are whatever the windows leave.
+  // The shadows are whatever the windows leave, and each is cast by the land
+  // that closes the window before it -- the same name the blocker carries in
+  // `taken_by`, so its share is looked up, never typed.
   const shadows = [];
   let from = -90;
   wins.forEach((win) => {
-    if (win.a0 > from) shadows.push([from, win.a0]);
+    if (win.a0 > from) shadows.push({a0: from, a1: win.a0, blocker: win.opened_by});
     from = win.a1;
   });
-  if (from < 90) shadows.push([from, 90]);
-  const shading = shadows.map(([a0, a1]) =>
-    `<path class="shadow" d="${wedge(a0, a1, outer)}"/>`).join("");
+  if (from < 90) shadows.push({a0: from, a1: 90, blocker: wins[wins.length - 1].closed_by});
+  const taken = (name) => (c.takenBy || []).find((tb) => tb.blocker === name);
 
-  // Every edge is a ray from the break to the rim.
-  const edges = wins.flatMap((win) => [win.a0, win.a1]);
-  const rays = edges.map((a) => {
-    const [x, y] = at(a, outer);
-    return `<line class="ray" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
-  }).join("");
-  const first = wins[0], last = wins[wins.length - 1];
-  const labels = [[first.a0, first.from], [last.a1, last.to]].map(([a, b]) => {
+  // Degree labels. At a chord end they sit just above it, inside the
+  // drawing: below it is the caption's line, and outside the box is the card.
+  // `side` is -1 for a section's low edge and +1 for its high edge; a pair
+  // closer than 16 degrees is pushed apart, low to the left and high to the
+  // right, or the 193° and 199° between the islands print on top of each other.
+  const label = (a, show, side = 0, tight = false) => {
+    const b = Math.round(bearing(a));
+    if (Math.abs(a) >= 89.5) {
+      const left = a < 0;
+      return `<text class="deg" data-show="${show}" x="${cx + (left ? 6 - r : r - 6)}" y="${cy - 7}"`
+        + ` text-anchor="${left ? "start" : "end"}"${show === "default" ? "" : " hidden"}>${b}°</text>`;
+    }
     const [x, y] = at(a, r + 12);
     const s = Math.sin(a * Math.PI / 180);
-    const anchor = s > 0.25 ? "start" : s < -0.25 ? "end" : "middle";
-    return `<text class="deg" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}">${Math.round(b)}°</text>`;
+    const anchor = tight ? (side < 0 ? "end" : "start")
+      : s > 0.25 ? "start" : s < -0.25 ? "end" : "middle";
+    return `<text class="deg" data-show="${show}" x="${x.toFixed(1)}" y="${y.toFixed(1)}"`
+      + ` text-anchor="${anchor}"${show === "default" ? "" : " hidden"}>${b}°</text>`;
+  };
+  // The line where "facing" sits. Two lines when one would run off the box.
+  const caption = (text, show) => {
+    const parts = text.length > 50 && text.includes(", ")
+      ? [text.slice(0, text.indexOf(", ") + 1), text.slice(text.indexOf(", ") + 2)] : [text];
+    return `<text class="faces" data-show="${show}" x="${cx}" y="${cy + 20}"`
+      + `${show === "default" ? "" : " hidden"}>`
+      + parts.map((part, i) => `<tspan x="${cx}" dy="${i ? 13 : 0}">${svgText(part)}</tspan>`).join("")
+      + `</text>`;
+  };
+
+  const sections = [];      // what the pointer can pick, by angle
+  const labels = [label(wins[0].a0, "default"), label(wins[wins.length - 1].a1, "default")];
+  const captions = [caption(`facing ${compass(c.normal)}`, "default")];
+
+  const windowPaths = wins.map((win, i) => {
+    const key = `w${i}`;
+    const soft = win.confidence && win.confidence !== "high";
+    const text = `${shortBlocker(win.opened_by)} → ${shortBlocker(win.closed_by)}, `
+      + `${point(midBearing(win.from, win.to))}, ${Math.round(win.a1 - win.a0)}° wide`
+      + (soft ? ", one edge estimated" : "");
+    sections.push({key, a0: win.a0, a1: win.a1});
+    const tight = win.a1 - win.a0 < 16;
+    labels.push(label(win.a0, key, -1, tight), label(win.a1, key, 1, tight));
+    captions.push(caption(text, key));
+    return `<path class="win" data-pick="${key}" tabindex="0" role="button"`
+      + ` aria-label="${svgText(text)}" d="${wedge(win.a0, win.a1, outer)}"/>`;
+  }).join("");
+
+  const shading = shadows.map((sh, i) => {
+    const key = `s${i}`;
+    const tb = taken(sh.blocker);
+    const text = tb
+      ? `${sh.blocker}, blocking ${shareText(tb.share)} of this swell`
+        + (tb.verified === false ? " (estimated)" : "")
+      : `${sh.blocker}, blocking none of this swell`;
+    sections.push({key, a0: sh.a0, a1: sh.a1});
+    const tight = sh.a1 - sh.a0 < 16;
+    labels.push(label(sh.a0, key, -1, tight), label(sh.a1, key, 1, tight));
+    captions.push(caption(text, key));
+    return `<path class="shadow" data-pick="${key}" tabindex="0" role="button"`
+      + ` aria-label="${svgText(text)}" d="${wedge(sh.a0, sh.a1, outer)}"/>`;
+  }).join("");
+
+  // Every edge is a ray from the break to the rim.
+  const rays = wins.flatMap((win) => [win.a0, win.a1]).map((a) => {
+    const [x, y] = at(a, outer);
+    return `<line class="ray" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
   }).join("");
 
   // Arrows come in from the rim along the heading each train arrives from,
@@ -950,37 +1018,151 @@ function windowDrawing(c) {
   // the tip.
   // Local chop is made by the wind over the last few kilometres, not
   // carried in from the ocean, so it gets no arrow from the rim.
+  const trains = [];
   const arrows = (c.trains || []).map((t, i) => ({t, i, a: rel(t.from_deg)}))
     .filter(({t, a}) => !t.local && isFinite(t.from_deg) && a > -90 && a < 90)
     .reverse()
-    .map(({i, a}) => {
+    .map(({t, i, a}) => {
+      const key = `t${i}`;
       const lead = i === 0;
       const len = lead ? 10 : 8, half = lead ? 4.5 : 3.5;
       const tip = r * 0.62;
       const [x0, y0] = at(a, r * 0.95);
       const [x1, y1] = at(a, tip + 0.6 * len);
-      const t = a * Math.PI / 180;
+      const th = a * Math.PI / 180;
       const [bx, by] = at(a, tip + len);
-      const [px, py] = [Math.cos(t) * half, Math.sin(t) * half];
+      const [px, py] = [Math.cos(th) * half, Math.sin(th) * half];
       const head = `${xy(at(a, tip))} ${xy([bx + px, by + py])} ${xy([bx - px, by - py])}`;
-      return `<g class="swell${lead ? " lead" : ""}">`
+      const text = `${heightText(t.hs_m)} at ${t.period_s.toFixed(1)} s, ${point(t.from_deg)}`
+        + (t.wind_sea ? ", wind sea" : "");
+      const [ex, ey] = at(a, tip);
+      trains.push({key, x0: +x0.toFixed(1), y0: +y0.toFixed(1), x1: +ex.toFixed(1), y1: +ey.toFixed(1)});
+      labels.push(`<text class="deg" data-show="${key}" hidden x="${at(a, r + 12)[0].toFixed(1)}"`
+        + ` y="${at(a, r + 12)[1].toFixed(1)}" text-anchor="${Math.sin(th) > 0.25 ? "start"
+          : Math.sin(th) < -0.25 ? "end" : "middle"}">${Math.round(t.from_deg)}°</text>`);
+      captions.push(caption(text, key));
+      return `<g class="swell${lead ? " lead" : ""}" data-pick="${key}" tabindex="0" role="button"`
+        + ` aria-label="${svgText(text)}">`
         + `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`
         + `<polygon points="${head}"/></g>`;
     }).join("");
 
   const said = wins.map((win) => `${Math.round(win.from)} to ${Math.round(win.to)} degrees`).join(", ");
-  const trains = (c.trains || []).filter((t) => !t.local && isFinite(t.from_deg))
+  const heard = (c.trains || []).filter((t) => !t.local && isFinite(t.from_deg))
     .map((t) => `${Math.round(t.from_deg)}`).join(", ");
-  const label = `Swell windows facing ${compass(c.normal)}: ${said}.`
-    + (trains ? ` Swell arriving from ${trains} degrees.` : "");
+  const summary = `Swell windows facing ${compass(c.normal)}: ${said}.`
+    + (heard ? ` Swell arriving from ${heard} degrees.` : "")
+    + " Select a window, a shadow or an arrow for its detail.";
+  // Swell aimed behind the beach is not blocked by anything -- nothing is in
+  // the way, it is pointed elsewhere -- so it is no shadow. It belongs to the
+  // sand behind the chord, and a tap there says how much of it there is.
+  const away = taken(AWAY);
+  if (away) {
+    captions.push(caption(`${shareText(away.share)} of this swell is ${AWAY}; `
+      + `nothing blocks it`, "away"));
+  }
+  const geo = svgText(JSON.stringify({cx, cy, r: outer, sections, trains, away: !!away}));
 
-  return `<svg class="aperture" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">
+  return `<svg class="aperture" viewBox="0 0 ${w} ${h}" role="group" aria-label="${svgText(summary)}"
+    data-break="${c.id}" data-geo="${geo}">
     <path class="sea" d="${wedge(-90, 90)}"/>
-    ${shading}${rays}${labels}${arrows}
+    ${windowPaths}${shading}${rays}${labels.join("")}${arrows}
     <line class="chord" x1="${cx - r}" y1="${cy}" x2="${cx + r}" y2="${cy}"/>
     <circle class="spot" cx="${cx}" cy="${cy}" r="4"/>
-    <text class="faces" x="${cx}" y="${cy + 20}">facing ${compass(c.normal)}</text>
+    ${captions.join("")}
   </svg>`;
+}
+
+// Which section of each break's drawing is picked, by break. Kept across the
+// re-renders a refresh or the hour picker causes; lost with the page.
+const PICKED = {};
+
+// Show one section's state -- or the default drawing for none.
+function showPick(svg, key) {
+  svg.classList.toggle("picked", !!key);
+  svg.querySelectorAll("[data-pick]").forEach((el) =>
+    el.classList.toggle("on", el.getAttribute("data-pick") === key));
+  const want = key || "default";
+  svg.querySelectorAll("[data-show]").forEach((el) => {
+    const on = el.getAttribute("data-show") === want;
+    if (on) el.removeAttribute("hidden"); else el.setAttribute("hidden", "");
+  });
+}
+
+// What is under a point on the drawing. Arrows first, by distance to their
+// leg; then sections by angle. The island shadows are 2-5 degrees wide beside
+// a 6-degree channel, too thin to hit and too close to pad without covering
+// each other, so a tap within 2.5 degrees of a section under 5 degrees wide
+// takes it rather than its wide neighbour. Below the chord is the sand: "".
+function pickAt(svg, clientX, clientY) {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+  const geo = JSON.parse(svg.getAttribute("data-geo"));
+  const dx = pt.x - geo.cx, dy = geo.cy - pt.y;
+  // Behind the chord is the sand: the swell aimed away from the beach, if
+  // any of it is, and otherwise the way back to the default drawing.
+  if (dy < 0) return geo.away ? "away" : "";
+  if (Math.hypot(dx, dy) > geo.r + 14) return null;
+  for (const arrow of geo.trains) {
+    const vx = arrow.x1 - arrow.x0, vy = arrow.y1 - arrow.y0;
+    const k = Math.max(0, Math.min(1,
+      ((pt.x - arrow.x0) * vx + (pt.y - arrow.y0) * vy) / (vx * vx + vy * vy)));
+    if (Math.hypot(pt.x - (arrow.x0 + k * vx), pt.y - (arrow.y0 + k * vy)) < 9) return arrow.key;
+  }
+  const a = Math.atan2(dx, dy) * 180 / Math.PI;
+  const off = (s) => (a < s.a0 ? s.a0 - a : a > s.a1 ? a - s.a1 : 0);
+  const thin = geo.sections.filter((s) => s.a1 - s.a0 < 5 && off(s) <= 2.5)
+    .sort((p, q) => off(p) - off(q));
+  if (thin.length) return thin[0].key;
+  const hit = geo.sections.find((s) => off(s) === 0);
+  return hit ? hit.key : null;
+}
+
+// A tap picks; the same tap again, or the sand, returns to the default.
+function togglePick(svg, key) {
+  const id = svg.getAttribute("data-break");
+  PICKED[id] = key && PICKED[id] !== key ? key : null;
+  showPick(svg, PICKED[id]);
+}
+
+function restorePicks() {
+  document.querySelectorAll("svg.aperture[data-break]").forEach((svg) => {
+    const key = PICKED[svg.getAttribute("data-break")];
+    showPick(svg, key && svg.querySelector(`[data-pick="${key}"]`) ? key : null);
+  });
+}
+
+// Delegated once, like the tabs, because the cards are rebuilt on every render.
+function wireDrawings() {
+  const strip = $("conditions");
+  strip.addEventListener("click", (e) => {
+    const svg = e.target.closest("svg.aperture");
+    if (!svg) return;
+    // A click with no pointer behind it (a screen reader activating a
+    // section) has no coordinates to test; it names its section itself.
+    const own = e.target.closest("[data-pick]");
+    const key = e.detail === 0 && own ? own.getAttribute("data-pick")
+      : pickAt(svg, e.clientX, e.clientY);
+    if (key !== null) togglePick(svg, key);
+  });
+  // A mouse previews what a tap would pick, and leaving puts the pick back.
+  strip.addEventListener("pointermove", (e) => {
+    const svg = e.target.closest("svg.aperture");
+    if (!svg || e.pointerType !== "mouse") return;
+    const key = pickAt(svg, e.clientX, e.clientY);
+    showPick(svg, key || PICKED[svg.getAttribute("data-break")] || null);
+  });
+  strip.addEventListener("pointerout", (e) => {
+    const svg = e.target.closest("svg.aperture");
+    if (svg && !svg.contains(e.relatedTarget)) showPick(svg, PICKED[svg.getAttribute("data-break")] || null);
+  });
+  strip.addEventListener("keydown", (e) => {
+    const el = e.target.closest("svg.aperture [data-pick]");
+    if (!el || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    togglePick(el.closest("svg"), el.getAttribute("data-pick"));
+  });
 }
 
 // The buoy's tab: the offshore spectrum itself, before any aperture.
@@ -1191,6 +1373,7 @@ function renderConditions(index, cards) {
   }
 
   $("conditions").innerHTML = rows.join("");
+  restorePicks();
   // Fill the countdowns now rather than leaving them blank until the first
   // second's tick lands.
   tickDue();
@@ -1453,6 +1636,7 @@ function boot(data, observed) {
   $("tab-now").onclick = () => setMode("now");
   $("tab-forecast").onclick = () => setMode("forecast");
   wireSwellTabs();
+  wireDrawings();
 
   if (!adoptForecast(data, null)) return;
 
