@@ -334,17 +334,76 @@ class TestTheGeometryProvenance:
 
 
 class TestTheSeekBar:
-    def test_it_opens_on_the_hour_nearest_now_not_the_first_hour(self):
-        """A GFS-Wave cycle publishes about five hours after its nominal time,
-        so hour zero is already past when anyone loads the page — it opened on
-        5 a.m. for a reader standing on the sand at 2 p.m."""
+    def _run(self, script):
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        fns = ""
+        for name in ("currentHour", "adoptForecast", "firstUpcoming", "advancePastDefault"):
+            start = SOURCE.index(f"function {name}(")
+            fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        prelude = (
+            "let DATA = null, TIDE_BY_TIME = {}, STEPS = [], CURSOR = 0, CHOSEN = null;\n"
+            "const el = {textContent: '', innerHTML: '', hidden: true};\n"
+            "const $ = () => el; const when = (v) => v;\n"
+            # Friday 2026-09-25 22:00 PDT onward, 3-hourly; "now" is Saturday
+            # 00:20 PDT, 07:20Z. Nearest-now would pick 06:00Z (Fri 11 p.m.).
+            "const hours = [];\n"
+            "for (let h = 0; h <= 12; h++) hours.push({lead_h: h,"
+            " valid_utc: new Date(Date.UTC(2026, 8, 26, 3 + h)).toISOString()"
+            ".replace('.000Z', 'Z')});\n"
+            "const data = {breaks: [{hours}]};\n"
+            "let CLOCK = Date.UTC(2026, 8, 26, 7, 20); Date.now = () => CLOCK;\n"
+        )
+        out = subprocess.run([node, "-e", prelude + fns + script],
+                             capture_output=True, text=True, check=True).stdout
+        return [line for line in out.splitlines() if line.strip()]
 
-        assert "Date.now()" in SOURCE
-        assert "hour nearest NOW" in SOURCE
+    def test_it_opens_on_the_first_hour_not_yet_passed(self):
+        """Friday 11 p.m. is nearer 0:20 Saturday than 2 a.m. is, and it has
+        already happened. The page must open on 2 a.m. — never on the past,
+        and never on hour zero of a cycle published five hours late."""
+
+        assert self._run("adoptForecast(data, null); console.log(currentHour());") \
+            == ["2026-09-26T09:00:00Z"]
+
+    def test_an_hour_on_the_dot_is_not_past(self):
+        assert self._run("CLOCK = Date.UTC(2026, 8, 26, 9); adoptForecast(data, null);"
+                         " console.log(currentHour());") == ["2026-09-26T09:00:00Z"]
+
+    def test_a_default_hour_that_passes_moves_on_but_a_chosen_one_stays(self):
+        """The page sits open for hours; the hour it opened on goes by. Left
+        where it was, that is opening on the past one step removed. An hour
+        the reader stepped to is theirs and is not moved."""
+
+        assert self._run(
+            "adoptForecast(data, null); CLOCK = Date.UTC(2026, 8, 26, 9, 30);"
+            " console.log(advancePastDefault(), currentHour());"
+            " CURSOR = 0; CHOSEN = currentHour();"
+            " console.log(advancePastDefault(), currentHour());"
+        ) == ["true 2026-09-26T12:00:00Z", "false 2026-09-26T03:00:00Z"]
+
+    def test_a_new_cycle_does_not_keep_a_default_hour_that_has_passed(self):
+        assert self._run(
+            "adoptForecast(data, null); const was = currentHour();"
+            " CLOCK = Date.UTC(2026, 8, 26, 10); adoptForecast(data, was);"
+            " console.log(currentHour());"
+        ) == ["2026-09-26T12:00:00Z"]
+
+    def test_a_new_cycle_keeps_an_hour_the_reader_chose(self):
+        assert self._run(
+            "adoptForecast(data, null); CURSOR = 4; CHOSEN = currentHour();"
+            " adoptForecast(data, currentHour()); console.log(currentHour());"
+        ) == ["2026-09-26T15:00:00Z"]
+
+    def test_a_spent_file_opens_on_its_last_hour_and_says_so(self):
+        assert self._run("CLOCK = Date.UTC(2026, 9, 1); adoptForecast(data, null);"
+                         " console.log(currentHour());") == ["2026-09-26T15:00:00Z"]
+        assert "Every hour in this forecast has passed." in SOURCE
 
     def test_earlier_and_later_move_the_cursor(self):
         assert '$("earlier").onclick' in SOURCE and '$("later").onclick' in SOURCE
-        assert "CURSOR -= 1" in SOURCE and "CURSOR += 1" in SOURCE
+        assert "choose(CURSOR - 1)" in SOURCE and "choose(CURSOR + 1)" in SOURCE
 
     def test_the_full_list_is_still_a_real_select(self):
         """Laid transparently over the label, so the native picker opens on tap
