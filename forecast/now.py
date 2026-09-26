@@ -297,6 +297,11 @@ def _deadline(observed_utc: str | None, source: str, lags: dict) -> str | None:
 #: carrying a week of them into a file that describes one moment.
 TURN_WINDOW_HOURS = 36
 
+#: A past reading's wind must be this recent at the hour it is rebuilt for.
+#: KNZY reports at :52, so the reading in force at 09:00 is 08:52; two hours
+#: allows one missed METAR and no more. Older is a gap, not the wind then.
+WIND_AS_OF_HOURS = 2.0
+
 
 @dataclass
 class NowBreak:
@@ -410,8 +415,12 @@ RATIO_TEXT = f"{RATIO:.3f}"
 LEAD_TEXT = f"{LEAD_MIN} min"
 
 
-def read_measured_tide(data_dir: Path, *, now: datetime) -> NowTide:
+def read_measured_tide(data_dir: Path, *, now: datetime,
+                       until: datetime | None = None) -> NowTide:
     """The most recent MEASURED water level, if it is recent enough to be now.
+
+    `until` bounds the search to readings taken at or before it, so a reading
+    rebuilt for a past hour (`forecast.measured`) cannot see a later sample.
 
     Not the harmonic prediction. CO-OPS publishes both and
     `collector.tide` keeps them in separate files precisely so that a surface
@@ -432,6 +441,8 @@ def read_measured_tide(data_dir: Path, *, now: datetime) -> NowTide:
                 when = datetime.strptime(stamp, ISO).replace(tzinfo=timezone.utc)
                 value = float(height)
             except ValueError:
+                continue
+            if until is not None and when > until:
                 continue
             if newest is None or when > newest[0]:
                 newest = (when, value)
@@ -471,7 +482,17 @@ def build(
     data_dir: Path = DEFAULT_DATA_DIR,
     now: datetime | None = None,
     spectrum: Spectrum | None = None,
+    as_of: bool = False,
+    tables: dict | None = None,
+    profiles: dict | None = None,
 ) -> Now:
+    """The observed reading.
+
+    `as_of=True` rebuilds it for a PAST moment (`forecast.measured`): wind and
+    tide are then the readings that existed at `now`, never a later one, and a
+    wind reading more than `WIND_AS_OF_HOURS` older than that is not used.
+    `tables` and `profiles` may be passed in by a caller building many readings.
+    """
     spots, blockers = load()
     by_id = {s.id: s for s in spots}
     moment = now or utcnow()
@@ -531,11 +552,15 @@ def build(
             f"limit — this is not current and must not be shown as now."
         )
 
-    wind_row = read_latest_wind(data_dir)
+    wind_row = read_latest_wind(data_dir, until=moment if as_of else None)
+    if as_of and wind_row is not None and wind_row.get("observed_utc", "") < (
+            moment - timedelta(hours=WIND_AS_OF_HOURS)).strftime(ISO):
+        wind_row = None
     reading.wind = wind_measurement(wind_row)
     if wind_row is None:
-        reading.warnings.append(f"{WIND_STATION} wind not collected yet.")
-    reading.tide = read_measured_tide(data_dir, now=moment)
+        reading.warnings.append(f"{WIND_STATION} wind not collected yet." if not as_of
+                                else f"no {WIND_STATION} reading near this hour; no local chop")
+    reading.tide = read_measured_tide(data_dir, now=moment, until=moment if as_of else None)
     # The gauge is inside the bay; the card is about the beach. The measured
     # reading is carried to the open coast (forecast.tidesite) and keeps the
     # gauge's own stamp, which is what the update countdown runs from. The raw
@@ -603,22 +628,25 @@ def build(
         "trains": as_trains(raw.trains),
     }
 
-    try:
-        tables = load_tables()
-    except (FileNotFoundError, ValueError) as exc:
-        tables = {}
-        reading.warnings.append(f"nearshore tables unavailable ({exc}); showing window energy")
+    if tables is None:
+        try:
+            tables = load_tables()
+        except (FileNotFoundError, ValueError) as exc:
+            tables = {}
+            reading.warnings.append(f"nearshore tables unavailable ({exc}); showing window energy")
     grids = density_grids(spectrum) if tables else {}
 
     # The depth the waves break in needs the tide at the open coast, now. A
     # stale gauge is not now, and no gauge is no breaking: the 5 m figure is
     # shown instead, never a breaking height at an assumed tide.
-    profiles, tide_coast = {}, None
-    if tables:
-        try:
-            profiles = load_profiles()
-        except (FileNotFoundError, ValueError) as exc:
-            reading.warnings.append(f"surf-zone profiles unavailable ({exc}); no breaking")
+    tide_coast = None
+    if profiles is None:
+        profiles = {}
+        if tables:
+            try:
+                profiles = load_profiles()
+            except (FileNotFoundError, ValueError) as exc:
+                reading.warnings.append(f"surf-zone profiles unavailable ({exc}); no breaking")
     if profiles and reading.tide.height_m is not None and not reading.tide.note:
         try:
             # From the gauge's own reading: `coast_level` is the transfer, and

@@ -339,11 +339,16 @@ class TestTheSeekBar:
         if node is None:
             pytest.skip("node is not available")
         fns = ""
-        for name in ("currentHour", "adoptForecast", "firstUpcoming", "advancePastDefault"):
+        for name in ("currentHour", "adoptForecast", "firstUpcoming", "advancePastDefault",
+                     "measuredAt", "measuredLine", "pastNearshore", "depthLabel", "depthText",
+                     "compass"):
             start = SOURCE.index(f"function {name}(")
             fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
         prelude = (
             "let DATA = null, TIDE_BY_TIME = {}, STEPS = [], CURSOR = 0, CHOSEN = null;\n"
+            "let MEASURED = null; const FT_PER_M = 3.28084;\n"
+            "const height = (m) => m.toFixed(2) + ' m';\n"
+
             "const el = {textContent: '', innerHTML: '', hidden: true};\n"
             "const $ = () => el; const when = (v) => v;\n"
             # Friday 2026-09-25 22:00 PDT onward, 3-hourly; "now" is Saturday
@@ -400,6 +405,62 @@ class TestTheSeekBar:
         assert self._run("CLOCK = Date.UTC(2026, 9, 1); adoptForecast(data, null);"
                          " console.log(currentHour());") == ["2026-09-26T15:00:00Z"]
         assert "Every hour in this forecast has passed." in SOURCE
+
+    # An earlier run's log (`past`) and this run, published at 06:30Z. The log
+    # covers 00, 03 and 06Z; the run's own 03 and 06Z were already gone when
+    # it appeared, so the log's entries are what a reader had for those hours.
+    WITH_PAST = (
+        "data.generated_utc = '2026-09-26T06:30:00Z';\n"
+        "data.past = ['00', '03', '06'].map((h) => ({valid_utc: `2026-09-26T${h}:00:00Z`,"
+        " lead_h: 12, cycle_utc: '2026-09-25T18:00:00Z', breaks: {}}));\n"
+    )
+
+    def test_the_log_supplies_the_hours_before_this_run(self):
+        assert self._run(
+            self.WITH_PAST + "adoptForecast(data, null);"
+            " console.log(STEPS.map((s) => s.valid_utc.slice(11, 13) + s.from[0]).join(' '));"
+            " console.log(currentHour());"
+        ) == ["00p 03p 06p 09c 12c 15c", "2026-09-26T09:00:00Z"]
+
+    def test_without_a_log_the_runs_own_early_hours_stay(self):
+        assert self._run(
+            "data.generated_utc = '2026-09-26T06:30:00Z'; adoptForecast(data, null);"
+            " console.log(STEPS.map((s) => s.valid_utc.slice(11, 13) + s.from[0]).join(' '));"
+        ) == ["03c 06c 09c 12c 15c"]
+
+    def test_the_measured_line_only_under_an_hour_that_has_gone_by(self):
+        """Value, gap, not-in-yet, nothing loaded, and nothing at all for an
+        hour still ahead. A gap is never filled from the hour beside it."""
+
+        got = self._run(
+            "MEASURED = {generated_utc: '2026-09-26T07:10:00Z', station: '46232', steps: ["
+            " {valid_utc: '2026-09-26T03:00:00Z', gap: false, buoy: {hs_m: 1.1}},"
+            " {valid_utc: '2026-09-26T06:00:00Z', gap: true}]};\n"
+            "for (const h of ['03', '06', '00', '09']) console.log(h,"
+            " measuredAt(`2026-09-26T${h}:00:00Z`).state);\n"
+            "CLOCK = Date.UTC(2026, 8, 26, 9, 20);"
+            " console.log('09', measuredAt('2026-09-26T09:00:00Z').state);"
+        )
+        assert got == ["03 value", "06 gap", "00 none", "09 future", "09 pending"]
+
+    def test_the_blue_line_names_what_it_is(self):
+        got = self._run(
+            "MEASURED = {station: '46232'};\n"
+            "const m = {state: 'value', entry: {breaks: {n: {hs_m: 0.8, hs_basis: 'breaking',"
+            " depth_m: 1.9, period_s: 14.3, from_deg: 205}}}};\n"
+            "console.log(measuredLine(m, (e) => e.breaks.n).replace(/\\s+/g, ' '));"
+            "console.log(measuredLine({state: 'future'}, (e) => e) === '');"
+        )
+        assert "Measured at 46232, same chain" in got[0]
+        assert "0.80 m" in got[0] and "breaking at 6 ft (1.9 m) depth" in got[0]
+        assert got[1] == "true"
+
+    def test_the_page_never_calls_the_measurement_what_happened(self):
+        """Both numbers pass through the same physics, so their difference is
+        the model's error at the buoy, not a check at the beach."""
+
+        lowered = SOURCE.lower()
+        assert "actual" not in lowered and "what happened" not in lowered
 
     def test_earlier_and_later_move_the_cursor(self):
         assert '$("earlier").onclick' in SOURCE and '$("later").onclick' in SOURCE
@@ -893,7 +954,7 @@ class TestTheSwellCardIsOnBothTabs:
 
     def test_the_forecast_card_reads_the_per_hour_buoy_series(self):
         assert "(DATA.buoy || []).find" in SOURCE
-        assert "b.valid_utc === stamp.valid_utc" in SOURCE
+        assert "b.valid_utc === step.valid_utc" in SOURCE
 
     def test_a_cycle_without_a_spectrum_says_why_there_are_no_trains(self):
         assert "spectral product was unavailable" in TEXT
@@ -1093,7 +1154,7 @@ class TestThePageRefetchesWhatItShows:
 
         assert "adoptForecast(data, currentHour())" in SOURCE
         assert "function currentHour()" in SOURCE
-        assert "STEPS.findIndex((i) => first[i].valid_utc === keep)" in SOURCE
+        assert "STEPS.findIndex((step) => step.valid_utc === keep)" in SOURCE
 
     def test_boot_and_the_refresh_build_the_forecast_state_the_same_way(self):
         """A new cycle changes which hours exist, so the picker has to be
@@ -1113,7 +1174,9 @@ class TestAnUpdateAnnouncesItself:
         """Keyed rather than positional: the swell tabs re-rank by energy, so a
         card can move in the strip without its contents changing."""
 
-        assert SOURCE.count('data-card="') == 5   # swell, then wind/tide on both tabs
+        # swell, then wind/tide on both tabs, and wind/tide again for an
+        # earlier run's hour, which carries only the measurement
+        assert SOURCE.count('data-card="') == 7
         assert 'data-card="swell"' in SOURCE
 
     def test_the_flash_compares_either_side_of_the_same_render(self):
@@ -1142,7 +1205,7 @@ class TestAnUpdateAnnouncesItself:
         """Stepping the forecast to +48 h re-renders without a refresh. Only
         the two refresh paths go through `showAndFlash`."""
 
-        assert SOURCE.count("showAndFlash()") == 3          # the definition, and two callers
+        assert SOURCE.count("showAndFlash()") == 4          # the definition, and three callers
         for nav in ('$("earlier").onclick', '$("later").onclick', '$("when").onchange'):
             start = SOURCE.index(nav)
             assert "showAndFlash" not in SOURCE[start:start + 200], f"{nav} flashes"
@@ -1342,12 +1405,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert 'fetch(NOW_SOURCE,' not in SOURCE
         assert SOURCE.count("fetch(fresh(SOURCE)") == 2       # boot + refresh
         assert SOURCE.count("fetch(fresh(NOW_SOURCE)") == 2
+        assert SOURCE.count("fetch(fresh(MEASURED_SOURCE)") == 2
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 4
+        assert SOURCE.count('{cache: "no-store"}') == 6
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -1571,3 +1635,14 @@ class TestTheWindowBlockSurvivesAnOlderPayload:
         assert "no open window" in block
         assert "older than the page" in block
         assert block.index("given.length") < block.index("no open window")
+
+
+class TestPastHoursAreExplained:
+    """The blue line is the observed chain inside a forecast card. info.html
+    says what it is and what the comparison cannot show."""
+
+    def test_info_names_the_comparison_and_its_limit(self):
+        assert 'id="past-hours"' in INFO
+        assert "what this page showed for that hour" in INFO_TEXT
+        assert "the same chain" in INFO_TEXT
+        assert "does not check the beach" in INFO_TEXT

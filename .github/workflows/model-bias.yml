@@ -1,0 +1,101 @@
+# Rebuild recent GFS-Wave cycles with today's chain and regenerate the report
+# that asks whether the model's bias at 46232 survives each break's windows
+# (forecast/modelbias.py, docs/model_bias.md). It reports and never edits: no
+# forecast number changes because of it.
+#
+# Why a recompute at all. data/forecast_log/46232/ records what each build said
+# and grows four times a day from 2026-09-26; on its own it would take months to
+# say anything. GFS-Wave's own spectrum is served by NOAA back to 2021 and the
+# buoy's spectra are archived here from 2026-08-04, so the cycles in between can
+# be rebuilt now (CLAUDE.md: check whether the history is actually unrecoverable
+# before waiting on it). The rebuilds go to their own directory and are never
+# mixed with the as-shown log.
+#
+# Cost: 617 MB streamed per cycle and roughly a minute and a half of chain, so
+# the first backfill (about 50 cycles) runs over an hour. The weekly run only
+# picks up the last eight days, and anything already recomputed is skipped
+# before it is fetched.
+
+name: Model bias report
+
+on:
+  schedule:
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "First 00Z cycle to rebuild (YYYY-MM-DD); empty = 8 days ago"
+        required: false
+        default: ""
+      to:
+        description: "Last 00Z cycle to rebuild (YYYY-MM-DD); empty = yesterday"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: model-bias
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild cycles with today's chain
+        env:
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+        run: |
+          set -euo pipefail
+          from="${FROM:-$(date -u -d '8 days ago' +%Y-%m-%d)}"
+          to="${TO:-$(date -u -d 'yesterday' +%Y-%m-%d)}"
+          python -m forecast.modelbias --recompute "${from}" "${to}"
+
+      - name: Regenerate the report
+        run: |
+          set -euo pipefail
+          python -m forecast.modelbias --out docs/model_bias.md
+
+      - name: Commit and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves forecast"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Deliberately scoped: the recomputed log and the report, nothing else.
+          git add data/forecast_log/46232_recomputed docs/model_bias.md 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+            exit 0
+          fi
+
+          git commit \
+            -m "data: recompute cycles and regenerate the model-bias report" \
+            -m "Automated commit from .github/workflows/model-bias.yml."
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}); rebasing and retrying."
+            git pull --rebase --autostash origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+
+          echo "::error title=Model bias push failed::Could not push the report"
+          exit 1

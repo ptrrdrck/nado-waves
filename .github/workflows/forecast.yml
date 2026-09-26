@@ -49,10 +49,13 @@ on:
         required: false
         default: "168"
 
-# Nothing is committed back here any more -- data/live is gitignored and the
-# bundle goes to the public repository with its own token.
+# data/live is gitignored and the bundle goes to the public repository with
+# its own token. The one thing committed back is data/forecast_log/: the
+# permanent record of what each build said, which nothing can rebuild later
+# (forecast/forecastlog.py). Its commits are outside the push paths above, so
+# they cannot retrigger this workflow.
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: forecast
@@ -87,7 +90,45 @@ jobs:
 
       # data/live is gitignored -- it is derived output, rebuilt every cycle,
       # and the public repository's history is the record of what was shown.
-      # Nothing from this job needs committing here any more.
+      # `forecast.live` has appended this build's rows to data/forecast_log/,
+      # which is committed: the record the model-bias report is built on.
+      - name: Commit the forecast log
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves forecast"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Deliberately scoped: this job never touches the collected series.
+          git add data/forecast_log 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No new forecast log rows to commit."
+            exit 0
+          fi
+
+          rows=$(git diff --cached --numstat -- data/forecast_log \
+            | awk '{sum += $1} END {print sum + 0}')
+          git commit \
+            -m "data: log forecast build" \
+            -m "${rows} row(s) added. Automated commit from .github/workflows/forecast.yml."
+
+          # The collector pushes hourly to the same branch. Rebase and retry.
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}); rebasing and retrying."
+            git pull --rebase --autostash origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+
+          echo "::error title=Forecast log push failed::Could not push the forecast log"
+          exit 1
+
       - name: Publish the page
         env:
           PAGES_REPO: ${{ vars.PAGES_REPO || 'ptrrdrck/nado-waves-forecast' }}

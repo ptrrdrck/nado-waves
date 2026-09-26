@@ -141,6 +141,9 @@ jobs:
         run: |
           set -euo pipefail
           python -m forecast.now
+          # The same chain for each of the last 48 h, for the blue line under
+          # every past hour on the Forecast tab. Derived, like now.json.
+          python -m forecast.measured
 
       - name: Say which sources came back
         env:
