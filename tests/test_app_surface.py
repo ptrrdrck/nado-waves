@@ -158,11 +158,13 @@ class TestTheBreakCard:
 
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         panel = panel[:panel.index("function depthLabel")]
-        order = ("depthLabel(c)", "trainList(c.trains)", "windowDrawing(c)",
-                 "calculationLine(c)", "<hr>", "windowList",
-                 "taking the swell")
+        order = ("depthLabel(c)", "trainList(c.trains)",
+                 "drawing || windowList(c.swellWindow)", "calculationLine(c)")
         at = [panel.index(mark) for mark in order]
         assert at == sorted(at)
+        # The windows and the shares are in the drawing now (2026-09-26); the
+        # list's sentence survives only for when there is nothing to draw.
+        assert "taking the swell" not in panel and "<hr>" not in panel
         # The wind verdict moved to the Wind card (owner's call, 2026-09-26).
         assert "wind is" not in panel and "windOffshore" not in panel
         for gone in ("window energy", "swell reaching here"):
@@ -184,6 +186,53 @@ class TestTheBreakCard:
         assert "no open window" in SOURCE
 
 
+class TestTheDrawingIsInteractive:
+    """Owner's design, 2026-09-26: tap a shadow, a window or an arrow for its
+    detail in place of "facing"; tap it again for the default drawing."""
+
+    DRAW = SOURCE[SOURCE.index("function windowDrawing"):]
+    DRAW = DRAW[:DRAW.index("// The buoy's tab")]
+
+    def test_each_kind_says_what_the_owner_asked_for(self):
+        assert "blocking ${shareText(tb.share)} of this swell" in self.DRAW
+        assert ("${shortBlocker(win.opened_by)} \u2192 ${shortBlocker(win.closed_by)}, "
+                in self.DRAW)
+        assert "° wide" in self.DRAW
+        assert "${heightText(t.hs_m)} at ${t.period_s.toFixed(1)} s, ${point(t.from_deg)}" in self.DRAW
+
+    def test_a_second_tap_returns_to_the_default(self):
+        fn = SOURCE[SOURCE.index("function togglePick"):]
+        fn = fn[:fn.index("\n}\n")]
+        assert "PICKED[id] !== key ? key : null" in fn
+
+    def test_each_pick_shows_only_its_own_edges_and_line(self):
+        fn = SOURCE[SOURCE.index("function showPick"):]
+        fn = fn[:fn.index("\n}\n")]
+        assert 'const want = key || "default";' in fn
+        assert '[data-show]' in fn
+
+    def test_thin_sections_can_still_be_hit(self):
+        """The island shadows are 2-5 degrees wide beside a 6-degree channel."""
+
+        fn = SOURCE[SOURCE.index("function pickAt"):]
+        fn = fn[:fn.index("\n}\n")]
+        assert "s.a1 - s.a0 < 5 && off(s) <= 2.5" in fn
+
+    def test_the_keyboard_reaches_every_section(self):
+        assert self.DRAW.count('tabindex="0" role="button"') == 3   # window, shadow, arrow
+        assert 'e.key !== "Enter" && e.key !== " "' in self.DRAW
+
+    def test_the_pick_survives_a_re_render(self):
+        assert '$("conditions").innerHTML = rows.join("");\n  restorePicks();' in SOURCE
+
+    def test_swell_aimed_behind_the_beach_is_the_sand_not_a_shadow(self):
+        assert "taken(AWAY)" in self.DRAW and "nothing blocks it" in self.DRAW
+        assert 'geo.away ? "away" : ""' in self.DRAW
+
+    def test_it_is_bigger_than_it_was(self):
+        assert "const DRAW = {w: 320, h: 200, cx: 160, cy: 162, r: 140, rim: 1};" in SOURCE
+
+
 class TestTheBreakDrawing:
     """Each break's windows drawn facing the way the break faces: blocker
     shadows shaded grey, edges as rays, the break's own trains as arrows. An
@@ -202,12 +251,13 @@ class TestTheBreakDrawing:
     def test_without_a_normal_it_is_left_out_rather_than_guessed(self):
         assert 'if (c.normal == null || !isFinite(c.normal)) return "";' in self.DRAW
 
-    def test_nothing_in_it_is_named_or_typed(self):
-        """Blockers are not named in the drawing; the list below it does
-        that. Nothing about the coast is typed in either."""
+    def test_nothing_about_the_coast_is_typed_in_it(self):
+        """The drawing names the land now (owner's design, 2026-09-26) --
+        only ever from the payload: window edges and `taken_by`."""
 
-        assert "shortBlocker" not in self.DRAW
-        assert "opened_by" not in self.DRAW and "closed_by" not in self.DRAW
+        for typed in ("Point Loma", "Baja", "Islands", "Coronado"):
+            assert typed not in self.DRAW
+        assert "win.opened_by" in self.DRAW and "tb.blocker === name" in self.DRAW
 
     def test_the_arrows_are_the_breaks_trains_with_the_leader_emphasised(self):
         assert "c.trains" in self.DRAW and "buoy" not in self.DRAW
@@ -230,23 +280,26 @@ class TestTheBreakDrawing:
         through it."""
 
         assert "const outer = r + DRAW.rim / 2;" in self.DRAW
-        assert "wedge(a0, a1, outer)" in self.DRAW
+        assert "wedge(sh.a0, sh.a1, outer)" in self.DRAW
         assert "at(a, outer)" in self.DRAW
 
     def test_a_train_from_behind_the_beach_is_not_drawn(self):
         assert "a > -90 && a < 90" in self.DRAW
 
     def test_it_does_not_pan_or_zoom(self):
-        for handler in ("wheel", "zoom", "pointerdown", "touchstart"):
+        for handler in ("wheel", "zoom", "pointerdown", "touchstart", "drag"):
             assert handler not in self.DRAW
 
-    def test_only_the_two_outer_edges_are_labelled(self):
+    def test_by_default_only_the_two_outer_edges_are_labelled(self):
         """The Baja tangent and the Point Loma tip bound the whole aperture.
-        The island edges are drawn as rays but carry no label -- four of them
-        inside about thirteen degrees was more text than the drawing holds."""
+        The island edges are drawn as rays but carry no label until their
+        section is picked -- four of them inside about thirteen degrees was
+        more text than the drawing holds."""
 
-        assert "[[first.a0, first.from], [last.a1, last.to]]" in self.DRAW
+        assert ('[label(wins[0].a0, "default"), label(wins[wins.length - 1].a1, "default")]'
+                in self.DRAW)
         assert 'class="ray"' in self.DRAW
+        assert 'show === "default" ? "" : " hidden"' in self.DRAW
 
     def test_the_shadows_are_grey_and_the_chord_is_blue(self):
         assert ".aperture .shadow{fill:var(--faint)" in SOURCE
