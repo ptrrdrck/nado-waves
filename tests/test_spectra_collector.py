@@ -118,3 +118,95 @@ class TestSummary:
         parts = [ComponentResult(kind=k, column=c, added=1) for k, c in COMPONENTS.items()]
         parts[-1].error = "parsed no frequency bins or no rows"
         assert not CollectResult("46232", parts).complete
+
+
+class TestContextStations:
+    """Three buoys archived for checks. None is a stand-in for the anchor."""
+
+    def test_the_anchor_is_not_a_context_station(self):
+        from collector.spectra import CONTEXT_STATIONS, DEFAULT_STATION
+
+        assert DEFAULT_STATION not in CONTEXT_STATIONS
+        assert set(CONTEXT_STATIONS) == {"46086", "46047", "46258"}
+
+    def test_every_context_station_is_in_the_registry(self):
+        import json
+        from pathlib import Path
+
+        from collector.spectra import CONTEXT_STATIONS
+
+        registry = Path(__file__).resolve().parent.parent / "collector" / "stations.json"
+        ids = {s["id"] for s in json.loads(registry.read_text())["stations"]}
+        assert set(CONTEXT_STATIONS) <= ids
+
+    def test_nothing_on_the_forecast_path_reads_a_context_station(self):
+        """The Now tab and the forecast read 46232's spectrum and nothing else.
+        A context buoy wired in there is §3a's substitution, done quietly."""
+
+        from pathlib import Path
+
+        from collector.spectra import CONTEXT_STATIONS
+
+        forecast = Path(__file__).resolve().parent.parent / "forecast"
+        for name in ("now.py", "live.py", "measured.py", "nearshore.py",
+                     "surfzone.py", "transform.py", "publish.py"):
+            text = (forecast / name).read_text()
+            for station in CONTEXT_STATIONS:
+                assert station not in text, f"{name} names {station}"
+
+
+def complete(station: str) -> CollectResult:
+    return CollectResult(station, [
+        ComponentResult(kind=k, column=c, added=1) for k, c in COMPONENTS.items()
+    ])
+
+
+def denied(station: str) -> CollectResult:
+    return CollectResult(station, [
+        ComponentResult(kind=k, column=c, denied=True, error="URLError")
+        for k, c in COMPONENTS.items()
+    ])
+
+
+def incomplete(station: str) -> CollectResult:
+    result = complete(station)
+    result.components[0].error = "parsed no frequency bins or no rows"
+    return result
+
+
+class TestSeveralStations:
+    def test_context_collects_each_context_station(self, tmp_path, monkeypatch):
+        from collector.spectra import CONTEXT_STATIONS, main
+
+        seen = []
+        monkeypatch.setattr("collector.spectra.collect",
+                            lambda station, data_dir: seen.append(station) or complete(station))
+        assert main(["--context", "--data-dir", str(tmp_path)]) == 0
+        assert seen == list(CONTEXT_STATIONS)
+
+    def test_a_comma_list_is_several_stations(self, tmp_path, monkeypatch):
+        from collector.spectra import main
+
+        seen = []
+        monkeypatch.setattr("collector.spectra.collect",
+                            lambda station, data_dir: seen.append(station) or complete(station))
+        main(["--station", "46086, 46047", "--data-dir", str(tmp_path)])
+        assert seen == ["46086", "46047"]
+
+    def test_one_failure_is_not_hidden_by_the_others_succeeding(self, tmp_path, monkeypatch):
+        """And the stations after it are still fetched."""
+
+        from collector.spectra import main
+
+        seen = []
+        results = {"46086": incomplete, "46047": complete, "46258": complete}
+        monkeypatch.setattr("collector.spectra.collect",
+                            lambda station, data_dir: seen.append(station) or results[station](station))
+        assert main(["--context", "--data-dir", str(tmp_path)]) == 1
+        assert seen == ["46086", "46047", "46258"]
+
+    def test_a_denial_outranks_an_incomplete_set(self):
+        from collector.spectra import exit_code
+
+        assert exit_code([incomplete("46086"), denied("46047"), complete("46258")]) == 2
+        assert exit_code([complete("46086"), complete("46047")]) == 0
