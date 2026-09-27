@@ -6,7 +6,7 @@ carried in by the same chain on both sides; it checks nothing at the beach.
 
 ## As built and shown
 
-2736 logged rows; 448 forecast/measured pairs, valid 2026-09-26T12:00:00Z to 2026-09-27T06:00:00Z.
+3192 logged rows; 490 forecast/measured pairs, valid 2026-09-26T12:00:00Z to 2026-09-27T06:00:00Z.
 
 Error = forecast − measured. Bias % is the bias over the mean measured height,
 the figure that can be compared between the buoy and a break whose heights are
@@ -16,37 +16,37 @@ smaller. Fit is measured ≈ a + b × forecast, over all leads, where n ≥ 30.
 
 | quantity | site | regime | n | bias m | bias % | sd m | fit a | fit b |
 |---|---|---|---|---|---|---|---|---|
-| 5 m | coronado_center | all | 64 | -0.144 | -18.9 | 0.111 | +1.044 | -0.460 |
-| 5 m | coronado_center | other | 64 | -0.144 | -18.9 | 0.111 | +1.044 | -0.460 |
-| 5 m | coronado_north | all | 64 | +0.245 | +25.4 | 0.219 | +1.584 | -0.514 |
-| 5 m | coronado_north | other | 64 | +0.245 | +25.4 | 0.219 | +1.584 | -0.514 |
-| 5 m | coronado_south | all | 64 | -0.261 | -35.8 | 0.067 | +0.439 | 0.620 |
-| 5 m | coronado_south | other | 64 | -0.261 | -35.8 | 0.067 | +0.439 | 0.620 |
-| buoy | buoy | all | 64 | -0.100 | -8.7 | 0.069 | -0.377 | 1.455 |
-| buoy | buoy | other | 64 | -0.100 | -8.7 | 0.069 | -0.377 | 1.455 |
+| 5 m | coronado_center | all | 70 | -0.146 | -19.2 | 0.111 | +1.061 | -0.485 |
+| 5 m | coronado_center | other | 70 | -0.146 | -19.2 | 0.111 | +1.061 | -0.485 |
+| 5 m | coronado_north | all | 70 | +0.247 | +25.7 | 0.222 | +1.643 | -0.562 |
+| 5 m | coronado_north | other | 70 | +0.247 | +25.7 | 0.222 | +1.643 | -0.562 |
+| 5 m | coronado_south | all | 70 | -0.264 | -36.0 | 0.066 | +0.435 | 0.635 |
+| 5 m | coronado_south | other | 70 | -0.264 | -36.0 | 0.066 | +0.435 | 0.635 |
+| buoy | buoy | all | 70 | -0.101 | -8.8 | 0.068 | -0.325 | 1.405 |
+| buoy | buoy | other | 70 | -0.101 | -8.8 | 0.068 | -0.325 | 1.405 |
 
 ### By lead (regime: all)
 
 | quantity | site | lead | n | bias m | bias % | RMSE m |
 |---|---|---|---|---|---|---|
-| 5 m | coronado_center | 0-11 h | 47 | -0.105 | -14.3 | 0.139 |
+| 5 m | coronado_center | 0-11 h | 53 | -0.113 | -15.2 | 0.148 |
 | 5 m | coronado_center | 12-35 h | 17 | -0.251 | -30.2 | 0.265 |
-| 5 m | coronado_north | 0-11 h | 47 | +0.290 | +30.4 | 0.354 |
+| 5 m | coronado_north | 0-11 h | 53 | +0.288 | +30.2 | 0.357 |
 | 5 m | coronado_north | 12-35 h | 17 | +0.121 | +12.2 | 0.242 |
-| 5 m | coronado_south | 0-11 h | 47 | -0.253 | -35.3 | 0.261 |
+| 5 m | coronado_south | 0-11 h | 53 | -0.257 | -35.6 | 0.266 |
 | 5 m | coronado_south | 12-35 h | 17 | -0.283 | -36.9 | 0.289 |
-| breaking | coronado_center | 0-11 h | 47 | -0.104 | -11.8 | 0.138 |
+| breaking | coronado_center | 0-11 h | 53 | -0.111 | -12.5 | 0.146 |
 | breaking | coronado_center | 12-35 h | 17 | -0.246 | -25.4 | 0.259 |
-| breaking | coronado_north | 0-11 h | 47 | +0.268 | +24.6 | 0.329 |
+| breaking | coronado_north | 0-11 h | 53 | +0.267 | +24.5 | 0.332 |
 | breaking | coronado_north | 12-35 h | 17 | +0.117 | +10.5 | 0.230 |
-| breaking | coronado_south | 0-11 h | 47 | -0.248 | -29.3 | 0.256 |
+| breaking | coronado_south | 0-11 h | 53 | -0.252 | -29.6 | 0.260 |
 | breaking | coronado_south | 12-35 h | 17 | -0.282 | -31.3 | 0.288 |
-| buoy | buoy | 0-11 h | 47 | -0.080 | -7.1 | 0.102 |
+| buoy | buoy | 0-11 h | 53 | -0.084 | -7.4 | 0.105 |
 | buoy | buoy | 12-35 h | 17 | -0.155 | -12.8 | 0.163 |
 
 ## Recomputed with a later chain
 
-6384 logged rows; 5808 forecast/measured pairs, valid 2026-08-04T00:00:00Z to 2026-09-01T12:00:00Z.
+12312 logged rows; 9051 forecast/measured pairs, valid 2026-08-04T00:00:00Z to 2026-09-27T06:00:00Z.
 
 Error = forecast − measured. Bias % is the bias over the mean measured height,
 the figure that can be compared between the buoy and a break whose heights are
@@ -56,44 +56,62 @@ smaller. Fit is measured ≈ a + b × forecast, over all leads, where n ≥ 30.
 
 | quantity | site | regime | n | bias m | bias % | sd m | fit a | fit b |
 |---|---|---|---|---|---|---|---|---|
-| 5 m | coronado_center | all | 1452 | -0.126 | -18.2 | 0.937 | +0.003 | 1.218 |
-| 5 m | coronado_center | other | 687 | -0.213 | -27.5 | 1.352 | -0.098 | 1.554 |
-| 5 m | coronado_center | south | 765 | -0.048 | -7.8 | 0.103 | -0.031 | 1.139 |
-| 5 m | coronado_north | all | 1452 | -0.084 | -9.5 | 1.208 | +0.113 | 0.964 |
-| 5 m | coronado_north | other | 687 | -0.159 | -17.1 | 1.746 | +0.598 | 0.430 |
-| 5 m | coronado_north | south | 765 | -0.017 | -2.0 | 0.144 | -0.284 | 1.361 |
-| 5 m | coronado_south | all | 1452 | -0.202 | -31.3 | 0.704 | +0.053 | 1.335 |
-| 5 m | coronado_south | other | 687 | -0.274 | -37.2 | 1.015 | +0.160 | 1.246 |
-| 5 m | coronado_south | south | 765 | -0.137 | -24.4 | 0.077 | +0.050 | 1.204 |
-| buoy | buoy | all | 1452 | -0.365 | -28.9 | 1.538 | +0.005 | 1.400 |
-| buoy | buoy | other | 687 | -0.547 | -37.3 | 2.220 | +0.071 | 1.518 |
-| buoy | buoy | south | 765 | -0.201 | -18.6 | 0.100 | +0.183 | 1.021 |
+| 5 m | coronado_center | all | 1995 | -0.068 | -10.3 | 0.113 | -0.011 | 1.133 |
+| 5 m | coronado_center | other | 1045 | -0.086 | -12.7 | 0.118 | -0.037 | 1.209 |
+| 5 m | coronado_center | south | 950 | -0.048 | -7.5 | 0.104 | -0.010 | 1.098 |
+| 5 m | coronado_north | all | 1995 | +0.027 | +3.3 | 0.144 | -0.028 | 1.002 |
+| 5 m | coronado_north | other | 1045 | +0.059 | +7.7 | 0.142 | +0.181 | 0.710 |
+| 5 m | coronado_north | south | 950 | -0.009 | -1.1 | 0.138 | -0.250 | 1.310 |
+| 5 m | coronado_south | all | 1995 | -0.174 | -28.3 | 0.108 | +0.108 | 1.149 |
+| 5 m | coronado_south | other | 1045 | -0.202 | -30.8 | 0.123 | +0.166 | 1.079 |
+| 5 m | coronado_south | south | 950 | -0.143 | -25.2 | 0.078 | +0.078 | 1.154 |
+| buoy | buoy | all | 1995 | -0.258 | -22.5 | 0.156 | +0.089 | 1.190 |
+| buoy | buoy | other | 1045 | -0.301 | -24.9 | 0.180 | +0.043 | 1.284 |
+| buoy | buoy | south | 950 | -0.212 | -19.5 | 0.106 | +0.233 | 0.975 |
 
 ### By lead (regime: all)
 
 | quantity | site | lead | n | bias m | bias % | RMSE m |
 |---|---|---|---|---|---|---|
-| 5 m | coronado_center | 0-11 h | 112 | -0.153 | -21.6 | 1.196 |
-| 5 m | coronado_center | 12-35 h | 224 | -0.114 | -17.2 | 0.852 |
-| 5 m | coronado_center | 36-59 h | 217 | -0.117 | -17.5 | 0.865 |
-| 5 m | coronado_center | 60-95 h | 310 | -0.104 | -15.6 | 0.726 |
-| 5 m | coronado_center | 96-143 h | 386 | -0.129 | -18.4 | 0.920 |
-| 5 m | coronado_center | 144-168 h | 203 | -0.164 | -21.3 | 1.260 |
-| 5 m | coronado_north | 0-11 h | 112 | -0.127 | -14.1 | 1.534 |
-| 5 m | coronado_north | 12-35 h | 224 | -0.075 | -8.9 | 1.091 |
-| 5 m | coronado_north | 36-59 h | 217 | -0.076 | -8.9 | 1.108 |
-| 5 m | coronado_north | 60-95 h | 310 | -0.061 | -7.2 | 0.929 |
-| 5 m | coronado_north | 96-143 h | 386 | -0.082 | -9.1 | 1.175 |
-| 5 m | coronado_north | 144-168 h | 203 | -0.117 | -11.9 | 1.618 |
-| 5 m | coronado_south | 0-11 h | 112 | -0.220 | -33.6 | 0.919 |
-| 5 m | coronado_south | 12-35 h | 224 | -0.193 | -31.0 | 0.663 |
-| 5 m | coronado_south | 36-59 h | 217 | -0.193 | -30.8 | 0.674 |
-| 5 m | coronado_south | 60-95 h | 310 | -0.183 | -29.4 | 0.570 |
-| 5 m | coronado_south | 96-143 h | 386 | -0.202 | -31.0 | 0.713 |
-| 5 m | coronado_south | 144-168 h | 203 | -0.241 | -34.1 | 0.968 |
-| buoy | buoy | 0-11 h | 112 | -0.403 | -31.4 | 1.994 |
-| buoy | buoy | 12-35 h | 224 | -0.340 | -28.1 | 1.429 |
-| buoy | buoy | 36-59 h | 217 | -0.345 | -28.1 | 1.453 |
-| buoy | buoy | 60-95 h | 310 | -0.324 | -26.7 | 1.223 |
-| buoy | buoy | 96-143 h | 386 | -0.368 | -28.7 | 1.537 |
-| buoy | buoy | 144-168 h | 203 | -0.451 | -32.3 | 2.099 |
+| 5 m | coronado_center | 0-11 h | 151 | -0.047 | -7.5 | 0.117 |
+| 5 m | coronado_center | 12-35 h | 301 | -0.067 | -10.5 | 0.129 |
+| 5 m | coronado_center | 36-59 h | 293 | -0.068 | -10.5 | 0.129 |
+| 5 m | coronado_center | 60-95 h | 424 | -0.073 | -11.2 | 0.131 |
+| 5 m | coronado_center | 96-143 h | 538 | -0.074 | -11.1 | 0.135 |
+| 5 m | coronado_center | 144-168 h | 288 | -0.058 | -8.7 | 0.140 |
+| 5 m | coronado_north | 0-11 h | 151 | +0.040 | +5.2 | 0.143 |
+| 5 m | coronado_north | 12-35 h | 301 | +0.025 | +3.1 | 0.152 |
+| 5 m | coronado_north | 36-59 h | 293 | +0.026 | +3.2 | 0.150 |
+| 5 m | coronado_north | 60-95 h | 424 | +0.018 | +2.2 | 0.145 |
+| 5 m | coronado_north | 96-143 h | 538 | +0.023 | +2.8 | 0.139 |
+| 5 m | coronado_north | 144-168 h | 288 | +0.043 | +5.2 | 0.155 |
+| 5 m | coronado_south | 0-11 h | 151 | -0.161 | -27.1 | 0.194 |
+| 5 m | coronado_south | 12-35 h | 301 | -0.175 | -29.1 | 0.203 |
+| 5 m | coronado_south | 36-59 h | 293 | -0.173 | -28.6 | 0.200 |
+| 5 m | coronado_south | 60-95 h | 424 | -0.177 | -29.0 | 0.204 |
+| 5 m | coronado_south | 96-143 h | 538 | -0.176 | -28.3 | 0.208 |
+| 5 m | coronado_south | 144-168 h | 288 | -0.171 | -27.1 | 0.211 |
+| breaking | coronado_center | 0-11 h | 36 | -0.059 | -6.7 | 0.135 |
+| breaking | coronado_center | 12-35 h | 71 | -0.103 | -11.2 | 0.161 |
+| breaking | coronado_center | 36-59 h | 63 | -0.106 | -11.3 | 0.167 |
+| breaking | coronado_center | 60-95 h | 79 | -0.118 | -12.4 | 0.178 |
+| breaking | coronado_center | 96-143 h | 78 | -0.167 | -17.5 | 0.208 |
+| breaking | coronado_center | 144-168 h | 30 | -0.238 | -24.9 | 0.254 |
+| breaking | coronado_north | 0-11 h | 36 | +0.103 | +10.8 | 0.165 |
+| breaking | coronado_north | 12-35 h | 71 | +0.100 | +10.1 | 0.182 |
+| breaking | coronado_north | 36-59 h | 63 | +0.106 | +10.5 | 0.186 |
+| breaking | coronado_north | 60-95 h | 79 | +0.105 | +10.2 | 0.168 |
+| breaking | coronado_north | 96-143 h | 78 | +0.076 | +7.3 | 0.161 |
+| breaking | coronado_north | 144-168 h | 30 | -0.029 | -2.7 | 0.145 |
+| breaking | coronado_south | 0-11 h | 36 | -0.241 | -29.8 | 0.278 |
+| breaking | coronado_south | 12-35 h | 71 | -0.258 | -31.3 | 0.285 |
+| breaking | coronado_south | 36-59 h | 63 | -0.258 | -30.9 | 0.290 |
+| breaking | coronado_south | 60-95 h | 79 | -0.273 | -32.5 | 0.306 |
+| breaking | coronado_south | 96-143 h | 78 | -0.330 | -37.2 | 0.356 |
+| breaking | coronado_south | 144-168 h | 30 | -0.366 | -40.0 | 0.387 |
+| buoy | buoy | 0-11 h | 151 | -0.248 | -22.0 | 0.292 |
+| buoy | buoy | 12-35 h | 301 | -0.261 | -23.1 | 0.302 |
+| buoy | buoy | 36-59 h | 293 | -0.258 | -22.7 | 0.297 |
+| buoy | buoy | 60-95 h | 424 | -0.265 | -23.1 | 0.305 |
+| buoy | buoy | 96-143 h | 538 | -0.261 | -22.4 | 0.304 |
+| buoy | buoy | 144-168 h | 288 | -0.248 | -21.1 | 0.303 |
