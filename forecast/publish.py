@@ -16,6 +16,8 @@ The bundle:
     now.json        data/live/now.json — the observed reading, if there is one
     measured.json   data/live/measured.json — the observed chain rebuilt for
                     each of the last 48 h, shown under past forecast hours
+    series.json     data/live/series.json — the same chain for every hour of
+                    the last week, drawn under each card on the Now tab
     geometry.html   the model's geometry, drawn by forecast.geomviz from
                     spots.json; linked from the foot of index.html
     info.html       app/info.html: the caveat and each chain's standing-on
@@ -80,6 +82,10 @@ BUNDLE_NOW_PATH = "now.json"
 #: page reads it, so it is repointed where present rather than required.
 REPO_MEASURED_PATH = "../data/live/measured.json"
 BUNDLE_MEASURED_PATH = "measured.json"
+#: The same chain every hour for a week (`forecast.series`), for the chart
+#: under each card on the Now tab. Optional in the same way.
+REPO_SERIES_PATH = "../data/live/series.json"
+BUNDLE_SERIES_PATH = "series.json"
 
 DOCTYPE = "<!doctype html>"
 HEAD = """<html lang="en">
@@ -153,25 +159,28 @@ def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
     return (fragment
             .replace(REPO_DATA_PATH, BUNDLE_DATA_PATH)
             .replace(REPO_NOW_PATH, BUNDLE_NOW_PATH)
-            .replace(REPO_MEASURED_PATH, BUNDLE_MEASURED_PATH))
+            .replace(REPO_MEASURED_PATH, BUNDLE_MEASURED_PATH)
+            .replace(REPO_SERIES_PATH, BUNDLE_SERIES_PATH))
 
 
 def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
-    """`measured.json`, minified, when the collection job has built one.
+    """`measured.json` and `series.json`, minified, when the collection job has
+    built them.
 
-    In BOTH builds: it changes every collection (a past hour's measurement
-    lands), and the forecast job republishes the page that reads it.
+    In BOTH builds: they change every collection (a past hour's measurement
+    lands), and the forecast job republishes the page that reads them.
     """
 
-    source = Path(data_dir) / "live" / "measured.json"
-    if not source.exists():
-        return
-    target = out_dir / BUNDLE_MEASURED_PATH
-    target.write_text(
-        json.dumps(json.loads(source.read_text(encoding="utf-8")), separators=(",", ":")),
-        encoding="utf-8",
-    )
-    written[BUNDLE_MEASURED_PATH] = target.stat().st_size
+    for name in (BUNDLE_MEASURED_PATH, BUNDLE_SERIES_PATH):
+        source = Path(data_dir) / "live" / name
+        if not source.exists():
+            continue
+        target = out_dir / name
+        target.write_text(
+            json.dumps(json.loads(source.read_text(encoding="utf-8")), separators=(",", ":")),
+            encoding="utf-8",
+        )
+        written[name] = target.stat().st_size
 
 
 def wrap(fragment: str, *, app_title: str) -> str:
