@@ -38,6 +38,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from collector.probe_spectra import SENTINEL
+
 from .geometry import (
     HIGH,
     LOW,
@@ -133,6 +135,13 @@ class Spectrum:
                     f"{n} frequencies — the five files disagree, which is the "
                     f"one thing that must never be papered over"
                 )
+        index = unplaceable_bin(self.c11, self.a1, self.a2, self.r1, self.r2)
+        if index is not None:
+            raise ValueError(
+                f"bin {index} ({self.frequencies[index]} Hz) carries energy but "
+                f"no direction; `density` would read it as zero everywhere and "
+                f"the energy would vanish without a trace. Drop the record."
+            )
 
     def bin_width(self, index: int) -> float:
         f = self.frequencies
@@ -442,6 +451,25 @@ def through(
     )
 
 
+def unplaceable_bin(c11, a1, a2, r1, r2) -> int | None:
+    """The first bin with energy but a missing direction or moment, if any.
+
+    Such a bin cannot be spread over the circle. Read as NaN, `density` clamps
+    it to zero and the energy vanishes; read as NDBC's 999, the Fourier series
+    integrates to ~636x the bin's energy — 46232 read 21.9 m at 2026-08-26T00Z
+    on one r1 = 999 in an 11.8 s bin (BRIEFING §34). A bin with no energy and
+    no direction (the lowest bins of NDBC's own 46-bin buoys, on every row) is
+    harmless.
+    """
+
+    for index, energy in enumerate(c11):
+        if energy is None or math.isnan(energy) or energy <= 0.0:
+            continue
+        if any(v is None or math.isnan(v) for v in (a1[index], a2[index], r1[index], r2[index])):
+            return index
+    return None
+
+
 def load_spectra(directory: Path, *, limit: int | None = None) -> list[Spectrum]:
     """Read archived spectra written by `collector.spectra`.
 
@@ -451,6 +479,12 @@ def load_spectra(directory: Path, *, limit: int | None = None) -> list[Spectrum]
     substitute a missing observation — a partial spectrum is a gap, and a
     silently half-filled D(f, θ) is exactly the confident-wrong-answer failure
     BRIEFING §8 lists.
+
+    The same holds inside a record. NDBC's 999 in a direction or moment is
+    read as missing (the collector stores it as an empty cell; rows archived
+    before that still carry it), and a record with an energetic bin whose
+    direction is missing is dropped whole (`unplaceable_bin`), BEFORE `limit`
+    — so the newest complete record is the one returned, under its own stamp.
     """
 
     parts: dict[str, dict[datetime, list[float]]] = {}
@@ -473,10 +507,16 @@ def load_spectra(directory: Path, *, limit: int | None = None) -> list[Spectrum]
                 if not row or not row[0]:
                     continue
                 stamp = datetime.fromisoformat(row[0].replace("Z", "+00:00"))
-                rows[stamp] = [float(v) if v else float("nan") for v in row[1:]]
+                values = [float(v) if v else float("nan") for v in row[1:]]
+                if kind != "c11":
+                    values = [float("nan") if v == SENTINEL else v for v in values]
+                rows[stamp] = values
         parts[kind] = rows
 
-    shared = sorted(set.intersection(*(set(p) for p in parts.values())))
+    shared = sorted(
+        t for t in set.intersection(*(set(p) for p in parts.values()))
+        if unplaceable_bin(*(parts[k][t] for k in ("c11", "a1", "a2", "r1", "r2"))) is None
+    )
     if limit is not None:
         shared = shared[-limit:]
     return [

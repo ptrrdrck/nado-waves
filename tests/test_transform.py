@@ -261,6 +261,67 @@ class TestLoadSpectraRefusesToGuess:
         with pytest.raises(ValueError, match="frequency bins disagree"):
             load_spectra(tmp_path)
 
+    def _five(self, directory, rows_by_kind):
+        for kind in ("c11", "a1", "a2", "r1", "r2"):
+            self._write(directory, kind, rows_by_kind.get(kind, rows_by_kind["default"]))
+
+    def test_a_999_moment_on_an_energetic_bin_drops_the_record(self, tmp_path):
+        """46232, 2026-08-26T00Z: one r1 = 999 in an 11.8 s bin read as 21.9 m
+        at the buoy, against 1.6 m from the energy alone (BRIEFING §34)."""
+
+        good = ["2026-08-26T01:00:00Z", "0.9", "0.9"]
+        self._five(tmp_path, {
+            "default": [["2026-08-26T00:00:00Z", "0.9", "0.9"], good],
+            "c11": [["2026-08-26T00:00:00Z", "9.37", "1.0"], ["2026-08-26T01:00:00Z", "9.37", "1.0"]],
+            "r1": [["2026-08-26T00:00:00Z", "999", "0.96"], good],
+        })
+        assert [s.time.hour for s in load_spectra(tmp_path)] == [1]
+
+    def test_an_empty_moment_on_an_energetic_bin_drops_the_record(self, tmp_path):
+        """Read as NaN it would be clamped to zero energy and vanish instead."""
+
+        self._five(tmp_path, {
+            "default": [["2026-09-27T05:00:00Z", "0.9", "0.9"]],
+            "c11": [["2026-09-27T05:00:00Z", "1.0", "1.0"]],
+            "a2": [["2026-09-27T05:00:00Z", "", "200"]],
+        })
+        assert load_spectra(tmp_path) == []
+
+    def test_a_missing_direction_on_an_empty_bin_is_harmless(self, tmp_path):
+        """46047 and 46086: 999 in the lowest bins on every row, where C11 is 0.
+        Dropping those would drop every record for nothing."""
+
+        self._five(tmp_path, {
+            "default": [["2026-09-27T05:20:00Z", "999", "0.9"]],
+            "c11": [["2026-09-27T05:20:00Z", "0", "1.0"]],
+        })
+        [spectrum] = load_spectra(tmp_path)
+        assert math.isnan(spectrum.r1[0]) and spectrum.r1[1] == 0.9
+
+    def test_limit_returns_the_newest_complete_record(self, tmp_path):
+        """A dropped newest hour must not leave the Now tab with nothing, nor
+        with the bad record: the one before, under its own stamp."""
+
+        self._five(tmp_path, {
+            "default": [["2026-09-27T05:00:00Z", "0.9", "0.9"], ["2026-09-27T06:00:00Z", "0.9", "0.9"]],
+            "c11": [["2026-09-27T05:00:00Z", "1.0", "1.0"], ["2026-09-27T06:00:00Z", "1.0", "1.0"]],
+            "r2": [["2026-09-27T05:00:00Z", "0.9", "0.9"], ["2026-09-27T06:00:00Z", "999", "0.9"]],
+        })
+        assert [s.time.hour for s in load_spectra(tmp_path, limit=1)] == [5]
+
+    def test_c11_is_never_masked(self, tmp_path):
+        self._five(tmp_path, {
+            "default": [["2026-09-27T05:00:00Z", "0.9", "0.9"]],
+            "c11": [["2026-09-27T05:00:00Z", "999", "1.0"]],
+        })
+        assert load_spectra(tmp_path)[0].c11[0] == 999.0
+
+    def test_a_spectrum_built_with_an_unplaceable_bin_is_refused(self):
+        nan = float("nan")
+        with pytest.raises(ValueError, match="carries energy but no direction"):
+            Spectrum(datetime(2026, 9, 27, tzinfo=timezone.utc), [0.05, 0.06],
+                     [1.0, 1.0], [200.0, nan], [200.0, 200.0], [0.9, 0.9], [0.9, 0.9])
+
 
 class TestSplittingIntoTrains:
     """A spectrum is two or three swells plus a wind sea, and which of them

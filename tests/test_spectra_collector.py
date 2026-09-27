@@ -233,10 +233,20 @@ class TestSentinels:
 
         from forecast.transform import load_spectra
 
+        # As 46047 publishes it: no energy in the bins it has no direction for.
+        energy = self.PAYLOAD.replace("999.00 (0.033)", "0.000 (0.033)")
         for kind, column in COMPONENTS.items():
-            monkeypatch.setattr("collector.spectra.fetch", lambda url, timeout=45.0: self.PAYLOAD.encode())
+            text = energy if kind == "swden" else self.PAYLOAD
+            monkeypatch.setattr("collector.spectra.fetch", lambda url, timeout=45.0, t=text: t.encode())
             collect_component("46047", kind, column, tmp_path)
         spectrum = load_spectra(tmp_path / "spectra" / "46047")[0]
         assert math.isnan(spectrum.r1[0]) and math.isnan(spectrum.a1[0])
-        assert spectrum.c11[0] == 999.0      # energy density is not masked
         assert spectrum.r1[1:] == [0.29, 0.11]
+
+    def test_999_energy_density_is_stored_as_a_value(self, tmp_path, monkeypatch):
+        """C11 has no bound that makes 999 impossible, so it is not masked."""
+
+        monkeypatch.setattr("collector.spectra.fetch", lambda url, timeout=45.0: self.PAYLOAD.encode())
+        collect_component("46047", "swden", "c11", tmp_path)
+        with component_path(tmp_path, "46047", "c11").open() as fh:
+            assert list(csv.reader(fh))[1][1] == "999"
