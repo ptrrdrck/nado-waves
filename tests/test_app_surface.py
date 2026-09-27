@@ -1875,6 +1875,28 @@ class TestTheWeekChart:
         )
         assert "Buoy %K 60" in got[0] and "North %K 20" in got[0] and "difference +40" in got[0]
 
+    def test_it_folds_out_from_its_own_line_with_the_calculations_caret(self):
+        """Owner's design, 2026-09-27: a "Charts & Analysis" line below the
+        drawing, with the calculation's caret -- up while closed, down while
+        open -- closed until opened, one state for every tab, kept across a
+        refresh."""
+
+        toggle = SOURCE[SOURCE.index("function chartToggle"):]
+        toggle = toggle[:toggle.index("\n}\n")]
+        assert 'class="calc-toggle" data-chart-toggle' in toggle
+        assert 'aria-controls="chart-fold-${id}" aria-expanded="${CHART_OPEN}"' in toggle
+        assert "<path d=\"M3.5 10 8 5.5 12.5 10\"/>" in toggle     # drawn pointing up
+        chart = SOURCE[SOURCE.index("function seriesChart"):]
+        chart = chart[:chart.index("\n}\n")]
+        assert "<span>Charts &amp; Analysis</span>${chartToggle(id)}" in chart
+        assert 'id="chart-fold-${id}"${CHART_OPEN ? "" : " hidden"}' in chart
+        assert "let CHART_OPEN = false;" in SOURCE
+        assert 'CHART_OPEN = recall(KEEP.chartOpen) === "open";' in SOURCE
+        assert "setChartOpen(!CHART_OPEN);" in SOURCE
+        # Below the drawing, not above it.
+        panel = SOURCE[SOURCE.index("function breakPanel"):]
+        assert panel.index("${drawing ||") < panel.index("seriesChart(c.id)")
+
     def test_it_says_the_past_was_rebuilt_with_todays_chain(self):
         assert "each carried in by today's chain" in SOURCE
         assert "left as ${g > 1 ? \"gaps\" : \"a gap\"}" in SOURCE

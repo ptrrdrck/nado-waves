@@ -292,7 +292,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    blue, the buoy in the secondary ink, the other breaks faint. One axis, thin
    lines, hairline grid; an hour without a spectrum is a pale band with no
    line through it, so a gap reads as a gap rather than as a dip. */
+/* Folded away under a "Charts & Analysis" line with the calculation's caret
+   (owner's design, 2026-09-27): up while closed, down once open. */
 .chart{display:flex;flex-direction:column;gap:6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+            font-size:14.5px;font-weight:600;color:var(--ink)}
+.chart-fold,.chart-body{display:flex;flex-direction:column;gap:6px}
 .chart .modes{display:flex;gap:3px;background:var(--paper);border:1px solid var(--line);
               border-radius:8px;padding:3px}
 .chart .modes button{flex:1 1 auto;font:inherit;font-size:12.5px;font-weight:600;padding:4px 4px;
@@ -781,7 +786,8 @@ const BUOY_TAB = "buoy";
 // guarded, because private modes and blocked site data throw on the accessor
 // itself, and a page that cannot remember a tab must still render.
 const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
-              calc: "nado-waves.calc", chart: "nado-waves.chart"};
+              calc: "nado-waves.calc", chart: "nado-waves.chart",
+              chartOpen: "nado-waves.chart-open"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -1453,6 +1459,27 @@ const CHART_MODES = [
   {id: "range", label: "Range %K"},
 ];
 let CHART_MODE = "height";
+// Whether the charts are folded out. One state for every tab, like the
+// calculation's, and kept across a refresh the same way.
+let CHART_OPEN = false;
+function chartToggle(id) {
+  return `<button type="button" class="calc-toggle" data-chart-toggle
+    aria-controls="chart-fold-${id}" aria-expanded="${CHART_OPEN}"
+    aria-label="Charts and analysis"><svg viewBox="0 0 16 16" aria-hidden="true">`
+    + `<path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`;
+}
+
+// Flips every caret and fold in place, so the drawing's picks and the
+// countdowns keep their place.
+function setChartOpen(open) {
+  CHART_OPEN = open;
+  remember(KEEP.chartOpen, open ? "open" : "closed");
+  document.querySelectorAll("[data-chart-toggle]").forEach((btn) => {
+    btn.setAttribute("aria-expanded", String(open));
+    const fold = $(btn.getAttribute("aria-controls"));
+    if (fold) fold.hidden = !open;
+  });
+}
 // The hour the reader tapped, by valid_utc, or null for the newest reading.
 // Shared by every break, so flipping tabs keeps the same hour under the line.
 let CHART_AT = null;
@@ -1700,9 +1727,17 @@ function chartFoot() {
     + (g ? `; ${g} hour${g > 1 ? "s" : ""} with no spectrum, left as ${g > 1 ? "gaps" : "a gap"}` : "");
 }
 
+// The line the charts fold out from, and the fold.
 function seriesChart(id) {
+  return `<div class="chart">
+    <div class="chart-head"><span>Charts &amp; Analysis</span>${chartToggle(id)}</div>
+    <div class="chart-fold" id="chart-fold-${id}"${CHART_OPEN ? "" : " hidden"}>${chartBody(id)}</div>
+  </div>`;
+}
+
+function chartBody(id) {
   if (!SERIES || !SERIES.steps || SERIES.steps.length < 2) {
-    return `<div class="chart"><span class="src">The week's hourly chart is not loaded.</span></div>`;
+    return `<span class="src">The week's hourly chart is not loaded.</span>`;
   }
   const mode = id === BUOY_TAB ? "height" : CHART_MODE;
   const spec = chartSpec(id, mode);
@@ -1710,7 +1745,7 @@ function seriesChart(id) {
   const modes = id === BUOY_TAB ? "" : `<div class="modes" role="group" aria-label="What the chart shows">`
     + CHART_MODES.map((m) => `<button type="button" data-chart-mode="${m.id}"`
       + ` aria-pressed="${m.id === mode}">${m.label}</button>`).join("") + `</div>`;
-  return `<div class="chart" data-chart="${id}">
+  return `<div class="chart-body" data-chart="${id}">
     ${modes}
     <div class="plot">${chartPlot(id, spec, at)}</div>
     ${chartLegend(spec)}
@@ -1751,6 +1786,10 @@ function chartRedraw(selector) {
 function wireCharts() {
   const strip = $("conditions");
   strip.addEventListener("click", (e) => {
+    if (e.target.closest("[data-chart-toggle]")) {
+      setChartOpen(!CHART_OPEN);
+      return;
+    }
     const btn = e.target.closest("[data-chart-mode]");
     if (btn) {
       CHART_MODE = btn.getAttribute("data-chart-mode");
@@ -2424,6 +2463,8 @@ function boot(data, observed, measured, series) {
   // The chart's view likewise; anything unrecognised is the heights.
   const view = recall(KEEP.chart);
   CHART_MODE = CHART_MODES.some((m) => m.id === view) ? view : "height";
+  // Folded away until the reader opens it, as the calculation is.
+  CHART_OPEN = recall(KEEP.chartOpen) === "open";
   setMode(recall(KEEP.mode) === "forecast" ? "forecast" : "now");
 
   // The observed age moves whether or not anything else does, so the observed
