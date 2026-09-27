@@ -507,7 +507,8 @@ class TestWindAndTideAreHoisted:
         provenance line is the only thing telling them apart."""
 
         assert "GFS-Wave at the buoy for ${stampWhen}" in SOURCE
-        assert "${wind.station_name} (${wind.station}), observed " in SOURCE
+        assert "${fallback.station_name} (${fallback.station}), observed " in SOURCE
+        assert "Airfield weather observation (METAR), ${wind.station_name} (${wind.station})" in SOURCE
         assert "harmonic prediction for ${stampWhen}" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
@@ -600,8 +601,8 @@ class TestTheTwoChains:
         are measurements has to be in the provenance line, where the reader
         looks for where a number came from."""
 
-        assert "observed ${observedAt(wind.observed_utc)}" in SOURCE
-        assert "measured ${observedAt(tide.observed_utc)}" in SOURCE
+        assert "Observed ${observedAt(wind.observed_utc)}" in SOURCE
+        assert "Measured ${observedAt(tide.observed_utc)}" in SOURCE
 
     def test_forecast_labels_its_inputs_as_a_model(self):
         assert "forecast, not a measurement" in TEXT
@@ -635,7 +636,7 @@ class TestTheTwoChains:
         card in the same strip rather than a dashed aside, and it carries its
         own provenance instead of leaving it stranded below the breaks."""
 
-        assert "observed ${observedAt(NOW.observed_utc)}" in SOURCE
+        assert "Observed ${observedAt(NOW.observed_utc)}" in SOURCE
         assert 'id="buoy"' not in SOURCE
 
     def test_both_chains_render_through_one_card_shape(self):
@@ -984,7 +985,7 @@ class TestTheSwellCardIsOnBothTabs:
         assert SOURCE.count("rows.push(swellCard({") == 2
 
     def test_the_observed_card_names_its_measurement(self):
-        assert "${NOW.station_name} (NDBC ${NOW.station}), observed " in SOURCE
+        assert "Spectral wave data, ${NOW.station_name} (NDBC ${NOW.station})" in SOURCE
 
     def test_the_forecast_card_names_its_model(self):
         assert "GFS-Wave at ${DATA.station_name}" in SOURCE
@@ -1060,7 +1061,7 @@ class TestTheBreaksAreTabsOfTheSwellCard:
 
         card = SOURCE[SOURCE.index("function swellCard"):]
         card = card[:card.index("\n}\n")]
-        assert card.rindex('class="pane"') < card.index('<span class="src">${period(source)}${due}')
+        assert card.rindex('class="pane"') < card.index("${srcLines(source, due)}")
         panel = SOURCE[SOURCE.index("function buoyPanel"):]
         panel = panel[:panel.index("\n}\n")]
         assert 'class="src"' not in panel and "dueSpan" not in panel
@@ -1098,11 +1099,14 @@ class TestTheProvenanceLines:
 
     def test_every_provenance_line_ends_in_a_full_stop(self):
         """Including the collector's own notes, which do not all carry one —
-        `period` is applied at the card, not trusted to the note."""
+        `period` is applied at the card, not trusted to the note. The one
+        exception is the countdown's own line, whose text `tickDue` writes
+        with its full stop already on it."""
 
         assert "const period = (s) =>" in SOURCE
+        assert "Update in ${hms(due - now)}.`" in SOURCE
         bare = [m for m in re.findall(r'<span class="src">\$\{(.{0,40})', SOURCE)
-                if not m.startswith(("period(", "period ("))]
+                if not m.startswith(("period(", "period (", "due}"))]
         assert not bare, f"provenance not routed through period(): {bare}"
 
     def test_the_age_is_derived_from_the_timestamp_not_read_from_the_file(self):
@@ -1419,8 +1423,8 @@ class TestTheUpdateCountdown:
         """Counting down to the next wind observation under "not collected"
         would promise a replacement for something that was never there."""
 
-        assert 'wind.from_deg != null ? dueSpan(due.wind, late.wind) : ""' in SOURCE
-        assert 'tide.height_m != null ? dueSpan(due.tide, late.tide) : ""' in SOURCE
+        assert "dueSpan(due.wind, late.wind))\n        : srcLines(wind.note)}" in SOURCE
+        assert "dueSpan(due.tide, late.tide))\n        : srcLines(tide.note)}" in SOURCE
 
 
 class TestTheCdnCannotServeAStalePayload:
@@ -1614,9 +1618,9 @@ class TestEveryMeasurementSaysHowOldItIs:
 
         assert "function observedAt" in SOURCE
         assert SOURCE.count("observedAt(") == 5      # the definition plus four uses
-        for site in ("observed ${observedAt(NOW.observed_utc)}",
-                     "observed ${observedAt(wind.observed_utc)}",
-                     "measured ${observedAt(tide.observed_utc)}"):
+        for site in ("Observed ${observedAt(NOW.observed_utc)}",
+                     "Observed ${observedAt(wind.observed_utc)}",
+                     "Measured ${observedAt(tide.observed_utc)}"):
             assert site in SOURCE, site
 
     def test_the_forecast_tabs_observed_wind_fallback_is_aged_too(self):

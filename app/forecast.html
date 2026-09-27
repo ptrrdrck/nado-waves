@@ -87,7 +87,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
   .cond.fresh, .cond.fresh .val, .cond.fresh .src { animation: none; }
 }
 
-/* "Update in m:ss" at the end of a provenance line. Muted
+/* "Update in m:ss", the last provenance line on a Now card. Muted
    while it counts down; the signal colour once the update it promised has not
    arrived, beside the reading it qualifies rather than in a banner over all
    three. `nowrap` because a clock broken across two lines is unreadable. */
@@ -112,6 +112,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* Metric, in parentheses after the imperial value it restates. */
 .unit{font-weight:400;color:var(--soft)}
 .cond .src{font-size:12px;color:var(--faint)}
+.cond .srcs{display:flex;flex-direction:column;gap:2px}
 /* A number inside a provenance line ("of 3.8 ft (1.15 m) at the buoy") stays
    in that line's grey; the darker metric would lift it out of the footnote. */
 .cond .src .unit{color:inherit}
@@ -494,6 +495,21 @@ function ago(hours) {
 // notes, which do not all carry one.
 const period = (s) => (!s ? "" : /[.!?]\s*$/.test(s) ? s : s + ".");
 
+// A card's provenance, one line per claim. On Now that is three (owner's
+// layout, 2026-09-27): when it was measured, what was measured and where, and
+// when the next one is due -- the countdown on its own line so it is never
+// wrapped into the middle of a station name. A forecast card passes one line
+// and no countdown, and renders as it always has.
+//
+// Wrapped in one block so the lines sit as close together on the swell card
+// as on the others, whose own gap between rows is narrower.
+function srcLines(lines, due = "") {
+  const body = [].concat(lines || []).filter(Boolean)
+    .map((line) => `<span class="src">${period(line)}</span>`).join("")
+    + (due ? `<span class="src">${due}</span>` : "");
+  return body ? `<div class="srcs">${body}</div>` : "";
+}
+
 const clock = (iso) => new Date(iso).toLocaleString(undefined, {
   hour: "numeric", minute: "2-digit",
 });
@@ -524,7 +540,7 @@ function observedAt(iso) {
   // than from the payload, which makes it volatile between two renders that
   // straddle a minute. `cardText` strips everything so marked before comparing,
   // so a card is never flashed for a string that was only ever going to change.
-  return when(iso) + (age ? ` &mdash; <span class="age">${age}</span>` : "");
+  return when(iso) + (age ? `, <span class="age">${age}</span>` : "");
 }
 
 // The build's flag is a floor, never a ceiling: an open page can age a reading
@@ -1361,7 +1377,7 @@ function buoyPanel(buoy, measured = null) {
 // the input the three are derived from, not a fourth break to rank against
 // them. Its title comes from the file, never typed.
 //
-// The provenance line sits under the tabs rather than inside the buoy's,
+// The provenance sits under the tabs rather than inside the buoy's,
 // because every tab is that one spectrum, through an aperture or not -- and a
 // stale reading has to be marked whichever tab is open. Tucked into the
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
@@ -1387,7 +1403,7 @@ function swellCard({label, buoy, station, cards, source, due = "", measured = nu
     ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
       aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
     ${from}
-    <span class="src">${period(source)}${due}</span>
+    ${srcLines(source, due)}
   </div>`;
 }
 
@@ -1464,7 +1480,7 @@ function renderConditions(step, cards) {
     const buoy = (NOW && NOW.buoy) || {};
 
     // Each card is titled for the quantity alone. Which chain it belongs to
-    // is the tab, and when it was taken is the provenance line directly
+    // is the tab, and when it was taken is the first provenance line
     // beneath it, so repeating either in the title tells the reader nothing
     // they cannot already see. The card carries what the buoy saw AND where
     // it was seen, which is why the separate provenance line below the cards
@@ -1479,9 +1495,11 @@ function renderConditions(step, cards) {
       buoy,
       station: NOW && NOW.station,
       cards,
-      source: NOW && NOW.station_name
-        ? `${NOW.station_name} (NDBC ${NOW.station}), observed ${observedAt(NOW.observed_utc)}`
-        : "",
+      source: [
+        NOW && NOW.observed_utc ? `Observed ${observedAt(NOW.observed_utc)}` : "",
+        NOW && NOW.station_name
+          ? `Spectral wave data, ${NOW.station_name} (NDBC ${NOW.station})` : "",
+      ],
       due: dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),
     }));
 
@@ -1492,9 +1510,11 @@ function renderConditions(step, cards) {
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
       ${wind.from_deg != null ? windAtBreaks(cards) : ""}
-      <span class="src">${period(wind.from_deg != null
-        ? `${wind.station_name} (${wind.station}), observed ${observedAt(wind.observed_utc)}`
-        : (wind.note || ""))}${wind.from_deg != null ? dueSpan(due.wind, late.wind) : ""}</span>
+      ${wind.from_deg != null
+        ? srcLines([`Observed ${observedAt(wind.observed_utc)}`,
+                    `Airfield weather observation (METAR), ${wind.station_name} (${wind.station})`],
+                   dueSpan(due.wind, late.wind))
+        : srcLines(wind.note)}
     </div>`);
     // The turn is asked for against the READER's clock, not the build's, so
     // it keeps being the next turn as turns pass beneath an open page.
@@ -1504,9 +1524,10 @@ function renderConditions(step, cards) {
         ? height(tide.height_m)
         : '<span class="unit">not collected</span>'}</span>
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
-      <span class="src">${period(tide.height_m != null
-        ? `${tideSource(NOW)}, measured ${observedAt(tide.observed_utc)}`
-        : (tide.note || ""))}${tide.height_m != null ? dueSpan(due.tide, late.tide) : ""}</span>
+      ${tide.height_m != null
+        ? srcLines([`Measured ${observedAt(tide.observed_utc)}`, tideSource(NOW)],
+                   dueSpan(due.tide, late.tide))
+        : srcLines(tide.note)}
     </div>`);
   } else {
     const wind = DATA.wind || {};
