@@ -112,7 +112,14 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* Metric, in parentheses after the imperial value it restates. */
 .unit{font-weight:400;color:var(--soft)}
 .cond .src{font-size:12px;color:var(--faint)}
-.cond .srcs{display:flex;flex-direction:column;gap:2px}
+/* A rule above the provenance lines on every card, both tabs (owner's
+   design, 2026-09-27): what the card says above it, where it came from below
+   -- which matters most under a past hour, where a green measured box would
+   otherwise run straight into the forecast's provenance. The swell card's
+   own gap is wider, so it takes less margin to land in the same place. */
+.cond .srcs{display:flex;flex-direction:column;gap:2px;
+            border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
+.cond.swell .srcs{margin-top:2px}
 /* A number inside a provenance line ("of 3.8 ft (1.15 m) at the buoy") stays
    in that line's grey; the darker metric would lift it out of the footnote. */
 .cond .src .unit{color:inherit}
@@ -294,17 +301,14 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    line through it, so a gap reads as a gap rather than as a dip. */
 /* Folded away under an "Analytics" line with the calculation's caret
    (owner's design, 2026-09-27): up while closed, down once open. */
-.chart{display:flex;flex-direction:column;gap:6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.chart{display:flex;flex-direction:column;gap:6px}
 .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
             font-size:14.5px;font-weight:600;color:var(--ink)}
 .chart-fold,.chart-body{display:flex;flex-direction:column;gap:6px}
-.chart .modes{display:flex;gap:3px;background:var(--paper);border:1px solid var(--line);
-              border-radius:8px;padding:3px}
-.chart .modes button{flex:1 1 auto;font:inherit;font-size:12.5px;font-weight:600;padding:4px 4px;
-                     border:0;border-radius:6px;cursor:pointer;white-space:nowrap;
-                     background:transparent;color:var(--soft)}
-.chart .modes button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
-.chart .modes button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* Which chart, as a menu (owner's design, 2026-09-27): four views in a row
+   of tabs crowded a phone and read as a second set of break tabs. */
+.chart .pick{align-self:flex-start;font-weight:600;padding-right:28px}
+.chart .pick:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* The plot takes sideways swipes and pinches for itself; a vertical swipe
    still scrolls the page. */
 .chart .plot{touch-action:pan-y;-webkit-user-select:none;user-select:none}
@@ -1505,7 +1509,7 @@ let CHART_AT = null;
 const CHART = {w: 320, h: 150, l: 40, r: 8, t: 10, b: 20};
 const HOUR_MS = 3600000;
 // The x axis, in hours: what it opens on, and how far in it zooms.
-const CHART_DEFAULT_H = 168;
+const CHART_DEFAULT_H = 24;
 const CHART_MIN_H = 12;
 const CHART_RANGES = [
   {id: "1d", label: "1D", hours: 24},
@@ -1514,7 +1518,7 @@ const CHART_RANGES = [
   {id: "all", label: "All", hours: Infinity},
 ];
 // The window on the x axis, shared by every tab: null for the default (the
-// last week), else its edges in epoch ms and whether the right edge follows
+// last day, owner's choice 2026-09-27), else its edges in epoch ms and whether the right edge follows
 // the newest hour in. Kept as ASKED FOR, not as drawn: zooming out past the
 // loaded hours asks for the archive, and the view widens when it lands.
 let CHART_VIEW = null;
@@ -2014,9 +2018,9 @@ function chartBody(id) {
   const spec = chartSpec(id, mode, steps);
   const view = chartView(steps);
   const moving = chartMoving(id, chartIndex(steps), steps, view);
-  const modes = id === BUOY_TAB ? "" : `<div class="modes" role="group" aria-label="What the chart shows">`
-    + CHART_MODES.map((m) => `<button type="button" data-chart-mode="${m.id}"`
-      + ` aria-pressed="${m.id === mode}">${m.label}</button>`).join("") + `</div>`;
+  const modes = id === BUOY_TAB ? "" : `<select class="pick" data-chart-mode aria-label="Which chart">`
+    + CHART_MODES.map((m) => `<option value="${m.id}"${m.id === mode ? " selected" : ""}>`
+      + `${m.label}</option>`).join("") + `</select>`;
   // The readout sits ABOVE the plot, so a finger swiping along the lines
   // never covers the values it is reading.
   return `<div class="chart-body" data-chart="${id}">
@@ -2025,7 +2029,7 @@ function chartBody(id) {
     <div class="plot">${moving.plot}</div>
     <div class="under">${moving.under}</div>
     ${chartLegend(spec)}
-    ${srcLines([spec.says])}
+    <span class="src">${period(spec.says)}</span>
   </div>`;
 }
 
@@ -2088,13 +2092,15 @@ function wireCharts() {
       chartRedraw(`[data-chart="${pane}"] [data-chart-range="${pick.id}"]`);
       return;
     }
-    const btn = e.target.closest("[data-chart-mode]");
-    if (btn) {
-      CHART_MODE = btn.getAttribute("data-chart-mode");
-      remember(KEEP.chart, CHART_MODE);
-      const pane = btn.closest("[data-chart]").getAttribute("data-chart");
-      chartRedraw(`[data-chart="${pane}"] [data-chart-mode="${CHART_MODE}"]`);
-    }
+  });
+
+  strip.addEventListener("change", (e) => {
+    const pick = e.target.closest("select[data-chart-mode]");
+    if (!pick || !CHART_MODES.some((m) => m.id === pick.value)) return;
+    CHART_MODE = pick.value;
+    remember(KEEP.chart, CHART_MODE);
+    const pane = pick.closest("[data-chart]").getAttribute("data-chart");
+    chartRedraw(`[data-chart="${pane}"] select[data-chart-mode]`);
   });
 
   strip.addEventListener("pointerdown", (e) => {
