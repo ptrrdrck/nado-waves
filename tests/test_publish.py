@@ -422,6 +422,18 @@ class TestTheMeasuredSeriesShips:
         assert publish.REPO_SERIES_PATH in PAGE_SOURCE
         assert publish.BUNDLE_SERIES_PATH in index and publish.REPO_SERIES_PATH not in index
 
+    def test_the_archive_ships_beside_them(self, tmp_path):
+        """series_all.json: every archived hour, for zooming out past the week."""
+
+        d = self.data(tmp_path)
+        (d / "live" / "series_all.json").write_text('{"available": false}', encoding="utf-8")
+        assert "series_all.json" in publish.build(tmp_path / "site", data_dir=d)
+        assert "series_all.json" in publish.build_now_only(tmp_path / "now", data_dir=d)
+        index = (tmp_path / "now" / "index.html").read_text()
+        assert publish.REPO_SERIES_ALL_PATH in PAGE_SOURCE
+        assert publish.BUNDLE_SERIES_ALL_PATH in index
+        assert publish.REPO_SERIES_ALL_PATH not in index
+
     def test_the_past_survives_thinning(self):
         data = {**forecast(), "past": [{"valid_utc": "2026-09-17T21:00:00Z", "lead_h": 21}]}
         assert publish.thin(data)["past"] == data["past"]

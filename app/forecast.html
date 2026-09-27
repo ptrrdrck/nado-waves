@@ -305,6 +305,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                      background:transparent;color:var(--soft)}
 .chart .modes button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
 .chart .modes button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* The plot takes sideways swipes and pinches for itself; a vertical swipe
+   still scrolls the page. */
+.chart .plot{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.chart .under{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.chart .ranges{display:flex;gap:2px}
+.chart .ranges button{font:inherit;font-size:12px;font-weight:600;padding:2px 9px;border:0;
+                      border-radius:6px;cursor:pointer;background:transparent;color:var(--soft)}
+.chart .ranges button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
+.chart .ranges button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.chart .chart-note{font-size:12px;color:var(--faint);align-self:stretch}
 .series{display:block;width:100%;height:auto;overflow:visible;cursor:crosshair;
         touch-action:pan-y;-webkit-tap-highlight-color:transparent}
 .series:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
@@ -330,7 +340,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                    vertical-align:middle;margin-right:6px;background:var(--surf)}
 .chart .legend .sw.buoy,.chart .legend .sw.slow{background:var(--soft);height:1.5px}
 .chart .legend .sw.other{background:var(--faint);height:1px}
-.chart .readout{font-size:13px;color:var(--soft);font-variant-numeric:tabular-nums;min-height:1.5em}
+/* Above the plot, and tall enough for its longest reading, so the plot never
+   jumps under a finger as the values change. */
+.chart .readout{font-size:13px;line-height:1.45;color:var(--soft);font-variant-numeric:tabular-nums;
+                min-height:calc(3 * 1.45em)}
 .chart .readout b{color:var(--ink);font-weight:600}
 
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
@@ -410,6 +423,8 @@ const MEASURED_SOURCE = PARAM.get("measured") || "../data/live/measured.json";
 // The same chain every hour for the last week (forecast.series), drawn under
 // each card on the Now tab.
 const SERIES_SOURCE = PARAM.get("series") || "../data/live/series.json";
+// Every archived hour, for zooming out past the week -- fetched only then.
+const SERIES_ALL_SOURCE = PARAM.get("series_all") || "../data/live/series_all.json";
 
 // North to south along the sand: the west edge of the window is the bearing
 // to the Point Loma tip and it sweeps as you walk. This is the scope and the
@@ -768,6 +783,7 @@ let MODE = "now";     // which chain is on screen
 let TIDE_BY_TIME = {};
 let MEASURED = null;  // measured.json — the observed chain, past hours only
 let SERIES = null;    // series.json   — the observed chain, every hour for a week
+let SERIES_ALL = null; // series_all.json — every archived hour, once asked for
 // The hours the picker offers, oldest first: {valid_utc, from, lead_h} plus
 // `index` into each break's hours for the current run ("cycle"), or `entry`
 // from forecast.json's `past` for an hour an earlier run was on screen for.
@@ -1439,16 +1455,19 @@ function buoyPanel(buoy, measured = null, chart = false) {
     + trains + line;
 }
 
-// THE WEEK, under each card on the Now tab (owner's request, 2026-09-27).
+// THE CHARTS, under each card on the Now tab (owner's requests, 2026-09-27).
 //
-// series.json is the observed chain for every hour of the last seven days:
-// 46232's spectrum at that hour through TODAY's windows, seabed and surf zone
-// (forecast.series). A past point is what the current chain makes of that
-// hour, not what this page showed then, and the foot line says so. Nothing
-// here is a forecast and nothing here checks the beach.
+// series.json is the observed chain for every hour of the last seven days,
+// rebuilt each collection. series_all.json is every archived hour since
+// 46232's spectra begin, rebuilt daily into the committed archive and fetched
+// only when the reader zooms or pans out past the week (forecast.series). Both
+// are 46232's spectrum at each hour through TODAY's windows, seabed and surf
+// zone -- not what this page showed then; info.html says so. The archive is
+// withheld, never drawn, when it no longer matches today's chain. Nothing here
+// is a forecast and nothing here checks the beach.
 //
 // An hour with no spectrum is a gap: a pale band, and the line is not joined
-// across it. A single hour between two gaps is a dot, so it is not lost.
+// across it -- at every zoom. A single hour between two gaps is a dot.
 //
 // Four views of the same hours, switched above the plot. The buoy's tab has
 // only the heights, because the other three are about a break.
@@ -1480,10 +1499,28 @@ function setChartOpen(open) {
     if (fold) fold.hidden = !open;
   });
 }
-// The hour the reader tapped, by valid_utc, or null for the newest reading.
+// The hour the reader picked, by valid_utc, or null for the newest reading.
 // Shared by every break, so flipping tabs keeps the same hour under the line.
 let CHART_AT = null;
 const CHART = {w: 320, h: 150, l: 40, r: 8, t: 10, b: 20};
+const HOUR_MS = 3600000;
+// The x axis, in hours: what it opens on, and how far in it zooms.
+const CHART_DEFAULT_H = 168;
+const CHART_MIN_H = 12;
+const CHART_RANGES = [
+  {id: "1d", label: "1D", hours: 24},
+  {id: "7d", label: "7D", hours: 168},
+  {id: "1m", label: "1M", hours: 720},
+  {id: "all", label: "All", hours: Infinity},
+];
+// The window on the x axis, shared by every tab: null for the default (the
+// last week), else its edges in epoch ms and whether the right edge follows
+// the newest hour in. Kept as ASKED FOR, not as drawn: zooming out past the
+// loaded hours asks for the archive, and the view widens when it lands.
+let CHART_VIEW = null;
+let ALL_STATE = "idle";  // series_all.json: idle | loading | loaded | failed
+
+const isoHour = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, "Z");
 
 // A height with its sign, for the south-less-north line.
 const signedHeight = (m) => {
@@ -1493,7 +1530,7 @@ const signedHeight = (m) => {
   return `${sign}${(a * FT_PER_M).toFixed(1)} ft <span class="unit">(${sign}${a.toFixed(2)} m)</span>`;
 };
 const dayClock = (iso) => new Date(iso).toLocaleString(undefined, {
-  weekday: "short", hour: "numeric", minute: "2-digit",
+  weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
 });
 
 // Axis ticks in feet, placed in metres: the data stays SI and the conversion
@@ -1518,12 +1555,131 @@ function feetCeiling(m, spanFloor = 0.3) {
   return Math.ceil(top / step + 0.05) * step / FT_PER_M;
 }
 
+// Every hour the chart can show, oldest first: the archive's hours before the
+// week, then the week. Hours that fall between the two are "not rebuilt yet"
+// -- never a gap, because nothing says their spectrum is missing, and never
+// filled. Without the archive (not asked for, not loaded, or withheld because
+// it no longer matches today's chain) it is the week alone.
+let MERGED = null, MERGED_KEY = "";
+function chartSteps() {
+  const recent = (SERIES && SERIES.steps) || [];
+  const A = SERIES_ALL;
+  if (!A || !A.available || !A.hours || !recent.length) return recent;
+  const key = `${SERIES.generated_utc}|${A.start_utc}|${A.hours}`;
+  if (key === MERGED_KEY) return MERGED;
+  const start = Date.parse(A.start_utc), first = Date.parse(recent[0].valid_utc);
+  const held = Math.max(0, Math.min(A.hours, Math.round((first - start) / HOUR_MS)));
+  const gaps = new Set(A.gaps || []);
+  const col = (arr, i, per = 1) => (arr && arr[i] != null ? arr[i] / per : null);
+  const older = [];
+  for (let i = 0; i < held; i++) {
+    const valid_utc = isoHour(start + i * HOUR_MS);
+    if (gaps.has(i)) { older.push({valid_utc, gap: true}); continue; }
+    const breaks = {};
+    (A.breaks || []).forEach((b) => {
+      breaks[b] = {hs_m: col(A.hs_mm[b], i, 1000), transmission: col(A.tr_pm[b], i, 1000),
+                   pct_k: col(A.k[b], i), pct_d: col(A.d[b], i)};
+    });
+    const south = (breaks.coronado_south || {}).hs_m, north = (breaks.coronado_north || {}).hs_m;
+    older.push({
+      valid_utc, gap: false, breaks,
+      buoy: {hs_m: col(A.hs_mm.buoy, i, 1000), from_deg: col(A.from_deg, i),
+             pct_k: col(A.k.buoy, i), pct_d: col(A.d.buoy, i)},
+      south_minus_north_m: south != null && north != null ? south - north : null,
+    });
+  }
+  for (let ms = start + held * HOUR_MS; ms < first; ms += HOUR_MS) {
+    older.push({valid_utc: isoHour(ms), unbuilt: true});
+  }
+  MERGED = older.concat(recent);
+  MERGED_KEY = key;
+  return MERGED;
+}
+
+// The window as drawn, in hour indices into `steps`: what was asked for,
+// clamped to what is loaded.
+function chartView(steps) {
+  const last = steps.length - 1;
+  const t0 = Date.parse(steps[0].valid_utc);
+  const want = CHART_VIEW
+    ? {span: (CHART_VIEW.to - CHART_VIEW.from) / HOUR_MS,
+       end: CHART_VIEW.follow ? last : (CHART_VIEW.to - t0) / HOUR_MS}
+    : {span: CHART_DEFAULT_H, end: last};
+  const span = Math.max(Math.min(CHART_MIN_H, last), Math.min(want.span, last));
+  const end = Math.max(span, Math.min(last, want.end));
+  return {v0: end - span, v1: end, t0, last};
+}
+
+// Ask for a window, in hour indices. Past the loaded hours on the left, or
+// wider than all of them, asks for the archive.
+function setChartView(steps, v0, v1) {
+  const last = steps.length - 1;
+  const t0 = Date.parse(steps[0].valid_utc);
+  if (v1 - v0 < CHART_MIN_H) {
+    const mid = (v0 + v1) / 2;
+    v0 = mid - CHART_MIN_H / 2;
+    v1 = mid + CHART_MIN_H / 2;
+  }
+  if (v0 < -0.5 || v1 - v0 > last + 0.5) wantAll();
+  CHART_VIEW = {from: t0 + v0 * HOUR_MS, to: t0 + v1 * HOUR_MS, follow: v1 >= last - 0.5};
+}
+
+function setChartRange(hours) {
+  if (!isFinite(hours)) wantAll();
+  const span = isFinite(hours) ? hours : 1e9;
+  CHART_VIEW = {from: 0, to: span * HOUR_MS, follow: true};
+}
+
+// Fetched once, the first time the reader asks for more than the week.
+function wantAll() {
+  if (ALL_STATE !== "idle") return;
+  ALL_STATE = "loading";
+  fetch(fresh(SERIES_ALL_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => {
+      SERIES_ALL = got;
+      ALL_STATE = got ? "loaded" : "failed";
+      show();
+    })
+    .catch(() => { ALL_STATE = "failed"; show(); });
+}
+
+// Whether the reader has asked for more than is drawn.
+function chartWantsMore(steps) {
+  if (!CHART_VIEW) return false;
+  const last = steps.length - 1, t0 = Date.parse(steps[0].valid_utc);
+  const span = (CHART_VIEW.to - CHART_VIEW.from) / HOUR_MS;
+  return span > last + 0.5 || (!CHART_VIEW.follow && CHART_VIEW.from < t0 - HOUR_MS / 2);
+}
+
+// Why the chart is showing less than was asked for, or nothing.
+function chartNote(steps) {
+  if (!chartWantsMore(steps)) return "";
+  if (ALL_STATE === "loading") return "Loading earlier hours…";
+  if (ALL_STATE === "failed") return "Earlier hours could not be loaded.";
+  if (SERIES_ALL && !SERIES_ALL.available) {
+    return SERIES_ALL.why === "no archive yet" ? "No earlier hours are archived yet."
+      : "Earlier hours are being rebuilt with today's chain, and are not shown until they are.";
+  }
+  return "";
+}
+
 // What one view draws for one tab: its lines (drawn in order, the tab's own
-// line last so it sits on top), the axis, and how an hour reads out.
-function chartSpec(id, mode) {
-  const steps = SERIES.steps;
+// line last so it sits on top), how its axis scales, and how an hour reads
+// out. The axis itself depends on the window, so it is `chartDomain`'s.
+const SPECS = new Map();
+function chartSpec(id, mode, steps = chartSteps()) {
+  const memo = `${id}|${mode}|${steps.length}|${steps === MERGED ? MERGED_KEY : SERIES.generated_utc}`;
+  if (SPECS.has(memo)) return SPECS.get(memo);
+  if (SPECS.size > 24) SPECS.clear();
+  const spec = buildSpec(id, mode, steps);
+  SPECS.set(memo, spec);
+  return spec;
+}
+
+function buildSpec(id, mode, steps) {
   const station = SERIES.station || "the buoy";
-  const live = (s) => !s.gap && !s.pending;
+  const live = (s) => !s.gap && !s.pending && !s.unbuilt;
   const brk = (s, bid) => (live(s) && s.breaks && s.breaks[bid]) || {};
   const buoyOf = (s) => (live(s) && s.buoy) || {};
   const num = (v) => (v == null || !isFinite(v) ? null : v);
@@ -1536,13 +1692,12 @@ function chartSpec(id, mode) {
   const named = (v, text) => (v == null ? `${text} —` : `${text} ${v}`);
 
   if (id === BUOY_TAB || mode === "height") {
-    const lines = id === BUOY_TAB
-      ? [...ORDER.map((bid) => breakLine(bid, "other", "Breaks, breaking")), buoyLine("main")]
-      : [...others.map((bid) => breakLine(bid, "other", "Other breaks")), buoyLine("buoy"),
-         breakLine(id, "main", `${name}, breaking`)];
-    const top = feetCeiling(Math.max(0, ...lines.flatMap((ln) => ln.values).filter((v) => v != null)));
     return {
-      lines, domain: [0, top], ticks: feetTicks(0, top),
+      scale: "height",
+      lines: id === BUOY_TAB
+        ? [...ORDER.map((bid) => breakLine(bid, "other", "Breaks, breaking")), buoyLine("main")]
+        : [...others.map((bid) => breakLine(bid, "other", "Other breaks")), buoyLine("buoy"),
+           breakLine(id, "main", `${name}, breaking`)],
       says: id === BUOY_TAB
         ? "The buoy's height each hour, with the three breaks' breaking heights faint behind it."
         : `${name}'s breaking height each hour, beside the buoy's and the other two breaks'.`,
@@ -1559,12 +1714,10 @@ function chartSpec(id, mode) {
 
   if (mode === "diff") {
     const values = steps.map((s) => num(live(s) ? s.south_minus_north_m : null));
-    const reach = Math.max(0.1, ...values.filter((v) => v != null).map(Math.abs));
-    const hi = feetCeiling(reach, 0.1);
     return {
+      scale: "diff",
       lines: [{cls: "main", label: "South less north", values}],
-      domain: [-hi, hi], ticks: feetTicks(-hi, hi, {signs: true}), zero: true,
-      above: "South bigger", below: "North bigger",
+      zero: true, above: "South bigger", below: "North bigger",
       says: "South's breaking height less north's, the same on every break's tab. "
         + "Where the line crosses zero, which of the two is bigger has flipped.",
       read: (i) => `South less north <b>${signedHeight(values[i])}</b>`,
@@ -1575,9 +1728,9 @@ function chartSpec(id, mode) {
     const share = (bid, cls, label) => ({cls, label,
       values: steps.map((s) => num(brk(s, bid).transmission))});
     return {
+      scale: "window",
       lines: [...others.map((bid) => share(bid, "other", "Other breaks")),
               share(id, "main", name)],
-      domain: [0, 1], ticks: [0, 0.5, 1].map((v) => ({at: v, text: `${v * 100}%`})),
       says: `${name}'s height through its windows as a share of the buoy's, before the `
         + "seabed and the surf zone. It moves with where the swell comes from and how "
         + "widely it is spread.",
@@ -1597,14 +1750,12 @@ function chartSpec(id, mode) {
     const a = num(buoyOf(s)[key]), b = num(brk(s, id)[key]);
     return a == null || b == null ? null : a - b;
   });
-  const kLine = diff("pct_k");
   const lookback = SERIES.k_lookback_h || 24;
   return {
+    scale: "range",
     lines: [{cls: "slow", label: `${SERIES.d_hours || 3} h mean`, values: diff("pct_d")},
-            {cls: "main", label: "Buoy %K less break %K", values: kLine}],
-    domain: [-100, 100], zero: true,
-    ticks: [-100, 0, 100].map((v) => ({at: v, text: v > 0 ? "+100" : v < 0 ? "−100" : "0"})),
-    above: "Buoy higher in its range", below: `${name} higher in its range`,
+            {cls: "main", label: "Buoy %K less break %K", values: diff("pct_k")}],
+    zero: true, above: "Buoy higher in its range", below: `${name} higher in its range`,
     says: `Where the buoy's height sits in its own last ${lookback} hours, 0 at the low and `
       + `100 at the high, less where ${name}'s sits in its. Above zero, the buoy is nearer its `
       + "own high than the break is to its own. A position in a range, not a height.",
@@ -1620,86 +1771,189 @@ function chartSpec(id, mode) {
   };
 }
 
-// The hour the chart reads out: the one the reader tapped, while it is still
+// The y axis for the hours in view: heights and the difference rescale to
+// what is on screen, so zooming in on a small day does not flatten it; the
+// window ratio and %K keep their fixed scales.
+function chartDomain(spec, a, z) {
+  if (spec.scale === "window") {
+    return {domain: [0, 1], ticks: [0, 0.5, 1].map((v) => ({at: v, text: `${v * 100}%`}))};
+  }
+  if (spec.scale === "range") {
+    return {domain: [-100, 100],
+            ticks: [-100, 0, 100].map((v) => ({at: v, text: v > 0 ? "+100" : v < 0 ? "−100" : "0"}))};
+  }
+  let reach = 0;
+  spec.lines.forEach((ln) => {
+    for (let i = a; i <= z; i++) {
+      const v = ln.values[i];
+      if (v != null && Math.abs(v) > reach) reach = Math.abs(v);
+    }
+  });
+  if (spec.scale === "diff") {
+    const hi = feetCeiling(reach, 0.1);
+    return {domain: [-hi, hi], ticks: feetTicks(-hi, hi, {signs: true})};
+  }
+  const top = feetCeiling(reach);
+  return {domain: [0, top], ticks: feetTicks(0, top)};
+}
+
+// Where the x axis is marked, for the window in view: hours, days, weeks,
+// months or years, whichever puts about six marks across it. Local time.
+function timeTicks(steps, v0, v1) {
+  const span = v1 - v0, days = span / 24;
+  const fmt = (d, o) => d.toLocaleString(undefined, o);
+  const dayNo = (d) => Math.round(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
+  let pick, label;
+  if (span <= 36) {
+    const step = [1, 2, 3, 6, 12].find((s) => span / s <= 6) || 12;
+    pick = (d) => d.getHours() % step === 0;
+    label = (d) => (d.getHours() === 0 ? fmt(d, {weekday: "short"}) : fmt(d, {hour: "numeric"}));
+  } else if (days <= 60) {
+    const step = [1, 2, 7, 14].find((s) => days / s <= 7) || 14;
+    pick = (d) => d.getHours() === 0 && (step < 7 ? dayNo(d) % step === 0
+      : d.getDay() === 1 && (step === 7 || Math.floor(dayNo(d) / 7) % 2 === 0));
+    label = (d) => (step === 1 ? fmt(d, {weekday: "short"}) : fmt(d, {month: "short", day: "numeric"}));
+  } else if (days <= 800) {
+    const step = [1, 2, 3, 6].find((s) => days / 30.4 / s <= 6) || 6;
+    pick = (d) => d.getHours() === 0 && d.getDate() === 1 && d.getMonth() % step === 0;
+    label = (d) => (d.getMonth() === 0 ? String(d.getFullYear()) : fmt(d, {month: "short"}));
+  } else {
+    const step = Math.max(1, Math.ceil(days / 365 / 6));
+    pick = (d) => d.getHours() === 0 && d.getDate() === 1 && d.getMonth() === 0
+      && d.getFullYear() % step === 0;
+    label = (d) => String(d.getFullYear());
+  }
+  const t0 = Date.parse(steps[0].valid_utc);
+  const out = [];
+  for (let i = Math.max(0, Math.ceil(v0)); i <= Math.min(steps.length - 1, Math.floor(v1)); i++) {
+    const d = new Date(t0 + i * HOUR_MS);
+    if (pick(d)) out.push({i, label: label(d)});
+  }
+  return out;
+}
+
+// One line's path over the hours in view. Where there are more hours than
+// columns to draw them in, each column carries the lowest and highest hour it
+// covers, in the order they came; a column with any hour missing is drawn on
+// its own, never joined to its neighbours, so a gap stays a break in the line
+// at every zoom. A run of one point is a dot.
+function chartPath(values, a, z, X, Y, cols, cls) {
+  const f = (v) => v.toFixed(1);
+  const runs = [];
+  let run = [];
+  const flush = () => { if (run.length) runs.push(run); run = []; };
+  const per = (z - a + 1) / cols;
+  if (per <= 2) {
+    for (let i = a; i <= z; i++) {
+      const v = values[i];
+      if (v == null) { flush(); continue; }
+      run.push([X(i), Y(v)]);
+    }
+  } else {
+    for (let c = 0; c < cols; c++) {
+      const i0 = a + Math.floor(c * per), i1 = Math.min(z, a + Math.floor((c + 1) * per) - 1);
+      if (i1 < i0) continue;
+      let lo = null, hi = null, broken = false;
+      for (let i = i0; i <= i1; i++) {
+        const v = values[i];
+        if (v == null) { broken = true; continue; }
+        if (!lo || v < lo.v) lo = {v, i};
+        if (!hi || v > hi.v) hi = {v, i};
+      }
+      if (broken) flush();
+      if (lo) (lo.i <= hi.i ? [lo, hi] : [hi, lo]).forEach((p) => run.push([X(p.i), Y(p.v)]));
+      if (broken) flush();
+    }
+  }
+  flush();
+  let d = "", dots = "";
+  runs.forEach((pts) => {
+    if (pts.every((p) => f(p[0]) === f(pts[0][0]) && f(p[1]) === f(pts[0][1]))) {
+      dots += `<circle class="pt ${cls}" cx="${f(pts[0][0])}" cy="${f(pts[0][1])}" r="1.8"/>`;
+    } else {
+      d += "M" + pts.map((p) => `${f(p[0])},${f(p[1])}`).join("L");
+    }
+  });
+  return (d ? `<path class="ln ${cls}" d="${d}"/>` : "") + dots;
+}
+
+// The hour the chart reads out: the one the reader picked, while it is still
 // in the file, else the newest hour with a reading.
-function chartIndex() {
-  const steps = SERIES.steps;
+function chartIndex(steps = chartSteps()) {
   const pinned = CHART_AT == null ? -1 : steps.findIndex((s) => s.valid_utc === CHART_AT);
   if (pinned >= 0) return pinned;
   for (let i = steps.length - 1; i >= 0; i--) {
-    if (!steps[i].gap && !steps[i].pending) return i;
+    if (!steps[i].gap && !steps[i].pending && !steps[i].unbuilt) return i;
   }
   return steps.length - 1;
 }
 
-function chartPlot(id, spec, at) {
+function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) {
   const {w, h, l, r, t, b} = CHART;
-  const steps = SERIES.steps;
   const n = steps.length;
-  const dx = (w - l - r) / Math.max(1, n - 1);
-  const X = (i) => l + i * dx;
-  const [lo, hi] = spec.domain;
+  const {v0, v1} = view;
+  const plotW = w - l - r;
+  const X = (i) => l + (i - v0) / (v1 - v0) * plotW;
+  const a = Math.max(0, Math.floor(v0) - 1), z = Math.min(n - 1, Math.ceil(v1) + 1);
+  const {domain, ticks} = chartDomain(spec, a, z);
+  const [lo, hi] = domain;
   const Y = (v) => t + (h - t - b) * (hi - Math.max(lo, Math.min(hi, v))) / (hi - lo);
   const f = (v) => v.toFixed(1);
 
-  const grid = spec.ticks.map((tk) => {
+  const grid = ticks.map((tk) => {
     const y = f(Y(tk.at));
     const cls = spec.zero && tk.at === 0 ? "zero" : "grid";
     return `<line class="${cls}" x1="${l}" x2="${w - r}" y1="${y}" y2="${y}"/>`
       + `<text class="tick" x="${l - 5}" y="${y}" text-anchor="end" dominant-baseline="middle">${tk.text}</text>`;
   }).join("");
 
-  // Local midnights, labelled with the day that starts there.
-  const days = steps.map((s, i) => {
-    const local = new Date(s.valid_utc);
-    if (local.getHours() !== 0) return "";
-    const x = f(X(i));
-    const day = local.toLocaleString(undefined, {weekday: "short"});
-    return `<line class="day" x1="${x}" x2="${x}" y1="${t}" y2="${h - b}"/>`
-      + (X(i) < w - r - 16 ? `<text class="tick" x="${f(X(i) + 3)}" y="${h - 6}">${day}</text>` : "");
+  let lastLabel = -Infinity;
+  const marks = timeTicks(steps, v0, v1).map((tk) => {
+    const x = X(tk.i);
+    const room = x - lastLabel >= 30 && x < w - r - 14;
+    if (room) lastLabel = x;
+    return `<line class="day" x1="${f(x)}" x2="${f(x)}" y1="${t}" y2="${h - b}"/>`
+      + (room ? `<text class="tick" x="${f(x + 3)}" y="${h - 6}">${tk.label}</text>` : "");
   }).join("");
 
-  const gaps = steps.map((s, i) => (s.gap
-    ? `<rect class="gapband" x="${f(Math.max(l, X(i) - dx / 2))}" y="${t}"`
-      + ` width="${f(Math.min(dx, w - r - Math.max(l, X(i) - dx / 2)))}" height="${h - t - b}"/>`
-    : "")).join("");
+  // Runs of missing hours as one band each, never thinner than a pixel.
+  let bands = "";
+  for (let i = a; i <= z; i++) {
+    if (!steps[i].gap) continue;
+    let j = i;
+    while (j + 1 <= z && steps[j + 1].gap) j++;
+    const x0 = X(i - 0.5), x1 = X(j + 0.5);
+    bands += `<rect class="gapband" x="${f(x0)}" y="${t}" width="${f(Math.max(1, x1 - x0))}" height="${h - t - b}"/>`;
+    i = j;
+  }
 
-  // Joined only between consecutive hours that both have a value.
-  const lines = spec.lines.map((ln) => {
-    let d = "", dots = "", run = 0, last = null;
-    const lone = () => (run === 1
-      ? `<circle class="pt ${ln.cls}" cx="${last[0]}" cy="${last[1]}" r="1.8"/>` : "");
-    ln.values.forEach((v, i) => {
-      if (v == null) { dots += lone(); run = 0; return; }
-      last = [f(X(i)), f(Y(v))];
-      d += `${run ? "L" : "M"}${last[0]},${last[1]}`;
-      run += 1;
-    });
-    dots += lone();
-    return (d ? `<path class="ln ${ln.cls}" d="${d}"/>` : "") + dots;
-  }).join("");
+  const lines = spec.lines.map((ln) => chartPath(ln.values, a, z, X, Y, plotW, ln.cls)).join("");
 
   const sides = (spec.above ? `<text class="side" x="${l + 4}" y="${t + 9}">${spec.above}</text>` : "")
     + (spec.below ? `<text class="side" x="${l + 4}" y="${h - b - 4}">${spec.below}</text>` : "");
 
   const main = spec.lines[spec.lines.length - 1];
-  const x = f(X(at));
   const v = main.values[at];
-  const cross = `<line class="cross" x1="${x}" x2="${x}" y1="${t}" y2="${h - b}"/>`
-    + (v != null ? `<circle class="hot" cx="${x}" cy="${f(Y(v))}" r="3.5"/>` : "");
+  const cross = at >= v0 - 0.5 && at <= v1 + 0.5
+    ? `<line class="cross" x1="${f(X(at))}" x2="${f(X(at))}" y1="${t}" y2="${h - b}"/>`
+      + (v != null ? `<circle class="hot" cx="${f(X(at))}" cy="${f(Y(v))}" r="3.5"/>` : "")
+    : "";
 
-  const label = `${spec.says} Last ${Math.round(n / 24)} days, hourly. `
-    + "Arrow keys step through the hours.";
+  const label = `${spec.says} From ${dayClock(steps[Math.max(0, Math.ceil(v0))].valid_utc)} to `
+    + `${dayClock(steps[Math.min(n - 1, Math.floor(v1))].valid_utc)}, hourly. Arrow keys step `
+    + "through the hours; plus and minus zoom; shift and an arrow pans.";
   return `<svg class="series" viewBox="0 0 ${w} ${h}" role="group" tabindex="0"`
     + ` aria-label="${svgText(label)}" data-series="${id}">`
-    + gaps + grid + days + lines + cross + sides + `</svg>`;
+    + `<clipPath id="plot-clip-${id}"><rect x="${l}" y="${t - 4}" width="${plotW}" height="${h - t - b + 8}"/></clipPath>`
+    + grid + marks + `<g clip-path="url(#plot-clip-${id})">${bands}${lines}${cross}</g>` + sides + `</svg>`;
 }
 
-function chartReadout(spec, i) {
-  const s = SERIES.steps[i];
+function chartReadout(spec, i, steps = chartSteps()) {
+  const s = steps[i];
   const stamp = `<b>${dayClock(s.valid_utc)}</b>`;
   if (s.gap) return `${stamp} &middot; no ${SERIES.station || "buoy"} spectrum for this hour, left as a gap`;
   if (s.pending) return `${stamp} &middot; not in yet`;
+  if (s.unbuilt) return `${stamp} &middot; not rebuilt yet`;
   return `${stamp} &middot; ${spec.read(i)}`;
 }
 
@@ -1718,13 +1972,29 @@ function chartLegend(spec) {
     `<span><i class="sw ${ln.cls}"></i>${ln.label}</span>`).join("")}</div>`;
 }
 
-// Where the week comes from. Said under the chart rather than only on
-// info.html, because a rebuilt past looks exactly like a remembered one.
-function chartFoot() {
-  const g = SERIES.steps.filter((s) => s.gap).length;
-  return `Observed at ${SERIES.station || "the buoy"} every hour for the last `
-    + `${Math.round(SERIES.steps.length / 24)} days, each carried in by today's chain`
-    + (g ? `; ${g} hour${g > 1 ? "s" : ""} with no spectrum, left as ${g > 1 ? "gaps" : "a gap"}` : "");
+// The time buttons: the gesture-free way to zoom, and the way back. One is
+// pressed while the window is the span it asked for, running to the newest
+// hour; after a pinch or a pan, none is.
+function chartRanges() {
+  const asked = CHART_VIEW ? (CHART_VIEW.to - CHART_VIEW.from) / HOUR_MS : CHART_DEFAULT_H;
+  const follow = !CHART_VIEW || CHART_VIEW.follow;
+  return CHART_RANGES.map((rg) => {
+    const on = follow && (isFinite(rg.hours) ? Math.abs(asked - rg.hours) < 0.5 : asked >= 1e8);
+    return `<button type="button" data-chart-range="${rg.id}" aria-pressed="${on}">${rg.label}</button>`;
+  }).join("");
+}
+
+// The parts of a chart that move with the hour and the window, so a gesture
+// redraws them without rebuilding the card.
+function chartMoving(id, at, steps, view) {
+  const spec = chartSpec(id, id === BUOY_TAB ? "height" : CHART_MODE, steps);
+  const note = chartNote(steps);
+  return {
+    readout: chartReadout(spec, at, steps),
+    plot: chartPlot(id, spec, at, steps, view),
+    under: `<div class="ranges" role="group" aria-label="How much time the chart shows">`
+      + `${chartRanges()}</div>${note ? `<span class="chart-note">${note}</span>` : ""}`,
+  };
 }
 
 // The line the charts fold out from, and the fold.
@@ -1736,41 +2006,46 @@ function seriesChart(id) {
 }
 
 function chartBody(id) {
-  if (!SERIES || !SERIES.steps || SERIES.steps.length < 2) {
+  const steps = chartSteps();
+  if (!steps || steps.length < 2) {
     return `<span class="src">The week's hourly chart is not loaded.</span>`;
   }
   const mode = id === BUOY_TAB ? "height" : CHART_MODE;
-  const spec = chartSpec(id, mode);
-  const at = chartIndex();
+  const spec = chartSpec(id, mode, steps);
+  const view = chartView(steps);
+  const moving = chartMoving(id, chartIndex(steps), steps, view);
   const modes = id === BUOY_TAB ? "" : `<div class="modes" role="group" aria-label="What the chart shows">`
     + CHART_MODES.map((m) => `<button type="button" data-chart-mode="${m.id}"`
       + ` aria-pressed="${m.id === mode}">${m.label}</button>`).join("") + `</div>`;
+  // The readout sits ABOVE the plot, so a finger swiping along the lines
+  // never covers the values it is reading.
   return `<div class="chart-body" data-chart="${id}">
     ${modes}
-    <div class="plot">${chartPlot(id, spec, at)}</div>
+    <div class="readout" aria-live="polite">${moving.readout}</div>
+    <div class="plot">${moving.plot}</div>
+    <div class="under">${moving.under}</div>
     ${chartLegend(spec)}
-    <div class="readout" aria-live="polite">${chartReadout(spec, at)}</div>
-    ${srcLines([spec.says, chartFoot()])}
+    ${srcLines([spec.says])}
   </div>`;
 }
 
-// Redraw one chart's plot and readout for an hour without touching anything
-// else: a mouse previews an hour this way, and leaving puts the tapped one back.
-function chartPreview(el, at) {
-  const id = el.getAttribute("data-chart");
-  const spec = chartSpec(id, id === BUOY_TAB ? "height" : CHART_MODE);
-  el.querySelector(".plot").innerHTML = chartPlot(id, spec, at);
-  el.querySelector(".readout").innerHTML = chartReadout(spec, at);
+// Redraw one chart's moving parts for an hour, in place.
+function chartUpdate(body, at) {
+  const steps = chartSteps();
+  const moving = chartMoving(body.getAttribute("data-chart"), at, steps, chartView(steps));
+  body.querySelector(".readout").innerHTML = moving.readout;
+  body.querySelector(".plot").innerHTML = moving.plot;
+  body.querySelector(".under").innerHTML = moving.under;
 }
 
-// The hour under a point on the plot, nearest by x.
-function chartHourAt(svg, clientX, clientY) {
-  const ctm = svg.getScreenCTM();
-  if (!ctm) return null;
-  const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
-  const n = SERIES.steps.length;
-  const dx = (CHART.w - CHART.l - CHART.r) / Math.max(1, n - 1);
-  return Math.max(0, Math.min(n - 1, Math.round((pt.x - CHART.l) / dx)));
+// A point's x in the plot's own units, and the hour nearest it.
+function plotX(plot, clientX) {
+  const box = plot.getBoundingClientRect();
+  return box.width ? (clientX - box.left) / box.width * CHART.w : CHART.l;
+}
+function hourAtX(x, view, n) {
+  const at = view.v0 + (x - CHART.l) / (CHART.w - CHART.l - CHART.r) * (view.v1 - view.v0);
+  return Math.max(0, Math.min(n - 1, Math.round(at)));
 }
 
 // Re-render, then put focus back where it was: the strip is rebuilt whole.
@@ -1780,14 +2055,37 @@ function chartRedraw(selector) {
   if (el) el.focus();
 }
 
+// The gesture in progress on one chart, or null. While it runs, a refresh or
+// the minute's tick does nothing (`show` returns), so nothing is rebuilt under
+// a finger; the card is redrawn once when it ends.
+let GESTURE = null;
+let WHEEL_SETTLE = null;
+
 // Delegated once, like the drawings, because the cards are rebuilt on every
-// render. A tap pins an hour and the same tap again returns to the newest; a
-// mouse previews; the keyboard steps an hour at a time.
+// render.
+//
+// Touch: one finger swiping sideways reads the hours under it, and lifting
+// keeps that hour; a tap picks an hour and the same tap again returns to the
+// newest; two fingers pinch to zoom and slide to pan. A vertical swipe is the
+// page's own scroll (touch-action: pan-y). Mouse: hovering reads, dragging
+// pans, a click picks; a trackpad pinch or ctrl + wheel zooms and a sideways
+// swipe pans, while an ordinary wheel still scrolls the page. Keyboard: the
+// arrows step an hour, plus and minus zoom, shift and an arrow pans.
 function wireCharts() {
   const strip = $("conditions");
+  const plotW = CHART.w - CHART.l - CHART.r;
+
   strip.addEventListener("click", (e) => {
     if (e.target.closest("[data-chart-toggle]")) {
       setChartOpen(!CHART_OPEN);
+      return;
+    }
+    const range = e.target.closest("[data-chart-range]");
+    if (range) {
+      const pick = CHART_RANGES.find((rg) => rg.id === range.getAttribute("data-chart-range"));
+      setChartRange(pick.hours);
+      const pane = range.closest("[data-chart]").getAttribute("data-chart");
+      chartRedraw(`[data-chart="${pane}"] [data-chart-range="${pick.id}"]`);
       return;
     }
     const btn = e.target.closest("[data-chart-mode]");
@@ -1796,45 +2094,166 @@ function wireCharts() {
       remember(KEEP.chart, CHART_MODE);
       const pane = btn.closest("[data-chart]").getAttribute("data-chart");
       chartRedraw(`[data-chart="${pane}"] [data-chart-mode="${CHART_MODE}"]`);
+    }
+  });
+
+  strip.addEventListener("pointerdown", (e) => {
+    const plot = e.target.closest(".chart-body .plot");
+    if (!plot || !SERIES || (e.pointerType === "mouse" && e.button !== 0)) return;
+    const steps = chartSteps();
+    if (steps.length < 2) return;
+    if (!GESTURE || GESTURE.plot !== plot) {
+      GESTURE = {plot, body: plot.closest("[data-chart]"), pointers: new Map(), kind: null, at: null};
+    }
+    const g = GESTURE;
+    try { plot.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
+    g.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY,
+                                 type: e.pointerType});
+    g.view0 = chartView(steps);
+    if (g.pointers.size === 2) {
+      const [p, q] = [...g.pointers.values()];
+      g.kind = "pinch";
+      g.pinch0 = {d: Math.max(8, Math.hypot(p.x - q.x, p.y - q.y)), c: plotX(plot, (p.x + q.x) / 2)};
+    } else if (e.pointerType !== "mouse") {
+      // A finger down reads the hour under it at once.
+      g.at = hourAtX(plotX(plot, e.clientX), g.view0, steps.length);
+      chartUpdate(g.body, g.at);
+    }
+    if (e.pointerType === "mouse") e.preventDefault();
+  });
+
+  strip.addEventListener("pointermove", (e) => {
+    const plot = e.target.closest(".chart-body .plot");
+    if (!plot || !SERIES) return;
+    const steps = chartSteps();
+    if (steps.length < 2) return;
+    const g = GESTURE && GESTURE.plot === plot ? GESTURE : null;
+    if (!g) {
+      if (e.pointerType === "mouse") {
+        chartUpdate(plot.closest("[data-chart]"), hourAtX(plotX(plot, e.clientX), chartView(steps), steps.length));
+      }
       return;
     }
-    const svg = e.target.closest("svg.series");
-    if (!svg || !SERIES) return;
-    const at = chartHourAt(svg, e.clientX, e.clientY);
-    if (at == null) return;
-    const hour = SERIES.steps[at].valid_utc;
-    CHART_AT = CHART_AT === hour ? null : hour;
-    show();
-  });
-  strip.addEventListener("pointermove", (e) => {
-    const svg = e.target.closest("svg.series");
-    if (!svg || !SERIES || e.pointerType !== "mouse") return;
-    const at = chartHourAt(svg, e.clientX, e.clientY);
-    if (at != null) chartPreview(svg.closest("[data-chart]"), at);
-  });
-  strip.addEventListener("pointerout", (e) => {
-    const svg = e.target.closest("svg.series");
-    if (!svg || !SERIES || (e.relatedTarget && svg.contains(e.relatedTarget))) return;
-    const el = svg.closest("[data-chart]");
-    // The preview replaced the svg under the pointer; only a real exit resets.
-    if (el && !(e.relatedTarget && el.querySelector(".plot").contains(e.relatedTarget))) {
-      chartPreview(el, chartIndex());
+    const p = g.pointers.get(e.pointerId);
+    if (!p || g.kind === "done" || g.kind === "scroll") return;
+    p.x = e.clientX;
+    p.y = e.clientY;
+    const dx = p.x - p.x0, dy = p.y - p.y0;
+    if (!g.kind && Math.hypot(dx, dy) > 6) {
+      g.kind = p.type === "mouse" ? "pan" : Math.abs(dx) >= Math.abs(dy) ? "scrub" : "scroll";
+    }
+    if (g.kind === "pinch" && g.pointers.size >= 2) {
+      const [a1, b1] = [...g.pointers.values()];
+      const d = Math.max(8, Math.hypot(a1.x - b1.x, a1.y - b1.y));
+      const c = plotX(plot, (a1.x + b1.x) / 2);
+      const s0 = g.view0.v1 - g.view0.v0;
+      const under = g.view0.v0 + (g.pinch0.c - CHART.l) / plotW * s0;
+      const span = s0 * g.pinch0.d / d;
+      const v0 = under - (c - CHART.l) / plotW * span;
+      setChartView(steps, v0, v0 + span);
+      const now = chartSteps();
+      chartUpdate(g.body, g.at != null && now === steps ? g.at : chartIndex(now));
+      return;
+    }
+    if (g.kind === "pan") {
+      const shift = -(plotX(plot, p.x) - plotX(plot, p.x0)) / plotW * (g.view0.v1 - g.view0.v0);
+      setChartView(steps, g.view0.v0 + shift, g.view0.v1 + shift);
+      chartUpdate(g.body, chartIndex(chartSteps()));
+      return;
+    }
+    if (g.kind === "scrub" || (!g.kind && p.type !== "mouse")) {
+      g.at = hourAtX(plotX(plot, p.x), chartView(steps), steps.length);
+      chartUpdate(g.body, g.at);
     }
   });
+
+  const end = (e) => {
+    const g = GESTURE;
+    if (!g || !g.pointers.has(e.pointerId)) return;
+    const p = g.pointers.get(e.pointerId);
+    g.pointers.delete(e.pointerId);
+    if (g.pointers.size) {
+      // Lifting one finger of two ends the zoom; the other does nothing more.
+      if (g.kind === "pinch") g.kind = "done";
+      return;
+    }
+    GESTURE = null;
+    if (e.type === "pointerup") {
+      const steps = chartSteps();
+      if (g.kind === "scrub" && g.at != null) {
+        CHART_AT = steps[g.at].valid_utc;
+      } else if (!g.kind && steps.length > 1) {
+        const hour = steps[hourAtX(plotX(g.plot, p.x), chartView(steps), steps.length)].valid_utc;
+        CHART_AT = CHART_AT === hour ? null : hour;
+      }
+    }
+    show();
+  };
+  strip.addEventListener("pointerup", end);
+  strip.addEventListener("pointercancel", end);
+
+  // Leaving the plot with no button down puts the picked hour back.
+  strip.addEventListener("pointerout", (e) => {
+    const plot = e.target.closest(".chart-body .plot");
+    if (!plot || GESTURE || e.pointerType !== "mouse" || (e.relatedTarget && plot.contains(e.relatedTarget))) return;
+    if (SERIES && chartSteps().length > 1) chartUpdate(plot.closest("[data-chart]"), chartIndex());
+  });
+
+  strip.addEventListener("wheel", (e) => {
+    const plot = e.target.closest(".chart-body .plot");
+    if (!plot || !SERIES || GESTURE) return;
+    const zoom = e.ctrlKey || e.metaKey;
+    if (!zoom && Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;  // the page's scroll
+    const steps = chartSteps();
+    if (steps.length < 2) return;
+    e.preventDefault();
+    const view = chartView(steps);
+    const span = view.v1 - view.v0;
+    if (zoom) {
+      const frac = (plotX(plot, e.clientX) - CHART.l) / plotW;
+      const under = view.v0 + frac * span;
+      const next = span * Math.exp(Math.max(-1, Math.min(1, e.deltaY * 0.01)));
+      setChartView(steps, under - frac * next, under - frac * next + next);
+    } else {
+      const shift = e.deltaX / Math.max(1, plot.getBoundingClientRect().width) * CHART.w / plotW * span;
+      setChartView(steps, view.v0 + shift, view.v1 + shift);
+    }
+    chartUpdate(plot.closest("[data-chart]"), chartIndex(chartSteps()));
+    clearTimeout(WHEEL_SETTLE);
+    WHEEL_SETTLE = setTimeout(show, 300);
+  }, {passive: false});
+
   strip.addEventListener("keydown", (e) => {
     const svg = e.target.closest("svg.series");
     if (!svg || !SERIES) return;
-    const n = SERIES.steps.length;
-    const from = chartIndex();
-    const to = e.key === "ArrowLeft" ? Math.max(0, from - 1)
-      : e.key === "ArrowRight" ? Math.min(n - 1, from + 1)
-      : e.key === "Home" ? 0
-      : e.key === "End" ? n - 1
-      : null;
-    if (to == null) return;
+    const steps = chartSteps();
+    const n = steps.length;
+    if (n < 2) return;
+    const view = chartView(steps);
+    const span = view.v1 - view.v0;
+    const from = chartIndex(steps);
+    const selector = `svg.series[data-series="${svg.getAttribute("data-series")}"]`;
+    if (e.key === "+" || e.key === "=" || e.key === "-" || e.key === "_") {
+      const next = span * (e.key === "-" || e.key === "_" ? 2 : 0.5);
+      const frac = Math.max(0, Math.min(1, (from - view.v0) / span));
+      setChartView(steps, from - frac * next, from - frac * next + next);
+    } else if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      const shift = (e.key === "ArrowLeft" ? -1 : 1) * span / 4;
+      setChartView(steps, view.v0 + shift, view.v1 + shift);
+    } else {
+      const to = e.key === "ArrowLeft" ? Math.max(0, from - 1)
+        : e.key === "ArrowRight" ? Math.min(n - 1, from + 1)
+        : e.key === "Home" ? 0
+        : e.key === "End" ? n - 1
+        : null;
+      if (to == null) return;
+      CHART_AT = steps[to].valid_utc;
+      // The window follows the picked hour when it steps out of view.
+      if (to < view.v0) setChartView(steps, to, to + span);
+      else if (to > view.v1) setChartView(steps, to - span, to);
+    }
     e.preventDefault();
-    CHART_AT = SERIES.steps[to].valid_utc;
-    chartRedraw(`svg.series[data-series="${svg.getAttribute("data-series")}"]`);
+    chartRedraw(selector);
   });
 }
 
@@ -2107,6 +2526,9 @@ function renderBreaks(step) {
 }
 
 function show() {
+  // Never rebuild the cards under a finger: a chart gesture redraws its own
+  // chart, and the card is rebuilt once when it ends.
+  if (GESTURE) return;
   const forecasting = MODE === "forecast";
   $("seek").hidden = !forecasting;
   $("tab-now").setAttribute("aria-selected", String(!forecasting));
@@ -2316,6 +2738,22 @@ function refreshSeries() {
     .catch(() => {});
 }
 
+// The archive changes once a day; refetched hourly, and only once it has
+// been asked for.
+function refreshSeriesAll() {
+  if (ALL_STATE !== "loaded") return;
+  fetch(fresh(SERIES_ALL_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => {
+      if (!got) return;
+      if (SERIES_ALL && got.available === SERIES_ALL.available && got.hours === SERIES_ALL.hours
+          && got.start_utc === SERIES_ALL.start_utc) return;
+      SERIES_ALL = got;
+      if (MODE === "now") show();
+    })
+    .catch(() => {});
+}
+
 function refreshForecast() {
   fetch(fresh(SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
@@ -2484,6 +2922,7 @@ function boot(data, observed, measured, series) {
   setInterval(refreshNow, NOW_REFRESH_MS);
   setInterval(refreshMeasured, NOW_REFRESH_MS);
   setInterval(refreshSeries, NOW_REFRESH_MS);
+  setInterval(refreshSeriesAll, FORECAST_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
 }
 

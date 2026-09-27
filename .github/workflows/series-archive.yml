@@ -1,0 +1,83 @@
+# Rebuild the hourly archive under data/series/46232/ with today's chain: every
+# hour since 46232's spectra begin, for the Now tab chart's zoomed-out views
+# (forecast/series.py).
+#
+# Why a workflow of its own. The chain costs 0.18 s an hour, so a year of
+# hours is ~26 minutes on one core -- far too much for every collection, which
+# rebuilds only the last week. Measured 2026-09-27: all 1,309 archived hours in
+# 35 s on four workers; a year of spectra is about five minutes.
+#
+# It is the store's ONLY writer, so its push never conflicts on those files.
+# Every run rebuilds everything from scratch. The result is deterministic, so a
+# run whose chain did not change commits only the new hours.
+#
+# When it runs:
+#   - daily, to take in new hours (the week the page shows is always fresh from
+#     the collection; the archive only has to be current up to a week ago);
+#   - when chain code or tables change on master;
+#   - when a collection finds the archive no longer matches today's chain and
+#     withholds the long view until it does (collect-beach-inputs.yml
+#     dispatches it); and by hand.
+
+name: Series archive
+
+on:
+  schedule:
+    - cron: "23 10 * * *"
+  push:
+    branches: [master]
+    paths:
+      - "forecast/**"
+      - "data/nearshore/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: series-archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild every archived hour
+        run: |
+          set -euo pipefail
+          python -m forecast.series --archive --workers "$(nproc)"
+
+      - name: Commit and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "nado-waves collector"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data/series
+          if git diff --cached --quiet; then
+            echo "The archive already says what today's chain says."
+            exit 0
+          fi
+          git commit -m "data: rebuild the hourly series archive" \
+            -m "Automated commit from .github/workflows/series-archive.yml."
+          # This job is the only writer of data/series, so a rebase over the
+          # collectors' commits cannot conflict on it.
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            git pull --rebase origin "${BRANCH}"
+            sleep $((2 ** attempt))
+          done
+          echo "::error title=Series archive push failed::Could not push the rebuilt archive"
+          exit 1
