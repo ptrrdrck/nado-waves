@@ -685,8 +685,7 @@ function tideSource(payload) {
 function departureLine(tide) {
   const d = tide && tide.departure_m;
   if (d == null) return "";
-  return `${d < 0 ? "Minus" : "Plus"} ${height(Math.abs(d))}, the gauge's measured`
-    + ` departure from it over the last 3 days`;
+  return `Gauge departure correction (last 3 days): ${d < 0 ? "\u2212" : "+"}${height(Math.abs(d))}`;
 }
 
 // The tide's next turning point, and which way it is running into it.
@@ -1630,7 +1629,7 @@ function renderConditions(step, cards) {
         ? turnLine(DATA.tide_turns || [], step.valid_utc)
         : ""}
       ${blueTide}
-      ${srcLines([`Harmonic tide for ${stampWhen}`, tideSource(DATA), departureLine(tide)])}
+      ${srcLines([`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)])}
     </div>`);
   }
 
