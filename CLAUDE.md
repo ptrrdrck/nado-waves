@@ -203,7 +203,7 @@ forecaster actually verifies against, Surfline included.
    from that build's own hour as it was published (`46232_shown/`). A past
    hour whose build kept only a headline says "The calculation for this hour
    was not kept" rather than borrowing another build's detail. Under it, in
-   blue, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
+   sea green, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
@@ -698,12 +698,15 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   epoch: the measured level ran ~0.23 m above it in Sept 2026, so the
   forecast carries the last 3 days' measured departure forward — and computes
   no breaking at all without one.
-- **The blue line under a past forecast hour is "measured at 46232, same
-  chain", never "what happened".** Both figures go through identical windows,
-  seabed and surf zone. Their difference is therefore the MODEL's error at the
-  buoy, carried in, and any physics error cancels out of it. It checks nothing
-  at the beach. No difference or percentage goes on screen: that would be a
-  claim about the forecast without a verification series named beside it. A
+- **The line under a past forecast hour says when it was observed, never
+  "what happened".** Sea green, in a 1 px outline at the card's radius, and
+  labelled "Observed at 8:00 AM" (the tide's "Measured at 8:00 AM") — owner's
+  wording and style, 2026-09-27. Where it comes from is said on `info.html`:
+  46232's spectrum at that hour, through identical windows, seabed and surf
+  zone, so its difference from the forecast is the MODEL's error at the buoy,
+  carried in, with any physics error cancelled out. It checks nothing at the
+  beach. No difference or percentage goes on screen: that would be a claim
+  about the forecast without a verification series named beside it. A
   missing spectrum is a gap, never the hour beside it, and the newest hour
   reads "not in yet" until a later spectrum has passed it
   (`tests/test_app_surface.py` keeps "actual" off the page).

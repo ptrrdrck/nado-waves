@@ -3,7 +3,7 @@
 Run: ``python -m forecast.measured`` — writes ``data/live/measured.json``.
 
 The Forecast tab reaches 48 h into the past (owner's decision, 2026-09-26), and
-on every hour that has gone by it shows, in blue under what the forecast said,
+on every hour that has gone by it shows, in sea green under what the forecast said,
 what 46232 MEASURED at that hour carried in by the same chain the Now tab uses
 (`forecast.now.build`): the buoy's own directional spectrum, KNZY's wind for the
 local chop and the gauge's measured water level for the depth it breaks in.
@@ -13,7 +13,8 @@ windows, seabed and surf zone, so their difference is GFS-Wave's error AT THE
 BUOY, carried in — the model level, checked against an observation. It is not a
 check at the beach: nothing measures the beach (CLAUDE.md), and a physics error
 common to both chains cancels out of the comparison entirely. The page labels it
-"measured at 46232, same chain" and never "what happened".
+"Observed at <hour>" and never "what happened"; info.html says where
+it comes from.
 
 **A missing observation is a gap.** Only a spectrum stamped exactly at the hour
 is used — never the one an hour either side — and wind and tide are the readings

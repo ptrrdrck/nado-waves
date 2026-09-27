@@ -378,7 +378,7 @@ class TestGeometryPage:
 
 
 class TestTheMeasuredSeriesShips:
-    """measured.json feeds the blue line under every past forecast hour. It is
+    """measured.json feeds the line under every past forecast hour. It is
     rebuilt each collection, so both builds carry it when it exists."""
 
     def data(self, tmp_path):
