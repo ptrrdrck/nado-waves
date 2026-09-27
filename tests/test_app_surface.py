@@ -508,7 +508,7 @@ class TestWindAndTideAreHoisted:
 
         assert "GFS-Wave at the buoy for ${stampWhen}" in SOURCE
         assert "${fallback.station_name} (${fallback.station}), observed " in SOURCE
-        assert "Airfield weather observation (METAR), ${wind.station_name} (${wind.station})" in SOURCE
+        assert "METAR, ${wind.station_name} (${wind.station})" in SOURCE
         assert "harmonic prediction for ${stampWhen}" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
