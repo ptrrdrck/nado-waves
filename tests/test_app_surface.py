@@ -1499,12 +1499,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert SOURCE.count("fetch(fresh(NOW_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(MEASURED_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(SERIES_SOURCE)") == 2
+        assert SOURCE.count("fetch(fresh(SERIES_ALL_SOURCE)") == 2   # asked for + hourly
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 8
+        assert SOURCE.count('{cache: "no-store"}') == 10
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -1795,38 +1796,46 @@ class TestAPastHourKeepsItsCard:
 
 class TestTheWeekChart:
     """The hourly observed series under each Now card (forecast.series). It is
-    the observed chain, so it is on the Now tab only, and a missing hour breaks
-    the line rather than being joined across."""
+    the observed chain, so it is on the Now tab only; a missing hour breaks the
+    line at every zoom rather than being joined across; the archive's older
+    hours join the week without anything being filled between them."""
+
+    SECTION = SOURCE[SOURCE.index("// THE CHARTS, under each card"):
+                     SOURCE.index("// The swell card, for either chain.")]
 
     def _run(self, script):
         node = shutil.which("node")
         if node is None:
             pytest.skip("node is not available")
-        fns = ""
-        for name in ("chartSpec", "chartIndex", "chartPlot", "chartReadout", "feetTicks",
-                     "feetCeiling", "compass"):
-            start = SOURCE.index(f"function {name}(")
-            fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        start = SOURCE.index("function compass(")
+        compass = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
         prelude = (
-            "const FT_PER_M = 3.28084; let CHART_AT = null;\n"
-            "const CHART = {w: 320, h: 150, l: 40, r: 8, t: 10, b: 20};\n"
+            "const FT_PER_M = 3.28084;\n"
             "const ORDER = ['coronado_north', 'coronado_center', 'coronado_south'];\n"
             "const SHORT = {coronado_north: 'North', coronado_center: 'Center',"
             " coronado_south: 'South'};\n"
             "const BUOY_TAB = 'buoy';\n"
             "const height = (m) => (m == null ? '-' : m.toFixed(2) + ' m');\n"
-            "const signedHeight = height;\n"
             "const svgText = (v) => String(v);\n"
-            "const dayClock = (v) => v;\n"
-            "const hour = (h, hs) => ({valid_utc: `2026-09-26T${String(h).padStart(2, '0')}:00:00Z`,"
-            " gap: false, buoy: {hs_m: 1.2, pct_k: 60.4, pct_d: 50},"
+            "const srcLines = () => ''; const remember = () => {}; const KEEP = {};\n"
+            "const $ = () => null; let SHOWN = 0; const show = () => { SHOWN += 1; };\n"
+            "const fresh = (u) => u; const SERIES_ALL_SOURCE = 'series_all.json';\n"
+            "let FETCHED = []; globalThis.fetch = (u) => { FETCHED.push(u);"
+            " return new Promise(() => {}); };\n"
+            "let SERIES = null, SERIES_ALL = null;\n"
+            "const stamp = (i) => new Date(Date.UTC(2026, 8, 20) + i * 3600000).toISOString()"
+            ".replace('.000Z', 'Z');\n"
+            "const hour = (i, hs) => ({valid_utc: stamp(i), gap: false,"
+            " buoy: {hs_m: 1.2, pct_k: 60.4, pct_d: 50},"
             " breaks: {coronado_north: {hs_m: hs, transmission: 0.7, pct_k: 20.4, pct_d: 30}},"
             " south_minus_north_m: 0.1});\n"
-            "const gap = (h) => ({valid_utc: `2026-09-26T${String(h).padStart(2, '0')}:00:00Z`,"
-            " gap: true});\n"
+            "const gap = (i) => ({valid_utc: stamp(i), gap: true});\n"
+            "const week = (from, n, holes = []) => Array.from({length: n}, (_, k) =>"
+            " holes.includes(from + k) ? gap(from + k) : hour(from + k, 1 + 0.1 * Math.sin(k)));\n"
         )
-        out = subprocess.run([node, "-e", prelude + fns + script],
-                             capture_output=True, text=True, check=True).stdout
+        out = subprocess.run([node, "-e", prelude + compass + self.SECTION + script],
+                             capture_output=True, text=True, check=True,
+                             env={**os.environ, "TZ": "America/Los_Angeles"}).stdout
         return [line for line in out.splitlines() if line.strip()]
 
     def test_it_is_on_the_now_tab_only(self):
@@ -1839,41 +1848,144 @@ class TestTheWeekChart:
 
     def test_a_gap_breaks_the_line_and_a_lone_hour_is_a_dot(self):
         got = self._run(
-            "const SERIES = {station: '46232', steps: [hour(0, 1), hour(1, 1.1), gap(2),"
-            " hour(3, 1.2), gap(4), hour(5, 1.0), hour(6, 0.9)]};\n"
-            "const spec = chartSpec('coronado_north', 'height');\n"
-            "const svg = chartPlot('coronado_north', spec, chartIndex());\n"
+            "SERIES = {station: '46232', generated_utc: 'x', steps: [hour(0, 1), hour(1, 1.1),"
+            " gap(2), hour(3, 1.2), gap(4), hour(5, 1.0), hour(6, 0.9)]};\n"
+            "const svg = chartPlot('coronado_north', chartSpec('coronado_north', 'height'),"
+            " chartIndex());\n"
             "const main = svg.match(/<path class=\"ln main\" d=\"([^\"]+)\"/)[1];\n"
             "console.log((main.match(/M/g) || []).length, (main.match(/L/g) || []).length);\n"
             "console.log((svg.match(/<circle class=\"pt main\"/g) || []).length);\n"
             "console.log((svg.match(/class=\"gapband\"/g) || []).length);"
         )
-        # Three runs, 0-1, 3 and 5-6: two lines of one join each, and the lone
-        # hour is a move with nothing drawn from it, so it gets the dot.
-        assert got == ["3 2", "1", "2"]
+        # Two runs of two hours, joined once each; the lone hour 3 is a dot.
+        assert got == ["2 2", "1", "2"]
+
+    def test_zoomed_out_a_single_missing_hour_still_breaks_the_line(self):
+        """At a year's zoom a column covers dozens of hours. A column holding a
+        gap is drawn on its own, so the break survives, and the band is never
+        thinner than a pixel."""
+
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'x', steps: week(0, 4000, [2000])};\n"
+            "setChartRange(Infinity);\n"
+            "const svg = chartPlot('coronado_north', chartSpec('coronado_north', 'height'),"
+            " chartIndex());\n"
+            "const main = svg.match(/<path class=\"ln main\" d=\"([^\"]+)\"/)[1];\n"
+            "console.log((main.match(/M/g) || []).length);\n"
+            "const band = svg.match(/class=\"gapband\" x=\"[^\"]+\" y=\"[^\"]+\" width=\"([^\"]+)\"/);\n"
+            "console.log(Number(band[1]) >= 1);\n"
+            "console.log((main.match(/[ML]/g) || []).length < 1200);"
+        )
+        assert int(got[0]) >= 2
+        assert got[1:] == ["true", "true"]
+
+    def test_the_archive_joins_the_week_and_nothing_between_is_filled(self):
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: week(200, 168)};\n"
+            "SERIES_ALL = {available: true, start_utc: stamp(0), hours: 150,"
+            " breaks: ['coronado_north'], gaps: [3],"
+            " from_deg: Array(150).fill(205),"
+            " hs_mm: {buoy: Array(150).fill(1216), coronado_north: Array(150).fill(987)},"
+            " tr_pm: {coronado_north: Array(150).fill(700)},"
+            " k: {buoy: Array(150).fill(60), coronado_north: Array(150).fill(40)},"
+            " d: {buoy: Array(150).fill(55), coronado_north: Array(150).fill(45)}};\n"
+            "const all = chartSteps();\n"
+            "console.log(all.length, all[0].valid_utc === stamp(0), all[3].gap === true);\n"
+            "console.log(all[1].buoy.hs_m, all[1].breaks.coronado_north.hs_m,"
+            " all[1].breaks.coronado_north.transmission);\n"
+            "console.log(all.slice(150, 200).every((s) => s.unbuilt && !s.gap));\n"
+            "console.log(all[200] === SERIES.steps[0]);\n"
+            "console.log(chartReadout(chartSpec('coronado_north', 'height'), 160));\n"
+            "SERIES_ALL = {available: false, why: 'x'};\n"
+            "console.log(chartSteps() === SERIES.steps);"
+        )
+        assert got[0] == "368 true true"
+        assert got[1] == "1.216 0.987 0.7"
+        assert got[2] == "true" and got[3] == "true"
+        assert "not rebuilt yet" in got[4]
+        assert got[5] == "true"
+
+    def test_the_window_opens_on_the_week_and_asks_for_the_archive_past_it(self):
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 191)};\n"
+            "let v = chartView(SERIES.steps); console.log(v.v1 - v.v0, v.v1);\n"
+            "setChartView(SERIES.steps, 100, 102); v = chartView(SERIES.steps);\n"
+            "console.log(v.v1 - v.v0);\n"
+            "console.log(FETCHED.length);\n"
+            "setChartView(SERIES.steps, -50, 150);\n"
+            "console.log(FETCHED.length, ALL_STATE);\n"
+            "v = chartView(SERIES.steps); console.log(v.v0 >= 0, v.v1 <= 190);\n"
+            "console.log(chartNote(SERIES.steps));"
+        )
+        assert got[0] == "168 190"
+        assert got[1] == "12"                     # never narrower than 12 hours
+        assert got[2] == "0"                      # nothing fetched inside the week
+        assert got[3] == "1 loading"              # past its left edge asks once
+        assert got[4] == "true true"              # but only draws what is loaded
+        assert "Loading earlier hours" in got[5]
+
+    def test_a_withheld_archive_says_why_the_view_stops(self):
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 191)};\n"
+            "setChartRange(Infinity); ALL_STATE = 'loaded';\n"
+            "SERIES_ALL = {available: false, why: 'the chain changed'};\n"
+            "console.log(chartNote(chartSteps()));\n"
+            "SERIES_ALL = {available: false, why: 'no archive yet'};\n"
+            "console.log(chartNote(chartSteps()));"
+        )
+        assert "being rebuilt with today's chain" in got[0]
+        assert got[1] == "No earlier hours are archived yet."
+
+    def test_the_time_axis_marks_hours_days_or_months_with_the_window(self):
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 6000)};\n"
+            "const labels = (a, b) => timeTicks(SERIES.steps, a, b).map((t) => t.label).join(',');\n"
+            "console.log(labels(100, 124));\n"
+            "console.log(labels(0, 168));\n"
+            "console.log(labels(0, 5000));"
+        )
+        assert "AM" in got[0] or "PM" in got[0]
+        assert got[1].startswith(("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"))
+        # 208 days: every second month, and January named by its year.
+        assert got[2] == "Nov,2027,Mar"
 
     def test_a_gap_reads_out_as_a_gap(self):
         got = self._run(
-            "const SERIES = {station: '46232', steps: [hour(0, 1), gap(1)]};\n"
-            "CHART_AT = '2026-09-26T01:00:00Z';\n"
+            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), gap(1)]};\n"
+            "CHART_AT = stamp(1);\n"
             "console.log(chartReadout(chartSpec('coronado_north', 'height'), chartIndex()));"
         )
         assert "left as a gap" in got[0]
 
     def test_the_default_hour_is_the_newest_reading(self):
         got = self._run(
-            "const SERIES = {station: '46232', steps: [hour(0, 1), hour(1, 1),"
-            " {valid_utc: '2026-09-26T02:00:00Z', gap: false, pending: true}]};\n"
+            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1),"
+            " {valid_utc: stamp(2), gap: false, pending: true}]};\n"
             "console.log(chartIndex());"
         )
         assert got == ["1"]
 
     def test_the_range_difference_is_the_difference_of_what_it_prints(self):
         got = self._run(
-            "const SERIES = {station: '46232', steps: [hour(0, 1)]};\n"
+            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
             "console.log(chartSpec('coronado_north', 'range').read(0));"
         )
         assert "Buoy %K 60" in got[0] and "North %K 20" in got[0] and "difference +40" in got[0]
+
+    def test_swiping_reads_pinching_zooms_and_the_page_still_scrolls(self):
+        """The gestures are the owner's (2026-09-27): swipe along the lines to
+        read them, zoom and pan the x axis. Pinned by what makes them work."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert ".chart .plot{touch-action:pan-y;" in css          # vertical = page scroll
+        assert "}, {passive: false});" in self.SECTION            # the wheel can be taken
+        assert "if (GESTURE) return;" in SOURCE          # nothing rebuilt under a finger
+        assert 'g.kind = p.type === "mouse" ? "pan" : Math.abs(dx) >= Math.abs(dy) ? "scrub" : "scroll";' \
+            in self.SECTION
+        assert "CHART_AT = steps[g.at].valid_utc;" in self.SECTION  # lifting keeps the hour
+        # The readout sits above the plot, where a finger does not cover it.
+        body = self.SECTION[self.SECTION.index("function chartBody("):]
+        assert body.index('class="readout"') < body.index('class="plot"')
 
     def test_it_folds_out_from_its_own_line_with_the_calculations_caret(self):
         """Owner's design, 2026-09-27: an "Analytics" line below the
@@ -1897,6 +2009,11 @@ class TestTheWeekChart:
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         assert panel.index("${drawing ||") < panel.index("seriesChart(c.id)")
 
-    def test_it_says_the_past_was_rebuilt_with_todays_chain(self):
-        assert "each carried in by today's chain" in SOURCE
-        assert "left as ${g > 1 ? \"gaps\" : \"a gap\"}" in SOURCE
+    def test_the_foot_line_is_gone_and_info_still_says_it(self):
+        """Owner's decision, 2026-09-27: "Observed at 46232 every hour for the
+        last 7 days, each carried in by today's chain" is obvious under the
+        chart. info.html still says where the hours come from."""
+
+        assert "each carried in by today's chain" not in SOURCE
+        assert "function chartFoot" not in SOURCE
+        assert "today's" in INFO_TEXT and "rebuilt" in INFO_TEXT

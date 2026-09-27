@@ -28,7 +28,9 @@ whatever hours it needs.
 
 `main` also writes ``data/live/series.json``, the same chain for every hour of
 the last week, for the chart on the Now tab (`forecast.series`). The hours here
-are taken from that rebuild rather than rebuilt again.
+are taken from that rebuild rather than rebuilt again. And
+``data/live/series_all.json``, the committed hourly archive for the chart's
+zoomed-out views -- withheld when it no longer matches today's chain.
 """
 
 from __future__ import annotations
@@ -197,6 +199,17 @@ def main(argv: list[str] | None = None) -> int:
     series_out.write_text(json.dumps(chart, indent=1), encoding="utf-8")
     print(f"Wrote {series_out}: {len(chart['steps'])} hour(s), "
           f"{sum(1 for s in chart['steps'] if s['gap'])} gap(s)")
+
+    # The long view, from the committed archive -- only while it still says
+    # what today's chain says, checked against the week just rebuilt.
+    store = series.read_store(args.data_dir)
+    fresh = {e["valid_utc"]: series.slim(e) for e in hourly.values()}
+    ok, why = series.check(store, fresh, rebuild) if store else (False, "no archive yet")
+    whole = series.build_all(store, ok=ok, why=why)
+    all_out = series_out.with_name("series_all.json")
+    all_out.write_text(json.dumps(whole, separators=(",", ":")), encoding="utf-8")
+    print(f"Wrote {all_out}: " + (f"{whole['hours']} hour(s) from {whole['start_utc']}; {why}"
+                                  if whole["available"] else f"withheld: {why}"))
     gaps = sum(1 for s in got["steps"] if s["gap"])
     pending = sum(1 for s in got["steps"] if s.get("pending"))
     print(f"Wrote {out}: {len(got['steps'])} hour(s), {gaps} gap(s), {pending} not in yet")

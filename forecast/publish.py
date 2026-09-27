@@ -18,6 +18,8 @@ The bundle:
                     each of the last 48 h, shown under past forecast hours
     series.json     data/live/series.json — the same chain for every hour of
                     the last week, drawn under each card on the Now tab
+    series_all.json data/live/series_all.json — every archived hour, for the
+                    chart's zoomed-out views; fetched only when asked for
     geometry.html   the model's geometry, drawn by forecast.geomviz from
                     spots.json; linked from the foot of index.html
     info.html       app/info.html: the caveat and each chain's standing-on
@@ -86,6 +88,9 @@ BUNDLE_MEASURED_PATH = "measured.json"
 #: under each card on the Now tab. Optional in the same way.
 REPO_SERIES_PATH = "../data/live/series.json"
 BUNDLE_SERIES_PATH = "series.json"
+#: Every archived hour (`forecast.series`), for zooming out past the week.
+REPO_SERIES_ALL_PATH = "../data/live/series_all.json"
+BUNDLE_SERIES_ALL_PATH = "series_all.json"
 
 DOCTYPE = "<!doctype html>"
 HEAD = """<html lang="en">
@@ -160,7 +165,8 @@ def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
             .replace(REPO_DATA_PATH, BUNDLE_DATA_PATH)
             .replace(REPO_NOW_PATH, BUNDLE_NOW_PATH)
             .replace(REPO_MEASURED_PATH, BUNDLE_MEASURED_PATH)
-            .replace(REPO_SERIES_PATH, BUNDLE_SERIES_PATH))
+            .replace(REPO_SERIES_PATH, BUNDLE_SERIES_PATH)
+            .replace(REPO_SERIES_ALL_PATH, BUNDLE_SERIES_ALL_PATH))
 
 
 def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
@@ -171,7 +177,7 @@ def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> Non
     lands), and the forecast job republishes the page that reads them.
     """
 
-    for name in (BUNDLE_MEASURED_PATH, BUNDLE_SERIES_PATH):
+    for name in (BUNDLE_MEASURED_PATH, BUNDLE_SERIES_PATH, BUNDLE_SERIES_ALL_PATH):
         source = Path(data_dir) / "live" / name
         if not source.exists():
             continue

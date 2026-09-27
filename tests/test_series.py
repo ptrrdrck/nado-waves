@@ -3,6 +3,7 @@ oscillator is only defined where there is enough of a day to define it."""
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -148,3 +149,87 @@ class TestOneRebuildFeedsBothFiles:
         ratios = [b["transmission"] for s in got["steps"] if not s["gap"]
                   for b in s["breaks"].values()]
         assert ratios and all(0 <= r <= 1 for r in ratios)
+
+
+class TestTheArchive:
+    """The committed hourly store behind the zoomed-out views: one chain at a
+    time, gaps kept, and never drawn once today's chain disagrees with it."""
+
+    def steps(self, n=30, *, holes=()):
+        hours = [T + timedelta(hours=i) for i in range(n)]
+        return [series.slim({"valid_utc": t.strftime(ISO), "gap": True})
+                if i in holes else series.slim(entry(t, buoy=1.0 + 0.01 * i))
+                for i, t in enumerate(hours)]
+
+    def test_the_store_round_trips(self, tmp_path):
+        steps = self.steps(holes=(4,))
+        series.write_store(steps, tmp_path)
+        back = series.read_store(tmp_path)
+        assert [s["valid_utc"] for s in back] == [s["valid_utc"] for s in steps]
+        assert back[4] == {"valid_utc": steps[4]["valid_utc"], "gap": True}
+        assert back[0]["buoy"]["hs_m"] == 1.0
+        assert back[0]["breaks"]["coronado_north"] == steps[0]["breaks"]["coronado_north"]
+        assert back[0]["south_minus_north_m"] == steps[0]["south_minus_north_m"]
+
+    def test_a_full_rebuild_owns_the_directory(self, tmp_path):
+        folder = tmp_path / series.STORE
+        folder.mkdir(parents=True)
+        (folder / "2020-01.csv").write_text("left over from an older chain\n")
+        series.write_store(self.steps(), tmp_path)
+        assert sorted(p.name for p in folder.glob("*.csv")) == ["2026-09.csv"]
+
+    def test_it_is_written_the_same_way_twice(self, tmp_path):
+        series.write_store(self.steps(), tmp_path)
+        first = (tmp_path / series.STORE / "2026-09.csv").read_bytes()
+        series.write_store(self.steps(), tmp_path)
+        assert (tmp_path / series.STORE / "2026-09.csv").read_bytes() == first
+
+    def test_a_store_that_disagrees_with_todays_chain_is_withheld(self):
+        store = self.steps()
+        fresh = {s["valid_utc"]: s for s in self.steps()}
+        assert series.check(store, fresh)[0] is True
+        moved = {k: json_copy(v) for k, v in fresh.items()}
+        moved[store[10]["valid_utc"]]["breaks"]["coronado_north"]["hs_m"] += 0.01
+        ok, why = series.check(store, moved)
+        assert ok is False and "differ from today's chain" in why
+        got = series.build_all(store, ok=ok, why=why)
+        assert got["available"] is False and "hs_mm" not in got
+
+    def test_rounding_is_not_a_changed_chain(self):
+        store = self.steps()
+        fresh = {s["valid_utc"]: json_copy(s) for s in self.steps()}
+        fresh[store[3]["valid_utc"]]["buoy"]["hs_m"] += 0.001
+        assert series.check(store, fresh)[0] is True
+
+    def test_a_stored_gap_that_has_since_landed_is_the_archive_behind(self):
+        """Not a changed chain: only hours with a reading on both sides count."""
+
+        store = self.steps(holes=(5,))
+        fresh = {s["valid_utc"]: s for s in self.steps()}
+        assert series.check(store, fresh)[0] is True
+
+    def test_the_long_file_is_columnar_whole_numbers_and_keeps_its_gaps(self):
+        store = self.steps(n=48, holes=(30,))
+        got = series.build_all(store, ok=True, why="checked")
+        assert got["available"] is True and got["hours"] == 48
+        assert got["start_utc"] == store[0]["valid_utc"]
+        assert got["gaps"] == [30]
+        assert got["hs_mm"]["buoy"][0] == 1000 and got["hs_mm"]["buoy"][30] is None
+        assert got["tr_pm"]["coronado_north"][0] == 800         # 0.8 m of a 1.0 m buoy
+        assert got["k"]["buoy"][29] == 100 and got["k"]["buoy"][0] is None
+        assert json.dumps(got) == json.dumps(series.build_all(store, ok=True, why="checked"))
+
+    def test_the_real_archive_agrees_with_the_chain_that_wrote_it(self, spectra, tmp_path):
+        around = [s for s in spectra if T - timedelta(hours=12) <= s.time <= T]
+        rebuild = measured.Rebuilder(DATA, spectra=around)
+        hours = series.archive_hours(rebuild)
+        steps = [series.slim(rebuild.at(t)) for t in hours]
+        series.write_store(steps, tmp_path)
+        store = series.read_store(tmp_path)
+        fresh = {s["valid_utc"]: s for s in steps[-4:]}
+        ok, why = series.check(store, fresh, rebuild, sample=2)
+        assert ok, why
+
+
+def json_copy(v):
+    return json.loads(json.dumps(v))

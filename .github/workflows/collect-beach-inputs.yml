@@ -87,6 +87,9 @@ on:
 
 permissions:
   contents: write
+  # To ask series-archive.yml for a rebuild when the archive no longer matches
+  # today's chain (the step after "Rebuild the observed reading").
+  actions: write
 
 concurrency:
   group: beach-inputs
@@ -144,8 +147,27 @@ jobs:
           # The same chain for each of the last 48 h, for the blue line under
           # every past hour on the Forecast tab, and for every hour of the last
           # week (series.json) for the chart on the Now tab -- one rebuild
-          # feeds both, ~37 s. Derived, like now.json.
+          # feeds both, ~37 s. Derived, like now.json. It also writes
+          # series_all.json from the committed archive, checked against that
+          # week, for the chart's zoomed-out views.
           python -m forecast.measured
+
+      # The archive is withheld from the page when it no longer says what
+      # today's chain says (or does not exist yet). Ask for the rebuild rather
+      # than waiting for the daily one; series-archive.yml queues at most one.
+      - name: Ask for the archive to be rebuilt if it is out of date
+        if: ${{ steps.now.outcome == 'success' && !inputs.skip_commit }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if python -c "import json,sys; sys.exit(0 if json.load(open('data/live/series_all.json')).get('available') else 1)"; then
+            echo "The archive matches today's chain."
+          else
+            python -c "import json; print(json.load(open('data/live/series_all.json')).get('why'))"
+            gh workflow run series-archive.yml --ref "${{ github.ref_name }}"
+          fi
 
       - name: Say which sources came back
         env:

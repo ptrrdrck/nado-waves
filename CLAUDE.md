@@ -219,14 +219,19 @@ forecaster actually verifies against, Surfline included.
    hour whose build kept only a headline says "The calculation for this hour
    was not kept" rather than borrowing another build's detail. Under it, in
    sea green, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
-   one that has. **Under each Now card is the week, hourly** (owner's request,
-   2026-09-27; `forecast/series.py` → `series.json`): height, south − north,
-   window ratio and a 24 h %K, switched above the plot, folded out from a
-   "Analytics" line below the drawing with the calculation's caret
-   (owner's design, 2026-09-27; closed until opened). Now tab only, because
-   it is the observed chain; every past hour is REBUILT with today's chain, not
-   remembered, and the chart says so; a missing hour is a gap in the line.
-   ~37 s of each collection, measured. Opens on Now;
+   one that has. **Under each Now card are the hourly charts** (owner's
+   requests, 2026-09-27; `forecast/series.py`): height, south − north, window
+   ratio and a 24 h %K, switched above the plot, folded out from an
+   "Analytics" line below the drawing with the calculation's caret (closed
+   until opened). The x axis zooms and pans — pinch, drag, ctrl + wheel, and
+   1D / 7D / 1M / All — and a sideways swipe reads the hours under the finger
+   into a readout ABOVE the plot, keeping the last on release; a vertical
+   swipe still scrolls the page. It opens on the week (`series.json`, rebuilt
+   each collection, ~37 s); past it, the committed archive (`series_all.json`
+   from `data/series/`, fetched only when asked for). Now tab only, because it
+   is the observed chain; every past hour is REBUILT with today's chain, not
+   remembered, and info.html says so; a missing hour is a gap in the line at
+   every zoom. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
    says so and points at Forecast rather than falling back silently. The
@@ -366,6 +371,18 @@ forecaster actually verifies against, Surfline included.
   and `seed-shown.yml` now reset to the new tip and re-run their idempotent
   append; `model-bias.yml` aborts loudly. The same `|| true` loop is still in
   the collectors' workflows, where each file has a single writer.
+- **`data/series/` is derived and tracked, and that is not a breach either.**
+  The chart's zoomed-out views need every archived hour through today's chain;
+  at 0.18 s an hour a year is ~26 minutes, so a collection cannot rebuild it
+  and the page cannot wait for it. `series-archive.yml` rebuilds it whole
+  (35 s for 1,309 hours on four workers, measured 2026-09-27; a year is about
+  five minutes) daily, on chain changes, and when asked. Deterministic, so an
+  unchanged chain commits only new hours: ~0.9 MB a year. It is never mixed
+  with another chain: every collection checks it against the week it has just
+  rebuilt plus eight older hours, and on disagreement `series_all.json`
+  carries no hours, the page says the earlier hours are being rebuilt, and the
+  collection dispatches the rebuild. A stored gap that has since landed is the
+  archive behind, not the chain moved, and does not count.
 - **`data/live/` is gitignored, and that is not a breach of "data is tracked".**
   That rule guards the irreplaceable NDBC archive and the collected series; a
   forecast rebuilt every cycle from committed inputs is neither, and the public
@@ -452,7 +469,9 @@ forecaster actually verifies against, Surfline included.
                         exact-stamp spectrum, wind and tide as of then [built]
       series.py         the same, every hour for the last week, with the
                         south-less-north, window ratio and %K the Now
-                        tab's chart draws; one rebuild feeds both files [built]
+                        tab's chart draws; one rebuild feeds both files;
+                        and `--archive`, every archived hour into
+                        data/series/ (series-archive.yml only)      [built]
       modelbias.py      GFS-Wave's bias at 46232 through each break's
                         windows; reports, never edits              [built]
       exposurebias.py   GFS-Wave's bias from the unshadowed 46047 to the
@@ -478,8 +497,14 @@ forecaster actually verifies against, Surfline included.
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
-    data/live/          forecast.json, now.json, measured.json and series.json,
-                        what the app surface reads (derived, gitignored)
+    data/live/          forecast.json, now.json, measured.json, series.json and
+                        series_all.json, what the app surface reads
+                        (derived, gitignored)
+    data/series/        46232/YYYY-MM.csv: the observed chain for every
+                        archived hour, rebuilt whole with today's chain by
+                        series-archive.yml, its only writer. DERIVED but
+                        tracked: rebuilding a year costs minutes a
+                        collection cannot spend (see Infrastructure)
     data/forecast_log/  46232/YYYY-MM.csv: what every forecast build said,
                         3-hourly, one row per site (forecast.forecastlog).
                         PERMANENT and never published: the one input to the
