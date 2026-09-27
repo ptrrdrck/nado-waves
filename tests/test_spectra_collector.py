@@ -118,3 +118,125 @@ class TestSummary:
         parts = [ComponentResult(kind=k, column=c, added=1) for k, c in COMPONENTS.items()]
         parts[-1].error = "parsed no frequency bins or no rows"
         assert not CollectResult("46232", parts).complete
+
+
+class TestContextStations:
+    """Three buoys archived for checks. None is a stand-in for the anchor."""
+
+    def test_the_anchor_is_not_a_context_station(self):
+        from collector.spectra import CONTEXT_STATIONS, DEFAULT_STATION
+
+        assert DEFAULT_STATION not in CONTEXT_STATIONS
+        assert set(CONTEXT_STATIONS) == {"46086", "46047", "46258"}
+
+    def test_every_context_station_is_in_the_registry(self):
+        import json
+        from pathlib import Path
+
+        from collector.spectra import CONTEXT_STATIONS
+
+        registry = Path(__file__).resolve().parent.parent / "collector" / "stations.json"
+        ids = {s["id"] for s in json.loads(registry.read_text())["stations"]}
+        assert set(CONTEXT_STATIONS) <= ids
+
+    def test_nothing_on_the_forecast_path_reads_a_context_station(self):
+        """The Now tab and the forecast read 46232's spectrum and nothing else.
+        A context buoy wired in there is §3a's substitution, done quietly."""
+
+        from pathlib import Path
+
+        from collector.spectra import CONTEXT_STATIONS
+
+        forecast = Path(__file__).resolve().parent.parent / "forecast"
+        for name in ("now.py", "live.py", "measured.py", "nearshore.py",
+                     "surfzone.py", "transform.py", "publish.py"):
+            text = (forecast / name).read_text()
+            for station in CONTEXT_STATIONS:
+                assert station not in text, f"{name} names {station}"
+
+
+def complete(station: str) -> CollectResult:
+    return CollectResult(station, [
+        ComponentResult(kind=k, column=c, added=1) for k, c in COMPONENTS.items()
+    ])
+
+
+def denied(station: str) -> CollectResult:
+    return CollectResult(station, [
+        ComponentResult(kind=k, column=c, denied=True, error="URLError")
+        for k, c in COMPONENTS.items()
+    ])
+
+
+def incomplete(station: str) -> CollectResult:
+    result = complete(station)
+    result.components[0].error = "parsed no frequency bins or no rows"
+    return result
+
+
+class TestSeveralStations:
+    def test_context_collects_each_context_station(self, tmp_path, monkeypatch):
+        from collector.spectra import CONTEXT_STATIONS, main
+
+        seen = []
+        monkeypatch.setattr("collector.spectra.collect",
+                            lambda station, data_dir: seen.append(station) or complete(station))
+        assert main(["--context", "--data-dir", str(tmp_path)]) == 0
+        assert seen == list(CONTEXT_STATIONS)
+
+    def test_a_comma_list_is_several_stations(self, tmp_path, monkeypatch):
+        from collector.spectra import main
+
+        seen = []
+        monkeypatch.setattr("collector.spectra.collect",
+                            lambda station, data_dir: seen.append(station) or complete(station))
+        main(["--station", "46086, 46047", "--data-dir", str(tmp_path)])
+        assert seen == ["46086", "46047"]
+
+    def test_one_failure_is_not_hidden_by_the_others_succeeding(self, tmp_path, monkeypatch):
+        """And the stations after it are still fetched."""
+
+        from collector.spectra import main
+
+        seen = []
+        results = {"46086": incomplete, "46047": complete, "46258": complete}
+        monkeypatch.setattr("collector.spectra.collect",
+                            lambda station, data_dir: seen.append(station) or results[station](station))
+        assert main(["--context", "--data-dir", str(tmp_path)]) == 1
+        assert seen == ["46086", "46047", "46258"]
+
+    def test_a_denial_outranks_an_incomplete_set(self):
+        from collector.spectra import exit_code
+
+        assert exit_code([incomplete("46086"), denied("46047"), complete("46258")]) == 2
+        assert exit_code([complete("46086"), complete("46047")]) == 0
+
+
+class TestSentinels:
+    """NDBC's 999 in a direction or moment file is a gap, never a value."""
+
+    PAYLOAD = (
+        "#YY  MM DD hh mm r1_1 (freq_1) r1_2 (freq_2) r1_3 (freq_3) ... >\n"
+        "2026 09 27 05 20 999.00 (0.033) 0.29 (0.053) 0.11 (0.058)\n"
+    )
+
+    def test_a_999_moment_is_stored_as_an_empty_cell(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("collector.spectra.fetch", lambda url, timeout=45.0: self.PAYLOAD.encode())
+        result = collect_component("46047", "swr1", "r1", tmp_path)
+        assert result.ok and result.added == 1
+        with component_path(tmp_path, "46047", "r1").open() as fh:
+            row = list(csv.reader(fh))[1]
+        assert row == ["2026-09-27T05:20:00Z", "", "0.29", "0.11"]
+
+    def test_the_gap_reads_back_as_nan_not_999(self, tmp_path, monkeypatch):
+        import math
+
+        from forecast.transform import load_spectra
+
+        for kind, column in COMPONENTS.items():
+            monkeypatch.setattr("collector.spectra.fetch", lambda url, timeout=45.0: self.PAYLOAD.encode())
+            collect_component("46047", kind, column, tmp_path)
+        spectrum = load_spectra(tmp_path / "spectra" / "46047")[0]
+        assert math.isnan(spectrum.r1[0]) and math.isnan(spectrum.a1[0])
+        assert spectrum.c11[0] == 999.0      # energy density is not masked
+        assert spectrum.r1[1:] == [0.29, 0.11]

@@ -68,6 +68,10 @@ forecaster actually verifies against, Surfline included.
   first. Historical NDBC files use
   numeric sentinels (`999.0`, `99.0`, `9999.0`), not `MM` — never backfill
   without `collector.ndbc.is_missing` or you will store 999.0 as a wave height.
+  NDBC's real-time SPECTRAL files do the same in their direction and moment
+  bins (46047 and 46086, every row): `probe_spectra.mask_sentinels` stores
+  those as empty cells, and 46232's archive still holds one 999 from before
+  (BRIEFING §33).
 - **Never commit secrets**, even to a private repo.
 - **Data files are tracked, not ignored** — do not add `data/` to `.gitignore`.
   `data/historical/` is three years the 45-day NDBC window can no longer serve.
@@ -187,6 +191,13 @@ forecaster actually verifies against, Surfline included.
    recoverable to 2021 and the buoy's is archived from 2026-08-04, so the
    report need not wait for the as-shown log to fill. The two logs are never
    mixed.
+   **Where the bias comes from: `forecast/exposurebias.py`** (BRIEFING §33).
+   Measured against a buoy the islands do NOT shadow, it is not the "smooth
+   ocean" §5 assumed: GFS-Wave reads 8% low at 46047 and 23–32% low at the
+   five shadowed buoys, because it shadows them **more** than the islands do —
+   its shadow ratio is 0.69–0.79 of the measured one over swell hours, and at
+   46232 moves only 0.73–0.80 across direction sectors. Also a report that
+   never edits.
 6. **App surface — built, `app/forecast.html`, published by
    `forecast/publish.py`.** **Two tabs, and they are two evidence chains
    rather than two views of one.** *Now* is built only from measurements
@@ -366,7 +377,9 @@ forecaster actually verifies against, Surfline included.
                         ranking — see forecast/siting.py), historical backfill,
                         GFS-Wave bulletins,
                         probe_spectra.py (are directional spectra reachable?),
-                        spectra.py (archive them), wind.py (KNZY),
+                        spectra.py (archive them: 46232 hourly, and
+                        46086, 46047, 46258 from collect.yml — context for
+                        checks, read by no chain), wind.py (KNZY),
                         wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),
@@ -428,6 +441,9 @@ forecaster actually verifies against, Surfline included.
                         exact-stamp spectrum, wind and tide as of then [built]
       modelbias.py      GFS-Wave's bias at 46232 through each break's
                         windows; reports, never edits              [built]
+      exposurebias.py   GFS-Wave's bias from the unshadowed 46047 to the
+                        most shadowed buoy, and the model's shadow against
+                        the measured one; reports, never edits     [built]
       publish.py        the public delivery bundle                 [built]
       units.py          ft/mph first, m/kt in parentheses -- display only
       tideturns.py      the next high/low, and why its direction is not
@@ -487,7 +503,10 @@ forecaster actually verifies against, Surfline included.
                         start point to dry sand, along the normal)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
-    data/wave_forecasts/ 1,095 archived GFS-Wave cycles/station, with partitions
+    data/wave_forecasts/ 1,096 archived GFS-Wave 00Z cycles/station, 2023–2025,
+                        with partitions: 46047 (unshadowed, the reference)
+                        and five shadowed buoys, 46086, 46258, 46232, 46224,
+                        46222
 
 `forecast/stats.py` was trimmed to the four helpers this project uses
 (`load_column`, `angular_difference`, `least_squares`, `rmse`) when the

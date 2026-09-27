@@ -1,6 +1,7 @@
-# The NDBC archiving job. This is the most important file in the repository:
-# NDBC retains only 45 days of real-time data, so anything this job fails to
-# commit is gone permanently.
+# The NDBC archiving job: standard met for every registered station, plus
+# directional spectra for the three context buoys. This is the most important
+# file in the repository: NDBC retains only 45 days of real-time data, so
+# anything this job fails to commit is gone permanently.
 #
 # Cadence note: each station file is a rolling window of recent history, not a
 # single latest reading. Four runs a day therefore capture every hourly
@@ -73,6 +74,20 @@ jobs:
             args+=(--dry-run)
           fi
           python -m collector.run ${args[@]+"${args[@]}"}
+
+      # Directional spectra for the three context buoys (46086, 46047, 46258).
+      # Archived for checks and never read by the forecast or the Now tab; see
+      # CONTEXT_STATIONS in collector/spectra.py for what each one is for. The
+      # real-time files hold 45 days, so this job's cadence is ample and the
+      # hourly beach-inputs job - whose run time is the Now tab's freshness -
+      # is left carrying 46232 alone. continue-on-error, because nothing here
+      # may cost the standard met its commit.
+      - name: Directional spectra (context buoys)
+        if: ${{ !inputs.dry_run }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.spectra --context
 
       - name: Commit and push new observations
         if: ${{ !inputs.dry_run }}

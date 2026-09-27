@@ -1,6 +1,7 @@
-"""Archive NDBC directional spectra for 46232.
+"""Archive NDBC directional spectra for 46232, and for three context buoys.
 
 Run: ``python -m collector.spectra`` — on Actions, not from a session.
+     ``python -m collector.spectra --context`` — the three context buoys.
 
 `probe_spectra` answered whether the five files are reachable and complete
 (BRIEFING §7: yes — 64 bins, 0.0250–0.5800 Hz, agreeing across all five, with
@@ -31,13 +32,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
 from .common import DEFAULT_DATA_DIR, ISO, write_step_summary
-from .probe_spectra import REALTIME, SPECTRAL_FILES, fetch, parse_spectral
+from .probe_spectra import REALTIME, SPECTRAL_FILES, fetch, mask_sentinels, parse_spectral
 
 #: NDBC's file name for each component, and the column name we store it under.
 #: `swden` carries C11; the other four are named for what they are.
@@ -50,6 +52,24 @@ COMPONENTS = {
 }
 
 DEFAULT_STATION = "46232"
+
+#: Archived for checks, never read by the forecast or the Now tab. Each one is
+#: here for a specific question, and none of them is a stand-in for 46232
+#: (BRIEFING §3a):
+#:
+#: * 46086 — the only buoy near a west window edge (256.2° from the centre
+#:   break). Its spectrum and 46232's measure how well two instruments agree on
+#:   the direction of the same south swell there.
+#: * 46047 — the least shadowed buoy in the array, §3's denominator. With
+#:   46232 it gives the islands' shadow per frequency and direction.
+#: * 46258 — behind Point Loma at 46232's range: the aperture control. Its
+#:   spectrum through the same windows is the test §3a's "never a fallback"
+#:   rests on, and until that test has run the rule stands.
+#:
+#: The real-time feed keeps 45 days, so this list starts a clock; it is
+#: collected by collect.yml alongside the standard met, not by the hourly
+#: beach-inputs job, whose run time is the Now tab's freshness.
+CONTEXT_STATIONS = ("46086", "46047", "46258")
 
 
 class SpectraError(RuntimeError):
@@ -153,8 +173,13 @@ def append_rows(
             writer.writerow(["time_utc", *header])
         for stamp, values in sorted(fresh, key=lambda r: r[0]):
             # A row whose component is short is written short, not padded. The
-            # join in transform.load_spectra will refuse a ragged record.
-            writer.writerow([stamp.strftime(ISO), *(f"{v:.6g}" for v in values)])
+            # join in transform.load_spectra will refuse a ragged record. A
+            # missing bin (NaN, from NDBC's 999) is an empty cell: a gap, which
+            # load_spectra reads back as NaN, never as 999.
+            writer.writerow([
+                stamp.strftime(ISO),
+                *("" if math.isnan(v) else f"{v:.6g}" for v in values),
+            ])
 
     newest = max(stored | {t.strftime(ISO) for t, _ in fresh})
     return len(fresh), newest
@@ -181,6 +206,7 @@ def collect_component(
         return result
 
     frequencies, rows, _, _ = parse_spectral(payload.decode("utf-8", errors="replace"))
+    rows = [(stamp, mask_sentinels(kind, values)) for stamp, values in rows]
     result.fetched_rows = len(rows)
     if not frequencies or not rows:
         result.error = "parsed no frequency bins or no rows"
@@ -232,22 +258,43 @@ def format_summary(result: CollectResult) -> str:
     return "\n".join(lines)
 
 
+def exit_code(results: list[CollectResult]) -> int:
+    """2 if any station was denied, 1 if any set is incomplete, else 0.
+
+    A denial outranks an outage because it says the host is refused, not dead
+    (BRIEFING §8), and one station's success must not hide another's failure.
+    """
+
+    if any(r.denied for r in results):
+        return 2
+    if not all(r.complete for r in results):
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--station", default=DEFAULT_STATION)
+    parser.add_argument("--station", default=DEFAULT_STATION,
+                        help="One station id, or several separated by commas.")
+    parser.add_argument("--context", action="store_true",
+                        help=f"Collect the context buoys: {', '.join(CONTEXT_STATIONS)}.")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     args = parser.parse_args(argv)
 
-    result = collect(args.station, args.data_dir)
-    summary = format_summary(result)
-    print(summary)
-    write_step_summary(summary)
-
-    if result.denied:
-        return 2
-    if not result.complete:
-        return 1
-    return 0
+    stations = (
+        list(CONTEXT_STATIONS) if args.context
+        else [s.strip() for s in args.station.split(",") if s.strip()]
+    )
+    results = []
+    for station in stations:
+        # Each station is fetched even if an earlier one failed: they are
+        # independent sources, and a partial archive is worth more than none.
+        result = collect(station, args.data_dir)
+        summary = format_summary(result)
+        print(summary)
+        write_step_summary(summary)
+        results.append(result)
+    return exit_code(results)
 
 
 if __name__ == "__main__":
