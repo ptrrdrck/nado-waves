@@ -226,8 +226,9 @@ forecaster actually verifies against, Surfline included.
    until opened). The x axis zooms and pans — pinch, drag, ctrl + wheel, and
    1D / 7D / 1M / All — and a sideways swipe reads the hours under the finger
    into a readout ABOVE the plot, keeping the last on release; a vertical
-   swipe still scrolls the page. It opens on the week (`series.json`, rebuilt
-   each collection, ~37 s); past it, the committed archive (`series_all.json`
+   swipe still scrolls the page. It opens on the last day (owner's choice;
+   the chart is picked from a menu, not tabs); the week is `series.json`, rebuilt
+   each collection, ~37 s; past it, the committed archive (`series_all.json`
    from `data/series/`, fetched only when asked for). Now tab only, because it
    is the observed chain; every past hour is REBUILT with today's chain, not
    remembered, and info.html says so; a missing hour is a gap in the line at

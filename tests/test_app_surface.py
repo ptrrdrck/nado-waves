@@ -1905,7 +1905,7 @@ class TestTheWeekChart:
         assert "not rebuilt yet" in got[4]
         assert got[5] == "true"
 
-    def test_the_window_opens_on_the_week_and_asks_for_the_archive_past_it(self):
+    def test_the_window_opens_on_the_last_day_and_asks_for_the_archive_past_it(self):
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 191)};\n"
             "let v = chartView(SERIES.steps); console.log(v.v1 - v.v0, v.v1);\n"
@@ -1917,7 +1917,7 @@ class TestTheWeekChart:
             "v = chartView(SERIES.steps); console.log(v.v0 >= 0, v.v1 <= 190);\n"
             "console.log(chartNote(SERIES.steps));"
         )
-        assert got[0] == "168 190"
+        assert got[0] == "24 190"                 # owner's default, 2026-09-27
         assert got[1] == "12"                     # never narrower than 12 hours
         assert got[2] == "0"                      # nothing fetched inside the week
         assert got[3] == "1 loading"              # past its left edge asks once
@@ -2009,6 +2009,22 @@ class TestTheWeekChart:
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         assert panel.index("${drawing ||") < panel.index("seriesChart(c.id)")
 
+    def test_the_chart_is_picked_from_a_menu_and_opens_on_one_day(self):
+        """Owner's design, 2026-09-27: a dropdown, not a row of tabs, and the
+        1D window by default."""
+
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 191)};\n"
+            "console.log(chartRanges().match(/data-chart-range=\"(\\w+)\" aria-pressed=\"true\"/g).length,"
+            " /data-chart-range=\"1d\" aria-pressed=\"true\"/.test(chartRanges()));"
+        )
+        assert got == ["1 true"]
+        body = self.SECTION[self.SECTION.index("function chartBody("):]
+        body = body[:body.index("\n}\n")]
+        assert '<select class="pick" data-chart-mode aria-label="Which chart">' in body
+        assert "<button" not in body
+        assert 'strip.addEventListener("change"' in self.SECTION
+
     def test_the_foot_line_is_gone_and_info_still_says_it(self):
         """Owner's decision, 2026-09-27: "Observed at 46232 every hour for the
         last 7 days, each carried in by today's chain" is obvious under the
@@ -2017,3 +2033,37 @@ class TestTheWeekChart:
         assert "each carried in by today's chain" not in SOURCE
         assert "function chartFoot" not in SOURCE
         assert "today's" in INFO_TEXT and "rebuilt" in INFO_TEXT
+
+
+class TestTheProvenanceDivider:
+    """Owner's design, 2026-09-27: a rule above the provenance lines on every
+    card, on both tabs -- set once on the block every card's provenance goes
+    through, so no card can be left out."""
+
+    def test_it_is_drawn_by_the_provenance_block_itself(self):
+        css = SOURCE[:SOURCE.index("</style>")]
+        rule = css[css.index(".cond .srcs{"):]
+        rule = rule[:rule.index("}")]
+        assert "border-top:1px solid var(--line)" in rule
+        assert "padding-top" in rule
+
+    def test_every_provenance_line_goes_through_that_block(self):
+        assert 'return body ? `<div class="srcs">${body}</div>` : "";' in SOURCE
+        # Cards build their provenance with srcLines, never a bare src line
+        # outside it (the chart's own explanation is inside its fold).
+        cards = SOURCE[SOURCE.index("function renderConditions("):]
+        cards = cards[:cards.index("\nfunction renderBreaks(")]
+        assert "srcLines(" in cards and '<span class="src">' not in cards
+
+    def test_the_chart_no_longer_draws_its_own(self):
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert ".chart{display:flex;flex-direction:column;gap:6px}" in css
+
+    def test_the_charts_own_explanation_is_not_a_second_provenance_block(self):
+        """It explains the chart, not where the card came from: inside the
+        block it drew a second rule a line above the card's own."""
+
+        body = SOURCE[SOURCE.index("function chartBody("):]
+        body = body[:body.index("\n}\n")]
+        assert "srcLines(" not in body
+        assert '<span class="src">${period(spec.says)}</span>' in body
