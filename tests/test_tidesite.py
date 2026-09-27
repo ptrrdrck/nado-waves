@@ -59,3 +59,20 @@ def test_the_cards_forecast_height_is_the_bay_prediction_carried_to_the_coast():
     got = coast_predicted(HOURLY, T0 + timedelta(hours=1))
     assert got == pytest.approx(RATIO * (1.0 + LEAD_MIN / 60.0))
     assert coast_predicted(HOURLY, T0 + timedelta(hours=3)) is None   # past the series
+
+
+def test_the_cards_forecast_height_carries_the_measured_departure():
+    """The Tide card on the forecast shows the level breaking was computed at:
+    the prediction plus the bay's measured departure, carried to the coast."""
+
+    from forecast.tidesite import coast_predicted, coast_turn
+    from forecast.tideturns import Turn
+
+    got = coast_predicted(HOURLY, T0 + timedelta(hours=1), 0.2)
+    assert got == pytest.approx(RATIO * (1.0 + LEAD_MIN / 60.0 + 0.2))
+    assert coast_predicted(HOURLY, T0 + timedelta(hours=1), None) == \
+        coast_predicted(HOURLY, T0 + timedelta(hours=1))
+
+    turn = coast_turn(Turn("2026-09-19T03:00:00Z", 1.5, "high"), 0.2)
+    assert turn.height_m == pytest.approx(RATIO * 1.7)
+    assert turn.valid_utc == "2026-09-19T02:57:00Z" and turn.event == "high"

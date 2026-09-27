@@ -676,6 +676,19 @@ function tideSource(payload) {
   return payload.tide_site ? `${payload.tide_site}, carried from ${gauge}` : gauge;
 }
 
+// The forecast's tide is the harmonic prediction plus the gauge's measured
+// departure from it over the last three days, carried forward -- the level
+// the breaking was computed at. The prediction alone ran ~9 in under the
+// water in Sept 2026 (BRIEFING §32). An hour that carries no departure (none
+// was measured, or it was logged before the card added one) is the bare
+// prediction and gets no line, so the card never claims an offset it lacks.
+function departureLine(tide) {
+  const d = tide && tide.departure_m;
+  if (d == null) return "";
+  return `${d < 0 ? "Minus" : "Plus"} ${height(Math.abs(d))}, the gauge's measured`
+    + ` departure from it over the last 3 days`;
+}
+
 // The tide's next turning point, and which way it is running into it.
 //
 // The direction is read off the TURN, never differenced from the water level.
@@ -1601,7 +1614,7 @@ function renderConditions(step, cards) {
       ${blueWind}
       ${modelled
         ? srcLines([`Forecast for ${stampWhen}`,
-                    `GFS-Wave wind at the buoy, ${DATA.station_name} (NDBC ${DATA.station})`,
+                    `GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})`,
                     run])
         : fallback.from_deg != null
           ? srcLines([`Observed ${observedAt(fallback.observed_utc)}`,
@@ -1617,7 +1630,7 @@ function renderConditions(step, cards) {
         ? turnLine(DATA.tide_turns || [], step.valid_utc)
         : ""}
       ${blueTide}
-      ${srcLines([`Predicted for ${stampWhen}`, `Harmonic tide, ${tideSource(DATA)}`])}
+      ${srcLines([`Harmonic tide for ${stampWhen}`, tideSource(DATA), departureLine(tide)])}
     </div>`);
   }
 
