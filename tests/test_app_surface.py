@@ -497,7 +497,8 @@ class TestWindAndTideAreHoisted:
         assert 'class="src"' in SOURCE
 
     def test_the_tide_says_it_is_a_model(self):
-        assert ("`Harmonic tide for ${stampWhen}`, tideSource(DATA), departureLine(tide)"
+        # The correction sits under the hour it applies to, the place under it.
+        assert ("`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)"
                 in SOURCE)
 
     def test_the_forecast_tide_says_when_it_carries_the_measured_departure(self):
@@ -508,8 +509,7 @@ class TestWindAndTideAreHoisted:
         line = SOURCE[SOURCE.index("function departureLine"):]
         line = line[:line.index("\n}\n")]
         assert 'if (d == null) return "";' in line
-        assert "the gauge's measured` + ` departure from it over the last 3 days" in \
-            re.sub(r"\s+", " ", line)
+        assert "`Gauge departure correction (last 3 days): ${d < 0 ?" in line
 
     def test_the_provenance_separates_a_forecast_hour_from_an_observation(self):
         """The model's wind moves with the picker; the KNZY fallback is an
