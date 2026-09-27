@@ -292,7 +292,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    blue, the buoy in the secondary ink, the other breaks faint. One axis, thin
    lines, hairline grid; an hour without a spectrum is a pale band with no
    line through it, so a gap reads as a gap rather than as a dip. */
-/* Folded away under a "Charts & Analysis" line with the calculation's caret
+/* Folded away under an "Analytics" line with the calculation's caret
    (owner's design, 2026-09-27): up while closed, down once open. */
 .chart{display:flex;flex-direction:column;gap:6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -1465,7 +1465,7 @@ let CHART_OPEN = false;
 function chartToggle(id) {
   return `<button type="button" class="calc-toggle" data-chart-toggle
     aria-controls="chart-fold-${id}" aria-expanded="${CHART_OPEN}"
-    aria-label="Charts and analysis"><svg viewBox="0 0 16 16" aria-hidden="true">`
+    aria-label="Analytics"><svg viewBox="0 0 16 16" aria-hidden="true">`
     + `<path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`;
 }
 
@@ -1730,7 +1730,7 @@ function chartFoot() {
 // The line the charts fold out from, and the fold.
 function seriesChart(id) {
   return `<div class="chart">
-    <div class="chart-head"><span>Charts &amp; Analysis</span>${chartToggle(id)}</div>
+    <div class="chart-head"><span>Analytics</span>${chartToggle(id)}</div>
     <div class="chart-fold" id="chart-fold-${id}"${CHART_OPEN ? "" : " hidden"}>${chartBody(id)}</div>
   </div>`;
 }

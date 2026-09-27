@@ -222,7 +222,7 @@ forecaster actually verifies against, Surfline included.
    one that has. **Under each Now card is the week, hourly** (owner's request,
    2026-09-27; `forecast/series.py` → `series.json`): height, south − north,
    window ratio and a 24 h %K, switched above the plot, folded out from a
-   "Charts & Analysis" line below the drawing with the calculation's caret
+   "Analytics" line below the drawing with the calculation's caret
    (owner's design, 2026-09-27; closed until opened). Now tab only, because
    it is the observed chain; every past hour is REBUILT with today's chain, not
    remembered, and the chart says so; a missing hour is a gap in the line.
