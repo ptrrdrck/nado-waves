@@ -10,11 +10,13 @@ foot is worth planning around.
 
 Four questions, in order of how much they matter:
 
-1. **Bias.** Does the model sit systematically high or low at this buoy? A
-   global 0.25-degree wave model cannot see the Channel Islands or the shelf,
-   so its value at a nearshore point is a smooth-ocean value. If that offset is
-   stable it is free to remove, and removing it is the single largest available
-   win.
+1. **Bias.** Does the model sit systematically high or low at this buoy? If
+   that offset is stable it is free to remove, and removing it is the single
+   largest available win. This used to say the model could not see the Channel
+   Islands and so gave a smooth-ocean value at a nearshore point. Measured, it
+   is the reverse: GFS-Wave shadows these buoys MORE than the islands do, and
+   reads low even at the unshadowed 46047 (`forecast.exposurebias`, BRIEFING
+   §33).
 2. **Spread.** After the bias is gone, how much scatter is left, and how does it
    grow with lead time? This is the number that decides how far ahead a forecast
    is worth reading.
