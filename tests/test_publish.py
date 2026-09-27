@@ -407,6 +407,21 @@ class TestTheMeasuredSeriesShips:
         assert publish.BUNDLE_MEASURED_PATH in index
         assert publish.REPO_MEASURED_PATH not in index
 
+    def test_the_hourly_series_ships_beside_it(self, tmp_path):
+        """series.json feeds the chart on the Now tab; same rules as measured.json."""
+
+        d = self.data(tmp_path)
+        (d / "live" / "series.json").write_text(
+            json.dumps({"steps": [{"valid_utc": "2026-09-26T09:00:00Z", "gap": True}]}),
+            encoding="utf-8")
+        assert "series.json" in publish.build(tmp_path / "site", data_dir=d)
+        assert "series.json" in publish.build_now_only(tmp_path / "now", data_dir=d)
+        assert "series.json" not in publish.build(tmp_path / "bare",
+                                                  data_dir=write(tmp_path / "e", forecast()))
+        index = (tmp_path / "now" / "index.html").read_text()
+        assert publish.REPO_SERIES_PATH in PAGE_SOURCE
+        assert publish.BUNDLE_SERIES_PATH in index and publish.REPO_SERIES_PATH not in index
+
     def test_the_past_survives_thinning(self):
         data = {**forecast(), "past": [{"valid_utc": "2026-09-17T21:00:00Z", "lead_h": 21}]}
         assert publish.thin(data)["past"] == data["past"]

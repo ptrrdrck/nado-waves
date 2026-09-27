@@ -288,6 +288,46 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .aperture .swell.lead{opacity:1}
 .aperture .swell.lead line{stroke-width:3}
 
+/* The week under each Now card (forecast.series): the open break in the site
+   blue, the buoy in the secondary ink, the other breaks faint. One axis, thin
+   lines, hairline grid; an hour without a spectrum is a pale band with no
+   line through it, so a gap reads as a gap rather than as a dip. */
+.chart{display:flex;flex-direction:column;gap:6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.chart .modes{display:flex;gap:3px;background:var(--paper);border:1px solid var(--line);
+              border-radius:8px;padding:3px}
+.chart .modes button{flex:1 1 auto;font:inherit;font-size:12.5px;font-weight:600;padding:4px 4px;
+                     border:0;border-radius:6px;cursor:pointer;white-space:nowrap;
+                     background:transparent;color:var(--soft)}
+.chart .modes button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.chart .modes button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.series{display:block;width:100%;height:auto;overflow:visible;cursor:crosshair;
+        touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+.series:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
+.series .grid{stroke:var(--line);stroke-width:1}
+.series .zero{stroke:var(--line-strong);stroke-width:1}
+.series .day{stroke:var(--line);stroke-width:1}
+.series .tick{font-size:10px;fill:var(--faint);font-variant-numeric:tabular-nums}
+/* Haloed in the card colour, because a line can run through the label. */
+.series .side{font-size:10px;fill:var(--soft);paint-order:stroke;stroke:var(--card);
+              stroke-width:3px;stroke-linejoin:round}
+.series .gapband{fill:var(--line);opacity:.55}
+.series .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.series .ln.main{stroke:var(--surf)}
+.series .ln.buoy{stroke:var(--soft);stroke-width:1.5}
+.series .ln.other{stroke:var(--faint);stroke-width:1;opacity:.75}
+.series .ln.slow{stroke:var(--soft);stroke-width:1}
+.series .pt.main{fill:var(--surf)} .series .pt.buoy,.series .pt.slow{fill:var(--soft)}
+.series .pt.other{fill:var(--faint)}
+.series .cross{stroke:var(--soft);stroke-width:1}
+.series .hot{fill:var(--surf);stroke:var(--card);stroke-width:2}
+.chart .legend{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:12px;color:var(--soft)}
+.chart .legend .sw{display:inline-block;width:14px;height:2px;border-radius:1px;
+                   vertical-align:middle;margin-right:6px;background:var(--surf)}
+.chart .legend .sw.buoy,.chart .legend .sw.slow{background:var(--soft);height:1.5px}
+.chart .legend .sw.other{background:var(--faint);height:1px}
+.chart .readout{font-size:13px;color:var(--soft);font-variant-numeric:tabular-nums;min-height:1.5em}
+.chart .readout b{color:var(--ink);font-weight:600}
+
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
 th:first-child,td:first-child{text-align:left}
@@ -362,6 +402,9 @@ const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
 // The observed chain rebuilt for each of the last 48 h (forecast.measured),
 // shown in sea green under every forecast hour that has gone by.
 const MEASURED_SOURCE = PARAM.get("measured") || "../data/live/measured.json";
+// The same chain every hour for the last week (forecast.series), drawn under
+// each card on the Now tab.
+const SERIES_SOURCE = PARAM.get("series") || "../data/live/series.json";
 
 // North to south along the sand: the west edge of the window is the bearing
 // to the Point Loma tip and it sweeps as you walk. This is the scope and the
@@ -719,6 +762,7 @@ let NOW = null;       // now.json     — the observed chain
 let MODE = "now";     // which chain is on screen
 let TIDE_BY_TIME = {};
 let MEASURED = null;  // measured.json — the observed chain, past hours only
+let SERIES = null;    // series.json   — the observed chain, every hour for a week
 // The hours the picker offers, oldest first: {valid_utc, from, lead_h} plus
 // `index` into each break's hours for the current run ("cycle"), or `entry`
 // from forecast.json's `past` for an hour an earlier run was on screen for.
@@ -737,7 +781,7 @@ const BUOY_TAB = "buoy";
 // guarded, because private modes and blocked site data throw on the accessor
 // itself, and a page that cannot remember a tab must still render.
 const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
-              calc: "nado-waves.calc"};
+              calc: "nado-waves.calc", chart: "nado-waves.chart"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -770,6 +814,9 @@ function cardsForNow() {
     trains: b.trains || [],
     takenBy: b.taken_by || [],
     windOffshore: b.wind_offshore, windNote: b.wind_note,
+    // The week's chart goes under the drawing on this tab only: it is the
+    // observed chain, and the Forecast tab is the other one.
+    chart: true,
   }));
 }
 
@@ -954,6 +1001,8 @@ function breakPanel(c) {
     ${measured}
 
     ${drawing || windowList(c.swellWindow)}
+
+    ${c.chart ? seriesChart(c.id) : ""}
 
     ${offshore}`;
 }
@@ -1371,8 +1420,9 @@ function wireDrawings() {
 }
 
 // The buoy's tab: the offshore spectrum itself, before any aperture.
-function buoyPanel(buoy, measured = null) {
-  const line = measuredLine(measured, (m) => m.buoy);
+function buoyPanel(buoy, measured = null, chart = false) {
+  const line = measuredLine(measured, (m) => m.buoy)
+    + (chart ? seriesChart(BUOY_TAB) : "");
   if (!buoy || buoy.hs_m == null) {
     return '<span class="val"><span class="unit">no spectrum</span></span>' + line;
   }
@@ -1381,6 +1431,372 @@ function buoyPanel(buoy, measured = null) {
       + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
   return `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
     + trains + line;
+}
+
+// THE WEEK, under each card on the Now tab (owner's request, 2026-09-27).
+//
+// series.json is the observed chain for every hour of the last seven days:
+// 46232's spectrum at that hour through TODAY's windows, seabed and surf zone
+// (forecast.series). A past point is what the current chain makes of that
+// hour, not what this page showed then, and the foot line says so. Nothing
+// here is a forecast and nothing here checks the beach.
+//
+// An hour with no spectrum is a gap: a pale band, and the line is not joined
+// across it. A single hour between two gaps is a dot, so it is not lost.
+//
+// Four views of the same hours, switched above the plot. The buoy's tab has
+// only the heights, because the other three are about a break.
+const CHART_MODES = [
+  {id: "height", label: "Height"},
+  {id: "diff", label: "South − North"},
+  {id: "window", label: "Window"},
+  {id: "range", label: "Range %K"},
+];
+let CHART_MODE = "height";
+// The hour the reader tapped, by valid_utc, or null for the newest reading.
+// Shared by every break, so flipping tabs keeps the same hour under the line.
+let CHART_AT = null;
+const CHART = {w: 320, h: 150, l: 40, r: 8, t: 10, b: 20};
+
+// A height with its sign, for the south-less-north line.
+const signedHeight = (m) => {
+  if (m == null) return "—";
+  const sign = m < 0 ? "−" : "+";
+  const a = Math.abs(m);
+  return `${sign}${(a * FT_PER_M).toFixed(1)} ft <span class="unit">(${sign}${a.toFixed(2)} m)</span>`;
+};
+const dayClock = (iso) => new Date(iso).toLocaleString(undefined, {
+  weekday: "short", hour: "numeric", minute: "2-digit",
+});
+
+// Axis ticks in feet, placed in metres: the data stays SI and the conversion
+// is the page's one constant. Signed when the axis runs through zero.
+function feetTicks(lo, hi, {signs = false} = {}) {
+  const span = (hi - lo) * FT_PER_M;
+  const step = [0.5, 1, 2, 5, 10].find((f) => span / f <= 4) || 20;
+  const out = [];
+  for (let f = Math.ceil(lo * FT_PER_M / step - 1e-9) * step; f <= hi * FT_PER_M + 1e-9; f += step) {
+    const v = Number(f.toFixed(1));
+    const text = v === 0 ? "0" : `${v < 0 ? "−" : signs ? "+" : ""}${Math.abs(v)} ft`;
+    out.push({at: v / FT_PER_M, text});
+  }
+  return out;
+}
+
+// The top of a heights axis, rounded up to a whole tick so the highest line
+// never touches the frame.
+function feetCeiling(m, spanFloor = 0.3) {
+  const top = Math.max(spanFloor, m) * FT_PER_M;
+  const step = [0.5, 1, 2, 5, 10].find((f) => top / f <= 4) || 20;
+  return Math.ceil(top / step + 0.05) * step / FT_PER_M;
+}
+
+// What one view draws for one tab: its lines (drawn in order, the tab's own
+// line last so it sits on top), the axis, and how an hour reads out.
+function chartSpec(id, mode) {
+  const steps = SERIES.steps;
+  const station = SERIES.station || "the buoy";
+  const live = (s) => !s.gap && !s.pending;
+  const brk = (s, bid) => (live(s) && s.breaks && s.breaks[bid]) || {};
+  const buoyOf = (s) => (live(s) && s.buoy) || {};
+  const num = (v) => (v == null || !isFinite(v) ? null : v);
+  const name = SHORT[id] || id;
+  const others = ORDER.filter((bid) => bid !== id);
+  const buoyLine = (cls) => ({cls, label: `Buoy ${station}`,
+                              values: steps.map((s) => num(buoyOf(s).hs_m))});
+  const breakLine = (bid, cls, label) => ({cls, label,
+                                           values: steps.map((s) => num(brk(s, bid).hs_m))});
+  const named = (v, text) => (v == null ? `${text} —` : `${text} ${v}`);
+
+  if (id === BUOY_TAB || mode === "height") {
+    const lines = id === BUOY_TAB
+      ? [...ORDER.map((bid) => breakLine(bid, "other", "Breaks, breaking")), buoyLine("main")]
+      : [...others.map((bid) => breakLine(bid, "other", "Other breaks")), buoyLine("buoy"),
+         breakLine(id, "main", `${name}, breaking`)];
+    const top = feetCeiling(Math.max(0, ...lines.flatMap((ln) => ln.values).filter((v) => v != null)));
+    return {
+      lines, domain: [0, top], ticks: feetTicks(0, top),
+      says: id === BUOY_TAB
+        ? "The buoy's height each hour, with the three breaks' breaking heights faint behind it."
+        : `${name}'s breaking height each hour, beside the buoy's and the other two breaks'.`,
+      read: (i) => {
+        const own = id === BUOY_TAB ? buoyOf(steps[i]).hs_m : brk(steps[i], id).hs_m;
+        const rest = (id === BUOY_TAB ? ORDER : [...others, BUOY_TAB]).map((k) => (k === BUOY_TAB
+          ? `Buoy ${height(num(buoyOf(steps[i]).hs_m))}`
+          : `${SHORT[k]} ${height(num(brk(steps[i], k).hs_m))}`));
+        return `<b>${id === BUOY_TAB ? "Buoy" : name} ${height(num(own))}</b> &middot; `
+          + rest.join(" &middot; ");
+      },
+    };
+  }
+
+  if (mode === "diff") {
+    const values = steps.map((s) => num(live(s) ? s.south_minus_north_m : null));
+    const reach = Math.max(0.1, ...values.filter((v) => v != null).map(Math.abs));
+    const hi = feetCeiling(reach, 0.1);
+    return {
+      lines: [{cls: "main", label: "South less north", values}],
+      domain: [-hi, hi], ticks: feetTicks(-hi, hi, {signs: true}), zero: true,
+      above: "South bigger", below: "North bigger",
+      says: "South's breaking height less north's, the same on every break's tab. "
+        + "Where the line crosses zero, which of the two is bigger has flipped.",
+      read: (i) => `South less north <b>${signedHeight(values[i])}</b>`,
+    };
+  }
+
+  if (mode === "window") {
+    const share = (bid, cls, label) => ({cls, label,
+      values: steps.map((s) => num(brk(s, bid).transmission))});
+    return {
+      lines: [...others.map((bid) => share(bid, "other", "Other breaks")),
+              share(id, "main", name)],
+      domain: [0, 1], ticks: [0, 0.5, 1].map((v) => ({at: v, text: `${v * 100}%`})),
+      says: `${name}'s height through its windows as a share of the buoy's, before the `
+        + "seabed and the surf zone. It moves with where the swell comes from and how "
+        + "widely it is spread.",
+      read: (i) => {
+        const v = num(brk(steps[i], id).transmission);
+        const from = buoyOf(steps[i]).from_deg;
+        return `<b>${name} ${v == null ? "—" : Math.round(100 * v) + "%"}</b> of the buoy's height`
+          + (from != null ? ` &middot; buoy peak from ${compass(from)}` : "");
+      },
+    };
+  }
+
+  // Range %K: where the buoy sits in its own last day's range, less where this
+  // break sits in its. The page only subtracts; forecast.series computes both
+  // and leaves an hour without enough readings undefined, never filled.
+  const diff = (key) => steps.map((s) => {
+    const a = num(buoyOf(s)[key]), b = num(brk(s, id)[key]);
+    return a == null || b == null ? null : a - b;
+  });
+  const kLine = diff("pct_k");
+  const lookback = SERIES.k_lookback_h || 24;
+  return {
+    lines: [{cls: "slow", label: `${SERIES.d_hours || 3} h mean`, values: diff("pct_d")},
+            {cls: "main", label: "Buoy %K less break %K", values: kLine}],
+    domain: [-100, 100], zero: true,
+    ticks: [-100, 0, 100].map((v) => ({at: v, text: v > 0 ? "+100" : v < 0 ? "−100" : "0"})),
+    above: "Buoy higher in its range", below: `${name} higher in its range`,
+    says: `Where the buoy's height sits in its own last ${lookback} hours, 0 at the low and `
+      + `100 at the high, less where ${name}'s sits in its. Above zero, the buoy is nearer its `
+      + "own high than the break is to its own. A position in a range, not a height.",
+    // The difference is taken from the two whole numbers printed beside it,
+    // so the readout's own arithmetic always checks.
+    read: (i) => {
+      const a = num(buoyOf(steps[i]).pct_k), b = num(brk(steps[i], id).pct_k);
+      const k = (v) => (v == null ? null : Math.round(v));
+      const d = a == null || b == null ? null : k(a) - k(b);
+      return `${named(k(a), "Buoy %K")} &middot; ${named(k(b), `${name} %K`)} &middot; `
+        + `<b>difference ${d == null ? "—" : (d > 0 ? "+" : d < 0 ? "−" : "") + Math.abs(d)}</b>`;
+    },
+  };
+}
+
+// The hour the chart reads out: the one the reader tapped, while it is still
+// in the file, else the newest hour with a reading.
+function chartIndex() {
+  const steps = SERIES.steps;
+  const pinned = CHART_AT == null ? -1 : steps.findIndex((s) => s.valid_utc === CHART_AT);
+  if (pinned >= 0) return pinned;
+  for (let i = steps.length - 1; i >= 0; i--) {
+    if (!steps[i].gap && !steps[i].pending) return i;
+  }
+  return steps.length - 1;
+}
+
+function chartPlot(id, spec, at) {
+  const {w, h, l, r, t, b} = CHART;
+  const steps = SERIES.steps;
+  const n = steps.length;
+  const dx = (w - l - r) / Math.max(1, n - 1);
+  const X = (i) => l + i * dx;
+  const [lo, hi] = spec.domain;
+  const Y = (v) => t + (h - t - b) * (hi - Math.max(lo, Math.min(hi, v))) / (hi - lo);
+  const f = (v) => v.toFixed(1);
+
+  const grid = spec.ticks.map((tk) => {
+    const y = f(Y(tk.at));
+    const cls = spec.zero && tk.at === 0 ? "zero" : "grid";
+    return `<line class="${cls}" x1="${l}" x2="${w - r}" y1="${y}" y2="${y}"/>`
+      + `<text class="tick" x="${l - 5}" y="${y}" text-anchor="end" dominant-baseline="middle">${tk.text}</text>`;
+  }).join("");
+
+  // Local midnights, labelled with the day that starts there.
+  const days = steps.map((s, i) => {
+    const local = new Date(s.valid_utc);
+    if (local.getHours() !== 0) return "";
+    const x = f(X(i));
+    const day = local.toLocaleString(undefined, {weekday: "short"});
+    return `<line class="day" x1="${x}" x2="${x}" y1="${t}" y2="${h - b}"/>`
+      + (X(i) < w - r - 16 ? `<text class="tick" x="${f(X(i) + 3)}" y="${h - 6}">${day}</text>` : "");
+  }).join("");
+
+  const gaps = steps.map((s, i) => (s.gap
+    ? `<rect class="gapband" x="${f(Math.max(l, X(i) - dx / 2))}" y="${t}"`
+      + ` width="${f(Math.min(dx, w - r - Math.max(l, X(i) - dx / 2)))}" height="${h - t - b}"/>`
+    : "")).join("");
+
+  // Joined only between consecutive hours that both have a value.
+  const lines = spec.lines.map((ln) => {
+    let d = "", dots = "", run = 0, last = null;
+    const lone = () => (run === 1
+      ? `<circle class="pt ${ln.cls}" cx="${last[0]}" cy="${last[1]}" r="1.8"/>` : "");
+    ln.values.forEach((v, i) => {
+      if (v == null) { dots += lone(); run = 0; return; }
+      last = [f(X(i)), f(Y(v))];
+      d += `${run ? "L" : "M"}${last[0]},${last[1]}`;
+      run += 1;
+    });
+    dots += lone();
+    return (d ? `<path class="ln ${ln.cls}" d="${d}"/>` : "") + dots;
+  }).join("");
+
+  const sides = (spec.above ? `<text class="side" x="${l + 4}" y="${t + 9}">${spec.above}</text>` : "")
+    + (spec.below ? `<text class="side" x="${l + 4}" y="${h - b - 4}">${spec.below}</text>` : "");
+
+  const main = spec.lines[spec.lines.length - 1];
+  const x = f(X(at));
+  const v = main.values[at];
+  const cross = `<line class="cross" x1="${x}" x2="${x}" y1="${t}" y2="${h - b}"/>`
+    + (v != null ? `<circle class="hot" cx="${x}" cy="${f(Y(v))}" r="3.5"/>` : "");
+
+  const label = `${spec.says} Last ${Math.round(n / 24)} days, hourly. `
+    + "Arrow keys step through the hours.";
+  return `<svg class="series" viewBox="0 0 ${w} ${h}" role="group" tabindex="0"`
+    + ` aria-label="${svgText(label)}" data-series="${id}">`
+    + gaps + grid + days + lines + cross + sides + `</svg>`;
+}
+
+function chartReadout(spec, i) {
+  const s = SERIES.steps[i];
+  const stamp = `<b>${dayClock(s.valid_utc)}</b>`;
+  if (s.gap) return `${stamp} &middot; no ${SERIES.station || "buoy"} spectrum for this hour, left as a gap`;
+  if (s.pending) return `${stamp} &middot; not in yet`;
+  return `${stamp} &middot; ${spec.read(i)}`;
+}
+
+// Every line has a legend entry as well as a colour, so which line is which
+// never rests on colour alone; the tab's own line is listed first.
+function chartLegend(spec) {
+  const seen = new Set();
+  const items = spec.lines.slice().reverse().filter((ln) => {
+    const key = ln.cls + ln.label;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (items.length < 2) return "";
+  return `<div class="legend">${items.map((ln) =>
+    `<span><i class="sw ${ln.cls}"></i>${ln.label}</span>`).join("")}</div>`;
+}
+
+// Where the week comes from. Said under the chart rather than only on
+// info.html, because a rebuilt past looks exactly like a remembered one.
+function chartFoot() {
+  const g = SERIES.steps.filter((s) => s.gap).length;
+  return `Observed at ${SERIES.station || "the buoy"} every hour for the last `
+    + `${Math.round(SERIES.steps.length / 24)} days, each carried in by today's chain`
+    + (g ? `; ${g} hour${g > 1 ? "s" : ""} with no spectrum, left as ${g > 1 ? "gaps" : "a gap"}` : "");
+}
+
+function seriesChart(id) {
+  if (!SERIES || !SERIES.steps || SERIES.steps.length < 2) {
+    return `<div class="chart"><span class="src">The week's hourly chart is not loaded.</span></div>`;
+  }
+  const mode = id === BUOY_TAB ? "height" : CHART_MODE;
+  const spec = chartSpec(id, mode);
+  const at = chartIndex();
+  const modes = id === BUOY_TAB ? "" : `<div class="modes" role="group" aria-label="What the chart shows">`
+    + CHART_MODES.map((m) => `<button type="button" data-chart-mode="${m.id}"`
+      + ` aria-pressed="${m.id === mode}">${m.label}</button>`).join("") + `</div>`;
+  return `<div class="chart" data-chart="${id}">
+    ${modes}
+    <div class="plot">${chartPlot(id, spec, at)}</div>
+    ${chartLegend(spec)}
+    <div class="readout" aria-live="polite">${chartReadout(spec, at)}</div>
+    ${srcLines([spec.says, chartFoot()])}
+  </div>`;
+}
+
+// Redraw one chart's plot and readout for an hour without touching anything
+// else: a mouse previews an hour this way, and leaving puts the tapped one back.
+function chartPreview(el, at) {
+  const id = el.getAttribute("data-chart");
+  const spec = chartSpec(id, id === BUOY_TAB ? "height" : CHART_MODE);
+  el.querySelector(".plot").innerHTML = chartPlot(id, spec, at);
+  el.querySelector(".readout").innerHTML = chartReadout(spec, at);
+}
+
+// The hour under a point on the plot, nearest by x.
+function chartHourAt(svg, clientX, clientY) {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+  const n = SERIES.steps.length;
+  const dx = (CHART.w - CHART.l - CHART.r) / Math.max(1, n - 1);
+  return Math.max(0, Math.min(n - 1, Math.round((pt.x - CHART.l) / dx)));
+}
+
+// Re-render, then put focus back where it was: the strip is rebuilt whole.
+function chartRedraw(selector) {
+  show();
+  const el = selector && $("conditions").querySelector(selector);
+  if (el) el.focus();
+}
+
+// Delegated once, like the drawings, because the cards are rebuilt on every
+// render. A tap pins an hour and the same tap again returns to the newest; a
+// mouse previews; the keyboard steps an hour at a time.
+function wireCharts() {
+  const strip = $("conditions");
+  strip.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-chart-mode]");
+    if (btn) {
+      CHART_MODE = btn.getAttribute("data-chart-mode");
+      remember(KEEP.chart, CHART_MODE);
+      const pane = btn.closest("[data-chart]").getAttribute("data-chart");
+      chartRedraw(`[data-chart="${pane}"] [data-chart-mode="${CHART_MODE}"]`);
+      return;
+    }
+    const svg = e.target.closest("svg.series");
+    if (!svg || !SERIES) return;
+    const at = chartHourAt(svg, e.clientX, e.clientY);
+    if (at == null) return;
+    const hour = SERIES.steps[at].valid_utc;
+    CHART_AT = CHART_AT === hour ? null : hour;
+    show();
+  });
+  strip.addEventListener("pointermove", (e) => {
+    const svg = e.target.closest("svg.series");
+    if (!svg || !SERIES || e.pointerType !== "mouse") return;
+    const at = chartHourAt(svg, e.clientX, e.clientY);
+    if (at != null) chartPreview(svg.closest("[data-chart]"), at);
+  });
+  strip.addEventListener("pointerout", (e) => {
+    const svg = e.target.closest("svg.series");
+    if (!svg || !SERIES || (e.relatedTarget && svg.contains(e.relatedTarget))) return;
+    const el = svg.closest("[data-chart]");
+    // The preview replaced the svg under the pointer; only a real exit resets.
+    if (el && !(e.relatedTarget && el.querySelector(".plot").contains(e.relatedTarget))) {
+      chartPreview(el, chartIndex());
+    }
+  });
+  strip.addEventListener("keydown", (e) => {
+    const svg = e.target.closest("svg.series");
+    if (!svg || !SERIES) return;
+    const n = SERIES.steps.length;
+    const from = chartIndex();
+    const to = e.key === "ArrowLeft" ? Math.max(0, from - 1)
+      : e.key === "ArrowRight" ? Math.min(n - 1, from + 1)
+      : e.key === "Home" ? 0
+      : e.key === "End" ? n - 1
+      : null;
+    if (to == null) return;
+    e.preventDefault();
+    CHART_AT = SERIES.steps[to].valid_utc;
+    chartRedraw(`svg.series[data-series="${svg.getAttribute("data-series")}"]`);
+  });
 }
 
 // The swell card, for either chain. Same shape, different provenance: an
@@ -1395,12 +1811,13 @@ function buoyPanel(buoy, measured = null) {
 // stale reading has to be marked whichever tab is open. Tucked into the
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
-function swellCard({label, buoy, station, cards, source, due = "", measured = null}) {
+function swellCard({label, buoy, station, cards, source, due = "", measured = null,
+                    chart = false}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c),
   }));
   tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy",
-             body: buoyPanel(buoy, measured)});
+             body: buoyPanel(buoy, measured, chart)});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
@@ -1513,6 +1930,7 @@ function renderConditions(step, cards) {
           ? `Spectral wave data, ${NOW.station_name} (NDBC ${NOW.station})` : "",
       ],
       due: dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),
+      chart: true,
     }));
 
     rows.push(`<div class="cond" data-card="wind">
@@ -1845,6 +2263,20 @@ function refreshMeasured() {
     .catch(() => {});
 }
 
+// Rebuilt with every collection, like measured.json. Redrawn without the
+// flash: a new hour on the chart is not a change in the reading above it.
+function refreshSeries() {
+  fetch(fresh(SERIES_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => {
+      if (!got || !got.generated_utc || !got.steps) return;
+      if (SERIES && got.generated_utc === SERIES.generated_utc) return;
+      SERIES = got;
+      if (MODE === "now") show();
+    })
+    .catch(() => {});
+}
+
 function refreshForecast() {
   fetch(fresh(SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
@@ -1960,13 +2392,15 @@ function choose(cursor) {
   show();
 }
 
-function boot(data, observed, measured) {
+function boot(data, observed, measured, series) {
   NOW = observed;
   MEASURED = measured;
+  SERIES = series;
   $("tab-now").onclick = () => setMode("now");
   $("tab-forecast").onclick = () => setMode("forecast");
   wireSwellTabs();
   wireDrawings();
+  wireCharts();
 
   if (!adoptForecast(data, null)) return;
 
@@ -1987,6 +2421,9 @@ function boot(data, observed, measured) {
   SWELL_TAB = recall(KEEP.swell);
   // The calculation table opens as the reader left it; anything else, closed.
   CALC_OPEN = recall(KEEP.calc) === "open";
+  // The chart's view likewise; anything unrecognised is the heights.
+  const view = recall(KEEP.chart);
+  CHART_MODE = CHART_MODES.some((m) => m.id === view) ? view : "height";
   setMode(recall(KEEP.mode) === "forecast" ? "forecast" : "now");
 
   // The observed age moves whether or not anything else does, so the observed
@@ -2005,6 +2442,7 @@ function boot(data, observed, measured) {
   // again. See REFRESH above.
   setInterval(refreshNow, NOW_REFRESH_MS);
   setInterval(refreshMeasured, NOW_REFRESH_MS);
+  setInterval(refreshSeries, NOW_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
 }
 
@@ -2020,8 +2458,12 @@ Promise.all([
   fetch(fresh(MEASURED_SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null),
+  // series.json likewise: without it, the chart says it is not loaded.
+  fetch(fresh(SERIES_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null),
 ])
-  .then(([forecast, observed, measured]) => boot(forecast, observed, measured))
+  .then(([forecast, observed, measured, series]) => boot(forecast, observed, measured, series))
   .catch((err) => {
     $("warnings").hidden = false;
     $("warnings").textContent =

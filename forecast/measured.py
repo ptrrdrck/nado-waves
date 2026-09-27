@@ -25,6 +25,10 @@ Derived and gitignored like `now.json`: every input is committed, so this is
 rebuilt from scratch each collection, for any chain version, and there is
 nothing here to keep. `forecast.modelbias` rebuilds the same entries for
 whatever hours it needs.
+
+`main` also writes ``data/live/series.json``, the same chain for every hour of
+the last week, for the chart on the Now tab (`forecast.series`). The hours here
+are taken from that rebuild rather than rebuilt again.
 """
 
 from __future__ import annotations
@@ -142,9 +146,14 @@ class Rebuilder:
 
 
 def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None,
-          spectra: list[Spectrum] | None = None) -> dict:
+          spectra: list[Spectrum] | None = None, rebuild: Rebuilder | None = None,
+          entries: dict[datetime, dict] | None = None) -> dict:
+    """`measured.json`. `entries` are hours already rebuilt (the hourly series
+    `forecast.series` makes in the same run), so no hour is rebuilt twice."""
+
     moment = now or datetime.now(timezone.utc)
-    rebuild = Rebuilder(data_dir, spectra)
+    rebuild = rebuild or Rebuilder(data_dir, spectra)
+    entries = entries or {}
     return {
         "generated_utc": moment.strftime(ISO),
         "station": STATION,
@@ -160,7 +169,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None,
             "claim": "the difference from the forecast is the model's error at the buoy, "
                      "carried in; it checks nothing at the beach",
         },
-        "steps": [rebuild.at(t) for t in marks(moment)],
+        "steps": [entries[t] if t in entries else rebuild.at(t) for t in marks(moment)],
     }
 
 
@@ -168,12 +177,26 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--series-out", type=Path, default=None)
     args = parser.parse_args(argv)
 
-    got = build(data_dir=args.data_dir)
+    # The hourly series for the Now tab's chart and the 3-hourly steps here are
+    # the same rebuild, so the series goes first and this file takes its hours.
+    from . import series
+
+    moment = datetime.now(timezone.utc)
+    rebuild = Rebuilder(args.data_dir)
+    hourly = series.hourly(rebuild, moment)
+    got = build(data_dir=args.data_dir, now=moment, rebuild=rebuild, entries=hourly)
     out = args.out or Path(args.data_dir) / "live" / "measured.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(got, indent=1), encoding="utf-8")
+
+    chart = series.build(hourly, now=moment)
+    series_out = args.series_out or Path(args.data_dir) / "live" / "series.json"
+    series_out.write_text(json.dumps(chart, indent=1), encoding="utf-8")
+    print(f"Wrote {series_out}: {len(chart['steps'])} hour(s), "
+          f"{sum(1 for s in chart['steps'] if s['gap'])} gap(s)")
     gaps = sum(1 for s in got["steps"] if s["gap"])
     pending = sum(1 for s in got["steps"] if s.get("pending"))
     print(f"Wrote {out}: {len(got['steps'])} hour(s), {gaps} gap(s), {pending} not in yet")

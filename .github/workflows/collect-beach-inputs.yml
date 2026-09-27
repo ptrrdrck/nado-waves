@@ -142,7 +142,9 @@ jobs:
           set -euo pipefail
           python -m forecast.now
           # The same chain for each of the last 48 h, for the blue line under
-          # every past hour on the Forecast tab. Derived, like now.json.
+          # every past hour on the Forecast tab, and for every hour of the last
+          # week (series.json) for the chart on the Now tab -- one rebuild
+          # feeds both, ~37 s. Derived, like now.json.
           python -m forecast.measured
 
       - name: Say which sources came back

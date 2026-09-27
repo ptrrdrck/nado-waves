@@ -97,6 +97,34 @@ a{color:var(--surf)}
     <p class="note" id="foot-now">loading&hellip;</p>
   </section>
 
+  <!-- The chart under each Now card. Observed chain only; it is rebuilt
+       rather than remembered, and says so here as well as under itself. -->
+  <section class="card" id="week-chart">
+    <h2>The week under each Now card</h2>
+    <p class="source">
+      The chart is buoy 46232's own spectrum at <b>every hour of the last seven
+      days</b>, carried in by the same chain as the reading above it. Each hour
+      is rebuilt with <b>today's</b> windows, seabed and surf zone, so an
+      earlier hour shows what the current chain makes of it, not what this
+      page said at the time. An hour with no buoy spectrum is a <b>gap</b>: a
+      pale band with no line through it, never filled from the hour beside it.
+    </p>
+    <p class="source">
+      <b>Height</b> is each break's breaking height beside the buoy's.
+      <b>South &minus; North</b> is south's less north's; where it crosses
+      zero, which of the two is bigger has flipped. <b>Window</b> is a break's
+      height through its windows as a share of the buoy's, before the seabed.
+      <b>Range %K</b> is where the buoy sits in its own last 24 hours' range,
+      0 at the low and 100 at the high, less where the break sits in its:
+      a position in a range, not a height, left blank where too few of those
+      24 hours were measured.
+    </p>
+    <p class="note">
+      Nothing here is a forecast, and nothing here has been measured at the
+      breaks.
+    </p>
+  </section>
+
   <section class="card">
     <h2>What Forecast is standing on</h2>
     <p class="source" id="cycle">loading&hellip;</p>

@@ -219,7 +219,12 @@ forecaster actually verifies against, Surfline included.
    hour whose build kept only a headline says "The calculation for this hour
    was not kept" rather than borrowing another build's detail. Under it, in
    sea green, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
-   one that has. Opens on Now;
+   one that has. **Under each Now card is the week, hourly** (owner's request,
+   2026-09-27; `forecast/series.py` → `series.json`): height, south − north,
+   window ratio and a 24 h %K, switched above the plot. Now tab only, because
+   it is the observed chain; every past hour is REBUILT with today's chain, not
+   remembered, and the chart says so; a missing hour is a gap in the line.
+   ~37 s of each collection, measured. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
    says so and points at Forecast rather than falling back silently. The
@@ -443,6 +448,9 @@ forecaster actually verifies against, Surfline included.
                         and the 48 h of it the page reads back     [built]
       measured.py       the observed chain rebuilt for each past hour:
                         exact-stamp spectrum, wind and tide as of then [built]
+      series.py         the same, every hour for the last week, with the
+                        south-less-north, window ratio and %K the Now
+                        tab's chart draws; one rebuild feeds both files [built]
       modelbias.py      GFS-Wave's bias at 46232 through each break's
                         windows; reports, never edits              [built]
       exposurebias.py   GFS-Wave's bias from the unshadowed 46047 to the
@@ -468,8 +476,8 @@ forecaster actually verifies against, Surfline included.
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
-    data/live/          forecast.json, now.json and measured.json, what the
-                        app surface reads (derived, gitignored)
+    data/live/          forecast.json, now.json, measured.json and series.json,
+                        what the app surface reads (derived, gitignored)
     data/forecast_log/  46232/YYYY-MM.csv: what every forecast build said,
                         3-hourly, one row per site (forecast.forecastlog).
                         PERMANENT and never published: the one input to the

@@ -1498,12 +1498,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert SOURCE.count("fetch(fresh(SOURCE)") == 2       # boot + refresh
         assert SOURCE.count("fetch(fresh(NOW_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(MEASURED_SOURCE)") == 2
+        assert SOURCE.count("fetch(fresh(SERIES_SOURCE)") == 2
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 6
+        assert SOURCE.count('{cache: "no-store"}') == 8
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -1790,3 +1791,90 @@ class TestAPastHourKeepsItsCard:
         assert got["past"] is True and got["effects"] is False
         assert "The calculation for this hour was not kept." in SOURCE
         assert "Only the headline is kept" not in SOURCE
+
+
+class TestTheWeekChart:
+    """The hourly observed series under each Now card (forecast.series). It is
+    the observed chain, so it is on the Now tab only, and a missing hour breaks
+    the line rather than being joined across."""
+
+    def _run(self, script):
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        fns = ""
+        for name in ("chartSpec", "chartIndex", "chartPlot", "chartReadout", "feetTicks",
+                     "feetCeiling", "compass"):
+            start = SOURCE.index(f"function {name}(")
+            fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        prelude = (
+            "const FT_PER_M = 3.28084; let CHART_AT = null;\n"
+            "const CHART = {w: 320, h: 150, l: 40, r: 8, t: 10, b: 20};\n"
+            "const ORDER = ['coronado_north', 'coronado_center', 'coronado_south'];\n"
+            "const SHORT = {coronado_north: 'North', coronado_center: 'Center',"
+            " coronado_south: 'South'};\n"
+            "const BUOY_TAB = 'buoy';\n"
+            "const height = (m) => (m == null ? '-' : m.toFixed(2) + ' m');\n"
+            "const signedHeight = height;\n"
+            "const svgText = (v) => String(v);\n"
+            "const dayClock = (v) => v;\n"
+            "const hour = (h, hs) => ({valid_utc: `2026-09-26T${String(h).padStart(2, '0')}:00:00Z`,"
+            " gap: false, buoy: {hs_m: 1.2, pct_k: 60.4, pct_d: 50},"
+            " breaks: {coronado_north: {hs_m: hs, transmission: 0.7, pct_k: 20.4, pct_d: 30}},"
+            " south_minus_north_m: 0.1});\n"
+            "const gap = (h) => ({valid_utc: `2026-09-26T${String(h).padStart(2, '0')}:00:00Z`,"
+            " gap: true});\n"
+        )
+        out = subprocess.run([node, "-e", prelude + fns + script],
+                             capture_output=True, text=True, check=True).stdout
+        return [line for line in out.splitlines() if line.strip()]
+
+    def test_it_is_on_the_now_tab_only(self):
+        now = SOURCE[SOURCE.index("function cardsForNow"):]
+        now = now[:now.index("\n}\n")]
+        forecast = SOURCE[SOURCE.index("function cardsForForecast"):]
+        forecast = forecast[:forecast.index("\n}\n")]
+        assert "chart: true" in now and "chart" not in forecast
+        assert "${c.chart ? seriesChart(c.id) : \"\"}" in SOURCE
+
+    def test_a_gap_breaks_the_line_and_a_lone_hour_is_a_dot(self):
+        got = self._run(
+            "const SERIES = {station: '46232', steps: [hour(0, 1), hour(1, 1.1), gap(2),"
+            " hour(3, 1.2), gap(4), hour(5, 1.0), hour(6, 0.9)]};\n"
+            "const spec = chartSpec('coronado_north', 'height');\n"
+            "const svg = chartPlot('coronado_north', spec, chartIndex());\n"
+            "const main = svg.match(/<path class=\"ln main\" d=\"([^\"]+)\"/)[1];\n"
+            "console.log((main.match(/M/g) || []).length, (main.match(/L/g) || []).length);\n"
+            "console.log((svg.match(/<circle class=\"pt main\"/g) || []).length);\n"
+            "console.log((svg.match(/class=\"gapband\"/g) || []).length);"
+        )
+        # Three runs, 0-1, 3 and 5-6: two lines of one join each, and the lone
+        # hour is a move with nothing drawn from it, so it gets the dot.
+        assert got == ["3 2", "1", "2"]
+
+    def test_a_gap_reads_out_as_a_gap(self):
+        got = self._run(
+            "const SERIES = {station: '46232', steps: [hour(0, 1), gap(1)]};\n"
+            "CHART_AT = '2026-09-26T01:00:00Z';\n"
+            "console.log(chartReadout(chartSpec('coronado_north', 'height'), chartIndex()));"
+        )
+        assert "left as a gap" in got[0]
+
+    def test_the_default_hour_is_the_newest_reading(self):
+        got = self._run(
+            "const SERIES = {station: '46232', steps: [hour(0, 1), hour(1, 1),"
+            " {valid_utc: '2026-09-26T02:00:00Z', gap: false, pending: true}]};\n"
+            "console.log(chartIndex());"
+        )
+        assert got == ["1"]
+
+    def test_the_range_difference_is_the_difference_of_what_it_prints(self):
+        got = self._run(
+            "const SERIES = {station: '46232', steps: [hour(0, 1)]};\n"
+            "console.log(chartSpec('coronado_north', 'range').read(0));"
+        )
+        assert "Buoy %K 60" in got[0] and "North %K 20" in got[0] and "difference +40" in got[0]
+
+    def test_it_says_the_past_was_rebuilt_with_todays_chain(self):
+        assert "each carried in by today's chain" in SOURCE
+        assert "left as ${g > 1 ? \"gaps\" : \"a gap\"}" in SOURCE
