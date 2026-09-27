@@ -497,7 +497,19 @@ class TestWindAndTideAreHoisted:
         assert 'class="src"' in SOURCE
 
     def test_the_tide_says_it_is_a_model(self):
-        assert "`Predicted for ${stampWhen}`, `Harmonic tide, ${tideSource(DATA)}`" in SOURCE
+        assert ("`Harmonic tide for ${stampWhen}`, tideSource(DATA), departureLine(tide)"
+                in SOURCE)
+
+    def test_the_forecast_tide_says_when_it_carries_the_measured_departure(self):
+        """The card's height is the prediction plus the gauge's measured
+        departure, the level the breaking used. An hour without one gets no
+        line, so the card never claims an offset its number does not carry."""
+
+        line = SOURCE[SOURCE.index("function departureLine"):]
+        line = line[:line.index("\n}\n")]
+        assert 'if (d == null) return "";' in line
+        assert "the gauge's measured` + ` departure from it over the last 3 days" in \
+            re.sub(r"\s+", " ", line)
 
     def test_the_provenance_separates_a_forecast_hour_from_an_observation(self):
         """The model's wind moves with the picker; the KNZY fallback is an
@@ -505,13 +517,13 @@ class TestWindAndTideAreHoisted:
         file carries — and since the titles are bare quantities now, the
         provenance line is the only thing telling them apart."""
 
-        assert "GFS-Wave wind at the buoy, ${DATA.station_name} (NDBC ${DATA.station})" in SOURCE
+        assert "GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})" in SOURCE
         assert "METAR, ${fallback.station_name} (${fallback.station})" in SOURCE
         assert "METAR, ${wind.station_name} (${wind.station})" in SOURCE
-        assert "Harmonic tide, ${tideSource(DATA)}" in SOURCE
+        assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
-        wind = SOURCE[SOURCE.index("GFS-Wave wind at the buoy") - 200:]
+        wind = SOURCE[SOURCE.index("GFS-Wave wind, ${DATA") - 200:]
         assert "`Forecast for ${stampWhen}`" in wind[:200]
 
     def test_it_prefers_the_model_wind_and_falls_back(self):
@@ -606,10 +618,10 @@ class TestTheTwoChains:
 
     def test_forecast_labels_its_inputs_as_a_model(self):
         """The verb that opens each line says which chain it is: "Forecast"
-        and "Predicted" here, where Now says "Observed" and "Measured"."""
+        and "Harmonic tide" here, where Now says "Observed" and "Measured"."""
 
         assert SOURCE.count("`Forecast for ${stampWhen}`") == 2      # swell, wind
-        assert "`Predicted for ${stampWhen}`" in SOURCE
+        assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_a_stale_observation_is_not_rendered_as_current(self):
         """NDBC has served 306-hour-old content behind an HTTP 200.
@@ -1643,7 +1655,7 @@ class TestEveryMeasurementSaysHowOldItIs:
         """It only appears when the model has no wind for that hour, which is
         exactly when how old the substitute is matters."""
 
-        wind_block = SOURCE[SOURCE.index("GFS-Wave wind at the buoy"):]
+        wind_block = SOURCE[SOURCE.index("GFS-Wave wind, ${DATA"):]
         assert "Observed ${observedAt(fallback.observed_utc)}" in wind_block[:400]
 
     def test_a_prediction_is_never_given_an_age(self):
@@ -1652,7 +1664,7 @@ class TestEveryMeasurementSaysHowOldItIs:
         so those lines use `stampWhen` and never `observedAt`."""
 
         for predicted in ("`Forecast for ${stampWhen}`",
-                          "`Predicted for ${stampWhen}`"):
+                          "`Harmonic tide for ${stampWhen}`"):
             assert predicted in SOURCE, predicted
         assert "observedAt(stamp" not in SOURCE
         assert "observedAt(t." not in SOURCE

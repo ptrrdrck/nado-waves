@@ -195,20 +195,25 @@ def coast_height(bay_mllw_m: float) -> float:
     return RATIO * bay_mllw_m
 
 
-def coast_turn(turn):
+def coast_turn(turn, departure: float | None = None):
     """A predicted turn of the bay's tide as it happens on the open coast:
-    `LEAD_MIN` earlier, `RATIO` of the height."""
+    `LEAD_MIN` earlier, `RATIO` of the height. With a `departure` (the bay's
+    measured-minus-predicted, `anomaly`) the height carries it too, as
+    `forecast_level` does; a constant offset moves no turn in time or kind."""
 
     from .tideturns import Turn
 
     when = datetime.strptime(turn.valid_utc, ISO).replace(tzinfo=timezone.utc)
     return Turn((when - timedelta(minutes=LEAD_MIN)).strftime(ISO),
-                coast_height(turn.height_m), turn.event)
+                coast_height(turn.height_m + (departure or 0.0)), turn.event)
 
 
-def coast_predicted(predicted: list[tuple[datetime, float]], when: datetime) -> float | None:
+def coast_predicted(predicted: list[tuple[datetime, float]], when: datetime,
+                    departure: float | None = None) -> float | None:
     """The open coast's predicted height at `when`, on its MLLW: the bay's
-    prediction `LEAD_MIN` later, scaled."""
+    prediction `LEAD_MIN` later, plus the bay's measured `departure` when one
+    is given, scaled. The forecast's Tide card uses the departure so that it
+    shows the level its breaking was computed at, not ~0.2 m under it."""
 
     value = interpolate(predicted, when + timedelta(minutes=LEAD_MIN))
-    return None if value is None else coast_height(value)
+    return None if value is None else coast_height(value + (departure or 0.0))

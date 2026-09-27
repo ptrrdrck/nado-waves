@@ -175,6 +175,53 @@ class TestItDegradesHonestly:
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, data_dir=tmp_path)
         assert got.tide and all(t.height_m is None for t in got.tide)
 
+
+class TestTheForecastTideCarriesTheMeasuredDeparture:
+    """The card's tide is the level the breaking used: the prediction plus the
+    gauge's measured departure over the last three days, carried to the coast.
+    Without a measured departure it is the bare prediction and says so by
+    carrying no `departure_m`."""
+
+    @staticmethod
+    def gauge(tmp_path, observed: float | None):
+        tide = tmp_path / "tide"
+        tide.mkdir()
+        head = "time_utc,first_seen_utc,height_m,kind,datum\n"
+        hours = [CYCLE + timedelta(hours=h) for h in range(-72, 12)]
+        stamp = lambda t: t.strftime("%Y-%m-%dT%H:%M:%SZ")
+        (tide / "9410170_predicted.csv").write_text(
+            head + "".join(f"{stamp(t)},{stamp(CYCLE)},1.0,predicted,MLLW\n" for t in hours))
+        if observed is not None:
+            (tide / "9410170_observed.csv").write_text(
+                head + "".join(f"{stamp(t)},{stamp(CYCLE)},{observed},observed,MLLW\n"
+                               for t in hours if t <= CYCLE))
+        (tide / "9410170_turns.csv").write_text(
+            "time_utc,first_seen_utc,height_m,kind,datum,event\n"
+            f"{stamp(CYCLE + timedelta(hours=2))},{stamp(CYCLE)},1.5,predicted,MLLW,high\n")
+
+    def test_the_height_and_the_turn_carry_it(self, tmp_path):
+        from forecast.tidesite import RATIO
+
+        self.gauge(tmp_path, observed=1.2)
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, data_dir=tmp_path)
+        assert got.tide_departure_m == pytest.approx(0.2)
+        covered = [t for t in got.tide if t.height_m is not None]
+        assert covered
+        for t in covered:
+            assert t.height_m == pytest.approx(RATIO * 1.2, abs=1e-3)
+            assert t.departure_m == pytest.approx(RATIO * 0.2, abs=1e-3)
+        assert [t["height_m"] for t in got.tide_turns] == [pytest.approx(RATIO * 1.7, abs=1e-3)]
+
+    def test_no_measured_departure_is_the_bare_prediction(self, tmp_path):
+        from forecast.tidesite import RATIO
+
+        self.gauge(tmp_path, observed=None)
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, data_dir=tmp_path)
+        assert got.tide_departure_m is None
+        covered = [t for t in got.tide if t.height_m is not None]
+        assert covered and all(t.departure_m is None for t in covered)
+        assert all(t.height_m == pytest.approx(RATIO * 1.0, abs=1e-3) for t in covered)
+
     def test_no_cycle_produces_no_breaks_and_says_why(self, monkeypatch, tmp_path):
         monkeypatch.setattr(live, "fetch_latest", lambda **kw: (None, ["cycle unavailable"]))
         got = live.build(now=CYCLE, data_dir=tmp_path)

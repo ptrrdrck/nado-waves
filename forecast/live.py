@@ -146,6 +146,10 @@ class TideAtHour:
     valid_utc: str
     height_m: float | None = None
     kind: str | None = None
+    #: How much of `height_m` is the gauge's measured departure from its
+    #: prediction, carried forward, on the open coast. None when none was
+    #: added: an hour logged before 2026-09-27, or no departure measured.
+    departure_m: float | None = None
 
 
 @dataclass
@@ -454,7 +458,8 @@ def build(
             "local chop": "MODELLED — fetch-limited growth from the model's own wind, "
                           "only over fetches closed by land",
             "tide": f"PREDICTED — the harmonic prediction at {TIDE_STATION}, inside San "
-                    f"Diego Bay, carried to Coronado's open coast (x{RATIO:.3f} on MLLW, "
+                    f"Diego Bay, plus the last 3 days' measured departure from it when there "
+                    f"is one, carried to Coronado's open coast (x{RATIO:.3f} on MLLW, "
                     f"{LEAD_MIN} min earlier, measured against La Jolla)",
             "surf zone": SURF_ZONE_LINE.format(
                 tide="the harmonic prediction plus the last 3 days' measured departure"),
@@ -497,7 +502,18 @@ def build(
         forecast.warnings.append(f"{WIND_STATION} wind not collected yet.")
     if not tide:
         forecast.warnings.append(f"{TIDE_STATION} tide not collected yet.")
-    all_turns = [coast_turn(t) for t in read_turns(data_dir, TIDE_STATION)]
+    # The gauge has run ~0.2 m above its 1983-2001 epoch prediction (BRIEFING
+    # §32), so the forecast carries the last three days' measured departure
+    # forward. Breaking has always used it; the card, its turns and its depth
+    # now use the same one, so the Tide card shows the level the swell was
+    # computed at rather than a bare prediction ~9 in under it. None when the
+    # gauge measured nothing in that window: then the card is the bare
+    # prediction, it says so by omission, and there is no breaking.
+    departure, _ = anomaly(data_dir, datetime.strptime(generated, ISO)
+                           .replace(tzinfo=timezone.utc))
+    if departure is not None:
+        forecast.tide_departure_m = round(departure, 3)
+    all_turns = [coast_turn(t, departure) for t in read_turns(data_dir, TIDE_STATION)]
     if not all_turns:
         forecast.warnings.append(
             f"{TIDE_STATION} predicted high/low turns not collected yet."
@@ -546,11 +562,13 @@ def build(
                 ],
             })
 
-        value = coast_predicted(bay_predicted, row.valid_utc)
+        value = coast_predicted(bay_predicted, row.valid_utc, departure)
         forecast.tide.append(TideAtHour(
             valid_utc=row.valid_utc.strftime(ISO),
             height_m=round(value, 3) if value is not None else None,
             kind="predicted" if value is not None else None,
+            departure_m=(round(RATIO * departure, 3)
+                         if value is not None and departure is not None else None),
         ))
 
     if rows and all_turns:
@@ -576,14 +594,12 @@ def build(
     # from that prediction over the last three days (persistence — the epoch
     # prediction alone put every break ~0.2 m too shallow, BRIEFING §32). No
     # measured departure, no breaking: the 5 m figure is shown instead.
-    profiles, tide_series, departure, msl = {}, [], None, None
+    profiles, tide_series, msl = {}, [], None
     if tables:
         try:
             profiles = load_profiles()
             msl = msl_above_mllw(data_dir)
             tide_series = predicted_series(data_dir)
-            departure, pairs = anomaly(data_dir, datetime.strptime(generated, ISO)
-                                       .replace(tzinfo=timezone.utc))
         except (FileNotFoundError, KeyError, ValueError) as exc:
             profiles = {}
             forecast.warnings.append(f"surf zone unavailable ({exc}); no breaking")
@@ -591,8 +607,6 @@ def build(
             profiles = {}
             forecast.warnings.append(f"no measured departure from the {TIDE_STATION} "
                                      "prediction in the last 3 days; no breaking")
-        elif profiles:
-            forecast.tide_departure_m = round(departure, 3)
 
     # One spectrum per hour, shared by the three breaks: the model's own grid
     # when there is one, otherwise the partitions rebuilt into a spectrum and
