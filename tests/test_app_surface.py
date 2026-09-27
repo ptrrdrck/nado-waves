@@ -333,6 +333,13 @@ class TestTheGeometryProvenance:
         assert "Directional spread is assumed" in INFO_TEXT
 
 
+# The page's own clock formatter, for node-run tests of anything that labels an
+# hour. A const arrow, so it is lifted by its statement rather than by
+# `function name(`.
+CLOCK = SOURCE[SOURCE.index("const clock = "):]
+CLOCK = CLOCK[:CLOCK.index("});") + 3] + "\n"
+
+
 class TestTheSeekBar:
     def _run(self, script):
         node = shutil.which("node")
@@ -347,6 +354,7 @@ class TestTheSeekBar:
         prelude = (
             "let DATA = null, TIDE_BY_TIME = {}, STEPS = [], CURSOR = 0, CHOSEN = null;\n"
             "let MEASURED = null; const FT_PER_M = 3.28084;\n"
+            + CLOCK +
             "const height = (m) => m.toFixed(2) + ' m';\n"
 
             "const el = {textContent: '', innerHTML: '', hidden: true};\n"
@@ -443,17 +451,31 @@ class TestTheSeekBar:
         )
         assert got == ["03 value", "06 gap", "00 none", "09 future", "09 pending"]
 
-    def test_the_blue_line_names_what_it_is(self):
+    def test_the_measured_line_names_the_hour_it_was_observed(self):
+        """Owner's wording, 2026-09-27: "Observed at 8:00 AM". The hour comes
+        from measuredAt, in every state, so "not in yet" names it too."""
+
         got = self._run(
-            "MEASURED = {station: '46232'};\n"
-            "const m = {state: 'value', entry: {breaks: {n: {hs_m: 0.8, hs_basis: 'breaking',"
-            " depth_m: 1.9, period_s: 14.3, from_deg: 205}}}};\n"
+            "MEASURED = {station: '46232', steps: [{valid_utc: '2026-09-26T03:00:00Z',"
+            " gap: false, breaks: {n: {hs_m: 0.8, hs_basis: 'breaking', depth_m: 1.9,"
+            " period_s: 14.3, from_deg: 205}}}]};\n"
+            "const m = measuredAt('2026-09-26T03:00:00Z');\n"
             "console.log(measuredLine(m, (e) => e.breaks.n).replace(/\\s+/g, ' '));"
             "console.log(measuredLine({state: 'future'}, (e) => e) === '');"
+            "console.log(measuredLine(measuredAt('2026-09-26T06:00:00Z'), (e) => e));"
+            "console.log(clock('2026-09-26T03:00:00Z'));"
         )
-        assert "Measured at 46232, same chain" in got[0]
+        hour = got[3]
+        assert f"Observed at {hour}" in got[0]
         assert "0.80 m" in got[0] and "breaking at 6 ft (1.9 m) depth" in got[0]
         assert got[1] == "true"
+        assert f"Observed at {hour}" not in got[2] and "Observed at" in got[2]
+        assert "same chain" not in got[0]
+
+    def test_wind_is_observed_and_tide_is_measured_at_the_hour(self):
+        assert '<span class="lbl">Observed at ${clock(step.valid_utc)}</span>' in SOURCE
+        assert '<span class="lbl">Measured at ${clock(step.valid_utc)}</span>' in SOURCE
+        assert "carried to the coast</span>" not in SOURCE
 
     def test_the_page_never_calls_the_measurement_what_happened(self):
         """Both numbers pass through the same physics, so their difference is
@@ -1707,7 +1729,7 @@ class TestTheWindowBlockSurvivesAnOlderPayload:
 
 
 class TestPastHoursAreExplained:
-    """The blue line is the observed chain inside a forecast card. info.html
+    """The measured line is the observed chain inside a forecast card. info.html
     says what it is and what the comparison cannot show."""
 
     def test_info_names_the_comparison_and_its_limit(self):

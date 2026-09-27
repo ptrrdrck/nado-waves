@@ -14,7 +14,7 @@
   --sand:#D9C9A8; --sand-deep:#B9A47C;
   --signal:#C62828; --signal-wash:#F9DEDE;
   --ok:#2F7D4F;
-  --measured:#0B50C4; --measured-wash:#E4EDFC;
+  --measured:#0A7A56;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
 }
@@ -26,7 +26,7 @@
     --sand:#8C7A55; --sand-deep:#A8935F;
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
-    --measured:#8DBBFF; --measured-wash:#132A48;
+    --measured:#3EDB9E;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
@@ -37,7 +37,7 @@
   --sand:#8C7A55; --sand-deep:#A8935F;
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
-  --measured:#8DBBFF; --measured-wash:#132A48;
+  --measured:#3EDB9E;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
@@ -177,12 +177,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .calc-table tbody tr:last-child th{border-bottom:0}
 
 /* The measured reading under a past forecast hour: 46232's own spectrum at
-   that hour, carried in by the same chain. Blue, and on a wash with a rule
-   down its edge, so it can never be read as part of the forecast above it;
-   its label names what it is on every line, not once per page. */
+   that hour, carried in by the same chain (info.html says so). Sea green, in
+   a 1 px outline at the card's radius (owner's style, 2026-09-27), so it can
+   never be read as part of the forecast above it; its label names the hour
+   it was observed on every line, not once per page. */
 .measured{display:flex;flex-direction:column;gap:1px;padding:6px 10px;
-          background:var(--measured-wash);border-left:3px solid var(--measured);
-          border-radius:0 6px 6px 0;color:var(--measured);font-variant-numeric:tabular-nums}
+          background:transparent;border:1px solid var(--measured);
+          border-radius:var(--r);color:var(--measured);font-variant-numeric:tabular-nums}
 .measured .lbl{font-size:12px;color:var(--measured)}
 .measured .mval{font-size:17px;font-weight:600;line-height:1.25}
 .measured .mval .unit,.measured .mpeak{color:var(--measured);font-size:13.5px;font-weight:400}
@@ -359,7 +360,7 @@ const PARAM = new URLSearchParams(location.search);
 const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
 const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
 // The observed chain rebuilt for each of the last 48 h (forecast.measured),
-// shown in blue under every forecast hour that has gone by.
+// shown in sea green under every forecast hour that has gone by.
 const MEASURED_SOURCE = PARAM.get("measured") || "../data/live/measured.json";
 
 // North to south along the sand: the west edge of the window is the bearing
@@ -848,27 +849,30 @@ function rankByEnergy(cards) {
 // Nothing at all for an hour still ahead: the line is only ever a comparison
 // with something that has already happened.
 function measuredAt(validUtc) {
-  if (!validUtc || new Date(validUtc).getTime() > Date.now()) return {state: "future"};
+  const at = (state, more = {}) => ({state, valid_utc: validUtc, ...more});
+  if (!validUtc || new Date(validUtc).getTime() > Date.now()) return at("future");
   const hit = ((MEASURED && MEASURED.steps) || []).find((m) => m.valid_utc === validUtc);
   if (hit) {
-    return hit.gap ? {state: "gap"} : hit.pending ? {state: "pending"}
-      : {state: "value", entry: hit};
+    return hit.gap ? at("gap") : hit.pending ? at("pending") : at("value", {entry: hit});
   }
   const built = MEASURED && MEASURED.generated_utc;
-  return {state: built && validUtc > built ? "pending" : "none"};
+  return at(built && validUtc > built ? "pending" : "none");
 }
 
-// The blue line. Its label is on every line, never once per page, because it
-// sits inside a forecast card and must not be read as part of the forecast.
+// The measured line. Its label is on every line, never once per page, because
+// it sits inside a forecast card and must not be read as part of the forecast.
+// It names the hour it was observed ("Observed at 8:00 AM", owner's wording
+// 2026-09-27); where it came from -- 46232, carried in by the same chain --
+// is said on info.html.
 // Both numbers go through the same windows, seabed and surf zone, so the
 // difference between them is the model's error AT THE BUOY carried in -- not
-// a check at the beach, which nothing measures. Hence "same chain", and no
-// difference or percentage between them: a number like that is a claim about
+// a check at the beach, which nothing measures. Hence no difference or
+// percentage between them on screen: a number like that is a claim about
 // the forecast, and would need its verification series named beside it.
-function measuredLine(m, pick, {chain = true} = {}) {
+function measuredLine(m, pick) {
   if (!m || m.state === "future") return "";
   const station = (MEASURED && MEASURED.station) || (DATA && DATA.station) || "the buoy";
-  const label = `Measured at ${station}${chain ? ", same chain" : ""}`;
+  const label = `Observed at ${clock(m.valid_utc)}`;
   if (m.state === "value") {
     const v = pick(m.entry);
     if (!v || v.hs_m == null) return "";
@@ -937,7 +941,7 @@ function breakPanel(c) {
   const offshore = !table && c.hsOffshore != null
     ? `<div class="src">${period(`of ${height(c.hsOffshore)} at the buoy`)}</div>` : "";
   // The forecast's own numbers first, then the measurement under them, then
-  // the geometry: the blue line never sits between two forecast lines.
+  // the geometry: the measured line never sits between two forecast lines.
   return `
     ${head}
 
@@ -1368,7 +1372,7 @@ function wireDrawings() {
 
 // The buoy's tab: the offshore spectrum itself, before any aperture.
 function buoyPanel(buoy, measured = null) {
-  const line = measuredLine(measured, (m) => m.buoy, {chain: false});
+  const line = measuredLine(measured, (m) => m.buoy);
   if (!buoy || buoy.hs_m == null) {
     return '<span class="val"><span class="unit">no spectrum</span></span>' + line;
   }
@@ -1575,24 +1579,24 @@ function renderConditions(step, cards) {
     }));
 
     // Wind and tide under an earlier run's hour: the log kept neither, so
-    // those cards carry only the measurement, in the same blue and saying so.
-    const blueWind = got && got.wind_kt != null
-      ? `<div class="measured"><span class="lbl">Measured at ${(DATA.wind && DATA.wind.station) || "the airfield"}</span>`
+    // those cards carry only the measurement, in the same green and saying so.
+    const seenWind = got && got.wind_kt != null
+      ? `<div class="measured"><span class="lbl">Observed at ${clock(step.valid_utc)}</span>`
         + `<span class="mval">${got.wind_from_deg != null ? compass(got.wind_from_deg) + " " : ""}`
         + `<span class="unit">at</span> ${speed(got.wind_kt)}</span></div>` : "";
-    const blueTide = got && got.tide_m != null
-      ? `<div class="measured"><span class="lbl">Measured at ${DATA.tide_station || "the gauge"},`
-        + ` carried to the coast</span><span class="mval">${height(got.tide_m)}</span></div>` : "";
+    const seenTide = got && got.tide_m != null
+      ? `<div class="measured"><span class="lbl">Measured at ${clock(step.valid_utc)}</span>`
+        + `<span class="mval">${height(got.tide_m)}</span></div>` : "";
     if (past && !detail) {
       rows.push(`<div class="cond" data-card="wind">
         <span class="lbl">Wind</span>
         <span class="val"><span class="unit">not kept for earlier runs</span></span>
-        ${blueWind}
+        ${seenWind}
       </div>`);
       rows.push(`<div class="cond" data-card="tide">
         <span class="lbl">Tide</span>
         <span class="val"><span class="unit">not kept for earlier runs</span></span>
-        ${blueTide}
+        ${seenTide}
       </div>`);
       $("conditions").innerHTML = rows.join("");
       restorePicks();
@@ -1610,7 +1614,7 @@ function renderConditions(step, cards) {
         : fallback.from_deg != null
           ? `${compass(fallback.from_deg)} <span class="unit">at</span> ${speed(fallback.speed_kt || 0)}`
           : `<span class="unit">${past ? fallback.note : "not collected yet"}</span>`}</span>
-      ${blueWind}
+      ${seenWind}
       ${modelled
         ? srcLines([`Forecast for ${stampWhen}`,
                     `GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})`,
@@ -1628,7 +1632,7 @@ function renderConditions(step, cards) {
       ${stamp && stamp.valid_utc
         ? turnLine(DATA.tide_turns || [], step.valid_utc)
         : ""}
-      ${blueTide}
+      ${seenTide}
       ${srcLines([`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)])}
     </div>`);
   }
