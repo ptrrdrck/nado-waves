@@ -15,6 +15,9 @@
   --signal:#C62828; --signal-wash:#F9DEDE;
   --ok:#2F7D4F;
   --measured:#0A7A56;
+  /* The buoy's line on the charts. Validated against --surf for colour-blind
+     separation on the card (dataviz validator, 2026-09-27: deutan dE 9.1). */
+  --buoy:#6A368B;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
 }
@@ -27,6 +30,7 @@
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
     --measured:#3EDB9E;
+    --buoy:#B264FB;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
@@ -38,6 +42,7 @@
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
   --measured:#3EDB9E;
+  --buoy:#B264FB;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
@@ -195,6 +200,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .measured .mval{font-size:17px;font-weight:600;line-height:1.25}
 .measured .mval .unit,.measured .mpeak{color:var(--measured);font-size:13.5px;font-weight:400}
 .measured.none{font-size:13px}
+/* On the wind and tide cards the box sits straight under the value, in the
+   card's 2 px gap; the swell card's pane gives its box 11 px. */
+.cond > .measured{margin-top:8px}
 
 /* Earlier / later seek bar. */
 .seek{display:flex;align-items:stretch;gap:8px}
@@ -299,7 +307,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    blue, the buoy in the secondary ink, the other breaks faint. One axis, thin
    lines, hairline grid; an hour without a spectrum is a pale band with no
    line through it, so a gap reads as a gap rather than as a dip. */
-/* Folded away under an "Analytics" line with the calculation's caret
+/* Folded away under a "Charts" line with the calculation's caret
    (owner's design, 2026-09-27): up while closed, down once open. */
 .chart{display:flex;flex-direction:column;gap:6px}
 .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -307,8 +315,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .chart-fold,.chart-body{display:flex;flex-direction:column;gap:6px}
 /* Which chart, as a menu (owner's design, 2026-09-27): four views in a row
    of tabs crowded a phone and read as a second set of break tabs. */
-.chart .pick{align-self:flex-start;font-weight:600;padding-right:28px}
+/* The menu draws its own up/down carets, pinned to its right edge: the
+   native arrow sat wherever each browser put it, on iOS well inside the box. */
+.chart .pick-wrap{position:relative;align-self:flex-start;display:inline-flex}
+.chart .pick{-webkit-appearance:none;appearance:none;font-weight:600;min-width:168px;
+             padding:6px 32px 6px 10px}
 .chart .pick:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.chart .pick-wrap::before,.chart .pick-wrap::after{content:"";position:absolute;right:13px;
+  width:5px;height:5px;border:solid var(--soft);border-width:0 1.5px 1.5px 0;pointer-events:none}
+.chart .pick-wrap::before{top:calc(50% - 6px);transform:rotate(-135deg)}
+.chart .pick-wrap::after{top:calc(50% + 0px);transform:rotate(45deg)}
 /* The plot takes sideways swipes and pinches for itself; a vertical swipe
    still scrolls the page. */
 .chart .plot{touch-action:pan-y;-webkit-user-select:none;user-select:none}
@@ -326,29 +342,43 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .series .zero{stroke:var(--line-strong);stroke-width:1}
 .series .day{stroke:var(--line);stroke-width:1}
 .series .tick{font-size:10px;fill:var(--faint);font-variant-numeric:tabular-nums}
+/* The y axis labels sit inside the plot, just above their gridlines, so the
+   plot runs to the card's left edge instead of leaving a margin for them. */
+.series .ytick{paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
 /* Haloed in the card colour, because a line can run through the label. */
 .series .side{font-size:10px;fill:var(--soft);paint-order:stroke;stroke:var(--card);
               stroke-width:3px;stroke-linejoin:round}
 .series .gapband{fill:var(--line);opacity:.55}
 .series .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .series .ln.main{stroke:var(--surf)}
-.series .ln.buoy{stroke:var(--soft);stroke-width:1.5}
+.series .ln.buoy{stroke:var(--buoy);stroke-width:1.5}
+.series .ln.own{stroke-width:2}
 .series .ln.other{stroke:var(--faint);stroke-width:1;opacity:.75}
 .series .ln.slow{stroke:var(--soft);stroke-width:1}
-.series .pt.main{fill:var(--surf)} .series .pt.buoy,.series .pt.slow{fill:var(--soft)}
+.series .pt.main{fill:var(--surf)} .series .pt.buoy{fill:var(--buoy)} .series .pt.slow{fill:var(--soft)}
 .series .pt.other{fill:var(--faint)}
 .series .cross{stroke:var(--soft);stroke-width:1}
 .series .hot{fill:var(--surf);stroke:var(--card);stroke-width:2}
+.series .hot.buoy{fill:var(--buoy)}
 .chart .legend{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:12px;color:var(--soft)}
 .chart .legend .sw{display:inline-block;width:14px;height:2px;border-radius:1px;
                    vertical-align:middle;margin-right:6px;background:var(--surf)}
-.chart .legend .sw.buoy,.chart .legend .sw.slow{background:var(--soft);height:1.5px}
+.chart .legend .sw.buoy{background:var(--buoy);height:1.5px}
+.chart .legend .sw.buoy.own{height:2px}
+.chart .legend .sw.slow{background:var(--soft);height:1.5px}
 .chart .legend .sw.other{background:var(--faint);height:1px}
 /* Above the plot, and tall enough for its longest reading, so the plot never
    jumps under a finger as the values change. */
 .chart .readout{font-size:13px;line-height:1.45;color:var(--soft);font-variant-numeric:tabular-nums;
                 min-height:calc(3 * 1.45em)}
 .chart .readout b{color:var(--ink);font-weight:600}
+/* Each value in the colour of its line (owner's design, 2026-09-27), so the
+   reading and the line it came from are matched at a glance. */
+.chart .readout .v{font-weight:600}
+.chart .readout .v .unit{color:inherit;font-weight:400}
+.chart .readout .v.main{color:var(--surf)}
+.chart .readout .v.buoy{color:var(--buoy)}
+.chart .readout .v.other{color:var(--faint);font-weight:400}
 
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
@@ -1488,7 +1518,7 @@ let CHART_OPEN = false;
 function chartToggle(id) {
   return `<button type="button" class="calc-toggle" data-chart-toggle
     aria-controls="chart-fold-${id}" aria-expanded="${CHART_OPEN}"
-    aria-label="Analytics"><svg viewBox="0 0 16 16" aria-hidden="true">`
+    aria-label="Charts"><svg viewBox="0 0 16 16" aria-hidden="true">`
     + `<path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`;
 }
 
@@ -1506,7 +1536,7 @@ function setChartOpen(open) {
 // The hour the reader picked, by valid_utc, or null for the newest reading.
 // Shared by every break, so flipping tabs keeps the same hour under the line.
 let CHART_AT = null;
-const CHART = {w: 320, h: 150, l: 40, r: 8, t: 10, b: 20};
+const CHART = {w: 320, h: 150, l: 4, r: 6, t: 10, b: 20};
 const HOUR_MS = 3600000;
 // The x axis, in hours: what it opens on, and how far in it zooms.
 const CHART_DEFAULT_H = 24;
@@ -1699,19 +1729,22 @@ function buildSpec(id, mode, steps) {
     return {
       scale: "height",
       lines: id === BUOY_TAB
-        ? [...ORDER.map((bid) => breakLine(bid, "other", "Breaks, breaking")), buoyLine("main")]
+        ? [...ORDER.map((bid) => breakLine(bid, "other", "Breaks, breaking")), buoyLine("buoy own")]
         : [...others.map((bid) => breakLine(bid, "other", "Other breaks")), buoyLine("buoy"),
            breakLine(id, "main", `${name}, breaking`)],
       says: id === BUOY_TAB
         ? "The buoy's height each hour, with the three breaks' breaking heights faint behind it."
         : `${name}'s breaking height each hour, beside the buoy's and the other two breaks'.`,
+      // Each value in its line's colour: the tab's own, the buoy's purple,
+      // the other breaks' grey.
       read: (i) => {
-        const own = id === BUOY_TAB ? buoyOf(steps[i]).hs_m : brk(steps[i], id).hs_m;
-        const rest = (id === BUOY_TAB ? ORDER : [...others, BUOY_TAB]).map((k) => (k === BUOY_TAB
-          ? `Buoy ${height(num(buoyOf(steps[i]).hs_m))}`
-          : `${SHORT[k]} ${height(num(brk(steps[i], k).hs_m))}`));
-        return `<b>${id === BUOY_TAB ? "Buoy" : name} ${height(num(own))}</b> &middot; `
-          + rest.join(" &middot; ");
+        const buoyText = `<span class="v buoy">Buoy ${height(num(buoyOf(steps[i]).hs_m))}</span>`;
+        const breakText = (k, cls) =>
+          `<span class="v ${cls}">${SHORT[k]} ${height(num(brk(steps[i], k).hs_m))}</span>`;
+        return id === BUOY_TAB
+          ? [buoyText, ...ORDER.map((k) => breakText(k, "other"))].join(" &middot; ")
+          : [breakText(id, "main"), ...others.map((k) => breakText(k, "other")), buoyText]
+            .join(" &middot; ");
       },
     };
   }
@@ -1724,7 +1757,7 @@ function buildSpec(id, mode, steps) {
       zero: true, above: "South bigger", below: "North bigger",
       says: "South's breaking height less north's, the same on every break's tab. "
         + "Where the line crosses zero, which of the two is bigger has flipped.",
-      read: (i) => `South less north <b>${signedHeight(values[i])}</b>`,
+      read: (i) => `<span class="v main">South less north ${signedHeight(values[i])}</span>`,
     };
   }
 
@@ -1741,7 +1774,7 @@ function buildSpec(id, mode, steps) {
       read: (i) => {
         const v = num(brk(steps[i], id).transmission);
         const from = buoyOf(steps[i]).from_deg;
-        return `<b>${name} ${v == null ? "—" : Math.round(100 * v) + "%"}</b> of the buoy's height`
+        return `<span class="v main">${name} ${v == null ? "—" : Math.round(100 * v) + "%"}</span> of the buoy's height`
           + (from != null ? ` &middot; buoy peak from ${compass(from)}` : "");
       },
     };
@@ -1770,7 +1803,7 @@ function buildSpec(id, mode, steps) {
       const k = (v) => (v == null ? null : Math.round(v));
       const d = a == null || b == null ? null : k(a) - k(b);
       return `${named(k(a), "Buoy %K")} &middot; ${named(k(b), `${name} %K`)} &middot; `
-        + `<b>difference ${d == null ? "—" : (d > 0 ? "+" : d < 0 ? "−" : "") + Math.abs(d)}</b>`;
+        + `<span class="v main">difference ${d == null ? "—" : (d > 0 ? "+" : d < 0 ? "−" : "") + Math.abs(d)}</span>`;
     },
   };
 }
@@ -1908,7 +1941,7 @@ function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) 
     const y = f(Y(tk.at));
     const cls = spec.zero && tk.at === 0 ? "zero" : "grid";
     return `<line class="${cls}" x1="${l}" x2="${w - r}" y1="${y}" y2="${y}"/>`
-      + `<text class="tick" x="${l - 5}" y="${y}" text-anchor="end" dominant-baseline="middle">${tk.text}</text>`;
+      + `<text class="tick ytick" x="${l + 2}" y="${f(Y(tk.at) - 3)}">${tk.text}</text>`;
   }).join("");
 
   let lastLabel = -Infinity;
@@ -1933,14 +1966,14 @@ function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) 
 
   const lines = spec.lines.map((ln) => chartPath(ln.values, a, z, X, Y, plotW, ln.cls)).join("");
 
-  const sides = (spec.above ? `<text class="side" x="${l + 4}" y="${t + 9}">${spec.above}</text>` : "")
-    + (spec.below ? `<text class="side" x="${l + 4}" y="${h - b - 4}">${spec.below}</text>` : "");
+  const sides = (spec.above ? `<text class="side" x="${w - r - 4}" y="${t + 9}" text-anchor="end">${spec.above}</text>` : "")
+    + (spec.below ? `<text class="side" x="${w - r - 4}" y="${h - b - 4}" text-anchor="end">${spec.below}</text>` : "");
 
   const main = spec.lines[spec.lines.length - 1];
   const v = main.values[at];
   const cross = at >= v0 - 0.5 && at <= v1 + 0.5
     ? `<line class="cross" x1="${f(X(at))}" x2="${f(X(at))}" y1="${t}" y2="${h - b}"/>`
-      + (v != null ? `<circle class="hot" cx="${f(X(at))}" cy="${f(Y(v))}" r="3.5"/>` : "")
+      + (v != null ? `<circle class="hot ${main.cls}" cx="${f(X(at))}" cy="${f(Y(v))}" r="3.5"/>` : "")
     : "";
 
   const label = `${spec.says} From ${dayClock(steps[Math.max(0, Math.ceil(v0))].valid_utc)} to `
@@ -2004,7 +2037,7 @@ function chartMoving(id, at, steps, view) {
 // The line the charts fold out from, and the fold.
 function seriesChart(id) {
   return `<div class="chart">
-    <div class="chart-head"><span>Analytics</span>${chartToggle(id)}</div>
+    <div class="chart-head"><span>Charts</span>${chartToggle(id)}</div>
     <div class="chart-fold" id="chart-fold-${id}"${CHART_OPEN ? "" : " hidden"}>${chartBody(id)}</div>
   </div>`;
 }
@@ -2018,9 +2051,9 @@ function chartBody(id) {
   const spec = chartSpec(id, mode, steps);
   const view = chartView(steps);
   const moving = chartMoving(id, chartIndex(steps), steps, view);
-  const modes = id === BUOY_TAB ? "" : `<select class="pick" data-chart-mode aria-label="Which chart">`
+  const modes = id === BUOY_TAB ? "" : `<span class="pick-wrap"><select class="pick" data-chart-mode aria-label="Which chart">`
     + CHART_MODES.map((m) => `<option value="${m.id}"${m.id === mode ? " selected" : ""}>`
-      + `${m.label}</option>`).join("") + `</select>`;
+      + `${m.label}</option>`).join("") + `</select></span>`;
   // The readout sits ABOVE the plot, so a finger swiping along the lines
   // never covers the values it is reading.
   return `<div class="chart-body" data-chart="${id}">

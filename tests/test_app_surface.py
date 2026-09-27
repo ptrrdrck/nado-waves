@@ -1988,7 +1988,7 @@ class TestTheWeekChart:
         assert body.index('class="readout"') < body.index('class="plot"')
 
     def test_it_folds_out_from_its_own_line_with_the_calculations_caret(self):
-        """Owner's design, 2026-09-27: an "Analytics" line below the
+        """Owner's design, 2026-09-27: a "Charts" line below the
         drawing, with the calculation's caret -- up while closed, down while
         open -- closed until opened, one state for every tab, kept across a
         refresh."""
@@ -2000,7 +2000,7 @@ class TestTheWeekChart:
         assert "<path d=\"M3.5 10 8 5.5 12.5 10\"/>" in toggle     # drawn pointing up
         chart = SOURCE[SOURCE.index("function seriesChart"):]
         chart = chart[:chart.index("\n}\n")]
-        assert "<span>Analytics</span>${chartToggle(id)}" in chart
+        assert "<span>Charts</span>${chartToggle(id)}" in chart
         assert 'id="chart-fold-${id}"${CHART_OPEN ? "" : " hidden"}' in chart
         assert "let CHART_OPEN = false;" in SOURCE
         assert 'CHART_OPEN = recall(KEEP.chartOpen) === "open";' in SOURCE
@@ -2024,6 +2024,49 @@ class TestTheWeekChart:
         assert '<select class="pick" data-chart-mode aria-label="Which chart">' in body
         assert "<button" not in body
         assert 'strip.addEventListener("change"' in self.SECTION
+
+    def test_the_buoy_is_purple_wherever_it_is_a_line_of_its_own(self):
+        """Owner's design, 2026-09-27. Its own token in every theme, and the
+        buoy's tab draws it at the tab's own weight."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert css.count("--buoy:") == 3                    # light, and dark both ways
+        assert ".series .ln.buoy{stroke:var(--buoy);" in css
+        assert ".chart .legend .sw.buoy{background:var(--buoy);" in css
+        assert ".series .hot.buoy{fill:var(--buoy)}" in css
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
+            "console.log(chartSpec('buoy', 'height').lines.map((l) => l.cls).join(','));\n"
+            "console.log(chartSpec('coronado_north', 'height').lines.map((l) => l.cls).join(','));"
+        )
+        assert got[0] == "other,other,other,buoy own"
+        assert got[1] == "other,other,buoy,main"
+
+    def test_each_value_above_the_plot_wears_its_lines_colour(self):
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
+            "console.log(chartSpec('coronado_north', 'height').read(0));\n"
+            "console.log(chartSpec('buoy', 'height').read(0));"
+        )
+        assert got[0].startswith('<span class="v main">North ')
+        assert '<span class="v buoy">Buoy ' in got[0] and '<span class="v other">Center ' in got[0]
+        assert got[1].startswith('<span class="v buoy">Buoy ')
+        css = SOURCE[:SOURCE.index("</style>")]
+        for cls, token in (("main", "--surf"), ("buoy", "--buoy"), ("other", "--faint")):
+            assert f".chart .readout .v.{cls}{{color:var({token})" in css
+
+    def test_the_plot_runs_to_the_left_edge(self):
+        """The y labels moved inside the plot, above their gridlines, so no
+        margin is kept for them."""
+
+        assert "const CHART = {w: 320, h: 150, l: 4, r: 6, t: 10, b: 20};" in SOURCE
+        assert '<text class="tick ytick" x="${l + 2}"' in self.SECTION
+
+    def test_the_menu_draws_its_carets_at_its_right_edge(self):
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert "appearance:none" in css[css.index(".chart .pick{"):]
+        assert ".chart .pick-wrap::before,.chart .pick-wrap::after{" in css
+        assert '<span class="pick-wrap"><select class="pick"' in self.SECTION
 
     def test_the_foot_line_is_gone_and_info_still_says_it(self):
         """Owner's decision, 2026-09-27: "Observed at 46232 every hour for the
@@ -2054,6 +2097,13 @@ class TestTheProvenanceDivider:
         cards = SOURCE[SOURCE.index("function renderConditions("):]
         cards = cards[:cards.index("\nfunction renderBreaks(")]
         assert "srcLines(" in cards and '<span class="src">' not in cards
+
+    def test_a_measured_box_under_a_value_gets_room_above_it(self):
+        """Owner's design, 2026-09-27: on the wind and tide cards the green box
+        sat in the card's 2 px gap, tight against the value above it."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert ".cond > .measured{margin-top:8px}" in css
 
     def test_the_chart_no_longer_draws_its_own(self):
         css = SOURCE[:SOURCE.index("</style>")]
