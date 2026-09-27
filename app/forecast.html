@@ -187,8 +187,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .measured .mval{font-size:17px;font-weight:600;line-height:1.25}
 .measured .mval .unit,.measured .mpeak{color:var(--measured);font-size:13.5px;font-weight:400}
 .measured.none{font-size:13px}
-/* What a past hour's card came from: which run, how far ahead. */
-.from{font-size:12.5px;color:var(--soft)}
 
 /* Earlier / later seek bar. */
 .seek{display:flex;align-items:stretch;gap:8px}
@@ -875,12 +873,11 @@ function measuredLine(m, pick, {chain = true} = {}) {
 }
 
 // Which run a past hour's number came from, and how far ahead it was made.
-function fromLine(step) {
-  if (!step || new Date(step.valid_utc).getTime() > Date.now()) return "";
+function runLine(step) {
   const run = step.from === "past" ? step.entry.cycle_utc : DATA.cycle_utc;
+  if (!run) return "";
   const lead = step.lead_h != null ? `, ${step.lead_h} h ahead` : "";
-  const shown = step.from === "past" ? " &mdash; what this page showed for that hour" : "";
-  return `<div class="from">Forecast from the ${run ? when(run) : "earlier"} run${lead}${shown}.</div>`;
+  return `From the ${when(run)} model run${lead}`;
 }
 
 function breakPanel(c) {
@@ -1382,7 +1379,7 @@ function buoyPanel(buoy, measured = null) {
 // stale reading has to be marked whichever tab is open. Tucked into the
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
-function swellCard({label, buoy, station, cards, source, due = "", measured = null, from = ""}) {
+function swellCard({label, buoy, station, cards, source, due = "", measured = null}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c),
   }));
@@ -1402,7 +1399,6 @@ function swellCard({label, buoy, station, cards, source, due = "", measured = nu
     </div>
     ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
       aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
-    ${from}
     ${srcLines(source, due)}
   </div>`;
 }
@@ -1541,6 +1537,7 @@ function renderConditions(step, cards) {
     const tide = (detail && detail.tide) || TIDE_BY_TIME[step.valid_utc] || {};
     const hour = stamp || {};
     const stampWhen = when(step.valid_utc);
+    const run = runLine(step);
     const modelled = hour.wind_from_deg != null;
     const measured = measuredAt(step.valid_utc);
     const got = measured.state === "value" ? measured.entry : null;
@@ -1555,11 +1552,14 @@ function renderConditions(step, cards) {
       station: DATA.station,
       cards,
       measured,
-      from: fromLine(step),
-      source: buoy
-        ? `GFS-Wave at ${DATA.station_name} (NDBC ${DATA.station}) for ${stampWhen}`
-          + ` &mdash; forecast, not a measurement`
-        : `the spectral product was unavailable for this cycle, so there are no trains`,
+      source: [
+        `Forecast for ${stampWhen}`,
+        buoy
+          ? `GFS-Wave ${(past ? step.entry.wave_source : DATA.wave_source) === "partitions"
+              ? "partitions" : "spectrum"}, ${DATA.station_name} (NDBC ${DATA.station})`
+          : `The spectral product was unavailable for this cycle, so there are no trains`,
+        run,
+      ],
     }));
 
     // Wind and tide under an earlier run's hour: the log kept neither, so
@@ -1599,11 +1599,14 @@ function renderConditions(step, cards) {
           ? `${compass(fallback.from_deg)} <span class="unit">at</span> ${speed(fallback.speed_kt || 0)}`
           : `<span class="unit">${past ? fallback.note : "not collected yet"}</span>`}</span>
       ${blueWind}
-      <span class="src">${period(modelled
-        ? `GFS-Wave at the buoy for ${stampWhen} &mdash; forecast, not a measurement`
+      ${modelled
+        ? srcLines([`Forecast for ${stampWhen}`,
+                    `GFS-Wave wind at the buoy, ${DATA.station_name} (NDBC ${DATA.station})`,
+                    run])
         : fallback.from_deg != null
-          ? `${fallback.station_name} (${fallback.station}), observed ${observedAt(fallback.observed_utc)}`
-          : (past ? "" : (fallback.note || "")))}</span>
+          ? srcLines([`Observed ${observedAt(fallback.observed_utc)}`,
+                      `METAR, ${fallback.station_name} (${fallback.station})`])
+          : srcLines(past ? "" : fallback.note)}
     </div>`);
     rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
@@ -1614,8 +1617,7 @@ function renderConditions(step, cards) {
         ? turnLine(DATA.tide_turns || [], step.valid_utc)
         : ""}
       ${blueTide}
-      <span class="src">${period(`${tideSource(DATA)}, `
-        + `harmonic prediction for ${stampWhen} &mdash; a model, not a measurement`)}</span>
+      ${srcLines([`Predicted for ${stampWhen}`, `Harmonic tide, ${tideSource(DATA)}`])}
     </div>`);
   }
 

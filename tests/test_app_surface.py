@@ -497,8 +497,7 @@ class TestWindAndTideAreHoisted:
         assert 'class="src"' in SOURCE
 
     def test_the_tide_says_it_is_a_model(self):
-        assert "harmonic prediction" in TEXT
-        assert "a model, not a measurement" in TEXT
+        assert "`Predicted for ${stampWhen}`, `Harmonic tide, ${tideSource(DATA)}`" in SOURCE
 
     def test_the_provenance_separates_a_forecast_hour_from_an_observation(self):
         """The model's wind moves with the picker; the KNZY fallback is an
@@ -506,13 +505,14 @@ class TestWindAndTideAreHoisted:
         file carries — and since the titles are bare quantities now, the
         provenance line is the only thing telling them apart."""
 
-        assert "GFS-Wave at the buoy for ${stampWhen}" in SOURCE
-        assert "${fallback.station_name} (${fallback.station}), observed " in SOURCE
+        assert "GFS-Wave wind at the buoy, ${DATA.station_name} (NDBC ${DATA.station})" in SOURCE
+        assert "METAR, ${fallback.station_name} (${fallback.station})" in SOURCE
         assert "METAR, ${wind.station_name} (${wind.station})" in SOURCE
-        assert "harmonic prediction for ${stampWhen}" in SOURCE
+        assert "Harmonic tide, ${tideSource(DATA)}" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
-        assert "forecast, not a measurement" in TEXT
+        wind = SOURCE[SOURCE.index("GFS-Wave wind at the buoy") - 200:]
+        assert "`Forecast for ${stampWhen}`" in wind[:200]
 
     def test_it_prefers_the_model_wind_and_falls_back(self):
         assert "hour.wind_from_deg != null" in SOURCE
@@ -605,8 +605,11 @@ class TestTheTwoChains:
         assert "Measured ${observedAt(tide.observed_utc)}" in SOURCE
 
     def test_forecast_labels_its_inputs_as_a_model(self):
-        assert "forecast, not a measurement" in TEXT
-        assert "a model, not a measurement" in TEXT
+        """The verb that opens each line says which chain it is: "Forecast"
+        and "Predicted" here, where Now says "Observed" and "Measured"."""
+
+        assert SOURCE.count("`Forecast for ${stampWhen}`") == 2      # swell, wind
+        assert "`Predicted for ${stampWhen}`" in SOURCE
 
     def test_a_stale_observation_is_not_rendered_as_current(self):
         """NDBC has served 306-hour-old content behind an HTTP 200.
@@ -988,8 +991,21 @@ class TestTheSwellCardIsOnBothTabs:
         assert "Spectral wave data, ${NOW.station_name} (NDBC ${NOW.station})" in SOURCE
 
     def test_the_forecast_card_names_its_model(self):
-        assert "GFS-Wave at ${DATA.station_name}" in SOURCE
-        assert "forecast, not a measurement" in TEXT
+        assert '"partitions" : "spectrum"}, ${DATA.station_name} (NDBC ${DATA.station})' in SOURCE
+        assert "? `GFS-Wave ${" in SOURCE
+
+    def test_every_forecast_hour_names_its_run_past_or_future(self):
+        """One run line on every hour (owner's decision, 2026-09-27): "from the
+        ... model run" is itself what tells a past hour from the current run,
+        so past and future swell cards carry the same three lines and nothing
+        is appended to a past one."""
+
+        assert "return `From the ${when(run)} model run${lead}`;" in SOURCE
+        assert "const lead = step.lead_h != null ? `, ${step.lead_h} h ahead` : \"\";" in SOURCE
+        assert "what this page showed for that hour" not in SOURCE
+        assert "fromLine" not in SOURCE
+        # Swell and model wind both end on it.
+        assert SOURCE.count("        run,\n") + SOURCE.count("                    run])") == 2
 
     def test_the_forecast_card_reads_the_per_hour_buoy_series(self):
         assert "(DATA.buoy || []).find" in SOURCE
@@ -1627,17 +1643,16 @@ class TestEveryMeasurementSaysHowOldItIs:
         """It only appears when the model has no wind for that hour, which is
         exactly when how old the substitute is matters."""
 
-        wind_block = SOURCE[SOURCE.index("GFS-Wave at the buoy for ${stampWhen}"):]
-        assert "observed ${observedAt(fallback.observed_utc)}" in wind_block[:400]
+        wind_block = SOURCE[SOURCE.index("GFS-Wave wind at the buoy"):]
+        assert "Observed ${observedAt(fallback.observed_utc)}" in wind_block[:400]
 
     def test_a_prediction_is_never_given_an_age(self):
         """A modelled wind or a harmonic tide is a forecast FOR a moment, not a
         reading taken AT one. "23 h ago" under next Tuesday would be nonsense,
         so those lines use `stampWhen` and never `observedAt`."""
 
-        for predicted in ("GFS-Wave at the buoy for ${stampWhen}",
-                          "harmonic prediction for ${stampWhen}",
-                          "(NDBC ${DATA.station}) for ${stampWhen}"):
+        for predicted in ("`Forecast for ${stampWhen}`",
+                          "`Predicted for ${stampWhen}`"):
             assert predicted in SOURCE, predicted
         assert "observedAt(stamp" not in SOURCE
         assert "observedAt(t." not in SOURCE
