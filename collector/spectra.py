@@ -32,13 +32,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
 from .common import DEFAULT_DATA_DIR, ISO, write_step_summary
-from .probe_spectra import REALTIME, SPECTRAL_FILES, fetch, parse_spectral
+from .probe_spectra import REALTIME, SPECTRAL_FILES, fetch, mask_sentinels, parse_spectral
 
 #: NDBC's file name for each component, and the column name we store it under.
 #: `swden` carries C11; the other four are named for what they are.
@@ -172,8 +173,13 @@ def append_rows(
             writer.writerow(["time_utc", *header])
         for stamp, values in sorted(fresh, key=lambda r: r[0]):
             # A row whose component is short is written short, not padded. The
-            # join in transform.load_spectra will refuse a ragged record.
-            writer.writerow([stamp.strftime(ISO), *(f"{v:.6g}" for v in values)])
+            # join in transform.load_spectra will refuse a ragged record. A
+            # missing bin (NaN, from NDBC's 999) is an empty cell: a gap, which
+            # load_spectra reads back as NaN, never as 999.
+            writer.writerow([
+                stamp.strftime(ISO),
+                *("" if math.isnan(v) else f"{v:.6g}" for v in values),
+            ])
 
     newest = max(stored | {t.strftime(ISO) for t, _ in fresh})
     return len(fresh), newest
@@ -200,6 +206,7 @@ def collect_component(
         return result
 
     frequencies, rows, _, _ = parse_spectral(payload.decode("utf-8", errors="replace"))
+    rows = [(stamp, mask_sentinels(kind, values)) for stamp, values in rows]
     result.fetched_rows = len(rows)
     if not frequencies or not rows:
         result.error = "parsed no frequency bins or no rows"

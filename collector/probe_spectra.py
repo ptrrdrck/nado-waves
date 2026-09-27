@@ -75,6 +75,23 @@ SPECTRAL_FILES = {
 #: Older than this and the file is present but not usable as a live input.
 STALE_HOURS = 12.0
 
+#: NDBC's "no value" in the direction and moment files. 999 cannot be a
+#: direction (0-360) or a moment (0-1, or 0-100 where published in percent),
+#: so there it is a gap wherever it appears. C11 has no such bound and is left
+#: alone, as `ndbc.is_missing` leaves a 999 hPa pressure alone. Measured
+#: 2026-09-27: 46047 carries it in its four lowest bins on every row, and it
+#: read to this probe as r1 "in percent" until it was masked (BRIEFING §33).
+SENTINEL = 999.0
+SENTINEL_KINDS = ("swdir", "swdir2", "swr1", "swr2")
+
+
+def mask_sentinels(kind: str, values: list[float]) -> list[float]:
+    """The same row with NDBC's sentinel turned into a gap (NaN), never a value."""
+
+    if kind not in SENTINEL_KINDS:
+        return list(values)
+    return [float("nan") if v == SENTINEL else v for v in values]
+
 
 @dataclass
 class FileProbe:
@@ -246,8 +263,8 @@ def probe_file(kind: str, url: str, *, timeout: float = 45.0) -> FileProbe:
     result.parsed = bool(rows and frequencies)
     if rows:
         result.newest = rows[-1][0]
-        result.newest_row = rows[-1][1]
-        finite = [v for v in rows[-1][1] if not math.isnan(v)]
+        result.newest_row = mask_sentinels(kind, rows[-1][1])
+        finite = [v for v in result.newest_row if not math.isnan(v)]
         if finite:
             result.value_range = (min(finite), max(finite))
     return result
@@ -301,6 +318,10 @@ def window_fraction(
             break
         density = c11[index]
         if math.isnan(density) or density <= 0.0:
+            continue
+        # A bin whose direction or moments are missing cannot be windowed, so
+        # it leaves both the window and the total rather than being guessed.
+        if any(math.isnan(v[index]) for v in (a1, a2, r1, r2)):
             continue
         width = _bin_width(frequencies, index)
         steps = max(int(span / step), 1)
@@ -524,7 +545,7 @@ def main(argv: list[str] | None = None) -> int:
     # reporting — exactly the "stale content behind HTTP 200" fault BRIEFING
     # section 8 lists first. Exiting 0 there would have announced the transform
     # unblocked on the strength of a fortnight-old spectrum.
-    return 1 if any(p.stale for p in usable) else 0
+    return 1 if any(p.stale for p in usable.values()) else 0
 
 
 def _demonstrate(

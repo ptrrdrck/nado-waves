@@ -307,3 +307,68 @@ def test_a_complete_but_stale_set_is_not_a_green_light():
     assert "not a live input" in text
     # The headline must not read as an all-clear.
     assert "reachable, parsed and fresh" not in text
+
+
+# 46047's real-time files, 2026-09-27 05:20Z, cut to three bins: NDBC's 999
+# fills the directions and moments of a bin it has no estimate for.
+SENTINEL_R1 = """\
+#YY  MM DD hh mm r1_1 (freq_1) r1_2 (freq_2) r1_3 (freq_3) ... >
+2026 09 27 05 20 999.00 (0.033) 0.29 (0.053) 0.11 (0.058)
+"""
+
+
+def test_a_999_moment_is_a_gap_not_a_percent(monkeypatch):
+    """Read as a value, the 999 made 46047's r1 look published in percent and
+    the probe divided every real moment by 100 (BRIEFING §33)."""
+
+    monkeypatch.setattr("collector.probe_spectra.fetch", lambda url, timeout=45.0: SENTINEL_R1.encode())
+    probe = probe_file("swr1", "https://example.invalid/46047.swr1")
+
+    assert math.isnan(probe.newest_row[0])
+    assert probe.newest_row[1:] == [0.29, 0.11]
+    assert probe.value_range == (0.11, 0.29)
+    probes = _synthetic()
+    probes["swr1"] = probe
+    assert "`swr1` peaks at 0.29 — looks already normalised" in "\n".join(report("46047", probes))
+
+
+def test_999_energy_density_is_left_alone():
+    """C11 has no upper bound that makes 999 impossible, so it is not masked,
+    as `ndbc.is_missing` leaves a 999 hPa pressure alone."""
+
+    from collector.probe_spectra import mask_sentinels
+
+    assert mask_sentinels("swden", [999.0, 1.0]) == [999.0, 1.0]
+    assert math.isnan(mask_sentinels("swdir", [999.0, 1.0])[0])
+
+
+def test_a_bin_with_missing_directions_leaves_the_integral_rather_than_poisoning_it():
+    nan = float("nan")
+    inside, fraction = window_fraction(
+        [5.0, 1.0], [nan, 220.0], [nan, 220.0], [nan, 0.9], [nan, 0.9],
+        [0.05, 0.06], (200.0, 240.0),
+    )
+    assert not math.isnan(fraction)
+    # Only the second bin counts, so the fraction is that bin's own.
+    _, alone = window_fraction([1.0], [220.0], [220.0], [0.9], [0.9], [0.06], (200.0, 240.0))
+    assert fraction == pytest.approx(alone)
+
+
+def test_a_complete_fresh_set_exits_zero(monkeypatch):
+    """It could not: the verdict iterated the dict's keys, so every complete
+    set, fresh or stale, ended in an AttributeError and exit 1. Found on
+    46047's first probe, 2026-09-27."""
+
+    from collector.probe_spectra import main
+
+    probes = _synthetic()
+    now = datetime.now(timezone.utc)
+    for probe in probes.values():
+        probe.newest = now
+    monkeypatch.setattr("collector.probe_spectra.probe_file",
+                        lambda kind, url, timeout=45.0: probes[kind])
+    assert main(["--station", "46047"]) == 0
+
+    for probe in probes.values():
+        probe.newest = now - timedelta(days=13)
+    assert main(["--station", "46047"]) == 1

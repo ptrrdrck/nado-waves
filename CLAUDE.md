@@ -68,6 +68,10 @@ forecaster actually verifies against, Surfline included.
   first. Historical NDBC files use
   numeric sentinels (`999.0`, `99.0`, `9999.0`), not `MM` — never backfill
   without `collector.ndbc.is_missing` or you will store 999.0 as a wave height.
+  NDBC's real-time SPECTRAL files do the same in their direction and moment
+  bins (46047 and 46086, every row): `probe_spectra.mask_sentinels` stores
+  those as empty cells, and 46232's archive still holds one 999 from before
+  (BRIEFING §33).
 - **Never commit secrets**, even to a private repo.
 - **Data files are tracked, not ignored** — do not add `data/` to `.gitignore`.
   `data/historical/` is three years the 45-day NDBC window can no longer serve.

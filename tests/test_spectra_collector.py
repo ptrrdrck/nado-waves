@@ -210,3 +210,33 @@ class TestSeveralStations:
 
         assert exit_code([incomplete("46086"), denied("46047"), complete("46258")]) == 2
         assert exit_code([complete("46086"), complete("46047")]) == 0
+
+
+class TestSentinels:
+    """NDBC's 999 in a direction or moment file is a gap, never a value."""
+
+    PAYLOAD = (
+        "#YY  MM DD hh mm r1_1 (freq_1) r1_2 (freq_2) r1_3 (freq_3) ... >\n"
+        "2026 09 27 05 20 999.00 (0.033) 0.29 (0.053) 0.11 (0.058)\n"
+    )
+
+    def test_a_999_moment_is_stored_as_an_empty_cell(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("collector.spectra.fetch", lambda url, timeout=45.0: self.PAYLOAD.encode())
+        result = collect_component("46047", "swr1", "r1", tmp_path)
+        assert result.ok and result.added == 1
+        with component_path(tmp_path, "46047", "r1").open() as fh:
+            row = list(csv.reader(fh))[1]
+        assert row == ["2026-09-27T05:20:00Z", "", "0.29", "0.11"]
+
+    def test_the_gap_reads_back_as_nan_not_999(self, tmp_path, monkeypatch):
+        import math
+
+        from forecast.transform import load_spectra
+
+        for kind, column in COMPONENTS.items():
+            monkeypatch.setattr("collector.spectra.fetch", lambda url, timeout=45.0: self.PAYLOAD.encode())
+            collect_component("46047", kind, column, tmp_path)
+        spectrum = load_spectra(tmp_path / "spectra" / "46047")[0]
+        assert math.isnan(spectrum.r1[0]) and math.isnan(spectrum.a1[0])
+        assert spectrum.c11[0] == 999.0      # energy density is not masked
+        assert spectrum.r1[1:] == [0.29, 0.11]
