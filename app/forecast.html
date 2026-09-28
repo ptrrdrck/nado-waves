@@ -15,9 +15,11 @@
   --signal:#C62828; --signal-wash:#F9DEDE;
   --ok:#2F7D4F;
   --measured:#0A7A56;
-  /* The buoy's line on the charts. Validated against --surf for colour-blind
-     separation on the card (dataviz validator, 2026-09-27: deutan dE 9.1). */
-  --buoy:#6A368B;
+  /* The buoy's line on the charts: red (owner's call, 2026-09-28, after a
+     purple read too close to --surf). Validated against --surf on the card:
+     colour-blind dE 22.7 light / 21.6 dark, where the purple managed 9. A
+     shade off --signal, so it never reads as the overdue warning. */
+  --buoy:#C8372D;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
 }
@@ -30,7 +32,7 @@
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
     --measured:#3EDB9E;
-    --buoy:#B264FB;
+    --buoy:#F2665A;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
@@ -42,7 +44,7 @@
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
   --measured:#3EDB9E;
-  --buoy:#B264FB;
+  --buoy:#F2665A;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
@@ -1735,7 +1737,7 @@ function buildSpec(id, mode, steps) {
       says: id === BUOY_TAB
         ? "The buoy's height each hour, with the three breaks' breaking heights faint behind it."
         : `${name}'s breaking height each hour, beside the buoy's and the other two breaks'.`,
-      // Each value in its line's colour: the tab's own, the buoy's purple,
+      // Each value in its line's colour: the tab's own, the buoy's red,
       // the other breaks' grey.
       read: (i) => {
         const buoyText = `<span class="v buoy">Buoy ${height(num(buoyOf(steps[i]).hs_m))}</span>`;
