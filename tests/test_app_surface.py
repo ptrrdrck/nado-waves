@@ -2025,7 +2025,7 @@ class TestTheWeekChart:
         assert "<button" not in body
         assert 'strip.addEventListener("change"' in self.SECTION
 
-    def test_the_buoy_is_purple_wherever_it_is_a_line_of_its_own(self):
+    def test_the_buoy_is_red_wherever_it_is_a_line_of_its_own(self):
         """Owner's design, 2026-09-27. Its own token in every theme, and the
         buoy's tab draws it at the tab's own weight."""
 

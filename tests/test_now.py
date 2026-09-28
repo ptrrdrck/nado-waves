@@ -114,6 +114,39 @@ class TestTheTideCardIsTheOpenCoast:
         assert turn.height_m == pytest.approx(RATIO * 1.5)
         assert turn.event == "high"
 
+    def test_the_predicted_turn_carries_the_gauges_measured_departure(self, tmp_path):
+        """Owner's decision, 2026-09-28: as on the Forecast tab. The gauge ran
+        0.2 m above its prediction, so the next high is 0.2 m higher before the
+        transfer -- and the measured level beside it is left alone."""
+
+        from forecast.tidesite import RATIO
+
+        hours = [MOMENT - timedelta(hours=h) for h in range(1, 30)]
+        write_tide(tmp_path, [(t.strftime(now_mod.ISO), "1.2") for t in hours], kind="observed")
+        write_tide(tmp_path, [(t.strftime(now_mod.ISO), "1.0") for t in hours], kind="predicted")
+        path = tmp_path / "tide" / f"{now_mod.TIDE_STATION}_turns.csv"
+        path.write_text("time_utc,first_seen_utc,height_m,kind,datum,event\n"
+                        f"{(MOMENT + timedelta(hours=3)).strftime(now_mod.ISO)},x,1.5,"
+                        "predicted,MLLW,high\n", encoding="utf-8")
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        assert got.tide_departure_m == pytest.approx(0.2)
+        assert got.tide_turns[0]["height_m"] == pytest.approx(RATIO * 1.7, abs=1e-3)
+        assert got.tide.height_m == pytest.approx(RATIO * 1.2, abs=1e-3)   # not moved
+        assert "measured departure" in got.standing_on["tide"]
+
+    def test_without_a_departure_the_turn_is_the_bare_prediction(self, tmp_path):
+        from forecast.tidesite import RATIO
+
+        path = tmp_path / "tide" / f"{now_mod.TIDE_STATION}_turns.csv"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("time_utc,first_seen_utc,height_m,kind,datum,event\n"
+                        f"{(MOMENT + timedelta(hours=3)).strftime(now_mod.ISO)},x,1.5,"
+                        "predicted,MLLW,high\n", encoding="utf-8")
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        assert got.tide_departure_m is None
+        assert got.tide_turns[0]["height_m"] == pytest.approx(RATIO * 1.5, abs=1e-3)
+        assert "measured departure" not in got.standing_on["tide"]
+
     def test_the_standing_on_row_names_both_places(self, tmp_path):
         write_tide(tmp_path, [("2026-09-19T00:18:00Z", "1.2")])
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
