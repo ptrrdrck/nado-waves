@@ -674,7 +674,10 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
 - **The tide's direction is read off the next turn, never differenced from the
   water level.** Measured 2026-09-19 on the 6-minute measured series:
   differencing the two newest samples reads the direction **backwards on 19.5%
-  of readings**, and a least-squares slope over a trailing 45 minutes is still
+  of readings** — at a neap; re-measured 2026-09-28 over half a spring-neap
+  cycle it is **17–25% on neap days and 2.5–6% at springs, 9.9% overall**, so
+  the error follows the tidal range and returns every two weeks
+  (`tests/test_tideturns.py` pins the neap figure) — and a least-squares slope over a trailing 45 minutes is still
   wrong 3.3% — because near slack water the real change is smaller than the
   gauge's own wobble (median 6-minute step 1.1 cm). Every 45-minute error sits
   under 5.6 cm/h, but a deadband that wide would silence the card for roughly a
@@ -694,7 +697,12 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
 - **The observed tab now carries exactly one modelled number — the tide's next
   turn — and it is labelled everywhere it appears**: a `predicted` tag on the
   card, and a "standing on" row that names the measured level and the predicted
-  turn as two claims. The Now/Forecast split is about the reader always knowing
+  turn as two claims. Since 2026-09-28 (owner's decision) its HEIGHT carries the
+  gauge's measured departure from the prediction over the last 3 days, as the
+  Forecast tab's turns do: bare, it contradicted the measured level beside it
+  on 15.9% of 245 hourly readings ("rising to" a height already passed), and
+  4.5% with it. The measured level itself never takes the departure — the
+  departure IS measured minus predicted. The Now/Forecast split is about the reader always knowing
   which chain they are looking at, not about a tab being chemically pure; an
   unlabelled turn would have broken it, a labelled one demonstrates it.
 - **The shore normal is the highest-leverage input to the wind reading.**

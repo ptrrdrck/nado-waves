@@ -63,7 +63,8 @@ from .live import (
 from .tideturns import read_turns, turns_between
 from .nearshore import carry, density_grids, load_tables, local_sea, summarise
 from .surfzone import load_profiles
-from .tidesite import LEAD_MIN, RATIO, SITE_NAME, coast_height, coast_level, coast_turn, msl_above_mllw
+from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, anomaly, coast_height, coast_level, coast_turn,
+                       msl_above_mllw)
 from .transform import Spectrum, at_buoy, load_spectra, through
 
 #: Older than this and the spectrum is not "now". NDBC publishes hourly and the
@@ -403,6 +404,10 @@ class Now:
     tide_station_name: str = TIDE_STATION_NAME
     #: Where the Tide card's numbers are: the gauge carried to the beach.
     tide_site: str = SITE_NAME
+    #: The gauge's measured departure from its own prediction over the last
+    #: three days (`tidesite.anomaly`), which the predicted turns carry. None
+    #: when none could be measured, and then the turns are the bare prediction.
+    tide_departure_m: float | None = None
     breaks: list[NowBreak] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -578,8 +583,21 @@ def build(
     # next turn" is relative to NOW, and a single turn baked in at build time
     # would go stale the moment it passed, on a page that may sit open for
     # hours. The surface picks from the list against the reader's own clock.
+    #
+    # Their HEIGHTS carry the gauge's measured departure from its own
+    # prediction over the last three days, as the Forecast tab's do (owner's
+    # decision, 2026-09-28): the harmonic prediction is on the 1983-2001 epoch
+    # and ran ~0.23 m under the water all September (BRIEFING §32). Measured
+    # 2026-09-28 over 245 hourly readings since the tide archive began: the
+    # bare turn contradicted the measured level beside it on 15.9% of them --
+    # "rising to" a height the water had already passed -- and 4.5% with the
+    # departure, those at slack water. Times are untouched: an offset moves no
+    # turn. Never applied to the measured level itself: the departure IS
+    # measured minus predicted, so that would count it twice.
+    departure, _ = anomaly(data_dir, moment)
+    reading.tide_departure_m = round(departure, 3) if departure is not None else None
     turns = turns_between(
-        [coast_turn(t) for t in read_turns(data_dir, TIDE_STATION)],
+        [coast_turn(t, departure) for t in read_turns(data_dir, TIDE_STATION)],
         moment, moment + timedelta(hours=TURN_WINDOW_HOURS),
     )
     reading.tide_turns = [t.as_dict() for t in turns]
@@ -604,7 +622,10 @@ def build(
         f"carried to Coronado's open coast (x{RATIO_TEXT} on MLLW, measured against "
         f"La Jolla)"
         + ("; the next turn is a harmonic PREDICTION carried the same way "
-           f"({LEAD_TEXT} earlier), not a measurement"
+           f"({LEAD_TEXT} earlier)"
+           + (", plus the gauge's measured departure from it over the last 3 days"
+              if departure is not None else "")
+           + ", not a measurement"
            if turns else ", and no predicted turn is collected")
     )
 

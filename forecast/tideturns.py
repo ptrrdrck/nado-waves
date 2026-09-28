@@ -9,7 +9,10 @@ next, and is the tide rising or falling into it.
 Measured on the 6-minute measured series, 2026-09-19: comparing the two most
 recent samples reads the direction BACKWARDS on 19.5% of readings, because
 near slack water the real change over six minutes is smaller than the gauge's
-own wobble (median 6-minute step 1.1 cm). A least-squares slope over a trailing
+own wobble (median 6-minute step 1.1 cm). That was a neap. Re-measured
+2026-09-28 over half a spring-neap cycle (2,383 readings): 17-25% backwards on
+neap days (daily range 1.0-1.2 m), 2.5-6% at springs (~1.8 m), 9.9% overall —
+the error follows the range, and the neaps come round every two weeks. A least-squares slope over a trailing
 45 minutes is still wrong 3.3% of the time, and every one of those errors sits
 under 5.6 cm/h — a deadband wide enough to suppress them would silence the card
 for roughly a quarter of every tide cycle, which is most of the time anyone
