@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-09-28T08:28:06Z",
+  "generated_utc": "2026-09-28T16:57:04Z",
   "max_age_hours": 48.0,
   "stations": [
     {
@@ -12,9 +12,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:56:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:56:00Z",
-      "observation_rows": 2686
+      "newest_observation_utc": "2026-09-28T16:26:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:26:00Z",
+      "observation_rows": 2701
     },
     {
       "id": "46086",
@@ -26,9 +26,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": true,
       "paused_reason": "This buoy is still reporting, but its last water temperature was 2026-09-25T19:30:00Z. Rounds are paused until the sensor returns.",
-      "newest_observation_utc": "2026-09-28T07:40:00Z",
+      "newest_observation_utc": "2026-09-28T16:30:00Z",
       "newest_water_temp_utc": "2026-09-25T19:30:00Z",
-      "observation_rows": 8732
+      "observation_rows": 8785
     },
     {
       "id": "46047",
@@ -40,9 +40,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:50:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:50:00Z",
-      "observation_rows": 8670
+      "newest_observation_utc": "2026-09-28T16:10:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:10:00Z",
+      "observation_rows": 8720
     },
     {
       "id": "46258",
@@ -54,9 +54,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:56:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:56:00Z",
-      "observation_rows": 2940
+      "newest_observation_utc": "2026-09-28T16:26:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:26:00Z",
+      "observation_rows": 2957
     },
     {
       "id": "46235",
@@ -82,9 +82,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:56:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:56:00Z",
-      "observation_rows": 2860
+      "newest_observation_utc": "2026-09-28T15:56:00Z",
+      "newest_water_temp_utc": "2026-09-28T15:56:00Z",
+      "observation_rows": 2876
     },
     {
       "id": "46225",
@@ -96,9 +96,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:56:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:56:00Z",
-      "observation_rows": 2937
+      "newest_observation_utc": "2026-09-28T16:26:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:26:00Z",
+      "observation_rows": 2954
     },
     {
       "id": "46224",
@@ -110,9 +110,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:56:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:56:00Z",
-      "observation_rows": 2939
+      "newest_observation_utc": "2026-09-28T16:26:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:26:00Z",
+      "observation_rows": 2956
     },
     {
       "id": "46253",
@@ -124,9 +124,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:56:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:56:00Z",
-      "observation_rows": 2938
+      "newest_observation_utc": "2026-09-28T16:26:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:26:00Z",
+      "observation_rows": 2955
     },
     {
       "id": "46222",
@@ -138,9 +138,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:56:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:56:00Z",
-      "observation_rows": 2938
+      "newest_observation_utc": "2026-09-28T16:26:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:26:00Z",
+      "observation_rows": 2955
     },
     {
       "id": "46221",
@@ -152,9 +152,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:56:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:56:00Z",
-      "observation_rows": 2936
+      "newest_observation_utc": "2026-09-28T16:26:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:26:00Z",
+      "observation_rows": 2953
     },
     {
       "id": "46001",
@@ -166,9 +166,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:50:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:40:00Z",
-      "observation_rows": 8539
+      "newest_observation_utc": "2026-09-28T16:30:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:30:00Z",
+      "observation_rows": 8591
     },
     {
       "id": "46006",
@@ -180,9 +180,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": true,
       "paused_reason": "This buoy reports, but not water temperature, so it cannot host a round.",
-      "newest_observation_utc": "2026-09-28T07:50:00Z",
+      "newest_observation_utc": "2026-09-28T13:20:00Z",
       "newest_water_temp_utc": null,
-      "observation_rows": 8544
+      "observation_rows": 8577
     },
     {
       "id": "46005",
@@ -194,9 +194,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:50:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:40:00Z",
-      "observation_rows": 8539
+      "newest_observation_utc": "2026-09-28T16:30:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:30:00Z",
+      "observation_rows": 8591
     },
     {
       "id": "46059",
@@ -208,9 +208,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:40:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:40:00Z",
-      "observation_rows": 8518
+      "newest_observation_utc": "2026-09-28T16:30:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:30:00Z",
+      "observation_rows": 8571
     },
     {
       "id": "51101",
@@ -222,9 +222,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:40:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:40:00Z",
-      "observation_rows": 7482
+      "newest_observation_utc": "2026-09-28T16:20:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:20:00Z",
+      "observation_rows": 7534
     },
     {
       "id": "51002",
@@ -236,9 +236,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-09-28T07:40:00Z",
-      "newest_water_temp_utc": "2026-09-28T07:40:00Z",
-      "observation_rows": 8488
+      "newest_observation_utc": "2026-09-28T16:30:00Z",
+      "newest_water_temp_utc": "2026-09-28T16:30:00Z",
+      "observation_rows": 8541
     }
   ]
 }
