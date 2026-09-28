@@ -223,12 +223,16 @@ forecaster actually verifies against, Surfline included.
    requests, 2026-09-27; `forecast/series.py`): height, south − north, window
    ratio and a 24 h %K, switched above the plot, folded out from an
    "Charts" line below the drawing with the calculation's caret (closed
-   until opened). Each break and the buoy keep one colour on every tab —
-   North blue, Center gold, South purple, buoy red, validated together for
-   colour-blind separation — the tab's own line solid and every other one
-   dashed; a line that is no one break (south − north, the %K difference) is
-   ink. Each value above the plot wears its line's colour, sitting against
-   the plot and growing upward as it wraps. The x axis zooms and pans — pinch, drag, ctrl + wheel, and
+   until opened). **Each tab plots its own line only, in ink** — the break
+   on a break's tab, the buoy on the buoy's (owner's call, 2026-09-28, after
+   a round of per-break colours was rolled back: comparing the breaks on one
+   plot belongs somewhere else in the app). The Window chart carries a
+   direction strip under it on the same hours: a dot an hour where the
+   buoy's peak came from, never joined (the peak jumps between trains), over
+   the break's open windows shaded. It says where the peak sits, never
+   "inside" or "outside": the share is the whole spectrum through the
+   windows, and a binary test on one bearing is what BRIEFING §10 retired.
+   The readout sits against the plot and grows upward as it wraps. The x axis zooms and pans — pinch, drag, ctrl + wheel, and
    1D / 7D / 1M / All — and a sideways swipe reads the hours under the finger
    into a readout ABOVE the plot, keeping the last on release; a vertical
    swipe still scrolls the page. It opens on the last day (owner's choice;
