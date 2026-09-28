@@ -1502,7 +1502,7 @@ function buoyPanel(buoy, measured = null, chart = false) {
 // on one plot is for another part of the page.
 const CHART_MODES = [
   {id: "height", label: "Height"},
-  {id: "diff", label: "South − North"},
+  {id: "diff", label: "North vs. South"},
   {id: "window", label: "Window"},
   {id: "range", label: "Range %K"},
 ];
@@ -1551,7 +1551,7 @@ let ALL_STATE = "idle";  // series_all.json: idle | loading | loaded | failed
 
 const isoHour = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, "Z");
 
-// A height with its sign, for the south-less-north line.
+// A height with its sign, for the north-less-south line.
 const signedHeight = (m) => {
   if (m == null) return "—";
   const sign = m < 0 ? "−" : "+";
@@ -1562,26 +1562,25 @@ const dayClock = (iso) => new Date(iso).toLocaleString(undefined, {
   weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
 });
 
-// Axis ticks in feet, placed in metres: the data stays SI and the conversion
-// is the page's one constant. Signed when the axis runs through zero.
-function feetTicks(lo, hi, {signs = false} = {}) {
-  const span = (hi - lo) * FT_PER_M;
-  const step = [0.5, 1, 2, 5, 10].find((f) => span / f <= 4) || 20;
-  const out = [];
-  for (let f = Math.ceil(lo * FT_PER_M / step - 1e-9) * step; f <= hi * FT_PER_M + 1e-9; f += step) {
-    const v = Number(f.toFixed(1));
-    const text = v === 0 ? "0" : `${v < 0 ? "−" : signs ? "+" : ""}${Math.abs(v)} ft`;
-    out.push({at: v / FT_PER_M, text});
+// A heights axis in feet, placed in metres: the data stays SI and the
+// conversion is the page's one constant. The top (and, for a signed axis, the
+// bottom) is rounded up to a whole tick, so the frame is always a gridline --
+// the edges of the plot are drawn on every chart, whatever the heights in
+// view -- and the furthest line never touches it. At most four steps from
+// zero to the top, or three either side of zero when the axis is signed.
+function feetAxis(reach, {floor = 0.3, signed = false} = {}) {
+  const ft = Math.max(floor, reach) * FT_PER_M;
+  const most = signed ? 3 : 4;
+  const step = [0.5, 1, 2, 5, 10, 20, 50].find((f) => Math.ceil(ft / f + 0.05) <= most) || 100;
+  const n = Math.ceil(ft / step + 0.05);
+  const ticks = [];
+  for (let k = signed ? -n : 0; k <= n; k++) {
+    const v = Number((k * step).toFixed(1));
+    const text = v === 0 ? "0" : `${v < 0 ? "−" : signed ? "+" : ""}${Math.abs(v)} ft`;
+    ticks.push({at: v / FT_PER_M, text});
   }
-  return out;
-}
-
-// The top of a heights axis, rounded up to a whole tick so the highest line
-// never touches the frame.
-function feetCeiling(m, spanFloor = 0.3) {
-  const top = Math.max(spanFloor, m) * FT_PER_M;
-  const step = [0.5, 1, 2, 5, 10].find((f) => top / f <= 4) || 20;
-  return Math.ceil(top / step + 0.05) * step / FT_PER_M;
+  const top = n * step / FT_PER_M;
+  return {domain: [signed ? -top : 0, top], ticks};
 }
 
 // Every hour the chart can show, oldest first: the archive's hours before the
@@ -1729,14 +1728,20 @@ function buildSpec(id, mode, steps) {
   }
 
   if (mode === "diff") {
-    const values = steps.map((s) => num(live(s) ? s.south_minus_north_m : null));
+    // North less south, so the line reads the way the menu names it: above
+    // zero, the first-named break is the bigger. The payload carries south
+    // less north; the page only flips its sign.
+    const values = steps.map((s) => {
+      const v = num(live(s) ? s.south_minus_north_m : null);
+      return v == null ? null : -v;
+    });
     return {
       scale: "diff",
-      lines: [{cls: "main", label: "South less north", values}],
-      zero: true, above: "South bigger", below: "North bigger",
-      says: "South's breaking height less north's, the same on every break's tab. "
+      lines: [{cls: "main", label: "North less south", values}],
+      zero: true, above: "North bigger", below: "South bigger",
+      says: "North's breaking height less south's, the same on every break's tab. "
         + "Where the line crosses zero, which of the two is bigger has flipped.",
-      read: (i) => value(`South less north ${signedHeight(values[i])}`),
+      read: (i) => value(`North less south ${signedHeight(values[i])}`),
     };
   }
 
@@ -1814,12 +1819,7 @@ function chartDomain(spec, a, z) {
       if (v != null && Math.abs(v) > reach) reach = Math.abs(v);
     }
   });
-  if (spec.scale === "diff") {
-    const hi = feetCeiling(reach, 0.1);
-    return {domain: [-hi, hi], ticks: feetTicks(-hi, hi, {signs: true})};
-  }
-  const top = feetCeiling(reach);
-  return {domain: [0, top], ticks: feetTicks(0, top)};
+  return spec.scale === "diff" ? feetAxis(reach, {floor: 0.1, signed: true}) : feetAxis(reach);
 }
 
 // Where the x axis is marked, for the window in view: hours, days, weeks,

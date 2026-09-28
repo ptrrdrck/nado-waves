@@ -2045,7 +2045,7 @@ class TestTheWeekChart:
             "}"
         )
         assert got == ["height main:1.2/1.2", "height main:1/1.3", "window main:0.7/0.7",
-                       "diff main:0.1/0.1", "range slow:20/20,main:40/40"]
+                       "diff main:-0.1/-0.1", "range slow:20/20,main:40/40"]
 
     def test_a_chart_of_one_line_has_no_key(self):
         got = self._run(
@@ -2103,6 +2103,42 @@ class TestTheWeekChart:
             "console.log([...svg.matchAll(/class=\"tick ytick\"[^>]*>([^<]+)</g)].map((m) => m[1]).slice(3).join(','));"
         )
         assert got == ["SE,S,SW,W"]
+
+    def test_north_vs_south_is_north_less_south(self):
+        """Named North vs. South, so the line is north less south: above zero,
+        the first-named break is the bigger. The payload keeps south less
+        north and the page only flips its sign."""
+
+        got = self._run(
+            "const steps = [hour(0, 1), hour(1, 1)]; steps[0].south_minus_north_m = -0.3;\n"
+            "SERIES = {station: '46232', generated_utc: 'g', steps};\n"
+            "const spec = chartSpec('coronado_center', 'diff');\n"
+            "console.log(CHART_MODES.find((m) => m.id === 'diff').label);\n"
+            "console.log(spec.lines[0].values[0], spec.above, '|', spec.below);\n"
+            "console.log(spec.read(0).replace(/<[^>]+>/g, ''));"
+        )
+        assert got == ["North vs. South", "0.3 North bigger | South bigger",
+                       "North less south +1.0 ft (+0.30 m)"]
+
+    def test_every_heights_axis_is_framed_by_gridlines(self):
+        """The top and bottom of the plot are always ticks, so the frame is
+        drawn on every chart: the step is chosen with the rounded ends, never
+        from a span the rounding has already widened."""
+
+        got = self._run(
+            "let bad = [];\n"
+            "for (let r = 0; r <= 12; r += 0.01) {\n"
+            "  for (const signed of [false, true]) {\n"
+            "    const {domain, ticks} = feetAxis(r, {floor: signed ? 0.1 : 0.3, signed});\n"
+            "    const ends = [ticks[0].at, ticks[ticks.length - 1].at];\n"
+            "    if (Math.abs(ends[0] - domain[0]) > 1e-9 || Math.abs(ends[1] - domain[1]) > 1e-9"
+            " || !(domain[1] > r) || ticks.length > (signed ? 7 : 5)) bad.push([r, signed]);\n"
+            "  }\n"
+            "}\n"
+            "console.log(bad.length);\n"
+            "console.log(feetAxis(0.6, {floor: 0.1, signed: true}).ticks.map((t) => t.text).join(','));"
+        )
+        assert got == ["0", "−3 ft,−2 ft,−1 ft,0,+1 ft,+2 ft,+3 ft"]
 
     def test_the_readout_sits_against_the_plot_and_grows_upward(self):
         """Owner's design, 2026-09-28: the values hug the chart rather than the

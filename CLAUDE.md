@@ -220,7 +220,7 @@ forecaster actually verifies against, Surfline included.
    was not kept" rather than borrowing another build's detail. Under it, in
    sea green, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. **Under each Now card are the hourly charts** (owner's
-   requests, 2026-09-27; `forecast/series.py`): height, south − north, window
+   requests, 2026-09-27; `forecast/series.py`): height, north vs. south (north less south), window
    ratio and a 24 h %K, switched above the plot, folded out from an
    "Charts" line below the drawing with the calculation's caret (closed
    until opened). **Each tab plots its own line only, in ink** — the break
