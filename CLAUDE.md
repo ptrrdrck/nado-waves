@@ -223,8 +223,12 @@ forecaster actually verifies against, Surfline included.
    requests, 2026-09-27; `forecast/series.py`): height, south − north, window
    ratio and a 24 h %K, switched above the plot, folded out from an
    "Charts" line below the drawing with the calculation's caret (closed
-   until opened); the buoy's line is red wherever it is drawn on its own,
-   and each value above the plot wears its line's colour. The x axis zooms and pans — pinch, drag, ctrl + wheel, and
+   until opened). Each break and the buoy keep one colour on every tab —
+   North blue, Center gold, South purple, buoy red, validated together for
+   colour-blind separation — the tab's own line solid and every other one
+   dashed; a line that is no one break (south − north, the %K difference) is
+   ink. Each value above the plot wears its line's colour, sitting against
+   the plot and growing upward as it wraps. The x axis zooms and pans — pinch, drag, ctrl + wheel, and
    1D / 7D / 1M / All — and a sideways swipe reads the hours under the finger
    into a readout ABOVE the plot, keeping the last on release; a vertical
    swipe still scrolls the page. It opens on the last day (owner's choice;

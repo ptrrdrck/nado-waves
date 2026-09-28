@@ -22,6 +22,13 @@
      blue line's lower saturation (OKLCH C 0.13 against its 0.12). A shade
      off --signal, so it never reads as the overdue warning. */
   --buoy:#BE2132;
+  /* Center and South on the charts: a colour per break, the same on every tab
+     (owner's call, 2026-09-28: no orange, no green; North is --surf). All four
+     validated together on the card, every pair: colour-blind dE >= 11.8 light,
+     14.5 dark. Where a line colour is under 4.5:1 its readout text takes a
+     darker shade of the same hue. */
+  --brk-center:#B08505; --brk-center-ink:#8C6802;
+  --brk-south:#7D2A79;  --brk-south-ink:#7D2A79;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
 }
@@ -35,6 +42,8 @@
     --ok:#5FBF86;
     --measured:#3EDB9E;
     --buoy:#E47B7C;
+    --brk-center:#E3C23B; --brk-center-ink:#E3C23B;
+    --brk-south:#886DE9;  --brk-south-ink:#927FE7;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
@@ -47,6 +56,8 @@
   --ok:#5FBF86;
   --measured:#3EDB9E;
   --buoy:#E47B7C;
+  --brk-center:#E3C23B; --brk-center-ink:#E3C23B;
+  --brk-south:#886DE9;  --brk-south-ink:#927FE7;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
@@ -354,35 +365,46 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
               stroke-width:3px;stroke-linejoin:round}
 .series .gapband{fill:var(--line);opacity:.55}
 .series .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-.series .ln.main{stroke:var(--surf)}
-.series .ln.buoy{stroke:var(--buoy);stroke-width:1.5}
+/* A colour per break and the buoy, on every tab; the tab's own line solid,
+   every other one dashed (owner's design, 2026-09-28), so the dash says which
+   line is this tab's even where the colours are hard to tell apart. A line
+   that is no one break -- south less north, the %K difference -- is ink. */
+.series .ln.b-north{stroke:var(--surf)} .series .pt.b-north,.series .hot.b-north{fill:var(--surf)}
+.series .ln.b-center{stroke:var(--brk-center)} .series .pt.b-center,.series .hot.b-center{fill:var(--brk-center)}
+.series .ln.b-south{stroke:var(--brk-south)} .series .pt.b-south,.series .hot.b-south{fill:var(--brk-south)}
+.series .ln.buoy{stroke:var(--buoy)} .series .pt.buoy,.series .hot.buoy{fill:var(--buoy)}
+.series .ln.derived{stroke:var(--ink)} .series .pt.derived,.series .hot.derived{fill:var(--ink)}
 .series .ln.own{stroke-width:2}
-.series .ln.other{stroke:var(--faint);stroke-width:1;opacity:.75}
+.series .ln.dash{stroke-width:1.5;stroke-dasharray:4 3}
 .series .ln.slow{stroke:var(--soft);stroke-width:1}
-.series .pt.main{fill:var(--surf)} .series .pt.buoy{fill:var(--buoy)} .series .pt.slow{fill:var(--soft)}
-.series .pt.other{fill:var(--faint)}
+.series .pt.slow{fill:var(--soft)}
 .series .cross{stroke:var(--soft);stroke-width:1}
 .series .hot{fill:var(--surf);stroke:var(--card);stroke-width:2}
-.series .hot.buoy{fill:var(--buoy)}
 .chart .legend{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:12px;color:var(--soft)}
-.chart .legend .sw{display:inline-block;width:14px;height:2px;border-radius:1px;
+.chart .legend .sw{display:inline-block;width:16px;height:2px;border-radius:1px;
                    vertical-align:middle;margin-right:6px;background:var(--surf)}
-.chart .legend .sw.buoy{background:var(--buoy);height:1.5px}
-.chart .legend .sw.buoy.own{height:2px}
-.chart .legend .sw.slow{background:var(--soft);height:1.5px}
-.chart .legend .sw.other{background:var(--faint);height:1px}
+.chart .legend .sw.b-north{color:var(--surf)} .chart .legend .sw.b-center{color:var(--brk-center)}
+.chart .legend .sw.b-south{color:var(--brk-south)} .chart .legend .sw.buoy{color:var(--buoy)}
+.chart .legend .sw.derived{color:var(--ink)} .chart .legend .sw.slow{color:var(--soft);height:1.5px}
+.chart .legend .sw{background:currentColor}
+.chart .legend .sw.dash{height:1.5px;background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)}
 /* Above the plot, and tall enough for its longest reading, so the plot never
    jumps under a finger as the values change. */
 .chart .readout{font-size:13px;line-height:1.45;color:var(--soft);font-variant-numeric:tabular-nums;
-                min-height:calc(3 * 1.45em)}
+                min-height:calc(3 * 1.45em);display:flex;flex-direction:column;justify-content:flex-end}
+/* The text sits at the foot of that room, against the plot, and a longer
+   reading grows upward toward the menu (owner's design, 2026-09-28). */
 .chart .readout b{color:var(--ink);font-weight:600}
 /* Each value in the colour of its line (owner's design, 2026-09-27), so the
    reading and the line it came from are matched at a glance. */
-.chart .readout .v{font-weight:600}
+.chart .readout .v{font-weight:400}
+.chart .readout .v.own{font-weight:600}
 .chart .readout .v .unit{color:inherit;font-weight:400}
-.chart .readout .v.main{color:var(--surf)}
+.chart .readout .v.b-north{color:var(--surf)}
+.chart .readout .v.b-center{color:var(--brk-center-ink)}
+.chart .readout .v.b-south{color:var(--brk-south-ink)}
 .chart .readout .v.buoy{color:var(--buoy)}
-.chart .readout .v.other{color:var(--faint);font-weight:400}
+.chart .readout .v.derived{color:var(--ink)}
 
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:right;padding:4px 5px;border-bottom:1px solid var(--line)}
@@ -1509,6 +1531,8 @@ function buoyPanel(buoy, measured = null, chart = false) {
 //
 // Four views of the same hours, switched above the plot. The buoy's tab has
 // only the heights, because the other three are about a break.
+// Each break's colour class on the charts, by id.
+const BREAK_KEY = {coronado_north: "b-north", coronado_center: "b-center", coronado_south: "b-south"};
 const CHART_MODES = [
   {id: "height", label: "Height"},
   {id: "diff", label: "South − North"},
@@ -1723,32 +1747,35 @@ function buildSpec(id, mode, steps) {
   const num = (v) => (v == null || !isFinite(v) ? null : v);
   const name = SHORT[id] || id;
   const others = ORDER.filter((bid) => bid !== id);
-  const buoyLine = (cls) => ({cls, label: `Buoy ${station}`,
+  // Each break's own colour class, and the tab's own line solid; the rest,
+  // the buoy included, dashed.
+  const style = (key, own) => `${key} ${own ? "own" : "dash"}`;
+  const buoyLine = (own) => ({cls: style("buoy", own), label: `Buoy ${station}`,
                               values: steps.map((s) => num(buoyOf(s).hs_m))});
-  const breakLine = (bid, cls, label) => ({cls, label,
-                                           values: steps.map((s) => num(brk(s, bid).hs_m))});
+  const breakLine = (bid) => ({cls: style(BREAK_KEY[bid], bid === id), label: SHORT[bid],
+                               values: steps.map((s) => num(brk(s, bid).hs_m))});
+  // Drawn under the tab's own line, which goes last.
+  const underOwn = ORDER.filter((bid) => bid !== id);
   const named = (v, text) => (v == null ? `${text} —` : `${text} ${v}`);
 
   if (id === BUOY_TAB || mode === "height") {
     return {
       scale: "height",
       lines: id === BUOY_TAB
-        ? [...ORDER.map((bid) => breakLine(bid, "other", "Breaks, breaking")), buoyLine("buoy own")]
-        : [...others.map((bid) => breakLine(bid, "other", "Other breaks")), buoyLine("buoy"),
-           breakLine(id, "main", `${name}, breaking`)],
+        ? [...ORDER.map(breakLine), buoyLine(true)]
+        : [...underOwn.map(breakLine), buoyLine(false), breakLine(id)],
       says: id === BUOY_TAB
-        ? "The buoy's height each hour, with the three breaks' breaking heights faint behind it."
+        ? "The buoy's height each hour, with the three breaks' breaking heights dashed beside it."
         : `${name}'s breaking height each hour, beside the buoy's and the other two breaks'.`,
-      // Each value in its line's colour: the tab's own, the buoy's red,
-      // the other breaks' grey.
+      // Each value in its line's colour, the tab's own first and in bold.
       read: (i) => {
-        const buoyText = `<span class="v buoy">Buoy ${height(num(buoyOf(steps[i]).hs_m))}</span>`;
-        const breakText = (k, cls) =>
-          `<span class="v ${cls}">${SHORT[k]} ${height(num(brk(steps[i], k).hs_m))}</span>`;
+        const buoyText = `<span class="v buoy${id === BUOY_TAB ? " own" : ""}">`
+          + `Buoy ${height(num(buoyOf(steps[i]).hs_m))}</span>`;
+        const breakText = (k) => `<span class="v ${BREAK_KEY[k]}${k === id ? " own" : ""}">`
+          + `${SHORT[k]} ${height(num(brk(steps[i], k).hs_m))}</span>`;
         return id === BUOY_TAB
-          ? [buoyText, ...ORDER.map((k) => breakText(k, "other"))].join(" &middot; ")
-          : [breakText(id, "main"), ...others.map((k) => breakText(k, "other")), buoyText]
-            .join(" &middot; ");
+          ? [buoyText, ...ORDER.map(breakText)].join(" &middot; ")
+          : [breakText(id), ...others.map(breakText), buoyText].join(" &middot; ");
       },
     };
   }
@@ -1757,28 +1784,31 @@ function buildSpec(id, mode, steps) {
     const values = steps.map((s) => num(live(s) ? s.south_minus_north_m : null));
     return {
       scale: "diff",
-      lines: [{cls: "main", label: "South less north", values}],
+      lines: [{cls: "derived own", label: "South less north", values}],
       zero: true, above: "South bigger", below: "North bigger",
       says: "South's breaking height less north's, the same on every break's tab. "
         + "Where the line crosses zero, which of the two is bigger has flipped.",
-      read: (i) => `<span class="v main">South less north ${signedHeight(values[i])}</span>`,
+      read: (i) => `<span class="v derived own">South less north ${signedHeight(values[i])}</span>`,
     };
   }
 
   if (mode === "window") {
-    const share = (bid, cls, label) => ({cls, label,
+    const share = (bid) => ({cls: style(BREAK_KEY[bid], bid === id), label: SHORT[bid],
       values: steps.map((s) => num(brk(s, bid).transmission))});
     return {
       scale: "window",
-      lines: [...others.map((bid) => share(bid, "other", "Other breaks")),
-              share(id, "main", name)],
+      lines: [...underOwn.map(share), share(id)],
       says: `${name}'s height through its windows as a share of the buoy's, before the `
         + "seabed and the surf zone. It moves with where the swell comes from and how "
         + "widely it is spread.",
       read: (i) => {
-        const v = num(brk(steps[i], id).transmission);
+        const pct = (k) => {
+          const v = num(brk(steps[i], k).transmission);
+          return `<span class="v ${BREAK_KEY[k]}${k === id ? " own" : ""}">`
+            + `${SHORT[k]} ${v == null ? "—" : Math.round(100 * v) + "%"}</span>`;
+        };
         const from = buoyOf(steps[i]).from_deg;
-        return `<span class="v main">${name} ${v == null ? "—" : Math.round(100 * v) + "%"}</span> of the buoy's height`
+        return [pct(id), ...others.map(pct)].join(" &middot; ") + " of the buoy's height"
           + (from != null ? ` &middot; buoy peak from ${compass(from)}` : "");
       },
     };
@@ -1795,7 +1825,7 @@ function buildSpec(id, mode, steps) {
   return {
     scale: "range",
     lines: [{cls: "slow", label: `${SERIES.d_hours || 3} h mean`, values: diff("pct_d")},
-            {cls: "main", label: "Buoy %K less break %K", values: diff("pct_k")}],
+            {cls: "derived own", label: "Buoy %K less break %K", values: diff("pct_k")}],
     zero: true, above: "Buoy higher in its range", below: `${name} higher in its range`,
     says: `Where the buoy's height sits in its own last ${lookback} hours, 0 at the low and `
       + `100 at the high, less where ${name}'s sits in its. Above zero, the buoy is nearer its `
@@ -1807,7 +1837,7 @@ function buildSpec(id, mode, steps) {
       const k = (v) => (v == null ? null : Math.round(v));
       const d = a == null || b == null ? null : k(a) - k(b);
       return `${named(k(a), "Buoy %K")} &middot; ${named(k(b), `${name} %K`)} &middot; `
-        + `<span class="v main">difference ${d == null ? "—" : (d > 0 ? "+" : d < 0 ? "−" : "") + Math.abs(d)}</span>`;
+        + `<span class="v derived own">difference ${d == null ? "—" : (d > 0 ? "+" : d < 0 ? "−" : "") + Math.abs(d)}</span>`;
     },
   };
 }
@@ -1999,10 +2029,16 @@ function chartReadout(spec, i, steps = chartSteps()) {
 }
 
 // Every line has a legend entry as well as a colour, so which line is which
-// never rests on colour alone; the tab's own line is listed first.
+// never rests on colour alone; the tab's own line is listed first, then the
+// rest north to south and the buoy last, the same order on every tab.
+const LEGEND_ORDER = ["b-north", "b-center", "b-south", "buoy", "slow"];
 function chartLegend(spec) {
   const seen = new Set();
-  const items = spec.lines.slice().reverse().filter((ln) => {
+  const place = (ln) => {
+    const i = LEGEND_ORDER.findIndex((k) => ln.cls.split(" ").includes(k));
+    return ln.cls.split(" ").includes("own") ? -1 : i < 0 ? LEGEND_ORDER.length : i;
+  };
+  const items = spec.lines.slice().sort((p, q) => place(p) - place(q)).filter((ln) => {
     const key = ln.cls + ln.label;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -2031,7 +2067,7 @@ function chartMoving(id, at, steps, view) {
   const spec = chartSpec(id, id === BUOY_TAB ? "height" : CHART_MODE, steps);
   const note = chartNote(steps);
   return {
-    readout: chartReadout(spec, at, steps),
+    readout: `<div>${chartReadout(spec, at, steps)}</div>`,
     plot: chartPlot(id, spec, at, steps, view),
     under: `<div class="ranges" role="group" aria-label="How much time the chart shows">`
       + `${chartRanges()}</div>${note ? `<span class="chart-note">${note}</span>` : ""}`,

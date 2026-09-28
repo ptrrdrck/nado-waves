@@ -1852,9 +1852,9 @@ class TestTheWeekChart:
             " gap(2), hour(3, 1.2), gap(4), hour(5, 1.0), hour(6, 0.9)]};\n"
             "const svg = chartPlot('coronado_north', chartSpec('coronado_north', 'height'),"
             " chartIndex());\n"
-            "const main = svg.match(/<path class=\"ln main\" d=\"([^\"]+)\"/)[1];\n"
+            "const main = svg.match(/<path class=\"ln b-north own\" d=\"([^\"]+)\"/)[1];\n"
             "console.log((main.match(/M/g) || []).length, (main.match(/L/g) || []).length);\n"
-            "console.log((svg.match(/<circle class=\"pt main\"/g) || []).length);\n"
+            "console.log((svg.match(/<circle class=\"pt b-north own\"/g) || []).length);\n"
             "console.log((svg.match(/class=\"gapband\"/g) || []).length);"
         )
         # Two runs of two hours, joined once each; the lone hour 3 is a dot.
@@ -1870,7 +1870,7 @@ class TestTheWeekChart:
             "setChartRange(Infinity);\n"
             "const svg = chartPlot('coronado_north', chartSpec('coronado_north', 'height'),"
             " chartIndex());\n"
-            "const main = svg.match(/<path class=\"ln main\" d=\"([^\"]+)\"/)[1];\n"
+            "const main = svg.match(/<path class=\"ln b-north own\" d=\"([^\"]+)\"/)[1];\n"
             "console.log((main.match(/M/g) || []).length);\n"
             "const band = svg.match(/class=\"gapband\" x=\"[^\"]+\" y=\"[^\"]+\" width=\"([^\"]+)\"/);\n"
             "console.log(Number(band[1]) >= 1);\n"
@@ -2025,35 +2025,68 @@ class TestTheWeekChart:
         assert "<button" not in body
         assert 'strip.addEventListener("change"' in self.SECTION
 
-    def test_the_buoy_is_red_wherever_it_is_a_line_of_its_own(self):
-        """Owner's design, 2026-09-27. Its own token in every theme, and the
-        buoy's tab draws it at the tab's own weight."""
+    def test_each_break_and_the_buoy_keep_their_own_colour_on_every_tab(self):
+        """Owner's design, 2026-09-28: North blue, Center gold, South purple, the
+        buoy red, on every tab; the tab's own line solid and every other one --
+        the buoy included -- dashed."""
 
         css = SOURCE[:SOURCE.index("</style>")]
-        assert css.count("--buoy:") == 3                    # light, and dark both ways
-        assert ".series .ln.buoy{stroke:var(--buoy);" in css
-        assert ".chart .legend .sw.buoy{background:var(--buoy);" in css
-        assert ".series .hot.buoy{fill:var(--buoy)}" in css
+        assert css.count("--buoy:") == 3 and css.count("--brk-center:") == 3
+        assert css.count("--brk-south:") == 3
+        for key, token in (("b-north", "--surf"), ("b-center", "--brk-center"),
+                           ("b-south", "--brk-south"), ("buoy", "--buoy")):
+            assert f".series .ln.{key}{{stroke:var({token})}}" in css
+        assert ".series .ln.dash{stroke-width:1.5;stroke-dasharray:4 3}" in css
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
-            "console.log(chartSpec('buoy', 'height').lines.map((l) => l.cls).join(','));\n"
-            "console.log(chartSpec('coronado_north', 'height').lines.map((l) => l.cls).join(','));"
+            "for (const tab of ['buoy', 'coronado_north', 'coronado_center'])"
+            " console.log(chartSpec(tab, 'height').lines.map((l) => l.cls).join(','));\n"
+            "console.log(chartSpec('coronado_south', 'window').lines.map((l) => l.cls).join(','));"
         )
-        assert got[0] == "other,other,other,buoy own"
-        assert got[1] == "other,other,buoy,main"
+        assert got[0] == "b-north dash,b-center dash,b-south dash,buoy own"
+        assert got[1] == "b-center dash,b-south dash,buoy dash,b-north own"
+        assert got[2] == "b-north dash,b-south dash,buoy dash,b-center own"
+        assert got[3] == "b-north dash,b-center dash,b-south own"
+
+    def test_the_legend_lists_the_tabs_own_line_then_north_to_south_then_the_buoy(self):
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
+            "console.log(chartLegend(chartSpec('coronado_center', 'height'))"
+            ".match(/<\\/i>([^<]+)/g).map((m) => m.slice(4)).join(','));"
+        )
+        assert got == ["Center,North,South,Buoy 46232"]
+
+    def test_a_line_that_is_no_one_break_is_ink(self):
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
+            "console.log(chartSpec('coronado_north', 'diff').lines[0].cls);\n"
+            "console.log(chartSpec('coronado_north', 'range').lines[1].cls);"
+        )
+        assert got == ["derived own", "derived own"]
 
     def test_each_value_above_the_plot_wears_its_lines_colour(self):
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
-            "console.log(chartSpec('coronado_north', 'height').read(0));\n"
+            "console.log(chartSpec('coronado_center', 'height').read(0));\n"
             "console.log(chartSpec('buoy', 'height').read(0));"
         )
-        assert got[0].startswith('<span class="v main">North ')
-        assert '<span class="v buoy">Buoy ' in got[0] and '<span class="v other">Center ' in got[0]
-        assert got[1].startswith('<span class="v buoy">Buoy ')
+        assert got[0].startswith('<span class="v b-center own">Center ')
+        assert '<span class="v b-north">North ' in got[0] and '<span class="v buoy">Buoy ' in got[0]
+        assert got[1].startswith('<span class="v buoy own">Buoy ')
         css = SOURCE[:SOURCE.index("</style>")]
-        for cls, token in (("main", "--surf"), ("buoy", "--buoy"), ("other", "--faint")):
-            assert f".chart .readout .v.{cls}{{color:var({token})" in css
+        for key, token in (("b-north", "--surf"), ("b-center", "--brk-center-ink"),
+                           ("b-south", "--brk-south-ink"), ("buoy", "--buoy")):
+            assert f".chart .readout .v.{key}{{color:var({token})}}" in css
+
+    def test_the_readout_sits_against_the_plot_and_grows_upward(self):
+        """Owner's design, 2026-09-28: the values hug the chart rather than the
+        menu, and a reading that wraps to a third line grows toward the menu."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        rule = css[css.index(".chart .readout{"):]
+        rule = rule[:rule.index("}")]
+        assert "justify-content:flex-end" in rule and "min-height" in rule
+        assert "readout: `<div>${chartReadout(spec, at, steps)}</div>`," in self.SECTION
 
     def test_the_plot_runs_to_the_left_edge(self):
         """The y labels moved inside the plot, above their gridlines, so no
