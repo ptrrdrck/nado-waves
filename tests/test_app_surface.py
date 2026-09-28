@@ -1809,6 +1809,8 @@ class TestTheWeekChart:
             pytest.skip("node is not available")
         start = SOURCE.index("function compass(")
         compass = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        start = SOURCE.index("function point(")
+        compass += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
         prelude = (
             "const FT_PER_M = 3.28084;\n"
             "const ORDER = ['coronado_north', 'coronado_center', 'coronado_south'];\n"
@@ -1822,11 +1824,11 @@ class TestTheWeekChart:
             "const fresh = (u) => u; const SERIES_ALL_SOURCE = 'series_all.json';\n"
             "let FETCHED = []; globalThis.fetch = (u) => { FETCHED.push(u);"
             " return new Promise(() => {}); };\n"
-            "let SERIES = null, SERIES_ALL = null;\n"
+            "let SERIES = null, SERIES_ALL = null, NOW = null;\n"
             "const stamp = (i) => new Date(Date.UTC(2026, 8, 20) + i * 3600000).toISOString()"
             ".replace('.000Z', 'Z');\n"
             "const hour = (i, hs) => ({valid_utc: stamp(i), gap: false,"
-            " buoy: {hs_m: 1.2, pct_k: 60.4, pct_d: 50},"
+            " buoy: {hs_m: 1.2, pct_k: 60.4, pct_d: 50, from_deg: 200},"
             " breaks: {coronado_north: {hs_m: hs, transmission: 0.7, pct_k: 20.4, pct_d: 30}},"
             " south_minus_north_m: 0.1});\n"
             "const gap = (i) => ({valid_utc: stamp(i), gap: true});\n"
@@ -1852,9 +1854,9 @@ class TestTheWeekChart:
             " gap(2), hour(3, 1.2), gap(4), hour(5, 1.0), hour(6, 0.9)]};\n"
             "const svg = chartPlot('coronado_north', chartSpec('coronado_north', 'height'),"
             " chartIndex());\n"
-            "const main = svg.match(/<path class=\"ln b-north own\" d=\"([^\"]+)\"/)[1];\n"
+            "const main = svg.match(/<path class=\"ln main\" d=\"([^\"]+)\"/)[1];\n"
             "console.log((main.match(/M/g) || []).length, (main.match(/L/g) || []).length);\n"
-            "console.log((svg.match(/<circle class=\"pt b-north own\"/g) || []).length);\n"
+            "console.log((svg.match(/<circle class=\"pt main\"/g) || []).length);\n"
             "console.log((svg.match(/class=\"gapband\"/g) || []).length);"
         )
         # Two runs of two hours, joined once each; the lone hour 3 is a dot.
@@ -1870,7 +1872,7 @@ class TestTheWeekChart:
             "setChartRange(Infinity);\n"
             "const svg = chartPlot('coronado_north', chartSpec('coronado_north', 'height'),"
             " chartIndex());\n"
-            "const main = svg.match(/<path class=\"ln b-north own\" d=\"([^\"]+)\"/)[1];\n"
+            "const main = svg.match(/<path class=\"ln main\" d=\"([^\"]+)\"/)[1];\n"
             "console.log((main.match(/M/g) || []).length);\n"
             "const band = svg.match(/class=\"gapband\" x=\"[^\"]+\" y=\"[^\"]+\" width=\"([^\"]+)\"/);\n"
             "console.log(Number(band[1]) >= 1);\n"
@@ -2025,58 +2027,82 @@ class TestTheWeekChart:
         assert "<button" not in body
         assert 'strip.addEventListener("change"' in self.SECTION
 
-    def test_each_break_and_the_buoy_keep_their_own_colour_on_every_tab(self):
-        """Owner's design, 2026-09-28: North blue, Center gold, South purple, the
-        buoy red, on every tab; the tab's own line solid and every other one --
-        the buoy included -- dashed."""
+    def test_each_tab_plots_its_own_line_only_in_ink(self):
+        """Owner's call, 2026-09-28: the break tabs and the buoy's tab each plot
+        their own series and nothing else, in ink like every other chart.
+        Comparing the breaks on one plot is for another part of the page."""
 
         css = SOURCE[:SOURCE.index("</style>")]
-        assert css.count("--buoy:") == 3 and css.count("--brk-center:") == 3
-        assert css.count("--brk-south:") == 3
-        for key, token in (("b-north", "--surf"), ("b-center", "--brk-center"),
-                           ("b-south", "--brk-south"), ("buoy", "--buoy")):
-            assert f".series .ln.{key}{{stroke:var({token})}}" in css
-        assert ".series .ln.dash{stroke-width:1.5;stroke-dasharray:4 3}" in css
+        assert "--buoy:" not in css and "--brk-" not in css
+        assert ".series .ln{stroke:var(--ink)}" in css
+        assert "b-north" not in SOURCE and "BREAK_KEY" not in SOURCE
         got = self._run(
-            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
-            "for (const tab of ['buoy', 'coronado_north', 'coronado_center'])"
-            " console.log(chartSpec(tab, 'height').lines.map((l) => l.cls).join(','));\n"
-            "console.log(chartSpec('coronado_south', 'window').lines.map((l) => l.cls).join(','));"
+            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1.3)]};\n"
+            "for (const [tab, mode] of [['buoy', 'height'], ['coronado_north', 'height'],"
+            " ['coronado_north', 'window'], ['coronado_north', 'diff'], ['coronado_north', 'range']]) {\n"
+            "  const spec = chartSpec(tab, mode);\n"
+            "  console.log(mode, spec.lines.map((l) => l.cls + ':' + l.values.join('/')).join(','));\n"
+            "}"
         )
-        assert got[0] == "b-north dash,b-center dash,b-south dash,buoy own"
-        assert got[1] == "b-center dash,b-south dash,buoy dash,b-north own"
-        assert got[2] == "b-north dash,b-south dash,buoy dash,b-center own"
-        assert got[3] == "b-north dash,b-center dash,b-south own"
+        assert got == ["height main:1.2/1.2", "height main:1/1.3", "window main:0.7/0.7",
+                       "diff main:0.1/0.1", "range slow:20/20,main:40/40"]
 
-    def test_the_legend_lists_the_tabs_own_line_then_north_to_south_then_the_buoy(self):
+    def test_a_chart_of_one_line_has_no_key(self):
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
-            "console.log(chartLegend(chartSpec('coronado_center', 'height'))"
+            "console.log(JSON.stringify(chartLegend(chartSpec('coronado_center', 'height'))));\n"
+            "console.log(chartLegend(chartSpec('coronado_center', 'window'))"
             ".match(/<\\/i>([^<]+)/g).map((m) => m.slice(4)).join(','));"
         )
-        assert got == ["Center,North,South,Buoy 46232"]
+        assert got == ['""', "Center's share,Center's windows,Buoy peak from"]
 
-    def test_a_line_that_is_no_one_break_is_ink(self):
+    def test_the_readout_names_only_the_tabs_own_value(self):
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
-            "console.log(chartSpec('coronado_north', 'diff').lines[0].cls);\n"
-            "console.log(chartSpec('coronado_north', 'range').lines[1].cls);"
+            "console.log(chartSpec('coronado_north', 'height').read(0));\n"
+            "console.log(chartSpec('buoy', 'height').read(0));\n"
+            "console.log(chartSpec('coronado_north', 'window').read(0));"
         )
-        assert got == ["derived own", "derived own"]
+        assert got[0] == '<span class="v">North 1.00 m</span>'
+        assert got[1] == '<span class="v">Buoy 1.20 m</span>'
+        assert got[2] == ('<span class="v">North 70%</span> of the buoy\'s height'
+                          ' &middot; buoy peak from <span class="v">SSW 200°</span>')
 
-    def test_each_value_above_the_plot_wears_its_lines_colour(self):
+    def test_the_window_chart_carries_the_buoys_direction_under_it(self):
+        """A strip under the Window plot on the same hours: a dot an hour where
+        the buoy's peak came from, never joined, over the break's own windows
+        shaded. The height chart has no strip."""
+
         got = self._run(
-            "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
-            "console.log(chartSpec('coronado_center', 'height').read(0));\n"
-            "console.log(chartSpec('buoy', 'height').read(0));"
+            "NOW = {breaks: [{id: 'coronado_north', swell_window: ["
+            "{from: 164.6, to: 187.4}, {from: 192.5, to: 198.6}, {from: 200.6, to: 241.9}]}]};\n"
+            "const steps = [hour(0, 1), hour(1, 1), gap(2), hour(3, 1)];\n"
+            "steps[1].buoy.from_deg = 280; steps[3].buoy.from_deg = null;\n"
+            "SERIES = {station: '46232', generated_utc: 'g', steps};\n"
+            "const svg = chartPlot('coronado_north', chartSpec('coronado_north', 'window'), 1);\n"
+            "console.log(svg.match(/viewBox=\"([^\"]+)\"/)[1]);\n"
+            "console.log((svg.match(/class=\"winband\"/g) || []).length);\n"
+            "console.log((svg.match(/class=\"dir\"/g) || []).length);\n"
+            "console.log((svg.match(/class=\"hot\"/g) || []).length);\n"
+            "console.log([...svg.matchAll(/class=\"tick ytick\"[^>]*>([^<]+)</g)].map((m) => m[1]).join(','));\n"
+            "const flat = chartPlot('coronado_north', chartSpec('coronado_north', 'height'), 1);\n"
+            "console.log(flat.match(/viewBox=\"([^\"]+)\"/)[1], /winband|class=\"dir\"/.test(flat));"
         )
-        assert got[0].startswith('<span class="v b-center own">Center ')
-        assert '<span class="v b-north">North ' in got[0] and '<span class="v buoy">Buoy ' in got[0]
-        assert got[1].startswith('<span class="v buoy own">Buoy ')
-        css = SOURCE[:SOURCE.index("</style>")]
-        for key, token in (("b-north", "--surf"), ("b-center", "--brk-center-ink"),
-                           ("b-south", "--brk-south-ink"), ("buoy", "--buoy")):
-            assert f".chart .readout .v.{key}{{color:var({token})}}" in css
+        assert got[0] == "0 0 320 218"
+        assert got[1] == "3"        # one band per open window
+        assert got[2] == "2"        # the gap and the hour with no direction draw nothing
+        assert got[3] == "2"        # the hour picked, on the line and on the strip
+        assert got[4] == "0%,50%,100%,S,SW,W"
+        assert got[5] == "0 0 320 150 false"
+
+    def test_a_direction_off_the_strips_axis_widens_it(self):
+        got = self._run(
+            "const steps = [hour(0, 1), hour(1, 1)]; steps[0].buoy.from_deg = 100;\n"
+            "SERIES = {station: '46232', generated_utc: 'g', steps};\n"
+            "const svg = chartPlot('coronado_north', chartSpec('coronado_north', 'window'), 1);\n"
+            "console.log([...svg.matchAll(/class=\"tick ytick\"[^>]*>([^<]+)</g)].map((m) => m[1]).slice(3).join(','));"
+        )
+        assert got == ["SE,S,SW,W"]
 
     def test_the_readout_sits_against_the_plot_and_grows_upward(self):
         """Owner's design, 2026-09-28: the values hug the chart rather than the

@@ -119,10 +119,15 @@ a{color:var(--surf)}
       which is every hour before 17 September 2026.
     </p>
     <p class="source">
-      <b>Height</b> is each break's breaking height beside the buoy's.
+      Each tab draws its own line only: <b>Height</b> is the break's breaking
+      height, or the buoy's own on its tab.
       <b>South &minus; North</b> is south's less north's; where it crosses
       zero, which of the two is bigger has flipped. <b>Window</b> is a break's
-      height through its windows as a share of the buoy's, before the seabed.
+      height through its windows as a share of the buoy's, before the seabed;
+      under it, a dot for each hour marks where the buoy's peak came from,
+      over the break's open windows shaded. The share is the whole spectrum
+      through the windows, so it moves with how widely the swell is spread as
+      well as with where its peak sits.
       <b>Range %K</b> is where the buoy sits in its own last 24 hours' range,
       0 at the low and 100 at the high, less where the break sits in its:
       a position in a range, not a height, left blank where too few of those
