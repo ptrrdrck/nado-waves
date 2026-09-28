@@ -15,11 +15,13 @@
   --signal:#C62828; --signal-wash:#F9DEDE;
   --ok:#2F7D4F;
   --measured:#0A7A56;
-  /* The buoy's line on the charts: red (owner's call, 2026-09-28, after a
-     purple read too close to --surf). Validated against --surf on the card:
-     colour-blind dE 22.7 light / 21.6 dark, where the purple managed 9. A
-     shade off --signal, so it never reads as the overdue warning. */
-  --buoy:#C8372D;
+  /* The buoy's line on the charts: a straight red (owner's calls,
+     2026-09-28: a purple read too close to --surf, then a first red too
+     orange). Validated against --surf on the card: colour-blind dE 22.6
+     light / 17.7 dark, where the purple managed 9. Dark mode keeps the
+     blue line's lower saturation (OKLCH C 0.13 against its 0.12). A shade
+     off --signal, so it never reads as the overdue warning. */
+  --buoy:#BE2132;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
 }
@@ -32,7 +34,7 @@
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
     --measured:#3EDB9E;
-    --buoy:#F2665A;
+    --buoy:#E47B7C;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
@@ -44,7 +46,7 @@
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
   --measured:#3EDB9E;
-  --buoy:#F2665A;
+  --buoy:#E47B7C;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
