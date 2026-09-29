@@ -238,10 +238,22 @@ forecaster actually verifies against, Surfline included.
    swipe still scrolls the page. It opens on the last day (owner's choice;
    the chart is picked from a menu, not tabs); the week is `series.json`, rebuilt
    each collection, ~37 s; past it, the committed archive (`series_all.json`
-   from `data/series/`, fetched only when asked for). Now tab only, because it
-   is the observed chain; every past hour is REBUILT with today's chain, not
+   from `data/series/`, fetched only when asked for). It is the observed
+   chain; every past hour is REBUILT with today's chain, not
    remembered, and info.html says so; a missing hour is a gap in the line at
-   every zoom. Opens on Now;
+   every zoom. **The Forecast tab has its own charts in the same place**
+   (owner's request, 2026-09-29): the model's 3-hourly hours from 48 h back
+   to the run's end, drawn from `forecast.json` (`fcSteps`), never from the
+   Now series. Four views: *Forecast & observed* (the line the page showed
+   for each hour, with 46232 carried in beside the passed ones in sea
+   green), *Model runs* (this run over the last eight runs' lines from
+   `forecast.json`'s `runs`, `forecastlog.recent_runs`), *Swell trains*
+   (a dot per train at its period, sized by height, with a direction strip
+   over the break's windows) and *North vs. South*. **None carries a band
+   and none shows a forecast-minus-observed difference**: nothing measures
+   the breaks, and a run spread is not a range the swell will fall in —
+   the page says so. The two tabs keep their own window, picked hour and
+   view (`useChain`). Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
    says so and points at Forecast rather than falling back silently. The
@@ -474,7 +486,8 @@ forecaster actually verifies against, Surfline included.
       live.py           the live forecast, Coronado only          [built]
       now.py            the OBSERVED reading, measurements only    [built]
       forecastlog.py    the permanent record of what each build said,
-                        and the 48 h of it the page reads back     [built]
+                        the 48 h of it the page reads back, and the
+                        last eight runs' lines for the Runs chart  [built]
       measured.py       the observed chain rebuilt for each past hour:
                         exact-stamp spectrum, wind and tide as of then [built]
       series.py         the same, every hour for the last week, with the

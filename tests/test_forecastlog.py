@@ -195,3 +195,54 @@ class TestTheSeed:
     def test_an_unlogged_build_is_refused(self, tmp_path):
         report = forecastlog.seed_shown([forecast(CYCLE, GENERATED)], tmp_path)
         assert "not in the headline log" in report[0]
+
+
+class TestRecentRuns:
+    """The earlier runs the Runs chart draws beside the current one: what each
+    said, one line per run, never merged and never filled."""
+
+    C0 = datetime(2026, 9, 26, 0, tzinfo=timezone.utc)
+
+    def logged(self, *builds):
+        out = []
+        for cycle, generated, base in builds:
+            out += forecastlog.rows(forecast(cycle, generated, base=base))
+        return out
+
+    def test_one_line_per_earlier_cycle_from_its_latest_build(self):
+        c1 = self.C0 + timedelta(hours=6)
+        logged = self.logged((self.C0, self.C0 + timedelta(hours=5), 1.0),
+                             (self.C0, self.C0 + timedelta(hours=9), 2.0),   # rebuilt
+                             (c1, c1 + timedelta(hours=5), 1.5))
+        got = forecastlog.recent_runs(logged, stamp(c1))
+        assert [r["cycle_utc"] for r in got] == [stamp(self.C0)]
+        assert got[0]["generated_utc"] == stamp(self.C0 + timedelta(hours=9))
+        assert got[0]["start_utc"] == stamp(self.C0) and got[0]["step_h"] == 3
+        assert got[0]["hs_m"]["buoy"] == [2.0] * 5
+        assert got[0]["hs_m"]["coronado_north"] == [0.8] * 5    # the breaking height
+
+    def test_only_the_last_few_oldest_first(self):
+        builds = [(self.C0 + timedelta(hours=6 * k), self.C0 + timedelta(hours=6 * k + 5), 1.0)
+                  for k in range(12)]
+        got = forecastlog.recent_runs(self.logged(*builds), stamp(self.C0 + timedelta(hours=72)),
+                                      keep=3)
+        assert [r["cycle_utc"] for r in got] == [
+            stamp(self.C0 + timedelta(hours=6 * k)) for k in (9, 10, 11)]
+
+    def test_a_headline_that_is_not_a_breaking_height_is_left_out(self):
+        logged = self.logged((self.C0, self.C0 + timedelta(hours=5), 1.0))
+        for row in logged:
+            if row["site"] == "coronado_south" and row["valid_utc"] == stamp(self.C0 + timedelta(hours=6)):
+                row["hs_basis"] = "5m"
+        got = forecastlog.recent_runs(logged, stamp(self.C0 + timedelta(hours=6)))
+        assert got[0]["hs_m"]["coronado_south"][2] is None
+        assert got[0]["hs_m"]["coronado_south"][1] is not None
+
+    def test_an_hour_a_run_did_not_log_is_a_gap_not_a_neighbour(self):
+        logged = [r for r in self.logged((self.C0, self.C0 + timedelta(hours=5), 1.0))
+                  if r["valid_utc"] != stamp(self.C0 + timedelta(hours=6))]
+        got = forecastlog.recent_runs(logged, stamp(self.C0 + timedelta(hours=6)))
+        assert got[0]["hs_m"]["buoy"] == [1.0, 1.0, None, 1.0, 1.0]
+
+    def test_empty_log_no_runs(self):
+        assert forecastlog.recent_runs([], stamp(self.C0)) == []

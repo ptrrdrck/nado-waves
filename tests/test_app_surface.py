@@ -1840,12 +1840,18 @@ class TestTheWeekChart:
                              env={**os.environ, "TZ": "America/Los_Angeles"}).stdout
         return [line for line in out.splitlines() if line.strip()]
 
-    def test_it_is_on_the_now_tab_only(self):
-        now = SOURCE[SOURCE.index("function cardsForNow"):]
+    def test_each_tab_draws_its_own_chain(self):
+        """The Now tab's chart is the observed series and nothing else; the
+        Forecast tab's charts are drawn from the model's own hours. Neither
+        reads the other's file, and the tab decides which is on screen."""
+
+        now = SOURCE[SOURCE.index("function nowSteps"):]
         now = now[:now.index("\n}\n")]
-        forecast = SOURCE[SOURCE.index("function cardsForForecast"):]
-        forecast = forecast[:forecast.index("\n}\n")]
-        assert "chart: true" in now and "chart" not in forecast
+        fc = SOURCE[SOURCE.index("function fcSteps"):]
+        fc = fc[:fc.index("\n}\n")]
+        assert "SERIES" in now and "DATA" not in now
+        assert "DATA" in fc and "SERIES" not in fc
+        assert 'useChain(MODE === "now" ? "now" : "fc");' in SOURCE
         assert "${c.chart ? seriesChart(c.id) : \"\"}" in SOURCE
 
     def test_a_gap_breaks_the_line_and_a_lone_hour_is_a_dot(self):
@@ -2171,6 +2177,185 @@ class TestTheWeekChart:
         assert "each carried in by today's chain" not in SOURCE
         assert "function chartFoot" not in SOURCE
         assert "today's" in INFO_TEXT and "rebuilt" in INFO_TEXT
+
+
+class TestTheForecastCharts:
+    """The Forecast tab's charts (owner's request, 2026-09-29): the model's
+    3-hourly hours, what the page showed then for the hours already gone, and
+    46232 carried in beside them. Nothing is a band, and no difference between
+    the forecast and the observed line goes on screen."""
+
+    FIXTURE = (
+        "Date.now = () => Date.parse('2026-09-20T07:30:00Z');\n"
+        "const when = (iso) => iso;\n"
+        "const at = (h) => new Date(Date.UTC(2026, 8, 20, h)).toISOString().replace('.000Z', 'Z');\n"
+        "const hourOf = (h, hs, extra = {}) => ({valid_utc: at(h), lead_h: h, hs_nearshore_m: hs,"
+        " nearshore: {breaking: {hs_m: hs, depth_m: 2}}, trains: [{hs_m: hs, period_s: 14, from_deg: 205},"
+        " {hs_m: 0.2, period_s: 6, from_deg: 280, wind_sea: true}, {hs_m: 0.05, period_s: 1, from_deg: 270,"
+        " local: true}], ...extra});\n"
+        "let DATA = {generated_utc: at(5), cycle_utc: at(0), station: '46232', breaks: ["
+        "{id: 'coronado_north', swell_window: [{from: 200, to: 240}], hours: [0, 3, 6, 9, 12].map((h) => hourOf(h, 1.0 + h / 100))},"
+        "{id: 'coronado_south', hours: [0, 3, 6, 9, 12].map((h) => hourOf(h, 0.7))}],"
+        " buoy: [0, 3, 6, 9, 12].map((h) => ({valid_utc: at(h), hs_m: 1.5, trains: []})),"
+        " runs: [{cycle_utc: at(-6), start_utc: at(-6), step_h: 3,"
+        " hs_m: {buoy: [1.4, 1.4, 1.4, 1.4], coronado_north: [0.9, 0.9, 0.9, null]}}]};\n"
+        "const past = (h) => ({valid_utc: at(h), from: 'past', lead_h: h + 6, entry: {cycle_utc: at(-6),"
+        " buoy: {hs_m: 1.4}, breaks: {coronado_north: {hs_m: 0.9, hs_basis: 'breaking'},"
+        " coronado_south: {hs_m: 0.6, hs_basis: '5m'}}, detail: null}});\n"
+        "let STEPS = [past(-3), past(0), past(3), {valid_utc: at(6), from: 'cycle', index: 2, lead_h: 6},"
+        " {valid_utc: at(12), from: 'cycle', index: 4, lead_h: 12}];\n"
+        "let CURSOR = 3;\n"
+        "let MEASURED = {generated_utc: at(4), steps: ["
+        "{valid_utc: at(0), gap: false, buoy: {hs_m: 1.6}, breaks: {coronado_north: {hs_m: 1.1, hs_basis: 'breaking'},"
+        " coronado_south: {hs_m: 0.8, hs_basis: 'breaking'}}},"
+        "{valid_utc: at(3), gap: true}]};\n"
+        "useChain('fc');\n"
+        "const plain = (h) => h.replace(/<[^>]+>/g, '').replace(/&middot;/g, '·');\n"
+    )
+
+    def _run(self, script):
+        return TestTheWeekChart()._run(self.FIXTURE + script)
+
+    def test_the_hours_are_every_three_and_a_missing_one_is_a_gap(self):
+        got = self._run(
+            "const st = fcSteps();\n"
+            "console.log(st.map((s) => s.valid_utc.slice(11, 13)).join(','));\n"
+            "console.log(st.map((s) => { const b = s.shown.breaks.coronado_north;"
+            " return b ? b.hs_m : 'none'; }).join(','));\n"
+            "console.log(st.map((s) => { const b = s.run.breaks.coronado_north;"
+            " return b ? b.hs_m : 'none'; }).join(','));"
+        )
+        # 09Z is covered by neither the log nor an offered hour: a gap.
+        assert got[0] == "21,00,03,06,09,12"
+        # Before this run was published, the log's figure; after, this run's.
+        assert got[1] == "0.9,0.9,0.9,1.06,none,1.12"
+        assert got[2] == "none,1,1.03,1.06,1.09,1.12"
+
+    def test_only_a_breaking_height_is_drawn(self):
+        got = self._run(
+            "console.log(fcSteps().map((s) => { const b = s.shown.breaks.coronado_south;"
+            " return b ? String(b.hs_m) : 'none'; }).join(','));"
+        )
+        assert got == ["null,null,null,0.7,none,0.7"]
+
+    def test_observed_only_once_the_hour_has_passed_and_a_gap_stays_one(self):
+        got = self._run(
+            "console.log(fcSteps().map((s) => s.state).join(','));\n"
+            "console.log(fcSteps()[1].observed.breaks.coronado_north, fcSteps()[1].observed.buoy);"
+        )
+        # 06Z has passed but no collection has rebuilt it yet: not a gap.
+        assert got[0] == "none,value,gap,pending,future,future"
+        assert got[1] == "1.1 1.6"
+
+    def test_earlier_runs_line_up_by_time(self):
+        got = self._run(
+            "console.log(fcSteps().map((s) => { const e = s.earlier[0];"
+            " return e ? String(e.breaks.coronado_north) : 'none'; }).join(','));"
+        )
+        assert got == ["0.9,0.9,null,none,none,none"]
+
+    def test_the_height_chart_is_the_forecast_beside_the_observed_line(self):
+        got = self._run(
+            "const spec = chartSpec('coronado_north', 'height');\n"
+            "console.log(spec.lines.map((l) => l.cls).join(','));\n"
+            "console.log(plain(spec.read(1)));\n"
+            "console.log(plain(spec.read(3)));\n"
+            "console.log(plain(spec.read(2)));\n"
+            "console.log(spec.now);"
+        )
+        assert got[0] == "obs,main"
+        assert got[1] == "Shown then 0.90 m · observed 1.10 m"
+        assert got[2] == "Forecast 1.06 m · observed: not in yet"
+        assert got[3] == "Shown then 0.90 m · no 46232 spectrum, left as a gap"
+        assert got[4] == "3.5"
+
+    def test_the_runs_chart_draws_each_run_and_calls_the_spread_no_range(self):
+        got = self._run(
+            "const spec = chartSpec('coronado_north', 'runs');\n"
+            "console.log(spec.lines.map((l) => l.cls).join(','));\n"
+            "console.log(plain(spec.read(1)));\n"
+            "console.log(spec.says);"
+        )
+        assert got[0] == "run,obs,main"
+        assert got[1] == "This run 1.00 m · 1 earlier run 0.90 m · observed 1.10 m"
+        assert "not a range the swell will fall in" in got[2]
+
+    def test_the_trains_are_dots_without_the_local_chop(self):
+        got = self._run(
+            "const spec = chartSpec('coronado_north', 'trains');\n"
+            "console.log(spec.lines.length, spec.dots.filter((d) => d.i === 3).map((d) => d.cls).join('|'));\n"
+            "console.log(spec.lane.points.filter((p) => p.i === 3).map((p) => p.v).join(','));\n"
+            "console.log(spec.lane.arcs.length);\n"
+            "console.log(spec.read(0));\n"
+            "const svg = chartPlot('coronado_north', spec, 3, fcSteps(), {v0: 0, v1: 5});\n"
+            "console.log((svg.match(/class=\"tr[^\"]*\"/g) || []).length, (svg.match(/ on\"/g) || []).length);"
+        )
+        assert got[0] == "0 tr|tr ws"
+        assert got[1] == "205,280"
+        assert got[2] == "1"
+        assert got[3] == "the trains for this hour were not kept"
+        # The first three hours are an earlier run's whose trains were not
+        # kept; the two this run offers carry two trains each.
+        assert got[4] == "4 2"
+
+    def test_north_vs_south_is_north_less_south(self):
+        got = self._run(
+            "const spec = chartSpec('coronado_north', 'diff');\n"
+            "console.log(spec.lines[1].values.map((v) => v == null ? 'none' : v.toFixed(2)).join(','));\n"
+            "console.log(spec.lines[0].values[1].toFixed(2));"
+        )
+        # South's past figures were at 5 m, not breaking, so no difference.
+        assert got == ["none,none,none,0.36,none,0.42", "0.30"]
+
+    def test_the_buoy_tab_offers_no_difference_between_breaks(self):
+        got = self._run(
+            "console.log(chartModes('buoy').map((m) => m.id).join(','));\n"
+            "console.log(chartModes('coronado_north').map((m) => m.id).join(','));"
+        )
+        assert got == ["height,runs,trains", "height,runs,trains,diff"]
+
+    def test_the_two_chains_keep_their_own_window_hour_and_view(self):
+        got = self._run(
+            "CHART_MODE = 'runs'; CHART_AT = at(6); setChartRange(24);\n"
+            "useChain('now');\n"
+            "console.log(CHART_MODE, CHART_AT, CHART_VIEW);\n"
+            "CHART_MODE = 'window';\n"
+            "useChain('fc');\n"
+            "console.log(CHART_MODE, CHART_AT, (CHART_VIEW.to - CHART_VIEW.from) / 3600000);\n"
+            "useChain('now');\n"
+            "console.log(CHART_MODE);"
+        )
+        assert got == ["height null null", f"runs 2026-09-20T06:00:00Z 24", "window"]
+
+    def test_the_opening_view_puts_the_present_a_quarter_in(self):
+        got = self._run(
+            "const st = fcSteps();\n"
+            "const v = chartView(st); console.log(v.v0, v.v1);\n"
+            "console.log(chartIndex(st));"
+        )
+        # Six 3-hourly hours cover 15 h; the whole of it is shown, and the
+        # picked hour is the one the page is on.
+        assert got == ["0 5", "3"]
+
+    def test_a_three_hourly_axis_still_marks_midnight(self):
+        got = self._run(
+            "const st = Array.from({length: 17}, (_, k) => ({valid_utc: at(3 * k)}));\n"
+            "console.log(timeTicks(st, 0, 16).map((t) => t.i.toFixed(2) + ':' + t.label).join(','));"
+        )
+        # Local midnight (07Z in September) falls between two 3-hourly hours.
+        assert got[0].startswith("2.33:") and got[0].count(":") >= 2
+
+    def test_nothing_on_the_forecast_charts_reads_as_a_score(self):
+        section = SOURCE[SOURCE.index("function fcSpec"):SOURCE.index("// The y axis for the hours in view:")]
+        for word in ("band", "%", "error of", "actual", "confiden"):
+            text = [line for line in section.splitlines() if word in line and "`" in line
+                    and not line.strip().startswith("//")]
+            if word == "band":
+                assert not [line for line in text if re.search(r"\bbands?\b", line)], text
+            elif word == "%":
+                assert not [line for line in text if "%K" not in line], text
+            else:
+                assert not text, text
 
 
 class TestTheProvenanceDivider:
