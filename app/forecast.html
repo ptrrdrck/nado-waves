@@ -362,6 +362,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .series .ln.run{stroke:var(--soft);stroke-width:1;opacity:.6} .series .pt.run{fill:var(--soft);opacity:.6}
 .series .nowline{stroke:var(--soft);stroke-width:1;stroke-dasharray:2 3}
 .series .nowtick{fill:var(--soft);paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
+/* The ensemble: its mean in the site blue, dashed, over its spread shaded in
+   the same blue -- one family, apart from the single run's ink. */
+.series .ln.ens{stroke:var(--surf);stroke-width:1.5;stroke-dasharray:5 3} .series .pt.ens,.series .hot.ens{fill:var(--surf)}
+.series .ensband{fill:var(--surf);opacity:.2}
 .series .tr{fill:var(--ink);opacity:.75}
 .series .tr.ws{fill:var(--card);stroke:var(--ink);stroke-width:1;opacity:.75}
 .series .tr.on{opacity:1;stroke:var(--card);stroke-width:1.5}
@@ -375,6 +379,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .chart .legend .sw{background:currentColor}
 .chart .legend .sw.winband{height:9px;border-radius:2px;color:var(--surf);opacity:.18}
 .chart .legend .sw.obs{color:var(--measured)} .chart .legend .sw.run{color:var(--soft);height:1px;opacity:.8}
+.chart .legend .sw.ens{height:1.5px;color:var(--surf);
+                       background:repeating-linear-gradient(90deg,currentColor 0 5px,transparent 5px 8px)}
+.chart .legend .sw.ensband{height:9px;border-radius:2px;color:var(--surf);opacity:.3}
 .chart .legend .sw.dot{width:7px;height:7px;border-radius:50%;margin:0 8px 0 5px;color:var(--ink)}
 .chart .legend .sw.ring{width:7px;height:7px;border-radius:50%;margin:0 8px 0 5px;background:transparent;
                         border:1px solid var(--ink)}
@@ -1539,13 +1546,18 @@ const FC_MODES = [
   {id: "runs", label: "Model runs"},
   {id: "trains", label: "Swell trains"},
   {id: "diff", label: "North vs. South"},
+  {id: "ensemble", label: "Ensemble"},
 ];
 let FC_MODE0 = "height";
 // The views a tab's menu offers: none on Now's buoy tab, which has only its
 // height; on the Forecast tab's buoy, everything but the two breaks'
 // difference, which is about the breaks.
 function chartModes(id) {
-  if (CHAIN === "fc") return id === BUOY_TAB ? FC_MODES.filter((m) => m.id !== "diff") : FC_MODES;
+  // The ensemble is at the buoy only: GEFS-Wave publishes total height, no
+  // direction, so it cannot be carried through a break's windows.
+  if (CHAIN === "fc") {
+    return FC_MODES.filter((m) => (id === BUOY_TAB ? m.id !== "diff" : m.id !== "ensemble"));
+  }
   return id === BUOY_TAB ? [] : CHART_MODES;
 }
 function chartModeFor(id) {
@@ -1923,6 +1935,8 @@ function fcSteps() {
   const builtUntil = MEASURED && MEASURED.generated_utc;
   const runs = (DATA.runs || []).map((r) => ({...r, t0: Date.parse(r.start_utc),
                                                per: (r.step_h || 3) * HOUR_MS}));
+  const ens = DATA.ensemble && DATA.ensemble.available
+    ? new Map((DATA.ensemble.hours || []).map((h) => [h.valid_utc, h])) : new Map();
   const num = (v) => (v == null || !isFinite(v) ? null : v);
   const breaking = (h) => (h && h.nearshore && h.nearshore.breaking ? num(h.hs_nearshore_m) : null);
   const logged = (e) => (e && e.hs_basis === "breaking" ? num(e.hs_m) : null);
@@ -1974,7 +1988,7 @@ function fcSteps() {
     });
     out.push({valid_utc: v, from: step ? step.from : null, lead_h: step ? step.lead_h : null,
               cycle_utc: past ? step.entry.cycle_utc : step ? DATA.cycle_utc : null,
-              shown, run, observed, state, earlier});
+              shown, run, observed, state, earlier, ens: ens.get(v) || null});
   }
   FC_STEPS = out;
   FC_KEY = key;
@@ -1988,6 +2002,9 @@ function fcNowAt(steps) {
   const at = (Date.now() - Date.parse(steps[0].valid_utc)) / stepMs(steps);
   return at >= 0 && at <= steps.length - 1 ? at : null;
 }
+
+// A date without its time: "27 Sep".
+const dayOnly = (iso) => new Date(iso).toLocaleDateString(undefined, {day: "numeric", month: "short"});
 
 // Heights either side of a spread of runs, imperial first: "2.8–3.4 ft
 // (0.85–1.04 m)".
@@ -2111,6 +2128,63 @@ function fcSpec(id, mode, steps) {
     };
   }
 
+  if (mode === "ensemble" && buoy) {
+    // GEFS-Wave: 31 runs of the same wave model, each from a slightly
+    // different atmosphere. The band is their mean and one standard deviation
+    // either side, AT THE BUOY -- the members disagreeing with each other.
+    // It is shown only with how often 46232 has fallen inside it,
+    // measured (forecast.ensemble), because a band that reads as a range the
+    // swell will fall in, and is not, is worse than none.
+    const E = DATA.ensemble || {};
+    const mean = steps.map((st) => (st.ens ? st.ens.hs_mean_m : null));
+    const lo = steps.map((st) => (st.ens ? Math.max(0, st.ens.hs_mean_m - st.ens.hs_spread_m) : null));
+    const hi = steps.map((st) => (st.ens ? st.ens.hs_mean_m + st.ens.hs_spread_m : null));
+    const single = steps.map((st) => at(st.run));
+    const observed = steps.map((st) => at(st.observed));
+    const held = (E.coverage || []).filter((c) => c.inside_1 != null);
+    const span = (c) => (c.lead_from_h === 0 ? "within a day"
+      : `at ${Math.round(c.lead_from_h / 24)}–${Math.round(c.lead_to_h / 24)} days`);
+    const n = held.reduce((sum, c) => sum + c.n, 0);
+    const dates = held.length ? `${dayOnly(held[0].first_utc)} to ${dayOnly(held[held.length - 1].last_utc)}` : "";
+    const measured = held.length
+      ? `Measured against ${station} itself, the buoy fell inside the band on `
+        + held.map((c) => `${Math.round(100 * c.inside_1)}% of hours ${span(c)}`).join(", ")
+        + ` (${n.toLocaleString()} forecast hours, ${dates}). A band that held the buoy as `
+        + "often as it claims would hold it about 68% of the time: this one is the members "
+        + "agreeing with each other more closely than any of them agrees with the sea"
+      : `How often ${station} falls inside the band has not been measured yet, so read it as `
+        + "the members disagreeing with each other and nothing more";
+    const run = E.cycle_utc ? `the ${when(E.cycle_utc)} GEFS-Wave run` : "GEFS-Wave";
+    return {
+      scale: "height", now,
+      band: {lo, hi},
+      lines: [{cls: "obs", label: obsLabel, values: observed},
+              {cls: "main", label: "GFS-Wave, this run", values: single},
+              {cls: "ens", label: "GEFS-Wave mean", values: mean}],
+      legend: [{cls: "ens", label: "Ensemble mean, 31 members"},
+               {cls: "ensband", label: "One spread either side"},
+               {cls: "main", label: "GFS-Wave, this run"},
+               {cls: "obs", label: obsLabel}],
+      says: `The buoy's height from ${run}: the mean of its 31 members and, shaded, one `
+        + "standard deviation of them either side, beside GFS-Wave's single run. It is total "
+        + "height at the buoy with no direction, so it says nothing of a break's windows. "
+        + measured,
+      read: (i) => {
+        const e = steps[i].ens;
+        if (!e) return "no ensemble for this hour";
+        const pm = `±${(e.hs_spread_m * FT_PER_M).toFixed(1)} ft <span class="unit">(±${e.hs_spread_m.toFixed(2)} m)</span>`;
+        // Only the 2 m share: the bulletin's shares are read by what they hold,
+        // not their printed labels (forecast.ensemble.P_ABOVE), and 1 m is
+        // exceeded on nearly every hour here.
+        const shares = e.p_gt_2m != null
+          ? ` &middot; ${Math.round(100 * e.p_gt_2m)}% of members above 6.6 ft (2 m)` : "";
+        return value(`Ensemble mean ${height(e.hs_mean_m)}`) + ` ${pm}` + shares
+          + (single[i] != null ? ` &middot; this run ${height(single[i])}` : "")
+          + obsRead(i, observed[i] == null ? null : height(observed[i]));
+      },
+    };
+  }
+
   // Forecast & observed: the line the page showed hour by hour, and 46232's
   // own spectrum beside it once the hour has passed. No difference or
   // percentage between them: that would be a claim about the forecast
@@ -2146,6 +2220,9 @@ function chartDomain(spec, a, z) {
             ticks: [-100, 0, 100].map((v) => ({at: v, text: v > 0 ? "+100" : v < 0 ? "−100" : "0"}))};
   }
   let reach = 0;
+  if (spec.band) {
+    for (let i = a; i <= z; i++) if (spec.band.hi[i] != null) reach = Math.max(reach, spec.band.hi[i]);
+  }
   spec.lines.forEach((ln) => {
     for (let i = a; i <= z; i++) {
       const v = ln.values[i];
@@ -2318,6 +2395,26 @@ function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) 
 
   const lines = spec.lines.map((ln) => chartPath(ln.values, a, z, X, Y, plotW, ln.cls)).join("");
 
+  // A shaded band, one polygon per run of hours that have both edges, so a
+  // missing hour is a gap in it as it is in a line.
+  let band = "";
+  if (spec.band) {
+    let run = [];
+    const close = () => {
+      if (run.length > 1) {
+        const top = run.map((i) => `${f(X(i))},${f(Y(spec.band.hi[i]))}`);
+        const foot = run.slice().reverse().map((i) => `${f(X(i))},${f(Y(spec.band.lo[i]))}`);
+        band += `<polygon class="ensband" points="${top.concat(foot).join(" ")}"/>`;
+      }
+      run = [];
+    };
+    for (let i = a; i <= z; i++) {
+      if (spec.band.hi[i] == null || spec.band.lo[i] == null) close();
+      else run.push(i);
+    }
+    close();
+  }
+
   // Where the buoy's peak came from: a dot an hour, never joined, because the
   // peak jumps between trains and a line would draw the swing between them
   // as though the swell had turned through every bearing in between. The
@@ -2378,11 +2475,11 @@ function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) 
     : "";
 
   // A hot dot on the tab's own line and on the observed one beside it.
-  const hotOn = spec.lines.filter((ln) => /\b(main|obs)\b/.test(ln.cls));
+  const hotOn = spec.lines.filter((ln) => /\b(main|obs|ens)\b/.test(ln.cls));
   const cross = at >= v0 - 0.5 && at <= v1 + 0.5
     ? `<line class="cross" x1="${f(X(at))}" x2="${f(X(at))}" y1="${t}" y2="${floor}"/>`
       + hotOn.map((ln) => (ln.values[at] != null
-        ? `<circle class="hot${ln.cls === "obs" ? " obs" : ""}" cx="${f(X(at))}" cy="${f(Y(ln.values[at]))}" r="3.5"/>` : "")).join("")
+        ? `<circle class="hot${ln.cls === "obs" || ln.cls === "ens" ? " " + ln.cls : ""}" cx="${f(X(at))}" cy="${f(Y(ln.values[at]))}" r="3.5"/>` : "")).join("")
       + laneHot
     : "";
 
@@ -2392,7 +2489,7 @@ function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) 
   return `<svg class="series" viewBox="0 0 ${w} ${h}" role="group" tabindex="0"`
     + ` aria-label="${svgText(label)}" data-series="${id}">`
     + `<clipPath id="plot-clip-${id}"><rect x="${l}" y="${t - 4}" width="${plotW}" height="${floor - t + 8}"/></clipPath>`
-    + grid + laneGrid + marks + `<g clip-path="url(#plot-clip-${id})">${bands}${lane}${nowLine}${lines}${dots}${cross}</g>`
+    + grid + laneGrid + marks + `<g clip-path="url(#plot-clip-${id})">${bands}${lane}${band}${nowLine}${lines}${dots}${cross}</g>`
     + sides + `</svg>`;
 }
 

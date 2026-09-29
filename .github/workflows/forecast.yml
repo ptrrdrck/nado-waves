@@ -73,6 +73,16 @@ jobs:
         with:
           python-version: "3.12"
 
+      # GEFS-Wave's ensemble bulletin at 46232 (collector.gefswave): the newest
+      # published cycle and the one before it, appended idempotently to
+      # data/ensemble_forecasts/. ~3.7 MB streamed. The build reads the archive,
+      # so a failure here costs the ensemble chart, never the forecast.
+      - name: Archive the GEFS-Wave ensemble
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.gefswave
+
       - name: Build the forecast
         env:
           HOURS: ${{ inputs.hours }}
@@ -103,11 +113,11 @@ jobs:
 
           # Deliberately scoped: this job never touches the collected series.
           commit_log() {
-            git add data/forecast_log 2>/dev/null || true
+            git add data/forecast_log data/ensemble_forecasts 2>/dev/null || true
             if git diff --cached --quiet; then
               return 1
             fi
-            rows=$(git diff --cached --numstat -- data/forecast_log \
+            rows=$(git diff --cached --numstat -- data/forecast_log data/ensemble_forecasts \
               | awk '{sum += $1} END {print sum + 0}')
             git commit -q \
               -m "data: log forecast build" \
@@ -136,6 +146,7 @@ jobs:
             git fetch -q origin "${BRANCH}"
             git reset -q --hard "origin/${BRANCH}"
             python -m forecast.forecastlog
+            python -m collector.gefswave || true
             if ! commit_log; then
               echo "This build's rows are already on ${BRANCH}."
               exit 0

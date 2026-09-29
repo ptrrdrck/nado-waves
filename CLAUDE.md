@@ -202,6 +202,21 @@ forecaster actually verifies against, Surfline included.
    its shadow ratio is 0.69–0.79 of the measured one over swell hours, and at
    46232 moves only 0.73–0.80 across direction sectors. Also a report that
    never edits.
+   **GEFS-Wave's ensemble: `collector/gefswave.py` → `data/ensemble_forecasts/`,
+   measured by `forecast/ensemble.py`** (owner's request, 2026-09-29;
+   BRIEFING §35). The 31-member station bulletin at 46232: Hs mean and spread,
+   total height only, **no direction** — so it is drawn at the buoy and never
+   carried to a break. Archived each forecast run (`forecast.yml`) and back to
+   2023. Three things measured before anything was drawn: **the spread only
+   exists from 2026-02-25 12Z** (earlier rows are means only, under the same
+   header); **the P(Hs >) columns are shifted from their labels** — "2.00m"
+   holds P(> 1 m), "3.00m" P(> 2 m) — so they are archived by position and
+   only those two are read; and **the band held the buoy on 7–35% of hours**
+   by lead (18 Jul – 29 Sep 2026) against the ~68% it implies, because the
+   mean runs ~0.2 m HIGH (the single run reads 0.3 m low) and the spread is
+   0.03–0.19 m. The page draws the band only beside those figures, which it
+   states with n and dates. Removing the bias or widening the spread would be
+   a correction and waits on the owner.
 6. **App surface — built, `app/forecast.html`, published by
    `forecast/publish.py`.** **Two tabs, and they are two evidence chains
    rather than two views of one.** *Now* is built only from measurements
@@ -249,10 +264,12 @@ forecaster actually verifies against, Surfline included.
    green), *Model runs* (this run over the last eight runs' lines from
    `forecast.json`'s `runs`, `forecastlog.recent_runs`), *Swell trains*
    (a dot per train at its period, sized by height, with a direction strip
-   over the break's windows) and *North vs. South*. **None carries a band
-   and none shows a forecast-minus-observed difference**: nothing measures
-   the breaks, and a run spread is not a range the swell will fall in —
-   the page says so. The two tabs keep their own window, picked hour and
+   over the break's windows) and *North vs. South*; and on the buoy's tab
+   only, *Ensemble* (below, build order 5). **Only the Ensemble view carries
+   a band, and only beside the measured share of hours 46232 fell inside it;
+   none shows a forecast-minus-observed difference**: nothing measures the
+   breaks, and a run spread is not a range the swell will fall in — the page
+   says so. The two tabs keep their own window, picked hour and
    view (`useChain`). Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
@@ -425,7 +442,9 @@ forecaster actually verifies against, Surfline included.
     collector/          data pipeline: NDBC archiving, revisions, station
                         status (stations.json is a COLLECTION list, not a
                         ranking — see forecast/siting.py), historical backfill,
-                        GFS-Wave bulletins,
+                        GFS-Wave bulletins, gefswave.py (GEFS-Wave's
+                        31-member bulletin at 46232: mean and spread, no
+                        direction — BRIEFING §35),
                         probe_spectra.py (are directional spectra reachable?),
                         spectra.py (archive them: 46232 hourly, and
                         46086, 46047, 46258 from collect.yml — context for
@@ -497,6 +516,9 @@ forecaster actually verifies against, Surfline included.
                         data/series/ (series-archive.yml only)      [built]
       modelbias.py      GFS-Wave's bias at 46232 through each break's
                         windows; reports, never edits              [built]
+      ensemble.py       GEFS-Wave's mean and spread against 46232: how
+                        often the buoy fell inside the spread, and the
+                        page's Ensemble block; reports, never edits  [built]
       exposurebias.py   GFS-Wave's bias from the unshadowed 46047 to the
                         most shadowed buoy, and the model's shadow against
                         the measured one; reports, never edits     [built]
@@ -565,6 +587,9 @@ forecaster actually verifies against, Surfline included.
                         start point to dry sand, along the normal)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
+    data/ensemble_forecasts/ GEFS-Wave's bulletin at 46232, 00Z 2023–2025 (means
+                        only) and every cycle from 2026 (with spread), leads
+                        to +240 h; exceedance shares by COLUMN, not label
     data/wave_forecasts/ 1,096 archived GFS-Wave 00Z cycles/station, 2023–2025,
                         with partitions: 46047 (unshadowed, the reference)
                         and five shadowed buoys, 46086, 46258, 46232, 46224,
