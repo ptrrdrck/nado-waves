@@ -334,6 +334,69 @@ def past_hours(logged: list[dict], generated_utc: str, *,
     return out
 
 
+#: How many earlier model runs the Forecast tab's Runs chart draws beside the
+#: current one: two days of cycles at four a day.
+RUNS_KEPT = 8
+
+
+def recent_runs(logged: list[dict], cycle_utc: str, *, keep: int = RUNS_KEPT,
+                step: int = HOUR_STEP) -> list[dict]:
+    """What each of the last `keep` model runs said, before the one being built.
+
+    One entry per cycle, from that cycle's LATEST build (a cycle rebuilt with a
+    changed chain says what the page showed last), oldest first. Each carries
+    its headline per site at every offered hour it covered: the breaking
+    height at a break, the model's own Hs at the buoy. A break's hour with any
+    other basis -- the 5 m figure when there was no tide, the window figure
+    before the tables -- is None, because it is another quantity and a line
+    that switched to it would draw a step nothing caused. It is never filled.
+
+    Nothing here says which run was right. It is what each said, side by side,
+    for the Runs chart; the measured chain is the separate line beside it.
+    """
+
+    latest: dict[str, str] = {}
+    for row in logged:
+        cycle = row.get("cycle_utc", "")
+        if not cycle or cycle >= cycle_utc:
+            continue
+        latest[cycle] = max(latest.get(cycle, ""), row.get("generated_utc", ""))
+    chosen = sorted(latest)[-keep:] if keep > 0 else []
+    wanted = {(c, latest[c]) for c in chosen}
+    hours: dict[str, dict[str, dict[str, float | None]]] = {c: {} for c in chosen}
+    for row in logged:
+        key = (row.get("cycle_utc", ""), row.get("generated_utc", ""))
+        if key not in wanted:
+            continue
+        try:
+            if _parse(row["valid_utc"]).hour % step:
+                continue
+        except (KeyError, ValueError):
+            continue
+        site = row.get("site", "")
+        basis = row.get("hs_basis", "")
+        ok = basis == ("buoy" if site == BUOY else "breaking")
+        hours[key[0]].setdefault(row["valid_utc"], {})[site] = _float(row.get("hs_m")) if ok else None
+
+    out = []
+    for cycle in chosen:
+        valid = sorted(hours[cycle])
+        if not valid:
+            continue
+        sites = sorted({site for by in hours[cycle].values() for site in by})
+        start = _parse(valid[0])
+        n = int((_parse(valid[-1]) - start).total_seconds() // (3600 * step)) + 1
+        slots = [(start + timedelta(hours=step * i)).strftime(ISO) for i in range(n)]
+        out.append({
+            "cycle_utc": cycle,
+            "generated_utc": latest[cycle],
+            "start_utc": valid[0],
+            "step_h": step,
+            "hs_m": {site: [hours[cycle].get(v, {}).get(site) for v in slots] for site in sites},
+        })
+    return out
+
+
 def _float(value: str | None):
     return float(value) if value not in (None, "") else None
 

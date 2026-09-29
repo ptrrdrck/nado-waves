@@ -257,6 +257,10 @@ class Forecast:
     #: hour, the latest build generated at or before it. Headline numbers only
     #: -- the log does not keep the detail an earlier card carried.
     past: list[dict] = field(default_factory=list)
+    #: What each of the last few model runs said, from the same log, for the
+    #: Forecast tab's Runs chart (`forecastlog.recent_runs`): one line per run,
+    #: never merged into a range or a band.
+    runs: list[dict] = field(default_factory=list)
 
 
 def latest_cycle(now: datetime | None = None) -> datetime:
@@ -484,9 +488,12 @@ def build(
     # up to 48 h ahead, so builds up to 96 h old can still be the one shown.
     since = (datetime.strptime(generated, ISO)
              - timedelta(hours=forecastlog.PAST_HOURS)).strftime(ISO)
+    logged = forecastlog.read(forecastlog.log_dir(data_dir))
     forecast.past = forecastlog.past_hours(
-        forecastlog.read(forecastlog.log_dir(data_dir)), generated,
+        logged, generated,
         shown=forecastlog.read_shown(forecastlog.shown_dir(data_dir), since=since))
+    # The earlier runs, never this one: a rebuild of the same cycle is this run.
+    forecast.runs = forecastlog.recent_runs(logged, forecast.cycle_utc or generated)
 
     if bulletin is None:
         forecast.warnings.append("No GFS-Wave cycle available; no forecast produced.")
