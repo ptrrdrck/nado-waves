@@ -2198,7 +2198,11 @@ class TestTheForecastCharts:
         "{id: 'coronado_south', hours: [0, 3, 6, 9, 12].map((h) => hourOf(h, 0.7))}],"
         " buoy: [0, 3, 6, 9, 12].map((h) => ({valid_utc: at(h), hs_m: 1.5, trains: []})),"
         " runs: [{cycle_utc: at(-6), start_utc: at(-6), step_h: 3,"
-        " hs_m: {buoy: [1.4, 1.4, 1.4, 1.4], coronado_north: [0.9, 0.9, 0.9, null]}}]};\n"
+        " hs_m: {buoy: [1.4, 1.4, 1.4, 1.4], coronado_north: [0.9, 0.9, 0.9, null]}}],"
+        " ensemble: {available: true, cycle_utc: at(0), hours: [0, 3, 12].map((h) => ({valid_utc: at(h),"
+        " lead_h: h, hs_mean_m: 1.8, hs_spread_m: 0.1, p_gt_1m: 1, p_gt_2m: 0.3})),"
+        " coverage: [{lead_from_h: 0, lead_to_h: 24, n: 400, first_utc: at(-48), last_utc: at(0),"
+        " inside_1: 0.07}, {lead_from_h: 24, lead_to_h: 72, n: 12}]}};\n"
         "const past = (h) => ({valid_utc: at(h), from: 'past', lead_h: h + 6, entry: {cycle_utc: at(-6),"
         " buoy: {hs_m: 1.4}, breaks: {coronado_north: {hs_m: 0.9, hs_basis: 'breaking'},"
         " coronado_south: {hs_m: 0.6, hs_basis: '5m'}}, detail: null}});\n"
@@ -2312,7 +2316,35 @@ class TestTheForecastCharts:
             "console.log(chartModes('buoy').map((m) => m.id).join(','));\n"
             "console.log(chartModes('coronado_north').map((m) => m.id).join(','));"
         )
-        assert got == ["height,runs,trains", "height,runs,trains,diff"]
+        # The ensemble is total height at the buoy, with no direction for a
+        # break's windows: the buoy's tab only.
+        assert got == ["height,runs,trains,ensemble", "height,runs,trains,diff"]
+
+    def test_the_ensemble_band_comes_with_how_often_the_buoy_fell_inside_it(self):
+        got = self._run(
+            "const spec = chartSpec('buoy', 'ensemble');\n"
+            "console.log(spec.lines.map((l) => l.cls).join(','));\n"
+            "console.log(spec.band.hi.map((v) => v == null ? 'none' : v.toFixed(1)).join(','));\n"
+            "console.log(spec.says);\n"
+            "console.log(plain(spec.read(1)));\n"
+            "const svg = chartPlot('buoy', spec, 1, fcSteps(), {v0: 0, v1: 5});\n"
+            "console.log((svg.match(/<polygon class=\"ensband\"/g) || []).length);"
+        )
+        assert got[0] == "obs,main,ens"
+        # 06Z and 09Z have no ensemble hour: a gap in the band, never bridged.
+        assert got[1] == "none,1.9,1.9,none,none,1.9"
+        assert "fell inside the band on 7% of hours within a day (400 forecast hours" in got[2]
+        assert "about 68%" in got[2] and "no direction" in got[2]
+        assert got[3].startswith("Ensemble mean 1.80 m ±0.3 ft (±0.10 m) · 30% of members above")
+        # One run of two hours is a polygon; the lone 12Z hour cannot be one.
+        assert got[4] == "1"
+
+    def test_an_unmeasured_band_says_so(self):
+        got = self._run(
+            "DATA.ensemble.coverage = [];\n"
+            "console.log(chartSpec('buoy', 'ensemble').says);"
+        )
+        assert "has not been measured yet" in got[0]
 
     def test_the_two_chains_keep_their_own_window_hour_and_view(self):
         got = self._run(
@@ -2346,7 +2378,12 @@ class TestTheForecastCharts:
         assert got[0].startswith("2.33:") and got[0].count(":") >= 2
 
     def test_nothing_on_the_forecast_charts_reads_as_a_score(self):
+        """No band and no score, except the ensemble's band, which is drawn only
+        beside the share of hours 46232 fell inside it (tested above)."""
+
         section = SOURCE[SOURCE.index("function fcSpec"):SOURCE.index("// The y axis for the hours in view:")]
+        section = (section[:section.index('if (mode === "ensemble" && buoy) {')]
+                   + section[section.index("// Forecast & observed: the line the page showed"):])
         for word in ("band", "%", "error of", "actual", "confiden"):
             text = [line for line in section.splitlines() if word in line and "`" in line
                     and not line.strip().startswith("//")]

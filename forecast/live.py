@@ -53,7 +53,7 @@ from collector.common import DEFAULT_DATA_DIR, ISO
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
-from . import forecastlog
+from . import ensemble, forecastlog
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
 from .nearshore import (carry, density_grids, load_tables, local_sea, spectrum_from_partitions,
@@ -261,6 +261,10 @@ class Forecast:
     #: Forecast tab's Runs chart (`forecastlog.recent_runs`): one line per run,
     #: never merged into a range or a band.
     runs: list[dict] = field(default_factory=list)
+    #: GEFS-Wave's 31 members at the buoy -- their mean and spread, and how
+    #: often 46232 has fallen inside that spread (`forecast.ensemble`). Total
+    #: Hs only: no direction, so nothing of it reaches a break.
+    ensemble: dict = field(default_factory=dict)
 
 
 def latest_cycle(now: datetime | None = None) -> datetime:
@@ -494,6 +498,17 @@ def build(
         shown=forecastlog.read_shown(forecastlog.shown_dir(data_dir), since=since))
     # The earlier runs, never this one: a rebuild of the same cycle is this run.
     forecast.runs = forecastlog.recent_runs(logged, forecast.cycle_utc or generated)
+    # The ensemble at the buoy, from the archive the workflow has just topped
+    # up (collector.gefswave): the newest cycle at or before this run, over
+    # this run's hours, with its measured coverage beside it.
+    try:
+        rows, matched = ensemble.load(data_dir, spread_only=True)
+        until = ((datetime.strptime(forecast.cycle_utc, ISO) + timedelta(hours=hours)).strftime(ISO)
+                 if forecast.cycle_utc else None)
+        forecast.ensemble = ensemble.for_forecast(rows, matched, forecast.cycle_utc,
+                                                  until_utc=until)
+    except (OSError, ValueError, KeyError) as error:
+        forecast.ensemble = {"available": False, "why": f"the ensemble archive could not be read: {error}"}
 
     if bulletin is None:
         forecast.warnings.append("No GFS-Wave cycle available; no forecast produced.")
