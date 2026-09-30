@@ -3069,7 +3069,7 @@ function renderConditions(step, cards) {
       ${seenWind}
       ${modelled
         ? srcLines([`Forecast for ${stampWhen}`,
-                    `GFS-Wave wind at the buoy, ${DATA.station_name} (NDBC ${DATA.station})`,
+                    `GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})`,
                     run])
         : fallback.from_deg != null
           ? srcLines([`Observed ${observedAt(fallback.observed_utc)}`,

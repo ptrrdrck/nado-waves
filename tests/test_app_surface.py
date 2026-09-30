@@ -539,13 +539,13 @@ class TestWindAndTideAreHoisted:
         file carries — and since the titles are bare quantities now, the
         provenance line is the only thing telling them apart."""
 
-        assert "GFS-Wave wind at the buoy, ${DATA.station_name} (NDBC ${DATA.station})" in SOURCE
+        assert "GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})" in SOURCE
         assert "METAR, ${fallback.station_name} (${fallback.station})" in SOURCE
         assert "METAR, ${wind.station_name} (${wind.station})" in SOURCE
         assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
-        wind = SOURCE[SOURCE.index("GFS-Wave wind at the buoy, ${DATA") - 200:]
+        wind = SOURCE[SOURCE.index("GFS-Wave wind, ${DATA") - 200:]
         assert "`Forecast for ${stampWhen}`" in wind[:200]
 
     def test_it_prefers_the_model_wind_and_falls_back(self):
@@ -1680,7 +1680,7 @@ class TestEveryMeasurementSaysHowOldItIs:
         """It only appears when the model has no wind for that hour, which is
         exactly when how old the substitute is matters."""
 
-        wind_block = SOURCE[SOURCE.index("GFS-Wave wind at the buoy, ${DATA"):]
+        wind_block = SOURCE[SOURCE.index("GFS-Wave wind, ${DATA"):]
         assert "Observed ${observedAt(fallback.observed_utc)}" in wind_block[:400]
 
     def test_a_prediction_is_never_given_an_age(self):
