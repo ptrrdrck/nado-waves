@@ -284,6 +284,41 @@ class TestWind:
 
 
 class TestCycleSelection:
+    NOW = datetime(2026, 9, 30, 6, 33, tzinfo=timezone.utc)
+
+    def _fetch(self, monkeypatch, failures):
+        from collector.gfswave import BulletinError
+
+        def fake(station, cycle, attempts=2):
+            if cycle.hour in failures:
+                raise BulletinError(f"https://x/gfs/{cycle:%H}.bull_tar: HTTP {failures[cycle.hour]}",
+                                    failures[cycle.hour])
+            return f"bulletin {cycle:%H}Z"
+        monkeypatch.setattr(live, "fetch_bulletin", fake)
+        return live.fetch_latest(now=self.NOW)
+
+    def test_a_run_not_out_yet_is_said_plainly_with_the_run_shown(self, monkeypatch):
+        # 2026-09-30: the 00Z run was an hour late; the banner printed a 404 URL.
+        got, warnings = self._fetch(monkeypatch, {0: 404})
+        assert got == "bulletin 18Z"
+        assert warnings == ["GFS-Wave's 00Z run is not published yet; showing the 18Z run."]
+        assert not any("HTTP" in w or "http" in w for w in warnings)
+
+    def test_two_late_runs_are_both_named(self, monkeypatch):
+        got, warnings = self._fetch(monkeypatch, {0: 404, 18: 404})
+        assert got == "bulletin 12Z"
+        assert warnings == ["GFS-Wave's 00Z and 18Z runs are not published yet; showing the 12Z run."]
+
+    def test_a_failure_that_is_not_a_404_keeps_its_technical_line(self, monkeypatch):
+        got, warnings = self._fetch(monkeypatch, {0: 503})
+        assert got == "bulletin 18Z"
+        assert len(warnings) == 1 and "HTTP 503" in warnings[0]
+
+    def test_no_run_at_all_keeps_every_reason(self, monkeypatch):
+        got, warnings = self._fetch(monkeypatch, {0: 404, 18: 404, 12: 404, 6: 404})
+        assert got is None
+        assert len(warnings) == 4 and all("HTTP 404" in w for w in warnings)
+
     def test_the_latest_cycle_respects_publication_lag(self):
         # 04:00Z is less than CYCLE_LAG_HOURS after 00Z, so 18Z the day before
         # is the newest cycle that should exist.

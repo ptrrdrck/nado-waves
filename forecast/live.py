@@ -108,7 +108,9 @@ BREAKS = ("coronado_north", "coronado_center", "coronado_south")
 #: saying something.
 DEFAULT_HOURS = 168
 
-#: Cycles are published roughly 5 hours after their nominal time.
+#: When a cycle should be out. 46232's bulletin landed 5 h 22-27 min after the
+#: nominal time on eight cycles measured 2026-09-28/29; one that is later
+#: than this is reported as not published yet and the previous run is shown.
 CYCLE_LAG_HOURS = 5.5
 
 
@@ -295,13 +297,29 @@ def fetch_latest(station: str = STATION, *, now: datetime | None = None,
     """Walk back through cycles until one is available."""
 
     warnings: list[str] = []
+    late: list[datetime] = []
     cycle = latest_cycle(now)
     for step in range(back):
         attempt = cycle - timedelta(hours=6 * step)
         try:
-            return fetch_bulletin(station, attempt, attempts=2), warnings
+            bulletin = fetch_bulletin(station, attempt, attempts=2)
         except BulletinError as exc:
+            if exc.status == 404:
+                late.append(attempt)
             warnings.append(f"cycle {attempt:%Y-%m-%dT%H}Z unavailable: {str(exc)[-80:]}")
+            continue
+        # A newer run that 404'd is, on every cycle measured, one NCEP has not
+        # finished publishing: 46232's bulletin lands ~5 h 25 min after the
+        # nominal time and the directory fills over an hour. Say that, in the
+        # page's words, rather than print the URL that 404'd -- which read as
+        # the layout having moved (2026-09-30) when the run was only late.
+        # Any other failure keeps its technical line.
+        warnings = [w for w in warnings if not any(f"{c:%Y-%m-%dT%H}Z" in w for c in late)]
+        if late:
+            runs = " and ".join(f"{c:%H}Z" for c in sorted(late, reverse=True))
+            warnings.insert(0, f"GFS-Wave's {runs} run{'s are' if len(late) > 1 else ' is'} "
+                               f"not published yet; showing the {attempt:%H}Z run.")
+        return bulletin, warnings
     return None, warnings
 
 

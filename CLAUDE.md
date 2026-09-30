@@ -419,7 +419,11 @@ forecaster actually verifies against, Surfline included.
   job read the 404 as "NCEP skipped this cycle" and went silently to zero rows
   for three days. `collector.gfswave` now checks the tar before believing a
   404. Same shape as the staleness alert missing 46232's outage: the monitoring
-  watched for the failure it expected.
+  watched for the failure it expected. And the reverse (2026-09-30): on the
+  NEWEST cycle a 404 almost always means "not out yet" — 46232's bulletin
+  lands ~5 h 25 min after the nominal time, the directory filling over an
+  hour — so `live.fetch_latest` says the run is not published yet and which
+  run it is showing, rather than printing the URL.
 - **A rejected push of an append-only log re-appends; it never rebases.**
   Measured 2026-09-26: the forecast build and the shown-hours seed both
   appended to one JSONL, the rebase conflicted, and the old retry loop
