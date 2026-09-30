@@ -121,7 +121,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
             border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .cond.swell .srcs{margin-top:2px}
 /* A second reading inside a card, under its own small label: the Forecast
-   tab's local wind on the sand under the model's wind at the buoy. */
+   tab's "Local" wind under the model's wind at the buoy. */
 .cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
 .cond .sublbl{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
               letter-spacing:.06em;font-size:11.5px;color:var(--soft)}
@@ -2897,7 +2897,7 @@ function wireSwellTabs() {
   });
 }
 
-// The Wind card's second reading on the Forecast tab: the local forecast
+// The Wind card's second reading on the Forecast tab, "Local": the forecast
 // wind on the sand (the NWS forecast grid at Coronado, `collector.localwind`),
 // under the model's wind at the buoy. The buoy's wind says how much wind sea
 // the model is making offshore; this one says whether it is offshore at a
@@ -2910,16 +2910,16 @@ function localWindBlock(hour, cards, stampWhen, past) {
     const grid = L.office ? `NWS forecast grid ${L.office} ${L.grid_x},${L.grid_y} at Coronado` : "NWS forecast grid at Coronado";
     const issued = L.updated_utc ? `, updated ${when(L.updated_utc)}` : "";
     return `<div class="subcond" data-wind="local">
-      <span class="sublbl">On the sand</span>
+      <span class="sublbl">Local</span>
       <span class="val">${compass(hour.local_wind_from_deg)} <span class="unit">at</span> ${speed(hour.local_wind_kt || 0)}${gust}</span>
       ${windAtBreaks(cards)}
-      ${srcLines([`Local forecast for ${stampWhen}`, `${grid}${past ? "" : issued}`])}
+      ${srcLines([`Forecast for ${stampWhen}`, `${grid}${past ? "" : issued}`])}
     </div>`;
   }
   if (past) return "";
   const why = L.available === false && L.why ? L.why : "no local forecast for this hour";
   return `<div class="subcond" data-wind="local">
-    <span class="sublbl">On the sand</span>
+    <span class="sublbl">Local</span>
     <span class="val"><span class="unit">no local forecast</span></span>
     ${srcLines(why)}
   </div>`;

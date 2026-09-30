@@ -642,7 +642,8 @@ class TestTheTwoChains:
         """The verb that opens each line says which chain it is: "Forecast"
         and "Harmonic tide" here, where Now says "Observed" and "Measured"."""
 
-        assert SOURCE.count("`Forecast for ${stampWhen}`") == 2      # swell, wind
+        # swell, the model's wind at the buoy, and the Local wind forecast
+        assert SOURCE.count("`Forecast for ${stampWhen}`") == 3
         assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_a_stale_observation_is_not_rendered_as_current(self):
@@ -2490,10 +2491,10 @@ class TestTheLocalWindOnTheForecastTab:
             "const cards = [{id: 'coronado_north', windOffshore: 0.96}, {id: 'coronado_south', windOffshore: -0.5}];\n"
             "console.log(localWindBlock(hour, cards, 'Tue 3 PM', false).replace(/\\s+/g, ' '));"
         )
-        assert "On the sand" in got and "NNE 30°" in got and "9 mph (8 kt)" in got
+        assert "Local</span>" in got and "NNE 30°" in got and "9 mph (8 kt)" in got
         assert "gusting 16 mph" in got
         assert "<b>offshore</b> at this break" in got and "<b>onshore</b> at this break" in got
-        assert "<src>Local forecast for Tue 3 PM</src>" in got
+        assert "<src>Forecast for Tue 3 PM</src>" in got
         assert "NWS forecast grid SGX 55,12 at Coronado, updated 2026-09-30T04:00:00Z" in got
 
     def test_an_hour_without_it_says_so_and_a_past_hour_borrows_nothing(self):
