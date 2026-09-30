@@ -297,8 +297,10 @@ forecaster actually verifies against, Surfline included.
    plus the tide's next 24 h of harmonic prediction with the departure,
    dashed, the tab's one modelled line beside its one modelled number. On
    Forecast, `forecast.json`'s `hourly` (the NWS local wind, and the card's
-   tide) to the run's end, the measured hours in green; GFS-Wave's buoy wind
-   is not drawn. Read from the archives, not rebuilt: today's chain cannot
+   tide) to the run's end, the measured hours in green, and GFS-Wave's own
+   buoy wind in grey (owner's request, same day) — hourly to +120 h and
+   3-hourly after, so its line `bridge`s the model's own spacing, never a
+   measured gap. Read from the archives, not rebuilt: today's chain cannot
    change a past hour. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation

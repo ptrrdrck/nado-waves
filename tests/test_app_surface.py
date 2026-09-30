@@ -2259,7 +2259,9 @@ class TestTheWindAndTideCharts:
             "DATA = {generated_utc: 'g', hourly: {start_utc: at(3), step_h: 1,"
             " tide_m: [1.4, 1.5, 1.6, 1.7, 1.8],"
             " local_wind: {kt: [6, 7, null, 9, 10], from_deg: [200, 210, null, 230, 240],"
-            " gust_kt: [null, null, null, 14, null]}}, local_wind: {available: true}};\n"
+            " gust_kt: [null, null, null, 14, null]},"
+            " model_wind: {kt: [11, null, null, 12, null], from_deg: [280, null, null, 290, null]}},"
+            " local_wind: {available: true}};\n"
             "const steps = chartSteps('wind');\n"
             "const spec = chartSpec('wind', 'height');\n"
             "console.log(steps.length, spec.lines.map((l) => l.cls).join(','));\n"
@@ -2267,10 +2269,26 @@ class TestTheWindAndTideCharts:
             "const tide = chartSpec('tide', 'height');\n"
             "console.log(tide.lines.map((l) => l.cls + ':' + l.values.join('/')).join(' '));"
         )
-        assert got[0] == "5 main,obs"
-        assert "Local forecast" in got[1] and "observed" in got[1]
+        assert got[0] == "5 model,main,obs"
+        assert "Local forecast" in got[1] and "observed" in got[1] and "GFS-Wave" in got[1]
         assert "Local forecast" in got[2] and "observed" not in got[2]
         assert got[3] == "main:1.4/1.5/1.6/1.7/1.8 obs:1.5/1.6/1.7//"
+
+    def test_the_models_wind_joins_its_own_spacing_and_nothing_longer(self):
+        """GFS-Wave gives every third hour past +120 h: two missing hours
+        between its values are its spacing and joined; three are a gap, and
+        every other line still breaks at the first missing hour."""
+
+        got = self._run(
+            "const X = (i) => i * 10, Y = (v) => v;\n"
+            "const path = (vals, b) => chartPath(vals, 0, vals.length - 1, X, Y, 320, 'model', b);\n"
+            "const shape = (p) => `${(p.match(/M/g) || []).length} ${(p.match(/<circle/g) || []).length}`;\n"
+            "console.log(shape(path([5, null, null, 6, null, null, 7], 3)));\n"
+            "console.log(shape(path([5, null, null, null, 6, 7], 3)));\n"
+            "console.log(shape(path([5, null, 6, 7])));"
+        )
+        # paths, dots
+        assert got == ["1 0", "1 1", "1 1"]
 
     def test_speeds_are_in_mph_and_the_tide_in_feet(self):
         got = self._run(

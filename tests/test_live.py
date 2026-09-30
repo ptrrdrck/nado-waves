@@ -453,6 +453,16 @@ class TestTheHourlyColumns:
         assert got["start_utc"] == "2026-09-17T21:00:00Z"
         assert len(got["tide_m"]) == 6 and got["tide_m"] == [None] * 6
 
+    def test_the_models_own_wind_is_kept_where_the_run_gives_it(self):
+        """GFS-Wave's wind at the buoy, by valid time; an hour the run does
+        not carry is None, for the page to join across as the model's spacing."""
+
+        rows = bulletin(SOUTH, hours=4).rows
+        model = {CYCLE: (10.04, 281.4), CYCLE + timedelta(hours=3): (12.0, 359.6)}
+        got = live.hourly_columns(rows, [], [], None, {}, model)["model_wind"]
+        assert got["kt"] == [10.0, None, None, 12.0]
+        assert got["from_deg"] == [281, None, None, 0]
+
     def test_publishing_leaves_it_whole(self):
         from forecast.publish import thin
 

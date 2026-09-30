@@ -292,9 +292,15 @@ class Forecast:
 
 
 def hourly_columns(rows, past: list[dict], bay_predicted, departure: float | None,
-                   local_hours: dict[str, dict]) -> dict:
+                   local_hours: dict[str, dict],
+                   model_wind: dict[datetime, tuple[float, float]] | None = None) -> dict:
     """`Forecast.hourly`: one value an hour from the earliest past hour the
-    page offers to the run's last, never filled across an hour missing."""
+    page offers to the run's last, never filled across an hour missing.
+
+    `model_wind` is GFS-Wave's own 10 m wind at the buoy, by valid time, for
+    the hours the run carries: every hour to +120 h and every third after, so
+    its column has holes the model never filled, and the page joins across
+    them rather than calling them gaps."""
 
     start = rows[0].valid_utc
     if past:
@@ -305,7 +311,11 @@ def hourly_columns(rows, past: list[dict], bay_predicted, departure: float | Non
         marks.append(t)
         t += timedelta(hours=1)
     tide, wind_from, wind_kt, gust = [], [], [], []
+    model_from, model_kt = [], []
     for t in marks:
+        model = (model_wind or {}).get(t)
+        model_kt.append(None if model is None or model[0] is None else round(model[0], 1))
+        model_from.append(None if model is None or model[1] is None else round(model[1]) % 360)
         value = coast_predicted(bay_predicted, t, departure)
         tide.append(None if value is None else round(value, 3))
         local = local_hours.get(t.strftime(ISO))
@@ -315,7 +325,8 @@ def hourly_columns(rows, past: list[dict], bay_predicted, departure: float | Non
                        else round(local["speed_kt"], 1))
         gust.append(None if not local or local.get("gust_kt") is None else round(local["gust_kt"], 1))
     return {"start_utc": start.strftime(ISO), "step_h": 1, "tide_m": tide,
-            "local_wind": {"from_deg": wind_from, "kt": wind_kt, "gust_kt": gust}}
+            "local_wind": {"from_deg": wind_from, "kt": wind_kt, "gust_kt": gust},
+            "model_wind": {"from_deg": model_from, "kt": model_kt}}
 
 
 def latest_cycle(now: datetime | None = None) -> datetime:
@@ -688,7 +699,9 @@ def build(
         ]
 
     if rows:
-        forecast.hourly = hourly_columns(rows, forecast.past, bay_predicted, departure, local_hours)
+        forecast.hourly = hourly_columns(
+            rows, forecast.past, bay_predicted, departure, local_hours,
+            {t: (r.wind_kt, r.wind_from_deg) for t, r in spectra.items()})
 
     try:
         tables = load_tables()

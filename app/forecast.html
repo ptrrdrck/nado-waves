@@ -381,6 +381,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    one modelled line on that tab. */
 .series .gust{fill:var(--ink);opacity:.55} .series .gust.obs{fill:var(--measured);opacity:.8}
 .series .dir.obs{fill:var(--measured)}
+/* GFS-Wave's own wind on the Forecast tab's wind chart: the model's, at the
+   buoy, drawn under the local forecast in the page's soft grey. */
+.series .ln.model{stroke:var(--soft);stroke-width:1.5} .series .pt.model,.series .hot.model{fill:var(--soft)}
+.series .dir.model{fill:var(--soft);opacity:.7}
+.chart .legend .sw.model{color:var(--soft);height:1.5px}
 .series .ln.pred{stroke:var(--soft);stroke-width:1.5;stroke-dasharray:4 3} .series .pt.pred{fill:var(--soft)}
 .series .lane{stroke:var(--line-strong);stroke-width:1}
 .chart .legend{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:12px;color:var(--soft)}
@@ -2317,8 +2322,22 @@ function timeTicks(steps, v0, v1) {
 // covers, in the order they came; a column with any hour missing is drawn on
 // its own, never joined to its neighbours, so a gap stays a break in the line
 // at every zoom. A run of one point is a dot.
-function chartPath(values, a, z, X, Y, cols, cls) {
+//
+// `bridge` is for a source that is coarser than the axis on purpose -- GFS-Wave
+// every third hour past +120 h on the hourly wind chart: a run of missing
+// hours shorter than it is the model's own spacing, joined across as the
+// model's line always is, and only a longer run breaks the line.
+function chartPath(values, a, z, X, Y, cols, cls, bridge = 1) {
   const f = (v) => v.toFixed(1);
+  const hole = new Uint8Array(values.length);
+  for (let i = a; i <= z; i++) {
+    if (values[i] != null) continue;
+    let j = i;
+    while (j + 1 <= z && values[j + 1] == null) j++;
+    const edge = i === 0 || j === values.length - 1;
+    if (j - i + 1 >= bridge || edge) hole.fill(1, i, j + 1);
+    i = j;
+  }
   const runs = [];
   let run = [];
   const flush = () => { if (run.length) runs.push(run); run = []; };
@@ -2326,7 +2345,7 @@ function chartPath(values, a, z, X, Y, cols, cls) {
   if (per <= 2) {
     for (let i = a; i <= z; i++) {
       const v = values[i];
-      if (v == null) { flush(); continue; }
+      if (v == null) { if (hole[i]) flush(); continue; }
       run.push([X(i), Y(v)]);
     }
   } else {
@@ -2336,7 +2355,7 @@ function chartPath(values, a, z, X, Y, cols, cls) {
       let lo = null, hi = null, broken = false;
       for (let i = i0; i <= i1; i++) {
         const v = values[i];
-        if (v == null) { broken = true; continue; }
+        if (v == null) { if (hole[i]) broken = true; continue; }
         if (!lo || v < lo.v) lo = {v, i};
         if (!hi || v > hi.v) hi = {v, i};
       }
@@ -2436,7 +2455,7 @@ function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)
     i = j;
   }
 
-  const lines = spec.lines.map((ln) => chartPath(ln.values, a, z, X, Y, plotW, ln.cls)).join("");
+  const lines = spec.lines.map((ln) => chartPath(ln.values, a, z, X, Y, plotW, ln.cls, ln.bridge)).join("");
 
   // A shaded band, one polygon per run of hours that have both edges, so a
   // missing hour is a gap in it as it is in a line.
@@ -2519,11 +2538,11 @@ function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)
     : "";
 
   // A hot dot on the tab's own line and on the observed one beside it.
-  const hotOn = spec.lines.filter((ln) => /\b(main|obs|ens|pred)\b/.test(ln.cls));
+  const hotOn = spec.lines.filter((ln) => /\b(main|obs|ens|pred|model)\b/.test(ln.cls));
   const cross = at >= v0 - 0.5 && at <= v1 + 0.5
     ? `<line class="cross" x1="${f(X(at))}" x2="${f(X(at))}" y1="${t}" y2="${floor}"/>`
       + hotOn.map((ln) => (ln.values[at] != null
-        ? `<circle class="hot${ln.cls === "obs" || ln.cls === "ens" ? " " + ln.cls : ""}" cx="${f(X(at))}" cy="${f(Y(ln.values[at]))}" r="3.5"/>` : "")).join("")
+        ? `<circle class="hot${ln.cls === "obs" || ln.cls === "ens" || ln.cls === "model" ? " " + ln.cls : ""}" cx="${f(X(at))}" cy="${f(Y(ln.values[at]))}" r="3.5"/>` : "")).join("")
       + laneHot
     : "";
 
@@ -2948,12 +2967,14 @@ function wtForecastSteps(id) {
   const n = (H.tide_m || []).length;
   const tn = Math.max(t0 + (n - 1) * HOUR_MS, fcs.length ? Date.parse(fcs[fcs.length - 1].valid_utc) : t0);
   const lw = H.local_wind || {};
+  const mw = H.model_wind || {};
   const col = (arr, k) => (arr && k < arr.length && arr[k] != null ? arr[k] : null);
   const out = [];
   for (let ms = t0, k = 0; ms <= tn; ms += HOUR_MS, k++) {
     out.push({valid_utc: isoHour(ms), seen: wtAt(wtIndex(ms)),
               fc: {kt: col(lw.kt, k), from: col(lw.from_deg, k), gust: col(lw.gust_kt, k),
-                   tide: col(H.tide_m, k)}});
+                   tide: col(H.tide_m, k)},
+              model: {kt: col(mw.kt, k), from: col(mw.from_deg, k)}});
   }
   return out;
 }
@@ -3027,6 +3048,7 @@ function wtSpec(id, steps) {
       if (s.fc && s.fc.gust != null) dots.push({i, v: s.fc.gust, r: 1.8, cls: "gust"});
       if (s.seen && s.seen.from != null) points.push({i, v: round(s.seen.from), cls: fc ? "dir obs" : "dir"});
       if (s.fc && s.fc.from != null) points.push({i, v: round(s.fc.from), cls: "dir"});
+      if (s.model && s.model.from != null) points.push({i, v: round(s.model.from), cls: "dir model"});
     });
     const lane = {points, arcs: [], domain: [90, 450], step: 90};
     const measured = (i) => {
@@ -3053,24 +3075,33 @@ function wtSpec(id, steps) {
     }
     const L = (DATA && DATA.local_wind) || {};
     const none = !said.some((v) => v != null);
+    // GFS-Wave's own wind: at the buoy, 29 km offshore, the wind the model
+    // grows its wind sea from. Hourly to +120 h and every third hour after,
+    // so the line joins across the two hours the model does not give.
+    const model = steps.map((s) => (s.model ? s.model.kt : null));
     return {
       scale: "speed", now, dots, lane,
-      // The measured line last, so it sits on top where the two meet.
-      lines: [{cls: "main", label: "Local forecast", values: said},
+      // The measured line last, so it sits on top where they meet.
+      lines: [{cls: "model", label: "GFS-Wave wind", values: model, bridge: 3},
+              {cls: "main", label: "Local forecast", values: said},
               {cls: "obs", label: `Observed at ${station}`, values: seen}],
-      legend: [{cls: "main", label: "Local forecast, NWS"}, {cls: "obs", label: `Observed at ${station}`},
+      legend: [{cls: "main", label: "Local forecast, NWS"}, {cls: "model", label: "GFS-Wave wind"},
+               {cls: "obs", label: `Observed at ${station}`},
                {cls: "gdot", label: "Gust"}, {cls: "dir", label: "Direction it blows from"}],
       says: "The National Weather Service's hourly forecast wind at Coronado, the Local wind on "
-        + `the card, and beside the hours that have passed, ${station}'s measured wind in green. `
-        + "Dots are gusts; under it, the direction each blows from. GFS-Wave's wind, on the "
-        + "card above it, is at the buoy 29 km offshore and is not drawn here"
+        + "the card; GFS-Wave's own wind, the one on the card above it, in grey: it is at the "
+        + `buoy, 29 km offshore, the wind the model makes its wind sea from; and beside the `
+        + `hours that have passed, ${station}'s measured wind in green. Dots are gusts; under it, `
+        + "the direction each blows from"
         + (none ? `. No local forecast came with this run${L.why ? ` (${L.why})` : ""}` : ""),
       read: (i) => {
         const f = windWords(steps[i].fc);
+        const g = windWords(steps[i].model);
         const m = measured(i);
         const obs = m ? ` &middot; ${value(`observed ${m.words}`, "obs")}`
           : covered(i) ? ` &middot; no ${station} report, left as a gap` : "";
-        return (f ? value(`Local forecast ${f}`) : "no local forecast for this hour") + obs;
+        return (f ? value(`Local forecast ${f}`) : "no local forecast for this hour")
+          + (g ? ` &middot; GFS-Wave ${g}` : "") + obs;
       },
     };
   }
