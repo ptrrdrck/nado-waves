@@ -2211,6 +2211,19 @@ class TestTheWindAndTideCharts:
         assert SOURCE.count('cardChart("wind")') == 4     # one passed to the Local block
         assert SOURCE.count('${cardChart("tide")}') == 3
 
+    def test_the_whole_line_folds_it_out_with_room_above_it(self):
+        """Owner's calls, 2026-09-30: the whole "Charts" line is the toggle on
+        every card, and on Wind and Tide the line has as much room above it
+        as the chart has above the divider below (the card's 2 px gap + 8)."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert "cursor:pointer" in css[css.index(".chart-head{"):css.index("}", css.index(".chart-head{"))]
+        assert ".cond > .chart,.cond .subcond > .chart{margin-top:8px}" in css
+        assert "border-top:1px solid var(--line);padding-top:9px;margin-top:8px}" in css
+        wire = SOURCE[SOURCE.index("function wireCharts"):]
+        assert 'const head = e.target.closest(".chart-head");' in wire
+        assert 'pick("[data-chart-toggle]")' in wire and 'pick("[data-card-chart-toggle]")' in wire
+
     def test_the_chart_sits_above_the_cards_provenance(self):
         """Owner's call, 2026-09-30: like the Swell card's, above the card's
         provenance and its divider, not under them."""

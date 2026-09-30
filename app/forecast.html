@@ -310,7 +310,15 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    (owner's design, 2026-09-27): up while closed, down once open. */
 .chart{display:flex;flex-direction:column;gap:6px}
 .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
-            font-size:14.5px;font-weight:600;color:var(--ink)}
+            font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;
+            -webkit-user-select:none;user-select:none}
+/* The whole line folds the charts out, not only its caret (owner's call,
+   2026-09-30); the caret still lights with it. */
+.chart-head:hover .calc-toggle{color:var(--ink)}
+/* On the Wind and Tide cards the line sits straight under the reading, so it
+   takes the room the Swell card's pane gives it: as much above the line as
+   there is between the chart and the divider below (2 px of gap + 8). */
+.cond > .chart,.cond .subcond > .chart{margin-top:8px}
 .chart-fold,.chart-body{display:flex;flex-direction:column;gap:6px}
 /* Which chart, as a menu (owner's design, 2026-09-27): four views in a row
    of tabs crowded a phone and read as a second set of break tabs. */
@@ -2685,11 +2693,14 @@ function wireCharts() {
   const idOf = (el) => el.closest("[data-chart]").getAttribute("data-chart");
 
   strip.addEventListener("click", (e) => {
-    if (e.target.closest("[data-chart-toggle]")) {
+    // The caret, or anywhere else on its "Charts" line.
+    const head = e.target.closest(".chart-head");
+    const pick = (sel) => e.target.closest(sel) || (head && head.querySelector(sel));
+    if (pick("[data-chart-toggle]")) {
       setChartOpen(!CHART_OPEN);
       return;
     }
-    const card = e.target.closest("[data-card-chart-toggle]");
+    const card = pick("[data-card-chart-toggle]");
     if (card) {
       const which = card.getAttribute("data-card-chart-toggle");
       setCardChartOpen(which, !CARD_CHART_OPEN[which]);
