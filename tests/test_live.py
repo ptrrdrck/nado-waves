@@ -355,3 +355,58 @@ class TestThePastComesFromTheLog:
         detail = later.past[1]["detail"]
         assert set(detail["breaks"]) == {b.id for b in later.breaks}
         assert detail["breaks"]["coronado_north"]["valid_utc"] == later.past[1]["valid_utc"]
+
+
+class TestTheLocalWindForecast:
+    """The NWS grid's wind on the sand, per hour, beside the model's wind at
+    the buoy; what it means is worked out per break, against its own normal."""
+
+    LOCAL = {"provider": "NWS", "office": "SGX", "grid_x": 55, "grid_y": 12,
+             "updated_utc": "2026-09-17T22:00:00Z",
+             "hours": [{"valid_utc": "2026-09-18T00:00:00Z", "from_deg": 30, "speed_kt": 8.0, "gust_kt": 14.0},
+                       {"valid_utc": "2026-09-18T01:00:00Z", "from_deg": 210, "speed_kt": 12.0, "gust_kt": None}]}
+
+    def test_each_hour_carries_the_local_wind_and_each_break_its_own_reading(self):
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, local_wind=self.LOCAL)
+        assert got.local_wind["available"] is True and got.local_wind["office"] == "SGX"
+        assert "hours" not in got.local_wind
+        for entry in got.breaks:
+            by = {h.valid_utc: h for h in entry.hours}
+            first, onshore = by["2026-09-18T00:00:00Z"], by["2026-09-18T01:00:00Z"]
+            assert (first.local_wind_from_deg, first.local_wind_kt, first.local_gust_kt) == (30, 8.0, 14.0)
+            assert first.local_wind_offshore > 0.9 and onshore.local_wind_offshore < -0.9
+            # The model's own wind at the buoy is untouched beside it.
+            assert first.wind_from_deg != 30 or first.wind_kt != 8.0
+
+    def test_an_hour_the_grid_did_not_give_carries_nothing(self):
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, local_wind=self.LOCAL)
+        later = [h for h in got.breaks[0].hours if h.valid_utc > "2026-09-18T01:00:00Z"]
+        assert later and all(h.local_wind_from_deg is None and h.local_wind_offshore is None
+                             for h in later)
+
+    def test_no_fetch_says_why(self):
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
+        assert got.local_wind == {"available": False, "why": "not fetched for this build"}
+        failed = live.build(bulletin=bulletin(SOUTH), now=CYCLE,
+                            local_wind={"available": False, "why": "api.weather.gov: HTTP 503"})
+        assert failed.local_wind == {"available": False, "why": "api.weather.gov: HTTP 503"}
+
+
+class TestLocalChopTakesTheLocalWind:
+    """Local chop grows on the water off the break, so the forecast grows it
+    from the LOCAL forecast wind, as the observed chain uses KNZY's."""
+
+    def test_the_chop_is_made_from_the_nws_wind_and_says_so(self):
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE,
+                         local_wind=TestTheLocalWindForecast.LOCAL)
+        centre = next(b for b in got.breaks if b.id == "coronado_center")
+        onshore = next(h for h in centre.hours if h.valid_utc == "2026-09-18T01:00:00Z")
+        offshore = next(h for h in centre.hours if h.valid_utc == "2026-09-18T00:00:00Z")
+        local = (onshore.nearshore.get("effects") or {}).get("local")
+        if not onshore.nearshore:
+            pytest.skip("no nearshore tables in this checkout")
+        # 210° at 12 kt is onshore over open water at the center break.
+        assert local and local["wind"] == "NWS forecast" and local["fetch"] == "open"
+        assert local["hs_m"] > 0.05
+        # 30° blows off the land: no chop reaches the beach.
+        assert (offshore.nearshore.get("effects") or {}).get("local") is None

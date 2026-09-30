@@ -147,7 +147,13 @@ forecaster actually verifies against, Surfline included.
    answer, and bottom friction along each ray's path (JONSWAP, C_b = 0.038,
    from the literature and never tuned; its own factor per ray) — into
    `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
-   spectrum through them and adds fetch-limited local chop over closed fetches.
+   spectrum through them and adds fetch-limited local chop: fresh over
+   fetches closed by land, and — since 2026-09-30 (owner's point, BRIEFING
+   §36) — grown on by equivalent fetch over the OPEN water between the buoy
+   and the break, which the buoy's spectrum never saw. Its wind is the local
+   one on both chains: KNZY on Now, the NWS grid on Forecast (GFS-Wave's
+   buoy wind only for an hour the grid lacks, and the calculation row says
+   whose).
    **Then the surf zone, SHIPPED 2026-09-26** (BRIEFING §32):
    `forecast/surfzone.py` carries that sea from 5 m in over each break's
    surveyed profile (`<break>_profile.csv`, the 2016 CoNED beach, not this
@@ -215,13 +221,22 @@ forecaster actually verifies against, Surfline included.
    by lead (18 Jul – 29 Sep 2026) against the ~68% it implies, because the
    mean runs ~0.2 m HIGH (the single run reads 0.3 m low) and the spread is
    0.03–0.19 m. The page draws the band only beside those figures, which it
-   states with n and dates. Removing the bias or widening the spread would be
-   a correction and waits on the owner.
+   states with n and dates. **Owner's decision 2026-09-30: no correction
+   yet — wait for winter.** Tested out of sample the same day (§35): a fixed
+   shift plus a per-lead widening held 62–68% on 17–29 Sep, but it was fitted
+   on one summer, winter's offset is half the size with more scatter, and a
+   summer-fitted band is exactly how §5's under-covered. **And never correct
+   GFS-Wave at the buoy and carry it to the breaks**: the buoy reads −22% but
+   the breaks −28% to +3% (`docs/model_bias.md`), because most of the buoy's
+   deficit is swell the breaks never receive; the chain is linear to 5 m, so a
+   buoy fix moves every break by the same factor and puts North ~+33%.
 6. **App surface — built, `app/forecast.html`, published by
    `forecast/publish.py`.** **Two tabs, and they are two evidence chains
    rather than two views of one.** *Now* is built only from measurements
    (`now.json`: NDBC directional spectrum, KNZY METAR, measured water level);
-   *Forecast* only from a model (`forecast.json`: GFS-Wave). Each renders its
+   *Forecast* only from a model (`forecast.json`: GFS-Wave). The observed
+   tab's label reads **NOW(ISH)** (owner's call, 2026-09-30): it is the
+   newest measurement, not the present. Each renders its
    own "standing on" block from whatever keys its file carries, because the
    two name different levels — both on `app/info.html`, each under its own
    heading and from its own file, beside the "physically derived" caveat and
@@ -247,7 +262,9 @@ forecaster actually verifies against, Surfline included.
    the break's open windows shaded. It says where the peak sits, never
    "inside" or "outside": the share is the whole spectrum through the
    windows, and a binary test on one bearing is what BRIEFING §10 retired.
-   The readout sits against the plot and grows upward as it wraps. The x axis zooms and pans — pinch, drag, ctrl + wheel, and
+   The readout sits against the plot and grows upward as it wraps, in room
+   kept for three lines so a reading that wraps while scrubbing never moves
+   the plot. The x axis zooms and pans — pinch, drag, ctrl + wheel, and
    1D / 7D / 1M / All — and a sideways swipe reads the hours under the finger
    into a readout ABOVE the plot, keeping the last on release; a vertical
    swipe still scrolls the page. It opens on the last day (owner's choice;
@@ -259,10 +276,11 @@ forecaster actually verifies against, Surfline included.
    every zoom. **The Forecast tab has its own charts in the same place**
    (owner's request, 2026-09-29): the model's 3-hourly hours from 48 h back
    to the run's end, drawn from `forecast.json` (`fcSteps`), never from the
-   Now series. Four views: *Forecast & observed* (the line the page showed
-   for each hour, with 46232 carried in beside the passed ones in sea
-   green), *Model runs* (this run over the last eight runs' lines from
-   `forecast.json`'s `runs`, `forecastlog.recent_runs`), *Swell trains*
+   Now series. Three views (owner's call, 2026-09-30, which folded the old
+   "Forecast & observed" into the runs view): *Forecast + Observed* (the
+   newest GFS-Wave run over the last eight runs' lines from
+   `forecast.json`'s `runs`, `forecastlog.recent_runs`, with 46232 carried
+   in beside the passed hours in sea green), *Swell trains*
    (a dot per train at its period, sized by height, with a direction strip
    over the break's windows) and *North vs. South*; and on the buoy's tab
    only, *Ensemble* (below, build order 5). **Only the Ensemble view carries
@@ -442,7 +460,9 @@ forecaster actually verifies against, Surfline included.
     collector/          data pipeline: NDBC archiving, revisions, station
                         status (stations.json is a COLLECTION list, not a
                         ranking — see forecast/siting.py), historical backfill,
-                        GFS-Wave bulletins, gefswave.py (GEFS-Wave's
+                        GFS-Wave bulletins, localwind.py (the NWS forecast
+                        grid's hourly wind at Coronado, fetched by the
+                        forecast build, not archived), gefswave.py (GEFS-Wave's
                         31-member bulletin at 46232: mean and spread, no
                         direction — BRIEFING §35),
                         probe_spectra.py (are directional spectra reachable?),
@@ -495,8 +515,10 @@ forecaster actually verifies against, Surfline included.
                         Writes data/nearshore/; never imported by the
                         forecast                                  [built]
       nearshore.py      carries a spectrum through those tables, pure
-                        Python; local fetch-limited chop over CLOSED fetches
-                        only; reports against the aperture          [built]
+                        Python; local fetch-limited chop, fresh over
+                        closed fetches and grown on over the open water
+                        between the buoy and the break; reports
+                        against the aperture                        [built]
       surfzone.py       5 m to the break on each profile at the tide,
                         Battjes–Janssen, pure Python                [built]
       tidesite.py       the bay gauge's level carried to the open coast
@@ -692,9 +714,17 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   measurement; keep the interpretation where it is made. Since 2026-09-26
   (owner's layout) the verdict sits on the Wind card as one line per break —
   "offshore at this break" — shown only for the break whose swell tab is open
-  and hidden on the buoy's, so it is still per break. **Now tab only**: the
-  forecast's wind is GFS-Wave's at the buoy, 29 km offshore, not KNZY's at
-  the beach, and a verdict against the shore normal needs the local wind.
+  and hidden on the buoy's, so it is still per break. **On the Forecast tab
+  the verdict comes from the LOCAL forecast wind, never the model's**:
+  GFS-Wave's wind is at the buoy, 29 km offshore — kept on the card for the
+  wind sea it makes — and a verdict against the shore normal needs the wind
+  on the sand. Since 2026-09-30 the Wind card carries "Local" under
+  it: the NWS forecast grid at Coronado's center break
+  (`collector.localwind`, fetched by `forecast.live` on Actions;
+  api.weather.gov and aviationweather.gov are both denied at CONNECT from a
+  session), hourly, 7 days, per break on each `Hour` as `local_wind_*`.
+  Chosen over KNZY's TAF: a TAF runs 24–30 h in coded change groups written
+  for the runway.
 - **"At the buoy" means no aperture at all — `transform.at_buoy`, not
   `through(spectrum, spot, [])`.** The latter still applies that spot's seaward
   half-plane, which excludes 304–124° and dropped **12–26% of the energy** out

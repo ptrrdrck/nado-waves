@@ -539,13 +539,13 @@ class TestWindAndTideAreHoisted:
         file carries — and since the titles are bare quantities now, the
         provenance line is the only thing telling them apart."""
 
-        assert "GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})" in SOURCE
+        assert "GFS-Wave wind at the buoy, ${DATA.station_name} (NDBC ${DATA.station})" in SOURCE
         assert "METAR, ${fallback.station_name} (${fallback.station})" in SOURCE
         assert "METAR, ${wind.station_name} (${wind.station})" in SOURCE
         assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
-        wind = SOURCE[SOURCE.index("GFS-Wave wind, ${DATA") - 200:]
+        wind = SOURCE[SOURCE.index("GFS-Wave wind at the buoy, ${DATA") - 200:]
         assert "`Forecast for ${stampWhen}`" in wind[:200]
 
     def test_it_prefers_the_model_wind_and_falls_back(self):
@@ -627,7 +627,7 @@ class TestTheTwoChains:
         assert "Object.keys(standing" in INFO
         assert 'renderStanding($("standing-now"), NOW.standing_on' in INFO
         assert 'renderStanding($("standing-forecast"), DATA.standing_on' in INFO
-        assert "What Now is standing on" in INFO
+        assert "What NOW(ISH) is standing on" in INFO
         assert "What Forecast is standing on" in INFO
 
     def test_now_labels_its_inputs_as_measurements(self):
@@ -642,7 +642,8 @@ class TestTheTwoChains:
         """The verb that opens each line says which chain it is: "Forecast"
         and "Harmonic tide" here, where Now says "Observed" and "Measured"."""
 
-        assert SOURCE.count("`Forecast for ${stampWhen}`") == 2      # swell, wind
+        # swell, the model's wind at the buoy, and the Local wind forecast
+        assert SOURCE.count("`Forecast for ${stampWhen}`") == 3
         assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_a_stale_observation_is_not_rendered_as_current(self):
@@ -1679,7 +1680,7 @@ class TestEveryMeasurementSaysHowOldItIs:
         """It only appears when the model has no wind for that hour, which is
         exactly when how old the substitute is matters."""
 
-        wind_block = SOURCE[SOURCE.index("GFS-Wave wind, ${DATA"):]
+        wind_block = SOURCE[SOURCE.index("GFS-Wave wind at the buoy, ${DATA"):]
         assert "Observed ${observedAt(fallback.observed_utc)}" in wind_block[:400]
 
     def test_a_prediction_is_never_given_an_age(self):
@@ -2123,8 +2124,9 @@ class TestTheWeekChart:
             "console.log(spec.lines[0].values[0], spec.above, '|', spec.below);\n"
             "console.log(spec.read(0).replace(/<[^>]+>/g, ''));"
         )
+        # North and South are the breaks' names, so they are capitalised.
         assert got == ["North vs. South", "0.3 North bigger | South bigger",
-                       "North less south +1.0 ft (+0.30 m)"]
+                       "North less South +1.0 ft (+0.30 m)"]
 
     def test_every_heights_axis_is_framed_by_gridlines(self):
         """The top and bottom of the plot are always ticks, so the frame is
@@ -2258,20 +2260,21 @@ class TestTheForecastCharts:
         )
         assert got == ["0.9,0.9,null,none,none,none"]
 
-    def test_the_height_chart_is_the_forecast_beside_the_observed_line(self):
+    def test_forecast_and_observed_is_the_runs_view_and_opens_first(self):
+        """Owner's call, 2026-09-30: the separate "Forecast & observed" view is
+        gone; the runs view took its name and opens first."""
+
         got = self._run(
+            "console.log(FC_MODES.map((m) => m.id + ':' + m.label).join('|'));\n"
+            "console.log(FC_MODE0, chartModeFor('coronado_north'));\n"
+            "CHART_MODE = 'height'; console.log(chartModeFor('coronado_north'));\n"
             "const spec = chartSpec('coronado_north', 'height');\n"
-            "console.log(spec.lines.map((l) => l.cls).join(','));\n"
-            "console.log(plain(spec.read(1)));\n"
-            "console.log(plain(spec.read(3)));\n"
-            "console.log(plain(spec.read(2)));\n"
-            "console.log(spec.now);"
+            "console.log(spec.lines.map((l) => l.cls).join(','), spec.now);"
         )
-        assert got[0] == "obs,main"
-        assert got[1] == "Shown then 0.90 m · observed 1.10 m"
-        assert got[2] == "Forecast 1.06 m · observed: not in yet"
-        assert got[3] == "Shown then 0.90 m · no 46232 spectrum, left as a gap"
-        assert got[4] == "3.5"
+        assert got[0] == ("runs:Forecast + Observed|trains:Swell trains|diff:North vs. South"
+                          "|ensemble:Ensemble")
+        # A view remembered from before falls to the first on offer.
+        assert got[1:] == ["runs runs", "runs", "run,obs,main 3.5"]
 
     def test_the_runs_chart_draws_each_run_and_calls_the_spread_no_range(self):
         got = self._run(
@@ -2281,7 +2284,7 @@ class TestTheForecastCharts:
             "console.log(spec.says);"
         )
         assert got[0] == "run,obs,main"
-        assert got[1] == "This run 1.00 m · 1 earlier run 0.90 m · observed 1.10 m"
+        assert got[1] == "Newest GFS-Wave run 1.00 m · 1 earlier run 0.90 m · observed 1.10 m"
         assert "not a range the swell will fall in" in got[2]
 
     def test_the_trains_are_dots_without_the_local_chop(self):
@@ -2318,7 +2321,7 @@ class TestTheForecastCharts:
         )
         # The ensemble is total height at the buoy, with no direction for a
         # break's windows: the buoy's tab only.
-        assert got == ["height,runs,trains,ensemble", "height,runs,trains,diff"]
+        assert got == ["runs,trains,ensemble", "runs,trains,diff"]
 
     def test_the_ensemble_band_comes_with_how_often_the_buoy_fell_inside_it(self):
         got = self._run(
@@ -2383,7 +2386,7 @@ class TestTheForecastCharts:
 
         section = SOURCE[SOURCE.index("function fcSpec"):SOURCE.index("// The y axis for the hours in view:")]
         section = (section[:section.index('if (mode === "ensemble" && buoy) {')]
-                   + section[section.index("// Forecast & observed: the line the page showed"):])
+                   + section[section.index("// Forecast + Observed (owner's name"):])
         for word in ("band", "%", "error of", "actual", "confiden"):
             text = [line for line in section.splitlines() if word in line and "`" in line
                     and not line.strip().startswith("//")]
@@ -2434,3 +2437,78 @@ class TestTheProvenanceDivider:
         body = body[:body.index("\n}\n")]
         assert "srcLines(" not in body
         assert '<span class="src">${period(spec.says)}</span>' in body
+
+
+class TestHousekeeping20260930:
+    """Owner's calls, 2026-09-30."""
+
+    def test_the_observed_tab_is_now_ish(self):
+        assert 'aria-controls="panel">NOW(ISH)</button>' in SOURCE
+        assert "What NOW(ISH) is standing on" in INFO
+
+    def test_the_readout_keeps_room_for_three_lines(self):
+        """A reading that grows onto a third line while scrubbing must not push
+        the plot down under the finger."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        rule = css[css.index(".chart .readout{"):]
+        assert "min-height:calc(3 * 1.45em)" in rule[:rule.index("}")]
+
+    def test_the_breaks_are_named_with_capitals(self):
+        for lower in ("North less south", "less south's", "north less south"):
+            assert lower not in SOURCE and lower not in INFO, lower
+
+
+class TestTheLocalWindOnTheForecastTab:
+    """The NWS grid's wind on the sand under the model's wind at the buoy, and
+    the per-break offshore reading made from it -- never from the buoy's."""
+
+    def _run(self, script):
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+
+        def fn(name):
+            start = SOURCE.index(f"function {name}(")
+            return SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+
+        prelude = (
+            "const FT_PER_M = 3.28084; const MPH_PER_KT = 1.15078; let SWELL_TAB = 'coronado_north';\n"
+            "const speed = (kt) => `${Math.round(kt * MPH_PER_KT)} mph (${Math.round(kt)} kt)`;\n"
+            "const when = (iso) => iso; const period = (t) => t;\n"
+            "const srcLines = (lines) => [].concat(lines || []).filter(Boolean).map((l) => `<src>${l}</src>`).join('');\n"
+            "let DATA = {local_wind: {available: true, office: 'SGX', grid_x: 55, grid_y: 12,"
+            " updated_utc: '2026-09-30T04:00:00Z'}};\n"
+        )
+        body = "".join(fn(n) for n in ("compass", "sense", "windAtBreaks", "localWindBlock"))
+        out = subprocess.run([node, "-e", prelude + body + script], capture_output=True,
+                             text=True, check=True).stdout
+        return out.strip()
+
+    def test_the_local_wind_and_each_breaks_reading(self):
+        got = self._run(
+            "const hour = {local_wind_from_deg: 30, local_wind_kt: 8, local_gust_kt: 14};\n"
+            "const cards = [{id: 'coronado_north', windOffshore: 0.96}, {id: 'coronado_south', windOffshore: -0.5}];\n"
+            "console.log(localWindBlock(hour, cards, 'Tue 3 PM', false).replace(/\\s+/g, ' '));"
+        )
+        assert "Local</span>" in got and "NNE 30°" in got and "9 mph (8 kt)" in got
+        assert "gusting 16 mph" in got
+        assert "<b>offshore</b> at this break" in got and "<b>onshore</b> at this break" in got
+        assert "<src>Forecast for Tue 3 PM</src>" in got
+        assert "NWS forecast grid SGX 55,12 at Coronado, updated 2026-09-30T04:00:00Z" in got
+
+    def test_an_hour_without_it_says_so_and_a_past_hour_borrows_nothing(self):
+        got = self._run(
+            "console.log(JSON.stringify(localWindBlock({}, [], 'x', true)));\n"
+            "DATA.local_wind = {available: false, why: 'api.weather.gov: HTTP 503'};\n"
+            "console.log(localWindBlock({}, [], 'x', false).replace(/\\s+/g, ' '));"
+        )
+        first, second = got.splitlines()
+        assert first == '""'
+        assert "no local forecast" in second and "api.weather.gov: HTTP 503" in second
+
+    def test_the_forecast_cards_read_offshore_from_the_local_wind(self):
+        cards = SOURCE[SOURCE.index("function cardsForForecast"):]
+        cards = cards[:cards.index("\n}\n")]
+        assert "windOffshore: h.local_wind_offshore" in cards
+        assert "windOffshore: b.wind_offshore" not in cards

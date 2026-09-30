@@ -120,6 +120,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond .srcs{display:flex;flex-direction:column;gap:2px;
             border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .cond.swell .srcs{margin-top:2px}
+/* A second reading inside a card, under its own small label: the Forecast
+   tab's "Local" wind under the model's wind at the buoy. */
+.cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+.cond .sublbl{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
+              letter-spacing:.06em;font-size:11.5px;color:var(--soft)}
 /* A number inside a provenance line ("of 3.8 ft (1.15 m) at the buoy") stays
    in that line's grey; the darker metric would lift it out of the footnote. */
 .cond .src .unit{color:inherit}
@@ -386,10 +391,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .chart .legend .sw.ring{width:7px;height:7px;border-radius:50%;margin:0 8px 0 5px;background:transparent;
                         border:1px solid var(--ink)}
 .chart .legend .sw.dir{width:6px;height:6px;border-radius:50%;margin:0 8px 0 5px;color:var(--ink)}
-/* Above the plot, and tall enough for its longest reading, so the plot never
-   jumps under a finger as the values change. */
+/* Above the plot, and tall enough for three lines -- its longest reading at
+   phone width -- so the plot never jumps under a finger as a reading grows
+   onto a third line while scrubbing (owner's call, 2026-09-30). */
 .chart .readout{font-size:13px;line-height:1.45;color:var(--soft);font-variant-numeric:tabular-nums;
-                min-height:calc(2 * 1.45em);display:flex;flex-direction:column;justify-content:flex-end}
+                min-height:calc(3 * 1.45em);display:flex;flex-direction:column;justify-content:flex-end}
 /* The text sits at the foot of that room, against the plot, and a longer
    reading grows upward toward the menu (owner's design, 2026-09-28). */
 .chart .readout b{color:var(--ink);font-weight:600}
@@ -422,9 +428,9 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
        measurements; Forecast is built only from a model. They share the
        geometry and nothing else, which is why each carries its own
        "standing on" block on info.html. -->
-  <nav class="tabs" role="tablist" aria-label="Now or forecast">
+  <nav class="tabs" role="tablist" aria-label="Now(ish) or forecast">
     <button type="button" id="tab-now" role="tab" aria-selected="true"
-            aria-controls="panel">Now</button>
+            aria-controls="panel">NOW(ISH)</button>
     <button type="button" id="tab-forecast" role="tab" aria-selected="false"
             aria-controls="panel">Forecast</button>
   </nav>
@@ -919,7 +925,7 @@ function cardsForForecast(step) {
           hsWindow: e.hs_m, nearshore: pastNearshore(e),
           period: e.period_s, direction: e.from_deg,
           swellWindow: b.swell_window || [], trains: [], takenBy: [],
-          windOffshore: b.wind_offshore, windNote: b.wind_note,
+          windOffshore: null, windNote: b.wind_note,
           chart: true,
         };
       }
@@ -935,7 +941,10 @@ function cardsForForecast(step) {
         normal: b.shore_normal_deg, normalGuess: b.normal_is_a_guess,
         trains: h.trains || [],
         takenBy: h.taken_by || [],
-        windOffshore: b.wind_offshore, windNote: b.wind_note,
+        // The LOCAL forecast wind's reading at this break and hour, never the
+        // model's wind at the buoy: offshore is about the wind on the sand.
+        windOffshore: h.local_wind_offshore != null ? h.local_wind_offshore : null,
+        windNote: b.wind_note,
         // The Forecast tab's own charts: the model's hours, with 46232
         // carried in beside the ones that have passed.
         chart: true,
@@ -1165,7 +1174,14 @@ function calculationTable(c) {
   // takes, but without its row the column would not arrive at the headline.
   const withChop = e.with_chop_hs_m != null ? e.with_chop_hs_m : n.hs_m;
   if (e.local && withChop != null) {
-    row("Local chop", withChop, e.shoaled_hs_m, {note: `${e.local.tp_s.toFixed(1)} s`});
+    // What kind of chop, and whose wind made it: fresh behind land, or grown
+    // on over the open water between the buoy and the break; KNZY's wind on
+    // the observed chain, the local forecast's (or, without one, the model's
+    // at the buoy) on the forecast. Absent from a payload built before.
+    const kind = e.local.fetch === "open" ? "open water" : e.local.fetch === "closed" ? "behind land" : "";
+    const note = [`${e.local.tp_s.toFixed(1)} s`, kind, e.local.wind ? `${e.local.wind} wind` : ""]
+      .filter(Boolean).join(", ");
+    row("Local chop", withChop, e.shoaled_hs_m, {note});
   }
   // Then in to where it breaks, at this tide (forecast.surfzone). Already
   // breaking at the start depth means the break is further out, and the
@@ -1541,14 +1557,15 @@ let CHART_MODE = "height";
 // observed ones. Past hours are what the page showed then, with 46232's own
 // spectrum carried in beside them in sea green; nothing here is a band, a
 // range the swell will fall in, or a score.
+// "Forecast & observed" was folded into the runs view (owner's call,
+// 2026-09-30): the newest run, the earlier runs and 46232 on one plot.
 const FC_MODES = [
-  {id: "height", label: "Forecast & observed"},
-  {id: "runs", label: "Model runs"},
+  {id: "runs", label: "Forecast + Observed"},
   {id: "trains", label: "Swell trains"},
   {id: "diff", label: "North vs. South"},
   {id: "ensemble", label: "Ensemble"},
 ];
-let FC_MODE0 = "height";
+let FC_MODE0 = "runs";
 // The views a tab's menu offers: none on Now's buoy tab, which has only its
 // height; on the Forecast tab's buoy, everything but the two breaks'
 // difference, which is about the breaks.
@@ -1562,7 +1579,7 @@ function chartModes(id) {
 }
 function chartModeFor(id) {
   const modes = chartModes(id);
-  return modes.some((m) => m.id === CHART_MODE) ? CHART_MODE : "height";
+  return modes.some((m) => m.id === CHART_MODE) ? CHART_MODE : modes.length ? modes[0].id : "height";
 }
 // Whether the charts are folded out. One state for every tab, like the
 // calculation's, and kept across a refresh the same way.
@@ -1831,7 +1848,7 @@ function buildSpec(id, mode, steps) {
   }
 
   if (mode === "diff") {
-    // North less south, so the line reads the way the menu names it: above
+    // North less South, so the line reads the way the menu names it: above
     // zero, the first-named break is the bigger. The payload carries south
     // less north; the page only flips its sign.
     const values = steps.map((s) => {
@@ -1840,11 +1857,11 @@ function buildSpec(id, mode, steps) {
     });
     return {
       scale: "diff",
-      lines: [{cls: "main", label: "North less south", values}],
+      lines: [{cls: "main", label: "North less South", values}],
       zero: true, above: "North bigger", below: "South bigger",
-      says: "North's breaking height less south's, the same on every break's tab. "
+      says: "North's breaking height less South's, the same on every break's tab. "
         + "Where the line crosses zero, which of the two is bigger has flipped.",
-      read: (i) => value(`North less south ${signedHeight(values[i])}`),
+      read: (i) => value(`North less South ${signedHeight(values[i])}`),
     };
   }
 
@@ -2045,44 +2062,13 @@ function fcSpec(id, mode, steps) {
     return {
       scale: "diff", now,
       lines: [{cls: "obs", label: obsLabel, values: observed},
-              {cls: "main", label: "North less south", values}],
+              {cls: "main", label: "North less South", values}],
       zero: true, above: "North bigger", below: "South bigger",
-      says: "North's forecast breaking height less south's, every 3 hours, the same on every "
+      says: "North's forecast breaking height less South's, every 3 hours, the same on every "
         + "break's tab. Before this run was published it is what the page showed then; the green "
         + `line is ${station}'s own spectrum at those hours, carried in by the same chain`,
-      read: (i) => value(`${which(i) === "forecast" ? "Forecast" : "Shown then"}, north less south `
+      read: (i) => value(`${which(i) === "forecast" ? "Forecast" : "Shown then"}, North less South `
         + signedHeight(values[i])) + obsRead(i, observed[i] == null ? null : signedHeight(observed[i])),
-    };
-  }
-
-  if (mode === "runs") {
-    const n = (DATA.runs || []).length;
-    const earlier = (DATA.runs || []).map((r, k) => ({
-      cls: "run", label: `The ${when(r.cycle_utc)} run`,
-      values: steps.map((st) => { const e = st.earlier[k]; return e ? at(e) : null; }),
-    }));
-    const values = steps.map((st) => at(st.run));
-    const observed = steps.map((st) => at(st.observed));
-    return {
-      scale: "height", now,
-      lines: [...earlier, {cls: "obs", label: obsLabel, values: observed},
-              {cls: "main", label: "This run", values}],
-      legend: [{cls: "main", label: "This run"},
-               {cls: "run", label: `${n} earlier run${n === 1 ? "" : "s"}`},
-               {cls: "obs", label: obsLabel}],
-      says: `${name}'s ${buoy ? "height" : "breaking height"} from this run, over what each of the `
-        + `last ${n} runs said for the same hours. Where the lines bunch, the runs agree; where `
-        + "they fan out, the model has been changing its mind. Runs agreeing is not the same as "
-        + "being right, and the spread is not a range the swell will fall in",
-      read: (i) => {
-        const said = earlier.map((ln) => ln.values[i]).filter((v) => v != null);
-        const spread = said.length
-          ? ` &middot; ${said.length} earlier run${said.length === 1 ? "" : "s"} `
-            + heightSpan(Math.min(...said), Math.max(...said))
-          : " &middot; no earlier run covered this hour";
-        return value(`This run ${height(values[i])}`) + spread
-          + obsRead(i, observed[i] == null ? null : height(observed[i]));
-      },
     };
   }
 
@@ -2159,14 +2145,14 @@ function fcSpec(id, mode, steps) {
       scale: "height", now,
       band: {lo, hi},
       lines: [{cls: "obs", label: obsLabel, values: observed},
-              {cls: "main", label: "GFS-Wave, this run", values: single},
+              {cls: "main", label: "Newest GFS-Wave run", values: single},
               {cls: "ens", label: "GEFS-Wave mean", values: mean}],
       legend: [{cls: "ens", label: "Ensemble mean, 31 members"},
                {cls: "ensband", label: "One spread either side"},
-               {cls: "main", label: "GFS-Wave, this run"},
+               {cls: "main", label: "Newest GFS-Wave run"},
                {cls: "obs", label: obsLabel}],
       says: `The buoy's height from ${run}: the mean of its 31 members and, shaded, one `
-        + "standard deviation of them either side, beside GFS-Wave's single run. It is total "
+        + "standard deviation of them either side, beside the newest GFS-Wave run. It is total "
         + "height at the buoy with no direction, so it says nothing of a break's windows. "
         + measured,
       read: (i) => {
@@ -2179,29 +2165,45 @@ function fcSpec(id, mode, steps) {
         const shares = e.p_gt_2m != null
           ? ` &middot; ${Math.round(100 * e.p_gt_2m)}% of members above 6.6 ft (2 m)` : "";
         return value(`Ensemble mean ${height(e.hs_mean_m)}`) + ` ${pm}` + shares
-          + (single[i] != null ? ` &middot; this run ${height(single[i])}` : "")
+          + (single[i] != null ? ` &middot; newest GFS-Wave run ${height(single[i])}` : "")
           + obsRead(i, observed[i] == null ? null : height(observed[i]));
       },
     };
   }
 
-  // Forecast & observed: the line the page showed hour by hour, and 46232's
-  // own spectrum beside it once the hour has passed. No difference or
+  // Forecast + Observed (owner's name, 2026-09-30): the newest GFS-Wave
+  // run over what each of the last few runs said for the same hours, and
+  // 46232 carried in beside the hours that have passed. No difference or
   // percentage between them: that would be a claim about the forecast
   // without a verification series named beside it, and the green line
-  // checks nothing at the beach.
-  const values = steps.map((st) => at(st.shown));
+  // checks nothing at the beach. Every view not named above lands here.
+  const n = (DATA.runs || []).length;
+  const earlier = (DATA.runs || []).map((r, k) => ({
+    cls: "run", label: `The ${when(r.cycle_utc)} run`,
+    values: steps.map((st) => { const e = st.earlier[k]; return e ? at(e) : null; }),
+  }));
+  const values = steps.map((st) => at(st.run));
   const observed = steps.map((st) => at(st.observed));
   return {
     scale: "height", now,
-    lines: [{cls: "obs", label: obsLabel, values: observed},
-            {cls: "main", label: "Forecast", values}],
-    says: `${name}'s forecast ${buoy ? "height" : "breaking height"} every 3 hours. Before this `
-      + "run was published, the line is what the page showed then, from the run that was current. "
-      + `The green line is ${station}'s own spectrum at those hours, carried in by the same chain, `
-      + "so the two differ by the model's error at the buoy; it checks nothing at the beach",
-    read: (i) => value(`${which(i) === "forecast" ? "Forecast" : "Shown then"} ${height(values[i])}`)
-      + obsRead(i, observed[i] == null ? null : height(observed[i])),
+    lines: [...earlier, {cls: "obs", label: obsLabel, values: observed},
+            {cls: "main", label: "Newest GFS-Wave run", values}],
+    legend: [{cls: "main", label: "Newest GFS-Wave run"},
+             {cls: "run", label: `${n} earlier run${n === 1 ? "" : "s"}`},
+             {cls: "obs", label: obsLabel}],
+    says: `${name}'s ${buoy ? "height" : "breaking height"} from the newest GFS-Wave run, over what each of the `
+      + `last ${n} runs said for the same hours. Where the lines bunch, the runs agree; where `
+      + "they fan out, the model has been changing its mind. Runs agreeing is not the same as "
+      + "being right, and the spread is not a range the swell will fall in",
+    read: (i) => {
+      const said = earlier.map((ln) => ln.values[i]).filter((v) => v != null);
+      const spread = said.length
+        ? ` &middot; ${said.length} earlier run${said.length === 1 ? "" : "s"} `
+          + heightSpan(Math.min(...said), Math.max(...said))
+        : " &middot; no earlier run covered this hour";
+      return value(`Newest GFS-Wave run ${height(values[i])}`) + spread
+        + obsRead(i, observed[i] == null ? null : height(observed[i]));
+    },
   };
 }
 
@@ -2902,6 +2904,34 @@ function wireSwellTabs() {
   });
 }
 
+// The Wind card's second reading on the Forecast tab, "Local": the forecast
+// wind on the sand (the NWS forecast grid at Coronado, `collector.localwind`),
+// under the model's wind at the buoy. The buoy's wind says how much wind sea
+// the model is making offshore; this one says whether it is offshore at a
+// break, per break, as the Now tab's measured KNZY wind does. A past hour
+// whose build kept no local wind says nothing rather than borrowing today's.
+function localWindBlock(hour, cards, stampWhen, past) {
+  const L = (DATA && DATA.local_wind) || {};
+  if (hour && hour.local_wind_from_deg != null) {
+    const gust = hour.local_gust_kt ? ` <span class="unit">gusting ${Math.round(hour.local_gust_kt * MPH_PER_KT)} mph</span>` : "";
+    const grid = L.office ? `NWS forecast grid ${L.office} ${L.grid_x},${L.grid_y} at Coronado` : "NWS forecast grid at Coronado";
+    const issued = L.updated_utc ? `, updated ${when(L.updated_utc)}` : "";
+    return `<div class="subcond" data-wind="local">
+      <span class="sublbl">Local</span>
+      <span class="val">${compass(hour.local_wind_from_deg)} <span class="unit">at</span> ${speed(hour.local_wind_kt || 0)}${gust}</span>
+      ${windAtBreaks(cards)}
+      ${srcLines([`Forecast for ${stampWhen}`, `${grid}${past ? "" : issued}`])}
+    </div>`;
+  }
+  if (past) return "";
+  const why = L.available === false && L.why ? L.why : "no local forecast for this hour";
+  return `<div class="subcond" data-wind="local">
+    <span class="sublbl">Local</span>
+    <span class="val"><span class="unit">no local forecast</span></span>
+    ${srcLines(why)}
+  </div>`;
+}
+
 function renderConditions(step, cards) {
   const rows = [];
   useChain(MODE === "now" ? "now" : "fc");
@@ -3039,12 +3069,13 @@ function renderConditions(step, cards) {
       ${seenWind}
       ${modelled
         ? srcLines([`Forecast for ${stampWhen}`,
-                    `GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})`,
+                    `GFS-Wave wind at the buoy, ${DATA.station_name} (NDBC ${DATA.station})`,
                     run])
         : fallback.from_deg != null
           ? srcLines([`Observed ${observedAt(fallback.observed_utc)}`,
                       `METAR, ${fallback.station_name} (${fallback.station})`])
           : srcLines(past ? "" : fallback.note)}
+      ${localWindBlock(hour, cards, stampWhen, past)}
     </div>`);
     rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
@@ -3448,7 +3479,7 @@ function boot(data, observed, measured, series) {
   const view = recall(KEEP.chart);
   CHART_MODE = CHART_MODES.some((m) => m.id === view) ? view : "height";
   const fcView = recall(KEEP.fcChart);
-  FC_MODE0 = FC_MODES.some((m) => m.id === fcView) ? fcView : "height";
+  FC_MODE0 = FC_MODES.some((m) => m.id === fcView) ? fcView : FC_MODES[0].id;
   // Folded away until the reader opens it, as the calculation is.
   CHART_OPEN = recall(KEEP.chartOpen) === "open";
   setMode(recall(KEEP.mode) === "forecast" ? "forecast" : "now");
