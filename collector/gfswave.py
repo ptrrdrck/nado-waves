@@ -64,7 +64,13 @@ _CYCLE = re.compile(r"Cycle\s*:\s*(\d{8})\s+(\d{1,2})\s*UTC")
 
 
 class BulletinError(RuntimeError):
-    pass
+    """A bulletin that could not be had. ``status`` is the HTTP code when the
+    server answered (404: not there, or not there YET), None for a transport
+    failure."""
+
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
 
 
 @dataclass(frozen=True)
@@ -138,11 +144,16 @@ def bulletin_url(station_id: str, cycle: datetime) -> str:
     """The per-station bulletin path.
 
     NCEP stopped publishing these between 2026-09-15 and 2026-09-16 — the
-    directory `gfs.YYYYMMDD/HH/wave/station/bulls.tHHz/` is simply absent from
-    2026-09-16 onward and every station 404s. The data did not go away: it
-    ships in `gfswave.tHHz.bull_tar` alongside, which has been published all
-    along. `fetch_bulletin` falls back to the tar, so this path stays for the
-    three years of cycles that predate the change and still serve it directly.
+    directory `gfs.YYYYMMDD/HH/wave/station/bulls.tHHz/` was absent and every
+    station 404'd. The data did not go away: it shipped in
+    `gfswave.tHHz.bull_tar` alongside, and `fetch_bulletin` falls back to the
+    tar. By 2026-09-28 the directory was back (every cycle 09-28 00Z to
+    09-29 18Z serves 46232 from it), so both paths are live.
+
+    The directory also fills in over about an hour, numbered buoys last:
+    46232's file landed 5 h 22–27 min after the nominal time on all eight of
+    those cycles, 30 s after the tar. Until then both 404, and that means
+    "not yet", not "gone" — `forecast.live.fetch_latest` says so.
     """
 
     day = cycle.strftime("%Y%m%d")
@@ -202,7 +213,7 @@ def fetch_bulletins_from_tar(
                     if len(found) == len(wanted):
                         break
     except urllib.error.HTTPError as error:
-        raise BulletinError(f"{url}: HTTP {error.code}") from error
+        raise BulletinError(f"{url}: HTTP {error.code}", error.code) from error
     except (urllib.error.URLError, OSError, tarfile.TarError, http.client.HTTPException) as error:
         raise BulletinError(f"{url}: {error}") from error
 
@@ -246,7 +257,7 @@ def fetch_bulletin(
                 found = fetch_bulletins_from_tar([station_id], cycle, opener=opener)
                 if station_id in found:
                     return found[station_id]
-            raise BulletinError(f"{url}: HTTP {error.code}") from error
+            raise BulletinError(f"{url}: HTTP {error.code}", error.code) from error
         except (urllib.error.URLError, OSError, http.client.HTTPException) as error:
             last = error
             if attempt + 1 < attempts:
