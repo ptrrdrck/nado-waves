@@ -2207,9 +2207,27 @@ class TestTheWindAndTideCharts:
         return TestTheWeekChart()._run(self.PRELUDE + script)
 
     def test_both_tabs_carry_both_charts(self):
-        for card in ("wind", "tide"):
-            # Now, the forecast's own hour, and an earlier run's hour.
-            assert SOURCE.count(f'${{cardChart("{card}")}}') == 3
+        # Now, the forecast's own hour, and an earlier run's hour.
+        assert SOURCE.count('cardChart("wind")') == 4     # one passed to the Local block
+        assert SOURCE.count('${cardChart("tide")}') == 3
+
+    def test_the_chart_sits_above_the_cards_provenance(self):
+        """Owner's call, 2026-09-30: like the Swell card's, above the card's
+        provenance and its divider, not under them."""
+
+        render = SOURCE[SOURCE.index("function renderConditions"):]
+        render = render[:render.index("\n}\n")]
+        for card in ('data-card="wind"', 'data-card="tide"'):
+            at = 0
+            while (at := render.find(card, at + 1)) != -1:
+                body = render[at:render.index("</div>`);", at)]
+                if "srcLines(" in body and "cardChart(" in body:
+                    assert body.index("cardChart(") < body.index("srcLines(")
+        local = SOURCE[SOURCE.index("function localWindBlock"):]
+        local = local[:local.index("\n}\n")]
+        assert local.count("${chart}") == 2
+        for part in local.split("${chart}")[1:]:
+            assert "srcLines(" in part                      # provenance after it
 
     def test_each_tab_reads_its_own_files(self):
         now = SOURCE[SOURCE.index("function wtNowSteps"):]
