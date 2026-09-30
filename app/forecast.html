@@ -3282,7 +3282,7 @@ function wireSwellTabs() {
 // the model is making offshore; this one says whether it is offshore at a
 // break, per break, as the Now tab's measured KNZY wind does. A past hour
 // whose build kept no local wind says nothing rather than borrowing today's.
-function localWindBlock(hour, cards, stampWhen, past) {
+function localWindBlock(hour, cards, stampWhen, past, chart = "") {
   const L = (DATA && DATA.local_wind) || {};
   if (hour && hour.local_wind_from_deg != null) {
     const gust = hour.local_gust_kt ? ` <span class="unit">gusting ${Math.round(hour.local_gust_kt * MPH_PER_KT)} mph</span>` : "";
@@ -3292,6 +3292,7 @@ function localWindBlock(hour, cards, stampWhen, past) {
       <span class="sublbl">Local</span>
       <span class="val">${compass(hour.local_wind_from_deg)} <span class="unit">at</span> ${speed(hour.local_wind_kt || 0)}${gust}</span>
       ${windAtBreaks(cards)}
+      ${chart}
       ${srcLines([`Forecast for ${stampWhen}`, `${grid}${past ? "" : issued}`])}
     </div>`;
   }
@@ -3300,6 +3301,7 @@ function localWindBlock(hour, cards, stampWhen, past) {
   return `<div class="subcond" data-wind="local">
     <span class="sublbl">Local</span>
     <span class="val"><span class="unit">no local forecast</span></span>
+    ${chart}
     ${srcLines(why)}
   </div>`;
 }
@@ -3345,12 +3347,12 @@ function renderConditions(step, cards) {
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
       ${wind.from_deg != null ? windAtBreaks(cards) : ""}
+      ${cardChart("wind")}
       ${wind.from_deg != null
         ? srcLines([`Observed ${observedAt(wind.observed_utc)}`,
                     `METAR, ${wind.station_name} (${wind.station})`],
                    dueSpan(due.wind, late.wind))
         : srcLines(wind.note)}
-      ${cardChart("wind")}
     </div>`);
     // The turn is asked for against the READER's clock, not the build's, so
     // it keeps being the next turn as turns pass beneath an open page.
@@ -3360,11 +3362,11 @@ function renderConditions(step, cards) {
         ? height(tide.height_m)
         : '<span class="unit">not collected</span>'}</span>
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
+      ${cardChart("tide")}
       ${tide.height_m != null
         ? srcLines([`Measured ${observedAt(tide.observed_utc)}`, tideSource(NOW)],
                    dueSpan(due.tide, late.tide))
         : srcLines(tide.note)}
-      ${cardChart("tide")}
     </div>`);
   } else {
     const wind = DATA.wind || {};
@@ -3435,6 +3437,9 @@ function renderConditions(step, cards) {
     // Today's KNZY reading stands in for a run without model wind -- but never
     // under a past hour, where it would be a reading from the wrong time.
     const fallback = past ? {note: "not kept for earlier runs"} : wind;
+    // The chart sits above the card's last provenance, as the Swell card's
+    // does: inside the Local block when there is one, else above the model's.
+    const local = localWindBlock(hour, cards, stampWhen, past, cardChart("wind"));
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
       <span class="val">${modelled
@@ -3443,6 +3448,7 @@ function renderConditions(step, cards) {
           ? `${compass(fallback.from_deg)} <span class="unit">at</span> ${speed(fallback.speed_kt || 0)}`
           : `<span class="unit">${past ? fallback.note : "not collected yet"}</span>`}</span>
       ${seenWind}
+      ${local ? "" : cardChart("wind")}
       ${modelled
         ? srcLines([`Forecast for ${stampWhen}`,
                     `GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})`,
@@ -3451,8 +3457,7 @@ function renderConditions(step, cards) {
           ? srcLines([`Observed ${observedAt(fallback.observed_utc)}`,
                       `METAR, ${fallback.station_name} (${fallback.station})`])
           : srcLines(past ? "" : fallback.note)}
-      ${localWindBlock(hour, cards, stampWhen, past)}
-      ${cardChart("wind")}
+      ${local}
     </div>`);
     rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
@@ -3463,8 +3468,8 @@ function renderConditions(step, cards) {
         ? turnLine(DATA.tide_turns || [], step.valid_utc)
         : ""}
       ${seenTide}
-      ${srcLines([`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)])}
       ${cardChart("tide")}
+      ${srcLines([`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)])}
     </div>`);
   }
 
