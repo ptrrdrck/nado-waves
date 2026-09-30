@@ -61,7 +61,7 @@ from .live import (
     wind_measurement,
 )
 from .tideturns import read_turns, turns_between
-from .nearshore import carry, density_grids, load_tables, local_sea, summarise
+from .nearshore import buoy_offset, carry, density_grids, load_tables, local_sea, summarise
 from .surfzone import load_profiles
 from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, anomaly, coast_height, coast_level, coast_turn,
                        msl_above_mllw)
@@ -530,8 +530,9 @@ def build(
         # observed would be the exact confusion this block exists to prevent.
         "tide": f"OBSERVED — measured water level at {TIDE_STATION}, not a prediction",
             "seabed": SEABED_LINE,
-            "local chop": f"MODELLED — fetch-limited growth from the {WIND_STATION} wind, "
-                          f"only over fetches closed by land",
+            "local chop": f"MODELLED — fetch-limited growth from the {WIND_STATION} wind: "
+                          f"fresh over water closed by land, and grown on from the buoy's own "
+                          f"wind sea over the open water between the buoy and the break",
             "surf zone": SURF_ZONE_LINE.format(tide="the measured level"),
             "calibration": "none — nothing has been fitted to an observation; "
                            "no offshore-to-face transfer",
@@ -687,7 +688,11 @@ def build(
         if break_id in tables:
             table = tables[break_id]
             carried = carry(spectrum, table, grids)
-            chop = local_sea(table, spot.normal, reading.wind.speed_kt, reading.wind.from_deg)
+            # KNZY's wind on the water off the break: fresh over a closed
+            # fetch, grown on from the carried wind sea over an open one.
+            chop = local_sea(table, spot.normal, reading.wind.speed_kt, reading.wind.from_deg,
+                             carried_short_hs=carried.hs_short,
+                             buoy=buoy_offset(spot.position), wind="KNZY")
             near = summarise(carried, chop, buoy_hs_m=raw.hs_m,
                              window_hs_m=got.hs_in_window_m, depth_m=table.start_depth_m,
                              profile=profiles.get(break_id), tide_m=tide_coast,

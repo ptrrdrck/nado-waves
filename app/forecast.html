@@ -1174,7 +1174,14 @@ function calculationTable(c) {
   // takes, but without its row the column would not arrive at the headline.
   const withChop = e.with_chop_hs_m != null ? e.with_chop_hs_m : n.hs_m;
   if (e.local && withChop != null) {
-    row("Local chop", withChop, e.shoaled_hs_m, {note: `${e.local.tp_s.toFixed(1)} s`});
+    // What kind of chop, and whose wind made it: fresh behind land, or grown
+    // on over the open water between the buoy and the break; KNZY's wind on
+    // the observed chain, the local forecast's (or, without one, the model's
+    // at the buoy) on the forecast. Absent from a payload built before.
+    const kind = e.local.fetch === "open" ? "open water" : e.local.fetch === "closed" ? "behind land" : "";
+    const note = [`${e.local.tp_s.toFixed(1)} s`, kind, e.local.wind ? `${e.local.wind} wind` : ""]
+      .filter(Boolean).join(", ");
+    row("Local chop", withChop, e.shoaled_hs_m, {note});
   }
   // Then in to where it breaks, at this tide (forecast.surfzone). Already
   // breaking at the start depth means the break is further out, and the

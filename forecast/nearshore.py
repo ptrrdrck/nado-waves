@@ -39,7 +39,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .transform import Spectrum, load_spectra, through
+from .transform import WIND_SEA_PERIOD_S, Spectrum, load_spectra, through
 
 ROOT = Path(__file__).resolve().parent.parent
 TABLE_DIR = ROOT / "data" / "nearshore"
@@ -164,6 +164,11 @@ class Nearshore:
     #: The arriving energy split into trains, each headed by where its energy
     #: came FROM offshore — the frame the window drawing is in.
     trains: list = field(default_factory=list)
+    #: The short-period part of `hs_ref`: energy at periods under
+    #: `transform.WIND_SEA_PERIOD_S` that reaches the start depth -- the wind
+    #: sea the buoy already carried in, which open-water chop grows on from
+    #: rather than beside (`local_sea`).
+    hs_short: float = 0.0
 
 
 def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -> Nearshore:
@@ -173,7 +178,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
 
     grids = density_grids(spectrum) if grids is None else grids
     freqs = sorted(table.by_freq)
-    e10 = e_eq = e_hard = e_fric = 0.0
+    e10 = e_eq = e_hard = e_fric = e_short = 0.0
     sn = cn = so = co = 0.0
     per_bin: list[tuple[int, float]] = []
     bin_sin: dict[int, float] = {}
@@ -188,6 +193,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
             unmatched += 1
             continue
         width = spectrum.bin_width(i)
+        short = f > 1.0 / WIND_SEA_PERIOD_S
         ks2 = shoaling_squared(f, table.start_depth_m)
         bin_e = bs = bc = 0.0
         for ray in table.by_freq[near]:
@@ -200,6 +206,8 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
             e *= ray.diff_friction
             e_fric += e / ks2
             e10 += e
+            if short:
+                e_short += e
             bin_e += e
             t = math.radians(ray.near_from)
             sn += e * math.sin(t); cn += e * math.cos(t)
@@ -218,6 +226,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         unmatched,
         hs(e_fric),
         split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos) if e10 > 0 else [],
+        hs(e_short),
     )
 
 
@@ -229,20 +238,86 @@ class LocalSea:
     tp_s: float
     from_deg: float
     fetch_km: float
+    #: "closed": grown fresh over water that ends on land, whose sea no buoy
+    #: offshore could have seen. "open": grown ON from the wind sea the buoy
+    #: already carried in, over the water between the buoy and the break.
+    kind: str = "closed"
+    #: Whose wind: "KNZY" on the observed chain; "NWS forecast" or, without
+    #: one, "GFS-Wave at the buoy" on the forecast.
+    wind: str = ""
+    #: For "open": the carried wind sea it grew on from, at the start depth.
+    carried_hs_m: float | None = None
+
+
+def _grow(u10: float, fetch_m: float) -> tuple[float, float]:
+    """Hm0 and Tp for a steady wind over a fetch (CEM 2002, II-2)."""
+
+    ustar = math.sqrt(0.001 * (1.1 + 0.035 * u10)) * u10
+    x = G * fetch_m / ustar ** 2
+    hs = min(4.13e-2 * math.sqrt(x), 211.5) * ustar ** 2 / G
+    tp = min(0.751 * x ** (1.0 / 3.0), 239.8) * ustar / G
+    return hs, tp
+
+
+def _fetch_for(u10: float, hs: float) -> float:
+    """The fetch, in metres, over which this wind grows `hs` from calm: the
+    inverse of `_grow`. Infinite once `hs` is at or past fully developed."""
+
+    ustar = math.sqrt(0.001 * (1.1 + 0.035 * u10)) * u10
+    scaled = G * hs / ustar ** 2
+    if scaled >= 211.5:
+        return math.inf
+    return (scaled / 4.13e-2) ** 2 * ustar ** 2 / G
+
+
+def buoy_offset(position: tuple[float, float], station: str = "46232") -> tuple[float, float] | None:
+    """Distance (km) and bearing (degrees) from a break to the buoy, from the
+    coordinates `collector.metadata` fetched -- never typed. None when the
+    buoy is not placed, and the open-water growth then does not run."""
+
+    from .siting import load_coordinates
+    from .swell import great_circle_km, initial_bearing
+
+    buoy = load_coordinates().get(station)
+    if buoy is None:
+        return None
+    return great_circle_km(position, buoy), initial_bearing(position, buoy)
 
 
 def local_sea(table: Table, normal_deg: float, wind_kt: float | None,
-              wind_from_deg: float | None) -> LocalSea | None:
-    """Fetch-limited wind sea (Coastal Engineering Manual, 2002, II-2).
+              wind_from_deg: float | None, *, carried_short_hs: float | None = None,
+              buoy: tuple[float, float] | None = None, wind: str = "") -> LocalSea | None:
+    """Wind sea the local wind makes on the water off the break.
 
-    With u*² = C_D·U10², C_D = 0.001·(1.1 + 0.035·U10):
+    Fetch-limited growth (Coastal Engineering Manual, 2002, II-2): with
+    u*² = C_D·U10², C_D = 0.001·(1.1 + 0.035·U10),
       g·Hm0/u*² = 4.13e-2·(g·X/u*²)^½,  g·Tp/u* = 0.751·(g·X/u*²)^⅓,
     capped at the fully developed 211.5 and 239.8. Steady wind assumed; a gust
     front younger than its fetch-limited growth time would be overstated.
 
     Only for a wind blowing FROM the break's seaward half-plane (its waves run
-    downwind, onto the beach) and only over a CLOSED fetch: an open one is
-    already in the buoy's spectrum.
+    downwind, onto the beach), and two cases, by the fetch table:
+
+    - **Closed** (the upwind line ends on land within the grid -- Point Loma's
+      lee, the islands and Baja): grown fresh over that water. No buoy
+      offshore could have seen it.
+    - **Open** (the wind blows from inside the windows): the buoy's spectrum
+      already holds the wind sea grown upwind of it, carried in; what it
+      cannot hold is growth over the water BETWEEN the buoy and the break
+      (owner's point, 2026-09-30; measured, a stronger wind near shore -- the
+      sea breeze -- grows more there than the buoy carried on ~17–19% of
+      onshore open-water hours at North and Center, BRIEFING §36). So it is
+      grown ON, by equivalent fetch: the carried short-period sea at the start
+      depth (`Nearshore.hs_short`) sets the fetch this wind would have needed
+      to make it, that fetch is extended by the buoy-to-break distance along
+      the wind (`buoy`, capped at the table's fetch), and only the extra
+      energy is added. In this growth law energy rises linearly with fetch,
+      so below full development the extra is exactly what the reach grows
+      from calm; the carried sea matters as the ceiling: a wind adds nothing
+      to a sea already as big as it could ever make (fully developed), which
+      is what keeps a light onshore breeze from being counted on top of the
+      swell's own short sea. Without `buoy` or `carried_short_hs` the open
+      case adds nothing, as before.
     """
 
     if wind_kt is None or wind_from_deg is None or not table.fetch or wind_kt <= 0:
@@ -251,14 +326,26 @@ def local_sea(table: Table, normal_deg: float, wind_kt: float | None,
     if abs(off) >= 90.0:
         return None
     fetch_km, closed = table.fetch[int(round(wind_from_deg)) % 360]
-    if not closed:
-        return None
     u10 = wind_kt * KT_TO_MS
-    ustar = math.sqrt(0.001 * (1.1 + 0.035 * u10)) * u10
-    x = G * fetch_km * 1000.0 / ustar ** 2
-    hs = min(4.13e-2 * math.sqrt(x), 211.5) * ustar ** 2 / G
-    tp = min(0.751 * x ** (1.0 / 3.0), 239.8) * ustar / G
-    return LocalSea(hs, tp, wind_from_deg, fetch_km)
+    if closed:
+        hs, tp = _grow(u10, fetch_km * 1000.0)
+        return LocalSea(hs, tp, wind_from_deg, fetch_km, "closed", wind)
+
+    if buoy is None or carried_short_hs is None:
+        return None
+    distance_km, bearing = buoy
+    reach_km = min(fetch_km, distance_km * math.cos(math.radians(wind_from_deg - bearing)))
+    if reach_km <= 0:
+        return None
+    before = _fetch_for(u10, carried_short_hs)
+    if math.isinf(before):
+        return None
+    hs, tp = _grow(u10, before + reach_km * 1000.0)
+    added = math.sqrt(max(0.0, hs ** 2 - carried_short_hs ** 2))
+    if added < 0.005:
+        return None
+    return LocalSea(added, tp, wind_from_deg, reach_km, "open", wind,
+                    round(carried_short_hs, 3))
 
 
 # ------------------------------------------------------------------ surfaces
@@ -343,7 +430,9 @@ def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
             # starts from.
             "with_chop_hs_m": round(total, 3),
             "local": ({"hs_m": round(local.hs_m, 3), "tp_s": round(local.tp_s, 1),
-                       "from_deg": round(local.from_deg), "fetch_km": round(local.fetch_km, 1)}
+                       "from_deg": round(local.from_deg), "fetch_km": round(local.fetch_km, 1),
+                       "fetch": local.kind, "wind": local.wind,
+                       "carried_hs_m": local.carried_hs_m}
                       if local else None),
         },
     }

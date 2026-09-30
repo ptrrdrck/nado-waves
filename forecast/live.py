@@ -57,7 +57,8 @@ from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, pa
 from . import ensemble, forecastlog
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
-from .nearshore import (carry, density_grids, load_tables, local_sea, spectrum_from_partitions,
+from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea,
+                        spectrum_from_partitions,
                         summarise, table_frequencies)
 from .units import height as fmt_height, speed as fmt_speed
 from .tideturns import read_turns, turns_between
@@ -478,8 +479,11 @@ def build(
             "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),
             "model": "GFS-Wave, unassimilated; 0.9–1.0 ft (0.26–0.31 m) low bias at the buoy, not corrected here",
             "seabed": SEABED_LINE,
-            "local chop": "MODELLED — fetch-limited growth from the model's own wind, "
-                          "only over fetches closed by land",
+            "local chop": "MODELLED — fetch-limited growth from the local forecast wind (the "
+                          "NWS grid at Coronado; the model's wind at the buoy only for an hour "
+                          "the grid did not give): fresh over water closed by land, and grown "
+                          "on from the carried wind sea over the open water between the buoy "
+                          "and the break",
             "tide": f"PREDICTED — the harmonic prediction at {TIDE_STATION}, inside San "
                     f"Diego Bay, plus the last 3 days' measured departure from it when there "
                     f"is one, carried to Coronado's open coast (x{RATIO:.3f} on MLLW, "
@@ -673,6 +677,9 @@ def build(
                 sp = spectrum_from_partitions(parts, row.valid_utc, freqs)
                 wind = (None, None)
             carried_input[row.valid_utc] = (sp, density_grids(sp), wind)
+    # Where the buoy sits from each break: how much water the buoy's spectrum
+    # has not seen, along a given wind (`nearshore.local_sea`).
+    buoy_offsets = {b: buoy_offset(by_id[b].position) for b in BREAKS}
 
     for break_id in BREAKS:
         spot = by_id[break_id]
@@ -747,10 +754,22 @@ def build(
             if row.valid_utc in carried_input:
                 sp, grids, (wind_kt, wind_from) = carried_input[row.valid_utc]
                 table = tables[break_id]
-                chop = local_sea(table, spot.normal, wind_kt, wind_from)
+                # Local chop grows on the water off the break, so it takes the
+                # LOCAL forecast wind (the NWS grid at Coronado), as the observed
+                # chain takes KNZY's; the model's wind at the buoy stands in
+                # only for an hour the grid did not give, and says so.
+                here = local_hours.get(row.valid_utc.strftime(ISO))
+                if here:
+                    chop_kt, chop_from, chop_wind = here["speed_kt"], here["from_deg"], "NWS forecast"
+                else:
+                    chop_kt, chop_from, chop_wind = wind_kt, wind_from, "GFS-Wave at the buoy"
+                carried = carry(sp, table, grids)
+                chop = local_sea(table, spot.normal, chop_kt, chop_from,
+                                 carried_short_hs=carried.hs_short,
+                                 buoy=buoy_offsets.get(break_id), wind=chop_wind)
                 level = (forecast_level(tide_series, row.valid_utc, departure, msl)
                          if profiles else None)
-                near = summarise(carry(sp, table, grids), chop, buoy_hs_m=hs_offshore,
+                near = summarise(carried, chop, buoy_hs_m=hs_offshore,
                                  window_hs_m=hs_window, depth_m=table.start_depth_m,
                                  profile=profiles.get(break_id), tide_m=level,
                                  normal_deg=spot.normal)

@@ -147,7 +147,13 @@ forecaster actually verifies against, Surfline included.
    answer, and bottom friction along each ray's path (JONSWAP, C_b = 0.038,
    from the literature and never tuned; its own factor per ray) — into
    `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
-   spectrum through them and adds fetch-limited local chop over closed fetches.
+   spectrum through them and adds fetch-limited local chop: fresh over
+   fetches closed by land, and — since 2026-09-30 (owner's point, BRIEFING
+   §36) — grown on by equivalent fetch over the OPEN water between the buoy
+   and the break, which the buoy's spectrum never saw. Its wind is the local
+   one on both chains: KNZY on Now, the NWS grid on Forecast (GFS-Wave's
+   buoy wind only for an hour the grid lacks, and the calculation row says
+   whose).
    **Then the surf zone, SHIPPED 2026-09-26** (BRIEFING §32):
    `forecast/surfzone.py` carries that sea from 5 m in over each break's
    surveyed profile (`<break>_profile.csv`, the 2016 CoNED beach, not this
@@ -509,8 +515,10 @@ forecaster actually verifies against, Surfline included.
                         Writes data/nearshore/; never imported by the
                         forecast                                  [built]
       nearshore.py      carries a spectrum through those tables, pure
-                        Python; local fetch-limited chop over CLOSED fetches
-                        only; reports against the aperture          [built]
+                        Python; local fetch-limited chop, fresh over
+                        closed fetches and grown on over the open water
+                        between the buoy and the break; reports
+                        against the aperture                        [built]
       surfzone.py       5 m to the break on each profile at the tide,
                         Battjes–Janssen, pure Python                [built]
       tidesite.py       the bay gauge's level carried to the open coast

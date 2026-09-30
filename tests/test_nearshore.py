@@ -111,3 +111,56 @@ def test_an_offshore_wind_makes_no_waves_at_the_beach():
 def test_no_wind_no_local_sea():
     assert local_sea(fetch_table(), 200.0, 0.0, 280.0) is None
     assert local_sea(fetch_table(), 200.0, None, None) is None
+
+
+BUOY = (29.0, 230.0)   # km and bearing from the break, as `buoy_offset` gives
+
+
+def test_a_closed_fetch_says_so_and_whose_wind():
+    got = local_sea(fetch_table(), 200.0, 20.0, 280.0, wind="KNZY")
+    assert got.kind == "closed" and got.wind == "KNZY" and got.carried_hs_m is None
+
+
+def test_open_water_grows_on_from_the_carried_wind_sea():
+    """Owner's point, 2026-09-30: the wind blows over the open water off the
+    beach too. The buoy's spectrum holds the sea grown upwind of it; growth
+    over the water between the buoy and the break is added on top of it by
+    equivalent fetch, never beside it."""
+
+    calm = local_sea(fetch_table(), 200.0, 15.0, 220.0, carried_short_hs=0.0, buoy=BUOY, wind="KNZY")
+    some = local_sea(fetch_table(), 200.0, 15.0, 220.0, carried_short_hs=0.2, buoy=BUOY)
+    assert calm.kind == "open" and calm.wind == "KNZY"
+    # Along 220° the buoy (230°, 29 km) is 28.6 km upwind.
+    assert calm.fetch_km == pytest.approx(29.0 * math.cos(math.radians(10.0)))
+    assert 0.3 < calm.hs_m < 0.8
+    # Energy grows linearly with fetch in this law, so below full development
+    # the extra over the reach does not depend on what was carried in.
+    assert some.hs_m == pytest.approx(calm.hs_m)
+    assert some.carried_hs_m == 0.2
+
+
+def test_open_water_adds_nothing_to_a_sea_the_wind_could_not_make():
+    """An 8 kt breeze is fully developed at ~0.45 m: it grows nothing on a
+    carried short sea bigger than that."""
+
+    assert local_sea(fetch_table(), 200.0, 8.0, 220.0, carried_short_hs=0.6, buoy=BUOY) is None
+    assert local_sea(fetch_table(), 200.0, 8.0, 220.0, carried_short_hs=0.1, buoy=BUOY) is not None
+
+
+def test_open_water_needs_the_buoy_behind_the_wind():
+    """A wind blowing from a heading with the buoy downwind of the break has
+    no unseen water to grow over."""
+
+    table = fetch_table()
+    table.fetch = [(80.0, False)] * 360
+    assert local_sea(table, 200.0, 15.0, 130.0, carried_short_hs=0.0, buoy=BUOY) is None
+
+
+def test_without_the_buoy_or_the_carried_sea_open_water_adds_nothing():
+    assert local_sea(fetch_table(), 200.0, 15.0, 220.0, carried_short_hs=0.0) is None
+    assert local_sea(fetch_table(), 200.0, 15.0, 220.0, buoy=BUOY) is None
+
+
+def test_the_carried_wind_sea_is_the_short_period_part():
+    swell = carry(synthetic(200.0, hs=1.5, spread_deg=15.0), open_table())
+    assert 0.0 <= swell.hs_short < swell.hs_ref

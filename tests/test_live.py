@@ -390,3 +390,23 @@ class TestTheLocalWindForecast:
         failed = live.build(bulletin=bulletin(SOUTH), now=CYCLE,
                             local_wind={"available": False, "why": "api.weather.gov: HTTP 503"})
         assert failed.local_wind == {"available": False, "why": "api.weather.gov: HTTP 503"}
+
+
+class TestLocalChopTakesTheLocalWind:
+    """Local chop grows on the water off the break, so the forecast grows it
+    from the LOCAL forecast wind, as the observed chain uses KNZY's."""
+
+    def test_the_chop_is_made_from_the_nws_wind_and_says_so(self):
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE,
+                         local_wind=TestTheLocalWindForecast.LOCAL)
+        centre = next(b for b in got.breaks if b.id == "coronado_center")
+        onshore = next(h for h in centre.hours if h.valid_utc == "2026-09-18T01:00:00Z")
+        offshore = next(h for h in centre.hours if h.valid_utc == "2026-09-18T00:00:00Z")
+        local = (onshore.nearshore.get("effects") or {}).get("local")
+        if not onshore.nearshore:
+            pytest.skip("no nearshore tables in this checkout")
+        # 210° at 12 kt is onshore over open water at the center break.
+        assert local and local["wind"] == "NWS forecast" and local["fetch"] == "open"
+        assert local["hs_m"] > 0.05
+        # 30° blows off the land: no chop reaches the beach.
+        assert (offshore.nearshore.get("effects") or {}).get("local") is None
