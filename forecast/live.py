@@ -50,6 +50,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, ISO
+from collector import localwind
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
@@ -165,6 +166,15 @@ class Hour:
     #: From the same WAVEWATCH III file as the spectrum, so no second source.
     wind_from_deg: float | None = None
     wind_kt: float | None = None
+    #: The LOCAL forecast wind on the sand at this hour (the NWS San Diego
+    #: forecast grid at Coronado, `collector.localwind`), degrees FROM, and
+    #: what it means at this break against its own shore normal: +1 straight
+    #: offshore, -1 straight onshore. None where the grid had no hour or the
+    #: build could not reach it. The model's wind above stays the buoy's.
+    local_wind_from_deg: float | None = None
+    local_wind_kt: float | None = None
+    local_gust_kt: float | None = None
+    local_wind_offshore: float | None = None
     #: The surviving energy split into wave trains, largest first. Only on the
     #: spectral path — partitions arrive pre-split and are not re-split here.
     trains: list[dict] = field(default_factory=list)
@@ -265,6 +275,10 @@ class Forecast:
     #: often 46232 has fallen inside that spread (`forecast.ensemble`). Total
     #: Hs only: no direction, so nothing of it reaches a break.
     ensemble: dict = field(default_factory=dict)
+    #: Whose local wind forecast the hours carry, when it was issued, or why
+    #: there is none (`collector.localwind`); the hours themselves are on
+    #: each break's `Hour`.
+    local_wind: dict = field(default_factory=dict)
 
 
 def latest_cycle(now: datetime | None = None) -> datetime:
@@ -444,6 +458,7 @@ def build(
     bulletin: Bulletin | None = None,
     spectra: dict | None = None,
     use_spectra: bool = False,
+    local_wind: dict | None = None,
 ) -> Forecast:
     spots, blockers = load()
     by_id = {s.id: s for s in spots}
@@ -513,6 +528,18 @@ def build(
     if bulletin is None:
         forecast.warnings.append("No GFS-Wave cycle available; no forecast produced.")
         return forecast
+
+    # The local wind forecast, by hour: what `main` fetched, if anything.
+    local_hours = {h["valid_utc"]: h for h in ((local_wind or {}).get("hours") or [])}
+    forecast.local_wind = ({k: v for k, v in local_wind.items() if k != "hours"} | {"available": bool(local_hours)}
+                           if local_wind else {"available": False, "why": "not fetched for this build"})
+    if local_hours:
+        forecast.standing_on["local wind"] = (
+            "FORECAST — the National Weather Service's hourly forecast grid at Coronado's "
+            f"center break ({forecast.local_wind.get('office') or 'NWS'} "
+            f"{forecast.local_wind.get('grid_x')},{forecast.local_wind.get('grid_y')}): the wind "
+            "on the sand the offshore reading is made from; not the model's wind at the buoy, "
+            "and not a measurement")
 
     wind_row = read_latest_wind(data_dir)
     tide = read_tide(data_dir)
@@ -731,7 +758,13 @@ def build(
                 if near["trains"]:
                     dominant_tp = near["trains"][0]["period_s"]
                     dominant_dir = near["trains"][0]["from_deg"]
+            local = local_hours.get(row.valid_utc.strftime(ISO))
             entry.hours.append(Hour(
+                local_wind_from_deg=local["from_deg"] if local else None,
+                local_wind_kt=local["speed_kt"] if local else None,
+                local_gust_kt=local.get("gust_kt") if local else None,
+                local_wind_offshore=(round(offshore_component(local["from_deg"], spot.normal), 3)
+                                     if local else None),
                 valid_utc=row.valid_utc.strftime(ISO),
                 lead_h=row.lead_hours,
                 hs_offshore_m=round(hs_offshore, 3),
@@ -824,8 +857,16 @@ def main(argv: list[str] | None = None) -> int:
                         help="skip the 617 MB spectral fetch and use partitions")
     args = parser.parse_args(argv)
 
+    # The local wind forecast at the center break, fetched here rather than
+    # in `build` so tests and rebuilds never touch the network for it. A
+    # failure costs the card's local wind, never the forecast.
+    center = next(s for s in load()[0] if s.id == "coronado_center")
+    try:
+        local = localwind.fetch(*center.position)
+    except localwind.LocalWindError as error:
+        local = {"available": False, "why": str(error)}
     forecast = build(data_dir=args.data_dir, hours=args.hours,
-                     use_spectra=not args.no_spectra)
+                     use_spectra=not args.no_spectra, local_wind=local)
     print(format_table(forecast, rows=args.rows))
 
     out = args.out or (Path(args.data_dir) / "live" / "forecast.json")
