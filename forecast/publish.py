@@ -20,6 +20,9 @@ The bundle:
                     the last week, drawn under each card on the Now tab
     series_all.json data/live/series_all.json — every archived hour, for the
                     chart's zoomed-out views; fetched only when asked for
+    windtide.json   data/live/windtide.json — the measured wind and tide each
+                    hour, and the next day's predicted tide, drawn under the
+                    Wind and Tide cards on both tabs
     geometry.html   the model's geometry, drawn by forecast.geomviz from
                     spots.json; linked from the foot of index.html
     info.html       app/info.html: the caveat and each chain's standing-on
@@ -91,6 +94,10 @@ BUNDLE_SERIES_PATH = "series.json"
 #: Every archived hour (`forecast.series`), for zooming out past the week.
 REPO_SERIES_ALL_PATH = "../data/live/series_all.json"
 BUNDLE_SERIES_ALL_PATH = "series_all.json"
+#: The measured wind and tide each hour (`forecast.windtide`), for the charts
+#: under the Wind and Tide cards on both tabs. Optional in the same way.
+REPO_WINDTIDE_PATH = "../data/live/windtide.json"
+BUNDLE_WINDTIDE_PATH = "windtide.json"
 
 DOCTYPE = "<!doctype html>"
 HEAD = """<html lang="en">
@@ -166,18 +173,20 @@ def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
             .replace(REPO_NOW_PATH, BUNDLE_NOW_PATH)
             .replace(REPO_MEASURED_PATH, BUNDLE_MEASURED_PATH)
             .replace(REPO_SERIES_PATH, BUNDLE_SERIES_PATH)
-            .replace(REPO_SERIES_ALL_PATH, BUNDLE_SERIES_ALL_PATH))
+            .replace(REPO_SERIES_ALL_PATH, BUNDLE_SERIES_ALL_PATH)
+            .replace(REPO_WINDTIDE_PATH, BUNDLE_WINDTIDE_PATH))
 
 
 def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
-    """`measured.json` and `series.json`, minified, when the collection job has
-    built them.
+    """`measured.json`, `series.json`, `series_all.json` and `windtide.json`,
+    minified, when the collection job has built them.
 
     In BOTH builds: they change every collection (a past hour's measurement
     lands), and the forecast job republishes the page that reads them.
     """
 
-    for name in (BUNDLE_MEASURED_PATH, BUNDLE_SERIES_PATH, BUNDLE_SERIES_ALL_PATH):
+    for name in (BUNDLE_MEASURED_PATH, BUNDLE_SERIES_PATH, BUNDLE_SERIES_ALL_PATH,
+                 BUNDLE_WINDTIDE_PATH):
         source = Path(data_dir) / "live" / name
         if not source.exists():
             continue
@@ -224,6 +233,8 @@ def thin(forecast: dict, *, step: int = HOUR_STEP) -> dict:
     # It was shipping all 169 hours while the page rendered 57, which is the
     # waste this function exists to prevent.
     out["buoy"] = [b for b in forecast.get("buoy", []) if b.get("valid_utc") in kept]
+    # `hourly` is left whole: it is already one value an hour for the Wind and
+    # Tide cards' charts, which draw every hour, not the picker's every third.
     out["hour_step_h"] = step
     return out
 

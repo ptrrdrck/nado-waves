@@ -151,6 +151,10 @@ jobs:
           # series_all.json from the committed archive, checked against that
           # week, for the chart's zoomed-out views.
           python -m forecast.measured
+          # The measured wind and tide each hour, and the next day's predicted
+          # tide, for the Wind and Tide cards' charts. Read straight from the
+          # archives, not rebuilt: ~0.3 s.
+          python -m forecast.windtide
 
       # The archive is withheld from the page when it no longer says what
       # today's chain says (or does not exist yet). Ask for the rebuild rather

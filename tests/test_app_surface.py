@@ -1501,12 +1501,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert SOURCE.count("fetch(fresh(MEASURED_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(SERIES_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(SERIES_ALL_SOURCE)") == 2   # asked for + hourly
+        assert SOURCE.count("fetch(fresh(WINDTIDE_SOURCE)") == 2
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 10
+        assert SOURCE.count('{cache: "no-store"}') == 12
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -2179,6 +2180,123 @@ class TestTheWeekChart:
         assert "each carried in by today's chain" not in SOURCE
         assert "function chartFoot" not in SOURCE
         assert "today's" in INFO_TEXT and "rebuilt" in INFO_TEXT
+
+
+class TestTheWindAndTideCharts:
+    """Owner's request, 2026-09-30: charts on the Wind and Tide cards. Now
+    draws what was measured each hour, and the tide's next day of harmonic
+    prediction as its own labelled line; Forecast draws the forecast each hour
+    to the run's end with the measured hours beside it. A missing reading is a
+    gap in its line on both."""
+
+    PRELUDE = (
+        "const MPH_PER_KT = 1.15078;\n"
+        "const speed = (kt) => Math.round(kt * MPH_PER_KT) + ' mph';\n"
+        "let DATA = null, MEASURED = null, STEPS = [], CURSOR = 0;\n"
+        "const at = (h) => new Date(Date.UTC(2026, 8, 30, h)).toISOString().replace('.000Z', 'Z');\n"
+        "Date.now = () => Date.UTC(2026, 8, 30, 5, 20);\n"
+        "let WT = {generated_utc: '2026-09-30T05:20:00Z', start_utc: at(0), hours: 6,"
+        " wind_station: 'KNZY', tide_site: 'Coronado open coast', tide_station: '9410170',"
+        " wind: {kt: [5, null, 0, 7, 8, 9], from_deg: [270, null, null, 300, 310, 320],"
+        " gust_kt: [null, null, null, null, 15, null], age_min: [8, null, 8, 8, 8, 8]},"
+        " tide_m: [1.0, 1.2, null, 1.5, 1.6, 1.7],"
+        " prediction: {start_utc: at(5), heights_m: [1.71, 1.6, 1.4, 1.1], departure_m: 0.3}};\n"
+    )
+
+    def _run(self, script):
+        return TestTheWeekChart()._run(self.PRELUDE + script)
+
+    def test_both_tabs_carry_both_charts(self):
+        for card in ("wind", "tide"):
+            # Now, the forecast's own hour, and an earlier run's hour.
+            assert SOURCE.count(f'${{cardChart("{card}")}}') == 3
+
+    def test_each_tab_reads_its_own_files(self):
+        now = SOURCE[SOURCE.index("function wtNowSteps"):]
+        now = now[:now.index("\n}\n")]
+        fc = SOURCE[SOURCE.index("function wtForecastSteps"):]
+        fc = fc[:fc.index("\n}\n")]
+        assert "WT" in now and "DATA" not in now and "SERIES" not in now
+        assert "DATA.hourly" in fc and "SERIES" not in fc
+
+    def test_a_missing_report_breaks_the_wind_line_and_says_so(self):
+        got = self._run(
+            "const svg = chartPlot('wind', chartSpec('wind', 'height'), 1);\n"
+            "const main = svg.match(/<path class=\"ln main\" d=\"([^\"]+)\"/)[1];\n"
+            "console.log((main.match(/M/g) || []).length);\n"
+            "const spec = chartSpec('wind', 'height');\n"
+            "console.log(spec.read(1)); console.log(spec.read(2)); console.log(spec.read(4));\n"
+            "console.log(chartIndex(chartSteps('wind')));"
+        )
+        # The lone hour 0 is a dot; hours 2 to 5 are one run.
+        assert got[0] == "1"
+        assert "left as a gap" in got[1]
+        assert "calm" in got[2]
+        assert "gusting 17 mph" in got[3] and "reported" in got[3]
+        assert got[4] == "5"
+
+    def test_the_tides_prediction_is_its_own_line_after_the_measured(self):
+        got = self._run(
+            "const steps = chartSteps('tide');\n"
+            "const spec = chartSpec('tide', 'height');\n"
+            "console.log(steps.length, steps.latest, spec.lines.map((l) => l.cls).join(','));\n"
+            "console.log(spec.lines[0].values.slice(4).join(','));\n"
+            "console.log(spec.read(2)); console.log(spec.read(7));\n"
+            "const v = chartView(steps); console.log(v.v1 - v.v0, v.v1);\n"
+            "console.log(/class=\"ln pred\"/.test(chartPlot('tide', spec, 5)));"
+        )
+        assert got[0] == "9 5 pred,main"
+        assert got[1] == ",1.71,1.6,1.4,1.1"          # nothing before its first hour
+        assert "left as a gap" in got[2]
+        assert "Predicted" in got[3]
+        # Two days asked for, only nine hours loaded: all of them.
+        assert got[4] == "8 8"
+        assert got[5] == "true"
+
+    def test_the_forecast_draws_the_run_with_the_measured_beside_it(self):
+        got = self._run(
+            "CHAIN = 'fc';\n"
+            "DATA = {generated_utc: 'g', hourly: {start_utc: at(3), step_h: 1,"
+            " tide_m: [1.4, 1.5, 1.6, 1.7, 1.8],"
+            " local_wind: {kt: [6, 7, null, 9, 10], from_deg: [200, 210, null, 230, 240],"
+            " gust_kt: [null, null, null, 14, null]},"
+            " model_wind: {kt: [11, null, null, 12, null], from_deg: [280, null, null, 290, null]}},"
+            " local_wind: {available: true}};\n"
+            "const steps = chartSteps('wind');\n"
+            "const spec = chartSpec('wind', 'height');\n"
+            "console.log(steps.length, spec.lines.map((l) => l.cls).join(','));\n"
+            "console.log(spec.read(0)); console.log(spec.read(3));\n"
+            "const tide = chartSpec('tide', 'height');\n"
+            "console.log(tide.lines.map((l) => l.cls + ':' + l.values.join('/')).join(' '));"
+        )
+        assert got[0] == "5 model,main,obs"
+        assert "Local forecast" in got[1] and "observed" in got[1] and "GFS-Wave" in got[1]
+        assert "Local forecast" in got[2] and "observed" not in got[2]
+        assert got[3] == "main:1.4/1.5/1.6/1.7/1.8 obs:1.5/1.6/1.7//"
+
+    def test_the_models_wind_joins_its_own_spacing_and_nothing_longer(self):
+        """GFS-Wave gives every third hour past +120 h: two missing hours
+        between its values are its spacing and joined; three are a gap, and
+        every other line still breaks at the first missing hour."""
+
+        got = self._run(
+            "const X = (i) => i * 10, Y = (v) => v;\n"
+            "const path = (vals, b) => chartPath(vals, 0, vals.length - 1, X, Y, 320, 'model', b);\n"
+            "const shape = (p) => `${(p.match(/M/g) || []).length} ${(p.match(/<circle/g) || []).length}`;\n"
+            "console.log(shape(path([5, null, null, 6, null, null, 7], 3)));\n"
+            "console.log(shape(path([5, null, null, null, 6, 7], 3)));\n"
+            "console.log(shape(path([5, null, 6, 7])));"
+        )
+        # paths, dots
+        assert got == ["1 0", "1 1", "1 1"]
+
+    def test_speeds_are_in_mph_and_the_tide_in_feet(self):
+        got = self._run(
+            "console.log(mphAxis(9).ticks.map((t) => t.text).join(','));\n"
+            "console.log(tideAxis(-0.2, 2.1).ticks.map((t) => t.text).join(','));"
+        )
+        assert got[0] == "0,5 mph,10 mph,15 mph"
+        assert got[1] == "−2 ft,0,2 ft,4 ft,6 ft,8 ft"
 
 
 class TestTheForecastCharts:

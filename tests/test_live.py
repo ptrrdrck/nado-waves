@@ -427,6 +427,51 @@ class TestTheLocalWindForecast:
         assert failed.local_wind == {"available": False, "why": "api.weather.gov: HTTP 503"}
 
 
+class TestTheHourlyColumns:
+    """`hourly`: one value an hour for the Wind and Tide cards' charts, from
+    the earliest hour the page offers to the run's end. The tide is the card's
+    (with the departure); the wind is the local forecast; an hour neither
+    covers is None, never the hour beside it."""
+
+    def test_the_tide_and_the_local_wind_every_hour(self, tmp_path):
+        from forecast.tidesite import RATIO
+
+        TestTheForecastTideCarriesTheMeasuredDeparture.gauge(tmp_path, observed=1.2)
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, data_dir=tmp_path,
+                         local_wind=TestTheLocalWindForecast.LOCAL)
+        h = got.hourly
+        assert h["start_utc"] == "2026-09-18T00:00:00Z" and h["step_h"] == 1
+        assert len(h["tide_m"]) == 3 == len(h["local_wind"]["kt"])
+        assert all(v == pytest.approx(RATIO * 1.2, abs=1e-3) for v in h["tide_m"])
+        assert h["local_wind"]["kt"] == [8.0, 12.0, None]
+        assert h["local_wind"]["from_deg"] == [30, 210, None]
+        assert h["local_wind"]["gust_kt"] == [14.0, None, None]
+
+    def test_it_reaches_back_to_the_earliest_past_hour(self):
+        past = [{"valid_utc": "2026-09-17T21:00:00Z"}]
+        got = live.hourly_columns(bulletin(SOUTH).rows, past, [], None, {})
+        assert got["start_utc"] == "2026-09-17T21:00:00Z"
+        assert len(got["tide_m"]) == 6 and got["tide_m"] == [None] * 6
+
+    def test_the_models_own_wind_is_kept_where_the_run_gives_it(self):
+        """GFS-Wave's wind at the buoy, by valid time; an hour the run does
+        not carry is None, for the page to join across as the model's spacing."""
+
+        rows = bulletin(SOUTH, hours=4).rows
+        model = {CYCLE: (10.04, 281.4), CYCLE + timedelta(hours=3): (12.0, 359.6)}
+        got = live.hourly_columns(rows, [], [], None, {}, model)["model_wind"]
+        assert got["kt"] == [10.0, None, None, 12.0]
+        assert got["from_deg"] == [281, None, None, 0]
+
+    def test_publishing_leaves_it_whole(self):
+        from forecast.publish import thin
+
+        got = live.build(bulletin=bulletin(SOUTH, hours=7), now=CYCLE,
+                         local_wind=TestTheLocalWindForecast.LOCAL)
+        out = thin(json.loads(json.dumps(asdict(got))))
+        assert len(out["hourly"]["local_wind"]["kt"]) == 7
+
+
 class TestLocalChopTakesTheLocalWind:
     """Local chop grows on the water off the break, so the forecast grows it
     from the LOCAL forecast wind, as the observed chain uses KNZY's."""
