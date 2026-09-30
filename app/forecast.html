@@ -376,6 +376,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .series .tr.on{opacity:1;stroke:var(--card);stroke-width:1.5}
 .series .tr.ws.on{stroke:var(--ink)}
 .series .dir{fill:var(--ink)}
+/* The Wind and Tide cards' charts: gusts as dots, the measured direction in
+   the measured green, and the Now tab's predicted tide dashed and soft -- the
+   one modelled line on that tab. */
+.series .gust{fill:var(--ink);opacity:.55} .series .gust.obs{fill:var(--measured);opacity:.8}
+.series .dir.obs{fill:var(--measured)}
+.series .ln.pred{stroke:var(--soft);stroke-width:1.5;stroke-dasharray:4 3} .series .pt.pred{fill:var(--soft)}
 .series .lane{stroke:var(--line-strong);stroke-width:1}
 .chart .legend{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:12px;color:var(--soft)}
 .chart .legend .sw{display:inline-block;width:16px;height:2px;border-radius:1px;
@@ -391,6 +397,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .chart .legend .sw.ring{width:7px;height:7px;border-radius:50%;margin:0 8px 0 5px;background:transparent;
                         border:1px solid var(--ink)}
 .chart .legend .sw.dir{width:6px;height:6px;border-radius:50%;margin:0 8px 0 5px;color:var(--ink)}
+.chart .legend .sw.gdot{width:5px;height:5px;border-radius:50%;margin:0 8px 0 5px;color:var(--ink);opacity:.55}
+.chart .legend .sw.pred{height:1.5px;color:var(--soft);
+                        background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)}
 /* Above the plot, and tall enough for three lines -- its longest reading at
    phone width -- so the plot never jumps under a finger as a reading grows
    onto a third line while scrubbing (owner's call, 2026-09-30). */
@@ -482,6 +491,9 @@ const MEASURED_SOURCE = PARAM.get("measured") || "../data/live/measured.json";
 const SERIES_SOURCE = PARAM.get("series") || "../data/live/series.json";
 // Every archived hour, for zooming out past the week -- fetched only then.
 const SERIES_ALL_SOURCE = PARAM.get("series_all") || "../data/live/series_all.json";
+// The measured wind and tide each hour, and the next day's predicted tide
+// (forecast.windtide), drawn under the Wind and Tide cards on both tabs.
+const WINDTIDE_SOURCE = PARAM.get("windtide") || "../data/live/windtide.json";
 
 // North to south along the sand: the west edge of the window is the bearing
 // to the Point Loma tip and it sweeps as you walk. This is the scope and the
@@ -841,6 +853,7 @@ let TIDE_BY_TIME = {};
 let MEASURED = null;  // measured.json — the observed chain, past hours only
 let SERIES = null;    // series.json   — the observed chain, every hour for a week
 let SERIES_ALL = null; // series_all.json — every archived hour, once asked for
+let WT = null;        // windtide.json — measured wind and tide each hour
 // The hours the picker offers, oldest first: {valid_utc, from, lead_h} plus
 // `index` into each break's hours for the current run ("cycle"), or `entry`
 // from forecast.json's `past` for an hour an earlier run was on screen for.
@@ -860,7 +873,8 @@ const BUOY_TAB = "buoy";
 // itself, and a page that cannot remember a tab must still render.
 const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
               calc: "nado-waves.calc", chart: "nado-waves.chart",
-              fcChart: "nado-waves.fc-chart", chartOpen: "nado-waves.chart-open"};
+              fcChart: "nado-waves.fc-chart", chartOpen: "nado-waves.chart-open",
+              windChart: "nado-waves.wind-chart-open", tideChart: "nado-waves.tide-chart-open"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -1570,6 +1584,7 @@ let FC_MODE0 = "runs";
 // height; on the Forecast tab's buoy, everything but the two breaks'
 // difference, which is about the breaks.
 function chartModes(id) {
+  if (isWT(id)) return [];
   // The ensemble is at the buoy only: GEFS-Wave publishes total height, no
   // direction, so it cannot be carried through a break's windows.
   if (CHAIN === "fc") {
@@ -1640,7 +1655,8 @@ function useChain(chain) {
   CHAIN = chain;
 }
 // Whether the chain on screen has anything to draw from.
-const chartLive = () => (CHAIN === "fc" ? !!DATA : !!SERIES);
+const chartLive = (id) => (isWT(id) ? !!WT || (CHAIN === "fc" && !!DATA)
+  : CHAIN === "fc" ? !!DATA : !!SERIES);
 // The forecast's view opens on three days with the present a quarter of the
 // way in, and zooms out to everything the file reaches: 48 h back to +168 h.
 const FC_DEFAULT_H = 72;
@@ -1650,7 +1666,7 @@ const FC_RANGES = [
   {id: "7d", label: "7D", hours: 168},
   {id: "all", label: "All", hours: Infinity},
 ];
-const chartRangeList = () => (CHAIN === "fc" ? FC_RANGES : CHART_RANGES);
+const chartRangeList = (steps) => (steps && steps.ranges) || (CHAIN === "fc" ? FC_RANGES : CHART_RANGES);
 // The time between two chart hours: one on Now, three on the forecast.
 const stepMs = (steps) => (steps.length > 1
   ? Date.parse(steps[1].valid_utc) - Date.parse(steps[0].valid_utc) : HOUR_MS);
@@ -1695,7 +1711,8 @@ function feetAxis(reach, {floor = 0.3, signed = false} = {}) {
 // filled. Without the archive (not asked for, not loaded, or withheld because
 // it no longer matches today's chain) it is the week alone.
 let MERGED = null, MERGED_KEY = "";
-function chartSteps() {
+function chartSteps(id) {
+  if (isWT(id)) return wtSteps(id);
   return CHAIN === "fc" ? fcSteps() : nowSteps();
 }
 function nowSteps() {
@@ -1743,12 +1760,16 @@ function chartView(steps) {
   const per = stepMs(steps);
   const fc = CHAIN === "fc";
   const asked = CHART_VIEW ? (CHART_VIEW.to - CHART_VIEW.from) / per
-    : (fc ? FC_DEFAULT_H : CHART_DEFAULT_H) * HOUR_MS / per;
+    : (steps.defaultH || (fc ? FC_DEFAULT_H : CHART_DEFAULT_H)) * HOUR_MS / per;
   const least = CHART_MIN_H * HOUR_MS / per;
   const span = Math.max(Math.min(least, last), Math.min(asked, last));
   const follow = !CHART_VIEW || CHART_VIEW.follow;
+  // Where the present sits: a quarter of the way in on the forecast, so it
+  // opens on what is coming; half way on a chart that runs past it on Now
+  // (the tide's next day); at the right edge on anything that ends at it.
+  const ahead = steps.ahead != null ? steps.ahead : fc ? 0.75 : null;
   const want = !follow ? (CHART_VIEW.to - t0) / per
-    : fc ? (Date.now() - t0) / per + span * 0.75 : last;
+    : ahead != null ? (Date.now() - t0) / per + span * ahead : last;
   const end = Math.max(span, Math.min(last, want));
   return {v0: end - span, v1: end, t0, last};
 }
@@ -1766,8 +1787,15 @@ function setChartView(steps, v0, v1) {
     v1 = mid + least / 2;
   }
   const now = CHAIN !== "fc";
-  if (now && (v0 < -0.5 || v1 - v0 > last + 0.5)) wantAll();
-  CHART_VIEW = {from: t0 + v0 * per, to: t0 + v1 * per, follow: now && v1 >= last - 0.5};
+  const from = t0 + v0 * per, to = t0 + v1 * per;
+  // The window is shared by every chart on the tab, so the swell's week
+  // decides whether the archive is wanted, whichever chart was zoomed.
+  const week = now ? (steps.kind === "wt" ? nowSteps() : steps) : [];
+  if (week.length > 1) {
+    const w0 = Date.parse(week[0].valid_utc);
+    if (from < w0 - HOUR_MS / 2 || to - from > (week.length - 1) * HOUR_MS + HOUR_MS / 2) wantAll();
+  }
+  CHART_VIEW = {from, to, follow: now && v1 >= last - 0.5};
 }
 
 function setChartRange(hours) {
@@ -1800,6 +1828,7 @@ function chartWantsMore(steps) {
 
 // Why the chart is showing less than was asked for, or nothing.
 function chartNote(steps) {
+  if (steps.kind === "wt") return wtNote(steps);
   if (!chartWantsMore(steps)) return "";
   if (ALL_STATE === "loading") return "Loading earlier hours…";
   if (ALL_STATE === "failed") return "Earlier hours could not be loaded.";
@@ -1814,9 +1843,9 @@ function chartNote(steps) {
 // line last so it sits on top), how its axis scales, and how an hour reads
 // out. The axis itself depends on the window, so it is `chartDomain`'s.
 const SPECS = new Map();
-function chartSpec(id, mode, steps = chartSteps()) {
-  const memo = `${CHAIN}|${id}|${mode}|${steps.length}|${steps === MERGED ? MERGED_KEY
-    : steps === FC_STEPS ? FC_KEY : SERIES && SERIES.generated_utc}`;
+function chartSpec(id, mode, steps = chartSteps(id)) {
+  const memo = `${CHAIN}|${id}|${mode}|${steps.length}|${steps.key || (steps === MERGED ? MERGED_KEY
+    : steps === FC_STEPS ? FC_KEY : SERIES && SERIES.generated_utc)}`;
   if (SPECS.has(memo)) return SPECS.get(memo);
   if (SPECS.size > 24) SPECS.clear();
   const spec = buildSpec(id, mode, steps);
@@ -1825,6 +1854,7 @@ function chartSpec(id, mode, steps = chartSteps()) {
 }
 
 function buildSpec(id, mode, steps) {
+  if (isWT(id)) return wtSpec(id, steps);
   if (CHAIN === "fc") return fcSpec(id, mode, steps);
   const station = SERIES.station || "the buoy";
   const live = (s) => !s.gap && !s.pending && !s.unbuilt;
@@ -2221,6 +2251,14 @@ function chartDomain(spec, a, z) {
     return {domain: [-100, 100],
             ticks: [-100, 0, 100].map((v) => ({at: v, text: v > 0 ? "+100" : v < 0 ? "−100" : "0"}))};
   }
+  if (spec.scale === "speed" || spec.scale === "tide") {
+    let lo = Infinity, hi = -Infinity;
+    const take = (v) => { if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } };
+    spec.lines.forEach((ln) => { for (let i = a; i <= z; i++) take(ln.values[i]); });
+    (spec.dots || []).forEach((d) => { if (d.i >= a && d.i <= z) take(d.v); });
+    return spec.scale === "speed" ? mphAxis(isFinite(hi) ? hi : 0)
+      : tideAxis(isFinite(lo) ? lo : 0, isFinite(hi) ? hi : 1);
+  }
   let reach = 0;
   if (spec.band) {
     for (let i = a; i <= z; i++) if (spec.band.hi[i] != null) reach = Math.max(reach, spec.band.hi[i]);
@@ -2330,6 +2368,9 @@ function chartIndex(steps = chartSteps()) {
     const k = hour ? steps.findIndex((s) => s.valid_utc === hour.valid_utc) : -1;
     return k >= 0 ? k : 0;
   }
+  // A chart that knows its newest reading (the wind and tide), else the
+  // newest hour with one.
+  if (steps.latest != null) return steps.latest;
   for (let i = steps.length - 1; i >= 0; i--) {
     if (!steps[i].gap && !steps[i].pending && !steps[i].unbuilt) return i;
   }
@@ -2351,7 +2392,7 @@ function laneDomain(values, a, z) {
   return [lo, hi];
 }
 
-function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) {
+function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)) {
   const {w, l, r, t, b} = CHART;
   const h = CHART.h + (spec.lane ? LANE.gap + LANE.h : 0);
   const n = steps.length;
@@ -2428,9 +2469,9 @@ function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) 
     // trains, several an hour).
     const pts = (spec.lane.points || spec.lane.values.map((v, i) => ({i, v})))
       .filter((p) => p.v != null && p.i >= a && p.i <= z);
-    const [d0, d1] = laneDomain(pts.map((p) => p.v), 0, pts.length - 1);
+    const [d0, d1] = spec.lane.domain || laneDomain(pts.map((p) => p.v), 0, pts.length - 1);
     const D = (v) => top + LANE.h * (d1 - v) / (d1 - d0);
-    for (let g = d0; g <= d1; g += 45) {
+    for (let g = d0; g <= d1; g += spec.lane.step || 45) {
       const y = f(D(g));
       laneGrid += `<line class="${g === d0 || g === d1 ? "lane" : "grid"}" x1="${l}" x2="${w - r}" y1="${y}" y2="${y}"/>`;
       if (g > d0 && g < d1) {
@@ -2446,15 +2487,16 @@ function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) 
         });
     });
     const seen = new Set();
-    pts.forEach(({i, v}) => {
-      const x = X(i), y = D(v), key = `${Math.round(x)}|${Math.round(y)}`;
+    pts.forEach(({i, v, cls}) => {
+      const x = X(i), y = D(v), key = `${Math.round(x)}|${Math.round(y)}|${cls || ""}`;
       if (seen.has(key)) return;
       seen.add(key);
-      lane += `<circle class="dir" cx="${f(x)}" cy="${f(y)}" r="1.5"/>`;
+      lane += `<circle class="${cls || "dir"}" cx="${f(x)}" cy="${f(y)}" r="1.5"/>`;
     });
     if (at >= v0 - 0.5 && at <= v1 + 0.5) {
       pts.filter((p) => p.i === at).forEach((p) => {
-        laneHot += `<circle class="hot" cx="${f(X(at))}" cy="${f(D(p.v))}" r="3.5"/>`;
+        const obs = p.cls && /\bobs\b/.test(p.cls) ? " obs" : "";
+        laneHot += `<circle class="hot${obs}" cx="${f(X(at))}" cy="${f(D(p.v))}" r="3.5"/>`;
       });
     }
   }
@@ -2477,7 +2519,7 @@ function chartPlot(id, spec, at, steps = chartSteps(), view = chartView(steps)) 
     : "";
 
   // A hot dot on the tab's own line and on the observed one beside it.
-  const hotOn = spec.lines.filter((ln) => /\b(main|obs|ens)\b/.test(ln.cls));
+  const hotOn = spec.lines.filter((ln) => /\b(main|obs|ens|pred)\b/.test(ln.cls));
   const cross = at >= v0 - 0.5 && at <= v1 + 0.5
     ? `<line class="cross" x1="${f(X(at))}" x2="${f(X(at))}" y1="${t}" y2="${floor}"/>`
       + hotOn.map((ln) => (ln.values[at] != null
@@ -2516,11 +2558,11 @@ function chartLegend(spec) {
 // The time buttons: the gesture-free way to zoom, and the way back. One is
 // pressed while the window is the span it asked for, running to the newest
 // hour; after a pinch or a pan, none is.
-function chartRanges() {
+function chartRanges(steps) {
   const asked = CHART_VIEW ? (CHART_VIEW.to - CHART_VIEW.from) / HOUR_MS
-    : CHAIN === "fc" ? FC_DEFAULT_H : CHART_DEFAULT_H;
+    : (steps && steps.defaultH) || (CHAIN === "fc" ? FC_DEFAULT_H : CHART_DEFAULT_H);
   const follow = !CHART_VIEW || CHART_VIEW.follow;
-  return chartRangeList().map((rg) => {
+  return chartRangeList(steps).map((rg) => {
     const on = follow && (isFinite(rg.hours) ? Math.abs(asked - rg.hours) < 0.5 : asked >= 1e8);
     return `<button type="button" data-chart-range="${rg.id}" aria-pressed="${on}">${rg.label}</button>`;
   }).join("");
@@ -2535,7 +2577,7 @@ function chartMoving(id, at, steps, view) {
     readout: `<div>${chartReadout(spec, at, steps)}</div>`,
     plot: chartPlot(id, spec, at, steps, view),
     under: `<div class="ranges" role="group" aria-label="How much time the chart shows">`
-      + `${chartRanges()}</div>${note ? `<span class="chart-note">${note}</span>` : ""}`,
+      + `${chartRanges(steps)}</div>${note ? `<span class="chart-note">${note}</span>` : ""}`,
   };
 }
 
@@ -2548,9 +2590,10 @@ function seriesChart(id) {
 }
 
 function chartBody(id) {
-  const steps = chartSteps();
+  const steps = chartSteps(id);
   if (!steps || steps.length < 2) {
-    return `<span class="src">${period(CHAIN === "fc" ? "The forecast's hours are not loaded"
+    return `<span class="src">${period(isWT(id) ? `The ${id}'s hours are not loaded`
+      : CHAIN === "fc" ? "The forecast's hours are not loaded"
       : "The week's hourly chart is not loaded")}</span>`;
   }
   const mode = chartModeFor(id);
@@ -2575,8 +2618,9 @@ function chartBody(id) {
 
 // Redraw one chart's moving parts for an hour, in place.
 function chartUpdate(body, at) {
-  const steps = chartSteps();
-  const moving = chartMoving(body.getAttribute("data-chart"), at, steps, chartView(steps));
+  const id = body.getAttribute("data-chart");
+  const steps = chartSteps(id);
+  const moving = chartMoving(id, at, steps, chartView(steps));
   body.querySelector(".readout").innerHTML = moving.readout;
   body.querySelector(".plot").innerHTML = moving.plot;
   body.querySelector(".under").innerHTML = moving.under;
@@ -2618,17 +2662,25 @@ let WHEEL_SETTLE = null;
 function wireCharts() {
   const strip = $("conditions");
   const plotW = CHART.w - CHART.l - CHART.r;
+  // Which chart an element belongs to: a break, the buoy, the wind or the tide.
+  const idOf = (el) => el.closest("[data-chart]").getAttribute("data-chart");
 
   strip.addEventListener("click", (e) => {
     if (e.target.closest("[data-chart-toggle]")) {
       setChartOpen(!CHART_OPEN);
       return;
     }
+    const card = e.target.closest("[data-card-chart-toggle]");
+    if (card) {
+      const which = card.getAttribute("data-card-chart-toggle");
+      setCardChartOpen(which, !CARD_CHART_OPEN[which]);
+      return;
+    }
     const range = e.target.closest("[data-chart-range]");
     if (range) {
-      const pick = chartRangeList().find((rg) => rg.id === range.getAttribute("data-chart-range"));
+      const pane = idOf(range);
+      const pick = chartRangeList(chartSteps(pane)).find((rg) => rg.id === range.getAttribute("data-chart-range"));
       setChartRange(pick.hours);
-      const pane = range.closest("[data-chart]").getAttribute("data-chart");
       chartRedraw(`[data-chart="${pane}"] [data-chart-range="${pick.id}"]`);
       return;
     }
@@ -2645,8 +2697,8 @@ function wireCharts() {
 
   strip.addEventListener("pointerdown", (e) => {
     const plot = e.target.closest(".chart-body .plot");
-    if (!plot || !chartLive() || (e.pointerType === "mouse" && e.button !== 0)) return;
-    const steps = chartSteps();
+    if (!plot || !chartLive(idOf(plot)) || (e.pointerType === "mouse" && e.button !== 0)) return;
+    const steps = chartSteps(idOf(plot));
     if (steps.length < 2) return;
     if (!GESTURE || GESTURE.plot !== plot) {
       GESTURE = {plot, body: plot.closest("[data-chart]"), pointers: new Map(), kind: null, at: null};
@@ -2670,8 +2722,8 @@ function wireCharts() {
 
   strip.addEventListener("pointermove", (e) => {
     const plot = e.target.closest(".chart-body .plot");
-    if (!plot || !chartLive()) return;
-    const steps = chartSteps();
+    if (!plot || !chartLive(idOf(plot))) return;
+    const steps = chartSteps(idOf(plot));
     if (steps.length < 2) return;
     const g = GESTURE && GESTURE.plot === plot ? GESTURE : null;
     if (!g) {
@@ -2697,14 +2749,14 @@ function wireCharts() {
       const span = s0 * g.pinch0.d / d;
       const v0 = under - (c - CHART.l) / plotW * span;
       setChartView(steps, v0, v0 + span);
-      const now = chartSteps();
+      const now = chartSteps(idOf(plot));
       chartUpdate(g.body, g.at != null && now === steps ? g.at : chartIndex(now));
       return;
     }
     if (g.kind === "pan") {
       const shift = -(plotX(plot, p.x) - plotX(plot, p.x0)) / plotW * (g.view0.v1 - g.view0.v0);
       setChartView(steps, g.view0.v0 + shift, g.view0.v1 + shift);
-      chartUpdate(g.body, chartIndex(chartSteps()));
+      chartUpdate(g.body, chartIndex(chartSteps(idOf(plot))));
       return;
     }
     if (g.kind === "scrub" || (!g.kind && p.type !== "mouse")) {
@@ -2725,7 +2777,7 @@ function wireCharts() {
     }
     GESTURE = null;
     if (e.type === "pointerup") {
-      const steps = chartSteps();
+      const steps = chartSteps(idOf(g.plot));
       if (g.kind === "scrub" && g.at != null) {
         CHART_AT = steps[g.at].valid_utc;
       } else if (!g.kind && steps.length > 1) {
@@ -2742,15 +2794,17 @@ function wireCharts() {
   strip.addEventListener("pointerout", (e) => {
     const plot = e.target.closest(".chart-body .plot");
     if (!plot || GESTURE || e.pointerType !== "mouse" || (e.relatedTarget && plot.contains(e.relatedTarget))) return;
-    if (chartLive() && chartSteps().length > 1) chartUpdate(plot.closest("[data-chart]"), chartIndex());
+    const id = idOf(plot);
+    const steps = chartSteps(id);
+    if (chartLive(id) && steps.length > 1) chartUpdate(plot.closest("[data-chart]"), chartIndex(steps));
   });
 
   strip.addEventListener("wheel", (e) => {
     const plot = e.target.closest(".chart-body .plot");
-    if (!plot || !chartLive() || GESTURE) return;
+    if (!plot || !chartLive(idOf(plot)) || GESTURE) return;
     const zoom = e.ctrlKey || e.metaKey;
     if (!zoom && Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;  // the page's scroll
-    const steps = chartSteps();
+    const steps = chartSteps(idOf(plot));
     if (steps.length < 2) return;
     e.preventDefault();
     const view = chartView(steps);
@@ -2764,15 +2818,15 @@ function wireCharts() {
       const shift = e.deltaX / Math.max(1, plot.getBoundingClientRect().width) * CHART.w / plotW * span;
       setChartView(steps, view.v0 + shift, view.v1 + shift);
     }
-    chartUpdate(plot.closest("[data-chart]"), chartIndex(chartSteps()));
+    chartUpdate(plot.closest("[data-chart]"), chartIndex(chartSteps(idOf(plot))));
     clearTimeout(WHEEL_SETTLE);
     WHEEL_SETTLE = setTimeout(show, 300);
   }, {passive: false});
 
   strip.addEventListener("keydown", (e) => {
     const svg = e.target.closest("svg.series");
-    if (!svg || !chartLive()) return;
-    const steps = chartSteps();
+    if (!svg || !chartLive(svg.getAttribute("data-series"))) return;
+    const steps = chartSteps(svg.getAttribute("data-series"));
     const n = steps.length;
     if (n < 2) return;
     const view = chartView(steps);
@@ -2801,6 +2855,293 @@ function wireCharts() {
     e.preventDefault();
     chartRedraw(selector);
   });
+}
+
+// THE WIND AND TIDE CHARTS (owner's request, 2026-09-30): the same fold,
+// plot and gestures as the Swell card's, under each of those cards on both
+// tabs. The window and the picked hour are the tab's, shared with the swell's
+// charts, so zooming one lines them all up on the same hours.
+//
+// Now: what was MEASURED each hour (windtide.json, forecast.windtide) -- KNZY's
+// report taken in the hour up to it, the gauge's sample at the hour carried
+// to the open coast -- and on the tide, the next 24 h of harmonic prediction,
+// dashed and labelled, the one modelled line on the tab (owner's call: the
+// card already carries a predicted turn). Forecast: the forecast each hour to
+// the end of the run (forecast.json's `hourly`: the NWS local wind, and the
+// harmonic tide with the measured departure the card carries), with the
+// measured hours beside it in sea green. A missing reading is a gap in its
+// line, never the hour beside it. Nothing here is a difference or a score.
+function isWT(id) {
+  return id === "wind" || id === "tide";
+}
+// The Now tab's tide runs a day past the present, so it opens on two days
+// with the present in the middle, and has a button for that.
+const NOW_TIDE_RANGES = [
+  {id: "1d", label: "1D", hours: 24},
+  {id: "2d", label: "2D", hours: 48},
+  {id: "7d", label: "7D", hours: 168},
+  {id: "1m", label: "1M", hours: 720},
+  {id: "all", label: "All", hours: Infinity},
+];
+
+// Each column of windtide.json at one hour, or null for an hour it does not
+// hold.
+function wtAt(k) {
+  if (!WT || k < 0 || k >= (WT.hours || 0)) return null;
+  const col = (arr) => (arr && arr[k] != null ? arr[k] : null);
+  const w = WT.wind || {};
+  return {kt: col(w.kt), from: col(w.from_deg), gust: col(w.gust_kt), age: col(w.age_min),
+          tide: col(WT.tide_m)};
+}
+function wtIndex(ms) {
+  if (!WT || !WT.start_utc) return -1;
+  const k = (ms - Date.parse(WT.start_utc)) / HOUR_MS;
+  return Number.isInteger(k) ? k : -1;
+}
+
+const WT_STEPS = {};
+function wtSteps(id) {
+  const fc = CHAIN === "fc";
+  const key = `${CHAIN}|${id}|${WT ? WT.generated_utc : ""}|${fc && DATA ? DATA.generated_utc : ""}`;
+  const kept = WT_STEPS[`${CHAIN}|${id}`];
+  if (kept && kept.key === key) return kept;
+  const out = fc ? wtForecastSteps(id) : wtNowSteps(id);
+  out.kind = "wt";
+  out.id = id;
+  out.key = key;
+  WT_STEPS[`${CHAIN}|${id}`] = out;
+  return out;
+}
+
+function wtNowSteps(id) {
+  if (!WT || !WT.hours) return [];
+  const t0 = Date.parse(WT.start_utc);
+  const P = id === "tide" && WT.prediction ? WT.prediction : null;
+  const pred = (P && P.heights_m) || [];
+  const p0 = pred.length ? Date.parse(P.start_utc) : t0;
+  const end = Math.max(t0 + (WT.hours - 1) * HOUR_MS, pred.length ? p0 + (pred.length - 1) * HOUR_MS : 0);
+  const out = [];
+  let latest = null;
+  for (let ms = t0; ms <= end; ms += HOUR_MS) {
+    const seen = wtAt(wtIndex(ms));
+    const j = (ms - p0) / HOUR_MS;
+    const got = seen && (id === "tide" ? seen.tide : seen.kt) != null;
+    if (got) latest = out.length;
+    out.push({valid_utc: isoHour(ms), seen, pred: j >= 0 && j < pred.length ? pred[j] : null});
+  }
+  out.latest = latest == null ? Math.min(WT.hours, out.length) - 1 : latest;
+  if (pred.length) {
+    out.ahead = 0.5;
+    out.defaultH = 48;
+    out.ranges = NOW_TIDE_RANGES;
+  }
+  return out;
+}
+
+// The forecast's hours, hourly, from the earliest past hour the tab offers
+// to the run's end; the measured hours beside the ones that have passed.
+function wtForecastSteps(id) {
+  const H = (DATA && DATA.hourly) || {};
+  const fcs = fcSteps();
+  const t0 = H.start_utc ? Date.parse(H.start_utc) : fcs.length ? Date.parse(fcs[0].valid_utc) : null;
+  if (t0 == null) return [];
+  const n = (H.tide_m || []).length;
+  const tn = Math.max(t0 + (n - 1) * HOUR_MS, fcs.length ? Date.parse(fcs[fcs.length - 1].valid_utc) : t0);
+  const lw = H.local_wind || {};
+  const col = (arr, k) => (arr && k < arr.length && arr[k] != null ? arr[k] : null);
+  const out = [];
+  for (let ms = t0, k = 0; ms <= tn; ms += HOUR_MS, k++) {
+    out.push({valid_utc: isoHour(ms), seen: wtAt(wtIndex(ms)),
+              fc: {kt: col(lw.kt, k), from: col(lw.from_deg, k), gust: col(lw.gust_kt, k),
+                   tide: col(H.tide_m, k)}});
+  }
+  return out;
+}
+
+// Where the wind and tide charts stop, when the window asks for more.
+function wtNote(steps) {
+  if (CHAIN === "fc" || !CHART_VIEW || steps.length < 2) return "";
+  const t0 = Date.parse(steps[0].valid_utc);
+  if (CHART_VIEW.to - CHART_VIEW.from <= (steps.length - 1) * HOUR_MS + HOUR_MS / 2
+      && (CHART_VIEW.follow || CHART_VIEW.from >= t0 - HOUR_MS / 2)) return "";
+  return `The ${steps.id} chart reaches back to ${dayOnly(steps[0].valid_utc)}.`;
+}
+
+// A wind in words, imperial first: "WSW at 12 mph (10 kt), gusting 18 mph".
+// A calm has no direction, and neither does a variable wind.
+function windWords(w) {
+  if (!w || w.kt == null) return null;
+  if (w.kt === 0) return "calm";
+  return `${w.from == null ? "variable" : compass(w.from)} at ${speed(w.kt)}`
+    + (w.gust != null ? `, gusting ${Math.round(w.gust * MPH_PER_KT)} mph` : "");
+}
+
+// A wind axis in mph, placed in knots: the data stays in knots and the
+// conversion is the page's one constant. Framed by gridlines, as the heights'.
+function mphAxis(reachKt) {
+  const mph = Math.max(10, reachKt * MPH_PER_KT);
+  const step = [5, 10, 20, 25, 50].find((f) => Math.ceil(mph / f + 0.05) <= 4) || 100;
+  const n = Math.ceil(mph / step + 0.05);
+  const ticks = [];
+  for (let k = 0; k <= n; k++) ticks.push({at: k * step / MPH_PER_KT, text: k ? `${k * step} mph` : "0"});
+  return {domain: [0, n * step / MPH_PER_KT], ticks};
+}
+
+// A water-level axis in feet on MLLW, placed in metres. A low tide goes
+// below zero, so both ends are rounded outward to a whole tick.
+function tideAxis(lo, hi) {
+  const a = lo * FT_PER_M, b = Math.max(hi * FT_PER_M, a + 1);
+  const step = [1, 2, 5, 10].find((f) => Math.ceil(b / f + 0.05) - Math.floor(a / f - 0.05) <= 5) || 20;
+  const k0 = Math.floor(a / step - 0.05), k1 = Math.ceil(b / step + 0.05);
+  const ticks = [];
+  for (let k = k0; k <= k1; k++) {
+    const v = k * step;
+    ticks.push({at: v / FT_PER_M, text: v === 0 ? "0" : `${v < 0 ? "−" : ""}${Math.abs(v)} ft`});
+  }
+  return {domain: [k0 * step / FT_PER_M, k1 * step / FT_PER_M], ticks};
+}
+
+function wtSpec(id, steps) {
+  const fc = CHAIN === "fc";
+  const value = (text, cls = "") => `<span class="v${cls ? " " + cls : ""}">${text}</span>`;
+  const now = fcNowAt(steps);
+  const W = WT || {};
+  const station = W.wind_station || "KNZY";
+  // An hour the measured file covers and holds nothing for is a gap, said so.
+  const covered = (i) => W.generated_utc && steps[i].valid_utc <= W.generated_utc
+    && Date.parse(steps[i].valid_utc) >= Date.parse(W.start_utc || steps[i].valid_utc);
+  const time = (i, age) => new Date(Date.parse(steps[i].valid_utc) - age * 60000)
+    .toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"});
+
+  if (id === "wind") {
+    const seen = steps.map((s) => (s.seen ? s.seen.kt : null));
+    const said = steps.map((s) => (s.fc ? s.fc.kt : null));
+    // The direction strip runs all the way round, cut at the east: the
+    // rarest wind at KNZY (45-90° on 2 of the 262 reports with a direction,
+    // 2026-09-18 to 09-30), so the west-to-north-west most of them come
+    // from sits whole in the middle rather than split across the edges.
+    const round = (v) => (v < 90 ? v + 360 : v);
+    const dots = [], points = [];
+    steps.forEach((s, i) => {
+      if (s.seen && s.seen.gust != null) dots.push({i, v: s.seen.gust, r: 1.8, cls: fc ? "gust obs" : "gust"});
+      if (s.fc && s.fc.gust != null) dots.push({i, v: s.fc.gust, r: 1.8, cls: "gust"});
+      if (s.seen && s.seen.from != null) points.push({i, v: round(s.seen.from), cls: fc ? "dir obs" : "dir"});
+      if (s.fc && s.fc.from != null) points.push({i, v: round(s.fc.from), cls: "dir"});
+    });
+    const lane = {points, arcs: [], domain: [90, 450], step: 90};
+    const measured = (i) => {
+      const s = steps[i];
+      const words = windWords(s.seen);
+      if (words) return {words, when: s.seen.age != null ? time(i, s.seen.age) : null};
+      return null;
+    };
+    if (!fc) {
+      return {
+        scale: "speed", lines: [{cls: "main", label: `Wind at ${station}`, values: seen}], dots, lane,
+        legend: [{cls: "main", label: "Speed"}, {cls: "gdot", label: "Gust"},
+                 {cls: "dir", label: "Direction it blows from"}],
+        says: `${station}'s measured wind each hour: the speed, a dot for any gust, and under it `
+          + "the direction it blows from, which a calm or a variable wind does not have. Each hour "
+          + "is the report taken in the hour up to it; an hour without one is a gap, never the "
+          + "report beside it",
+        read: (i) => {
+          const m = measured(i);
+          return m ? value(m.words) + (m.when ? ` &middot; reported ${m.when}` : "")
+            : `no ${station} report in the hour to this one, left as a gap`;
+        },
+      };
+    }
+    const L = (DATA && DATA.local_wind) || {};
+    const none = !said.some((v) => v != null);
+    return {
+      scale: "speed", now, dots, lane,
+      // The measured line last, so it sits on top where the two meet.
+      lines: [{cls: "main", label: "Local forecast", values: said},
+              {cls: "obs", label: `Observed at ${station}`, values: seen}],
+      legend: [{cls: "main", label: "Local forecast, NWS"}, {cls: "obs", label: `Observed at ${station}`},
+               {cls: "gdot", label: "Gust"}, {cls: "dir", label: "Direction it blows from"}],
+      says: "The National Weather Service's hourly forecast wind at Coronado, the Local wind on "
+        + `the card, and beside the hours that have passed, ${station}'s measured wind in green. `
+        + "Dots are gusts; under it, the direction each blows from. GFS-Wave's wind, on the "
+        + "card above it, is at the buoy 29 km offshore and is not drawn here"
+        + (none ? `. No local forecast came with this run${L.why ? ` (${L.why})` : ""}` : ""),
+      read: (i) => {
+        const f = windWords(steps[i].fc);
+        const m = measured(i);
+        const obs = m ? ` &middot; ${value(`observed ${m.words}`, "obs")}`
+          : covered(i) ? ` &middot; no ${station} report, left as a gap` : "";
+        return (f ? value(`Local forecast ${f}`) : "no local forecast for this hour") + obs;
+      },
+    };
+  }
+
+  // The tide.
+  const seen = steps.map((s) => (s.seen ? s.seen.tide : null));
+  const site = W.tide_site || "the open coast";
+  const gauge = W.tide_station ? `${W.tide_station_name || "the"} gauge (${W.tide_station})` : "the bay gauge";
+  const noSample = "no gauge sample at this hour, left as a gap";
+  if (!fc) {
+    const P = W.prediction || {};
+    const pred = steps.map((s) => s.pred);
+    const dep = P.departure_m != null ? ` (${signedHeight(P.departure_m).replace(/<[^>]+>/g, "")})` : "";
+    return {
+      scale: "tide", now,
+      lines: [{cls: "pred", label: "Predicted", values: pred},
+              {cls: "main", label: "Measured", values: seen}],
+      legend: [{cls: "main", label: "Measured"}, {cls: "pred", label: "Predicted, next 24 h"}],
+      says: `The water level each hour at ${site}, measured at the ${gauge} and carried out to the `
+        + "open coast, on its MLLW. Dashed, the next 24 hours of harmonic prediction, carried out "
+        + "the same way"
+        + (P.departure_m != null ? ", plus the gauge's measured departure from it over the last "
+          + `3 days${dep}` : "")
+        + ". The dashed line is a model, the one on this tab; the solid line is not",
+      read: (i) => {
+        const m = seen[i], p = pred[i];
+        if (m != null) return value(`Measured ${height(m)}`) + (p != null ? ` &middot; predicted ${height(p)}` : "");
+        if (p != null) return value(`Predicted ${height(p)}`, "pred");
+        return noSample;
+      },
+    };
+  }
+  const said = steps.map((s) => (s.fc ? s.fc.tide : null));
+  return {
+    scale: "tide", now,
+    // The measured line last, so it shows where it runs along the prediction.
+    lines: [{cls: "main", label: "Predicted", values: said},
+            {cls: "obs", label: "Measured", values: seen}],
+    legend: [{cls: "main", label: "Predicted"}, {cls: "obs", label: "Measured"}],
+    says: `The harmonic tide each hour at ${site} to the end of the run, carried out from the `
+      + `${gauge} with the gauge's measured departure from it over the last 3 days added, as the `
+      + "card's is; beside the hours that have passed, the level measured there, in green. On MLLW",
+    read: (i) => {
+      const f = said[i], m = seen[i];
+      return (f != null ? value(`Predicted ${height(f)}`) : "no prediction for this hour")
+        + (m != null ? ` &middot; ${value(`measured ${height(m)}`, "obs")}`
+          : covered(i) ? ` &middot; ${noSample}` : "");
+    },
+  };
+}
+
+// The fold under the Wind and Tide cards: its own caret and its own open
+// state, kept across a refresh like the swell's.
+const CARD_CHART_OPEN = {wind: false, tide: false};
+function setCardChartOpen(id, open) {
+  CARD_CHART_OPEN[id] = open;
+  remember(id === "wind" ? KEEP.windChart : KEEP.tideChart, open ? "open" : "closed");
+  document.querySelectorAll(`[data-card-chart-toggle="${id}"]`).forEach((btn) => {
+    btn.setAttribute("aria-expanded", String(open));
+    const fold = $(btn.getAttribute("aria-controls"));
+    if (fold) fold.hidden = !open;
+  });
+}
+function cardChart(id) {
+  const open = !!CARD_CHART_OPEN[id];
+  return `<div class="chart">
+    <div class="chart-head"><span>Charts</span><button type="button" class="calc-toggle"
+      data-card-chart-toggle="${id}" aria-controls="chart-fold-${id}" aria-expanded="${open}"
+      aria-label="Charts"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
+    <div class="chart-fold" id="chart-fold-${id}"${open ? "" : " hidden"}>${chartBody(id)}</div>
+  </div>`;
 }
 
 // The swell card, for either chain. Same shape, different provenance: an
@@ -2978,6 +3319,7 @@ function renderConditions(step, cards) {
                     `METAR, ${wind.station_name} (${wind.station})`],
                    dueSpan(due.wind, late.wind))
         : srcLines(wind.note)}
+      ${cardChart("wind")}
     </div>`);
     // The turn is asked for against the READER's clock, not the build's, so
     // it keeps being the next turn as turns pass beneath an open page.
@@ -2991,6 +3333,7 @@ function renderConditions(step, cards) {
         ? srcLines([`Measured ${observedAt(tide.observed_utc)}`, tideSource(NOW)],
                    dueSpan(due.tide, late.tide))
         : srcLines(tide.note)}
+      ${cardChart("tide")}
     </div>`);
   } else {
     const wind = DATA.wind || {};
@@ -3044,11 +3387,13 @@ function renderConditions(step, cards) {
         <span class="lbl">Wind</span>
         <span class="val"><span class="unit">not kept for earlier runs</span></span>
         ${seenWind}
+        ${cardChart("wind")}
       </div>`);
       rows.push(`<div class="cond" data-card="tide">
         <span class="lbl">Tide</span>
         <span class="val"><span class="unit">not kept for earlier runs</span></span>
         ${seenTide}
+        ${cardChart("tide")}
       </div>`);
       $("conditions").innerHTML = rows.join("");
       restorePicks();
@@ -3076,6 +3421,7 @@ function renderConditions(step, cards) {
                       `METAR, ${fallback.station_name} (${fallback.station})`])
           : srcLines(past ? "" : fallback.note)}
       ${localWindBlock(hour, cards, stampWhen, past)}
+      ${cardChart("wind")}
     </div>`);
     rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
@@ -3087,6 +3433,7 @@ function renderConditions(step, cards) {
         : ""}
       ${seenTide}
       ${srcLines([`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)])}
+      ${cardChart("tide")}
     </div>`);
   }
 
@@ -3315,6 +3662,20 @@ function refreshSeries() {
     .catch(() => {});
 }
 
+// Rebuilt with every collection, like series.json, and drawn on both tabs:
+// the measured hours under the Now cards and beside the forecast's.
+function refreshWindTide() {
+  fetch(fresh(WINDTIDE_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => {
+      if (!got || !got.generated_utc || !got.hours) return;
+      if (WT && got.generated_utc === WT.generated_utc) return;
+      WT = got;
+      show();
+    })
+    .catch(() => {});
+}
+
 // The archive changes once a day; refetched hourly, and only once it has
 // been asked for.
 function refreshSeriesAll() {
@@ -3446,10 +3807,11 @@ function choose(cursor) {
   show();
 }
 
-function boot(data, observed, measured, series) {
+function boot(data, observed, measured, series, windtide) {
   NOW = observed;
   MEASURED = measured;
   SERIES = series;
+  WT = windtide && windtide.hours ? windtide : null;
   $("tab-now").onclick = () => setMode("now");
   $("tab-forecast").onclick = () => setMode("forecast");
   wireSwellTabs();
@@ -3482,6 +3844,8 @@ function boot(data, observed, measured, series) {
   FC_MODE0 = FC_MODES.some((m) => m.id === fcView) ? fcView : FC_MODES[0].id;
   // Folded away until the reader opens it, as the calculation is.
   CHART_OPEN = recall(KEEP.chartOpen) === "open";
+  CARD_CHART_OPEN.wind = recall(KEEP.windChart) === "open";
+  CARD_CHART_OPEN.tide = recall(KEEP.tideChart) === "open";
   setMode(recall(KEEP.mode) === "forecast" ? "forecast" : "now");
 
   // The observed age moves whether or not anything else does, so the observed
@@ -3501,6 +3865,7 @@ function boot(data, observed, measured, series) {
   setInterval(refreshNow, NOW_REFRESH_MS);
   setInterval(refreshMeasured, NOW_REFRESH_MS);
   setInterval(refreshSeries, NOW_REFRESH_MS);
+  setInterval(refreshWindTide, NOW_REFRESH_MS);
   setInterval(refreshSeriesAll, FORECAST_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
 }
@@ -3521,8 +3886,14 @@ Promise.all([
   fetch(fresh(SERIES_SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null),
+  // windtide.json likewise: without it, the Wind and Tide charts draw only
+  // the forecast, or say they are not loaded.
+  fetch(fresh(WINDTIDE_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null),
 ])
-  .then(([forecast, observed, measured, series]) => boot(forecast, observed, measured, series))
+  .then(([forecast, observed, measured, series, windtide]) =>
+    boot(forecast, observed, measured, series, windtide))
   .catch((err) => {
     $("warnings").hidden = false;
     $("warnings").textContent =

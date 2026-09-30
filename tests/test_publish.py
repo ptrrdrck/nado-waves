@@ -434,6 +434,18 @@ class TestTheMeasuredSeriesShips:
         assert publish.BUNDLE_SERIES_ALL_PATH in index
         assert publish.REPO_SERIES_ALL_PATH not in index
 
+    def test_the_wind_and_tide_ship_beside_them(self, tmp_path):
+        """windtide.json feeds the Wind and Tide cards' charts on both tabs."""
+
+        d = self.data(tmp_path)
+        (d / "live" / "windtide.json").write_text('{"hours": 1}', encoding="utf-8")
+        assert "windtide.json" in publish.build(tmp_path / "site", data_dir=d)
+        assert "windtide.json" in publish.build_now_only(tmp_path / "now", data_dir=d)
+        index = (tmp_path / "now" / "index.html").read_text()
+        assert publish.REPO_WINDTIDE_PATH in PAGE_SOURCE
+        assert publish.BUNDLE_WINDTIDE_PATH in index
+        assert publish.REPO_WINDTIDE_PATH not in index
+
     def test_the_past_survives_thinning(self):
         data = {**forecast(), "past": [{"valid_utc": "2026-09-17T21:00:00Z", "lead_h": 21}]}
         assert publish.thin(data)["past"] == data["past"]

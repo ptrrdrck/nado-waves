@@ -102,7 +102,7 @@ a{color:var(--surf)}
   <section class="card" id="week-chart">
     <h2>The charts under each NOW(ISH) card</h2>
     <p class="source">
-      The charts are buoy 46232's own spectrum at <b>every hour</b>, carried in
+      The Swell card's charts are buoy 46232's own spectrum at <b>every hour</b>, carried in
       by the same chain as the reading above them. They open on the last day;
       zoom and pan them to go back to the start of the buoy's archive
       (4 August 2026). Every hour is rebuilt with <b>today's</b> windows,
@@ -133,9 +133,28 @@ a{color:var(--surf)}
       a position in a range, not a height, left blank where too few of those
       24 hours were measured.
     </p>
+    <p class="source">
+      <b>Wind</b> and <b>Tide</b> have charts of their own, on the same
+      hours and the same window. The wind is the airfield's (KNZY) report taken
+      in the hour up to each hour: its speed, a dot for any gust, and under it
+      the direction it blows from, which a calm or a variable wind does not
+      have. An hour with no report is a gap, never the report beside it. The
+      tide is the San Diego gauge's sample at each hour exactly, carried out
+      to the open coast as the card's is. Both are read straight from the
+      collected records rather than rebuilt, so nothing done to the chain can
+      change an earlier hour; they reach back a month, or to where the records
+      begin (18 September 2026 for the wind, 17 September for the tide).
+    </p>
+    <p class="source">
+      Past the present, the Tide chart carries the next 24 hours of
+      <b>harmonic prediction</b>, dashed, with the gauge's measured departure
+      from it over the last 3 days added: the one modelled line on this tab,
+      as the card's next turn is its one modelled number, and labelled as
+      one.
+    </p>
     <p class="note">
-      Nothing here is a forecast, and nothing here has been measured at the
-      breaks.
+      Apart from the tide's dashed next day, nothing here is a forecast, and
+      nothing here has been measured at the breaks.
     </p>
   </section>
 
@@ -177,7 +196,7 @@ a{color:var(--surf)}
   <section class="card" id="forecast-charts">
     <h2>The charts under each Forecast card</h2>
     <p class="source">
-      These are drawn from the model, every 3 hours, from 48 hours back to the
+      The Swell card's are drawn from the model, every 3 hours, from 48 hours back to the
       end of the run. They open on three days with the present a quarter of
       the way in. A break's line is its breaking height only; an hour whose
       figure was at 5 m of water, or that no run covered, is a gap in the
@@ -212,6 +231,15 @@ a{color:var(--surf)}
       with each other more closely than any of them agrees with the sea, and
       their mean runs above the buoy. Nothing has been removed from it or
       added to it to make it look better.
+    </p>
+    <p class="source">
+      The <b>Wind</b> and <b>Tide</b> cards' charts are hourly, over the same
+      reach: the National Weather Service's forecast wind at Coronado (the
+      card's Local wind), with a dot for any gust and its direction under it,
+      and the harmonic tide at the open coast with the gauge's measured
+      departure added, as the card's is. Beside the hours that have passed,
+      the airfield's measured wind and the gauge's measured level, in green.
+      GFS-Wave's own wind is at the buoy, 29 km offshore, and is not drawn.
     </p>
     <p class="note">
       Only the Ensemble view carries a band, and only beside how often the

@@ -288,7 +288,18 @@ forecaster actually verifies against, Surfline included.
    none shows a forecast-minus-observed difference**: nothing measures the
    breaks, and a run spread is not a range the swell will fall in — the page
    says so. The two tabs keep their own window, picked hour and
-   view (`useChain`). Opens on Now;
+   view (`useChain`). **The Wind and Tide cards have charts too** (owner's
+   request, 2026-09-30; `forecast/windtide.py` → `windtide.json`), sharing
+   the tab's window and picked hour. On Now, what was MEASURED each hour:
+   KNZY's report taken in the hour up to it — never carried into the next,
+   unlike `measured`'s two-hour as-of, because a carried reading draws as a
+   second measurement — and the gauge's sample AT the hour on the open coast;
+   plus the tide's next 24 h of harmonic prediction with the departure,
+   dashed, the tab's one modelled line beside its one modelled number. On
+   Forecast, `forecast.json`'s `hourly` (the NWS local wind, and the card's
+   tide) to the run's end, the measured hours in green; GFS-Wave's buoy wind
+   is not drawn. Read from the archives, not rebuilt: today's chain cannot
+   change a past hour. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
    says so and points at Forecast rather than falling back silently. The
@@ -540,6 +551,9 @@ forecaster actually verifies against, Surfline included.
                         tab's chart draws; one rebuild feeds both files;
                         and `--archive`, every archived hour into
                         data/series/ (series-archive.yml only)      [built]
+      windtide.py       the measured wind and tide each hour, and the
+                        next day's predicted tide, for the Wind and Tide
+                        cards' charts; read from the archives   [built]
       modelbias.py      GFS-Wave's bias at 46232 through each break's
                         windows; reports, never edits              [built]
       ensemble.py       GEFS-Wave's mean and spread against 46232: how
@@ -568,9 +582,9 @@ forecaster actually verifies against, Surfline included.
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
-    data/live/          forecast.json, now.json, measured.json, series.json and
-                        series_all.json, what the app surface reads
-                        (derived, gitignored)
+    data/live/          forecast.json, now.json, measured.json, series.json,
+                        series_all.json and windtide.json, what the app
+                        surface reads (derived, gitignored)
     data/series/        46232/YYYY-MM.csv: the observed chain for every
                         archived hour, rebuilt whole with today's chain by
                         series-archive.yml, its only writer. DERIVED but

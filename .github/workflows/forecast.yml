@@ -96,6 +96,10 @@ jobs:
       - name: Build the public bundle
         run: |
           set -euo pipefail
+          # The measured wind and tide beside this run's (forecast.windtide),
+          # so the Forecast tab's Wind and Tide charts carry them from the
+          # first publish. The page is drawn without them if this fails.
+          python -m forecast.windtide || echo "::warning title=No wind and tide series::forecast.windtide failed; the charts draw the forecast alone"
           python -m forecast.publish --out build/site
 
       # data/live is gitignored -- it is derived output, rebuilt every cycle,

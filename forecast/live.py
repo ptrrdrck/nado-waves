@@ -282,6 +282,40 @@ class Forecast:
     #: there is none (`collector.localwind`); the hours themselves are on
     #: each break's `Hour`.
     local_wind: dict = field(default_factory=dict)
+    #: Every HOUR from the earliest past hour to the run's end, for the
+    #: Wind and Tide cards' charts, which draw hourly where the cards step
+    #: every third: the open coast's predicted tide (with the departure, as
+    #: `tide` carries it) and the local wind forecast, as columns from
+    #: `start_utc`. None where there is nothing for an hour. The publisher
+    #: does not thin it: it is already the one row per hour the chart draws.
+    hourly: dict = field(default_factory=dict)
+
+
+def hourly_columns(rows, past: list[dict], bay_predicted, departure: float | None,
+                   local_hours: dict[str, dict]) -> dict:
+    """`Forecast.hourly`: one value an hour from the earliest past hour the
+    page offers to the run's last, never filled across an hour missing."""
+
+    start = rows[0].valid_utc
+    if past:
+        start = min(start, datetime.strptime(past[0]["valid_utc"], ISO).replace(tzinfo=timezone.utc))
+    marks = []
+    t = start
+    while t <= rows[-1].valid_utc:
+        marks.append(t)
+        t += timedelta(hours=1)
+    tide, wind_from, wind_kt, gust = [], [], [], []
+    for t in marks:
+        value = coast_predicted(bay_predicted, t, departure)
+        tide.append(None if value is None else round(value, 3))
+        local = local_hours.get(t.strftime(ISO))
+        wind_from.append(None if not local or local.get("from_deg") is None
+                         else round(local["from_deg"]) % 360)
+        wind_kt.append(None if not local or local.get("speed_kt") is None
+                       else round(local["speed_kt"], 1))
+        gust.append(None if not local or local.get("gust_kt") is None else round(local["gust_kt"], 1))
+    return {"start_utc": start.strftime(ISO), "step_h": 1, "tide_m": tide,
+            "local_wind": {"from_deg": wind_from, "kt": wind_kt, "gust_kt": gust}}
 
 
 def latest_cycle(now: datetime | None = None) -> datetime:
@@ -652,6 +686,9 @@ def build(
         forecast.tide_turns = [
             t.as_dict() for t in turns_between(all_turns, start, rows[-1].valid_utc)
         ]
+
+    if rows:
+        forecast.hourly = hourly_columns(rows, forecast.past, bay_predicted, departure, local_hours)
 
     try:
         tables = load_tables()
