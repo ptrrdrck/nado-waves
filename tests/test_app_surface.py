@@ -2353,7 +2353,7 @@ class TestTheWindAndTideCharts:
         assert "3-day mean" in got[3]
         assert got[4] == "slow,obs"                             # measured is green there
 
-    def test_offshore_by_hour_counts_each_hour_at_the_open_break(self):
+    def test_shore_direction_counts_each_hour_at_the_open_break(self):
         """Owner's request, 2026-10-01: how often the wind at a break is
         offshore, cross-shore or onshore, by hour of day, with the card's own
         verdict against that break's shore normal."""
@@ -2378,8 +2378,10 @@ class TestTheWindAndTideCharts:
         assert total["off"] + total["cross"] + total["on"] + total["still"] == 5
         row0, row3 = (json.loads(x) for x in got[1].split(" "))
         assert row0["n"] == 1 and row3["n"] == 1
-        assert "North, all hours" in got[2] and "KNZY reports" in got[2]
-        assert "calm or variable 100%" in got[3]
+        # Owner's call, 2026-10-01: no report count or date range in the
+        # readout; an hour's bar reads "over N days", one reading a day.
+        assert "North, all hours" in got[2] and "KNZY" not in got[2] and " to " not in got[2]
+        assert "over 1 day" in got[3] and "calm or variable 100%" in got[3]
         assert got[4] == "null"                                  # the buoy has no shore
 
     def test_speeds_are_in_mph_and_the_tide_in_feet(self):
@@ -2394,6 +2396,16 @@ class TestTheWindAndTideCharts:
         # The departure's axis runs from zero, not mirrored about it.
         assert got[2] == "0,+0.5 ft,+1 ft,+1.5 ft"
         assert got[3] == "−0.5 ft,0,+0.5 ft,+1 ft,+1.5 ft"
+
+    def test_shore_direction_is_named_so_and_drawn_in_greys(self):
+        """Owner's calls, 2026-10-01."""
+
+        assert '{id: "shore", label: "Shore direction"}' in SOURCE
+        assert "Offshore by hour" not in SOURCE
+        css = SOURCE[:SOURCE.index("</style>")]
+        for kind, token in (("off", "--ink"), ("cross", "--soft"), ("on", "--line-strong")):
+            assert f".series .sh-{kind},.chart .legend .sw.sh-{kind}{{fill:var({token})" in css
+        assert "--sh-" not in SOURCE
 
 
 class TestTheForecastCharts:

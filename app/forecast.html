@@ -15,7 +15,6 @@
   --signal:#C62828; --signal-wash:#F9DEDE;
   --ok:#2F7D4F;
   --measured:#0A7A56;
-  --sh-off:#1565C0; --sh-cross:#9AA6A2; --sh-on:#C0612B; --sh-still:#D9E0DD;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
 }
@@ -28,7 +27,6 @@
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
     --measured:#3EDB9E;
-    --sh-off:#4F97E0; --sh-cross:#62737A; --sh-on:#D27C47; --sh-still:#2C424D;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
@@ -40,7 +38,6 @@
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
   --measured:#3EDB9E;
-  --sh-off:#4F97E0; --sh-cross:#62737A; --sh-on:#D27C47; --sh-still:#2C424D;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
@@ -396,14 +393,15 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    one modelled line on that tab. */
 .series .gust{fill:var(--ink);opacity:.55} .series .gust.obs{fill:var(--measured);opacity:.8}
 .series .dir.obs{fill:var(--measured)}
-/* Offshore by hour: a diverging set -- offshore the page's blue, onshore a
-   warm pole, cross-shore the grey between, calm the faintest. Run through
-   the dataviz validator against each theme's card: CVD separation 15.2
-   (light) and 12.3 (dark) on the worst adjacent pair, normal-vision >= 16. */
-.series .sh-off,.chart .legend .sw.sh-off{fill:var(--sh-off);background:var(--sh-off)}
-.series .sh-cross,.chart .legend .sw.sh-cross{fill:var(--sh-cross);background:var(--sh-cross)}
-.series .sh-on,.chart .legend .sw.sh-on{fill:var(--sh-on);background:var(--sh-on)}
-.series .sh-still,.chart .legend .sw.sh-still{fill:var(--sh-still);background:var(--sh-still)}
+/* Shore direction, in greys only (owner's call, 2026-10-01): an ordered
+   scale from the page's ink for offshore down to the faintest rule for
+   onshore, and calm or variable -- which has no direction -- an empty
+   outline rather than a fourth shade. */
+.series .sh-off,.chart .legend .sw.sh-off{fill:var(--ink);background:var(--ink)}
+.series .sh-cross,.chart .legend .sw.sh-cross{fill:var(--soft);background:var(--soft)}
+.series .sh-on,.chart .legend .sw.sh-on{fill:var(--line-strong);background:var(--line-strong)}
+.series .sh-still{fill:none;stroke:var(--line-strong);stroke-width:1}
+.chart .legend .sw.sh-still{background:none;border:1px solid var(--line-strong)}
 .chart .legend .sw.sh-off,.chart .legend .sw.sh-cross,.chart .legend .sw.sh-on,.chart .legend .sw.sh-still{
   height:9px;width:9px;border-radius:2px;margin:0 6px 0 3px}
 .series .sh-on-hour{fill:none;stroke:var(--ink);stroke-width:1.25}
@@ -2948,7 +2946,7 @@ function isWT(id) {
 // Each card's views, picked from the same menu as the Swell card's, and kept
 // across a refresh. The same on both tabs: each tab draws its own chain.
 const WT_MODES = {
-  wind: [{id: "wind", label: "Wind"}, {id: "shore", label: "Offshore by hour"}],
+  wind: [{id: "wind", label: "Wind"}, {id: "shore", label: "Shore direction"}],
   tide: [{id: "tide", label: "Tide"}, {id: "departure", label: "Departure"}],
 };
 const WT_MODE = {wind: "wind", tide: "tide"};
@@ -3258,9 +3256,12 @@ function wtSpec(id, steps, mode) {
   };
 }
 
-// OFFSHORE BY HOUR (owner's request, 2026-10-01): how often the wind at the
-// open break's tab has been offshore, cross-shore or onshore, and at what
-// time of day -- one stacked bar per hour of the reader's clock. The verdict
+// SHORE DIRECTION (owner's request and name, 2026-10-01): how often the wind
+// at the open break's tab has been offshore, cross-shore or onshore, and at
+// what time of day. One bar per hour of the reader's clock, and each bar is
+// that hour on EVERY day counted -- 6 AM on each of 14 days is 14 readings,
+// one a day -- split by how many of those days it was each kind; the
+// readout says "over 14 days" so the bar is never read as one hour's wind. The verdict
 // is the card's own (`sense`, against that break's shore normal), so the
 // chart and the line on the card can never disagree. On Now it is KNZY's
 // measured hours in windtide.json; on Forecast, the NWS forecast hours the
@@ -3282,7 +3283,6 @@ function shoreProfile(steps) {
   const blank = () => ({off: 0, cross: 0, on: 0, still: 0, n: 0});
   const rows = Array.from({length: 24}, blank);
   const total = blank();
-  let first = null, last = null;
   steps.forEach((s) => {
     const w = fc ? s.fc : s.seen;
     if (!w || w.kt == null) return;
@@ -3292,11 +3292,8 @@ function shoreProfile(steps) {
     const row = rows[new Date(s.valid_utc).getHours()];
     row[kind] += 1; row.n += 1;
     total[kind] += 1; total.n += 1;
-    first = first || s.valid_utc;
-    last = s.valid_utc;
   });
-  return {id: card.id, name: SHORT[card.id] || card.name, rows, total, first, last,
-          source: fc ? "NWS forecast hours" : `${(WT && WT.wind_station) || "KNZY"} reports`};
+  return {id: card.id, name: SHORT[card.id] || card.name, rows, total};
 }
 
 // "6 AM" on the reader's clock, as every other time on the page is.
@@ -3304,15 +3301,12 @@ const hourName = (h) => new Date(2026, 0, 1, h).toLocaleTimeString(undefined, {h
 
 function shoreRead(p, at) {
   const r = at == null ? p.total : p.rows[at];
-  const when = at == null ? "all hours" : hourName(at);
-  if (!r.n) return `<b>${p.name}, ${when}</b> &middot; no hours to count`;
+  const when = at == null ? "all hours" : `${hourName(at)}, over ${r.n} day${r.n === 1 ? "" : "s"}`;
+  if (!r.n) return `<b>${p.name}, ${at == null ? "all hours" : hourName(at)}</b> &middot; nothing to count`;
   const pc = (k) => `${Math.round(100 * r[k] / r.n)}%`;
-  const span = at == null && p.first
-    ? ` &middot; ${p.total.n} ${p.source}, ${dayOnly(p.first)} to ${dayOnly(p.last)}`
-    : ` &middot; ${r.n} hour${r.n === 1 ? "" : "s"}`;
   return `<b>${p.name}, ${when}</b> &middot; <span class="v">offshore ${pc("off")}</span>`
     + ` &middot; cross-shore ${pc("cross")} &middot; onshore ${pc("on")}`
-    + (r.still ? ` &middot; calm or variable ${pc("still")}` : "") + span;
+    + (r.still ? ` &middot; calm or variable ${pc("still")}` : "");
 }
 
 function shorePlot(p, at) {

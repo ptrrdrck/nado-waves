@@ -302,10 +302,12 @@ forecaster actually verifies against, Surfline included.
    3-hourly after, so its line `bridge`s the model's own spacing, never a
    measured gap. Read from the archives, not rebuilt: today's chain cannot
    change a past hour. Each has a second view (owner's request, 2026-10-01):
-   *Offshore by hour* — per hour of the reader's day, how often the wind at
-   the open swell tab's break was offshore / cross / onshore / calm, by the
-   card's own `sense()` against that break's normal (KNZY hours on Now, NWS
-   hours on Forecast) — and *Departure* — the gauge's measured-less-predicted
+   *Shore direction* (owner's name) — per hour of the reader's day, over
+   every day counted, how often the wind at the open swell tab's break was
+   offshore / cross / onshore / calm, by the card's own `sense()` against
+   that break's normal (KNZY hours on Now, NWS hours on Forecast), in greys
+   only, the readout saying "over N days" because a bar is many days' one
+   reading, not one hour's — and *Departure* — the gauge's measured-less-predicted
    each hour and the trailing 3-day mean the forecast adds (`windtide`'s
    `departure_m` / `departure_mean_m`, coast-scaled like the card's).
    **No chart carries a description under it** (owner's call, same day):
