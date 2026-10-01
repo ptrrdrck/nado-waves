@@ -393,6 +393,18 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    one modelled line on that tab. */
 .series .gust{fill:var(--ink);opacity:.55} .series .gust.obs{fill:var(--measured);opacity:.8}
 .series .dir.obs{fill:var(--measured)}
+/* Shore direction, in greys only (owner's call, 2026-10-01): an ordered
+   scale from the page's ink for offshore down to the faintest rule for
+   onshore, and calm or variable -- which has no direction -- an empty
+   outline rather than a fourth shade. */
+.series .sh-off,.chart .legend .sw.sh-off{fill:var(--ink);background:var(--ink)}
+.series .sh-cross,.chart .legend .sw.sh-cross{fill:var(--soft);background:var(--soft)}
+.series .sh-on,.chart .legend .sw.sh-on{fill:var(--line-strong);background:var(--line-strong)}
+.series .sh-still{fill:none;stroke:var(--line-strong);stroke-width:1}
+.chart .legend .sw.sh-still{background:none;border:1px solid var(--line-strong)}
+.chart .legend .sw.sh-off,.chart .legend .sw.sh-cross,.chart .legend .sw.sh-on,.chart .legend .sw.sh-still{
+  height:9px;width:9px;border-radius:2px;margin:0 6px 0 3px}
+.series .sh-on-hour{fill:none;stroke:var(--ink);stroke-width:1.25}
 /* GFS-Wave's own wind on the Forecast tab's wind chart: the model's, at the
    buoy, drawn under the local forecast in the page's soft grey. */
 .series .ln.model{stroke:var(--soft);stroke-width:1.5} .series .pt.model,.series .hot.model{fill:var(--soft)}
@@ -891,7 +903,8 @@ const BUOY_TAB = "buoy";
 const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
               calc: "nado-waves.calc", chart: "nado-waves.chart",
               fcChart: "nado-waves.fc-chart", chartOpen: "nado-waves.chart-open",
-              windChart: "nado-waves.wind-chart-open", tideChart: "nado-waves.tide-chart-open"};
+              windChart: "nado-waves.wind-chart-open", tideChart: "nado-waves.tide-chart-open",
+              windView: "nado-waves.wind-view", tideView: "nado-waves.tide-view"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -1601,7 +1614,7 @@ let FC_MODE0 = "runs";
 // height; on the Forecast tab's buoy, everything but the two breaks'
 // difference, which is about the breaks.
 function chartModes(id) {
-  if (isWT(id)) return [];
+  if (isWT(id)) return WT_MODES[id];
   // The ensemble is at the buoy only: GEFS-Wave publishes total height, no
   // direction, so it cannot be carried through a break's windows.
   if (CHAIN === "fc") {
@@ -1611,7 +1624,8 @@ function chartModes(id) {
 }
 function chartModeFor(id) {
   const modes = chartModes(id);
-  return modes.some((m) => m.id === CHART_MODE) ? CHART_MODE : modes.length ? modes[0].id : "height";
+  const asked = isWT(id) ? WT_MODE[id] : CHART_MODE;
+  return modes.some((m) => m.id === asked) ? asked : modes.length ? modes[0].id : "height";
 }
 // Whether the charts are folded out. One state for every tab, like the
 // calculation's, and kept across a refresh the same way.
@@ -1871,7 +1885,7 @@ function chartSpec(id, mode, steps = chartSteps(id)) {
 }
 
 function buildSpec(id, mode, steps) {
-  if (isWT(id)) return wtSpec(id, steps);
+  if (isWT(id)) return wtSpec(id, steps, mode);
   if (CHAIN === "fc") return fcSpec(id, mode, steps);
   const station = SERIES.station || "the buoy";
   const live = (s) => !s.gap && !s.pending && !s.unbuilt;
@@ -2202,6 +2216,10 @@ function fcSpec(id, mode, steps) {
         + "standard deviation of them either side, beside the newest GFS-Wave run. It is total "
         + "height at the buoy with no direction, so it says nothing of a break's windows. "
         + measured,
+      // The one line kept under a chart once the descriptions went (owner's
+      // call, 2026-10-01): the band is drawn only beside how often the buoy
+      // has fallen inside it (CLAUDE.md, build order 5).
+      held: measured,
       read: (i) => {
         const e = steps[i].ens;
         if (!e) return "no ensemble for this hour";
@@ -2268,11 +2286,12 @@ function chartDomain(spec, a, z) {
     return {domain: [-100, 100],
             ticks: [-100, 0, 100].map((v) => ({at: v, text: v > 0 ? "+100" : v < 0 ? "−100" : "0"}))};
   }
-  if (spec.scale === "speed" || spec.scale === "tide") {
+  if (spec.scale === "speed" || spec.scale === "tide" || spec.scale === "dep") {
     let lo = Infinity, hi = -Infinity;
     const take = (v) => { if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } };
     spec.lines.forEach((ln) => { for (let i = a; i <= z; i++) take(ln.values[i]); });
     (spec.dots || []).forEach((d) => { if (d.i >= a && d.i <= z) take(d.v); });
+    if (spec.scale === "dep") return depAxis(isFinite(lo) ? lo : 0, isFinite(hi) ? hi : 0);
     return spec.scale === "speed" ? mphAxis(isFinite(hi) ? hi : 0)
       : tideAxis(isFinite(lo) ? lo : 0, isFinite(hi) ? hi : 1);
   }
@@ -2622,6 +2641,7 @@ function seriesChart(id) {
 
 function chartBody(id) {
   const steps = chartSteps(id);
+  if (isWT(id) && chartModeFor(id) === "shore") return shoreBody(steps);
   if (!steps || steps.length < 2) {
     return `<span class="src">${period(isWT(id) ? `The ${id}'s hours are not loaded`
       : CHAIN === "fc" ? "The forecast's hours are not loaded"
@@ -2643,7 +2663,7 @@ function chartBody(id) {
     <div class="plot">${moving.plot}</div>
     <div class="under">${moving.under}</div>
     ${chartLegend(spec)}
-    <span class="src">${period(spec.says)}</span>
+    ${spec.held ? `<span class="chart-note">${period(spec.held)}</span>` : ""}
   </div>`;
 }
 
@@ -2722,15 +2742,25 @@ function wireCharts() {
 
   strip.addEventListener("change", (e) => {
     const pick = e.target.closest("select[data-chart-mode]");
-    if (!pick || !(CHAIN === "fc" ? FC_MODES : CHART_MODES).some((m) => m.id === pick.value)) return;
+    if (!pick) return;
+    const pane = pick.closest("[data-chart]").getAttribute("data-chart");
+    if (isWT(pane)) {
+      // The Wind and Tide cards keep their own view, the same on both tabs.
+      if (!WT_MODES[pane].some((m) => m.id === pick.value)) return;
+      WT_MODE[pane] = pick.value;
+      remember(pane === "wind" ? KEEP.windView : KEEP.tideView, pick.value);
+      chartRedraw(`[data-chart="${pane}"] select[data-chart-mode]`);
+      return;
+    }
+    if (!(CHAIN === "fc" ? FC_MODES : CHART_MODES).some((m) => m.id === pick.value)) return;
     CHART_MODE = pick.value;
     remember(CHAIN === "fc" ? KEEP.fcChart : KEEP.chart, CHART_MODE);
-    const pane = pick.closest("[data-chart]").getAttribute("data-chart");
     chartRedraw(`[data-chart="${pane}"] select[data-chart-mode]`);
   });
 
   strip.addEventListener("pointerdown", (e) => {
     const plot = e.target.closest(".chart-body .plot");
+    if (plot && plot.classList.contains("profile")) { shoreHover(plot, e.clientX); return; }
     if (!plot || !chartLive(idOf(plot)) || (e.pointerType === "mouse" && e.button !== 0)) return;
     const steps = chartSteps(idOf(plot));
     if (steps.length < 2) return;
@@ -2756,6 +2786,7 @@ function wireCharts() {
 
   strip.addEventListener("pointermove", (e) => {
     const plot = e.target.closest(".chart-body .plot");
+    if (plot && plot.classList.contains("profile")) { shoreHover(plot, e.clientX); return; }
     if (!plot || !chartLive(idOf(plot))) return;
     const steps = chartSteps(idOf(plot));
     if (steps.length < 2) return;
@@ -2827,6 +2858,10 @@ function wireCharts() {
   // Leaving the plot with no button down puts the picked hour back.
   strip.addEventListener("pointerout", (e) => {
     const plot = e.target.closest(".chart-body .plot");
+    if (plot && plot.classList.contains("profile")) {
+      if (e.pointerType === "mouse" && !(e.relatedTarget && plot.contains(e.relatedTarget))) shoreHover(plot, null);
+      return;
+    }
     if (!plot || GESTURE || e.pointerType !== "mouse" || (e.relatedTarget && plot.contains(e.relatedTarget))) return;
     const id = idOf(plot);
     const steps = chartSteps(id);
@@ -2835,7 +2870,7 @@ function wireCharts() {
 
   strip.addEventListener("wheel", (e) => {
     const plot = e.target.closest(".chart-body .plot");
-    if (!plot || !chartLive(idOf(plot)) || GESTURE) return;
+    if (!plot || plot.classList.contains("profile") || !chartLive(idOf(plot)) || GESTURE) return;
     const zoom = e.ctrlKey || e.metaKey;
     if (!zoom && Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;  // the page's scroll
     const steps = chartSteps(idOf(plot));
@@ -2859,7 +2894,7 @@ function wireCharts() {
 
   strip.addEventListener("keydown", (e) => {
     const svg = e.target.closest("svg.series");
-    if (!svg || !chartLive(svg.getAttribute("data-series"))) return;
+    if (!svg || svg.classList.contains("shore") || !chartLive(svg.getAttribute("data-series"))) return;
     const steps = chartSteps(svg.getAttribute("data-series"));
     const n = steps.length;
     if (n < 2) return;
@@ -2908,6 +2943,13 @@ function wireCharts() {
 function isWT(id) {
   return id === "wind" || id === "tide";
 }
+// Each card's views, picked from the same menu as the Swell card's, and kept
+// across a refresh. The same on both tabs: each tab draws its own chain.
+const WT_MODES = {
+  wind: [{id: "wind", label: "Wind"}, {id: "shore", label: "Shore direction"}],
+  tide: [{id: "tide", label: "Tide"}, {id: "departure", label: "Departure"}],
+};
+const WT_MODE = {wind: "wind", tide: "tide"};
 // The Now tab's tide runs a day past the present, so it opens on two days
 // with the present in the middle, and has a button for that.
 const NOW_TIDE_RANGES = [
@@ -2925,7 +2967,7 @@ function wtAt(k) {
   const col = (arr) => (arr && arr[k] != null ? arr[k] : null);
   const w = WT.wind || {};
   return {kt: col(w.kt), from: col(w.from_deg), gust: col(w.gust_kt), age: col(w.age_min),
-          tide: col(WT.tide_m)};
+          tide: col(WT.tide_m), dep: col(WT.departure_m), depMean: col(WT.departure_mean_m)};
 }
 function wtIndex(ms) {
   if (!WT || !WT.start_utc) return -1;
@@ -3037,7 +3079,26 @@ function tideAxis(lo, hi) {
   return {domain: [k0 * step / FT_PER_M, k1 * step / FT_PER_M], ticks};
 }
 
-function wtSpec(id, steps) {
+// The departure's axis: from zero to the furthest reading either side, in
+// signed feet, rounded outward to a whole tick -- not symmetric, because the
+// gauge has run on one side of its prediction for weeks at a time and a
+// mirrored empty half would flatten the line that matters.
+function depAxis(lo, hi) {
+  const a = Math.min(0, lo) * FT_PER_M, b = Math.max(0, hi) * FT_PER_M;
+  // Only a side that has readings gets the margin; zero itself is the edge.
+  const lowK = (f) => (a < 0 ? Math.floor(a / f - 0.05) : 0);
+  const highK = (f) => (b > 0 ? Math.ceil(b / f + 0.05) : 0);
+  const step = [0.25, 0.5, 1, 2, 5].find((f) => highK(f) - lowK(f) <= 4) || 10;
+  const k0 = lowK(step), k1 = Math.max(k0 + 1, highK(step));
+  const ticks = [];
+  for (let k = k0; k <= k1; k++) {
+    const v = Number((k * step).toFixed(2));
+    ticks.push({at: v / FT_PER_M, text: v === 0 ? "0" : `${v < 0 ? "−" : "+"}${Math.abs(v)} ft`});
+  }
+  return {domain: [k0 * step / FT_PER_M, k1 * step / FT_PER_M], ticks};
+}
+
+function wtSpec(id, steps, mode) {
   const fc = CHAIN === "fc";
   const value = (text, cls = "") => `<span class="v${cls ? " " + cls : ""}">${text}</span>`;
   const now = fcNowAt(steps);
@@ -3121,6 +3182,33 @@ function wtSpec(id, steps) {
     };
   }
 
+  // The gauge's measured departure from its own harmonic prediction, each
+  // hour, and the trailing 3-day mean of it a forecast built at that hour
+  // would have added (forecast.windtide). Measured on both tabs: green on
+  // the forecast's, as everything measured there is.
+  if (mode === "departure") {
+    const dep = steps.map((s) => (s.seen ? s.seen.dep : null));
+    const mean = steps.map((s) => (s.seen ? s.seen.depMean : null));
+    const days = Math.round((W.departure_hours || 72) / 24);
+    return {
+      scale: "dep", now, zero: true,
+      lines: [{cls: "slow", label: `${days}-day mean`, values: mean},
+              {cls: fc ? "obs" : "main", label: "Measured less predicted", values: dep}],
+      legend: [{cls: fc ? "obs" : "main", label: "Measured less predicted, each hour"},
+               {cls: "slow", label: `${days}-day mean, what the forecast adds`}],
+      says: "The gauge's measured level less its harmonic prediction each hour, on the open "
+        + `coast, and the ${days}-day mean of it that the forecast's tide carries`,
+      read: (i) => {
+        const d = dep[i], m = mean[i];
+        if (d == null && m == null) {
+          return covered(i) ? "no gauge sample at this hour, left as a gap" : "not measured yet";
+        }
+        return value(`Measured less predicted ${signedHeight(d)}`, fc ? "obs" : "")
+          + (m != null ? ` &middot; ${days}-day mean ${signedHeight(m)}` : "");
+      },
+    };
+  }
+
   // The tide.
   const seen = steps.map((s) => (s.seen ? s.seen.tide : null));
   const site = W.tide_site || "the open coast";
@@ -3166,6 +3254,124 @@ function wtSpec(id, steps) {
           : covered(i) ? ` &middot; ${noSample}` : "");
     },
   };
+}
+
+// SHORE DIRECTION (owner's request and name, 2026-10-01): how often the wind
+// at the open break's tab has been offshore, cross-shore or onshore, and at
+// what time of day. One bar per hour of the reader's clock, and each bar is
+// that hour on EVERY day counted -- 6 AM on each of 14 days is 14 readings,
+// one a day -- split by how many of those days it was each kind; the
+// readout says "over 14 days" so the bar is never read as one hour's wind. The verdict
+// is the card's own (`sense`, against that break's shore normal), so the
+// chart and the line on the card can never disagree. On Now it is KNZY's
+// measured hours in windtide.json; on Forecast, the NWS forecast hours the
+// Local reading comes from. An hour with no report counts nowhere; a calm
+// or variable wind has no direction and is its own share.
+const SHORE = {w: 320, h: 150, l: 4, r: 6, t: 10, b: 20};
+const SHORE_KINDS = [
+  {id: "off", label: "Offshore", cls: "sh-off"},
+  {id: "cross", label: "Cross-shore", cls: "sh-cross"},
+  {id: "on", label: "Onshore", cls: "sh-on"},
+  {id: "still", label: "Calm or variable", cls: "sh-still"},
+];
+
+function shoreProfile(steps) {
+  const fc = CHAIN === "fc";
+  const cards = fc ? (DATA && DATA.breaks) || [] : (NOW && NOW.breaks) || [];
+  const card = cards.find((b) => b.id === SWELL_TAB);
+  if (!card || card.shore_normal_deg == null) return null;
+  const blank = () => ({off: 0, cross: 0, on: 0, still: 0, n: 0});
+  const rows = Array.from({length: 24}, blank);
+  const total = blank();
+  steps.forEach((s) => {
+    const w = fc ? s.fc : s.seen;
+    if (!w || w.kt == null) return;
+    const kind = !w.kt || w.from == null ? "still"
+      : {offshore: "off", "cross-shore": "cross", onshore: "on"}[
+        sense(-Math.cos((w.from - card.shore_normal_deg) * Math.PI / 180))];
+    const row = rows[new Date(s.valid_utc).getHours()];
+    row[kind] += 1; row.n += 1;
+    total[kind] += 1; total.n += 1;
+  });
+  return {id: card.id, name: SHORT[card.id] || card.name, rows, total};
+}
+
+// "6 AM" on the reader's clock, as every other time on the page is.
+const hourName = (h) => new Date(2026, 0, 1, h).toLocaleTimeString(undefined, {hour: "numeric"});
+
+function shoreRead(p, at) {
+  const r = at == null ? p.total : p.rows[at];
+  const when = at == null ? "all hours" : `${hourName(at)}, over ${r.n} day${r.n === 1 ? "" : "s"}`;
+  if (!r.n) return `<b>${p.name}, ${at == null ? "all hours" : hourName(at)}</b> &middot; nothing to count`;
+  const pc = (k) => `${Math.round(100 * r[k] / r.n)}%`;
+  return `<b>${p.name}, ${when}</b> &middot; <span class="v">offshore ${pc("off")}</span>`
+    + ` &middot; cross-shore ${pc("cross")} &middot; onshore ${pc("on")}`
+    + (r.still ? ` &middot; calm or variable ${pc("still")}` : "");
+}
+
+function shorePlot(p, at) {
+  const {w, h, l, r, t, b} = SHORE;
+  const plotW = w - l - r, bottom = h - b;
+  const slot = plotW / 24;
+  const Y = (share) => bottom - (bottom - t) * share;
+  const f = (v) => v.toFixed(1);
+  let out = "", labels = "";
+  // Gridlines under the bars, their labels over them (haloed like every
+  // other chart's), so a full bar never hides its own scale.
+  [0, 0.5, 1].forEach((v) => {
+    out += `<line class="grid" x1="${l}" x2="${w - r}" y1="${f(Y(v))}" y2="${f(Y(v))}"/>`;
+    labels += `<text class="tick ytick" x="${l + 2}" y="${f(Y(v) - 3)}">${v ? `${v * 100}%` : "0"}</text>`;
+  });
+  p.rows.forEach((row, k) => {
+    const x = l + k * slot + 1, bw = Math.max(1, slot - 2);
+    if (k % 6 === 0) {
+      out += `<line class="day" x1="${f(l + k * slot)}" x2="${f(l + k * slot)}" y1="${t}" y2="${bottom}"/>`
+        + `<text class="tick" x="${f(l + k * slot + 3)}" y="${h - 6}">${hourName(k)}</text>`;
+    }
+    if (!row.n) return;
+    let base = 0;
+    SHORE_KINDS.forEach((kind) => {
+      const share = row[kind.id] / row.n;
+      if (!share) return;
+      // A 2 px surface gap between stacked segments, as between bars.
+      const y0 = Y(base + share), y1 = Y(base);
+      out += `<rect class="${kind.cls}" x="${f(x)}" y="${f(y0 + 1)}" width="${f(bw)}" height="${f(Math.max(0.5, y1 - y0 - 1))}" rx="1"/>`;
+      base += share;
+    });
+    if (k === at) {
+      out += `<rect class="sh-on-hour" x="${f(x - 1)}" y="${t - 2}" width="${f(bw + 2)}" height="${f(bottom - t + 3)}" rx="2"/>`;
+    }
+  });
+  return `<svg class="series shore" viewBox="0 0 ${w} ${h}" role="img"`
+    + ` aria-label="${svgText(`How often the wind at ${p.name} has been offshore, cross-shore or onshore, by hour of day.`)}">`
+    + out + labels + `</svg>`;
+}
+
+function shoreBody(steps) {
+  const modes = WT_MODES.wind.map((m) => `<option value="${m.id}"${m.id === "shore" ? " selected" : ""}>${m.label}</option>`).join("");
+  const menu = `<span class="pick-wrap"><select class="pick" data-chart-mode aria-label="Which chart">${modes}</select></span>`;
+  const p = steps && steps.length ? shoreProfile(steps) : null;
+  const body = !SWELL_TAB || SWELL_TAB === BUOY_TAB
+    ? `<span class="src">Open a break's tab: the buoy has no shore, so no offshore or onshore.</span>`
+    : !p ? `<span class="src">${period(CHAIN === "fc" ? "No local forecast hours to count" : "The wind's hours are not loaded")}</span>`
+    : `<div class="readout" aria-live="polite"><div>${shoreRead(p, null)}</div></div>
+       <div class="plot profile">${shorePlot(p, null)}</div>
+       <div class="legend">${SHORE_KINDS.map((k) => `<span><i class="sw ${k.cls}"></i>${k.label}</span>`).join("")}</div>`;
+  return `<div class="chart-body" data-chart="wind">${menu}${body}</div>`;
+}
+
+// The hour under a pointer, read out and outlined; none puts the totals back.
+function shoreHover(plot, clientX) {
+  const p = shoreProfile(chartSteps("wind"));
+  if (!p) return;
+  let at = null;
+  if (clientX != null) {
+    const x = plotX(plot, clientX);
+    at = Math.max(0, Math.min(23, Math.floor((x - SHORE.l) / ((SHORE.w - SHORE.l - SHORE.r) / 24))));
+  }
+  const body = plot.closest("[data-chart]");
+  body.querySelector(".readout").innerHTML = `<div>${shoreRead(p, at)}</div>`;
+  plot.innerHTML = shorePlot(p, at);
 }
 
 // The fold under the Wind and Tide cards: its own caret and its own open
@@ -3253,6 +3459,8 @@ function windAtBreaks(cards) {
 function selectSwellTab(id, {focus = false} = {}) {
   SWELL_TAB = id;
   remember(KEEP.swell, id);
+  const shore = $("chart-fold-wind");
+  if (shore && chartModeFor("wind") === "shore") shore.innerHTML = chartBody("wind");
   document.querySelectorAll("[data-wind-for]").forEach((line) => {
     line.hidden = line.getAttribute("data-wind-for") !== id;
   });
@@ -3898,6 +4106,8 @@ function boot(data, observed, measured, series, windtide) {
   CHART_OPEN = recall(KEEP.chartOpen) === "open";
   CARD_CHART_OPEN.wind = recall(KEEP.windChart) === "open";
   CARD_CHART_OPEN.tide = recall(KEEP.tideChart) === "open";
+  WT_MODE.wind = recall(KEEP.windView) || WT_MODE.wind;
+  WT_MODE.tide = recall(KEEP.tideView) || WT_MODE.tide;
   setMode(recall(KEEP.mode) === "forecast" ? "forecast" : "now");
 
   // The observed age moves whether or not anything else does, so the observed

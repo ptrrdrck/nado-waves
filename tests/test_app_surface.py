@@ -2332,13 +2332,80 @@ class TestTheWindAndTideCharts:
         # paths, dots
         assert got == ["1 0", "1 1", "1 1"]
 
+    def test_the_departure_is_measured_less_predicted_with_its_mean(self):
+        """Owner's request, 2026-10-01: the gauge's departure from its harmonic
+        prediction over time, and the 3-day mean the forecast adds."""
+
+        got = self._run(
+            "WT.departure_m = [0.30, null, 0.33, 0.31, 0.29, 0.32];\n"
+            "WT.departure_mean_m = [0.30, 0.30, 0.31, 0.31, 0.31, 0.31];\n"
+            "WT.departure_hours = 72;\n"
+            "const spec = chartSpec('tide', 'departure');\n"
+            "console.log(spec.scale, spec.zero, spec.lines.map((l) => l.cls).join(','));\n"
+            "console.log(spec.lines[1].values.slice(0, 6).join(','));\n"
+            "console.log(spec.read(0)); console.log(spec.read(1));\n"
+            "CHAIN = 'fc'; DATA = {generated_utc: 'g', hourly: {start_utc: at(0), tide_m: [1, 1, 1, 1, 1, 1]}};\n"
+            "console.log(chartSpec('tide', 'departure').lines.map((l) => l.cls).join(','));"
+        )
+        assert got[0] == "dep true slow,main"
+        assert got[1] == "0.3,,0.33,0.31,0.29,0.32"            # a missing sample is a gap
+        assert "Measured less predicted" in got[2] and "3-day mean" in got[2]
+        assert "3-day mean" in got[3]
+        assert got[4] == "slow,obs"                             # measured is green there
+
+    def test_shore_direction_counts_each_hour_at_the_open_break(self):
+        """Owner's request, 2026-10-01: how often the wind at a break is
+        offshore, cross-shore or onshore, by hour of day, with the card's own
+        verdict against that break's shore normal."""
+
+        start = SOURCE.index("function sense(")
+        sense = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        got = self._run(
+            sense +
+            "let SWELL_TAB = 'coronado_north';\n"
+            "NOW = {breaks: [{id: 'coronado_north', name: 'North', shore_normal_deg: 194}]};\n"
+            "const p = shoreProfile(chartSteps('wind'));\n"
+            "console.log(p.name, JSON.stringify(p.total));\n"
+            "const h = (k) => new Date(Date.parse(at(k))).getHours();\n"
+            "console.log(JSON.stringify(p.rows[h(0)]), JSON.stringify(p.rows[h(3)]));\n"
+            "console.log(shoreRead(p, null)); console.log(shoreRead(p, h(2)));\n"
+            "SWELL_TAB = 'buoy'; console.log(shoreProfile(chartSteps('wind')));"
+        )
+        # 270° and 300°-320° against a 194° normal are cross-shore and onshore;
+        # 0 kt is calm; the missing hour counts nowhere.
+        total = json.loads(got[0].split(" ", 1)[1])
+        assert got[0].startswith("North ") and total["n"] == 5 and total["still"] == 1
+        assert total["off"] + total["cross"] + total["on"] + total["still"] == 5
+        row0, row3 = (json.loads(x) for x in got[1].split(" "))
+        assert row0["n"] == 1 and row3["n"] == 1
+        # Owner's call, 2026-10-01: no report count or date range in the
+        # readout; an hour's bar reads "over N days", one reading a day.
+        assert "North, all hours" in got[2] and "KNZY" not in got[2] and " to " not in got[2]
+        assert "over 1 day" in got[3] and "calm or variable 100%" in got[3]
+        assert got[4] == "null"                                  # the buoy has no shore
+
     def test_speeds_are_in_mph_and_the_tide_in_feet(self):
         got = self._run(
             "console.log(mphAxis(9).ticks.map((t) => t.text).join(','));\n"
-            "console.log(tideAxis(-0.2, 2.1).ticks.map((t) => t.text).join(','));"
+            "console.log(tideAxis(-0.2, 2.1).ticks.map((t) => t.text).join(','));\n"
+            "console.log(depAxis(0.25, 0.36).ticks.map((t) => t.text).join(','));\n"
+            "console.log(depAxis(-0.1, 0.36).ticks.map((t) => t.text).join(','));"
         )
         assert got[0] == "0,5 mph,10 mph,15 mph"
         assert got[1] == "−2 ft,0,2 ft,4 ft,6 ft,8 ft"
+        # The departure's axis runs from zero, not mirrored about it.
+        assert got[2] == "0,+0.5 ft,+1 ft,+1.5 ft"
+        assert got[3] == "−0.5 ft,0,+0.5 ft,+1 ft,+1.5 ft"
+
+    def test_shore_direction_is_named_so_and_drawn_in_greys(self):
+        """Owner's calls, 2026-10-01."""
+
+        assert '{id: "shore", label: "Shore direction"}' in SOURCE
+        assert "Offshore by hour" not in SOURCE
+        css = SOURCE[:SOURCE.index("</style>")]
+        for kind, token in (("off", "--ink"), ("cross", "--soft"), ("on", "--line-strong")):
+            assert f".series .sh-{kind},.chart .legend .sw.sh-{kind}{{fill:var({token})" in css
+        assert "--sh-" not in SOURCE
 
 
 class TestTheForecastCharts:
@@ -2589,14 +2656,19 @@ class TestTheProvenanceDivider:
         css = SOURCE[:SOURCE.index("</style>")]
         assert ".chart{display:flex;flex-direction:column;gap:6px}" in css
 
-    def test_the_charts_own_explanation_is_not_a_second_provenance_block(self):
-        """It explains the chart, not where the card came from: inside the
-        block it drew a second rule a line above the card's own."""
+    def test_the_charts_draw_no_description_under_the_legend(self):
+        """Owner's call, 2026-10-01: no description under any chart. What a
+        chart is stays as its plot's spoken label and on info.html; the one
+        line kept is the Ensemble's measured coverage, because the band is
+        drawn only beside it. Never a second provenance block either."""
 
         body = SOURCE[SOURCE.index("function chartBody("):]
         body = body[:body.index("\n}\n")]
         assert "srcLines(" not in body
-        assert '<span class="src">${period(spec.says)}</span>' in body
+        assert "spec.says" not in body
+        assert '${spec.held ? `<span class="chart-note">${period(spec.held)}</span>` : ""}' in body
+        assert SOURCE.count("held: measured,") == 1               # the Ensemble's alone
+        assert 'aria-label="${svgText(label)}"' in SOURCE          # still spoken
 
 
 class TestHousekeeping20260930:
