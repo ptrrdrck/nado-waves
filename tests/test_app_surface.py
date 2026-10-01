@@ -627,7 +627,7 @@ class TestTheTwoChains:
         assert "Object.keys(standing" in INFO
         assert 'renderStanding($("standing-now"), NOW.standing_on' in INFO
         assert 'renderStanding($("standing-forecast"), DATA.standing_on' in INFO
-        assert "What NOW(ISH) is standing on" in INFO
+        assert "What &ldquo;LIVE&rdquo; is standing on" in INFO
         assert "What Forecast is standing on" in INFO
 
     def test_now_labels_its_inputs_as_measurements(self):
@@ -2674,9 +2674,14 @@ class TestTheProvenanceDivider:
 class TestHousekeeping20260930:
     """Owner's calls, 2026-09-30."""
 
-    def test_the_observed_tab_is_now_ish(self):
-        assert 'aria-controls="panel">NOW(ISH)</button>' in SOURCE
-        assert "What NOW(ISH) is standing on" in INFO
+    def test_the_observed_tab_is_live_in_quotes(self):
+        """Owner's call, 2026-10-01: the label points at the updating feeds,
+        and the quotation marks keep it from claiming the present; each
+        card's countdown carries the honesty about how live it is."""
+
+        assert 'aria-controls="panel">&ldquo;LIVE&rdquo;</button>' in SOURCE
+        assert "NOW(ISH)" not in SOURCE and "NOW(ISH)" not in INFO
+        assert "What &ldquo;LIVE&rdquo; is standing on" in INFO
 
     def test_the_readout_keeps_room_for_three_lines(self):
         """A reading that grows onto a third line while scrubbing must not push
