@@ -143,3 +143,32 @@ class TestThePrediction:
         assert "OBSERVED" in got["standing_on"]["tide"]
         assert "PREDICTED" in got["standing_on"]["prediction"]
         assert got["tide_m"][-1] == pytest.approx(RATIO * 2.0, abs=1e-3)
+
+
+class TestTheDeparture:
+    """The gauge's measured departure from its own harmonic prediction, each
+    hour, and the trailing 3-day mean of it the forecast's tide carries --
+    both scaled to the open coast as the card's correction is."""
+
+    def test_each_hour_and_the_mean_the_forecast_would_have_added(self, tmp_path):
+        hours = [HOUR + timedelta(hours=h) for h in range(-80, 1)]
+        write_wind(tmp_path, [])
+        write_tide(tmp_path, [(t, 1.0 + (0.4 if t >= HOUR - timedelta(hours=2) else 0.2))
+                              for t in hours],
+                   predicted=[(t, 1.0) for t in hours])
+        got = windtide.build(tmp_path, now=NOW)
+        assert got["departure_m"][-1] == pytest.approx(RATIO * 0.4, abs=1e-3)
+        assert got["departure_m"][-4] == pytest.approx(RATIO * 0.2, abs=1e-3)
+        # 73 hourly pairs in the 72 h up to and including the hour, 3 of them 0.4.
+        assert got["departure_mean_m"][-1] == pytest.approx(RATIO * (70 * 0.2 + 3 * 0.4) / 73, abs=1e-3)
+        # The newest mean is exactly what the forecast carries now.
+        assert got["departure_mean_m"][-1] == got["prediction"]["departure_m"]
+
+    def test_an_hour_without_its_sample_or_its_prediction_is_a_gap(self, tmp_path):
+        write_wind(tmp_path, [])
+        write_tide(tmp_path, [(HOUR - timedelta(hours=1), 1.2), (HOUR, 1.3)],
+                   predicted=[(HOUR - timedelta(hours=1), 1.0)])
+        got = windtide.build(tmp_path, now=NOW)
+        assert got["departure_m"][-2] == pytest.approx(RATIO * 0.2, abs=1e-3)
+        assert got["departure_m"][-1] is None
+        assert got["departure_mean_m"][-1] == pytest.approx(RATIO * 0.2, abs=1e-3)

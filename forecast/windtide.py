@@ -51,7 +51,8 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR, ISO
 
 from .live import TIDE_STATION, TIDE_STATION_NAME, WIND_STATION, WIND_STATION_NAME
-from .tidesite import ANOMALY_HOURS, SITE_NAME, anomaly, coast_height, coast_predicted, predicted_series
+from .tidesite import (ANOMALY_HOURS, SITE_NAME, _read, anomaly, coast_height, coast_predicted,
+                       predicted_series)
 
 #: How far back the charts reach: a month, the chart's 1M.
 REACH_HOURS = 31 * 24
@@ -134,6 +135,34 @@ def tide_slots(data_dir: Path, hours: list[datetime]) -> list[float | None]:
             for k in (h.strftime(ISO) for h in hours)]
 
 
+def departure_slots(data_dir: Path, hours: list[datetime]) -> tuple[list, list]:
+    """The gauge's measured departure from its own harmonic prediction at each
+    hour, and the trailing mean of it the forecast carries, both on the open
+    coast (scaled as the card's correction is).
+
+    The hourly figure is the sample at the hour less the prediction for it,
+    or None where either is missing. The mean is `tidesite.anomaly`'s, worked
+    for every hour: all the hourly pairs in the `ANOMALY_HOURS` up to it,
+    whatever their number -- what a forecast built at that hour would have
+    added, not a smoothed line of this chart's own."""
+
+    tide = Path(data_dir) / "tide"
+    observed = dict(_read(tide / f"{TIDE_STATION}_observed.csv"))
+    predicted = dict(_read(tide / f"{TIDE_STATION}_predicted.csv"))
+    pairs = sorted((t, v - predicted[t]) for t, v in observed.items() if t in predicted)
+    times = [t for t, _ in pairs]
+    each, mean = [], []
+    for slot in hours:
+        dep = observed.get(slot)
+        dep = None if dep is None or slot not in predicted else dep - predicted[slot]
+        each.append(None if dep is None else round(coast_height(dep), 3))
+        lo = bisect.bisect_left(times, slot - timedelta(hours=ANOMALY_HOURS))
+        hi = bisect.bisect_right(times, slot)
+        window = [d for _, d in pairs[lo:hi]]
+        mean.append(round(coast_height(sum(window) / len(window)), 3) if window else None)
+    return each, mean
+
+
 def prediction(data_dir: Path, now: datetime, hours: int = PREDICT_HOURS) -> dict:
     """The next `hours` of harmonic prediction at the open coast, hourly from
     the hour `now` falls in, with the measured departure added."""
@@ -166,6 +195,7 @@ def build(data_dir: Path = DEFAULT_DATA_DIR, *, now: datetime | None = None,
                   if wind["kt"][i] is not None or tide[i] is not None), len(marks) - 1)
     marks, tide = marks[first:], tide[first:]
     wind = {key: values[first:] for key, values in wind.items()}
+    departure, departure_mean = departure_slots(data_dir, marks)
     return {
         "generated_utc": moment.strftime(ISO),
         "start_utc": marks[0].strftime(ISO),
@@ -178,12 +208,18 @@ def build(data_dir: Path = DEFAULT_DATA_DIR, *, now: datetime | None = None,
         "tide_site": SITE_NAME,
         "wind": wind,
         "tide_m": tide,
+        "departure_m": departure,
+        "departure_mean_m": departure_mean,
+        "departure_hours": ANOMALY_HOURS,
         "prediction": prediction(data_dir, moment),
         "standing_on": {
             "wind": f"OBSERVED — {WIND_STATION}'s METAR taken in the hour up to each slot; "
                     "an hour without one is a gap, never the report beside it",
             "tide": f"OBSERVED — {TIDE_STATION}'s sample at each hour exactly, carried to the "
                     "open coast; an hour without one is a gap",
+            "departure": f"OBSERVED less PREDICTED — {TIDE_STATION}'s sample at each hour "
+                         "less its harmonic prediction, on the open coast, and the trailing "
+                         f"{ANOMALY_HOURS // 24}-day mean the forecast adds",
             "prediction": f"PREDICTED — the harmonic tide at {TIDE_STATION} for the next "
                           f"{PREDICT_HOURS} h, carried to the open coast, plus the gauge's "
                           f"measured departure from it over the last {ANOMALY_HOURS // 24} days",

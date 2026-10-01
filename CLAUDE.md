@@ -301,7 +301,17 @@ forecaster actually verifies against, Surfline included.
    buoy wind in grey (owner's request, same day) — hourly to +120 h and
    3-hourly after, so its line `bridge`s the model's own spacing, never a
    measured gap. Read from the archives, not rebuilt: today's chain cannot
-   change a past hour. Opens on Now;
+   change a past hour. Each has a second view (owner's request, 2026-10-01):
+   *Offshore by hour* — per hour of the reader's day, how often the wind at
+   the open swell tab's break was offshore / cross / onshore / calm, by the
+   card's own `sense()` against that break's normal (KNZY hours on Now, NWS
+   hours on Forecast) — and *Departure* — the gauge's measured-less-predicted
+   each hour and the trailing 3-day mean the forecast adds (`windtide`'s
+   `departure_m` / `departure_mean_m`, coast-scaled like the card's).
+   **No chart carries a description under it** (owner's call, same day):
+   what each draws lives on `info.html` and in the plot's spoken label. The
+   one line kept is the Ensemble's measured coverage, because the band is
+   drawn only beside it. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
    still opens on Now); a stale or missing observation
    says so and points at Forecast rather than falling back silently. The
