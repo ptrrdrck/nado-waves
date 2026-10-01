@@ -169,7 +169,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* The break card's headline with its caret at the right end. The caret
    points up while the calculation is folded away and down once it is open
    beneath the line (owner's design, 2026-09-26). */
-.val-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+/* The whole breaking-height line folds the calculation out, not only its
+   caret (owner's call, 2026-10-01), as the "Charts" line does its charts. */
+.val-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+         cursor:pointer;-webkit-user-select:none;user-select:none}
+.val-row:hover .calc-toggle{color:var(--ink)}
 .calc-toggle{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 0;
              padding:0;border:0;border-radius:6px;background:transparent;color:var(--soft);cursor:pointer}
 .calc-toggle:hover{color:var(--ink)}
@@ -3269,7 +3273,8 @@ function wireSwellTabs() {
   strip.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-swell-tab]");
     if (btn) selectSwellTab(btn.getAttribute("data-swell-tab"));
-    if (e.target.closest("[data-calc-toggle]")) setCalcOpen(!CALC_OPEN);
+    // The caret, or anywhere else on the headline's line.
+    if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row")) setCalcOpen(!CALC_OPEN);
   });
   strip.addEventListener("keydown", (e) => {
     const btn = e.target.closest("[data-swell-tab]");

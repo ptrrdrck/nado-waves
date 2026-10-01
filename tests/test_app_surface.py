@@ -897,7 +897,8 @@ class TestTheCalculationTable:
         assert '.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}' in SOURCE
         assert 'calc: "nado-waves.calc"' in SOURCE
         assert 'CALC_OPEN = recall(KEEP.calc) === "open";' in SOURCE
-        assert 'if (e.target.closest("[data-calc-toggle]")) setCalcOpen(!CALC_OPEN);' in SOURCE
+        assert ('if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row"))'
+                ' setCalcOpen(!CALC_OPEN);') in SOURCE
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         panel = panel[:panel.index("function depthText")]
         # An earlier run's hour keeps only its headline: no caret, no table.
@@ -2223,6 +2224,16 @@ class TestTheWindAndTideCharts:
         wire = SOURCE[SOURCE.index("function wireCharts"):]
         assert 'const head = e.target.closest(".chart-head");' in wire
         assert 'pick("[data-chart-toggle]")' in wire and 'pick("[data-card-chart-toggle]")' in wire
+
+    def test_the_whole_headline_line_folds_out_the_calculation(self):
+        """Owner's call, 2026-10-01: the breaking height's whole line toggles
+        the calculation table on both tabs, as the "Charts" line does."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        row = css[css.index(".val-row{"):css.index("}", css.index(".val-row{"))]
+        assert "cursor:pointer" in row
+        assert ('if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row"))'
+                ' setCalcOpen(!CALC_OPEN);') in SOURCE
 
     def test_the_chart_sits_above_the_cards_provenance(self):
         """Owner's call, 2026-09-30: like the Swell card's, above the card's
