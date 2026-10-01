@@ -235,8 +235,10 @@ forecaster actually verifies against, Surfline included.
    rather than two views of one.** *Now* is built only from measurements
    (`now.json`: NDBC directional spectrum, KNZY METAR, measured water level);
    *Forecast* only from a model (`forecast.json`: GFS-Wave). The observed
-   tab's label reads **NOW(ISH)** (owner's call, 2026-09-30): it is the
-   newest measurement, not the present. Each renders its
+   tab's label reads **“LIVE”**, quotation marks included (owner's call,
+   2026-10-01, replacing 2026-09-30's NOW(ISH)): it points at the updating
+   feeds, the quotes keep it from claiming the present, and each card's
+   countdown is what states how live the reading actually is. Each renders its
    own "standing on" block from whatever keys its file carries, because the
    two name different levels — both on `app/info.html`, each under its own
    heading and from its own file, beside the "physically derived" caveat and
