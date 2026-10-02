@@ -319,10 +319,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* The whole line folds the charts out, not only its caret (owner's call,
    2026-09-30); the caret still lights with it. */
 .chart-head:hover .calc-toggle{color:var(--ink)}
-/* On the Wind and Tide cards the line sits straight under the reading, so it
-   takes the room the Swell card's pane gives it: as much above the line as
-   there is between the chart and the divider below (2 px of gap + 8). */
-.cond > .chart,.cond .subcond > .chart{margin-top:8px}
+/* The "Charts" line is the last thing on every card, below the provenance,
+   under a second rule spaced exactly as the provenance's own (owner's call,
+   2026-10-02): 8 px of margin on the card's 2 px gap above it, 9 px below.
+   The swell card's gap is wider, so it takes less margin to match. */
+.cond > .chart{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
+.cond.swell > .chart{margin-top:2px}
 .chart-fold,.chart-body{display:flex;flex-direction:column;gap:6px}
 /* Which chart, as a menu (owner's design, 2026-09-27): four views in a row
    of tabs crowded a phone and read as a second set of break tabs. */
@@ -1133,8 +1135,6 @@ function breakPanel(c) {
 
     ${drawing || windowList(c.swellWindow)}
 
-    ${c.chart ? seriesChart(c.id) : ""}
-
     ${offshore}`;
 }
 
@@ -1558,9 +1558,8 @@ function wireDrawings() {
 }
 
 // The buoy's tab: the offshore spectrum itself, before any aperture.
-function buoyPanel(buoy, measured = null, chart = false) {
-  const line = measuredLine(measured, (m) => m.buoy)
-    + (chart ? seriesChart(BUOY_TAB) : "");
+function buoyPanel(buoy, measured = null) {
+  const line = measuredLine(measured, (m) => m.buoy);
   if (!buoy || buoy.hs_m == null) {
     return '<span class="val"><span class="unit">no spectrum</span></span>' + line;
   }
@@ -2631,9 +2630,10 @@ function chartMoving(id, at, steps, view) {
   };
 }
 
-// The line the charts fold out from, and the fold.
-function seriesChart(id) {
-  return `<div class="chart">
+// The line the charts fold out from, and the fold. One per swell tab, below
+// the card's provenance, shown with its tab (`selectSwellTab`).
+function seriesChart(id, hidden = false) {
+  return `<div class="chart" data-chart-tab="${id}"${hidden ? " hidden" : ""}>
     <div class="chart-head"><span>Charts</span>${chartToggle(id)}</div>
     <div class="chart-fold" id="chart-fold-${id}"${CHART_OPEN ? "" : " hidden"}>${chartBody(id)}</div>
   </div>`;
@@ -3411,10 +3411,10 @@ function cardChart(id) {
 function swellCard({label, buoy, station, cards, source, due = "", measured = null,
                     chart = false}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
-    id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c),
+    id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
   }));
   tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy",
-             body: buoyPanel(buoy, measured, chart)});
+             body: buoyPanel(buoy, measured), chart});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
@@ -3430,6 +3430,7 @@ function swellCard({label, buoy, station, cards, source, due = "", measured = nu
     ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
       aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
     ${srcLines(source, due)}
+    ${tabs.filter((tab) => tab.chart).map((tab) => seriesChart(tab.id, tab.id !== chosen)).join("")}
   </div>`;
 }
 
@@ -3463,6 +3464,9 @@ function selectSwellTab(id, {focus = false} = {}) {
   if (shore && chartModeFor("wind") === "shore") shore.innerHTML = chartBody("wind");
   document.querySelectorAll("[data-wind-for]").forEach((line) => {
     line.hidden = line.getAttribute("data-wind-for") !== id;
+  });
+  document.querySelectorAll("[data-chart-tab]").forEach((chart) => {
+    chart.hidden = chart.getAttribute("data-chart-tab") !== id;
   });
   document.querySelectorAll("[data-swell-tab]").forEach((btn) => {
     const on = btn.getAttribute("data-swell-tab") === id;
@@ -3506,7 +3510,7 @@ function wireSwellTabs() {
 // the model is making offshore; this one says whether it is offshore at a
 // break, per break, as the Now tab's measured KNZY wind does. A past hour
 // whose build kept no local wind says nothing rather than borrowing today's.
-function localWindBlock(hour, cards, stampWhen, past, chart = "") {
+function localWindBlock(hour, cards, stampWhen, past) {
   const L = (DATA && DATA.local_wind) || {};
   if (hour && hour.local_wind_from_deg != null) {
     const gust = hour.local_gust_kt ? ` <span class="unit">gusting ${Math.round(hour.local_gust_kt * MPH_PER_KT)} mph</span>` : "";
@@ -3516,7 +3520,6 @@ function localWindBlock(hour, cards, stampWhen, past, chart = "") {
       <span class="sublbl">Local</span>
       <span class="val">${compass(hour.local_wind_from_deg)} <span class="unit">at</span> ${speed(hour.local_wind_kt || 0)}${gust}</span>
       ${windAtBreaks(cards)}
-      ${chart}
       ${srcLines([`Forecast for ${stampWhen}`, `${grid}${past ? "" : issued}`])}
     </div>`;
   }
@@ -3525,7 +3528,6 @@ function localWindBlock(hour, cards, stampWhen, past, chart = "") {
   return `<div class="subcond" data-wind="local">
     <span class="sublbl">Local</span>
     <span class="val"><span class="unit">no local forecast</span></span>
-    ${chart}
     ${srcLines(why)}
   </div>`;
 }
@@ -3571,12 +3573,12 @@ function renderConditions(step, cards) {
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
       ${wind.from_deg != null ? windAtBreaks(cards) : ""}
-      ${cardChart("wind")}
       ${wind.from_deg != null
         ? srcLines([`Observed ${observedAt(wind.observed_utc)}`,
                     `METAR, ${wind.station_name} (${wind.station})`],
                    dueSpan(due.wind, late.wind))
         : srcLines(wind.note)}
+      ${cardChart("wind")}
     </div>`);
     // The turn is asked for against the READER's clock, not the build's, so
     // it keeps being the next turn as turns pass beneath an open page.
@@ -3586,11 +3588,11 @@ function renderConditions(step, cards) {
         ? height(tide.height_m)
         : '<span class="unit">not collected</span>'}</span>
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
-      ${cardChart("tide")}
       ${tide.height_m != null
         ? srcLines([`Measured ${observedAt(tide.observed_utc)}`, tideSource(NOW)],
                    dueSpan(due.tide, late.tide))
         : srcLines(tide.note)}
+      ${cardChart("tide")}
     </div>`);
   } else {
     const wind = DATA.wind || {};
@@ -3661,9 +3663,7 @@ function renderConditions(step, cards) {
     // Today's KNZY reading stands in for a run without model wind -- but never
     // under a past hour, where it would be a reading from the wrong time.
     const fallback = past ? {note: "not kept for earlier runs"} : wind;
-    // The chart sits above the card's last provenance, as the Swell card's
-    // does: inside the Local block when there is one, else above the model's.
-    const local = localWindBlock(hour, cards, stampWhen, past, cardChart("wind"));
+    const local = localWindBlock(hour, cards, stampWhen, past);
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
       <span class="val">${modelled
@@ -3672,7 +3672,6 @@ function renderConditions(step, cards) {
           ? `${compass(fallback.from_deg)} <span class="unit">at</span> ${speed(fallback.speed_kt || 0)}`
           : `<span class="unit">${past ? fallback.note : "not collected yet"}</span>`}</span>
       ${seenWind}
-      ${local ? "" : cardChart("wind")}
       ${modelled
         ? srcLines([`Forecast for ${stampWhen}`,
                     `GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})`,
@@ -3682,6 +3681,7 @@ function renderConditions(step, cards) {
                       `METAR, ${fallback.station_name} (${fallback.station})`])
           : srcLines(past ? "" : fallback.note)}
       ${local}
+      ${cardChart("wind")}
     </div>`);
     rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
@@ -3692,8 +3692,8 @@ function renderConditions(step, cards) {
         ? turnLine(DATA.tide_turns || [], step.valid_utc)
         : ""}
       ${seenTide}
-      ${cardChart("tide")}
       ${srcLines([`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)])}
+      ${cardChart("tide")}
     </div>`);
   }
 
