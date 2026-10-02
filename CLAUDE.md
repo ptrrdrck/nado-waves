@@ -250,7 +250,7 @@ forecaster actually verifies against, Surfline included.
    from that build's own hour as it was published (`46232_shown/`). A past
    hour whose build kept only a headline says "The calculation for this hour
    was not kept" rather than borrowing another build's detail. Under it, in
-   sea green, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
+   red, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. **Under each Now card are the hourly charts** (owner's
    requests, 2026-09-27; `forecast/series.py`): height, north vs. south (north less south), window
    ratio and a 24 h %K, switched above the plot, folded out from an
@@ -284,7 +284,7 @@ forecaster actually verifies against, Surfline included.
    "Forecast & observed" into the runs view): *Forecast + Observed* (the
    newest GFS-Wave run over the last eight runs' lines from
    `forecast.json`'s `runs`, `forecastlog.recent_runs`, with 46232 carried
-   in beside the passed hours in sea green), *Swell trains*
+   in beside the passed hours in red), *Swell trains*
    (a dot per train at its period, sized by height, with a direction strip
    over the break's windows) and *North vs. South*; and on the buoy's tab
    only, *Ensemble* (below, build order 5). **Only the Ensemble view carries
@@ -301,7 +301,7 @@ forecaster actually verifies against, Surfline included.
    plus the tide's next 24 h of harmonic prediction with the departure,
    dashed, the tab's one modelled line beside its one modelled number. On
    Forecast, `forecast.json`'s `hourly` (the NWS local wind, and the card's
-   tide) to the run's end, the measured hours in green, and GFS-Wave's own
+   tide) to the run's end, the measured hours in red, and GFS-Wave's own
    buoy wind in grey (owner's request, same day) — hourly to +120 h and
    3-hourly after, so its line `bridge`s the model's own spacing, never a
    measured gap. Read from the archives, not rebuilt: today's chain cannot
@@ -879,9 +879,12 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   forecast carries the last 3 days' measured departure forward — and computes
   no breaking at all without one.
 - **The line under a past forecast hour says when it was observed, never
-  "what happened".** Sea green, in a 1 px outline at the card's radius, and
+  "what happened".** Red, in a 1 px outline at the card's radius, and
   labelled "Observed at 8:00 AM" (the tide's "Measured at 8:00 AM") — owner's
-  wording and style, 2026-09-27. Where it comes from is said on `info.html`:
+  wording and style, 2026-09-27. Every measured element on the Forecast tab is
+  `--measured`: pure red, #E00000 light / #FF4545 dark (owner's call,
+  2026-10-02, replacing sea green; #FF0000 itself fails 4.5:1 for text on
+  both cards). Where it comes from is said on `info.html`:
   46232's spectrum at that hour, through identical windows, seabed and surf
   zone, so its difference from the forecast is the MODEL's error at the buoy,
   carried in, with any physics error cancelled out. It checks nothing at the

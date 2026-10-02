@@ -83,7 +83,7 @@ BUNDLE_DATA_PATH = "forecast.json"
 REPO_NOW_PATH = "../data/live/now.json"
 BUNDLE_NOW_PATH = "now.json"
 #: The observed chain rebuilt for the past 48 h (`forecast.measured`), which the
-#: Forecast tab shows in sea green under each hour that has gone by. Only the live
+#: Forecast tab shows in red under each hour that has gone by. Only the live
 #: page reads it, so it is repointed where present rather than required.
 REPO_MEASURED_PATH = "../data/live/measured.json"
 BUNDLE_MEASURED_PATH = "measured.json"
