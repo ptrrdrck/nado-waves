@@ -2222,7 +2222,13 @@ class TestTheWindAndTideCharts:
         assert (".cond > .chart{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}"
                 in css)
         assert ".cond.swell > .chart{margin-top:2px}" in css
-        assert ".cond.swell .srcs{margin-top:2px}" in css
+        # No rule above the provenance (owner's call, 2026-10-02): 14 px of
+        # space, as between a break's headline and its trains.
+        srcs = css[css.index(".cond .srcs{"):css.index("}", css.index(".cond .srcs{"))]
+        assert "border" not in srcs and "margin-top:12px" in srcs
+        assert ".cond.swell .srcs{margin-top:6px}" in css
+        assert ".pane{display:flex;flex-direction:column;gap:11px;" in css
+        assert ".trains{display:flex;flex-direction:column;gap:3px;margin-top:3px}" in css
         assert "border-top:1px solid var(--line);padding-top:9px;margin-top:8px}" in css
         wire = SOURCE[SOURCE.index("function wireCharts"):]
         assert 'const head = e.target.closest(".chart-head");' in wire
@@ -2637,15 +2643,16 @@ class TestTheForecastCharts:
 
 class TestTheProvenanceDivider:
     """Owner's design, 2026-09-27: a rule above the provenance lines on every
-    card, on both tabs -- set once on the block every card's provenance goes
-    through, so no card can be left out."""
+    card, on both tabs. Retired 2026-10-02 (owner's call) for space alone,
+    still set once on the block every card's provenance goes through, so no
+    card can be left out."""
 
-    def test_it_is_drawn_by_the_provenance_block_itself(self):
+    def test_it_is_spaced_by_the_provenance_block_itself(self):
         css = SOURCE[:SOURCE.index("</style>")]
         rule = css[css.index(".cond .srcs{"):]
         rule = rule[:rule.index("}")]
-        assert "border-top:1px solid var(--line)" in rule
-        assert "padding-top" in rule
+        assert "border" not in rule and "padding-top" not in rule
+        assert "margin-top:12px" in rule
 
     def test_every_provenance_line_goes_through_that_block(self):
         assert 'return body ? `<div class="srcs">${body}</div>` : "";' in SOURCE
