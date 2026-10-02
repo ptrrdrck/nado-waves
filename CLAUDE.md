@@ -321,7 +321,12 @@ forecaster actually verifies against, Surfline included.
    and *Daily range* (each day's biggest swing between CONSECUTIVE predicted
    turns, from `tide_turns` — never the calendar day's highest high less
    lowest low, which dropped a lower low that had crossed midnight and drew
-   a false neap). The Tide view is shaded by night on both tabs
+   a false neap). **A wind of 3 kt or less is "light", not offshore** (owner's
+   report, 2026-10-02: the NWS grid's 2–5 kt northerly every night painted
+   the week grid 100% offshore 11 PM–10 AM, where KNZY over the same hours
+   was calm or variable 29% and ≤ 3 kt 44%). `LIGHT_KT`, Beaufort force 1,
+   lives in the page's one `sense()`, so the card's line and both Shore
+   direction charts change together. The Tide view is shaded by night on both tabs
    (`forecast/daylight.py`: NOAA's solar equations at the center break from
    spots.json, within a minute of `astral`; `nights` in both payloads).
    **No chart carries a description under it** (owner's call, same day):

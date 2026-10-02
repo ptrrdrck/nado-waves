@@ -561,7 +561,7 @@ class TestWindAndTideAreHoisted:
         fn = SOURCE[SOURCE.index("function windAtBreaks"):]
         fn = fn[:fn.index("\n}\n")]
         assert "c.windOffshore" in fn
-        assert "<b>${s}</b> at this break" in fn
+        assert '<b>${s === "light" ? "light wind" : s}</b> at this break' in fn
         assert 'data-wind-for="${c.id}"' in fn and "c.id === SWELL_TAB" in fn
         select = SOURCE[SOURCE.index("function selectSwellTab"):]
         select = select[:select.index("\n}\n")]
@@ -2374,8 +2374,8 @@ class TestTheWindAndTideCharts:
         offshore, cross-shore or onshore, by hour of day, with the card's own
         verdict against that break's shore normal."""
 
-        start = SOURCE.index("function sense(")
-        sense = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        start = SOURCE.index("const LIGHT_KT")
+        sense = SOURCE[start:SOURCE.index("\n}\n", SOURCE.index("function sense(")) + 2]
         got = self._run(
             sense +
             "let SWELL_TAB = 'coronado_north';\n"
@@ -2397,8 +2397,28 @@ class TestTheWindAndTideCharts:
         # Owner's call, 2026-10-01: no report count or date range in the
         # readout; an hour's bar reads "over N days", one reading a day.
         assert "North, all hours" in got[2] and "KNZY" not in got[2] and " to " not in got[2]
-        assert "over 1 day" in got[3] and "calm or variable 100%" in got[3]
+        assert "over 1 day" in got[3] and "light or variable 100%" in got[3]
         assert got[4] == "null"                                  # the buoy has no shore
+
+    def test_a_light_wind_has_no_side(self):
+        """Owner's report, 2026-10-02: the NWS grid's 2-5 kt northerly every
+        night read as 100% offshore. At Beaufort force 1 and under (3 kt) the
+        verdict is "light", on the card and on both Shore direction charts."""
+
+        start = SOURCE.index("const LIGHT_KT")
+        sense = SOURCE[start:SOURCE.index("\n}\n", SOURCE.index("function sense(")) + 2]
+        got = self._run(
+            sense +
+            "console.log(sense(0.9, 3), sense(0.9, 4), sense(0.9), sense(-0.9, 0), sense(null, 2));\n"
+            "console.log(shoreKind({kt: 3, from: 20}, 214), shoreKind({kt: 4, from: 20}, 214),"
+            " shoreKind({kt: 5, from: null}, 214), shoreKind({kt: null, from: 20}, 214));"
+        )
+        assert got[0] == "light offshore offshore light null"
+        assert got[1] == "still off still null"
+        cards = SOURCE[SOURCE.index("function windAtBreaks"):]
+        assert "sense(c.windOffshore, c.windKt)" in cards
+        assert "windKt: NOW.wind ? NOW.wind.speed_kt : null," in SOURCE
+        assert "windKt: h.local_wind_kt != null ? h.local_wind_kt : null," in SOURCE
 
     def test_the_forecast_tab_has_its_own_second_views(self):
         """Owner's call, 2026-10-02: on Forecast, Shore direction is the run day
@@ -2415,8 +2435,8 @@ class TestTheWindAndTideCharts:
         assert got[1] == "wind:Wind,week:Shore direction tide:Tide,range:Daily range"
 
     def test_the_week_grid_is_each_forecast_hour_at_the_open_break(self):
-        start = SOURCE.index("function sense(")
-        sense = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        start = SOURCE.index("const LIGHT_KT")
+        sense = SOURCE[start:SOURCE.index("\n}\n", SOURCE.index("function sense(")) + 2]
         got = self._run(
             sense +
             "let SWELL_TAB = 'coronado_north';\n"
