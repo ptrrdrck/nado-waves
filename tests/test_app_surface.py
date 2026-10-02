@@ -2367,7 +2367,7 @@ class TestTheWindAndTideCharts:
         assert got[1] == "0.3,,0.33,0.31,0.29,0.32"            # a missing sample is a gap
         assert "Measured less predicted" in got[2] and "3-day mean" in got[2]
         assert "3-day mean" in got[3]
-        assert got[4] == "slow,obs"                             # measured is green there
+        assert got[4] == "slow,obs"                             # measured is red there
 
     def test_shore_direction_counts_each_hour_at_the_open_break(self):
         """Owner's request, 2026-10-01: how often the wind at a break is
@@ -2663,7 +2663,7 @@ class TestTheProvenanceDivider:
         assert "srcLines(" in cards and '<span class="src">' not in cards
 
     def test_a_measured_box_under_a_value_gets_room_above_it(self):
-        """Owner's design, 2026-09-27: on the wind and tide cards the green box
+        """Owner's design, 2026-09-27: on the wind and tide cards the measured box
         sat in the card's 2 px gap, tight against the value above it."""
 
         css = SOURCE[:SOURCE.index("</style>")]

@@ -3,7 +3,7 @@
 Run: ``python -m forecast.measured`` — writes ``data/live/measured.json``.
 
 The Forecast tab reaches 48 h into the past (owner's decision, 2026-09-26), and
-on every hour that has gone by it shows, in sea green under what the forecast said,
+on every hour that has gone by it shows, in red under what the forecast said,
 what 46232 MEASURED at that hour carried in by the same chain the Now tab uses
 (`forecast.now.build`): the buoy's own directional spectrum, KNZY's wind for the
 local chop and the gauge's measured water level for the depth it breaks in.
