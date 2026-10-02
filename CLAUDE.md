@@ -348,7 +348,13 @@ forecaster actually verifies against, Surfline included.
    21 days. **No upstream sighting is shown, ever**: measured, the predecessor's
    "confirmed in transit" check is blind to the distance (scaling every distance
    by 0.7 or 1.3 moved its hit rate by a point). LIVE only: the Forecast tab
-   has no Origin.
+   has no Origin. **Checked against NHC's best tracks** (`forecast/
+   origintracks.py`, `origin-tracks.yml`, BRIEFING §37a): of seven readings
+   within ~4,000 km south to west, Aug–Sep 2026, one matched a hurricane
+   (Polo), one possibly (Nolo), and four S–SSW "tropical Pacific" readings had
+   none near. Count only ≥ 64 kt fixes: the b-decks' 20 kt disturbances match
+   anything, the control included. What the card does about it is the
+   owner's call, pending.
    **No chart carries a description under it** (owner's call, same day):
    what each draws lives on `docs.html` and in the plot's spoken label. The
    one line kept is the Ensemble's measured coverage, because the band is
