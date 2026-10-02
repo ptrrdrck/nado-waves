@@ -50,6 +50,7 @@ from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, ISO
 
+from . import daylight
 from .live import TIDE_STATION, TIDE_STATION_NAME, WIND_STATION, WIND_STATION_NAME
 from .tidesite import (ANOMALY_HOURS, SITE_NAME, _read, anomaly, coast_height, coast_predicted,
                        predicted_series)
@@ -196,6 +197,11 @@ def build(data_dir: Path = DEFAULT_DATA_DIR, *, now: datetime | None = None,
     marks, tide = marks[first:], tide[first:]
     wind = {key: values[first:] for key, values in wind.items()}
     departure, departure_mean = departure_slots(data_dir, marks)
+    ahead = prediction(data_dir, moment)
+    # Night over the whole reach, the predicted day included, for the Tide
+    # chart's shading (forecast.daylight).
+    last = max(marks[-1], datetime.strptime(ahead["start_utc"], ISO).replace(tzinfo=timezone.utc)
+               + timedelta(hours=len(ahead["heights_m"]) - 1))
     return {
         "generated_utc": moment.strftime(ISO),
         "start_utc": marks[0].strftime(ISO),
@@ -211,7 +217,8 @@ def build(data_dir: Path = DEFAULT_DATA_DIR, *, now: datetime | None = None,
         "departure_m": departure,
         "departure_mean_m": departure_mean,
         "departure_hours": ANOMALY_HOURS,
-        "prediction": prediction(data_dir, moment),
+        "prediction": ahead,
+        "nights": daylight.nights(marks[0], last),
         "standing_on": {
             "wind": f"OBSERVED — {WIND_STATION}'s METAR taken in the hour up to each slot; "
                     "an hour without one is a gap, never the report beside it",

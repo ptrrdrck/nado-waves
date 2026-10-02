@@ -309,11 +309,21 @@ forecaster actually verifies against, Surfline included.
    *Shore direction* (owner's name) — per hour of the reader's day, over
    every day counted, how often the wind at the open swell tab's break was
    offshore / cross / onshore / calm, by the card's own `sense()` against
-   that break's normal (KNZY hours on Now, NWS hours on Forecast), in greys
-   only, the readout saying "over N days" because a bar is many days' one
-   reading, not one hour's — and *Departure* — the gauge's measured-less-predicted
-   each hour and the trailing 3-day mean the forecast adds (`windtide`'s
-   `departure_m` / `departure_mean_m`, coast-scaled like the card's).
+   that break's normal over KNZY's hours, in greys only, the readout saying
+   "over N days" because a bar is many days' one reading, not one hour's —
+   and *Departure* — the gauge's measured-less-predicted each hour and the
+   trailing 3-day mean the forecast adds (`windtide`'s `departure_m` /
+   `departure_mean_m`, coast-scaled like the card's). **Those two are the
+   LIVE tab's only** (owner's call, 2026-10-02): on Forecast a "how often"
+   over a week's forecast threw away which day, and a measured departure has
+   no future hours. Forecast's second views are *Shore direction* as a week
+   grid (a row a day, a square an hour, the NWS verdict at the open break)
+   and *Daily range* (each day's biggest swing between CONSECUTIVE predicted
+   turns, from `tide_turns` — never the calendar day's highest high less
+   lowest low, which dropped a lower low that had crossed midnight and drew
+   a false neap). The Tide view is shaded by night on both tabs
+   (`forecast/daylight.py`: NOAA's solar equations at the center break from
+   spots.json, within a minute of `astral`; `nights` in both payloads).
    **No chart carries a description under it** (owner's call, same day):
    what each draws lives on `info.html` and in the plot's spoken label. The
    one line kept is the Ensemble's measured coverage, because the band is
@@ -572,6 +582,8 @@ forecaster actually verifies against, Surfline included.
       windtide.py       the measured wind and tide each hour, and the
                         next day's predicted tide, for the Wind and Tide
                         cards' charts; read from the archives   [built]
+      daylight.py       sunrise and sunset at the center break, for the
+                        Tide charts' night shading; computed, not fetched [built]
       modelbias.py      GFS-Wave's bias at 46232 through each break's
                         windows; reports, never edits              [built]
       ensemble.py       GEFS-Wave's mean and spread against 46232: how

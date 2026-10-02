@@ -172,3 +172,14 @@ class TestTheDeparture:
         assert got["departure_m"][-2] == pytest.approx(RATIO * 0.2, abs=1e-3)
         assert got["departure_m"][-1] is None
         assert got["departure_mean_m"][-1] == pytest.approx(RATIO * 0.2, abs=1e-3)
+
+
+class TestTheNights:
+    def test_they_cover_the_record_and_the_predicted_day(self, tmp_path):
+        hours = [HOUR + timedelta(hours=h) for h in range(-48, 30)]
+        write_wind(tmp_path, [])
+        write_tide(tmp_path, [(t, 1.0) for t in hours if t <= HOUR], predicted=[(t, 1.0) for t in hours])
+        got = windtide.build(tmp_path, now=NOW)
+        assert got["nights"]
+        # The last night reaches past the measured hours into the prediction.
+        assert got["nights"][-1][1] > got["prediction"]["start_utc"]

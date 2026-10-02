@@ -446,6 +446,9 @@ class TestTheHourlyColumns:
         assert h["local_wind"]["kt"] == [8.0, 12.0, None]
         assert h["local_wind"]["from_deg"] == [30, 210, None]
         assert h["local_wind"]["gust_kt"] == [14.0, None, None]
+        # Night over the same hours, for the Tide chart's shading: 00Z-02Z on
+        # 18 Sep is 5-7 PM in San Diego, so sunset falls inside the window.
+        assert h["nights"] and h["nights"][0][1] == "2026-09-18T02:00:00Z"
 
     def test_it_reaches_back_to_the_earliest_past_hour(self):
         past = [{"valid_utc": "2026-09-17T21:00:00Z"}]
