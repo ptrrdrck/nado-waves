@@ -104,6 +104,35 @@ class TestTheMenu:
         assert 'aria-controls="side"' in DOCS and 'aria-expanded="false"' in DOCS
 
 
+class TestSearch:
+    """Full text over every section, from the sidebar, with "/" to reach it
+    and a Search button on a phone."""
+
+    def test_there_is_a_search_box_and_a_result_list(self):
+        assert 'id="search" type="search"' in DOCS and 'role="search"' in DOCS
+        assert 'id="results" role="listbox"' in DOCS
+        assert 'id="search-open"' in DOCS
+
+    def test_it_indexes_each_section_once(self):
+        """A group's own text excludes its subsections, which are entries of
+        their own; drawings and scripts are not text."""
+
+        own = DOCS[DOCS.index("function ownText"):DOCS.index("function buildIndex")]
+        assert 'closest("section[id]") === sec' in own
+        assert "svg, script, style" in DOCS
+
+    def test_every_word_must_match(self):
+        fn = DOCS[DOCS.index("function search(q)"):DOCS.index("function snippet")]
+        assert "words.every(" in fn
+
+    def test_the_highlight_does_not_share_a_global_regex_for_its_test(self):
+        """A /g regex carries lastIndex between test() calls and skips matches."""
+
+        fn = DOCS[DOCS.index("function markIn"):DOCS.index("function go(")]
+        assert 'const has = new RegExp(words.map(reEsc).join("|"), "i");' in fn
+        assert "has.test(t.nodeValue)" in fn and "re.test(" not in fn
+
+
 class TestItFoldsInInfo:
     """Every rule test_app_surface pins on info.html, pinned here too."""
 
