@@ -145,7 +145,8 @@ PYTHONPATH=. python -m pytest -q
     forecast/beachverify.py  log vs geometry, with the control that could kill it
     collector/beachlog.py    the human observation log
     data/beach_log/          the verification series                    [EMPTY]
-    forecast/forensics.py read a swell's origin off the buoy record
+    forecast/forensics.py a past swell's origin off the historical record
+    forecast/origin.py    the LIVE tab's Origin: each arriving train's birthplace
     data/historical/      3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/  1,095 GFS-Wave cycles/station, with swell partitions
 

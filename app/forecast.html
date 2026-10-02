@@ -126,6 +126,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A second reading inside a card, under its own small label: the Forecast
    tab's "Local" wind under the model's wind at the buoy. */
 .cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+/* Each arrival under ORIGIN: its sea, the line under it, its provenance. */
+.cond .origin{display:flex;flex-direction:column;gap:2px}
+.cond .origin + .origin{margin-top:10px}
+/* ORIGIN folds out like the charts, from its own line with the same caret,
+   right above "Charts" and under a rule of its own (owner's call,
+   2026-10-02): the swell card's one other rule. Closed until opened. */
+.cond > .origin-fold{display:flex;flex-direction:column;gap:6px;
+                     border-top:1px solid var(--line);padding-top:9px;margin-top:2px}
+.origin-fold .fold-body{display:flex;flex-direction:column;gap:2px}
+.origin-fold .fold-body .srcs{margin-top:6px}
 .cond .sublbl{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
               letter-spacing:.06em;font-size:11.5px;color:var(--soft)}
 /* A number inside a provenance line ("of 3.8 ft (1.15 m) at the buoy") stays
@@ -322,10 +332,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* The whole line folds the charts out, not only its caret (owner's call,
    2026-09-30); the caret still lights with it. */
 .chart-head:hover .calc-toggle{color:var(--ink)}
+.origin-fold .chart-head:hover .calc-toggle{color:var(--ink)}
 /* The "Charts" line is the last thing on every card, below the provenance,
    under a rule (owner's call, 2026-10-02): 8 px of margin on the card's 2 px
    gap above it, 9 px below. The swell card's gap is wider, so it takes less
-   margin to match. The only rule on the card. */
+   margin to match. The only rule on the card, but for the swell card's Origin
+   line on LIVE, which takes one of its own just above. */
 .cond > .chart{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .cond.swell > .chart{margin-top:2px}
 .chart-fold,.chart-body{display:flex;flex-direction:column;gap:6px}
@@ -556,6 +568,7 @@ const $ = (id) => document.getElementById(id);
 // point of display and nowhere else.
 const FT_PER_M = 3.28084;
 const MPH_PER_KT = 1.15078;
+const MI_PER_KM = 0.621371;
 
 const height = (m) => (m == null ? "\u2014"
   : `${(m * FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)</span>`);
@@ -917,7 +930,7 @@ const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
               calc: "nado-waves.calc", chart: "nado-waves.chart",
               fcChart: "nado-waves.fc-chart", chartOpen: "nado-waves.chart-open",
               windChart: "nado-waves.wind-chart-open", tideChart: "nado-waves.tide-chart-open",
-              wtView: "nado-waves.wt-view"};
+              wtView: "nado-waves.wt-view", originOpen: "nado-waves.origin-open"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -964,6 +977,7 @@ function cardsForNow() {
     takenBy: b.taken_by || [],
     windOffshore: b.wind_offshore, windNote: b.wind_note,
     windKt: NOW.wind ? NOW.wind.speed_kt : null,
+    origin: originFor(b.id),
     // The week's hourly chart goes under the drawing. It is the observed
     // chain; the Forecast tab's charts are drawn from its own hours
     // (`fcSteps`), never from these.
@@ -1162,6 +1176,94 @@ function breakPanel(c) {
     ${drawing || windowList(c.swellWindow)}
 
     ${offshore}`;
+}
+
+// ORIGIN, on the LIVE tab (owner's request, 2026-10-02), folding out from its
+// own line right above "Charts", one per swell tab like the charts:
+// where each train now arriving was born, read backwards off 46232's spectrum
+// (`forecast.origin`). An origin belongs to a TRAIN, so a break shows only the
+// arrivals that are one of its own trains above; which trains reach a break is
+// the aperture's answer, never a test of one bearing against the window.
+//
+// Distances are rounded to 500 in each unit and said "about": two buoys
+// reading one storm independently differ by ~18-25% at the median (BRIEFING
+// §37), and nothing observes the storm itself. The place is a sea, never a
+// pin. No upstream "confirmation" is shown: measured, that check never tested
+// the distance.
+function originFor(site) {
+  const O = NOW && NOW.origin;
+  const s = O && O.sites && O.sites[site];
+  if (!s) return null;
+  const A = O.arrivals || [];
+  return {
+    current: (s.current || []).filter((c) => A[c.arrival])
+      .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
+    last: s.last != null && A[s.last] ? A[s.last] : null,
+    station: O.station, lookback: O.lookback_days,
+  };
+}
+
+const about500 = (v) => Math.max(500, Math.round(v / 500) * 500).toLocaleString("en-US");
+const farAway = (km) =>
+  `about ${about500(km * MI_PER_KM)} mi <span class="unit">(${about500(km)} km)</span>`;
+const sea = (region) => {
+  const r = (region || "").replace(/^the /, "");
+  return r ? r[0].toUpperCase() + r.slice(1) : "";
+};
+const onDay = (iso) => new Date(iso).toLocaleString(undefined, {month: "short", day: "numeric"});
+
+// One arrival: the sea, then how far and which way and when it left.
+function originArrival(a, station) {
+  const where = a.region
+    ? `<span class="val">${sea(a.region)}</span>
+      <span class="turn">${farAway(a.distance_km)} ${point(a.bearing_deg)}, `
+      + `left around ${onDay(a.generated_utc)}, about ${Math.max(1, Math.round(a.travel_days))} `
+      + `day${Math.round(a.travel_days) === 1 ? "" : "s"} crossing</span>`
+    : `<span class="val">${farAway(a.distance_km)} <span class="unit">away</span></span>
+      <span class="turn">left around ${onDay(a.generated_utc)}; no bearing: neither `
+      + `unshadowed buoy's archived spectrum has this train</span>`;
+  return `<div class="origin">${where}
+    ${srcLines([`The ${a.train_period_s.toFixed(1)} s train, still arriving: `
+                + `${Math.round(a.hours_read)} h read`,
+                `Read backwards off ${station}'s spectrum`
+                + (a.bearing_from ? `, bearing at ${a.bearing_from}` : "")])}
+  </div>`;
+}
+
+// What folds out under the "Origin" line.
+function originBody(o) {
+  if (o.current.length) return o.current.map((a) => originArrival(a, o.station)).join("");
+  const a = o.last;
+  const last = !a ? `No readable arrival in the last ${o.lookback} days`
+    : `Last readable arrival: `
+      + (a.region ? `${sea(a.region)}, ${farAway(a.distance_km)} ${point(a.bearing_deg)}`
+        : farAway(a.distance_km))
+      + `, ${onDay(a.first_utc)}`;
+  return `<span class="val"><span class="unit">no readable arrival now</span></span>
+    ${srcLines(last)}`;
+}
+
+// Whether Origin is folded out. One state for every tab, like the charts',
+// and kept across a refresh the same way.
+let ORIGIN_OPEN = false;
+function originFold(id, o, hidden = false) {
+  if (!o) return "";
+  return `<div class="origin-fold" data-origin-tab="${id}"${hidden ? " hidden" : ""}>
+    <div class="chart-head" data-origin-head><span>Origin</span><button type="button"
+      class="calc-toggle" data-origin-toggle aria-controls="origin-fold-${id}"
+      aria-expanded="${ORIGIN_OPEN}" aria-label="Origin"><svg viewBox="0 0 16 16"
+      aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
+    <div class="fold-body" id="origin-fold-${id}"${ORIGIN_OPEN ? "" : " hidden"}>${originBody(o)}</div>
+  </div>`;
+}
+function setOriginOpen(open) {
+  ORIGIN_OPEN = open;
+  remember(KEEP.originOpen, open ? "open" : "closed");
+  document.querySelectorAll("[data-origin-toggle]").forEach((btn) => {
+    btn.setAttribute("aria-expanded", String(open));
+    const fold = $(btn.getAttribute("aria-controls"));
+    if (fold) fold.hidden = !open;
+  });
 }
 
 // A depth for a label: whole feet, metres to one decimal below ten.
@@ -3645,12 +3747,13 @@ function cardChart(id) {
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
 function swellCard({label, buoy, station, cards, source, due = "", measured = null,
-                    chart = false}) {
+                    chart = false, origin = null}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
+    origin: c.origin || null,
   }));
   tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy",
-             body: buoyPanel(buoy, measured), chart});
+             body: buoyPanel(buoy, measured), chart, origin});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
@@ -3666,6 +3769,7 @@ function swellCard({label, buoy, station, cards, source, due = "", measured = nu
     ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
       aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
     ${srcLines(source, due)}
+    ${tabs.map((tab) => originFold(tab.id, tab.origin, tab.id !== chosen)).join("")}
     ${tabs.filter((tab) => tab.chart).map((tab) => seriesChart(tab.id, tab.id !== chosen)).join("")}
   </div>`;
 }
@@ -3704,6 +3808,9 @@ function selectSwellTab(id, {focus = false} = {}) {
   document.querySelectorAll("[data-chart-tab]").forEach((chart) => {
     chart.hidden = chart.getAttribute("data-chart-tab") !== id;
   });
+  document.querySelectorAll("[data-origin-tab]").forEach((fold) => {
+    fold.hidden = fold.getAttribute("data-origin-tab") !== id;
+  });
   document.querySelectorAll("[data-swell-tab]").forEach((btn) => {
     const on = btn.getAttribute("data-swell-tab") === id;
     btn.setAttribute("aria-selected", String(on));
@@ -3723,6 +3830,8 @@ function wireSwellTabs() {
     if (btn) selectSwellTab(btn.getAttribute("data-swell-tab"));
     // The caret, or anywhere else on the headline's line.
     if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row")) setCalcOpen(!CALC_OPEN);
+    // Origin's caret, or anywhere else on its line.
+    if (e.target.closest("[data-origin-head]")) setOriginOpen(!ORIGIN_OPEN);
   });
   strip.addEventListener("keydown", (e) => {
     const btn = e.target.closest("[data-swell-tab]");
@@ -3800,6 +3909,7 @@ function renderConditions(step, cards) {
       ],
       due: dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),
       chart: true,
+      origin: originFor("buoy"),
     }));
 
     rows.push(`<div class="cond" data-card="wind">
@@ -4340,6 +4450,7 @@ function boot(data, observed, measured, series, windtide) {
   FC_MODE0 = FC_MODES.some((m) => m.id === fcView) ? fcView : FC_MODES[0].id;
   // Folded away until the reader opens it, as the calculation is.
   CHART_OPEN = recall(KEEP.chartOpen) === "open";
+  ORIGIN_OPEN = recall(KEEP.originOpen) === "open";
   CARD_CHART_OPEN.wind = recall(KEEP.windChart) === "open";
   CARD_CHART_OPEN.tide = recall(KEEP.tideChart) === "open";
   for (const chain of ["now", "fc"]) {

@@ -20,6 +20,7 @@ from forecast.swell import (
     destination_point,
     great_circle_km,
     initial_bearing,
+    travel_hours,
 )
 
 UTC = timezone.utc
@@ -129,3 +130,24 @@ def test_witness_must_be_upstream_and_near_the_path(tmp_path):
     assert "51002" not in names or next(
         w for w in found if w.station == "51002"
     ).off_path_km > 1000.0
+
+
+def test_the_upstream_check_cannot_see_the_distance(tmp_path):
+    """BRIEFING §37. A different slope through the same first hour moves the
+    birth time and the distance together, and the time it predicts at a
+    witness on the path does not move at all: the distance cancels. So a
+    sighting upstream never tested how far away the storm was, and the app
+    shows none."""
+
+    target = POSITIONS["46232"]
+    bearing = initial_bearing(target, POSITIONS["46006"])
+    arrival = datetime(2025, 1, 19, 12, tzinfo=UTC)
+    period = 18.0
+    times = []
+    for scale in (0.7, 1.0, 1.3):
+        distance = 6000.0 * scale
+        generated = arrival - timedelta(hours=travel_hours(distance, period))
+        origin = destination_point(target, bearing, distance)
+        (witness,) = find_witnesses(tmp_path, "46232", origin, generated, period, ("46006",))
+        times.append(witness.predicted_utc)
+    assert max(times) - min(times) < timedelta(minutes=5)

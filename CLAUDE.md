@@ -330,6 +330,25 @@ forecaster actually verifies against, Surfline included.
    direction charts change together. The Tide view is shaded by night on both tabs
    (`forecast/daylight.py`: NOAA's solar equations at the center break from
    spots.json, within a minute of `astral`; `nights` in both payloads).
+   **Right above each LIVE swell tab's Charts line, an Origin line** (owner's
+   request, 2026-10-02; `forecast/origin.py`, BRIEFING §37) that folds out
+   like the charts — its own caret, closed until opened, one open state for
+   every tab, kept across a refresh — under a rule of its own (owner's call,
+   same day, replacing a block under the drawing): where each train now arriving was
+   born, read BACKWARDS off 46232's spectrum — every hour's swell-band peaks
+   linked into ridges and fitted f = g(t − t₀)/4πR. **An origin belongs to a
+   train**: a break shows only arrivals that are one of its own card trains,
+   which is the aperture's answer, never a bearing tested against a window.
+   **Its direction is never 46232's** (it reads north-west swell 50–74° too far
+   south), but 46047's, then 46086's; neither, and there is no place. Two buoys
+   reading one storm differ by ~18–25% at the median, so distances are rounded
+   to 500 mi and 500 km and said "about", and the place is a sea. Shown only
+   once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "still arriving"
+   while it runs; otherwise "Last readable arrival:" at that break in the last
+   21 days. **No upstream sighting is shown, ever**: measured, the predecessor's
+   "confirmed in transit" check is blind to the distance (scaling every distance
+   by 0.7 or 1.3 moved its hit rate by a point). LIVE only: the Forecast tab
+   has no Origin.
    **No chart carries a description under it** (owner's call, same day):
    what each draws lives on `docs.html` and in the plot's spoken label. The
    one line kept is the Ensemble's measured coverage, because the band is
@@ -515,9 +534,10 @@ forecaster actually verifies against, Surfline included.
                         31-member bulletin at 46232: mean and spread, no
                         direction — BRIEFING §35),
                         probe_spectra.py (are directional spectra reachable?),
-                        spectra.py (archive them: 46232 hourly, and
-                        46086, 46047, 46258 from collect.yml — context for
-                        checks, read by no chain), wind.py (KNZY),
+                        spectra.py (archive them: 46232, 46047 and 46086
+                        hourly — the last two give Origin its direction —
+                        and 46258 from collect.yml; context for checks, read
+                        by no height), wind.py (KNZY),
                         wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),
@@ -626,8 +646,14 @@ forecaster actually verifies against, Surfline included.
       swell.py          great circles, bearings, group velocity
       utm.py            lat/lon <-> UTM 11 metres, pure Python (the grids' CRS)
       stats.py          load_column, least_squares, rmse, circular means
-      dispersion.py     swell-arrival detection and the 1/T fit
-      forensics.py      read a swell's origin off the buoy record
+      dispersion.py     the 1/T dispersion fit, and arrivals in a buoy's
+                        dominant period (historical files only)
+      forensics.py      a past swell's origin off the historical record;
+                        "seen upstream" tests no distance (BRIEFING §37)
+      origin.py         the LIVE tab's Origin: each train's dispersion
+                        ridge in 46232's spectrum, bearing at 46047/46086
+                        [built]
+      originreport.py   the measurements behind it; reports, never edits
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
@@ -811,9 +837,10 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   the JSON, the transform and the collectors stay in metres and knots, because
   that is what NDBC and WAVEWATCH III publish and putting a unit change between
   the source and every cross-check is how a 3.28 ends up somewhere it should
-  not be. `forecast/units.py` and the two constants at the top of
-  `app/forecast.html` are the only places the conversion happens; a test pins
-  that each factor appears exactly once.
+  not be. `forecast/units.py` and the three constants at the top of
+  `app/forecast.html` (feet, mph, and since 2026-10-02 miles, for Origin) are
+  the only places the conversion happens; a test pins that each factor
+  appears exactly once.
 - **The tide's direction is read off the next turn, never differenced from the
   water level.** Measured 2026-09-19 on the 6-minute measured series:
   differencing the two newest samples reads the direction **backwards on 19.5%

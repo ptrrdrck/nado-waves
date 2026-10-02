@@ -1,38 +1,28 @@
-"""Event-driven rounds: swell arrivals, and where the storm was.
+"""A swell arrival's dispersion line, and the distance it implies.
 
     python -m forecast.dispersion
 
-The daily format was the wrong shape for this data. Every skill measurement in
-this project averaged over all days, including the ~80% when nothing happens,
-which drags the average to nothing. If rounds fire on *events* instead, the
-quiet days stop diluting the game and every round has something at stake.
-
-Two tiers, both automatically detected and automatically resolved.
-
-**Tier 1 — "swell building at your break, call the peak."** About three a month
-per station. On these days the spread to play for is 0.54m against 0.36m on an
-average day, and the skill ceiling is 17.8% against 11.9%. More at stake *and*
-more to be right about.
-
-**Tier 2 — "a groundswell is arriving. Where was it born?"** About six a year.
-This is the interesting one, and it is not in any surf app.
-
 A storm at distance R radiates swell of every period at once. Long periods
-travel faster — deep-water group velocity is `gT/4π` — so they arrive first and
+travel faster -- deep-water group velocity is `gT/4π` -- so they arrive first and
 the period at the buoy declines steadily as the shorter stuff catches up. Write
 that out and `1/T` is *linear* in arrival time, with slope `g/(4πR)`. So:
 
     R = g / (4π · slope)
 
-A single buoy, watching its own period decline, can say how far away the storm
-was and when it blew. Verified two ways here: five stations independently agreed
-on one arrival to within 19%, and the implied distances (4100–5700 km, 3.7–4.7
-days) land squarely in the North Pacific storm track in winter.
+and the line reaches `1/T = 0` at the moment the storm blew.
 
-It is a fair game because the answer is not computable when the round opens. A
-fit on the first 12 hours misses the settled answer by 11% at the median and up
-to 43%, because early on there are few periods to draw a line through. The
-player calls it from the forerunners; the ocean finishes the sentence.
+This module is the fit, and the scan of a buoy's DOMINANT period for arrivals
+clean enough to fit (`dispersive_arrivals`). `forecast.forensics` puts a place
+on the historical ones; `forecast.origin` reads each train separately off the
+live spectrum, because the real-time dominant period is rounded to whole
+seconds and finds almost nothing (BRIEFING §37).
+
+Carried over from the predecessor's game, which used the distance as a round to
+call: its "swell building" tier is gone with the game. What survived is
+measured: a fit on the first 12 hours misses the 36-hour answer by 23% at the
+median, and on 24 hours by 9% (BRIEFING §37, 2023-2025, six buoys). Two buoys
+fitting the same storm independently agree to about 18-25%, and that, not the
+fit's R², is the precision of a distance read this way.
 """
 
 from __future__ import annotations
@@ -48,22 +38,11 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR
 from collector.stations import load_stations, select
 from .siting import constraining
-from .stats import LOCAL_TZ
 from .stats import load_column
-from .swell import daily_peak
 
 GRAVITY = 9.81
 
-# --- Tier 1: a swell is building -------------------------------------------
-
-#: A round opens when the daily peak jumps this much and clears this height.
-MIN_RISE_M = 0.3
-MIN_PEAK_M = 1.2
-#: Quiet days needed before a new event counts as a new event.
-EVENT_SEPARATION_DAYS = 2
-
-
-# --- Tier 2: a clean dispersive arrival -------------------------------------
+# --- A clean dispersive arrival ----------------------------------------------
 
 #: The forerunners have to be genuine groundswell.
 MIN_LEAD_PERIOD_S = 13.0
@@ -173,24 +152,8 @@ def storm_origin(
     return origin_from_series(periods, stamps, min_r2)
 
 
-def swell_events(data_dir: Path, station: str) -> list:
-    """Tier 1: days a round would open because a swell is building."""
-
-    peaks = daily_peak(data_dir, station)
-    days = sorted(peaks)
-    events, last = [], None
-    for previous, day in zip(days, days[1:]):
-        if (day - previous).days != 1:
-            continue
-        if peaks[day] - peaks[previous] >= MIN_RISE_M and peaks[day] >= MIN_PEAK_M:
-            if last is None or (day - last).days >= EVENT_SEPARATION_DAYS:
-                events.append(day)
-            last = day
-    return events
-
-
 def dispersive_arrivals(data_dir: Path, station: str, window: int = SETTLE_HOURS) -> list:
-    """Tier 2: arrivals clean enough to ask where the storm was."""
+    """Arrivals clean enough to ask where the storm was."""
 
     heights = load_column(data_dir / "historical" / f"{station}.csv", "wvht")
     periods = load_column(data_dir / "historical" / f"{station}.csv", "dpd")
@@ -215,7 +178,7 @@ def dispersive_arrivals(data_dir: Path, station: str, window: int = SETTLE_HOURS
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Event-driven round candidates.")
+    parser = argparse.ArgumentParser(description="Clean dispersive arrivals, by buoy.")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--stations", help="Comma-separated ids.")
     args = parser.parse_args(argv)
@@ -227,17 +190,6 @@ def main(argv: list[str] | None = None) -> int:
         else constraining(registry)
     )
 
-    print("Tier 1 — swell building (a round opens)\n")
-    print(f"{'station':<9} {'events':>7} {'per year':>9} {'per month':>10}")
-    print("-" * 40)
-    for station in stations:
-        events = swell_events(args.data_dir, station.id)
-        if not events:
-            continue
-        span = (events[-1] - events[0]).days / 365.25 or 1
-        print(f"{station.id:<9} {len(events):>7} {len(events)/span:>9.1f} {len(events)/span/12:>10.1f}")
-
-    print("\nTier 2 — clean dispersive arrival (where was the storm?)\n")
     print(f"{'station':<9} {'arrival':<18} {'R2':>5} {'period':>12} {'distance':>10} {'blew':>9}")
     print("-" * 70)
     for station in stations:

@@ -20,16 +20,21 @@ So one buoy gives distance and date. The buoy's mean wave direction gives the
 bearing. Together they put a pin in the map for a storm nobody watched, days
 after it has gone.
 
-**The part that makes it checkable rather than merely charming**: if the pin is
-right, the swell must have passed the upstream buoys on its way, and it must
-have passed them *at the times the same physics predicts*. The North Pacific
-sentinels in `data/historical/` are witnesses. This module back-projects the
-origin, finds which sentinels sit on the great circle, predicts when each should
-have seen the forerunner, and then goes and looks. A wrong origin fails that
-test; a right one is confirmed by buoys that were never part of the fit.
+**The upstream check, and what it does not check.** The module back-projects
+the origin, finds which North Pacific sentinels in `data/historical/` sit near
+the great circle, predicts when each should have seen the forerunner, and goes
+and looks. This was written up as the thing that made the pin checkable: "a
+wrong origin fails that test". **Measured, it does not test the distance**
+(BRIEFING §37). The predicted time at a witness works out to the arrival time
+less the witness's own distance over the group speed; the fitted distance
+cancels. Re-run on 2023-2025 with every distance scaled by 0.7 and by 1.3, the
+check sighted 73%, 73% and 72% of its candidates. What it shows is that the
+same swell passed upstream, which it would whatever the distance. So a sighting
+is printed as "seen upstream", never as a confirmation, and none reaches the
+app. What does bear on the distance, two independent fits along one path,
+agrees to 18% at the median and cannot resolve the 1,000-2,000 km between them.
 
-No prediction, no contested skill, nothing to score. Just the ocean's mail,
-opened after the fact.
+The live, per-train version on the app is `forecast.origin`.
 """
 
 from __future__ import annotations
@@ -175,7 +180,7 @@ class Forensic:
         tail = ""
         if confirmed:
             names = ", ".join(w.station for w in confirmed)
-            tail = f" Confirmed in transit by {names}."
+            tail = f" Seen upstream by {names}."
         return (
             f"{self.arrival_utc:%-d %b %Y}: a {self.lead_period_s:.0f}-second "
             f"forerunner reached {self.station} from {self.bearing_deg:.0f}° "
@@ -449,7 +454,8 @@ def main(argv: list[str] | None = None) -> int:
                         f"{witness.off_path_km:,.0f} km off path)"
                     )
             print()
-    print(f"{total} readable arrivals, {confirmed} corroborated by an upstream buoy.")
+    print(f"{total} readable arrivals, {confirmed} seen upstream (a sighting does not test "
+          f"the distance: BRIEFING §37).")
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(json.dumps(exported, indent=1), encoding="utf-8")

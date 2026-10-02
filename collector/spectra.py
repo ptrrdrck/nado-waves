@@ -1,7 +1,8 @@
 """Archive NDBC directional spectra for 46232, and for three context buoys.
 
 Run: ``python -m collector.spectra`` — on Actions, not from a session.
-     ``python -m collector.spectra --context`` — the three context buoys.
+     ``python -m collector.spectra --bearing`` — 46047 and 46086, hourly.
+     ``python -m collector.spectra --context`` — the rest of the context buoys.
 
 `probe_spectra` answered whether the five files are reachable and complete
 (BRIEFING §7: yes — 64 bins, 0.0250–0.5800 Hz, agreeing across all five, with
@@ -53,23 +54,34 @@ COMPONENTS = {
 
 DEFAULT_STATION = "46232"
 
-#: Archived for checks, never read by the forecast or the Now tab. Each one is
-#: here for a specific question, and none of them is a stand-in for 46232
-#: (BRIEFING §3a):
+#: Archived for checks, never read by the forecast or by any height on the Now
+#: tab. Each one is here for a specific question, and none of them is a
+#: stand-in for 46232 (BRIEFING §3a). One reader since 2026-10-02: the Now
+#: tab's Origin takes a train's DIRECTION from 46047, then 46086, because
+#: 46232's own is bent by the islands (`forecast.origin`, BRIEFING §37).
+#: Those two are collected HOURLY with 46232 (`--bearing`, collect-beach-
+#: inputs.yml) so a new arrival's bearing lands with its distance; the rest
+#: stay on collect.yml (`--context`). Never both: each file has one writer:
 #:
 #: * 46086 — the only buoy near a west window edge (256.2° from the centre
 #:   break). Its spectrum and 46232's measure how well two instruments agree on
 #:   the direction of the same south swell there.
 #: * 46047 — the least shadowed buoy in the array, §3's denominator. With
-#:   46232 it gives the islands' shadow per frequency and direction.
+#:   46232 it gives the islands' shadow per frequency and direction, and it is
+#:   the first buoy Origin reads a direction from.
 #: * 46258 — behind Point Loma at 46232's range: the aperture control. Its
 #:   spectrum through the same windows is the test §3a's "never a fallback"
 #:   rests on, and until that test has run the rule stands.
 #:
-#: The real-time feed keeps 45 days, so this list starts a clock; it is
-#: collected by collect.yml alongside the standard met, not by the hourly
-#: beach-inputs job, whose run time is the Now tab's freshness.
+#: The real-time feed keeps 45 days, so this list starts a clock. 46258 is
+#: collected by collect.yml alongside the standard met, kept off the hourly
+#: beach-inputs job, whose run time is the Now tab's freshness; 46047 and 46086
+#: earn their few seconds there by feeding a card on that tab.
 CONTEXT_STATIONS = ("46086", "46047", "46258")
+
+#: The context buoys Origin reads a direction from: `forecast.origin`'s
+#: BEARING_STATIONS, which a test holds equal to this.
+BEARING_STATIONS = ("46047", "46086")
 
 
 class SpectraError(RuntimeError):
@@ -277,14 +289,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--station", default=DEFAULT_STATION,
                         help="One station id, or several separated by commas.")
     parser.add_argument("--context", action="store_true",
-                        help=f"Collect the context buoys: {', '.join(CONTEXT_STATIONS)}.")
+                        help="Collect the context buoys not collected hourly: "
+                             f"{', '.join(s for s in CONTEXT_STATIONS if s not in BEARING_STATIONS)}.")
+    parser.add_argument("--bearing", action="store_true",
+                        help=f"Collect Origin's bearing buoys: {', '.join(BEARING_STATIONS)}.")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     args = parser.parse_args(argv)
 
-    stations = (
-        list(CONTEXT_STATIONS) if args.context
-        else [s.strip() for s in args.station.split(",") if s.strip()]
-    )
+    if args.bearing:
+        stations = list(BEARING_STATIONS)
+    elif args.context:
+        stations = [s for s in CONTEXT_STATIONS if s not in BEARING_STATIONS]
+    else:
+        stations = [s.strip() for s in args.station.split(",") if s.strip()]
     results = []
     for station in stations:
         # Each station is fetched even if an earlier one failed: they are
