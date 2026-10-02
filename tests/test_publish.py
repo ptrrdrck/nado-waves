@@ -199,7 +199,7 @@ class TestTheBundleIsServable:
     def test_every_file_pages_needs_is_present(self, tmp_path):
         written = publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
         assert set(written) == {"index.html", "forecast.json", ".nojekyll", "README.md",
-                                "geometry.html", "info.html"}
+                                "geometry.html", "info.html", "docs.html"}
         for name in written:
             assert (tmp_path / "site" / name).exists()
 
@@ -372,6 +372,32 @@ class TestGeometryPage:
 
         publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
         text = (tmp_path / "site" / "geometry.html").read_text().lower()
+        for word in ("rmse", "accuracy", "within a foot", "confidence interval",
+                     "error bar of", "% accurate"):
+            assert word not in text, word
+
+
+class TestDocsPage:
+    """The documentation ships beside the page that links to it, from both
+    jobs, with the geometry drawing filled and both payloads repointed."""
+
+    def test_the_full_bundle_carries_it_filled_and_repointed(self, tmp_path):
+        publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
+        page = (tmp_path / "site" / "docs.html").read_text()
+        assert page.startswith("<!doctype html>")
+        assert "const MODEL = {" in page and "/*__MODEL__*/" not in page
+        assert publish.REPO_DATA_PATH not in page and publish.REPO_NOW_PATH not in page
+        assert '"forecast.json"' in page and '"now.json"' in page
+
+    def test_the_hourly_bundle_carries_it_too(self, tmp_path):
+        data = write(tmp_path / "d", forecast())
+        (data / "live" / "now.json").write_text("{}")
+        publish.build_now_only(tmp_path / "now", data_dir=data)
+        assert (tmp_path / "now" / "docs.html").exists()
+
+    def test_it_refuses_the_vocabulary_of_accuracy_too(self, tmp_path):
+        publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
+        text = (tmp_path / "site" / "docs.html").read_text().lower()
         for word in ("rmse", "accuracy", "within a foot", "confidence interval",
                      "error bar of", "% accurate"):
             assert word not in text, word
