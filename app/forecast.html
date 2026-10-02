@@ -400,7 +400,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .series .dir.obs{fill:var(--measured)}
 /* Shore direction, in greys only (owner's call, 2026-10-01): an ordered
    scale from the page's ink for offshore down to the faintest rule for
-   onshore, and calm or variable -- which has no direction -- an empty
+   onshore, and light or variable -- no side worth naming -- an empty
    outline rather than a fourth shade. */
 .series .sh-off,.chart .legend .sw.sh-off{fill:var(--ink);background:var(--ink)}
 .series .sh-cross,.chart .legend .sw.sh-cross{fill:var(--soft);background:var(--soft)}
@@ -924,8 +924,21 @@ function remember(key, value) {
   try { sessionStorage.setItem(key, value); } catch (e) { /* not remembered */ }
 }
 
-function sense(offshore) {
+// At or under this, a wind has no side worth naming (owner's report,
+// 2026-10-02): Beaufort force 1, light air, 1-3 kt -- "direction shown by
+// smoke drift but not by wind vanes", in the scale's own words. The NWS grid
+// gives every hour a direction however light, and its 2-5 kt northerly every
+// night made the Forecast tab's Shore direction read 100% offshore from 11 PM
+// to 10 AM, where KNZY over the same hours (158 reports, 18 Sep - 1 Oct) was
+// calm or variable 29% of the time and 3 kt or under 44%.
+const LIGHT_KT = 3;
+
+// The card's verdict, and the Shore direction charts': offshore, cross-shore
+// or onshore against the break's normal, or light when the wind is too light
+// for its side to matter. `kt` left out keeps the old reading.
+function sense(offshore, kt) {
   if (offshore == null) return null;
+  if (kt != null && kt <= LIGHT_KT) return "light";
   return offshore > 0.3 ? "offshore" : offshore < -0.3 ? "onshore" : "cross-shore";
 }
 
@@ -949,6 +962,7 @@ function cardsForNow() {
     trains: b.trains || [],
     takenBy: b.taken_by || [],
     windOffshore: b.wind_offshore, windNote: b.wind_note,
+    windKt: NOW.wind ? NOW.wind.speed_kt : null,
     // The week's hourly chart goes under the drawing. It is the observed
     // chain; the Forecast tab's charts are drawn from its own hours
     // (`fcSteps`), never from these.
@@ -1000,6 +1014,7 @@ function cardsForForecast(step) {
         // The LOCAL forecast wind's reading at this break and hour, never the
         // model's wind at the buoy: offshore is about the wind on the sand.
         windOffshore: h.local_wind_offshore != null ? h.local_wind_offshore : null,
+        windKt: h.local_wind_kt != null ? h.local_wind_kt : null,
         windNote: b.wind_note,
         // The Forecast tab's own charts: the model's hours, with 46232
         // carried in beside the ones that have passed.
@@ -3314,7 +3329,7 @@ const SHORE_KINDS = [
   {id: "off", label: "Offshore", cls: "sh-off"},
   {id: "cross", label: "Cross-shore", cls: "sh-cross"},
   {id: "on", label: "Onshore", cls: "sh-on"},
-  {id: "still", label: "Calm or variable", cls: "sh-still"},
+  {id: "still", label: "Light or variable", cls: "sh-still"},
 ];
 
 function shoreProfile(steps) {
@@ -3327,10 +3342,8 @@ function shoreProfile(steps) {
   const total = blank();
   steps.forEach((s) => {
     const w = fc ? s.fc : s.seen;
-    if (!w || w.kt == null) return;
-    const kind = !w.kt || w.from == null ? "still"
-      : {offshore: "off", "cross-shore": "cross", onshore: "on"}[
-        sense(-Math.cos((w.from - card.shore_normal_deg) * Math.PI / 180))];
+    const kind = shoreKind(w, card.shore_normal_deg);
+    if (!kind) return;
     const row = rows[new Date(s.valid_utc).getHours()];
     row[kind] += 1; row.n += 1;
     total[kind] += 1; total.n += 1;
@@ -3348,7 +3361,7 @@ function shoreRead(p, at) {
   const pc = (k) => `${Math.round(100 * r[k] / r.n)}%`;
   return `<b>${p.name}, ${when}</b> &middot; <span class="v">offshore ${pc("off")}</span>`
     + ` &middot; cross-shore ${pc("cross")} &middot; onshore ${pc("on")}`
-    + (r.still ? ` &middot; calm or variable ${pc("still")}` : "");
+    + (r.still ? ` &middot; light or variable ${pc("still")}` : "");
 }
 
 function shorePlot(p, at) {
@@ -3427,9 +3440,11 @@ function staticHover(plot, clientX, clientY) {
     `<div>${(kind === "week" ? weekRead : rangeRead)(view, at)}</div>`;
   plot.innerHTML = (kind === "week" ? weekPlot : rangePlot)(view, at);
 }
-const shoreKind = (w, normal) => (!w || w.kt == null ? null : !w.kt || w.from == null ? "still"
-  : {offshore: "off", "cross-shore": "cross", onshore: "on"}[
-    sense(-Math.cos((w.from - normal) * Math.PI / 180))]);
+// One hour's kind on the Shore direction charts: the card's own verdict, so
+// the two never disagree; calm, light and variable share the last.
+const shoreKind = (w, normal) => (!w || w.kt == null ? null : w.from == null ? "still"
+  : {offshore: "off", "cross-shore": "cross", onshore: "on", light: "still"}[
+    sense(-Math.cos((w.from - normal) * Math.PI / 180), w.kt)]);
 const dayKey = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 // "Sat 3": the weekday first, whatever order the locale would put them in.
 const dayName = (ms) => `${new Date(ms).toLocaleDateString(undefined, {weekday: "short"})} ${new Date(ms).getDate()}`;
@@ -3468,7 +3483,7 @@ function weekRead(v, at) {
     v.rows.forEach((r) => r.cells.forEach((c) => { if (c) n[c.kind] += 1; }));
     return `<b>${v.name}, through the run</b> &middot; <span class="v">offshore ${n.off} h</span>`
       + ` &middot; cross-shore ${n.cross} h &middot; onshore ${n.on} h`
-      + (n.still ? ` &middot; calm or variable ${n.still} h` : "");
+      + (n.still ? ` &middot; light or variable ${n.still} h` : "");
   }
   const c = v.rows[at.row].cells[at.col];
   const when = `${dayName(v.rows[at.row].ms)}, ${hourName(at.col)}`;
@@ -3666,10 +3681,10 @@ function swellCard({label, buoy, station, cards, source, due = "", measured = nu
 // at the beach, and a verdict against the shore normal needs the local one.
 function windAtBreaks(cards) {
   return (cards || []).map((c) => {
-    const s = sense(c.windOffshore);
+    const s = sense(c.windOffshore, c.windKt);
     if (!s) return "";
     return `<span class="turn" data-wind-for="${c.id}"${c.id === SWELL_TAB ? "" : " hidden"}>`
-      + `<b>${s}</b> at this break`
+      + `<b>${s === "light" ? "light wind" : s}</b> at this break`
       + (c.windNote ? ` <span class="tag">${c.windNote}</span>` : "")
       + `</span>`;
   }).join("");
