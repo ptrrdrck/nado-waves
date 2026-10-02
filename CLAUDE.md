@@ -195,7 +195,7 @@ forecaster actually verifies against, Surfline included.
    `data/forecast_log/` with the measured chain rebuilt for the same hours.
    It reports and never edits. §4 already rules out a correction that keeps
    adapting, so the form to test is a fixed one. Applying anything waits on
-   its numbers AND on what `info.html` calls it, because "calibration" is
+   its numbers AND on what `docs.html` calls it, because "calibration" is
    reserved for the beach log. `model-bias.yml` rebuilds past cycles with
    today's chain into `46232_recomputed/`, because GFS-Wave's spectrum is
    recoverable to 2021 and the buoy's is archived from 2026-08-04, so the
@@ -240,9 +240,10 @@ forecaster actually verifies against, Surfline included.
    feeds, the quotes keep it from claiming the present, and each card's
    countdown is what states how live the reading actually is. Each renders its
    own "standing on" block from whatever keys its file carries, because the
-   two name different levels — both on `app/info.html`, each under its own
+   two name different levels — both on `app/docs.html`, each under its own
    heading and from its own file, beside the "physically derived" caveat and
-   the cycle line; the live page links to it beneath Geometry.
+   the cycle line; it is the live page's one link (it replaced info.html and
+   geometry.html, 2026-10-02).
    **The Forecast tab reaches 48 h back** (owner's decision, 2026-09-26). For a
    past hour it shows what the page showed then: the newest run published
    before that hour, from `forecast.json`'s `past`, read back from the
@@ -276,7 +277,7 @@ forecaster actually verifies against, Surfline included.
    each collection, ~37 s; past it, the committed archive (`series_all.json`
    from `data/series/`, fetched only when asked for). It is the observed
    chain; every past hour is REBUILT with today's chain, not
-   remembered, and info.html says so; a missing hour is a gap in the line at
+   remembered, and docs.html says so; a missing hour is a gap in the line at
    every zoom. **The Forecast tab has its own charts in the same place**
    (owner's request, 2026-09-29): the model's 3-hourly hours from 48 h back
    to the run's end, drawn from `forecast.json` (`fcSteps`), never from the
@@ -330,7 +331,7 @@ forecaster actually verifies against, Surfline included.
    (`forecast/daylight.py`: NOAA's solar equations at the center break from
    spots.json, within a minute of `astral`; `nights` in both payloads).
    **No chart carries a description under it** (owner's call, same day):
-   what each draws lives on `info.html` and in the plot's spoken label. The
+   what each draws lives on `docs.html` and in the plot's spoken label. The
    one line kept is the Ensemble's measured coverage, because the band is
    drawn only beside it. Opens on Now;
    a refresh keeps the tabs the reader chose (sessionStorage, so a new visit
@@ -354,7 +355,7 @@ forecaster actually verifies against, Surfline included.
    against the smallest of three is circular when all three are on screen.
    States all four levels
    (geometry / model / calibration / observation) on screen — on
-   `info.html`, one tap from the live page — not just in the README. **Coronado's three breaks only, by decision (2026-09-18).** Breakers
+   `docs.html`, one tap from the live page — not just in the README. **Coronado's three breaks only, by decision (2026-09-18).** Breakers
    and Gator are out of the forecast and the app. They are not equivalent to
    Coronado north and south — measured, they differ on 17.6% and 13.5% of
    archive swell hours — but they are the two spots still standing on estimated
@@ -534,22 +535,24 @@ forecaster actually verifies against, Surfline included.
                         nearshore 8 m, NAVD88; the MSL offset is fetched from
                         CO-OPS on Actions — needs requirements-precompute.txt)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
-    app/info.html       the caveat, the cycle line and each chain's
-                        standing-on block; shipped by `forecast.publish` in
-                        BOTH bundles, linked beneath Geometry
-    app/docs.html       the documentation: every card, chart and calculation,
-                        a left menu built from its own headings (a drawer on a
-                        phone), the geometry drawing filled by geomviz like
-                        geometry.html's, both standing-on blocks, and ONE worked
-                        hour through the chain that `tests/test_docs.py`
-                        rebuilds from the archive. Folds in info.html and
-                        geometry.html, which stay until the owner judges them
-                        covered (2026-10-02). Never links to the observation log
-    app/geometry.html   template for the model-geometry drawing; filled by
-                        `python -m forecast.geomviz OUT.html` from spots.json,
-                        never hand-edited with coordinates. `forecast.publish`
-                        ships it as `geometry.html` in BOTH bundles, linked
-                        from the foot of the live page
+    app/docs.html       the documentation, the live page's one link: every
+                        card, chart and calculation; a left menu built from
+                        its own headings (a drawer on a phone) and full-text
+                        search; the caveat, the cycle line and both chains'
+                        standing-on blocks; the model-geometry drawing,
+                        filled by `forecast.geomviz` from spots.json and never
+                        hand-edited with coordinates; and ONE worked hour
+                        through the chain that `tests/test_docs.py` rebuilds
+                        from the archive. Shipped by `forecast.publish` in
+                        BOTH bundles. Never links to the observation log.
+                        Replaced info.html and geometry.html 2026-10-02
+                        (owner's decision); `publish.RETIRED` deletes them
+                        from the public site
+    app/docs_wording.md the page's prose by section id, for the owner to edit
+                        on a branch: generated by `python -m forecast.docswording`,
+                        pinned to the page by a test. Edits are carried INTO
+                        docs.html by hand and the file regenerated; `>>`
+                        lines are notes to Claude, never page text
     app/beachlog.html   the phone form, owner build (shared store)
     app/beachlog-observer.html  same file, observer build — no sign-in, entries
                         stay on the phone and are handed back as text. The two
@@ -614,7 +617,10 @@ forecaster actually verifies against, Surfline included.
       blockeredge.py    a blocker's edges read off the charted coast, against
                         what spots.json claims; reports, never edits  [built]
       geomviz.py        draws the vertices the model uses, the ray to each
-                        edge's vertex, and the distances between them  [built]
+                        edge's vertex, and the distances between them, into
+                        docs.html                                  [built]
+      docswording.py    docs.html's prose as app/docs_wording.md, by
+                        section id, for editing; --check            [built]
       siting.py         which BUOYS observe the swell that reaches it  [built]
       spots.json        breaks and blockers    [Coronado digitised; others not]
       swell.py          great circles, bearings, group velocity
@@ -875,7 +881,7 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   first.
 - **The seabed transform is physics, never "calibration".** Calibration is the
   level reserved for fitting to the observation log (build order 5), and
-  `info.html` names it as its own confidence level. Refraction, shoaling and
+  `docs.html` names it as its own confidence level. Refraction, shoaling and
   diffraction are modelled from surveyed inputs and fitted to nothing; calling
   them calibration would claim a level the project has not reached.
   `tests/test_app_surface.py` keeps the word out of the card's paragraph.
@@ -909,7 +915,7 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   wording and style, 2026-09-27. Every measured element on the Forecast tab is
   `--measured`: pure red, #E00000 light / #FF4545 dark (owner's call,
   2026-10-02, replacing sea green; #FF0000 itself fails 4.5:1 for text on
-  both cards). Where it comes from is said on `info.html`:
+  both cards). Where it comes from is said on `docs.html`:
   46232's spectrum at that hour, through identical windows, seabed and surf
   zone, so its difference from the forecast is the MODEL's error at the buoy,
   carried in, with any physics error cancelled out. It checks nothing at the

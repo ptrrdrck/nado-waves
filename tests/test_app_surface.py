@@ -6,9 +6,9 @@ README." A README can be honest while the screen quietly is not, so the screen
 gets its own test.
 
 The caveat, the cycle line, each chain's standing-on block and its footnote
-live on `app/info.html`, linked from the foot of the main page, so the rules
-that govern them are pinned there (`INFO`) and the vocabulary rule is pinned on
-both pages.
+live on `app/docs.html` (until 2026-10-02, `app/info.html`), linked from the
+foot of the main page, so the rules that govern them are pinned there (`INFO`)
+and the vocabulary rule is pinned on both pages.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import pytest
 APP = Path(__file__).resolve().parent.parent / "app" / "forecast.html"
 SOURCE = APP.read_text(encoding="utf-8")
 TEXT = re.sub(r"\s+", " ", SOURCE)
-INFO_PAGE = APP.parent / "info.html"
+INFO_PAGE = APP.parent / "docs.html"
 INFO = INFO_PAGE.read_text(encoding="utf-8")
 INFO_TEXT = re.sub(r"\s+", " ", INFO)
 
@@ -55,14 +55,12 @@ class TestItSaysWhatItIsStandingOn:
         assert "not an accurate forecast" in INFO_TEXT
 
     def test_the_main_page_links_to_where_that_is_said(self):
-        """Moved one tap away, so the tap has to be there: Info, directly
-        beneath Geometry, outside anything a render rewrites."""
+        """Moved one tap away, so the tap has to be there: Documentation,
+        beneath the cards, outside anything a render rewrites."""
 
         links = SOURCE[SOURCE.index('<nav class="links"'):]
         links = links[:links.index("</nav>")]
-        assert '<a href="geometry.html">Geometry</a>' in links
-        assert '<a href="info.html">Info</a>' in links
-        assert links.index('href="geometry.html"') < links.index('href="info.html"')
+        assert '<a href="docs.html">Documentation</a>' in links
         assert SOURCE.index('id="conditions"') < SOURCE.index('<nav class="links"')
 
     def test_info_links_back(self):
@@ -312,10 +310,11 @@ class TestTheGeometryProvenance:
     a reader who wants to check it can pull the chart.
 
     Taken off the break cards 2026-09-25 by decision. It is not lost:
-    geometry.html, linked from the foot of the live page, names the ENC cell
-    behind every vertex and marks anything still traced from imagery."""
+    docs.html (geometry.html until 2026-10-02), linked from the foot of the
+    live page, names the ENC cell behind every vertex and marks anything still
+    traced from imagery."""
 
-    GEOMETRY = (APP.parent / "geometry.html").read_text(encoding="utf-8")
+    GEOMETRY = INFO
 
     def test_the_break_card_no_longer_carries_it(self):
         assert "geometry modelled from" not in SOURCE
@@ -326,7 +325,7 @@ class TestTheGeometryProvenance:
         assert "traced from imagery" in self.GEOMETRY
 
     def test_the_live_page_still_links_to_it(self):
-        assert 'href="geometry.html"' in SOURCE
+        assert 'href="docs.html"' in SOURCE
 
     def test_the_assumed_spread_is_shown_rather_than_hidden(self):
         assert "spread_assumption" in INFO
@@ -621,7 +620,7 @@ class TestTheTwoChains:
     def test_each_chain_has_its_own_standing_on_block(self):
         """Rendered from whatever keys the file carries, because the two name
         different things — the Now side has no 'model' row and the Forecast
-        side has no 'waves observed' row. On info.html both are shown, each
+        side has no 'waves observed' row. On docs.html both are shown, each
         under its own heading and each from its own file."""
 
         assert "Object.keys(standing" in INFO
@@ -733,7 +732,7 @@ class TestTheSourceLine:
         assert "<h1>" not in SOURCE
 
     def test_the_cycle_line_explains_itself_and_sits_with_the_forecast(self):
-        """Forecast only, on info.html inside the Forecast block. On the
+        """Forecast only, on docs.html inside the Forecast block. On the
         observed side the provenance is on the swell card."""
 
         assert 'id="cycle"' not in SOURCE and 'id="breaks"' not in SOURCE
@@ -1734,11 +1733,11 @@ class TestTheWindowBlockSurvivesAnOlderPayload:
 
 
 class TestPastHoursAreExplained:
-    """The measured line is the observed chain inside a forecast card. info.html
+    """The measured line is the observed chain inside a forecast card. docs.html
     says what it is and what the comparison cannot show."""
 
     def test_info_names_the_comparison_and_its_limit(self):
-        assert 'id="past-hours"' in INFO
+        assert 'id="time-past"' in INFO
         assert "what this page showed for that hour" in INFO_TEXT
         assert "the same chain" in INFO_TEXT
         assert "does not check the beach" in INFO_TEXT
@@ -2176,7 +2175,7 @@ class TestTheWeekChart:
     def test_the_foot_line_is_gone_and_info_still_says_it(self):
         """Owner's decision, 2026-09-27: "Observed at 46232 every hour for the
         last 7 days, each carried in by today's chain" is obvious under the
-        chart. info.html still says where the hours come from."""
+        chart. docs.html still says where the hours come from."""
 
         assert "each carried in by today's chain" not in SOURCE
         assert "function chartFoot" not in SOURCE
@@ -2772,7 +2771,7 @@ class TestTheProvenanceDivider:
 
     def test_the_charts_draw_no_description_under_the_legend(self):
         """Owner's call, 2026-10-01: no description under any chart. What a
-        chart is stays as its plot's spoken label and on info.html; the one
+        chart is stays as its plot's spoken label and on docs.html; the one
         line kept is the Ensemble's measured coverage, because the band is
         drawn only beside it. Never a second provenance block either."""
 

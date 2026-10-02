@@ -1,8 +1,7 @@
 """The documentation page keeps the app surface's rules, and its numbers.
 
-`app/docs.html` folds in `app/info.html` and `app/geometry.html` (owner's
-decision, 2026-10-02: both stay until the documentation is judged to cover
-them), so the rules that govern those two are pinned here as well. And it
+`app/docs.html` replaced `app/info.html` and `app/geometry.html` (owner's
+decision, 2026-10-02), so the rules that governed those two are pinned here. And it
 quotes one worked hour through the whole chain, so that hour is rebuilt from
 the archive here: if the chain moves, the page has to move with it.
 """
@@ -63,11 +62,11 @@ class TestTheObservationLogIsDescribedNotLinked:
 
 
 class TestItIsReachable:
-    def test_the_main_page_links_to_it_beneath_info(self):
+    def test_the_main_page_links_to_it_below_the_cards(self):
         links = PAGE[PAGE.index('<nav class="links"'):]
         links = links[:links.index("</nav>")]
         assert '<a href="docs.html">Documentation</a>' in links
-        assert links.index('href="info.html"') < links.index('href="docs.html"')
+        assert PAGE.index('id="conditions"') < PAGE.index('<nav class="links"')
 
     def test_it_links_back(self):
         assert 'href="./"' in DOCS
@@ -104,6 +103,30 @@ class TestTheMenu:
         assert 'aria-controls="side"' in DOCS and 'aria-expanded="false"' in DOCS
 
 
+class TestTheWordingFile:
+    """app/docs_wording.md is the page's prose for editing, keyed by section
+    id. It must be the export of the page exactly, or an edit made to it
+    could land against wording the page no longer has."""
+
+    def test_it_is_the_export_of_the_page(self):
+        from forecast import docswording
+
+        current = (ROOT / "app" / "docs_wording.md").read_text(encoding="utf-8")
+        assert current == docswording.export(DOCS), \
+            "app/docs_wording.md is stale: run python -m forecast.docswording"
+
+    def test_every_section_has_its_key(self):
+        current = (ROOT / "app" / "docs_wording.md").read_text(encoding="utf-8")
+        body = DOCS[DOCS.index('<article id="doc">'):DOCS.index("</article>")]
+        keys = re.findall(r"^#{2,3} \[([^\]]+)\]", current, flags=re.M)
+        assert keys == re.findall(r'<section id="([^"]+)"', body)
+
+    def test_the_math_comes_through_whole(self):
+        current = (ROOT / "app" / "docs_wording.md").read_text(encoding="utf-8")
+        assert current.count("```") == 2 * DOCS.count('<pre class="math">')
+        assert "γ = 0.5 + 0.4·tanh(33·s₀)" in current
+
+
 class TestSearch:
     """Full text over every section, from the sidebar, with "/" to reach it
     and a Search button on a phone."""
@@ -134,7 +157,7 @@ class TestSearch:
 
 
 class TestItFoldsInInfo:
-    """Every rule test_app_surface pins on info.html, pinned here too."""
+    """Every rule info.html was held to, now on the page that replaced it."""
 
     def test_each_chain_has_its_own_standing_on_block(self):
         assert "Object.keys(standing" in DOCS

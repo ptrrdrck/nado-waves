@@ -23,13 +23,12 @@ The bundle:
     windtide.json   data/live/windtide.json — the measured wind and tide each
                     hour, and the next day's predicted tide, drawn under the
                     Wind and Tide cards on both tabs
-    geometry.html   the model's geometry, drawn by forecast.geomviz from
-                    spots.json; linked from the foot of index.html
-    info.html       app/info.html: the caveat and each chain's standing-on
-                    block; linked beneath geometry.html
     docs.html       app/docs.html: the documentation, with the geometry
-                    drawing filled by forecast.geomviz as geometry.html's is,
-                    and both chains' standing-on blocks; linked beneath info.html
+                    drawing filled by forecast.geomviz from spots.json, the
+                    caveat and both chains' standing-on blocks; linked from
+                    the foot of index.html
+    .retired        names of pages the bundle no longer ships, for
+                    publish-pages.sh to delete from the public repository
     .nojekyll       Pages must serve the files as-is, not run Jekyll over them
     README.md       says what the repository is and where to edit it
 
@@ -64,8 +63,13 @@ from collector.common import DEFAULT_DATA_DIR
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 PAGE_SOURCE = REPO_ROOT / "app" / "forecast.html"
-INFO_SOURCE = REPO_ROOT / "app" / "info.html"
 DOCS_SOURCE = REPO_ROOT / "app" / "docs.html"
+
+#: Pages the bundle used to ship and no longer does. `publish-pages.sh` only
+#: adds and replaces, so without this a retired page would stay on the public
+#: site, unlinked and frozen at its last build. docs.html replaced both
+#: (owner's decision, 2026-10-02).
+RETIRED = ("geometry.html", "info.html")
 
 #: Publish every Nth forecast hour. Must match the `lead_h % 3` filter in
 #: app/forecast.html — the page renders nothing between these, so anything
@@ -126,10 +130,9 @@ Beach, rebuilt after each GFS-Wave cycle.
 This repository is a delivery surface and nothing else. `index.html` is built
 from `app/forecast.html` in the private `nado-waves` repository, which holds the
 geometry, the transform and the tests, and `forecast.json` is written there by
-`forecast/live.py`. `geometry.html` is drawn there from the same geometry file
-the forecast reads, by `forecast/geomviz.py`, and `info.html` is built from
-`app/info.html`, and `docs.html` from `app/docs.html`. All of them are pushed
-here by a workflow. **Edit them there** —
+`forecast/live.py`. `docs.html` is built there from `app/docs.html`, its
+drawings from the same geometry file the forecast reads, by
+`forecast/geomviz.py`. All of them are pushed here by a workflow. **Edit them there** —
 anything committed directly to this repository is overwritten by the next cycle.
 
 ## What the page shows, and what it does not
@@ -141,7 +144,7 @@ as you walk the sand.
 
 **Nothing has ever measured a wave at these three breaks.** The output is
 *physically derived*, never accurate, and carries no error bar because there is
-nothing to compute one against. `info.html` states what each tab is standing
+nothing to compute one against. `docs.html` states what each tab is standing
 on — geometry, model, calibration, observation — and two of those read *none*.
 
 Each break's number is the offshore spectrum carried by physics to where it
@@ -244,38 +247,24 @@ def thin(forecast: dict, *, step: int = HOUR_STEP) -> dict:
     return out
 
 
-def geometry_page(data_dir: Path = DEFAULT_DATA_DIR) -> str:
-    """`app/geometry.html` filled from spots.json, as a standalone document.
+def retire(out_dir: Path) -> int:
+    """`.retired`: one retired page per line, for publish-pages.sh to delete.
+    A dotfile, so the script's `cp "$BUNDLE"/*` never publishes it."""
 
-    Built every time the bundle is, from the same file the forecast reads, so
-    the drawing cannot lag the geometry it draws. It is in BOTH builds for the
-    reason the page is (see `build_now_only`): index.html links to it, and a
-    link published an hour before its target is a broken link for an hour.
-    """
-
-    from . import geomviz
-
-    return wrap(geomviz.render(geomviz.build(data_dir=data_dir)),
-                app_title="Coronado aperture")
-
-
-def info_page(info: Path = INFO_SOURCE) -> str:
-    """`app/info.html` as a standalone document, repointed like the page.
-
-    In BOTH builds for the reason `geometry_page` is: index.html links to it,
-    and it reads both payloads, so it has to ship wherever either of them does.
-    """
-
-    return wrap(repoint(info.read_text(encoding="utf-8"), name=info.name),
-                app_title="Nado Waves")
+    path = Path(out_dir) / ".retired"
+    path.write_text("\n".join(RETIRED) + "\n", encoding="utf-8")
+    return path.stat().st_size
 
 
 def docs_page(data_dir: Path = DEFAULT_DATA_DIR, docs: Path = DOCS_SOURCE) -> str:
     """`app/docs.html` as a standalone document: the geometry drawing filled
-    from spots.json as `geometry_page` fills its own, and repointed like the
-    page, because its standing-on blocks read both payloads.
+    from spots.json, and repointed like the page, because its standing-on
+    blocks read both payloads.
 
-    In BOTH builds for `geometry_page`'s reason: index.html links to it.
+    Built every time the bundle is, from the same file the forecast reads, so
+    the drawing cannot lag the geometry it draws. In BOTH builds (see
+    `build_now_only`): index.html links to it, and a link published an hour
+    before its target is a broken link for an hour.
     """
 
     from . import geomviz
@@ -320,17 +309,10 @@ def build(
     )
     written["index.html"] = index.stat().st_size
 
-    geometry = out_dir / "geometry.html"
-    geometry.write_text(geometry_page(data_dir), encoding="utf-8")
-    written["geometry.html"] = geometry.stat().st_size
-
-    info = out_dir / "info.html"
-    info.write_text(info_page(), encoding="utf-8")
-    written["info.html"] = info.stat().st_size
-
     docs = out_dir / "docs.html"
     docs.write_text(docs_page(data_dir), encoding="utf-8")
     written["docs.html"] = docs.stat().st_size
+    written[".retired"] = retire(out_dir)
 
     payload = out_dir / "forecast.json"
     payload.write_text(
@@ -405,17 +387,10 @@ def build_now_only(
     )
     written["index.html"] = index.stat().st_size
 
-    geometry = out_dir / "geometry.html"
-    geometry.write_text(geometry_page(data_dir), encoding="utf-8")
-    written["geometry.html"] = geometry.stat().st_size
-
-    info = out_dir / "info.html"
-    info.write_text(info_page(), encoding="utf-8")
-    written["info.html"] = info.stat().st_size
-
     docs = out_dir / "docs.html"
     docs.write_text(docs_page(data_dir), encoding="utf-8")
     written["docs.html"] = docs.stat().st_size
+    written[".retired"] = retire(out_dir)
 
     target = out_dir / "now.json"
     target.write_text(

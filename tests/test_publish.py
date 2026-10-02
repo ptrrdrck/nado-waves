@@ -199,7 +199,7 @@ class TestTheBundleIsServable:
     def test_every_file_pages_needs_is_present(self, tmp_path):
         written = publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
         assert set(written) == {"index.html", "forecast.json", ".nojekyll", "README.md",
-                                "geometry.html", "info.html", "docs.html"}
+                                "docs.html", ".retired"}
         for name in written:
             assert (tmp_path / "site" / name).exists()
 
@@ -341,42 +341,6 @@ class TestTheObservedJobShipsThePageToo:
         assert not (out / "forecast.json").exists()
 
 
-class TestGeometryPage:
-    """The drawing of the model's geometry ships beside the page that links to
-    it, from both jobs, built from spots.json at publish time."""
-
-    def test_the_full_bundle_carries_it_filled(self, tmp_path):
-        publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
-        page = (tmp_path / "site" / "geometry.html").read_text()
-        assert page.startswith("<!doctype html>")
-        assert "const MODEL = {" in page and "/*__MODEL__*/" not in page
-
-    def test_the_hourly_bundle_carries_it_too(self, tmp_path):
-        """index.html links to it from both jobs, so both must ship it."""
-
-        data = write(tmp_path / "d", forecast())
-        (data / "live" / "now.json").write_text("{}")
-        publish.build_now_only(tmp_path / "now", data_dir=data)
-        assert (tmp_path / "now" / "geometry.html").exists()
-
-    def test_the_live_page_links_to_it_below_the_cards(self):
-        assert 'href="geometry.html"' in PAGE_SOURCE
-        cards = PAGE_SOURCE.index('id="conditions"')
-        assert PAGE_SOURCE.index('href="geometry.html"') > cards
-
-    def test_it_links_back(self):
-        assert 'href="./"' in (PAGE.parent / "geometry.html").read_text()
-
-    def test_it_refuses_the_vocabulary_of_accuracy_too(self, tmp_path):
-        """Same rule as the forecast page, same list: it is on the same site."""
-
-        publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
-        text = (tmp_path / "site" / "geometry.html").read_text().lower()
-        for word in ("rmse", "accuracy", "within a foot", "confidence interval",
-                     "error bar of", "% accurate"):
-            assert word not in text, word
-
-
 class TestDocsPage:
     """The documentation ships beside the page that links to it, from both
     jobs, with the geometry drawing filled and both payloads repointed."""
@@ -401,6 +365,35 @@ class TestDocsPage:
         for word in ("rmse", "accuracy", "within a foot", "confidence interval",
                      "error bar of", "% accurate"):
             assert word not in text, word
+
+
+class TestRetiredPages:
+    """docs.html replaced geometry.html and info.html (owner's decision,
+    2026-10-02). publish-pages.sh only adds and replaces, so the bundle names
+    what to delete, or the old pages would stay on the site, unlinked."""
+
+    def test_both_bundles_name_the_retired_pages_and_ship_neither(self, tmp_path):
+        data = write(tmp_path / "d", forecast())
+        (data / "live" / "now.json").write_text("{}")
+        publish.build(tmp_path / "site", data_dir=data)
+        publish.build_now_only(tmp_path / "now", data_dir=data)
+        for out in (tmp_path / "site", tmp_path / "now"):
+            listed = (out / ".retired").read_text().split()
+            assert set(listed) == {"geometry.html", "info.html"}
+            for name in listed:
+                assert not (out / name).exists()
+
+    def test_the_publish_script_deletes_them(self):
+        script = (PAGE.parent.parent / ".github" / "scripts" / "publish-pages.sh").read_text()
+        assert '"${BUNDLE}/.retired"' in script and 'rm -f -- "$work/$name"' in script
+        # Only bare names: a line naming a path or a dotfile is skipped.
+        assert 'case "$name" in ""|*/*|.*) continue' in script
+
+    def test_nothing_still_links_to_them(self):
+        for name in publish.RETIRED:
+            assert f'href="{name}"' not in PAGE_SOURCE
+            assert f'href="{name}"' not in (PAGE.parent / "docs.html").read_text()
+            assert not (PAGE.parent / name).exists()
 
 
 class TestTheMeasuredSeriesShips:

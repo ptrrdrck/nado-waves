@@ -2,7 +2,7 @@
 
     python -m forecast.geomviz OUT.html
 
-Writes one self-contained page from `app/geometry.html` with the payload
+Writes one self-contained page from `app/docs.html` with the payload
 below embedded in it. Everything on that page is read from `spots.json`
 through `forecast.geometry`, the same way the forecast reads it, so the
 drawing cannot show a blocker the model does not have or miss one it does.
@@ -29,7 +29,7 @@ from collector.common import DEFAULT_DATA_DIR
 from .geometry import SEAWARD, Blocker, Spot, load, swell_windows
 from .swell import great_circle_km, initial_bearing
 
-TEMPLATE = Path(__file__).resolve().parent.parent / "app" / "geometry.html"
+TEMPLATE = Path(__file__).resolve().parent.parent / "app" / "docs.html"
 PLACEHOLDER = "/*__MODEL__*/null"
 
 #: The anchor buoy. Its coordinate is READ from the metadata NDBC published,
