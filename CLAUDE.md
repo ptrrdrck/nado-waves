@@ -330,9 +330,11 @@ forecaster actually verifies against, Surfline included.
    direction charts change together. The Tide view is shaded by night on both tabs
    (`forecast/daylight.py`: NOAA's solar equations at the center break from
    spots.json, within a minute of `astral`; `nights` in both payloads).
-   **Under each LIVE break's drawing, and on the buoy's tab, an Origin
-   section** (owner's request, 2026-10-02; `forecast/origin.py`, BRIEFING
-   §37), styled as the Wind card's "Local": where each train now arriving was
+   **Right above each LIVE swell tab's Charts line, an Origin line** (owner's
+   request, 2026-10-02; `forecast/origin.py`, BRIEFING §37) that folds out
+   like the charts — its own caret, closed until opened, one open state for
+   every tab, kept across a refresh — under a rule of its own (owner's call,
+   same day, replacing a block under the drawing): where each train now arriving was
    born, read BACKWARDS off 46232's spectrum — every hour's swell-band peaks
    linked into ridges and fitted f = g(t − t₀)/4πR. **An origin belongs to a
    train**: a break shows only arrivals that are one of its own card trains,
@@ -532,10 +534,10 @@ forecaster actually verifies against, Surfline included.
                         31-member bulletin at 46232: mean and spread, no
                         direction — BRIEFING §35),
                         probe_spectra.py (are directional spectra reachable?),
-                        spectra.py (archive them: 46232 hourly, and
-                        46086, 46047, 46258 from collect.yml — context for
-                        checks, read by no height; 46047 and 46086 give
-                        Origin its direction), wind.py (KNZY),
+                        spectra.py (archive them: 46232, 46047 and 46086
+                        hourly — the last two give Origin its direction —
+                        and 46258 from collect.yml; context for checks, read
+                        by no height), wind.py (KNZY),
                         wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),

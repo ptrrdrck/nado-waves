@@ -119,6 +119,17 @@ jobs:
           set -euo pipefail
           python -m collector.spectra --station "${STATION:-46232}"
 
+      # The two buoys Origin reads a train's DIRECTION from (forecast.origin,
+      # BRIEFING §37): 46232's own is bent by the islands. Hourly, so a new
+      # arrival's bearing lands with its distance rather than a collect.yml run
+      # later; collect.yml no longer fetches them, so each file has one writer.
+      - name: Directional spectra (46047, 46086, Origin's bearing)
+        id: bearing
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.spectra --bearing
+
       - name: Wind (KNZY)
         id: wind
         continue-on-error: true
@@ -176,6 +187,7 @@ jobs:
       - name: Say which sources came back
         env:
           SPECTRA: ${{ steps.spectra.outcome }}
+          BEARING: ${{ steps.bearing.outcome }}
           WIND: ${{ steps.wind.outcome }}
           TIDE: ${{ steps.tide.outcome }}
         run: |
@@ -184,7 +196,7 @@ jobs:
           # only turns the outcomes into a headline, because "the job went red"
           # does not say which of three sources failed.
           failed=""
-          for pair in "spectra:${SPECTRA}" "wind:${WIND}" "tide:${TIDE}"; do
+          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "wind:${WIND}" "tide:${TIDE}"; do
             name="${pair%%:*}"; outcome="${pair##*:}"
             if [ "${outcome}" != "success" ]; then
               failed="${failed} ${name}"

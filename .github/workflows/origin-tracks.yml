@@ -1,0 +1,27 @@
+# Origin's readings against the hurricanes NHC tracked (forecast/origintracks.py,
+# BRIEFING §37). Reports to the step summary and never edits or commits: a
+# best track is NHC's analysis, permanent on their server, so there is nothing
+# here that would be lost by not archiving it.
+#
+# Why a workflow: ftp.nhc.noaa.gov is denied at CONNECT from a Claude session
+# (2026-10-02, with HURDAT, IBTrACS and JTWC). It reads the committed spectra,
+# so it says what the archive on the chosen ref says.
+
+name: Origin against best tracks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m forecast.origintracks

@@ -75,15 +75,16 @@ jobs:
           fi
           python -m collector.run ${args[@]+"${args[@]}"}
 
-      # Directional spectra for the three context buoys (46086, 46047, 46258).
-      # Archived for checks; the only live reader is the Now tab's Origin,
-      # which takes a train's direction from 46047 or 46086. See
-      # CONTEXT_STATIONS in collector/spectra.py for what each one is for. The
+      # Directional spectra for the context buoys not collected hourly: 46258.
+      # 46047 and 46086 moved to collect-beach-inputs.yml on 2026-10-02, because
+      # the Now tab's Origin reads a train's direction from them; each file
+      # keeps one writer. See CONTEXT_STATIONS in collector/spectra.py for what
+      # each one is for. The
       # real-time files hold 45 days, so this job's cadence is ample and the
       # hourly beach-inputs job - whose run time is the Now tab's freshness -
       # is left carrying 46232 alone. continue-on-error, because nothing here
       # may cost the standard met its commit.
-      - name: Directional spectra (context buoys)
+      - name: Directional spectra (context buoys, 46258)
         if: ${{ !inputs.dry_run }}
         continue-on-error: true
         run: |

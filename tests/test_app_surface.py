@@ -2876,13 +2876,25 @@ class TestOrigin:
     `forecast.origin`, BRIEFING §37). A measurement run backwards, on the
     LIVE tab only, under the drawing, per train."""
 
-    def test_it_sits_under_the_drawing(self):
-        assert SOURCE.index("${drawing || windowList(c.swellWindow)}") \
-            < SOURCE.index("${originBlock(c.origin)}")
+    def test_it_folds_out_right_above_the_charts(self):
+        """Owner's call, 2026-10-02: styled as the charts' fold, its own line
+        and caret, closed until opened, right above "Charts" and below the
+        provenance, one per swell tab."""
 
-    def test_it_is_styled_as_the_local_wind_block(self):
-        assert '<span class="sublbl">Origin</span>' in SOURCE
-        assert SOURCE.count('<div class="subcond" data-origin>') == 2
+        card = SOURCE[SOURCE.index("function swellCard"):SOURCE.index("function windAtBreaks")]
+        assert card.index("${srcLines(source, due)}") \
+            < card.index("originFold(tab.id, tab.origin") < card.index("seriesChart(tab.id")
+        assert "originBlock" not in SOURCE and "${originBlock" not in SOURCE
+        assert "<span>Origin</span>" in SOURCE and "data-origin-toggle" in SOURCE
+        assert "let ORIGIN_OPEN = false;" in SOURCE
+        assert 'ORIGIN_OPEN = recall(KEEP.originOpen) === "open";' in SOURCE
+
+    def test_it_has_its_own_rule(self):
+        assert re.search(r"\.cond > \.origin-fold\{[^}]*border-top:1px solid var\(--line\)", SOURCE)
+
+    def test_the_whole_line_opens_it_and_a_tab_shows_its_own(self):
+        assert 'e.target.closest("[data-origin-head]")) setOriginOpen(!ORIGIN_OPEN)' in SOURCE
+        assert 'fold.getAttribute("data-origin-tab") !== id' in SOURCE
 
     def test_it_comes_from_the_observed_chain_only(self):
         now = SOURCE[SOURCE.index("function cardsForNow"):SOURCE.index("function pastNearshore")]
@@ -2893,7 +2905,7 @@ class TestOrigin:
 
     def test_the_buoy_tab_has_one_too(self):
         assert 'origin: originFor("buoy")' in SOURCE
-        assert "buoyPanel(buoy, measured) + originBlock(origin)" in SOURCE
+        assert "body: buoyPanel(buoy, measured), chart, origin}" in SOURCE
 
     def test_distances_are_rounded_and_said_about(self):
         """Two buoys reading one storm differ by about a fifth: a distance
@@ -2915,4 +2927,20 @@ class TestOrigin:
         for page in (TEXT, INFO_TEXT):
             assert "confirmed in transit" not in page.lower()
         assert "witness" not in SOURCE[SOURCE.index("function originFor"):
-                                       SOURCE.index("function originBlock")]
+                                       SOURCE.index("function setOriginOpen")]
+
+
+def test_every_script_on_both_pages_parses(tmp_path):
+    """String checks pass on a page whose script does not parse, and then
+    the reader gets the tab row and nothing under it. Caught once, by eye
+    (2026-10-02): a stray closing tag left by an edit to Origin."""
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node not installed")
+    for name, page in (("forecast", SOURCE), ("docs", INFO)):
+        for k, body in enumerate(re.findall(r"<script>(.*?)</script>", page, re.S)):
+            path = tmp_path / f"{name}-{k}.js"
+            path.write_text(body, encoding="utf-8")
+            got = subprocess.run([node, "--check", str(path)], capture_output=True, text=True)
+            assert got.returncode == 0, f"{name} script {k}: {got.stderr[:400]}"
