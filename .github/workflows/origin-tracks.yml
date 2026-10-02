@@ -11,6 +11,11 @@ name: Origin against best tracks
 
 on:
   workflow_dispatch:
+    inputs:
+      min_kt:
+        description: "Count only best-track fixes at least this strong (kt)"
+        required: false
+        default: "64"
 
 permissions:
   contents: read
@@ -24,4 +29,6 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: python -m forecast.origintracks
+      - env:
+          MIN_KT: ${{ inputs.min_kt }}
+        run: python -m forecast.origintracks --min-kt "${MIN_KT:-64}"

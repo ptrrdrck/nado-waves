@@ -54,6 +54,12 @@ USER_AGENT = "nado-waves origin check (github.com/ptrrdrck/nado-waves)"
 BEFORE_H, AFTER_H = 48.0, 24.0
 #: The control's shift: the same storms at the wrong time.
 SHIFT_DAYS = 10.0
+#: Only fixes at hurricane strength count by default. NHC's b-decks also
+#: carry 15-25 kt "Genesis" and "Invest" disturbances; the first run
+#: (2026-10-02) matched most readings to those, which make no 13-15 s swell,
+#: and the season was busy enough that the +/-10 d control matched them as
+#: well. A 64 kt fix is a storm that could have sent the train.
+MIN_KT = 64
 
 
 @dataclass(frozen=True)
@@ -128,7 +134,7 @@ class Match:
 
 
 def nearest(reading: dict, tracks: dict[str, list[Fix]], home: tuple[float, float],
-            shift_days: float = 0.0) -> Match | None:
+            shift_days: float = 0.0, min_kt: int = 0) -> Match | None:
     """The tracked fix nearest the reading's origin around its birth time.
 
     Without an origin (no bearing), nearest in DISTANCE FROM 46232 instead,
@@ -141,7 +147,7 @@ def nearest(reading: dict, tracks: dict[str, list[Fix]], home: tuple[float, floa
     best = None
     for fixes in tracks.values():
         for fix in fixes:
-            if not lo <= fix.time <= hi:
+            if not lo <= fix.time <= hi or fix.vmax_kt < min_kt:
                 continue
             here = (fix.lat, fix.lon)
             distance = great_circle_km(home, here)
@@ -152,10 +158,13 @@ def nearest(reading: dict, tracks: dict[str, list[Fix]], home: tuple[float, floa
     return best
 
 
-def report(readings: list[dict], tracks: dict[str, list[Fix]], home: tuple[float, float]) -> str:
+def report(readings: list[dict], tracks: dict[str, list[Fix]], home: tuple[float, float],
+           min_kt: int = 0) -> str:
+    strong = sum(1 for v in tracks.values() for f in v if f.vmax_kt >= min_kt)
     lines = [
         f"Origin readings against NHC best tracks, {YEAR} eastern and central Pacific "
-        f"({len(tracks)} storms, {sum(len(v) for v in tracks.values())} six-hourly fixes)",
+        f"({len(tracks)} systems, {sum(len(v) for v in tracks.values())} six-hourly fixes; "
+        f"{strong} fixes at {min_kt} kt or more, the only ones counted)",
         "",
         "| first seen at 46232 | reading | nearest tracked storm, born -2 d to +1 d | "
         "miss | storm from 46232 | control: same storms +/-10 d |",
@@ -166,8 +175,9 @@ def report(readings: list[dict], tracks: dict[str, list[Fix]], home: tuple[float
         what = (f"{r['distance_km']:,} km at {r['bearing_deg']}° ({r['region']}), "
                 f"born {r['generated_utc'][5:13]}Z" if placed
                 else f"{r['distance_km']:,} km, no bearing, born {r['generated_utc'][5:13]}Z")
-        m = nearest(r, tracks, home)
-        control = [nearest(r, tracks, home, shift_days=d) for d in (-SHIFT_DAYS, SHIFT_DAYS)]
+        m = nearest(r, tracks, home, min_kt=min_kt)
+        control = [nearest(r, tracks, home, shift_days=d, min_kt=min_kt)
+                   for d in (-SHIFT_DAYS, SHIFT_DAYS)]
         control = [c.miss_km for c in control if c]
         ctl = f"{min(control):,.0f} km" if control else "no storm"
         if m is None:
@@ -208,6 +218,8 @@ def readings_from_archive(data_dir: Path) -> list[dict]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--min-kt", type=int, default=MIN_KT,
+                        help="Count only best-track fixes at least this strong (kt).")
     args = parser.parse_args(argv)
 
     from .siting import load_coordinates
@@ -222,7 +234,8 @@ def main(argv: list[str] | None = None) -> int:
     if not tracks:
         print(f"no {YEAR} eastern or central Pacific b-decks listed at {BTK}")
         return 1
-    text = report(readings_from_archive(args.data_dir), tracks, load_coordinates()["46232"])
+    text = report(readings_from_archive(args.data_dir), tracks, load_coordinates()["46232"],
+                  min_kt=args.min_kt)
     print(text)
     write_step_summary(text)
     return 0
