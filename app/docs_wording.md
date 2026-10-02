@@ -436,6 +436,8 @@ An origin belongs to a train, so a break shows only the arrivals that are one of
 
 How far the distance can be taken. The same storm read independently at two buoys gives distances about a fifth apart at the median: 18% between six Southern California buoys and buoys 1,000 to 4,000 km up the swell's path (2023–2025), and 25% between 46232 and 46047, 46086 and 46258 (August to October 2026). So the card rounds to the nearest 500 miles and 500 km, says “about”, and names a sea rather than a point. A storm is an area that moves, and one running toward the coast while it blows reads nearer than it was. The version this grew out of also said which buoys upstream had seen the swell pass; measured, that check could not tell a storm 4,000 km away from one 6,000 km away, so it is not shown.
 
+Checked against the hurricanes the National Hurricane Center tracked in the eastern and central Pacific, August to September 2026: of seven readings that put a storm within about 4,000 km to the south or west, one matched a hurricane (Polo, the reading 9° off and 41% too far), one possibly matched (Nolo, 9° off and 26% too near), and four that read as “Tropical Pacific” due south to south-south-west had no hurricane anywhere near. A reading of a nearby tropical storm on this card has been, so far, more often wrong than right. Readings of the Southern Ocean and the north-west storm track cannot be checked this way.
+
 ### [swell-countdown] Countdowns: when the next reading is due
 
 Each “LIVE” card counts down to when its next reading should be on screen. The countdown is three real events on the clock, not an interval added to the reading:

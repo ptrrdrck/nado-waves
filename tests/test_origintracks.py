@@ -56,3 +56,10 @@ def test_an_unplaced_reading_is_compared_on_distance_and_says_so():
     r = reading_at(15.3, -116.5, placed=False)
     assert nearest(r, tracks, HOME).miss_km < 1
     assert "(distance only)" in report([r], tracks, HOME)
+
+
+def test_a_disturbance_too_weak_to_make_swell_is_not_counted():
+    tracks = {"EP12": parse_bdeck(BDECK)}
+    r = reading_at(14.0, -115.0, born="2026-08-20T00:00:00Z")
+    assert nearest(r, tracks, HOME).fix.vmax_kt == 60
+    assert nearest(r, tracks, HOME, min_kt=64).fix.vmax_kt >= 64
