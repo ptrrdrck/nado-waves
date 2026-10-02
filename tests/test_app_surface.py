@@ -1855,7 +1855,7 @@ class TestTheWeekChart:
         assert "SERIES" in now and "DATA" not in now
         assert "DATA" in fc and "SERIES" not in fc
         assert 'useChain(MODE === "now" ? "now" : "fc");' in SOURCE
-        assert "${c.chart ? seriesChart(c.id) : \"\"}" in SOURCE
+        assert "seriesChart(tab.id, tab.id !== chosen)" in SOURCE
 
     def test_a_gap_breaks_the_line_and_a_lone_hour_is_a_dot(self):
         got = self._run(
@@ -2016,9 +2016,9 @@ class TestTheWeekChart:
         assert "let CHART_OPEN = false;" in SOURCE
         assert 'CHART_OPEN = recall(KEEP.chartOpen) === "open";' in SOURCE
         assert "setChartOpen(!CHART_OPEN);" in SOURCE
-        # Below the drawing, not above it.
-        panel = SOURCE[SOURCE.index("function breakPanel"):]
-        assert panel.index("${drawing ||") < panel.index("seriesChart(c.id)")
+        # Below the card's provenance, outside the pane (owner's call, 2026-10-02).
+        swell = SOURCE[SOURCE.index("function swellCard"):]
+        assert swell.index("${srcLines(source, due)}") < swell.index("seriesChart(tab.id")
 
     def test_the_chart_is_picked_from_a_menu_and_opens_on_one_day(self):
         """Owner's design, 2026-09-27: a dropdown, not a row of tabs, and the
@@ -2209,7 +2209,7 @@ class TestTheWindAndTideCharts:
 
     def test_both_tabs_carry_both_charts(self):
         # Now, the forecast's own hour, and an earlier run's hour.
-        assert SOURCE.count('cardChart("wind")') == 4     # one passed to the Local block
+        assert SOURCE.count('${cardChart("wind")}') == 3
         assert SOURCE.count('${cardChart("tide")}') == 3
 
     def test_the_whole_line_folds_it_out_with_room_above_it(self):
@@ -2219,7 +2219,10 @@ class TestTheWindAndTideCharts:
 
         css = SOURCE[:SOURCE.index("</style>")]
         assert "cursor:pointer" in css[css.index(".chart-head{"):css.index("}", css.index(".chart-head{"))]
-        assert ".cond > .chart,.cond .subcond > .chart{margin-top:8px}" in css
+        assert (".cond > .chart{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}"
+                in css)
+        assert ".cond.swell > .chart{margin-top:2px}" in css
+        assert ".cond.swell .srcs{margin-top:2px}" in css
         assert "border-top:1px solid var(--line);padding-top:9px;margin-top:8px}" in css
         wire = SOURCE[SOURCE.index("function wireCharts"):]
         assert 'const head = e.target.closest(".chart-head");' in wire
@@ -2235,9 +2238,10 @@ class TestTheWindAndTideCharts:
         assert ('if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row"))'
                 ' setCalcOpen(!CALC_OPEN);') in SOURCE
 
-    def test_the_chart_sits_above_the_cards_provenance(self):
-        """Owner's call, 2026-09-30: like the Swell card's, above the card's
-        provenance and its divider, not under them."""
+    def test_the_charts_line_is_the_last_thing_on_every_card(self):
+        """Owner's call, 2026-10-02 (replacing 2026-09-30's "above the
+        provenance"): every card's "Charts" line sits below its provenance,
+        under a second rule spaced as the provenance's own."""
 
         render = SOURCE[SOURCE.index("function renderConditions"):]
         render = render[:render.index("\n}\n")]
@@ -2245,13 +2249,19 @@ class TestTheWindAndTideCharts:
             at = 0
             while (at := render.find(card, at + 1)) != -1:
                 body = render[at:render.index("</div>`);", at)]
-                if "srcLines(" in body and "cardChart(" in body:
-                    assert body.index("cardChart(") < body.index("srcLines(")
+                assert body.rstrip().endswith('${cardChart("wind")}' if "wind" in card
+                                              else '${cardChart("tide")}')
         local = SOURCE[SOURCE.index("function localWindBlock"):]
         local = local[:local.index("\n}\n")]
-        assert local.count("${chart}") == 2
-        for part in local.split("${chart}")[1:]:
-            assert "srcLines(" in part                      # provenance after it
+        assert "chart" not in local
+        swell = SOURCE[SOURCE.index("function swellCard"):]
+        swell = swell[:swell.index("\n}\n")]
+        assert swell.index("${srcLines(source, due)}") < swell.index("seriesChart(")
+        for panel in ("function breakPanel", "function buoyPanel"):
+            body = SOURCE[SOURCE.index(panel):]
+            assert "seriesChart(" not in body[:body.index("\n}\n")]
+        select = SOURCE[SOURCE.index("function selectSwellTab"):]
+        assert 'chart.getAttribute("data-chart-tab") !== id' in select[:select.index("\n}\n")]
 
     def test_each_tab_reads_its_own_files(self):
         now = SOURCE[SOURCE.index("function wtNowSteps"):]
