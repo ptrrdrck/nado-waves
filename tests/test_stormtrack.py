@@ -84,3 +84,37 @@ def test_only_hurricane_strength_fixes_make_a_band():
     weak = [Fix(f.storm, f.name, f.time, f.lat, f.lon, 40) for f in storm()]
     assert S.bands({"ep17": weak}, {"46047": HOME}) == []
     assert len(S.bands({"ep17": storm()}, {"46047": HOME})) == 1
+
+
+def ridge_through(band, bearing, hours=14, delay=timedelta(0)):
+    """An Origin-style ridge whose points sit exactly on the band's first fix."""
+
+    from forecast.origin import Arrival, Point, Ridge
+
+    fix, d = band.fixes[0], band.distances[0]
+    pts = []
+    for k in range(hours):
+        f = 1 / 15.0 + 0.0008 * k
+        pts.append(Point(S.arrival(fix, f, d) + delay, f, 0.3, bearing))
+    a = Arrival(ridge=Ridge(pts), fit=None)
+    a.bearing_deg = bearing
+    return a
+
+
+def test_a_ridge_is_attributed_only_on_timing_and_bearing_together():
+    band = S.bands({"ep17": storm(bearing=150.0)}, {"46232": HOME})[0]
+    on = ridge_through(band, 152.0)
+    wrong_way = ridge_through(band, 250.0)
+    late = ridge_through(band, 152.0, delay=timedelta(days=3))
+    attributed, timed = S.matches([on, wrong_way, late], [band])
+    assert {id(a) for a, _, _ in timed} == {id(on), id(wrong_way)}
+    assert [id(a) for a, _, _ in attributed] == [id(on)]
+
+
+def test_the_bearing_control_shuffles_the_ridges_own_bearings():
+    band = S.bands({"ep17": storm(bearing=150.0)}, {"46232": HOME})[0]
+    ridges = [ridge_through(band, 152.0), ridge_through(band, 250.0)]
+    _, timed = S.matches(ridges, [band])
+    observed, p = S.bearing_chance(ridges, timed)
+    # Two ridges, one agreeing: any shuffle keeps one agreeing.
+    assert observed == 1 and p == 1.0

@@ -116,6 +116,7 @@ class Band:
     distances: list[float]
     bearing: float
     peak_kt: int
+    station_position: tuple[float, float] | None = None
 
     def contains(self, time: datetime, freq_hz: float, shift: timedelta = timedelta(0)) -> bool:
         for fix, d in zip(self.fixes, self.distances):
@@ -131,18 +132,18 @@ def bands(tracks: dict[str, list[Fix]], positions: dict[str, tuple[float, float]
         strong = [f for f in fixes if f.vmax_kt >= min_kt]
         if not strong:
             continue
-        name = next((f.name for f in fixes if f.name), "") or storm
+        # A b-deck is named INVEST or GENESISnnn until the storm is; the last
+        # real name is the storm's.
+        names = [f.name for f in fixes
+                 if f.name and not f.name.upper().startswith(("INVEST", "GENESIS"))]
+        name = names[-1] if names else storm
         for station in STATIONS:
             home = positions.get(station)
             if home is None:
                 continue
             ds = [great_circle_km(home, (f.lat, f.lon)) for f in strong]
-            bs = [initial_bearing(home, (f.lat, f.lon)) for f in strong]
-            x = sum(math.cos(math.radians(b)) for b in bs)
-            y = sum(math.sin(math.radians(b)) for b in bs)
-            out.append(Band(storm, name, station, strong, ds,
-                            math.degrees(math.atan2(y, x)) % 360.0,
-                            max(f.vmax_kt for f in strong)))
+            out.append(Band(storm, name, station, strong, ds, _mean_bearing(home, strong),
+                            max(f.vmax_kt for f in strong), home))
     return out
 
 
@@ -267,11 +268,93 @@ def ridge_share(arrival_, band: Band, shift: timedelta = timedelta(0)) -> float:
     return sum(band.contains(p.time, p.freq_hz, shift) for p in pts) / len(pts)
 
 
+#: Ridge attribution: the share of a ridge's points inside a storm-day's band,
+#: the most the shifted band may hold, and how far the bearings may differ.
+RIDGE_SHARE = 0.8
+RIDGE_SHARE_CONTROL = 0.2
+RIDGE_BEARING_DEG = 15
+PERMUTATIONS = 2000
+
+
+def matches(ridges: list, ridge_bands: list[Band]):
+    """(attributed, timing-only) lists of (ridge, day band, share)."""
+
+    timed = []
+    for a in ridges:
+        for band in ridge_bands:
+            for day in by_day(band):
+                share = ridge_share(a, day)
+                if share < RIDGE_SHARE:
+                    continue
+                control = max(ridge_share(a, day, timedelta(days=k)) for k in SHIFT_DAYS)
+                if control < RIDGE_SHARE_CONTROL:
+                    timed.append((a, day, share))
+    attributed = [(a, d, sh) for a, d, sh in timed
+                  if a.bearing_deg is not None
+                  and abs((a.bearing_deg - d.bearing + 180) % 360 - 180) <= RIDGE_BEARING_DEG]
+    return attributed, timed
+
+
+def bearing_chance(ridges: list, timed: list) -> tuple[int, float]:
+    """How many ridges' timing matches also agree in bearing, and how often
+    shuffled bearings do as well: the ridges' own bearings, dealt to each other."""
+
+    import random
+
+    placed = [a for a in ridges if a.bearing_deg is not None]
+    def agree(bearing_of) -> int:
+        # Distinct ridges, not pairs: one ridge in two of a storm's days is
+        # one attribution.
+        return len({id(a) for a, d, _ in timed if id(a) in bearing_of
+                    and abs((bearing_of[id(a)] - d.bearing + 180) % 360 - 180)
+                    <= RIDGE_BEARING_DEG})
+    actual = agree({id(a): a.bearing_deg for a in placed})
+    rng = random.Random(37)
+    bearings = [a.bearing_deg for a in placed]
+    hits = 0
+    for _ in range(PERMUTATIONS):
+        rng.shuffle(bearings)
+        hits += agree(dict(zip(map(id, placed), bearings))) >= actual
+    return actual, hits / PERMUTATIONS
+
+
 def _fmt(score: Score) -> str:
     return "—" if score.rank is None else f"{score.rank:.2f}"
 
 
-def report(results: list[Result], ridges: list, ridge_bands: list[Band]) -> str:
+def by_day(band: Band) -> list[Band]:
+    """The band cut into one band per day of the storm's track.
+
+    A whole track can be mostly unreachable: Polo's strongest days sat where a
+    straight path to the buoys runs up the Baja peninsula, which is not
+    modelled, and those cells dilute the days whose swell had open water. Per
+    day, the open days show for themselves. Read with care: ~60 day-tests in a
+    season will pass the gate by chance now and then; the whole-track verdict
+    is the claim, the days are where to look.
+    """
+
+    days: dict = {}
+    for fix, d in zip(band.fixes, band.distances):
+        days.setdefault(fix.time.date(), []).append((fix, d))
+    return [Band(band.storm, band.name, band.station, [f for f, _ in v], [d for _, d in v],
+                 _mean_bearing(band.station_position, [f for f, _ in v]),
+                 max(f.vmax_kt for f, _ in v), band.station_position)
+            for _, v in sorted(days.items())]
+
+
+def _mean_bearing(home: tuple[float, float], fixes: list[Fix]) -> float:
+    bs = [initial_bearing(home, (f.lat, f.lon)) for f in fixes]
+    x = sum(math.cos(math.radians(b)) for b in bs)
+    y = sum(math.sin(math.radians(b)) for b in bs)
+    return math.degrees(math.atan2(y, x)) % 360.0
+
+
+#: The per-day table is drawn at the buoy the islands do not shadow.
+DAY_STATION = "46047"
+
+
+def report(results: list[Result], ridges: list, ridge_bands: list[Band],
+           days: list[Result] = ()) -> str:
     lines = [
         f"Hurricanes run forward to the buoys (fixes >= the strength asked; sector "
         f"+/-{SECTOR_HALF_DEG}°, timing +/-{TOL_H:.0f} h; rank = in-band cells' mean place in "
@@ -292,26 +375,45 @@ def report(results: list[Result], ridges: list, ridge_bands: list[Band]) -> str:
             f"{' '.join(_fmt(r.shifted[d]) for d in SHIFT_DAYS)} | "
             f"{'—' if r.direction_ratio is None else f'x{r.direction_ratio:.1f}'} | "
             f"{'**yes**' if r.explains else 'no'} |")
-    lines += ["", "Origin's ridges at 46232 against every storm's band there "
-              "(share of the ridge's points inside the band; control = best share "
-              "with the band shifted):", "",
-              "| ridge first seen | reading | best storm | share | control |",
-              "|---|---|---|---|---|"]
+    if days:
+        lines += ["", f"Day by day at {DAY_STATION} (each day's fixes alone, at that day's "
+                  "own bearing):", "",
+                  "| storm | day | where | kt | bearing | distance | rank | best time control | "
+                  "own sector / turned | explains? |",
+                  "|---|---|---|---|---|---|---|---|---|---|"]
+        for r in days:
+            b, f = r.band, r.band.fixes[0]
+            if r.actual.cells == 0 or r.actual.rank is None:
+                continue
+            lines.append(
+                f"| {b.name.title()} | {f.time:%m-%d} | {abs(f.lat):.1f}N {abs(f.lon):.1f}W | "
+                f"{b.peak_kt} | {b.bearing:.0f}° | {min(b.distances):,.0f}-{max(b.distances):,.0f} km | "
+                f"{_fmt(r.actual)} | {'—' if r.best_control is None else f'{r.best_control:.2f}'} | "
+                f"{'—' if r.direction_ratio is None else f'x{r.direction_ratio:.1f}'} | "
+                f"{'**yes**' if r.explains else 'no'} |")
+    lines += ["", "Origin's ridges at 46232 against each storm-DAY's band there. Timing "
+              f"alone matches almost anything (a whole track's band is days wide), so a "
+              f"ridge is attributed only when >= {RIDGE_SHARE:.0%} of its points sit in a "
+              f"day's band, under {RIDGE_SHARE_CONTROL:.0%} with that band shifted, AND its "
+              f"bearing is within {RIDGE_BEARING_DEG}° of the storm's that day:", "",
+              "| ridge first seen | reading | timing matches (storm, day, share, bearing) | "
+              "attributed |", "|---|---|---|---|"]
+    attributed, timed_pairs = matches(ridges, ridge_bands)
     for a in ridges:
-        best = None
-        for band in ridge_bands:
-            share = ridge_share(a, band)
-            if share and (best is None or share > best[0]):
-                best = (share, band)
         what = (f"{a.fit.distance_km:,.0f} km"
                 + (f" at {a.bearing_deg:.0f}°" if a.bearing_deg is not None else ", no bearing"))
-        if best is None:
-            lines.append(f"| {a.first_utc:%Y-%m-%d %H}Z | {what} | none | 0% | |")
-            continue
-        share, band = best
-        control = max(ridge_share(a, band, timedelta(days=d)) for d in SHIFT_DAYS)
-        lines.append(f"| {a.first_utc:%Y-%m-%d %H}Z | {what} | {band.name.title()} "
-                     f"({band.storm.upper()}), {band.bearing:.0f}° | {share:.0%} | {control:.0%} |")
+        timed = [m for m in timed_pairs if m[0] is a]
+        listed = "; ".join(f"{d.name.title()} {d.fixes[0].time:%m-%d} {sh:.0%} at {d.bearing:.0f}°"
+                           for _, d, sh in timed) or "none"
+        hit = [m for m in attributed if m[0] is a]
+        lines.append(f"| {a.first_utc:%Y-%m-%d %H}Z | {what} | {listed} | "
+                     + ("; ".join(f"**{d.name.title()}** ({d.fixes[0].time:%m-%d}), "
+                                  f"storm {d.distances[0]:,.0f} km" for _, d, _ in hit) or "no")
+                     + " |")
+    observed, p = bearing_chance(ridges, timed_pairs)
+    lines += ["", f"Chance: {observed} ridge(s) agree in bearing with a timing match; with the ridges' "
+              f"bearings shuffled among themselves ({PERMUTATIONS} times), as many or more "
+              f"agree in {p:.0%} of shuffles."]
     lines += ["", f"A storm explains its band when it ranks at least {MIN_RANK}, beats "
               f"every time control by {MARGIN}, its sector carries x{DIR_RATIO} either "
               f"turned sector's energy, and coverage is at least {MIN_COVERAGE:.0%}. A best "
@@ -342,7 +444,9 @@ def run(data_dir: Path, min_kt: int = MIN_KT) -> str:
     archives = origin.load_archives(data_dir)
     ridges = origin.arrivals(archives["46232"], archives, positions.get("46232"))
     ridge_bands = [b for b in all_bands if b.station == RIDGE_STATION]
-    return report(results, ridges, ridge_bands)
+    days = [evaluate(d, fields[DAY_STATION]) for b in all_bands if b.station == DAY_STATION
+            for d in by_day(b)] if DAY_STATION in fields else []
+    return report(results, ridges, ridge_bands, days)
 
 
 def main(argv: list[str] | None = None) -> int:
