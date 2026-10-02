@@ -53,15 +53,20 @@ COMPONENTS = {
 
 DEFAULT_STATION = "46232"
 
-#: Archived for checks, never read by the forecast or the Now tab. Each one is
-#: here for a specific question, and none of them is a stand-in for 46232
-#: (BRIEFING §3a):
+#: Archived for checks, never read by the forecast or by any height on the Now
+#: tab. Each one is here for a specific question, and none of them is a
+#: stand-in for 46232 (BRIEFING §3a). One reader since 2026-10-02: the Now
+#: tab's Origin takes a train's DIRECTION from 46047, then 46086, because
+#: 46232's own is bent by the islands (`forecast.origin`, BRIEFING §37).
+#: Their cadence is collect.yml's, so an arriving train's bearing can lag its
+#: distance by a run; the card then says it has no bearing, and does not guess:
 #:
 #: * 46086 — the only buoy near a west window edge (256.2° from the centre
 #:   break). Its spectrum and 46232's measure how well two instruments agree on
 #:   the direction of the same south swell there.
 #: * 46047 — the least shadowed buoy in the array, §3's denominator. With
-#:   46232 it gives the islands' shadow per frequency and direction.
+#:   46232 it gives the islands' shadow per frequency and direction, and it is
+#:   the first buoy Origin reads a direction from.
 #: * 46258 — behind Point Loma at 46232's range: the aperture control. Its
 #:   spectrum through the same windows is the test §3a's "never a fallback"
 #:   rests on, and until that test has run the rule stands.

@@ -416,6 +416,26 @@ The biggest train at the buoy need not be the biggest at a break, because the wi
 
 The split is made on the spectrum by frequency, not on frequency and direction together, so two swells of the same period from different directions read as one train.
 
+### [swell-origin] Origin: where the swell was born
+
+On “LIVE”, under the drawing, each train that came from a distant storm says where that storm was: a sea, about how far away and in which direction, and when the swell left it. It is read backwards off the buoy's own spectrum. It is not a forecast, and nothing observes the storm.
+
+Long-period waves travel faster than short ones. In deep water a wave group moves at *gT*/4π, so a 20-second swell outruns a 14-second one. A storm makes every period at once, and by the time the energy has crossed an ocean the long periods have pulled ahead. At the buoy they arrive in order, longest first, and the frequency rises in a straight line with time:
+
+```
+f(t) = g·(t − t₀) / (4π·R)          f = 1/T, the frequency of the train's peak
+R  = g / (4π · slope)                the distance to the storm
+t₀ = where the line reaches f = 0    when it blew
+```
+
+Every hour, each peak in the buoy's spectrum between 10 and 29 seconds is found and followed from hour to hour. A peak that moves steadily to shorter periods for at least 12 hours, starting at 13 seconds or longer, on a line straight enough to read (R² of 0.8 or more), is a readable arrival.
+
+The direction is read at a buoy the islands do not shadow: 46047 at Tanner Banks, then 46086 in the San Clemente Basin. Never at 46232 itself, which sits behind the islands and reads a north-west swell 50 to 74° too far south. An arrival neither of them saw gets a distance and a date and no place.
+
+An origin belongs to a train, so a break shows only the arrivals that are one of its own trains, and the buoy's tab only those among the buoy's. While a train is still arriving its reading can move, so it says “still arriving” and how many hours have been read. When nothing readable is arriving, the section names the last readable arrival at that break in the last three weeks.
+
+How far the distance can be taken. The same storm read independently at two buoys gives distances about a fifth apart at the median: 18% between six Southern California buoys and buoys 1,000 to 4,000 km up the swell's path (2023–2025), and 25% between 46232 and 46047, 46086 and 46258 (August to October 2026). So the card rounds to the nearest 500 miles and 500 km, says “about”, and names a sea rather than a point. A storm is an area that moves, and one running toward the coast while it blows reads nearer than it was. The version this grew out of also said which buoys upstream had seen the swell pass; measured, that check could not tell a storm 4,000 km away from one 6,000 km away, so it is not shown.
+
 ### [swell-countdown] Countdowns: when the next reading is due
 
 Each “LIVE” card counts down to when its next reading should be on screen. The countdown is three real events on the clock, not an interval added to the reading:
@@ -604,7 +624,8 @@ The Shore direction “how often” bars and the Departure view are the “LIVE�
 
 | Source | What | Feeds |
 |---|---|---|
-| NDBC buoy 46232, Point Loma South | Hourly directional spectrum, 64 bands; position from NDBC's metadata | “LIVE” swell, every chart's buoy line, the red line |
+| NDBC buoy 46232, Point Loma South | Hourly directional spectrum, 64 bands; position from NDBC's metadata | “LIVE” swell and its Origin, every chart's buoy line, the red line |
+| NDBC buoys 46047 and 46086, Tanner Banks and San Clemente Basin | Hourly directional spectra | Origin's direction |
 | KNZY, NAS North Island | Hourly airfield report (METAR) | “LIVE” wind, local chop, Shore direction |
 | NOAA tide gauge 9410170, San Diego | 6-minute measured level, hourly prediction, predicted highs and lows | Tide card, breaking depth, departure |
 | GFS-Wave (WAVEWATCH III), NOAA | The model's own directional spectrum and 10 m wind at the buoy, four runs a day | Forecast swell |
@@ -701,6 +722,10 @@ Until that record exists, no figure on the forecast page states how well it does
   One peak of the spectrum: a swell with its own height, period and direction.
 - **Wind sea, chop**
   Short-period waves made by local wind.
+- **Dispersion**
+  A distant storm's swell sorting itself by period as it travels, longest first, because longer waves move faster. What Origin reads the distance from.
+- **Forerunner**
+  The first, longest-period waves of a swell to arrive.
 - **Swell window**
   The range of bearings from which swell can reach a break in a straight line.
 - **Aperture**

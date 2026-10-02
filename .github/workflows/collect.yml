@@ -76,7 +76,8 @@ jobs:
           python -m collector.run ${args[@]+"${args[@]}"}
 
       # Directional spectra for the three context buoys (46086, 46047, 46258).
-      # Archived for checks and never read by the forecast or the Now tab; see
+      # Archived for checks; the only live reader is the Now tab's Origin,
+      # which takes a train's direction from 46047 or 46086. See
       # CONTEXT_STATIONS in collector/spectra.py for what each one is for. The
       # real-time files hold 45 days, so this job's cadence is ample and the
       # hourly beach-inputs job - whose run time is the Now tab's freshness -

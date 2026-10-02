@@ -698,6 +698,13 @@ class TestUnits:
         assert "const MPH_PER_KT = 1.15078" in SOURCE
         assert SOURCE.count("3.28084") == 1
         assert SOURCE.count("1.15078") == 1
+        assert "const MI_PER_KM = 0.621371" in SOURCE
+        assert SOURCE.count("0.621371") == 1
+
+    def test_the_page_and_python_share_the_mile(self):
+        from forecast.units import MI_PER_KM
+
+        assert f"const MI_PER_KM = {MI_PER_KM}" in SOURCE
 
     def test_height_puts_feet_first(self):
         assert 'FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)' in SOURCE
@@ -2862,3 +2869,50 @@ class TestTheLocalWindOnTheForecastTab:
         cards = cards[:cards.index("\n}\n")]
         assert "windOffshore: h.local_wind_offshore" in cards
         assert "windOffshore: b.wind_offshore" not in cards
+
+
+class TestOrigin:
+    """Where the trains now arriving were born (owner's request, 2026-10-02;
+    `forecast.origin`, BRIEFING §37). A measurement run backwards, on the
+    LIVE tab only, under the drawing, per train."""
+
+    def test_it_sits_under_the_drawing(self):
+        assert SOURCE.index("${drawing || windowList(c.swellWindow)}") \
+            < SOURCE.index("${originBlock(c.origin)}")
+
+    def test_it_is_styled_as_the_local_wind_block(self):
+        assert '<span class="sublbl">Origin</span>' in SOURCE
+        assert SOURCE.count('<div class="subcond" data-origin>') == 2
+
+    def test_it_comes_from_the_observed_chain_only(self):
+        now = SOURCE[SOURCE.index("function cardsForNow"):SOURCE.index("function pastNearshore")]
+        forecast = SOURCE[SOURCE.index("function cardsForForecast"):SOURCE.index("function trainList")]
+        assert "origin: originFor(b.id)" in now
+        assert "origin" not in forecast
+        assert "NOW && NOW.origin" in SOURCE and "DATA.origin" not in SOURCE
+
+    def test_the_buoy_tab_has_one_too(self):
+        assert 'origin: originFor("buoy")' in SOURCE
+        assert "buoyPanel(buoy, measured) + originBlock(origin)" in SOURCE
+
+    def test_distances_are_rounded_and_said_about(self):
+        """Two buoys reading one storm differ by about a fifth: a distance
+        to the kilometre would claim a precision nobody measured."""
+
+        assert "Math.round(v / 500) * 500" in SOURCE
+        assert "`about ${about500(km * MI_PER_KM)} mi" in SOURCE
+
+    def test_the_empty_state_names_the_last_readable_arrival(self):
+        assert "Last readable arrival: " in SOURCE
+        assert "No readable arrival in the last ${o.lookback} days" in SOURCE
+
+    def test_a_running_arrival_says_so(self):
+        assert "still arriving: " in SOURCE
+
+    def test_nothing_upstream_is_called_a_confirmation(self):
+        """Measured, the upstream check never tested the distance."""
+
+        for page in (TEXT, INFO_TEXT):
+            assert "confirmed in transit" not in page.lower()
+        assert "witness" not in SOURCE[SOURCE.index("function originFor"):
+                                       SOURCE.index("function originBlock")]

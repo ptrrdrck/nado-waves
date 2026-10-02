@@ -877,6 +877,44 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         together, so two swells of the same period from different directions read as one train.</p>
     </section>
 
+    <section id="swell-origin">
+      <h3>Origin: where the swell was born</h3>
+      <p>On &ldquo;LIVE&rdquo;, under the drawing, each train that came from a distant storm says
+        where that storm was: a sea, about how far away and in which direction, and when the swell
+        left it. It is read backwards off the buoy's own spectrum. It is not a forecast, and
+        nothing observes the storm.</p>
+      <p>Long-period waves travel faster than short ones. In deep water a wave group moves at
+        <i>gT</i>/4&pi;, so a 20-second swell outruns a 14-second one. A storm makes every period at
+        once, and by the time the energy has crossed an ocean the long periods have pulled ahead.
+        At the buoy they arrive in order, longest first, and the frequency rises in a straight
+        line with time:</p>
+<pre class="math">f(t) = g·(t − t₀) / (4π·R)          <span class="c">f = 1/T, the frequency of the train's peak</span>
+R  = g / (4π · slope)                <span class="c">the distance to the storm</span>
+t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
+      <p>Every hour, each peak in the buoy's spectrum between 10 and 29 seconds is found and
+        followed from hour to hour. A peak that moves steadily to shorter periods for at least
+        12 hours, starting at 13 seconds or longer, on a line straight enough to read
+        (R&sup2; of 0.8 or more), is a readable arrival.</p>
+      <p>The direction is read at a buoy the islands do not shadow: 46047 at Tanner Banks, then
+        46086 in the San Clemente Basin. Never at 46232 itself, which sits behind the islands and
+        reads a north-west swell 50 to 74&deg; too far south. An arrival neither of them saw gets
+        a distance and a date and no place.</p>
+      <p>An origin belongs to a train, so a break shows only the arrivals that are one of its own
+        trains, and the buoy's tab only those among the buoy's. While a train is still arriving
+        its reading can move, so it says &ldquo;still arriving&rdquo; and how many hours have been
+        read. When nothing readable is arriving, the section names the last readable arrival at
+        that break in the last three weeks.</p>
+      <p class="see">How far the distance can be taken. The same storm read independently at two
+        buoys gives distances about a fifth apart at the median: 18% between six Southern
+        California buoys and buoys 1,000 to 4,000 km up the swell's path (2023&ndash;2025), and
+        25% between 46232 and 46047, 46086 and 46258 (August to October 2026). So the card rounds
+        to the nearest 500 miles and 500 km, says &ldquo;about&rdquo;, and names a sea rather than
+        a point. A storm is an area that moves, and one running toward the coast while it blows
+        reads nearer than it was. The version this grew out of also said which buoys upstream
+        had seen the swell pass; measured, that check could not tell a storm 4,000 km away from
+        one 6,000 km away, so it is not shown.</p>
+    </section>
+
     <section id="swell-countdown">
       <h3>Countdowns: when the next reading is due</h3>
       <p>Each &ldquo;LIVE&rdquo; card counts down to when its next reading should be on screen.
@@ -1199,7 +1237,8 @@ chart = buoy %K − break %K</pre>
       <div class="tablebox"><table>
         <thead><tr><th>Source</th><th>What</th><th>Feeds</th></tr></thead>
         <tbody>
-          <tr><th scope="row">NDBC buoy 46232, Point Loma South</th><td>Hourly directional spectrum, 64 bands; position from NDBC's metadata</td><td>&ldquo;LIVE&rdquo; swell, every chart's buoy line, the red line</td></tr>
+          <tr><th scope="row">NDBC buoy 46232, Point Loma South</th><td>Hourly directional spectrum, 64 bands; position from NDBC's metadata</td><td>&ldquo;LIVE&rdquo; swell and its Origin, every chart's buoy line, the red line</td></tr>
+          <tr><th scope="row">NDBC buoys 46047 and 46086, Tanner Banks and San Clemente Basin</th><td>Hourly directional spectra</td><td>Origin's direction</td></tr>
           <tr><th scope="row">KNZY, NAS North Island</th><td>Hourly airfield report (METAR)</td><td>&ldquo;LIVE&rdquo; wind, local chop, Shore direction</td></tr>
           <tr><th scope="row">NOAA tide gauge 9410170, San Diego</th><td>6-minute measured level, hourly prediction, predicted highs and lows</td><td>Tide card, breaking depth, departure</td></tr>
           <tr><th scope="row">GFS-Wave (WAVEWATCH III), NOAA</th><td>The model's own directional spectrum and 10 m wind at the buoy, four runs a day</td><td>Forecast swell</td></tr>
@@ -1346,6 +1385,9 @@ chart = buoy %K − break %K</pre>
       <dt>Swell train</dt><dd>One peak of the spectrum: a swell with its own height, period and
         direction.</dd>
       <dt>Wind sea, chop</dt><dd>Short-period waves made by local wind.</dd>
+      <dt>Dispersion</dt><dd>A distant storm's swell sorting itself by period as it travels,
+        longest first, because longer waves move faster. What Origin reads the distance from.</dd>
+      <dt>Forerunner</dt><dd>The first, longest-period waves of a swell to arrive.</dd>
       <dt>Swell window</dt><dd>The range of bearings from which swell can reach a break in a
         straight line.</dd>
       <dt>Aperture</dt><dd>All of a break's windows together, and the land that forms them.</dd>

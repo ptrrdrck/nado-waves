@@ -44,7 +44,7 @@ from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
 from .geometry import (HIGH, LOW, Spot, geometry_line,
                        geometry_provenance, load,
                        swell_windows, window_entry)
-from .units import height as fmt_height, speed as fmt_speed
+from .units import distance as fmt_distance, height as fmt_height, speed as fmt_speed
 from .live import (
     SEABED_LINE,
     SURF_ZONE_LINE,
@@ -61,7 +61,10 @@ from .live import (
     wind_measurement,
 )
 from .tideturns import read_turns, turns_between
-from .nearshore import buoy_offset, carry, density_grids, load_tables, local_sea, summarise
+from . import origin
+from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea, summarise,
+                        train_dicts)
+from .siting import load_coordinates
 from .surfzone import load_profiles
 from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, anomaly, coast_height, coast_level, coast_turn,
                        msl_above_mllw)
@@ -409,6 +412,11 @@ class Now:
     #: when none could be measured, and then the turns are the bare prediction.
     tide_departure_m: float | None = None
     breaks: list[NowBreak] = field(default_factory=list)
+    #: Where the swell now arriving was born, read backwards off 46232's own
+    #: spectrum (`forecast.origin`): every readable arrival of the last three
+    #: weeks, and per break and for the buoy, which of them are its trains now
+    #: and which was the last one that was. Empty on a rebuilt past hour.
+    origin: dict = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -536,6 +544,10 @@ def build(
             "surf zone": SURF_ZONE_LINE.format(tide="the measured level"),
             "calibration": "none — nothing has been fitted to an observation; "
                            "no offshore-to-face transfer",
+            "origin": f"OBSERVED, run backwards — each train's dispersion read off the "
+                      f"{STATION} spectrum, its bearing off an unshadowed buoy's; nothing "
+                      f"observes the storm, and two buoys reading one storm differ by about "
+                      f"a fifth",
             "observation at the beach": "none — data/beach_log/ is empty; "
                                         "nothing has measured these breaks",
             "claim": "observed at a buoy 29 km offshore and carried by physics to where "
@@ -724,12 +736,58 @@ def build(
             hs_nearshore_m=near_hs,
             nearshore=near,
         ))
+    # Origin is read off the archive, and only for the newest hour: a rebuilt
+    # past hour (`as_of`) has no use for it. Whatever goes wrong in it is a
+    # warning and an empty block, never a lost reading: the swell, wind and
+    # tide on this tab do not depend on it, and must not stop with it.
+    if not as_of:
+        try:
+            reading.origin = origin_reading(data_dir, spectrum, reading, by_id, blockers, tables)
+        except Exception as exc:  # noqa: BLE001 -- see above
+            reading.warnings.append(f"no origin reading: {type(exc).__name__}: {exc}")
+
     if spectrum.mem_fallback_bins:
         reading.warnings.append(
             f"{spectrum.mem_fallback_bins} frequency bin(s) could not be read by maximum "
             f"entropy and used NDBC's two-term series instead")
 
     return reading
+
+
+def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict,
+                   blockers, tables: dict) -> dict:
+    """`forecast.origin`'s block for the newest spectrum.
+
+    A break's card trains are what an arrival is matched against, now from the
+    reading just built and for a past arrival rebuilt the same way at its peak
+    hour: carried over the seabed when the tables are there, through the
+    straight-line window when they are not -- the card's own two cases.
+    """
+
+    archives = origin.load_archives(data_dir)
+    spectra = [s for s in archives.get(STATION, []) if s.time <= spectrum.time]
+    if not spectra:
+        return {}
+    by_time = {s.time: s for s in spectra}
+    trains_now = {b.id: b.trains for b in reading.breaks}
+    trains_now["buoy"] = reading.buoy.get("trains", [])
+
+    def trains_at(moment: datetime) -> dict:
+        past = by_time.get(moment)
+        if past is None:
+            return {}
+        past = past.with_spread("mem")
+        out = {"buoy": as_trains(at_buoy(past).trains)}
+        grids = density_grids(past) if tables else {}
+        for break_id in BREAKS:
+            if break_id in tables:
+                out[break_id] = train_dicts(carry(past, tables[break_id], grids).trains[:3])
+            else:
+                out[break_id] = as_trains(through(past, by_id[break_id], blockers).trains)
+        return out
+
+    return origin.reading(spectra, archives, load_coordinates().get(STATION),
+                          newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
 
 
 def write(reading: Now, path: Path) -> None:
@@ -788,6 +846,20 @@ def format_table(reading: Now) -> str:
             f"{entry.peak_period_s or 0:6.1f}s "
             f"{entry.peak_direction_deg or 0:5.0f}°  {sense}"
         )
+    arrivals = reading.origin.get("arrivals") or []
+    if arrivals:
+        lines += ["", "origin, read backwards off the spectrum (forecast.origin):"]
+        for site, got in (reading.origin.get("sites") or {}).items():
+            for c in got.get("current", []):
+                a = arrivals[c["arrival"]]
+                place = (f"{a['region']}, {a['bearing_deg']}° (at {a['bearing_from']})"
+                         if a.get("region") else "no bearing")
+                lines.append(f"    {site:16s} {c['train_period_s']:5.1f} s  "
+                             f"{fmt_distance(a['distance_km'])}, {place}, "
+                             f"{a['hours_read']:.0f} h read")
+            if not got.get("current"):
+                last = arrivals[got["last"]]["first_utc"] if got.get("last") is not None else "none"
+                lines.append(f"    {site:16s} nothing readable now; last {last}")
     lines += [
         "",
         "Observed at a buoy 29 km offshore and carried over the seabed to where it breaks",

@@ -126,6 +126,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A second reading inside a card, under its own small label: the Forecast
    tab's "Local" wind under the model's wind at the buoy. */
 .cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+/* Each arrival under ORIGIN: its sea, the line under it, its provenance. */
+.cond .origin{display:flex;flex-direction:column;gap:2px}
+.cond .origin + .origin{margin-top:10px}
 .cond .sublbl{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
               letter-spacing:.06em;font-size:11.5px;color:var(--soft)}
 /* A number inside a provenance line ("of 3.8 ft (1.15 m) at the buoy") stays
@@ -556,6 +559,7 @@ const $ = (id) => document.getElementById(id);
 // point of display and nowhere else.
 const FT_PER_M = 3.28084;
 const MPH_PER_KT = 1.15078;
+const MI_PER_KM = 0.621371;
 
 const height = (m) => (m == null ? "\u2014"
   : `${(m * FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)</span>`);
@@ -964,6 +968,7 @@ function cardsForNow() {
     takenBy: b.taken_by || [],
     windOffshore: b.wind_offshore, windNote: b.wind_note,
     windKt: NOW.wind ? NOW.wind.speed_kt : null,
+    origin: originFor(b.id),
     // The week's hourly chart goes under the drawing. It is the observed
     // chain; the Forecast tab's charts are drawn from its own hours
     // (`fcSteps`), never from these.
@@ -1161,7 +1166,81 @@ function breakPanel(c) {
 
     ${drawing || windowList(c.swellWindow)}
 
+    ${originBlock(c.origin)}
+
     ${offshore}`;
+}
+
+// ORIGIN, under the drawing on the LIVE tab (owner's request, 2026-10-02):
+// where each train now arriving was born, read backwards off 46232's spectrum
+// (`forecast.origin`). An origin belongs to a TRAIN, so a break shows only the
+// arrivals that are one of its own trains above; which trains reach a break is
+// the aperture's answer, never a test of one bearing against the window.
+//
+// Distances are rounded to 500 in each unit and said "about": two buoys
+// reading one storm independently differ by ~18-25% at the median (BRIEFING
+// §37), and nothing observes the storm itself. The place is a sea, never a
+// pin. No upstream "confirmation" is shown: measured, that check never tested
+// the distance.
+function originFor(site) {
+  const O = NOW && NOW.origin;
+  const s = O && O.sites && O.sites[site];
+  if (!s) return null;
+  const A = O.arrivals || [];
+  return {
+    current: (s.current || []).filter((c) => A[c.arrival])
+      .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
+    last: s.last != null && A[s.last] ? A[s.last] : null,
+    station: O.station, lookback: O.lookback_days,
+  };
+}
+
+const about500 = (v) => Math.max(500, Math.round(v / 500) * 500).toLocaleString("en-US");
+const farAway = (km) =>
+  `about ${about500(km * MI_PER_KM)} mi <span class="unit">(${about500(km)} km)</span>`;
+const sea = (region) => {
+  const r = (region || "").replace(/^the /, "");
+  return r ? r[0].toUpperCase() + r.slice(1) : "";
+};
+const onDay = (iso) => new Date(iso).toLocaleString(undefined, {month: "short", day: "numeric"});
+
+// One arrival: the sea, then how far and which way and when it left.
+function originArrival(a, station) {
+  const where = a.region
+    ? `<span class="val">${sea(a.region)}</span>
+      <span class="turn">${farAway(a.distance_km)} ${point(a.bearing_deg)}, `
+      + `left around ${onDay(a.generated_utc)}, about ${Math.max(1, Math.round(a.travel_days))} `
+      + `day${Math.round(a.travel_days) === 1 ? "" : "s"} crossing</span>`
+    : `<span class="val">${farAway(a.distance_km)} <span class="unit">away</span></span>
+      <span class="turn">left around ${onDay(a.generated_utc)}; no bearing: neither `
+      + `unshadowed buoy's archived spectrum has this train</span>`;
+  return `<div class="origin">${where}
+    ${srcLines([`The ${a.train_period_s.toFixed(1)} s train, still arriving: `
+                + `${Math.round(a.hours_read)} h read`,
+                `Read backwards off ${station}'s spectrum`
+                + (a.bearing_from ? `, bearing at ${a.bearing_from}` : "")])}
+  </div>`;
+}
+
+function originBlock(o) {
+  if (!o) return "";
+  if (o.current.length) {
+    return `<div class="subcond" data-origin>
+      <span class="sublbl">Origin</span>
+      ${o.current.map((a) => originArrival(a, o.station)).join("")}
+    </div>`;
+  }
+  const a = o.last;
+  const last = !a ? `No readable arrival in the last ${o.lookback} days`
+    : `Last readable arrival: `
+      + (a.region ? `${sea(a.region)}, ${farAway(a.distance_km)} ${point(a.bearing_deg)}`
+        : farAway(a.distance_km))
+      + `, ${onDay(a.first_utc)}`;
+  return `<div class="subcond" data-origin>
+    <span class="sublbl">Origin</span>
+    <span class="val"><span class="unit">no readable arrival now</span></span>
+    ${srcLines(last)}
+  </div>`;
 }
 
 // A depth for a label: whole feet, metres to one decimal below ten.
@@ -3645,12 +3724,12 @@ function cardChart(id) {
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
 function swellCard({label, buoy, station, cards, source, due = "", measured = null,
-                    chart = false}) {
+                    chart = false, origin = null}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
   }));
   tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy",
-             body: buoyPanel(buoy, measured), chart});
+             body: buoyPanel(buoy, measured) + originBlock(origin), chart});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
@@ -3800,6 +3879,7 @@ function renderConditions(step, cards) {
       ],
       due: dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),
       chart: true,
+      origin: originFor("buoy"),
     }));
 
     rows.push(`<div class="cond" data-card="wind">
