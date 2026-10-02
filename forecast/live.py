@@ -324,7 +324,11 @@ def hourly_columns(rows, past: list[dict], bay_predicted, departure: float | Non
         wind_kt.append(None if not local or local.get("speed_kt") is None
                        else round(local["speed_kt"], 1))
         gust.append(None if not local or local.get("gust_kt") is None else round(local["gust_kt"], 1))
+    from . import daylight
+
     return {"start_utc": start.strftime(ISO), "step_h": 1, "tide_m": tide,
+            # Night across the same hours, for the Tide chart's shading.
+            "nights": daylight.nights(start, marks[-1]),
             "local_wind": {"from_deg": wind_from, "kt": wind_kt, "gust_kt": gust},
             "model_wind": {"from_deg": model_from, "kt": model_kt}}
 

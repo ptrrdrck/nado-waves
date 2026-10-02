@@ -2400,6 +2400,83 @@ class TestTheWindAndTideCharts:
         assert "over 1 day" in got[3] and "calm or variable 100%" in got[3]
         assert got[4] == "null"                                  # the buoy has no shore
 
+    def test_the_forecast_tab_has_its_own_second_views(self):
+        """Owner's call, 2026-10-02: on Forecast, Shore direction is the run day
+        by day and the tide's second view is each day's range; the measured
+        record's views stay on the other tab."""
+
+        got = self._run(
+            "console.log(chartModes('wind').map((m) => m.id).join(','), chartModes('tide').map((m) => m.id).join(','));\n"
+            "CHAIN = 'fc';\n"
+            "console.log(chartModes('wind').map((m) => m.id + ':' + m.label).join(','),"
+            " chartModes('tide').map((m) => m.id + ':' + m.label).join(','));"
+        )
+        assert got[0] == "wind,shore tide,departure"
+        assert got[1] == "wind:Wind,week:Shore direction tide:Tide,range:Daily range"
+
+    def test_the_week_grid_is_each_forecast_hour_at_the_open_break(self):
+        start = SOURCE.index("function sense(")
+        sense = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        got = self._run(
+            sense +
+            "let SWELL_TAB = 'coronado_north';\n"
+            "CHAIN = 'fc';\n"
+            "DATA = {generated_utc: 'g', breaks: [{id: 'coronado_north', name: 'North', shore_normal_deg: 194}],"
+            " hourly: {start_utc: at(0), tide_m: Array(30).fill(1),"
+            " local_wind: {kt: Array(30).fill(6).map((v, k) => (k === 5 ? null : k === 6 ? 0 : v)),"
+            " from_deg: Array(30).fill(0).map((v, k) => (k < 10 ? 14 : 300)), gust_kt: []}}};\n"
+            "const v = weekData();\n"
+            "const cells = v.rows.flatMap((r) => r.cells.filter(Boolean));\n"
+            "console.log(cells.length, cells.filter((c) => c.kind === 'off').length,"
+            " cells.filter((c) => c.kind === 'still').length);\n"
+            "console.log(weekRead(v, null));\n"
+            "SWELL_TAB = 'buoy'; console.log(weekData());"
+        )
+        # 30 hours, one with no forecast (a gap, not a cell), one calm; 14° is
+        # straight offshore against a 194° normal, 300° is not.
+        assert got[0] == "29 8 1"
+        assert "North, through the run" in got[1] and "offshore 8 h" in got[1]
+        assert got[2] == "null"
+
+    def test_the_daily_range_is_each_days_biggest_swing(self):
+        """Consecutive turns, not the calendar day's extremes: a lower low
+        just past midnight must not make its day read as a neap."""
+
+        got = self._run(
+            "const clock = (iso) => iso.slice(11, 16);\n"
+            "CHAIN = 'fc';\n"
+            "DATA = {generated_utc: 'g', tide_turns: ["
+            "{valid_utc: '2026-10-03T15:00:00Z', height_m: 1.8, event: 'high'},"
+            "{valid_utc: '2026-10-03T21:00:00Z', height_m: 0.2, event: 'low'},"
+            "{valid_utc: '2026-10-04T13:00:00Z', height_m: 1.5, event: 'high'},"
+            "{valid_utc: '2026-10-04T17:00:00Z', height_m: 1.3, event: 'low'},"
+            "{valid_utc: '2026-10-04T23:00:00Z', height_m: 1.9, event: 'high'},"
+            "{valid_utc: '2026-10-05T07:30:00Z', height_m: -0.1, event: 'low'}]};\n"
+            "const v = rangeData();\n"
+            "console.log(v.days.length, v.days.map((d) => (d.hi.height_m - d.lo.height_m).toFixed(1)).join(','));\n"
+            "console.log(rangeRead(v, 1));"
+        )
+        # In Los Angeles time: 3 Oct's biggest swing is 1.6; 4 Oct's is the
+        # 1.9 high falling to a -0.1 low at 00:30 the next morning, 2.0 --
+        # its own calendar day held only 1.5 to 1.3. The last turn starts
+        # no swing and adds no day.
+        assert got[0] == "2 1.6,2.0"
+        assert "range 2.00 m" in got[1] and "high 1.90 m" in got[1] and "to low -0.10 m" in got[1]
+
+    def test_the_tide_is_shaded_by_night(self):
+        got = self._run(
+            "WT.nights = [[at(1), at(3)]];\n"
+            "const spec = chartSpec('tide', 'tide');\n"
+            "const svg = chartPlot('tide', spec, 2, chartSteps('tide'), {v0: 0, v1: 8});\n"
+            "console.log((svg.match(/class=\"nightband\"/g) || []).length,"
+            " spec.legend.map((l) => l.cls).includes('nightband'));\n"
+            "CHAIN = 'fc'; DATA = {generated_utc: 'g', hourly: {start_utc: at(0), tide_m: [1, 1, 1, 1],"
+            " nights: [[at(2), at(9)]]}};\n"
+            "console.log(chartSpec('tide', 'tide').night.length);"
+        )
+        assert got[0] == "1 true"
+        assert got[1] == "1"
+
     def test_speeds_are_in_mph_and_the_tide_in_feet(self):
         got = self._run(
             "console.log(mphAxis(9).ticks.map((t) => t.text).join(','));\n"
