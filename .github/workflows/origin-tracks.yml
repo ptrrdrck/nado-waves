@@ -1,11 +1,13 @@
-# Origin's readings against the hurricanes NHC tracked (forecast/origintracks.py,
-# BRIEFING §37). Reports to the step summary and never edits or commits: a
-# best track is NHC's analysis, permanent on their server, so there is nothing
-# here that would be lost by not archiving it.
+# NHC's best tracks, archived, and Origin's readings checked against them
+# (collector/besttracks.py, forecast/origintracks.py, forecast/stormtrack.py;
+# BRIEFING §37a-b). Manual only.
 #
 # Why a workflow: ftp.nhc.noaa.gov is denied at CONNECT from a Claude session
-# (2026-10-02, with HURDAT, IBTrACS and JTWC). It reads the committed spectra,
-# so it says what the archive on the chosen ref says.
+# (2026-10-02, with HURDAT, IBTrACS and JTWC). The b-decks are COMMITTED to the
+# ref it runs on (data/besttracks/), because a working best track is rewritten
+# every six hours and revised after the season: a check is only reproducible
+# against the file it read, and with the files in the repository the checks
+# themselves run anywhere, a session included. This job is their one writer.
 
 name: Origin against best tracks
 
@@ -18,17 +20,57 @@ on:
         default: "64"
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: origin-tracks
+  cancel-in-progress: false
 
 jobs:
   report:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - env:
+
+      - name: Archive the b-decks
+        id: archive
+        run: python -m collector.besttracks
+
+      - name: Commit the b-decks
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "nado-waves collector"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/besttracks
+          if git diff --cached --quiet; then
+            echo "No b-deck changed."
+            exit 0
+          fi
+          git commit -m "data: archive NHC best tracks" \
+            -m "Automated commit from .github/workflows/origin-tracks.yml."
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            git pull --rebase --autostash origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+          echo "::error title=Best-track push failed::Could not push the b-decks"
+          exit 1
+
+      - name: Readings against the tracks (nearest fix)
+        env:
           MIN_KT: ${{ inputs.min_kt }}
         run: python -m forecast.origintracks --min-kt "${MIN_KT:-64}"
+
+      - name: Each hurricane run forward to the buoys, with controls
+        env:
+          MIN_KT: ${{ inputs.min_kt }}
+        run: python -m forecast.stormtrack --min-kt "${MIN_KT:-64}"
