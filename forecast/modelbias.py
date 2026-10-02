@@ -14,7 +14,7 @@ that lives there could all but vanish at the breaks — or the opposite. This
 report measures that, and nothing more. **It reports and never edits**: no
 forecast number changes on the strength of it (owner's decision, 2026-09-26).
 Applying a correction is a separate decision, and one that has to settle what
-`info.html`'s confidence levels call it first — "calibration" is reserved for
+`docs.html`'s confidence levels call it first — "calibration" is reserved for
 the beach log.
 
 What is compared, per logged hour:

@@ -13,7 +13,7 @@ windows, seabed and surf zone, so their difference is GFS-Wave's error AT THE
 BUOY, carried in — the model level, checked against an observation. It is not a
 check at the beach: nothing measures the beach (CLAUDE.md), and a physics error
 common to both chains cancels out of the comparison entirely. The page labels it
-"Observed at <hour>" and never "what happened"; info.html says where
+"Observed at <hour>" and never "what happened"; docs.html says where
 it comes from.
 
 **A missing observation is a gap.** Only a spectrum stamped exactly at the hour

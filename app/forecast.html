@@ -196,7 +196,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .calc-table tbody tr:last-child th{border-bottom:0}
 
 /* The measured reading under a past forecast hour: 46232's own spectrum at
-   that hour, carried in by the same chain (info.html says so). Red (it was sea green until 2026-10-02), in
+   that hour, carried in by the same chain (docs.html says so). Red (it was sea green until 2026-10-02), in
    a 1 px outline at the card's radius (owner's style, 2026-09-27), so it can
    never be read as part of the forecast above it; its label names the hour
    it was observed on every line, not once per page. */
@@ -477,7 +477,7 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
   <!-- Two evidence chains, not two views of one. Now is built only from
        measurements; Forecast is built only from a model. They share the
        geometry and nothing else, which is why each carries its own
-       "standing on" block on info.html. -->
+       "standing on" block on docs.html. -->
   <nav class="tabs" role="tablist" aria-label="Live or forecast">
     <button type="button" id="tab-now" role="tab" aria-selected="true"
             aria-controls="panel">&ldquo;LIVE&rdquo;</button>
@@ -509,14 +509,12 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
     <div class="conditions" id="conditions"></div>
   </section>
 
-  <!-- The caveat, the cycle line, each chain's standing-on block and its
-       footnote live on info.html. geometry.html is built by forecast.publish
-       from spots.json; both ship beside this page in the bundle. docs.html
-       folds both in, with every card, chart and calculation explained; the
-       two stay until it is judged to cover them. -->
+  <!-- The caveat, the cycle line, each chain's standing-on block, the
+       model's geometry vertex by vertex, and every card, chart and
+       calculation explained: all on docs.html, which forecast.publish ships
+       beside this page in the bundle. It replaced info.html and
+       geometry.html on 2026-10-02 (owner's decision). -->
   <nav class="links" aria-label="More">
-    <a href="geometry.html">Geometry</a>
-    <a href="info.html">Info</a>
     <a href="docs.html">Documentation</a>
   </nav>
 </div>
@@ -911,7 +909,7 @@ let SWELL_TAB = null;
 const BUOY_TAB = "buoy";
 
 // Both tab choices survive a refresh. sessionStorage rather than localStorage:
-// a reload, or a trip to info.html and back, keeps the reader where they were,
+// a reload, or a trip to docs.html and back, keeps the reader where they were,
 // while a fresh visit still opens on Now -- see `boot`. Every access is
 // guarded, because private modes and blocked site data throw on the accessor
 // itself, and a page that cannot remember a tab must still render.
@@ -1071,7 +1069,7 @@ function measuredAt(validUtc) {
 // it sits inside a forecast card and must not be read as part of the forecast.
 // It names the hour it was observed ("Observed at 8:00 AM", owner's wording
 // 2026-09-27); where it came from -- 46232, carried in by the same chain --
-// is said on info.html.
+// is said on docs.html.
 // Both numbers go through the same windows, seabed and surf zone, so the
 // difference between them is the model's error AT THE BUOY carried in -- not
 // a check at the beach, which nothing measures. Hence no difference or
@@ -1116,7 +1114,7 @@ function breakPanel(c) {
   // The drawing carries the windows and what takes the swell (owner's design,
   // 2026-09-26), in place of the two lists that followed a rule here. When it
   // cannot be drawn, the list's own sentence says why. The windows' chart
-  // provenance is on geometry.html, vertex by vertex, one tap away.
+  // provenance is on docs.html's aperture section, vertex by vertex, one tap away.
   const value = `<span class="val">${c.hsWindow != null
       ? `${height(c.hsWindow)} <span class="unit">${depthLabel(c)}</span>`
       : '<span class="unit">no spectrum</span>'}</span>`;
@@ -1605,7 +1603,7 @@ function buoyPanel(buoy, measured = null) {
 // 46232's spectra begin, rebuilt daily into the committed archive and fetched
 // only when the reader zooms or pans out past the week (forecast.series). Both
 // are 46232's spectrum at each hour through TODAY's windows, seabed and surf
-// zone -- not what this page showed then; info.html says so. The archive is
+// zone -- not what this page showed then; docs.html says so. The archive is
 // withheld, never drawn, when it no longer matches today's chain. Nothing here
 // is a forecast and nothing here checks the beach.
 //

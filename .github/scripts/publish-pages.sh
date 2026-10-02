@@ -40,9 +40,17 @@ if ! git clone --depth 1 "https://github.com/${PAGES_REPO}.git" "$work" 2>/dev/n
   exit 1
 fi
 
-# Replace the published files; anything else in the repository is left alone.
+# Replace the published files; anything else in the repository is left alone,
+# except the pages the bundle has retired (forecast.publish.RETIRED), which
+# would otherwise stay on the site, unlinked and frozen at their last build.
 cp "${BUNDLE}"/* "$work/"
 [ -f "${BUNDLE}/.nojekyll" ] && cp "${BUNDLE}/.nojekyll" "$work/"
+if [ -f "${BUNDLE}/.retired" ]; then
+  while IFS= read -r name; do
+    case "$name" in ""|*/*|.*) continue ;; esac   # a bare file name, nothing else
+    rm -f -- "$work/$name"
+  done < "${BUNDLE}/.retired"
+fi
 
 cd "$work"
 git config user.name "nado-waves forecast"

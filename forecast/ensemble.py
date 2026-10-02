@@ -27,7 +27,7 @@ What it measures, in order:
 
 It reports and never edits. It fits nothing, removes no bias, and widens no
 band: any of those would be a correction, and applying one waits on the
-owner's decision and on what info.html calls it.
+owner's decision and on what docs.html calls it.
 """
 
 from __future__ import annotations

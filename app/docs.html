@@ -4,9 +4,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Tokens are app/forecast.html's and app/geometry.html's, so the pages read
-   as one product. The three break hues are geometry.html's, and as there,
-   nothing but the vertex drawing is coloured by break. */
+/* Tokens are app/forecast.html's, so the pages read as one product. The
+   three break hues are the first three slots of the validated categorical
+   palette; nothing but the vertex drawing is coloured by break. */
 :root{
   --paper:#EAEEEC; --card:#F6F8F7; --ink:#16232B; --soft:#53656E; --faint:#7C8C93;
   --line:#CBD5D1; --line-strong:#AFBDB8;
@@ -180,7 +180,7 @@ dl.terms dd{margin:0;color:var(--ink)}
 .chain i{color:var(--faint);font-style:normal}
 .measured-ink{color:var(--measured);font-weight:600}
 
-/* controls, as on geometry.html */
+/* the full map's controls */
 .controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
 .seg{display:flex;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
   border-radius:var(--r);padding:3px;box-shadow:var(--shadow)}
@@ -1411,7 +1411,7 @@ chart = buoy %K − break %K</pre>
 const PARAM = new URLSearchParams(location.search);
 const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
 const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
-// Filled by forecast.geomviz from spots.json, as geometry.html is. Null in the
+// Filled by forecast.geomviz from spots.json at publish time. Null in the
 // unbuilt template, and every drawing then says so instead of drawing.
 const MODEL = /*__MODEL__*/null;
 
@@ -1661,7 +1661,7 @@ addEventListener("keydown", (ev) => { if (ev.key === "Escape") menu(false); });
 toc.addEventListener("click", (ev) => { if (ev.target.closest("a")) menu(false); });
 
 // ================================================================ standing on
-// As info.html: each chain from its own file and nothing else, rendered from
+// Each chain from its own file and nothing else, rendered from
 // whatever keys the file carries. "claim" is pinned last because it is the
 // conclusion, and a value beginning "none" is marked.
 const NOW_REFRESH_MS = 5 * 60 * 1000;
@@ -1813,7 +1813,7 @@ document.querySelectorAll("[data-geo]").forEach((el) => {
 });
 
 if (MODEL) {
-  // Status, as geometry.html's header.
+  // How much of the geometry is charted.
   const chartedB = MODEL.blockers.filter((b) => b.cells.length).length;
   const imageryBreaks = MODEL.breaks.filter((b) => b.source === "imagery").length;
   const chartedBreaks = MODEL.breaks.length - imageryBreaks;
@@ -1837,7 +1837,7 @@ if (MODEL) {
 }
 
 // ---------- the drawing: one factory, many figures ----------
-// geometry.html's drawing, made re-entrant so the same vertices can be drawn
+// The vertex drawing, re-entrant so the same vertices can be drawn
 // small beside the text and full size in 3.8. Projection: local
 // equirectangular, km, north up, centred on the center break.
 const NS = "http://www.w3.org/2000/svg";
@@ -2161,7 +2161,7 @@ document.querySelectorAll("[data-map]").forEach((box) => geoMap(box, {
   wedges: box.dataset.wedges !== "0", rays: box.dataset.rays !== "0", dists: box.dataset.dists !== "0",
 }));
 
-// The full map, with geometry.html's controls.
+// The full map, with its controls.
 const full = geoMap($("fullmap"), {view: "near", interactive: true});
 if (full) {
   const viewsBox = $("views");
@@ -2197,7 +2197,7 @@ if (full) {
   ].join("");
 }
 
-// ---------- geometry.html's tables ----------
+// ---------- the geometry tables ----------
 if (MODEL) {
   $("wtable").innerHTML =
     `<thead><tr><th>Break</th><th>Window</th><th>Span</th><th>Edge</th><th>Formed by</th><th>Vertex</th><th>Ray</th><th>100 m moves it</th></tr></thead><tbody>` +
