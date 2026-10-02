@@ -255,8 +255,9 @@ forecaster actually verifies against, Surfline included.
    requests, 2026-09-27; `forecast/series.py`): height, north vs. south (north less south), window
    ratio and a 24 h %K, switched above the plot, folded out from an
    "Charts" line with the calculation's caret (closed until opened) — the
-   last line on every card, below the provenance under a second rule
-   (owner's call, 2026-10-02). **Each tab plots its own line only, in ink** — the break
+   last line on every card, below the provenance and under the card's one
+   rule; the provenance has space above it, no rule (owner's calls,
+   2026-10-02). **Each tab plots its own line only, in ink** — the break
    on a break's tab, the buoy on the buoy's (owner's call, 2026-09-28, after
    a round of per-break colours was rolled back: comparing the breaks on one
    plot belongs somewhere else in the app). The Window chart carries a
