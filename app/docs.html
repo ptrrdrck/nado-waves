@@ -1,0 +1,2238 @@
+<title>Nado Waves — Documentation</title>
+<meta name="description" content="How the Coronado forecast works: every card, chart and calculation, and what each one is standing on.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Tokens are app/forecast.html's and app/geometry.html's, so the pages read
+   as one product. The three break hues are geometry.html's, and as there,
+   nothing but the vertex drawing is coloured by break. */
+:root{
+  --paper:#EAEEEC; --card:#F6F8F7; --ink:#16232B; --soft:#53656E; --faint:#7C8C93;
+  --line:#CBD5D1; --line-strong:#AFBDB8;
+  --surf:#1565C0; --surf-ink:#FFFFFF; --surf-wash:#DCE7F7;
+  --signal:#C62828; --signal-wash:#F9DEDE; --measured:#E00000;
+  --sand:#D9C9A8; --sand-deep:#8F7A4E; --land-edge:#6B5A36;
+  --sea:#E3EBEF; --grid:#D4DEE2;
+  --north:#2a78d6; --center:#eb6834; --south:#1baf7a;
+  --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
+  --r:10px; --side:280px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+    --line:#283C46; --line-strong:#3A525E;
+    --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
+    --signal:#FF6B6B; --signal-wash:#3A1C1C; --measured:#FF4545;
+    --sand:#5C4F36; --sand-deep:#B59E6C; --land-edge:#CDB684;
+    --sea:#112129; --grid:#1D313B;
+    --north:#3987e5; --center:#d95926; --south:#199e70;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
+  --line:#283C46; --line-strong:#3A525E;
+  --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
+  --signal:#FF6B6B; --signal-wash:#3A1C1C; --measured:#FF4545;
+  --sand:#5C4F36; --sand-deep:#B59E6C; --land-edge:#CDB684;
+  --sea:#112129; --grid:#1D313B;
+  --north:#3987e5; --center:#d95926; --south:#199e70;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-padding-top:16px}
+body{background:var(--paper);color:var(--ink);margin:0;
+  font:400 16.5px/1.6 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-text-size-adjust:100%}
+a{color:var(--surf)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
+h1,h2,h3,.lbl,.chip,.seg button,.side-head{font-family:"Barlow Condensed",Archivo,sans-serif}
+code,.mono,.math,td.num,.coord{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  font-variant-numeric:tabular-nums}
+code{font-size:.88em;background:var(--surf-wash);padding:1px 5px;border-radius:4px}
+
+/* ---------- shell: a menu column and the article ---------- */
+.shell{display:grid;grid-template-columns:var(--side) minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);
+  background:var(--card);padding:18px 14px 40px;display:flex;flex-direction:column;gap:12px}
+.side-head{display:flex;flex-direction:column;gap:2px;padding:0 6px}
+.side-head .lbl{font-size:12.5px}
+.side-head b{font-weight:700;font-size:22px;letter-spacing:.01em}
+.back{font-size:14px;text-decoration:none;font-weight:500;padding:0 6px}
+.back:hover{text-decoration:underline}
+.search{position:relative}
+.search input{width:100%;font:inherit;font-size:14.5px;padding:8px 34px 8px 10px;border-radius:8px;
+  border:1px solid var(--line-strong);background:var(--paper);color:var(--ink)}
+.search input::placeholder{color:var(--faint)}
+.search kbd{position:absolute;right:8px;top:50%;transform:translateY(-50%);font:500 12px/1 "IBM Plex Mono",monospace;
+  color:var(--faint);border:1px solid var(--line-strong);border-radius:4px;padding:2px 5px;pointer-events:none}
+.search input:focus + kbd,.search input:not(:placeholder-shown) + kbd{display:none}
+.found{font-size:13.5px;color:var(--soft);padding:0 6px;margin:0}
+.results{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.results a{display:flex;flex-direction:column;gap:2px;padding:7px 8px;border-radius:8px;text-decoration:none;color:var(--ink)}
+.results a:hover,.results a[aria-selected="true"]{background:var(--surf-wash)}
+.results .t{font-weight:600;font-size:14.5px;line-height:1.3}
+.results .t .num{color:var(--faint);font-weight:500;margin-right:6px}
+.results .s{font-size:13px;color:var(--soft);line-height:1.4}
+mark{background:#FFE58A;color:#16232B;border-radius:2px;padding:0 1px}
+mark.hit-now{outline:2px solid var(--surf)}
+.toc,.toc ul{list-style:none;margin:0;padding:0}
+.toc > li{border-bottom:1px solid var(--line)}
+.toc > li:last-child{border-bottom:0}
+.toc .grp{display:flex;align-items:stretch}
+.toc .grp a{flex:1;font-weight:600;font-size:15px;padding:8px 6px;color:var(--ink);text-decoration:none}
+.toc .grp button{flex:none;width:36px;border:0;background:transparent;color:var(--soft);cursor:pointer;
+  font-size:13px;border-radius:6px}
+.toc .grp button span{display:inline-block;transition:transform .15s}
+.toc li[data-open="true"] .grp button span{transform:rotate(90deg)}
+.toc ul{padding:0 0 8px 10px;border-left:1px solid var(--line);margin-left:10px}
+.toc li[data-open="false"] > ul{display:none}
+.toc ul a{display:block;font-size:14px;padding:4px 8px;color:var(--soft);text-decoration:none;border-radius:6px;line-height:1.35}
+.toc a:hover{color:var(--ink);background:var(--surf-wash)}
+.toc a[aria-current="true"]{color:var(--surf);font-weight:600;background:var(--surf-wash)}
+.toc .num{color:var(--faint);font-variant-numeric:tabular-nums;margin-right:6px;font-weight:500}
+
+.topbar{display:none}
+.scrim{display:none}
+
+main{padding:28px 32px 80px;min-width:0}
+article{max-width:46rem;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+article > section{display:flex;flex-direction:column;gap:14px;padding-top:30px;border-top:1px solid var(--line-strong)}
+article > section:first-of-type{border-top:0;padding-top:0}
+article section section{display:flex;flex-direction:column;gap:12px;padding-top:10px}
+h1{font-weight:700;font-size:clamp(32px,5vw,42px);line-height:1.05;margin:0;text-wrap:balance}
+h2{font-weight:700;font-size:28px;line-height:1.1;margin:0;text-wrap:balance}
+h3{font-weight:700;font-size:21px;line-height:1.15;margin:6px 0 0;text-wrap:balance}
+h4{font-size:15px;margin:4px 0 0;font-weight:600}
+h2 .num,h3 .num{color:var(--faint);font-weight:600;margin-right:8px}
+p,ul,ol{margin:0}
+ul,ol{padding-left:22px;display:flex;flex-direction:column;gap:5px}
+.lede{color:var(--soft);font-size:17.5px}
+.lbl{font-weight:600;text-transform:uppercase;letter-spacing:.09em;font-size:13px;color:var(--soft)}
+.anchor{opacity:0;text-decoration:none;color:var(--faint);margin-left:6px;font-weight:500}
+h2:hover .anchor,h3:hover .anchor,.anchor:focus{opacity:1}
+
+/* The caveat is part of the product, not a footnote. */
+.blind{font-size:14.5px;color:var(--soft);border-left:3px solid var(--signal);margin:0;
+  padding:10px 0 10px 12px;background:linear-gradient(90deg,var(--signal-wash),transparent 70%)}
+.blind b{color:var(--ink);font-weight:600}
+.callout{font-size:15px;border:1px solid var(--line);border-left:3px solid var(--surf);
+  background:var(--card);border-radius:0 var(--r) var(--r) 0;padding:10px 14px}
+.callout b{font-weight:600}
+.choice{border:1px solid var(--line);border-radius:var(--r);background:var(--card);padding:12px 14px;
+  display:flex;flex-direction:column;gap:6px;font-size:15px}
+.choice > .lbl{color:var(--surf)}
+.math{font-size:13.5px;line-height:1.55;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:12px 14px;margin:0;overflow-x:auto;white-space:pre}
+.math .c{color:var(--faint)}
+.next{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;font-size:14.5px;margin-top:6px}
+.next a{text-decoration:none;border:1px solid var(--line-strong);border-radius:999px;padding:6px 14px;background:var(--card)}
+.next a:hover{border-color:var(--surf)}
+.see{font-size:14px;color:var(--soft)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:11px}
+.source{font-size:13px;color:var(--soft);margin:0}
+.source b{color:var(--ink);font-weight:600}
+.standing{display:grid;grid-template-columns:auto 1fr;gap:5px 11px;font-size:14px;margin:0}
+.standing dt{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
+  text-transform:uppercase;letter-spacing:.07em;color:var(--soft);font-size:13px}
+.standing dd{margin:0}
+.none{color:var(--signal);font-weight:600}
+.note{font-size:13px;color:var(--faint);border-top:1px solid var(--line);padding-top:11px;margin:0}
+
+/* the annotated card */
+.mock{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;font-size:14.5px}
+.mock .row{display:flex;align-items:baseline;gap:10px;padding:8px 10px;border:1px dashed var(--line-strong);border-radius:8px}
+.mock .row b{font-weight:600}
+.mock .big{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:700;font-size:26px;line-height:1}
+.pin{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  background:var(--surf);color:var(--surf-ink);font:600 12.5px/1 Archivo,sans-serif}
+ol.pins{list-style:none;padding:0}
+ol.pins li{display:flex;gap:10px}
+.mock .tabs{display:flex;gap:6px;flex-wrap:wrap}
+.mock .tabs span{border:1px solid var(--line-strong);border-radius:999px;padding:2px 10px;font-size:13px}
+.mock .tabs span.on{background:var(--surf);color:var(--surf-ink);border-color:var(--surf)}
+.unit{color:var(--soft)}
+
+/* tables */
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
+  letter-spacing:.07em;font-size:13px;color:var(--soft);text-align:left;padding:9px 12px;
+  border-bottom:1px solid var(--line-strong);white-space:nowrap}
+tbody th{text-transform:none;letter-spacing:0;font-family:Archivo,sans-serif;font-size:14px;color:var(--ink);font-weight:500}
+td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td,tr:last-child th{border-bottom:0}
+td.num{text-align:right;white-space:nowrap;font-size:13px}
+td .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:1px}
+.src{font-size:12px;padding:2px 7px;border-radius:999px;border:1px solid var(--line-strong);white-space:nowrap}
+.src.img{border-style:dashed;color:var(--soft)}
+dl.terms{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:8px 16px;margin:0;font-size:15px}
+dl.terms dt{font-weight:600}
+dl.terms dd{margin:0;color:var(--ink)}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13.5px}
+.chain span{border:1px solid var(--line-strong);border-radius:999px;padding:3px 10px;background:var(--card)}
+.chain i{color:var(--faint);font-style:normal}
+.measured-ink{color:var(--measured);font-weight:600}
+
+/* controls, as on geometry.html */
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:3px;box-shadow:var(--shadow)}
+.seg button{font:inherit;font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
+  text-transform:uppercase;letter-spacing:.07em;font-size:14px;padding:7px 11px;border:0;
+  border-radius:calc(var(--r) - 3px);background:transparent;color:var(--soft);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surf);color:var(--surf-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-weight:600;font-size:14px;letter-spacing:.05em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;
+  border:1px solid var(--line-strong);background:var(--card);color:var(--ink);cursor:pointer}
+.chip i{width:10px;height:10px;border-radius:2px;flex:none}
+.chip[aria-pressed="false"]{color:var(--faint);background:transparent}
+.chip[aria-pressed="false"] i{opacity:.25}
+.status{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;
+  padding:4px 10px;border:1px solid var(--line-strong);border-radius:999px;background:var(--card)}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--sand-deep);flex:none}
+.pill i.ring{background:transparent;border:2px dashed var(--soft);width:11px;height:11px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;color:var(--soft)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend svg{flex:none}
+
+/* the vertex drawing, small in the text and full size in 3.8 */
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:13.5px;color:var(--soft)}
+.mapbox{position:relative;background:var(--sea);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.mapbox svg.map{display:block;width:100%;height:300px}
+.mapbox.full svg.map{height:min(68vh,620px);min-height:340px;touch-action:none;cursor:grab}
+.mapbox.full svg.map.dragging{cursor:grabbing}
+.mapbox .empty{padding:24px;font-size:14px;color:var(--soft)}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
+.zoom button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line-strong);
+  background:var(--card);color:var(--ink);font:600 18px/1 Archivo,sans-serif;cursor:pointer}
+.mapbox .caption{position:absolute;left:10px;bottom:10px;right:56px;font-size:13px;color:var(--soft);
+  pointer-events:none;text-shadow:0 0 3px var(--sea),0 0 3px var(--sea)}
+.maptip{position:absolute;pointer-events:none;background:var(--card);color:var(--ink);
+  border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;font-size:13px;
+  box-shadow:var(--shadow);max-width:280px;line-height:1.4;z-index:2}
+.maptip b{font-weight:600}
+.maptip .coord{color:var(--soft);font-size:12px}
+svg text{font-family:Archivo,system-ui,sans-serif}
+.t-lbl{font-size:12px;fill:var(--ink);paint-order:stroke;stroke:var(--sea);stroke-width:3.5px;stroke-linejoin:round}
+.t-soft{font-size:11px;fill:var(--soft);paint-order:stroke;stroke:var(--sea);stroke-width:3.5px;stroke-linejoin:round}
+.t-dist{font:500 11.5px "IBM Plex Mono",ui-monospace,monospace;fill:var(--ink)}
+.t-cond{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:700;font-size:15px;
+  letter-spacing:.04em;text-transform:uppercase}
+
+.foot{font-size:13px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px}
+
+/* ---------- phone: the menu folds into a drawer ---------- */
+@media (max-width: 900px){
+  .shell{display:block}
+  .topbar{display:flex;position:sticky;top:0;z-index:20;align-items:center;gap:10px;
+    padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+  .topbar button{font:600 14px/1 Archivo,sans-serif;display:inline-flex;align-items:center;gap:8px;
+    padding:8px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--paper);
+    color:var(--ink);cursor:pointer}
+  .topbar .where{font-size:14px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .side{position:fixed;z-index:40;top:0;left:0;bottom:0;width:min(86vw,320px);height:auto;
+    transform:translateX(-102%);transition:transform .2s ease;box-shadow:var(--shadow)}
+  .shell[data-menu="open"] .side{transform:none}
+  .shell[data-menu="open"] .scrim{display:block;position:fixed;inset:0;z-index:30;background:rgba(10,20,26,.45)}
+  main{padding:20px 16px 64px}
+  html{scroll-padding-top:64px}
+  .math{font-size:12px}
+  .search kbd{display:none}
+  dl.terms{grid-template-columns:1fr;gap:2px 0}
+  dl.terms dd{margin-bottom:8px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="shell" id="shell" data-menu="closed">
+  <div class="topbar">
+    <button type="button" id="menu-open" aria-controls="side" aria-expanded="false">&#9776; Contents</button>
+    <button type="button" id="search-open" aria-controls="side" aria-label="Search the documentation">&#9906; Search</button>
+    <span class="where" id="where"></span>
+  </div>
+  <div class="scrim" id="scrim"></div>
+
+  <!-- The menu is built from the article's own h2 and h3, so it cannot list a
+       section the page does not have or miss one it does. -->
+  <nav class="side" id="side" aria-label="Documentation contents">
+    <a class="back" href="./">&larr; Back to the forecast</a>
+    <div class="side-head"><span class="lbl">Nado Waves</span><b>Documentation</b></div>
+    <div class="search" role="search">
+      <input id="search" type="search" placeholder="Search the documentation" aria-label="Search the documentation"
+             aria-controls="results" autocomplete="off" spellcheck="false"><kbd>/</kbd>
+    </div>
+    <p class="found" id="found" aria-live="polite" hidden></p>
+    <ol class="results" id="results" role="listbox" aria-label="Search results" hidden></ol>
+    <ul class="toc" id="toc"></ul>
+  </nav>
+
+  <main>
+  <article id="doc">
+
+  <!-- ================================================================ 1 -->
+  <section id="start">
+    <span class="lbl">Nado Waves · documentation</span>
+    <h1>How the Coronado forecast works</h1>
+    <p class="lede">Every card, chart and calculation on the forecast page, what each one is
+      built from, and what each one is standing on. Start at the top for the tour, or use the
+      contents to go straight to one thing.</p>
+
+    <section id="start-what">
+      <h3>What Nado Waves is</h3>
+      <p>A swell forecaster for the three breaks on Coronado Central Beach: North, Center and
+        South. All three read the same offshore buoy, buoy 46232 off Point Loma, and they get
+        three different answers. The reason is geometric. Point Loma, the Coronado Islands and the
+        Baja coast block most of the ocean from these beaches, and the gaps they leave open, the
+        <em>swell windows</em>, point a different way from each spot on the sand. Walking from
+        North to South moves the west edge of the window by about
+        <span data-geo="west-sweep">—</span>.</p>
+      <p>The premise is that a forecast that respects that geometry can say something a regional
+        forecast cannot: which of the three breaks is holding more of today's swell.</p>
+    </section>
+
+    <section id="start-claims">
+      <h3>What it claims, and what it does not</h3>
+      <p class="blind"><b>Nothing has ever measured a wave at these three breaks.</b>
+        This is <b>physically derived</b>, not an accurate forecast, and
+        it carries no error bar because there is nothing to compute one against.
+        What it claims is which break holds more of today's swell — not how
+        big it is.</p>
+      <p>Each break's number is the buoy's swell carried by physics to where it
+        <b>breaks</b>: through the windows the coast leaves open, bent over the seabed
+        and slowed by its friction, diffracted round every window edge, lifted by
+        shoaling into 5 m of water with local wind chop added, then carried in over the
+        surveyed beach profile at the tide of the moment until it breaks. It is
+        still not a wave height at the beach as a surfer would call it: a
+        significant height, not a face height, and the step from one to the other
+        has not been fitted; the beach profile is a 2016 survey rather than this
+        season's sandbars; and nothing has checked it against the sand.</p>
+      <div class="next"><a href="#calc">Every step, with its math &rarr;</a></div>
+    </section>
+
+    <section id="start-minute">
+      <h3>The page in one minute</h3>
+      <p>From the top of the forecast page down. The figures are a real hour, noon on Monday
+        28 September 2026, at the North break.</p>
+      <div class="card mock" aria-hidden="true">
+        <div class="row"><span class="pin">1</span><span class="tabs"><span class="on">&ldquo;LIVE&rdquo;</span><span>Forecast</span></span></div>
+        <div class="row"><span class="pin">2</span><span class="tabs"><span class="on">North</span><span>Center</span><span>South</span><span>Buoy</span></span></div>
+        <div class="row"><span class="pin">3</span><span><span class="big">3.5 ft</span> <span class="unit">(1.07 m)</span> breaking at 8 ft (2.3 m) depth &#9662;</span></div>
+        <div class="row"><span class="pin">4</span><span>the window drawing, and the swell trains under it</span></div>
+        <div class="row"><span class="pin">5</span><span class="source">Observed 12:00 PM, 15 min ago · Spectral wave data, Point Loma South, CA (NDBC 46232) · <b>Update in 59:12.</b></span></div>
+        <div class="row"><span class="pin">6</span><span><b>Charts</b> &#9652;</span></div>
+        <div class="row"><span class="pin">7</span><span><b>Wind</b> 9 mph (8 kt) from the west, cross-shore at this break · <b>Tide</b> 6.2 ft (1.89 m)</span></div>
+      </div>
+      <ol class="pins">
+        <li><span class="pin">1</span><span><b>Two tabs.</b> &ldquo;LIVE&rdquo; is built only from
+          measurements, Forecast only from a model. <a href="#chains">Two tabs, two chains</a>.</span></li>
+        <li><span class="pin">2</span><span><b>One tab per break</b>, ranked by how much swell
+          each one's windows let in, with the buoy itself always last. <a href="#swell-tabs">Break tabs</a>.</span></li>
+        <li><span class="pin">3</span><span><b>The headline</b>: the height where the waves
+          break, and the depth they break in. The caret at its end folds out the calculation
+          behind it. <a href="#calc-table">Reading the table</a>.</span></li>
+        <li><span class="pin">4</span><span><b>The windows</b>, drawn facing the way the break
+          faces, and the wave trains that make up the number. <a href="#swell-drawing">The window drawing</a>.</span></li>
+        <li><span class="pin">5</span><span><b>Where it came from, and when the next one is
+          due.</b> <a href="#swell-countdown">Countdowns</a>.</span></li>
+        <li><span class="pin">6</span><span><b>Charts</b>, closed until opened, the last line of
+          every card. <a href="#charts">Charts</a>.</span></li>
+        <li><span class="pin">7</span><span><b>Wind and Tide</b>, cards of their own because one
+          station feeds all three breaks. <a href="#wind">Wind</a>, <a href="#tide">Tide</a>.</span></li>
+      </ol>
+    </section>
+
+    <section id="start-standing">
+      <h3>What each tab is standing on, right now</h3>
+      <p>Each tab's file says which of the four confidence levels (geometry, model, calibration,
+        observation) it has reached. These blocks are read from those files as the page loads, so
+        they say what the forecast page is standing on at this moment. A level that reads
+        <span class="none">none</span> is one the project has not reached.
+        <a href="#confidence-levels">The four levels</a>.</p>
+      <div class="card" id="standing-now-card">
+        <span class="lbl">What &ldquo;LIVE&rdquo; is standing on</span>
+        <dl class="standing" id="standing-now"><dt>Status</dt><dd>loading&hellip;</dd></dl>
+        <p class="note" id="foot-now"></p>
+      </div>
+      <div class="card" id="standing-forecast-card">
+        <span class="lbl">What Forecast is standing on</span>
+        <p class="source" id="cycle">loading&hellip;</p>
+        <dl class="standing" id="standing-forecast"></dl>
+        <p class="note" id="foot-forecast"></p>
+      </div>
+      <div class="next"><a href="#chains">Next: Two tabs, two chains &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 2 -->
+  <section id="chains">
+    <h2>Two tabs, two chains</h2>
+    <p>The two tabs are not two views of one forecast. They are two separate <em>evidence
+      chains</em> that share the geometry and nothing else, and the page never mixes a number from
+      one into the other.</p>
+
+    <section id="chains-live">
+      <h3>&ldquo;LIVE&rdquo;: measurements only</h3>
+      <p>Built from what was measured: buoy 46232's directional spectrum, the wind reported at
+        the airfield on North Island (KNZY), and the water level at the San Diego Bay tide gauge
+        (NOAA 9410170). The quotation marks are deliberate. The feeds update, but a reading is
+        always some minutes old, and each card's countdown says exactly how old.</p>
+      <p>It carries exactly one modelled number, the tide's next high or low, and that is labelled
+        <em>predicted</em> wherever it appears. <a href="#tide-turn">Why that one</a>.</p>
+    </section>
+
+    <section id="chains-forecast">
+      <h3>Forecast: the model only</h3>
+      <p>Built from the GFS-Wave model run by NOAA (WAVEWATCH III), read at the buoy's position
+        and carried in through the same windows, seabed and surf zone. Its wind is the National
+        Weather Service's forecast at Coronado and its tide is the harmonic prediction. It shows
+        every third hour, from 48 hours back to the end of the newest run.</p>
+    </section>
+
+    <section id="chains-apart">
+      <h3>Why they are never mixed</h3>
+      <p>So that you always know which chain a number belongs to. A forecast hour that has gone
+        by gets a red line under it that comes from the measured chain, and that line is labelled
+        &ldquo;Observed at&rdquo; with its hour, never blended into the forecast figure above it.
+        <a href="#time-observed">The red line</a>.</p>
+      <p>A refresh keeps the tab you chose. A new visit always opens on &ldquo;LIVE&rdquo;.</p>
+      <div class="next"><a href="#aperture">Next: The aperture &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 3 -->
+  <section id="aperture">
+    <h2>The aperture</h2>
+    <p>Which compass bearings can reach each break at all, from coordinates alone. Everything
+      later in the chain starts here. The drawing below and throughout this page shows every
+      vertex the forecast's geometry uses, drawn where it sits and joined the way the model joins
+      it. Each coloured ray runs from a break to the one vertex that forms that edge of its swell
+      window, which is also the vertex whose error would move the edge. It is the model, not the
+      chart: NOAA's charts hold thousands of coastline vertices, and the aperture is decided by a
+      few dozen.</p>
+    <div class="status" id="geo-status"></div>
+
+    <section id="aperture-windows">
+      <h3>Swell windows, and which way a bearing points</h3>
+      <p>A bearing here is always the direction the swell comes <b>from</b>, as a buoy reports
+        it: 270° is a swell arriving from due west. Each break has three windows:</p>
+      <ul>
+        <li><b>South</b>, between the Baja coast and the Coronado Islands' south group: where the
+          summer's south swells arrive.</li>
+        <li><b>The channel</b>, the gap of open water between the two island groups, about
+          <span data-geo="channel-deg:coronado_center">—</span> wide.</li>
+        <li><b>West</b>, between the north island and the tip of Point Loma: the widest, and the
+          one that changes most along the beach.</li>
+      </ul>
+      <figure>
+        <div class="mapbox" data-map data-view="whole"></div>
+        <figcaption>The whole aperture. Point Loma is 5–7 km out, the Baja coast 23–25 km and the
+          islands 28–33 km. Every window edge ends on a charted vertex.</figcaption>
+      </figure>
+      <p>Everything else (north-west swell behind Point Loma, the open Pacific to the
+        south-west beyond the islands' shadow) cannot reach these beaches in a straight line.
+        The buoy sits outside all of it, 29 km offshore with nothing in the way, which is why the
+        buoy's own number is always the biggest on the page.</p>
+    </section>
+
+    <section id="aperture-tip">
+      <h3>Point Loma: one tip, three tangents</h3>
+      <p>The west edge of every window is the line from the break that just grazes the tip of
+        Point Loma. The tip is a rounded headland, so each break's line touches it at a
+        different charted vertex: the three are <span data-geo="tip-spread">—</span> apart. No
+        single point can stand for all three, so the model carries the tip as the convex hull of
+        the charted coastline, and only a hull vertex can be a tangent.</p>
+      <figure>
+        <div class="mapbox" data-map data-view="tip"></div>
+        <figcaption>The tip as the model carries it. Each break's tangent lands on its own
+          vertex, ringed in that break's colour.</figcaption>
+      </figure>
+      <p>It is the highest-leverage coordinate in the model. The tip is only
+        <span data-geo="tangent-km:coronado_north">—</span> from North, so 100 m of error there
+        moves North's west edge by <span data-geo="costs:coronado_north:Point Loma peninsula">—</span>.</p>
+    </section>
+
+    <section id="aperture-islands">
+      <h3>The Coronado Islands: two screens and a channel</h3>
+      <p>The islands are two groups with open water between them, and the model draws each as a
+        screen between its two extreme vertices as seen from the beach. They are far away and
+        narrow, so they take only a small share of a swell's energy. Point Loma takes far more.
+        Treating them as an open-or-shut switch on a single swell direction is the error this
+        model was built to avoid. <a href="#calc-windows">Why the whole spectrum</a>.</p>
+      <figure>
+        <div class="mapbox" data-map data-view="islands"></div>
+        <figcaption>Two islands, each modelled as a screen between its two extreme-bearing
+          vertices, with open channel between them.</figcaption>
+      </figure>
+    </section>
+
+    <section id="aperture-baja">
+      <h3>The Baja coast</h3>
+      <p>The south edge of every window is a single vertex on the Mexican coast,
+        <span data-geo="baja-km">—</span> from the center break, that every other charted vertex
+        from the border to Rosarito sits behind. Because it is far away, 100 m of error there moves
+        an edge only <span data-geo="costs:coronado_center:Baja peninsula">—</span>. NOAA's charts
+        stop just south of it, so no coast further south has been checked.</p>
+    </section>
+
+    <section id="aperture-breaks">
+      <h3>Why three breaks 2.8 km apart differ</h3>
+      <p>As you walk south along the sand, the line to the Point Loma tip swings west, and the
+        west window opens with it:</p>
+      <div class="tablebox"><table id="geo-west"></table></div>
+      <figure>
+        <div class="mapbox" data-map data-view="near"></div>
+        <figcaption>The west edge of each window is the ray to the Point Loma tip. It sweeps as
+          you walk the sand, and that sweep is the whole difference between the three breaks'
+          windows.</figcaption>
+      </figure>
+      <p>So a west swell reaches South more easily than North. That is the window. The seabed
+        then has its own say, and it can reverse the order. <a href="#calc-hour">The worked
+        hour</a> is an example where it does.</p>
+    </section>
+
+    <section id="aperture-chords">
+      <h3>Breaks, chords and shore normals</h3>
+      <p>Each break is a short stretch of shoreline, a <em>chord</em> between two charted
+        vertices, and its position is the chord's midpoint. The <em>shore normal</em> is the
+        direction straight out to sea, at right angles to the chord. It is the reference for
+        everything that depends on which way the beach faces: whether a wind is offshore, and
+        which way the window drawing on each card is turned.</p>
+      <div class="tablebox"><table id="geo-breaks"></table></div>
+      <p>Where along the coast each break sits is a surfer's choice, not a chart's. Position
+        matters: it sets the window. The chord's angle does not move the window at all (both
+        window edges come from the blockers), but it does set the normal.</p>
+    </section>
+
+    <section id="aperture-tables">
+      <h3>Reference tables</h3>
+      <p class="see">Bearings are the direction swell comes FROM. &ldquo;100 m moves it&rdquo; is
+        how far the edge swings if that one vertex is wrong by 100 m (328 ft): the leverage of each
+        coordinate.</p>
+      <h4>Windows, and the vertex behind each edge</h4>
+      <div class="tablebox"><table id="wtable"></table></div>
+      <h4>Vertices in use</h4>
+      <div class="tablebox"><table id="vtable"></table></div>
+      <h4>Distances</h4>
+      <div class="tablebox"><table id="dtable"></table></div>
+      <p class="foot" id="geo-foot"></p>
+    </section>
+
+    <section id="aperture-map">
+      <h3>Explore the map</h3>
+      <p>The full drawing. Drag to pan, scroll or pinch to zoom, tap a ray, vertex or distance for
+        its details, and switch breaks and layers on and off.</p>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="View" id="views"></div>
+        <div class="chips" role="group" aria-label="Breaks" id="breakchips"></div>
+        <div class="chips" role="group" aria-label="Layers" id="layerchips"></div>
+      </div>
+      <div class="mapbox full" id="fullmap"></div>
+      <div class="legend" id="legend"></div>
+      <div class="next"><a href="#calc">Next: The swell calculation &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 4 -->
+  <section id="calc">
+    <h2>The swell calculation</h2>
+    <p>Each break's headline number is built in eight steps, and each step is one row of the
+      calculation table that folds out under the card's headline. Every step is textbook physics
+      on charted and surveyed inputs. None of it has been fitted to anything, because nothing at
+      these beaches has been observed to fit it to.</p>
+    <div class="chain" aria-label="The steps, in order">
+      <span>Buoy</span><i>&rarr;</i><span>Windows</span><i>&rarr;</i><span>Refraction</span><i>&rarr;</i>
+      <span>Diffraction</span><i>&rarr;</i><span>Bottom friction</span><i>&rarr;</i><span>Shoaling</span><i>&rarr;</i>
+      <span>Local chop</span><i>&rarr;</i><span>Wave break</span>
+    </div>
+    <p class="see">Each step below says what it does, which model was chosen and why, the math,
+      and what it did to the worked hour. The math is in metres and seconds, the units the buoy
+      and the model publish and the chain runs in. Results are given in feet first, as on the
+      cards.</p>
+
+    <section id="calc-hour">
+      <h3>One worked hour</h3>
+      <p>Monday 28 September 2026, 19:00 UTC (12:00 PM local), on the &ldquo;LIVE&rdquo; chain.
+        The buoy read 4.3 ft (1.30 m), peaking at 11.8 s from 188°: a south swell with west swell
+        under it. The airfield had a 9 mph (8 kt) wind from 270°, and the gauge read 6.6 ft
+        (2.01 m) above its low-water datum. Here is what the chain made of it at each break:</p>
+      <div class="seg" role="group" aria-label="Break" id="worked-tabs"></div>
+      <div class="tablebox" id="worked-table"></div>
+      <p>The ordering is the point. Through the straight-line windows alone, South's was the
+        biggest (0.90 m against North's 0.84 m), because its west window is widest. Over the
+        seabed, North came out on top, 3.5 ft (1.07 m) against 2.9 ft (0.88 m) at Center and South.
+        The window alone would have ranked them the other way round. That reversal is a
+        <em>claim</em>, physically derived and unchecked. It is exactly the kind of claim the beach
+        observation log exists to test. <a href="#confidence-log">The log</a>.</p>
+      <p class="see">The steps below follow North. These figures were rebuilt from the archive with
+        the chain as it stood on 2 October 2026. A test rebuilds the same hour on every change, so
+        if the chain moves, this page has to move with it.</p>
+    </section>
+
+    <section id="calc-buoy">
+      <h3><span class="num">1</span>Buoy</h3>
+      <p>Buoy 46232 publishes its spectrum every hour: for each of 64 frequency bands, the
+        energy in that band and four numbers that describe which directions it came from. Height
+        comes from the total energy:</p>
+<pre class="math">m₀ = Σ E(f)·Δf                      <span class="c">total energy over the 64 bands</span>
+Hs = 4·√m₀
+
+<span class="c">worked hour</span>
+m₀ = 0.1050 m²
+Hs = 4 × √0.1050 = 1.296 m           → 4.3 ft (1.30 m)</pre>
+      <p>Direction is harder. The four numbers per band (two mean directions α₁, α₂ and two
+        concentrations r₁, r₂) don't give the spread of directions on their own. They have to be
+        read back into a spread, and there are two standard ways to do it.</p>
+      <div class="choice"><span class="lbl">Model choice · maximum entropy</span>
+        <p>The usual two-term Fourier series spreads energy wide and can go below zero, and
+          clipping the negative part adds energy that isn't there. The maximum entropy method
+          (Lygre &amp; Krogstad, 1986) builds the narrowest spread consistent with the four
+          numbers and can never go negative. The page uses maximum entropy. Where it cannot be
+          computed for a band, that band falls back to Fourier, and the fallbacks are counted.</p></div>
+<pre class="math">Fourier:  D(θ) = (1/π)·[½ + r₁·cos(θ−α₁) + r₂·cos 2(θ−α₂)]
+MEM:      D(θ) ∝ 1 / |1 − φ₁e^(−iθ) − φ₂e^(−2iθ)|²
+          c₁ = r₁e^(iα₁),  c₂ = r₂e^(2iα₂)
+          φ₁ = (c₁ − c₂c₁*) / (1 − |c₁|²),   φ₂ = c₂ − c₁φ₁
+
+<span class="c">worked hour, the peak band (0.085 Hz, 11.8 s): α₁ = α₂ = 188°, r₁ = 0.94, r₂ = 0.87</span>
+Fourier:  below zero over 138° of the circle; clipped, it carries 24% more energy than it should
+          half-power width 91°
+MEM:      half-power width 10°, centred on 187–188°</pre>
+      <p>On a narrow swell the difference is large. Maximum entropy puts this band's energy where
+        the swell is, so the windows downstream see it in the right place.</p>
+    </section>
+
+    <section id="calc-windows">
+      <h3><span class="num">2</span>Windows</h3>
+      <p>Each break's windows are applied to the whole spectrum, every frequency and every
+        direction, and the energy aimed through them is added up:</p>
+<pre class="math">m₀,window = ∫∫ E(f,θ) · T(θ) dθ df     <span class="c">T = 1 inside a window, 0 outside</span>
+Hs,window = 4·√m₀,window = Hs · √(share)
+
+<span class="c">worked hour, North</span>
+share     = (0.836 / 1.296)² = 0.416     <span class="c">42% of the energy is aimed through North's windows</span>
+Hs        = 1.296 × √0.416 = 0.836 m      → 2.7 ft (0.84 m)
+<span class="c">Center 0.875 m (46%), South 0.899 m (48%)</span></pre>
+      <div class="choice"><span class="lbl">Model choice · integrate, never test one direction</span>
+        <p>Testing a single &ldquo;mean direction&rdquo; against the windows gives a yes or no:
+          a swell from 190° would read as fully blocked by the islands, and one from 192.6° as
+          fully open. Integrating the spectrum shows the islands for what they are, a small
+          partial reduction, and Point Loma as the large one. So a single bearing is never tested
+          anywhere on the page.</p></div>
+      <figure>
+        <div class="mapbox" data-map data-view="near" data-dists="0"></div>
+        <figcaption>North, Center and South's windows shaded. The edges are straight lines here.
+          The next two steps bend them and soften them.</figcaption>
+      </figure>
+      <p>At this step the edges are hard and the lines are straight, as if the sea had no bottom.
+        This row is also what the <a href="#charts-live-swell">Window chart</a> plots as a share of
+        the buoy.</p>
+    </section>
+
+    <section id="calc-refraction">
+      <h3><span class="num">3</span>Refraction</h3>
+      <p>Swell slows down in shallow water, so a wave crossing the shelf at an angle bends
+        toward the shallows. Rays are traced <em>backward</em>: from a start point in 5 m of water
+        straight off each break, out over the surveyed seabed until the water is deep, for every
+        frequency band and every half-degree of arrival heading. Each ray then says which
+        offshore heading it really came from, and whether that heading is open.</p>
+<pre class="math">ω² = g·k·tanh(k·h)                   <span class="c">how fast a wave of period T = 2π/ω travels in depth h</span>
+c = ω/k,   c_g = ½·c·(1 + 2kh / sinh 2kh)
+
+<span class="c">12.5 s, North's leading train</span>
+deep water   L₀ = gT²/2π = 244 m,  c = 19.5 m/s
+5 m depth    L  = 86 m,            c = 6.85 m/s
+
+sin θ / c = constant along a ray     <span class="c">Snell's law, on a straight, even beach</span>
+<span class="c">a swell 30° off the normal in deep water arrives 10° off it in 5 m</span></pre>
+      <p>The energy that arrives comes from <span class="mono">S(f,θ)·c·c_g</span> staying
+        constant along each ray, which gives refraction and the height change together. The next
+        rows split those apart. This row is refraction alone, with every window edge still a hard
+        shadow, so its change from the Windows row is the seabed and nothing else.</p>
+      <div class="choice"><span class="lbl">Model choice · backward rays over the whole seabed</span>
+        <p>Tracing from the beach outward means every ray that reaches the break is found, and
+          none is wasted on water that never arrives. The seabed is the USGS CoNED survey near
+          shore with GMRT further out, the islands' own shelves included. Point Loma, the islands
+          and Baja are land the rays stop on. The method is the one Scripps' CDIP uses for its
+          coastal model, checked here against Snell's law on a flat test beach.</p></div>
+<pre class="math"><span class="c">worked hour</span>
+North    0.836 → 0.833 m    −0.4%
+Center   0.875 → 0.628 m   −28%
+South    0.899 → 0.691 m   −23%</pre>
+      <p>This is the step that reversed the order. North's seabed delivered almost everything its
+        window let in. Center's and South's lost a quarter. The table measures that difference; it
+        does not explain it, and the bathymetry in front of each break is different.</p>
+    </section>
+
+    <section id="calc-diffraction">
+      <h3><span class="num">4</span>Diffraction</h3>
+      <p>A shadow edge is not sharp. Swell leaks round a headland into its shadow, and some of the
+        energy grazing the edge is lost. Each window edge is softened, measured along the
+        <em>bent</em> rays from the previous step, because the ray that grazes an edge is refracted
+        again between the edge and the beach.</p>
+<pre class="math">u = x · √( 2 / (λ·D) )               <span class="c">x: how far the ray passes the edge (negative: inside the shadow)</span>
+                                     <span class="c">λ: wavelength there, D: distance on to the break</span>
+straight edge (Point Loma, Baja):
+K(u) = ½·[(C(u) + ½)² + (S(u) + ½)²]  <span class="c">C, S the Fresnel integrals</span>
+
+u   −2      −1      0       +1      +2
+K   0.012   0.041   0.250   1.259   0.844
+<span class="c">at the edge itself a ray carries exactly a quarter of the open-water energy</span>
+
+<span class="c">12.5 s at the Point Loma tip, 4.7 km from North: 100 m past the edge is u = 0.13</span></pre>
+      <p>The islands use the same idea twice. By Babinet's principle an obstacle is open water
+        minus the wave through a slit its shape, so each island is a slit subtracted from open
+        water.</p>
+      <figure>
+        <div class="mapbox" data-map data-view="islands" data-dists="0"></div>
+        <figcaption>The two island screens. Each is diffracted as its own slit, so the channel
+          between them stays open water.</figcaption>
+      </figure>
+<pre class="math"><span class="c">worked hour</span>
+North    0.833 → 0.851 m    +2.2%
+Center   0.628 → 0.663 m    +5.6%
+South    0.691 → 0.718 m    +3.9%</pre>
+      <p>Diffraction added a little at all three: more leaked into the shadows than was lost along
+        the edges.</p>
+    </section>
+
+    <section id="calc-friction">
+      <h3><span class="num">5</span>Bottom friction</h3>
+      <p>Swell crossing shallow water loses energy to the seabed. The loss is computed along each
+        ray's own path.</p>
+<pre class="math">d(flux)/ds = −flux · C_b·ω² / (g²·sinh²(kh)·c_g),    C_b = 0.038 m²/s³
+
+<span class="c">12.5 s, energy kept per kilometre of ray</span>
+h = 30 m   99.4%
+h = 20 m   98.8%
+h = 15 m   98.1%
+h = 10 m   96.4%
+
+<span class="c">worked hour</span>
+North    0.851 → 0.754 m   −11%     <span class="c">energy × 0.79</span>
+Center   0.663 → 0.594 m   −10%
+South    0.718 → 0.657 m    −8.5%</pre>
+      <div class="choice"><span class="lbl">Model choice · the JONSWAP friction law, untuned</span>
+        <p>Its coefficient comes from the literature and has not been adjusted. It is linear in
+          energy, so each ray's loss is a fixed factor that can be worked out once, ahead of time,
+          with the rest of the seabed tables. A law that depends on the wave height could not be
+          precomputed that way.</p></div>
+    </section>
+
+    <section id="calc-shoaling">
+      <h3><span class="num">6</span>Shoaling</h3>
+      <p>As water shallows, waves slow and bunch up, and their height grows. This row puts back
+        the growth the refraction step kept separate, from deep water to the 5 m start point.</p>
+<pre class="math">Ks² = c_g,deep / c_g(h)
+
+<span class="c">12.5 s into 5 m:  c_g = 9.76 m/s deep, 6.56 m/s at 5 m</span>
+Ks  = √(9.76 / 6.56) = 1.22           <span class="c">+22% in height</span>
+
+<span class="c">worked hour, the whole spectrum</span>
+North    0.754 → 0.926 m   +23%
+Center   0.594 → 0.715 m   +20%
+South    0.657 → 0.737 m   +12%</pre>
+      <div class="choice"><span class="lbl">Model choice · hand over at 5 m</span>
+        <p>The ray tables stop in 5 m of water, close in and still inside Point Loma's shadow.
+          From there the surf zone takes over (step 8). A table that stopped further out would
+          describe water outside the shadow, a different place.</p></div>
+    </section>
+
+    <section id="calc-chop">
+      <h3><span class="num">7</span>Local chop</h3>
+      <p>Wind makes its own small waves close to the beach, which the buoy never saw. Their
+        height depends on the wind and on the <em>fetch</em>, the stretch of open water it blows
+        over before it reaches the break.</p>
+<pre class="math">u*² = C_D·U₁₀²,   C_D = 0.001·(1.1 + 0.035·U₁₀)
+g·Hm0/u*² = 0.0413·(g·X/u*²)^½       <span class="c">X: the fetch</span>
+g·Tp/u*   = 0.751·(g·X/u*²)^⅓        <span class="c">capped where the sea is fully grown</span>
+
+<span class="c">worked hour, North: 8 kt from 270°, fetch 2.3 km, closed by Point Loma</span>
+U₁₀ = 4.12 m/s,  C_D = 0.00124,  u* = 0.145 m/s
+Hm0 = 0.092 m,   Tp = 1.1 s           → 0.3 ft (0.09 m)
+
+chop and swell add in energy:
+√(0.926² + 0.092²) = 0.931 m          +0.5%</pre>
+      <div class="choice"><span class="lbl">Model choice · two kinds of fetch</span>
+        <p>The growth law is the Coastal Engineering Manual's (US Army Corps of Engineers, 2002).
+          Only a wind blowing from the sea toward the break makes chop that reaches it. When the
+          upwind line ends on land (Point Loma's lee, the islands, Baja), the chop is grown fresh
+          over that short stretch. When it runs out to open sea, the buoy's spectrum already holds
+          the wind sea made upwind of it, so only the extra growth over the water <em>between</em>
+          the buoy and the break is added. Adding a whole fresh sea there would count it twice.</p></div>
+      <p>On the Forecast tab the wind is the National Weather Service's forecast at Coronado, and
+        the calculation row says whose wind it used.</p>
+    </section>
+
+    <section id="calc-break">
+      <h3><span class="num">8</span>Wave break</h3>
+      <p>From 5 m of water the sea is carried in along the surveyed beach profile, the depth
+        every 2 m straight in along the shore normal to dry sand. The tide is added to that depth.
+        As the water shallows the waves grow until the biggest start breaking and lose energy faster
+        than shoaling adds it. The reported height is the largest along the way, and the depth
+        where that happens.</p>
+<pre class="math">d(E·c_g·cos θ)/dx = −D,   E = Hrms²/8                <span class="c">energy flux in, minus breaking</span>
+D = ¼·α·f_p·Qb·Hmax²,   α = 1,   Hmax = γ·h           <span class="c">Battjes &amp; Janssen (1978)</span>
+(1 − Qb) / ln Qb = −(Hrms / Hmax)²                    <span class="c">Qb: the share of waves breaking</span>
+γ = 0.5 + 0.4·tanh(33·s₀),   s₀ = Hrms,deep / L₀      <span class="c">Battjes &amp; Stive (1985)</span>
+
+<span class="c">worked hour, North: 0.931 m at 5 m, 12.5 s</span>
+Hrms,deep = 0.931/√2 × √(6.56/9.76) = 0.540 m
+s₀ = 0.540 / 244 = 0.0022  →  γ = 0.529
+
+tide at the open coast: +1.022 m above mean sea level  <span class="c">(see the Tide card's math)</span>
+largest Hs 88 m in from the start point, in h = 2.32 m of water
+Hmax = 0.529 × 2.32 = 1.227 m,   Hrms = 1.069/√2 = 0.756 m
+(Hrms/Hmax)² = 0.380  →  Qb = 0.091                   <span class="c">9% of waves breaking</span>
+
+Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 m) depth   +15%</pre>
+      <div class="choice"><span class="lbl">Model choice · the standard 1-D surf zone, γ from the literature</span>
+        <p>One line straight in, the same all along the beach, one period (the peak's). That is
+          the textbook surf-zone model and no more. The breaker index γ is taken from Battjes
+          &amp; Stive and not tuned. Fitting it to anything here would be calibration, and there
+          is nothing observed at these beaches to fit it to.</p></div>
+      <p>If the waves are already breaking at the start point, the true break is further out than
+        the profile begins. The card then says &ldquo;breaking at 16 ft (5.0 m) depth or deeper&rdquo;,
+        and the last row of the table is marked &le; as an upper bound. Without a measured tide no
+        breaking height is computed at all, and the card shows the 5 m figure, labelled with its
+        depth. That is why no hour before 17 September 2026 has one.</p>
+    </section>
+
+    <section id="calc-table">
+      <h3>Reading the calculation table</h3>
+      <p>The caret at the end of a card's headline folds out the table. Each row is one step
+        above. <b>Change</b> is what that step added or took away, <b>%</b> is that change as a share of
+        the row before, and <b>Hs</b> is the height after it. Read down, the last row is the
+        headline. A step whose row is missing was not in the build that made that hour.</p>
+      <p>The Local chop row names the chop's period, its kind (behind land, or open water) and
+        whose wind made it. The last row is the breaking height at the tide of that hour.</p>
+    </section>
+
+    <section id="calc-not">
+      <h3>What the number is not</h3>
+      <ul>
+        <li><b>Not a face height.</b> It is a <em>significant height</em>: the average of the
+          biggest third of waves, trough to crest, the way buoys and wave models measure height.
+          A surfer's call is different again, and the conversion between the two has never been
+          fitted, because nothing has observed these breaks.</li>
+        <li><b>Not this season's sand.</b> The beach profile is the 2016 CoNED survey. A sandbar
+          would move where and how the waves break, and nothing here knows where this season's bars
+          are. On a profile without bars the tide changes <em>where</em> the waves break far more
+          than <em>how big</em> they are.</li>
+        <li><b>Not checked.</b> Every step is physics and none has been compared against the sand.
+          <a href="#confidence">Confidence and verification</a>.</li>
+      </ul>
+      <div class="next"><a href="#swell">Next: The Swell card &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 5 -->
+  <section id="swell">
+    <h2>The Swell card</h2>
+
+    <section id="swell-tabs">
+      <h3>Break tabs and the buoy tab</h3>
+      <p>One tab per break, ranked by how much of the buoy's energy its windows let through, with
+        the buoy always last. The buoy's tab shows the swell 29 km offshore with nothing in the
+        way, so it is always the biggest number, and it is the one the breaks are measured from.</p>
+    </section>
+
+    <section id="swell-headline">
+      <h3>The headline</h3>
+      <p>The breaking height, in feet with metres in parentheses, and the depth it breaks in:
+        &ldquo;3.5 ft (1.07 m) breaking at 8 ft (2.3 m) depth&rdquo;. When there is no tide to
+        break it at, the headline is the height in 5 m of water and says so. The caret at its end
+        opens <a href="#calc-table">the calculation</a>.</p>
+    </section>
+
+    <section id="swell-drawing">
+      <h3>The window drawing</h3>
+      <p>The break's windows, drawn facing the way the break faces: open water above the shore,
+        the grey shadows of the land either side, and an arrow for each swell train. Tap a shadow
+        for the land casting it and the share of this swell it takes; tap a window for the land
+        either side and its width; tap an arrow for that train. Tap it again, or the sand below the
+        shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with
+        Tab.</p>
+    </section>
+
+    <section id="swell-trains">
+      <h3>Swell trains</h3>
+      <p>The number is rarely one swell. The spectrum is split at its low points into separate
+        trains, each with its height, period and direction, and the local chop is listed as its
+        own train, tagged. The trains add up, in energy, to the number above them.</p>
+      <p>The biggest train at the buoy need not be the biggest at a break, because the windows
+        take whichever trains point at the blocked sectors. In the worked hour the buoy's lead
+        was 11.8 s from 219°, and North's was 12.5 s from 206°.</p>
+      <p class="see">The split is made on the spectrum by frequency, not on frequency and direction
+        together, so two swells of the same period from different directions read as one train.</p>
+    </section>
+
+    <section id="swell-countdown">
+      <h3>Countdowns: when the next reading is due</h3>
+      <p>Each &ldquo;LIVE&rdquo; card counts down to when its next reading should be on screen.
+        The countdown is three real events on the clock, not an interval added to the reading:</p>
+      <ol>
+        <li>when the source next <b>publishes</b> a reading;</li>
+        <li>plus how long that source typically takes to become fetchable;</li>
+        <li>rounded up to the next <b>collection</b>, which runs every 10 minutes at :05, :15,
+          :25, :35, :45 and :55;</li>
+      </ol>
+      <p>then the page adds its own refresh, every 5 minutes.</p>
+      <div class="tablebox"><table>
+        <thead><tr><th>Source</th><th>Publishes</th><th>Typical lag</th><th>Late after</th><th>Reading at 12:00 PM, next due</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Swell, buoy 46232</th><td>hourly, stamped :00</td><td class="num">15 min</td><td class="num">36 min</td><td>1:15 PM, red after 1:45 PM</td></tr>
+          <tr><th scope="row">Wind, KNZY</th><td>hourly at :52</td><td class="num">3 min</td><td class="num">4 min</td><td>(11:52 AM reading) 12:55 PM, red after 1:05 PM</td></tr>
+          <tr><th scope="row">Tide, 9410170</th><td>every 6 min</td><td class="num">5 min</td><td class="num">8 min</td><td>12:15 PM</td></tr>
+        </tbody></table></div>
+      <p>It reads &ldquo;Update in m:ss&rdquo;, then &ldquo;Update due&rdquo; once the typical time
+        has passed. Only past the late time does it turn red and say &ldquo;Overdue by m:ss&rdquo;.
+        The publishing lag varies from hour to hour, so one deadline would either cry wolf on every
+        slow hour or promise a time that almost never applies. Hence two figures.</p>
+      <div class="next"><a href="#wind">Next: The Wind card &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 6 -->
+  <section id="wind">
+    <h2>The Wind card</h2>
+
+    <section id="wind-three">
+      <h3>Three winds</h3>
+      <dl class="terms">
+        <dt>KNZY</dt><dd>The airfield at Naval Air Station North Island, a few kilometres from the
+          breaks. Its routine report lands at :52 each hour. This is the &ldquo;LIVE&rdquo; tab's
+          wind.</dd>
+        <dt>Local</dt><dd>The National Weather Service's forecast grid at the center break,
+          hourly for 7 days. On the Forecast tab it is the wind on the sand, and the
+          offshore/onshore line comes from it.</dd>
+        <dt>GFS-Wave</dt><dd>The wave model's own wind at the buoy, 29 km offshore. Kept on the
+          Forecast card because it is the wind the model grows its wind sea from, never used for
+          the offshore/onshore line.</dd>
+      </dl>
+    </section>
+
+    <section id="wind-sense">
+      <h3>Offshore, cross-shore, onshore or light</h3>
+      <p>Whether a wind is offshore depends on which way the beach faces, and the three breaks
+        face <span data-geo="normals">—</span>. So the line is per break, shown for the break
+        whose tab is open and hidden on the buoy's tab.</p>
+<pre class="math">offshore component = −cos(wind from − shore normal)     <span class="c">+1 straight off the land, −1 straight off the sea</span>
+  &gt; +0.3   offshore          <span class="c">within 72.5° of straight off the land</span>
+  &lt; −0.3   onshore           <span class="c">within 72.5° of straight off the sea</span>
+  between  cross-shore
+  ≤ 3 kt   light, whatever the direction
+
+<span class="c">worked hour: 8 kt from 270°</span>
+North   normal 194.1°   −cos(75.9°) = −0.24   cross-shore
+Center  normal 213.9°   −cos(56.1°) = −0.56   onshore
+South   normal 220.9°   −cos(49.1°) = −0.66   onshore</pre>
+      <figure>
+        <div class="mapbox" data-map data-view="near" data-wedges="0" data-dists="0"></div>
+        <figcaption>Each break's chord, with its shore normal drawn out to sea from the midpoint.
+          One wind, three answers.</figcaption>
+      </figure>
+      <p>A wind of 3 kt or less, the Beaufort scale's light air, is &ldquo;light&rdquo;: its
+        direction is too faint to matter, and a forecast gives it one anyway. The rule lives in
+        one place on the page, so the card and both Shore direction charts change together.</p>
+      <div class="next"><a href="#tide">Next: The Tide card &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 7 -->
+  <section id="tide">
+    <h2>The Tide card</h2>
+
+    <section id="tide-coast">
+      <h3>From the bay to the open coast</h3>
+      <p>The gauge, NOAA 9410170, is at Broadway Pier inside San Diego Bay. The breaks are on the
+        open coast, where the tide swings a little less and turns a few minutes earlier. Measured
+        against La Jolla's open-coast gauge, and confirmed by NOAA's own offsets for Imperial Beach
+        and Point Loma:</p>
+<pre class="math">open coast = 0.944 × bay, 3 minutes earlier          <span class="c">the card's heights, on MLLW</span>
+open coast (MSL) = −0.024 + 0.944 × (bay − MSL)      <span class="c">what breaking uses</span>
+
+<span class="c">worked hour: the gauge read 2.005 m above MLLW; MSL is 0.897 m above MLLW there</span>
+card       0.944 × 2.005 = 1.893 m                   → 6.2 ft (1.89 m)
+breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level</pre>
+      <p>The source line names the gauge the reading was carried from. The countdown keeps the
+        gauge's own time.</p>
+    </section>
+
+    <section id="tide-turn">
+      <h3>The next high or low</h3>
+      <p>The next turn is NOAA's own prediction of high and low water, computed from the tidal
+        constituents. It is the one predicted number on the &ldquo;LIVE&rdquo; tab, tagged
+        <em>predicted</em>. Rising or falling is read from it: if the next turn is a high, the tide
+        is rising into it. Direction and target come from one source, so they cannot contradict
+        each other on screen.</p>
+      <div class="choice"><span class="lbl">Model choice · never difference the gauge</span>
+        <p>Comparing the two newest gauge readings would get the direction backwards on a large
+          share of readings near slack water, where the real change is smaller than the gauge's
+          own wobble. Picking the highest hour of an hourly prediction would put the time of high
+          water up to half an hour out. So neither is used, and there is no fallback from one to
+          the other.</p></div>
+    </section>
+
+    <section id="tide-departure">
+      <h3>The measured departure</h3>
+      <p>The harmonic prediction is tied to sea level as it was in 1983–2001, and knows nothing of
+        the rise since or of the season. So the gauge's measured level less its prediction, averaged
+        over the last 3 days, is added to the predicted turn's height and to every forecast hour's
+        tide. The measured level itself never gets it, because the departure <em>is</em> measured
+        minus predicted.</p>
+<pre class="math">departure = mean(measured − predicted) over the last 72 hours
+
+<span class="c">worked hour: +0.255 m over 73 hourly pairs</span></pre>
+      <p>Breaking needs it. Without a departure the forecast computes no breaking height at all,
+        rather than breaking the waves in water about 0.2 m too shallow.</p>
+      <div class="next"><a href="#time">Next: Moving through time &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 8 -->
+  <section id="time">
+    <h2>Moving through time</h2>
+
+    <section id="time-picker">
+      <h3>The hour picker</h3>
+      <p>On the Forecast tab, the arrows step through the hours three at a time, and tapping the
+        hour between them opens the full list. It opens on the first hour not yet passed, never one
+        that has.</p>
+    </section>
+
+    <section id="time-past" data-from="info: past hours">
+      <h3>Past hours: what the page showed then</h3>
+      <p>The Forecast tab reaches 48 hours back. For each hour that has gone by,
+        the forecast figure is what this page showed for that hour: the
+        newest run that had been published before it, which is not always the
+        run on screen now. A past hour is drawn as it was published, with the drawing and the
+        calculation, from that build's own record. When an older build kept only the headline,
+        the card says &ldquo;The calculation for this hour was not kept&rdquo; rather than
+        borrowing another build's detail.</p>
+    </section>
+
+    <section id="time-observed">
+      <h3>The red &ldquo;Observed at&rdquo; line</h3>
+      <p>The <span class="measured-ink">red line</span> under it is what buoy 46232 measured at
+        that hour, carried in by the same chain the &ldquo;LIVE&rdquo; tab uses: the same windows,
+        seabed and surf zone, with the airfield's wind and the gauge's water level from that hour.
+        It is labelled &ldquo;Observed at 8:00 AM&rdquo; with its hour, and the tide's reads
+        &ldquo;Measured at&rdquo;. An hour with no buoy spectrum is shown as a gap. It is never
+        filled from the hour beside it, and the newest hour reads &ldquo;not in yet&rdquo;
+        until a later spectrum has passed it.</p>
+      <p>Because both figures go through the same physics, the difference between them is the
+        model's error at the buoy, carried in. It does not check the beach. Nothing has been
+        fitted from it, and no difference or percentage is put on screen, because that would be a
+        claim about the forecast without a verification series behind it.</p>
+      <div class="next"><a href="#charts">Next: Charts &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 9 -->
+  <section id="charts">
+    <h2>Charts</h2>
+    <p>Every card ends with a &ldquo;Charts&rdquo; line, closed until opened. The charts carry no
+      description of their own; this section is where each is explained.</p>
+
+    <section id="charts-using">
+      <h3>Using the charts</h3>
+      <ul>
+        <li><b>Pick a view</b> from the menu above the plot.</li>
+        <li><b>Zoom and pan</b> with 1D / 7D / 1M / All (Forecast's swell chart: 1D / 3D / 7D /
+          All), or pinch, drag, or ctrl + scroll.</li>
+        <li><b>Read a value</b> by swiping sideways across the plot. The readout above the plot
+          follows your finger and keeps the last hour when you let go. A vertical swipe still
+          scrolls the page.</li>
+        <li><b>The tabs keep their own</b> window, picked hour and view, and the Wind and Tide charts
+          share the tab's window and picked hour.</li>
+        <li><b>A gap is a gap</b>: an hour with no reading is a break in the line at every zoom,
+          never filled from the hour beside it.</li>
+      </ul>
+    </section>
+
+    <section id="charts-live-swell" data-from="info: the charts under each LIVE card">
+      <h3>&ldquo;LIVE&rdquo;: the Swell charts</h3>
+      <p>Buoy 46232's own spectrum at every hour, carried in
+        by the same chain as the reading above them. They open on the last day;
+        zoom and pan them to go back to the start of the buoy's archive
+        (4 August 2026). Every hour is rebuilt with today's windows,
+        seabed and surf zone, so an earlier hour shows what the current chain
+        makes of it, not what this page said at the time: the last week on every
+        collection, the rest once a day. When the older hours no longer match
+        today's chain they are not shown until they have been rebuilt, so two
+        versions of the chain are never drawn on one line.</p>
+      <p>An hour with no buoy spectrum is a gap: a pale band with no line
+        through it, at every zoom, never filled from the hour beside it. A break
+        has no breaking height for an hour whose water level was not measured,
+        which is every hour before 17 September 2026. Each tab draws its own line only.</p>
+      <dl class="terms">
+        <dt>Height</dt><dd>The break's breaking height, or the buoy's own on its tab.</dd>
+        <dt>North vs. South</dt><dd>North's less South's. Where it crosses zero, which of the two
+          is bigger has flipped.</dd>
+        <dt>Window</dt><dd>A break's height through its windows as a share of the buoy's,
+          before the seabed: the <a href="#calc-windows">Windows row</a>. Under it, a dot for each
+          hour marks where the buoy's peak came from, over the break's open windows shaded. The
+          share is the whole spectrum through the windows, so it moves with how widely the swell
+          is spread as well as with where its peak sits. A dot is never &ldquo;inside&rdquo; or
+          &ldquo;outside&rdquo;: a single bearing tested against a window is the yes-or-no the
+          model refuses.</dd>
+        <dt>Range %K</dt><dd>Where the buoy sits in its own last 24 hours' range, less where the
+          break sits in its own. A position in a range, not a height, left blank where too few of
+          those 24 hours were measured.</dd>
+      </dl>
+<pre class="math">%K = 100 × (now − lowest) / (highest − lowest)      <span class="c">over the last 24 hours</span>
+                                                     <span class="c">blank under 20 measured hours, or a range under 2 cm</span>
+chart = buoy %K − break %K</pre>
+      <figure>
+        <div class="mapbox" data-map data-view="whole" data-dists="0" data-rays="0"></div>
+        <figcaption>The windows the Window chart's direction strip shades, here as they sit on the
+          map.</figcaption>
+      </figure>
+    </section>
+
+    <section id="charts-live-wt">
+      <h3>&ldquo;LIVE&rdquo;: the Wind and Tide charts</h3>
+      <p>On the same hours and the same window as the Swell charts. Both are read straight from
+        the collected records rather than rebuilt, so nothing done to the chain can change an
+        earlier hour. They reach back a month, or to where the records begin (18 September 2026
+        for the wind, 17 September for the tide).</p>
+      <dl class="terms">
+        <dt>Wind</dt><dd>The airfield's report taken in the hour up to each hour: its speed, a dot
+          for any gust, and under it the direction it blows from, which a calm or a variable wind
+          does not have. A report is never carried into the next hour. An hour with no report is a
+          gap.</dd>
+        <dt>Shore direction</dt><dd>How often the airfield's wind has been offshore, cross-shore,
+          onshore or light at the break whose tab is open, one bar for each hour of the day on your
+          clock. Each bar is that hour on every day counted, one reading a day, by the
+          <a href="#wind-sense">same rule</a> as the card. The readout says &ldquo;over N
+          days&rdquo;, because a bar is many days' readings, not one hour's.</dd>
+        <dt>Tide</dt><dd>The gauge's sample at each hour exactly, carried to the open coast as the
+          card's is. Past the present, the next 24 hours of harmonic prediction, dashed, with the
+          measured departure added: the one modelled line on this tab, as the card's next turn is
+          its one modelled number.</dd>
+        <dt>Departure</dt><dd>The gauge's measured level less its prediction at each hour, on the
+          open coast, with the 3-day mean of it that the forecast's tide carries.</dd>
+      </dl>
+      <p>Night, from sunset to sunrise at the center break, is shaded behind the tide on both tabs,
+        so a low tide in the dark reads apart from one at dawn. Sunrise and sunset are worked out
+        from the sun's position with NOAA's solar equations, not measured.</p>
+    </section>
+
+    <section id="charts-fc-swell" data-from="info: the charts under each Forecast card">
+      <h3>Forecast: the Swell charts</h3>
+      <p>Drawn from the model, every 3 hours, from 48 hours back to the end of the run. They open
+        on three days with the present a quarter of the way in. A break's line is its breaking
+        height only; an hour whose figure was at 5 m of water, or that no run covered, is a gap.</p>
+      <dl class="terms">
+        <dt>Forecast + Observed</dt><dd>The newest GFS-Wave run's line over what each of the last
+          eight runs said for the same hours, as the page showed them, and beside the hours that
+          have passed, buoy 46232 carried in by the same chain, in red. Where the run lines bunch,
+          the runs agree; where they fan out, the model has been changing its mind. Runs agreeing
+          is not the same as being right, and the spread between them is not a range the swell
+          will fall in.</dd>
+        <dt>Swell trains</dt><dd>Each train the chain carries in, a dot at its period, larger for a
+          bigger train, with the heading it comes from under it. A new swell arrives long-period
+          first, so it shows as dots stepping down in period. Trains are split hour by hour, so a
+          dot is not the same train as the one beside it, and they are kept only for the runs whose
+          hours were kept in full.</dd>
+        <dt>North vs. South</dt><dd>North's forecast breaking height less South's.</dd>
+        <dt>Ensemble</dt><dd>On the buoy's tab only. GEFS-Wave is the same wave model run 31 times
+          from slightly different weather. The dashed line is the mean of its members at the buoy
+          and the shading one standard deviation either side, beside the newest GFS-Wave run and
+          the red line. It is total height at the buoy with no direction, so it cannot be carried
+          through a break's windows and says nothing about the beach. The chart states how often
+          buoy 46232 has fallen inside the shading, per lead time, over which dates and how many
+          hours. So far that is far less often than a range that size would imply, because the
+          members agree with each other more closely than any of them agrees with the sea, and
+          their mean runs above the buoy. Nothing has been removed from it or added to it to make
+          it look better.</dd>
+      </dl>
+      <p>Only the Ensemble view carries a band, and only beside how often the buoy it is drawn
+        for has fallen inside it. No chart shows a difference between the forecast and the red
+        line.</p>
+    </section>
+
+    <section id="charts-fc-wt">
+      <h3>Forecast: the Wind and Tide charts</h3>
+      <p>Hourly, over the same reach.</p>
+      <dl class="terms">
+        <dt>Wind</dt><dd>The National Weather Service's forecast wind at Coronado (the card's
+          Local wind), with a dot for any gust and its direction under it. Beside the hours that
+          have passed, the airfield's measured wind in red. In grey, GFS-Wave's own wind at the
+          buoy, the one the model makes its wind sea from: hourly to five days and every third hour
+          after, joined across the hours it does not give, never across a measured gap.</dd>
+        <dt>Shore direction</dt><dd>The local forecast's wind at the break whose tab is open, one
+          row a day and one square an hour, so which mornings are offshore reads straight off it.
+          An hour the forecast does not cover is an empty square.</dd>
+        <dt>Tide</dt><dd>The harmonic tide at the open coast with the measured departure added, as
+          the card's is, and the gauge's measured level in red beside the hours that have
+          passed.</dd>
+        <dt>Daily range</dt><dd>Each day's biggest swing between one predicted high or low and the
+          next, starting that day: long bars are spring tides, short ones neaps. Measured between
+          consecutive turns, never as the day's highest high less its lowest low, which would drop
+          a low that crossed midnight and draw a neap that is not there.</dd>
+      </dl>
+      <p>The Shore direction &ldquo;how often&rdquo; bars and the Departure view are the
+        &ldquo;LIVE&rdquo; tab's only. Counting how often over a week of forecast would throw away
+        which day, and a measured departure has no future hours.</p>
+      <div class="next"><a href="#sources">Next: Data sources &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 10 -->
+  <section id="sources">
+    <h2>Data sources and freshness</h2>
+
+    <section id="sources-list">
+      <h3>Every source, and what it feeds</h3>
+      <div class="tablebox"><table>
+        <thead><tr><th>Source</th><th>What</th><th>Feeds</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">NDBC buoy 46232, Point Loma South</th><td>Hourly directional spectrum, 64 bands; position from NDBC's metadata</td><td>&ldquo;LIVE&rdquo; swell, every chart's buoy line, the red line</td></tr>
+          <tr><th scope="row">KNZY, NAS North Island</th><td>Hourly airfield report (METAR)</td><td>&ldquo;LIVE&rdquo; wind, local chop, Shore direction</td></tr>
+          <tr><th scope="row">NOAA tide gauge 9410170, San Diego</th><td>6-minute measured level, hourly prediction, predicted highs and lows</td><td>Tide card, breaking depth, departure</td></tr>
+          <tr><th scope="row">GFS-Wave (WAVEWATCH III), NOAA</th><td>The model's own directional spectrum and 10 m wind at the buoy, four runs a day</td><td>Forecast swell</td></tr>
+          <tr><th scope="row">GEFS-Wave, NOAA</th><td>31-member ensemble at the buoy, height only</td><td>Ensemble chart</td></tr>
+          <tr><th scope="row">National Weather Service grid</th><td>Hourly forecast wind at the center break, 7 days</td><td>Forecast wind, offshore line</td></tr>
+          <tr><th scope="row">USGS CoNED, GMRT</th><td>Surveyed seabed and beach profiles (2016)</td><td>Refraction, friction, shoaling, breaking</td></tr>
+          <tr><th scope="row">NOAA electronic navigational charts</th><td>Coastline of Point Loma's tip, the islands, Baja and the break chords</td><td>The aperture</td></tr>
+          <tr><th scope="row">NOAA solar equations</th><td>Sunrise and sunset, computed</td><td>Night shading</td></tr>
+        </tbody></table></div>
+      <p>When GFS-Wave's directional spectrum is not available, the forecast is rebuilt from the
+        model's separate swell trains instead, with an assumed directional spread, and the
+        &ldquo;standing on&rdquo; block above says which was used and what spread was assumed.</p>
+    </section>
+
+    <section id="sources-cadence">
+      <h3>Cadence and lag</h3>
+      <p>The observations are collected every 10 minutes and the page refetches them every 5.
+        Every request carries a unique address, so no cache along the way can hand back an older
+        copy. The model runs four times a day, and each run's numbers for the buoy appear about
+        five and a half hours after its nominal time, so the newest forecast always starts a few
+        hours in the past. <a href="#swell-countdown">How a countdown is worked out</a>.</p>
+    </section>
+
+    <section id="sources-dark">
+      <h3>When a source goes dark</h3>
+      <p>Buoy 46232 went silent for 16 days in September 2026 and nobody knows why. When a source
+        stops, its card's countdown runs out and turns red, its chart lines break, and nothing is
+        filled in. No other buoy can stand in: 46232 is the only one in the array that sits
+        inside Coronado's windows. If there is no current observation at all, the
+        &ldquo;LIVE&rdquo; tab says so and points at the Forecast tab.</p>
+      <div class="next"><a href="#confidence">Next: Confidence and verification &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 11 -->
+  <section id="confidence">
+    <h2>Confidence and verification</h2>
+
+    <section id="confidence-levels">
+      <h3>The four levels</h3>
+      <dl class="terms">
+        <dt>Geometry</dt><dd>Which bearings can reach each break: coordinates read off NOAA's
+          charts. The firmest level.</dd>
+        <dt>Model</dt><dd>The Forecast tab's wave model, and the physics of the chain, both run on
+          surveyed inputs.</dd>
+        <dt>Calibration</dt><dd>Adjusting the chain to fit what was observed at the beach. None
+          yet: there is nothing to fit to.</dd>
+        <dt>Observation</dt><dd>Waves observed at the breaks. None yet.</dd>
+      </dl>
+      <p>The live blocks in <a href="#start-standing">What each tab is standing on</a> show the
+        current status of each.</p>
+    </section>
+
+    <section id="confidence-physics">
+      <h3>Why the physics is never called calibration</h3>
+      <p>Refraction, diffraction, friction, shoaling and breaking are modelled from surveyed inputs
+        and fitted to nothing. Calling them calibration would claim a level the project has not
+        reached. That word is kept for fitting to beach observations, which is the one thing that
+        can turn &ldquo;physically derived&rdquo; into something checked.</p>
+    </section>
+
+    <section id="confidence-log">
+      <h3>The beach observation log</h3>
+      <p>The planned check is people at the beach. An observer writes down what they see at two or
+        three of the breaks, about half an hour apart, on one tide, with the observer, time and
+        method recorded. One person comparing breaks within half an hour cancels nearly everything
+        that makes judging absolute height unreliable, and what is left, which break is bigger, is
+        exactly what this forecast claims.</p>
+      <ul>
+        <li>The log is kept as its own record and is never blended into the forecast it judges.</li>
+        <li>It never shows a forecast. An observer who has seen one is no longer an independent
+          witness, so the observer's form and this page are kept apart, and this page does not link
+          to it.</li>
+        <li>It checks orderings and differences between breaks, not heights, until the step from
+          significant height to face height has been fitted.</li>
+      </ul>
+      <p>Until that record exists, no figure on the forecast page states how well it does, and none
+        will without naming the observations it was compared against.</p>
+      <div class="next"><a href="#faq">Next: Troubleshooting &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 12 -->
+  <section id="faq">
+    <h2>Troubleshooting and questions</h2>
+    <section id="faq-messages">
+      <h3>What a message means</h3>
+      <dl class="terms">
+        <dt>&ldquo;No current observation.&rdquo;</dt><dd>The &ldquo;LIVE&rdquo; tab has nothing
+          usable, and says why. Switch to Forecast for the modelled view.</dd>
+        <dt>&ldquo;Update due.&rdquo;</dt><dd>The next reading is expected and nothing is wrong
+          yet: the source is at the slow end of its usual lag.</dd>
+        <dt>&ldquo;Overdue by m:ss.&rdquo; in red</dt><dd>Past the latest the source normally
+          takes. The reading on screen is still the newest there is.</dd>
+        <dt>&ldquo;not in yet&rdquo;</dt><dd>The buoy's spectrum for that hour has not been
+          collected yet. It usually lands 15–35 minutes after the hour.</dd>
+        <dt>&ldquo;The calculation for this hour was not kept.&rdquo;</dt><dd>A past forecast hour
+          from a build that stored only its headline.</dd>
+        <dt>&ldquo;Every hour in this forecast has passed.&rdquo;</dt><dd>The newest model run has
+          not arrived, so nothing on the Forecast tab is upcoming.</dd>
+        <dt>&ldquo;Earlier hours are being rebuilt&hellip;&rdquo;</dt><dd>The chain changed, and the
+          archive is being rebuilt with it so that two versions are never drawn on one line.</dd>
+        <dt>&ldquo;&hellip;or deeper&rdquo; and a &le; in the table</dt><dd>The waves were already
+          breaking at the 5 m start point, so the break is further out and the height is an upper
+          bound.</dd>
+      </dl>
+    </section>
+    <section id="faq-questions">
+      <h3>Common questions</h3>
+      <dl class="terms">
+        <dt>Why is there no error bar?</dt><dd>An error bar has to be measured against
+          observations of the thing forecast, and none exist at these breaks. A band fitted to
+          something else would look reassuring and mean nothing.</dd>
+        <dt>Why is the buoy always bigger?</dt><dd>It is 29 km offshore with nothing in the way.
+          Every break sits behind Point Loma, the islands and Baja.</dd>
+        <dt>Why does it disagree with other forecasts?</dt><dd>Most regional forecasts read one
+          point offshore, or treat this stretch of coast as one beach. This one applies each
+          break's own windows and seabed. Whether that does better is what the observation log is
+          for.</dd>
+        <dt>Why is there a gap in a chart?</dt><dd>Nothing was measured or modelled for that hour,
+          and a gap is never filled from the hour beside it.</dd>
+        <dt>Why does the number change for a past hour on &ldquo;LIVE&rdquo;?</dt><dd>The
+          &ldquo;LIVE&rdquo; charts rebuild every hour with today's chain, so an improvement to the
+          physics changes the past hours too. The Forecast tab is the opposite: a past hour shows
+          what the page said at the time.</dd>
+      </dl>
+      <div class="next"><a href="#glossary">Next: Glossary &rarr;</a></div>
+    </section>
+  </section>
+
+  <!-- ================================================================ 13 -->
+  <section id="glossary">
+    <h2>Glossary</h2>
+    <dl class="terms">
+      <dt>Significant height (Hs)</dt><dd>Four times the square root of the total wave energy,
+        close to the average of the highest third of waves, trough to crest. What buoys and models
+        report, and what every number here is.</dd>
+      <dt>Face height</dt><dd>The height a surfer calls, measured on the wave's face. A different
+        quantity from Hs, and the conversion has not been fitted.</dd>
+      <dt>Period</dt><dd>Seconds between wave crests. Longer-period swell travels faster, feels the
+        seabed sooner and bends more.</dd>
+      <dt>Spectrum</dt><dd>How a sea's energy is spread over period and direction. The buoy reports
+        it hourly, the model every hour of its run.</dd>
+      <dt>Swell train</dt><dd>One peak of the spectrum: a swell with its own height, period and
+        direction.</dd>
+      <dt>Wind sea, chop</dt><dd>Short-period waves made by local wind.</dd>
+      <dt>Swell window</dt><dd>The range of bearings from which swell can reach a break in a
+        straight line.</dd>
+      <dt>Aperture</dt><dd>All of a break's windows together, and the land that forms them.</dd>
+      <dt>Blocker</dt><dd>Land that casts a shadow: Point Loma, the two Coronado Island groups, the
+        Baja coast.</dd>
+      <dt>Tangent vertex</dt><dd>The one charted point on a blocker that a break's line of sight
+        just grazes, which forms a window edge.</dd>
+      <dt>Chord</dt><dd>The short stretch of shoreline that stands for a break.</dd>
+      <dt>Shore normal</dt><dd>The direction straight out to sea from a chord.</dd>
+      <dt>Refraction</dt><dd>Swell bending toward shallow water as it slows.</dd>
+      <dt>Diffraction</dt><dd>Swell spreading round an edge into its shadow.</dd>
+      <dt>Shoaling</dt><dd>Waves growing in height as the water shallows.</dd>
+      <dt>Bottom friction</dt><dd>Energy lost to the seabed in shallow water.</dd>
+      <dt>Fetch</dt><dd>The open water a wind blows over before it reaches the break.</dd>
+      <dt>Breaker index (γ)</dt><dd>The largest wave height a depth of water can hold, as a fraction
+        of that depth.</dd>
+      <dt>MLLW, MSL</dt><dd>Mean lower low water, the tide card's zero, and mean sea level, which
+        the seabed depths are measured from.</dd>
+      <dt>Harmonic prediction</dt><dd>The tide worked out from its astronomical constituents.</dd>
+      <dt>Departure</dt><dd>The gauge's measured level less its prediction.</dd>
+      <dt>%K</dt><dd>Where a value sits within its own range over a window of time, 0 at the low and
+        100 at the high.</dd>
+      <dt>GFS-Wave, GEFS-Wave</dt><dd>NOAA's global wave model, and the same model run as a
+        31-member ensemble.</dd>
+      <dt>ENC</dt><dd>NOAA's electronic navigational charts, the source of every coordinate in the
+        aperture.</dd>
+      <dt>CoNED</dt><dd>The USGS Coastal National Elevation Database, a seamless survey of land and
+        seabed.</dd>
+      <dt>46232, KNZY, 9410170</dt><dd>The buoy, the airfield and the tide gauge.</dd>
+    </dl>
+    <p class="foot">This page is built from the same files as the forecast page: the drawings from
+      the geometry the forecast reads, and the &ldquo;standing on&rdquo; blocks from each tab's own
+      file as the page loads. The worked hour is rebuilt from the archive by a test whenever the
+      chain changes. Geometry only says which bearings can reach each break, not how big anything
+      is; nothing on this page has been measured at the breaks.</p>
+  </section>
+
+  </article>
+  </main>
+</div>
+
+<!-- The worked hour, as the chain rebuilt it from the archive. Frozen here so
+     the prose can quote it; tests/test_docs.py rebuilds the same hour and
+     fails if the chain no longer gives these numbers. -->
+<script type="application/json" id="worked-hour">
+{"valid_utc":"2026-09-28T19:00:00Z",
+ "buoy":{"hs_m":1.296,"peak_period_s":11.8,"peak_direction_deg":188},
+ "wind":{"from_deg":270.0,"speed_kt":8.0},
+ "tide":{"gauge_height_m":2.005,"height_m":1.893},
+ "breaks":{
+  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.836,"refracted_hs_m":0.833,"diffracted_hs_m":0.851,"friction_hs_m":0.754,"shoaled_hs_m":0.926,"with_chop_hs_m":0.931,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":1.069,"depth_m":2.32,"distance_m":87.5,"tide_m":1.022,"gamma":0.529,"fraction_breaking":0.091,"outside_start":false}},
+  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.628,"diffracted_hs_m":0.663,"friction_hs_m":0.594,"shoaled_hs_m":0.715,"with_chop_hs_m":0.727,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":0.884,"depth_m":1.99,"distance_m":114.0,"tide_m":1.022,"gamma":0.509,"fraction_breaking":0.09,"outside_start":false}},
+  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.718,"friction_hs_m":0.657,"shoaled_hs_m":0.737,"with_chop_hs_m":0.751,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":0.881,"depth_m":2.28,"distance_m":141.0,"tide_m":1.022,"gamma":0.527,"fraction_breaking":0.026,"outside_start":false}}
+ }}
+</script>
+
+<script>
+// Same sources as app/forecast.html, and the same ?data= / ?now= overrides,
+// so forecast.publish repoints this page the way it repoints the others.
+const PARAM = new URLSearchParams(location.search);
+const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
+const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
+// Filled by forecast.geomviz from spots.json, as geometry.html is. Null in the
+// unbuilt template, and every drawing then says so instead of drawing.
+const MODEL = /*__MODEL__*/null;
+
+const $ = (id) => document.getElementById(id);
+// Display units only: imperial leads, metric in parentheses.
+const FT_PER_M = 3.28084, KM_PER_MI = 1.609344;
+const height = (m) => (m == null ? "—"
+  : `${(m * FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)</span>`);
+const fmtDist = (km) => km < 1
+  ? `${Math.round(km * 1000 * FT_PER_M).toLocaleString()} ft (${Math.round(km * 1000)} m)`
+  : `${(km / KM_PER_MI).toFixed(km < 16 ? 2 : 1)} mi (${km.toFixed(km < 10 ? 2 : 1)} km)`;
+const fmtBrg = (d) => `${d.toFixed(1)}°`;
+const fmtLL = (p) => `${p[0].toFixed(5)}, ${p[1].toFixed(5)}`;
+const BREAK_VAR = {coronado_north: "--north", coronado_center: "--center", coronado_south: "--south"};
+const NAME = {coronado_north: "North", coronado_center: "Center", coronado_south: "South"};
+const short = (id) => id.replace("coronado_", "");
+const cssv = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SHORT_BLOCKER = {
+  "Point Loma peninsula": "Point Loma",
+  "Coronado Islands (South group)": "Islands S",
+  "Coronado Islands (North group)": "Islands N",
+  "Baja peninsula": "Baja",
+};
+const vbl = (x) => SHORT_BLOCKER[x] || x;
+// Degrees an edge swings when its vertex moves 100 m across the line of sight.
+const costs = (km) => (100 / 1000 / km) * 180 / Math.PI;
+
+// ================================================================ menu
+// Built from the article's own headings: an h2 is a group, the h3s inside
+// its section are the group's entries. Numbered in reading order.
+const toc = $("toc");
+const groups = [...document.querySelectorAll("#doc > section")];
+const links = [];
+groups.forEach((sec, gi) => {
+  const h = sec.querySelector("h1, h2");
+  const label = sec.id === "start" ? "Start here" : h.textContent.trim();
+  const li = document.createElement("li");
+  li.dataset.open = "false";
+  const kids = [...sec.querySelectorAll(":scope > section[id]")];
+  li.innerHTML = `<div class="grp"><a href="#${sec.id}"><span class="num">${gi + 1}</span>${label}</a>`
+    + (kids.length ? `<button type="button" aria-expanded="false" aria-label="Show ${label}"><span>&#9656;</span></button>` : "")
+    + `</div>`;
+  if (kids.length) {
+    const ul = document.createElement("ul");
+    kids.forEach((k, ki) => {
+      const t = k.querySelector("h3").textContent.replace(/^\d+/, "").trim();
+      ul.insertAdjacentHTML("beforeend",
+        `<li><a href="#${k.id}"><span class="num">${gi + 1}.${ki + 1}</span>${t}</a></li>`);
+    });
+    li.appendChild(ul);
+    li.querySelector("button").onclick = () => setOpen(li, li.dataset.open !== "true");
+  }
+  toc.appendChild(li);
+  links.push(...li.querySelectorAll("a"));
+});
+function setOpen(li, open) {
+  li.dataset.open = String(open);
+  const b = li.querySelector("button");
+  if (b) b.setAttribute("aria-expanded", String(open));
+}
+
+// A permalink on every heading, so the forecast page can point into any of them.
+document.querySelectorAll("#doc section[id] > h2, #doc section[id] > h3").forEach((h) => {
+  h.insertAdjacentHTML("beforeend", ` <a class="anchor" href="#${h.parentElement.id}" aria-label="Link to this section">#</a>`);
+});
+
+// Where the reader is: the last heading above a line a fifth of the way down.
+function spy() {
+  const line = window.innerHeight * 0.2;
+  const targets = [...document.querySelectorAll("#doc section[id]")];
+  let current = targets[0];
+  for (const t of targets) if (t.getBoundingClientRect().top <= line) current = t;
+  links.forEach((a) => a.removeAttribute("aria-current"));
+  const a = toc.querySelector(`a[href="#${current.id}"]`);
+  if (!a) return;
+  a.setAttribute("aria-current", "true");
+  const li = a.closest(".toc > li");
+  toc.querySelectorAll(":scope > li").forEach((g) => setOpen(g, g === li));
+  $("where").textContent = a.textContent.replace(/^[\d.]+/, "").trim();
+}
+let ticking = false;
+addEventListener("scroll", () => {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => { ticking = false; spy(); });
+}, {passive: true});
+
+// ================================================================ search
+// Full text over every section, built on first use so the tables and blocks
+// the page fills in at load are in it. A section's own text is its own: the
+// subsections inside a group are entries of their own, never counted twice.
+let INDEX = null;
+const SKIP = (n) => n.closest("svg, script, style, .anchor, .mapbox");
+function ownText(sec) {
+  const parts = [];
+  const walk = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT, {
+    // The heading is the result's title already, so not its snippet too.
+    acceptNode: (t) => (t.parentElement.closest("section[id]") === sec && !SKIP(t.parentElement)
+      && !t.parentElement.closest("h1, h2, h3"))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+  });
+  for (let t = walk.nextNode(); t; t = walk.nextNode()) parts.push(t.nodeValue);
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+function buildIndex() {
+  INDEX = [...document.querySelectorAll("#doc section[id]")].map((sec) => {
+    const a = toc.querySelector(`a[href="#${sec.id}"]`);
+    const num = a ? a.querySelector(".num").textContent : "";
+    const title = a ? a.textContent.slice(num.length).trim()
+      : (sec.querySelector("h1, h2, h3") || {}).textContent || sec.id;
+    return {id: sec.id, num, title: title.replace(/#$/, "").trim(), text: ownText(sec)};
+  });
+}
+const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const reEsc = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const wordsOf = (q) => q.toLowerCase().split(/\s+/).filter((w) => w.length > 0);
+function count(hay, w) { let n = 0, i = -1; while ((i = hay.indexOf(w, i + 1)) >= 0) n++; return n; }
+// Every word must appear; a word in the title outweighs any number in the text.
+function search(q) {
+  if (!INDEX) buildIndex();
+  const words = wordsOf(q);
+  if (!words.length) return [];
+  return INDEX.map((e) => {
+    const t = e.title.toLowerCase(), b = e.text.toLowerCase();
+    if (!words.every((w) => t.includes(w) || b.includes(w))) return null;
+    const score = words.reduce((s, w) => s + (t.includes(w) ? 50 : 0) + Math.min(count(b, w), 10), 0);
+    return {...e, score};
+  }).filter(Boolean).sort((x, y) => y.score - x.score);
+}
+function snippet(text, words) {
+  const low = text.toLowerCase();
+  let at = -1;
+  for (const w of words) { const i = low.indexOf(w); if (i >= 0 && (at < 0 || i < at)) at = i; }
+  if (at < 0) return esc(text.slice(0, 110)) + (text.length > 110 ? "…" : "");
+  const from = Math.max(0, at - 45), to = Math.min(text.length, at + 75);
+  const cut = (from > 0 ? "…" : "") + text.slice(from, to) + (to < text.length ? "…" : "");
+  const re = new RegExp(`(${words.map(reEsc).join("|")})`, "gi");
+  return esc(cut).replace(re, "<mark>$1</mark>");
+}
+let HITS = [], PICK = 0;
+function showResults() {
+  const q = $("search").value.trim();
+  const words = wordsOf(q);
+  const on = words.length > 0;
+  toc.hidden = on;
+  $("results").hidden = !on;
+  $("found").hidden = !on;
+  if (!on) { clearMarks(); spy(); return; }
+  HITS = search(q).slice(0, 40);
+  PICK = 0;
+  $("found").textContent = HITS.length
+    ? `${HITS.length} section${HITS.length === 1 ? "" : "s"} mention${HITS.length === 1 ? "s" : ""} that. Enter opens the first.`
+    : "No section mentions that.";
+  $("results").innerHTML = HITS.map((h, i) =>
+    `<li><a href="#${h.id}" role="option" id="hit-${i}" aria-selected="${i === 0}" data-hit="${i}">`
+    + `<span class="t">${h.num ? `<span class="num">${h.num}</span>` : ""}${esc(h.title)}</span>`
+    + `<span class="s">${snippet(h.text, words)}</span></a></li>`).join("");
+}
+function pick(i) {
+  if (!HITS.length) return;
+  PICK = (i + HITS.length) % HITS.length;
+  $("results").querySelectorAll("a").forEach((a, k) => a.setAttribute("aria-selected", String(k === PICK)));
+  const a = $("hit-" + PICK);
+  a.scrollIntoView({block: "nearest"});
+  $("search").setAttribute("aria-activedescendant", a.id);
+}
+// Highlight the words where the reader lands, and scroll to the first.
+function clearMarks() {
+  document.querySelectorAll("#doc mark.hit").forEach((m) => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+}
+function markIn(sec, words) {
+  clearMarks();
+  // Two regexes: a global one carries lastIndex between calls, so it cannot
+  // be the test.
+  const re = new RegExp(words.map(reEsc).join("|"), "gi");
+  const has = new RegExp(words.map(reEsc).join("|"), "i");
+  const walk = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT, {
+    acceptNode: (t) => (t.parentElement.closest("section[id]") === sec && !SKIP(t.parentElement) && has.test(t.nodeValue))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+  });
+  const nodes = [];
+  for (let t = walk.nextNode(); t; t = walk.nextNode()) nodes.push(t);
+  for (const t of nodes) {
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    t.nodeValue.replace(re, (m, at) => {
+      frag.append(t.nodeValue.slice(last, at));
+      const mk = document.createElement("mark");
+      mk.className = "hit"; mk.textContent = m; frag.append(mk);
+      last = at + m.length;
+    });
+    frag.append(t.nodeValue.slice(last));
+    t.parentNode.replaceChild(frag, t);
+  }
+  return sec.querySelector("mark.hit");
+}
+function go(i) {
+  const h = HITS[i];
+  if (!h) return;
+  const sec = $(h.id);
+  const first = markIn(sec, wordsOf($("search").value));
+  menu(false);
+  history.replaceState(null, "", "#" + h.id);
+  (first || sec).scrollIntoView({block: first ? "center" : "start"});
+  if (first) first.classList.add("hit-now");
+}
+$("search").addEventListener("input", showResults);
+$("search").addEventListener("keydown", (ev) => {
+  if (ev.key === "ArrowDown") { ev.preventDefault(); pick(PICK + 1); }
+  else if (ev.key === "ArrowUp") { ev.preventDefault(); pick(PICK - 1); }
+  else if (ev.key === "Enter") { ev.preventDefault(); go(PICK); }
+  else if (ev.key === "Escape" && $("search").value) {
+    ev.stopPropagation(); $("search").value = ""; showResults();
+  }
+});
+$("results").addEventListener("click", (ev) => {
+  const a = ev.target.closest("a[data-hit]");
+  if (!a) return;
+  ev.preventDefault();
+  go(Number(a.dataset.hit));
+});
+// "/" anywhere outside a field jumps to the search box, as on most docs sites.
+addEventListener("keydown", (ev) => {
+  if (ev.key !== "/" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.target.closest && ev.target.closest("input, textarea, select")) return;
+  ev.preventDefault();
+  if (matchMedia("(max-width: 900px)").matches) menu(true);
+  $("search").focus();
+  $("search").select();
+});
+
+// The phone drawer.
+const shell = $("shell");
+function menu(open) {
+  shell.dataset.menu = open ? "open" : "closed";
+  $("menu-open").setAttribute("aria-expanded", String(open));
+  // Not on a touch screen, where focusing the search would open the keyboard
+  // over the menu the reader asked for. The Search button asks for it.
+  if (open && matchMedia("(pointer: fine)").matches) $("search").focus({preventScroll: true});
+}
+$("menu-open").onclick = () => menu(shell.dataset.menu !== "open");
+$("search-open").onclick = () => { menu(true); $("search").focus(); };
+$("scrim").onclick = () => menu(false);
+addEventListener("keydown", (ev) => { if (ev.key === "Escape") menu(false); });
+toc.addEventListener("click", (ev) => { if (ev.target.closest("a")) menu(false); });
+
+// ================================================================ standing on
+// As info.html: each chain from its own file and nothing else, rendered from
+// whatever keys the file carries. "claim" is pinned last because it is the
+// conclusion, and a value beginning "none" is marked.
+const NOW_REFRESH_MS = 5 * 60 * 1000;
+const FORECAST_REFRESH_MS = 60 * 60 * 1000;
+function when(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "long", month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit",
+  });
+}
+function renderStanding(el, standing) {
+  const keys = Object.keys(standing || {}).filter((k) => k !== "claim");
+  if (standing && standing.claim) keys.push("claim");
+  const label = (k) => k === "claim"
+    ? "What it claims"
+    : k.charAt(0).toUpperCase() + k.slice(1);
+  el.innerHTML = keys.map((key) => {
+    const value = standing[key] || "—";
+    const bare = /^none/i.test(value) ? ' class="none"' : "";
+    return `<dt>${label(key)}</dt><dd${bare}>${value}</dd>`;
+  }).join("");
+}
+function renderNow(NOW) {
+  if (!NOW || !NOW.breaks || !NOW.breaks.length) {
+    renderStanding($("standing-now"), (NOW && NOW.standing_on) || {});
+    $("foot-now").innerHTML = `<b class="none">No current observation.</b> `
+      + ((NOW && NOW.warnings && NOW.warnings.join(" ")) ||
+         "now.json could not be loaded.");
+    return;
+  }
+  renderStanding($("standing-now"), NOW.standing_on || {});
+  // A model's build time and spread under a measurement would attribute the
+  // model's properties to the observation, so this note names the buoy only.
+  $("foot-now").innerHTML = `Observed at ${NOW.station_name} (NDBC ${NOW.station}),
+    a buoy 29 km offshore, and carried over the seabed to where it breaks off
+    each break; nothing here is measured at the sand.`;
+}
+function renderForecast(DATA) {
+  renderStanding($("standing-forecast"), DATA.standing_on || {});
+  $("cycle").innerHTML = DATA.cycle_utc
+    ? `Latest data from the GFS-Wave model run of `
+      + `<b>${when(DATA.cycle_utc)}</b>, for the offshore buoy `
+      + `<b>${DATA.station_name}</b> (NDBC ${DATA.station}).`
+    : "No GFS-Wave cycle was available, so there is nothing to show.";
+  const spread = DATA.spread_assumption || {};
+  const assumed = spread.swell_deg != null
+    ? `Directional spread is assumed at ${spread.swell_deg}° for swell and `
+      + `${spread.wind_sea_deg}° for wind sea — ${spread.note || ""}`
+    : `The forecast uses the model's own directional spectrum, so no spread is assumed.`;
+  $("foot-forecast").innerHTML = `${assumed} Forecast generated ${DATA.generated_utc}.`;
+}
+// Each file every time with a unique address, as the forecast page does: a
+// distinct URL cannot be answered from any cache.
+const fresh = (url) => url + (url.includes("?") ? "&" : "?") + "v=" + Date.now();
+let LOADED = {now: false, forecast: false};
+function loadNow() {
+  fetch(fresh(NOW_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null)
+    .then((observed) => {
+      if (!observed && LOADED.now) return;
+      LOADED.now = LOADED.now || !!observed;
+      renderNow(observed);
+    });
+}
+function loadForecast() {
+  fetch(fresh(SOURCE), {cache: "no-store"})
+    .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then((data) => { LOADED.forecast = true; renderForecast(data); })
+    .catch((err) => {
+      if (LOADED.forecast) return;
+      $("cycle").textContent = "Could not load " + SOURCE + " (" + err.message + "). Run "
+        + "`python -m forecast.live` to write it, and open this page over HTTP "
+        + "rather than from the filesystem.";
+    });
+}
+loadNow();
+loadForecast();
+setInterval(loadNow, NOW_REFRESH_MS);
+setInterval(loadForecast, FORECAST_REFRESH_MS);
+
+// ================================================================ worked hour
+const WORKED = JSON.parse($("worked-hour").textContent);
+function pct(to, from) {
+  if (!(from > 0) || to == null) return "";
+  const p = 100 * (to / from - 1);
+  const v = Math.abs(p) < 1 ? p.toFixed(1) : String(Math.round(p));
+  return `${p > 0 ? "+" : p < 0 ? "−" : ""}${v.replace("-", "")}%`;
+}
+function workedTable(id) {
+  const b = WORKED.breaks[id], e = b.effects, k = b.breaking;
+  const rows = [];
+  const row = (calc, to, from, note = "") => rows.push(
+    `<tr><th scope="row">${calc}${note ? ` <span class="unit">${note}</span>` : ""}</th>`
+    + `<td class="num">${from == null ? "—" : `${to < from ? "−" : "+"}${height(Math.abs(to - from))}`}</td>`
+    + `<td class="num">${from == null ? "—" : pct(to, from)}</td>`
+    + `<td class="num">${height(to)}</td></tr>`);
+  row("Buoy", e.buoy_hs_m, null);
+  row("Windows", e.window_hs_m, e.buoy_hs_m);
+  row("Refraction", e.refracted_hs_m, e.window_hs_m);
+  row("Diffraction", e.diffracted_hs_m, e.refracted_hs_m);
+  row("Bottom friction", e.friction_hs_m, e.diffracted_hs_m);
+  row("Shoaling", e.shoaled_hs_m, e.friction_hs_m, "to 16 ft (5.0 m)");
+  row("Local chop", e.with_chop_hs_m, e.shoaled_hs_m,
+    `${e.local.tp_s.toFixed(1)} s, ${e.local.fetch === "open" ? "open water" : "behind land"}, ${e.local.wind} wind`);
+  row("Wave break", k.hs_m, e.with_chop_hs_m);
+  const depth = `${Math.round(k.depth_m * FT_PER_M)} ft (${k.depth_m.toFixed(1)} m)`;
+  $("worked-table").innerHTML = `<table><thead><tr><th scope="col">Calc</th><th scope="col">Change</th>`
+    + `<th scope="col">%</th><th scope="col">Hs</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
+    + `<p class="source" style="padding:8px 12px">${NAME[id]}: ${height(k.hs_m)} breaking at ${depth} depth, `
+    + `${Math.round(k.distance_m * FT_PER_M)} ft (${Math.round(k.distance_m)} m) in from the 5 m start point.</p>`;
+  document.querySelectorAll("#worked-tabs button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.id === id)));
+}
+for (const id of Object.keys(WORKED.breaks)) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.id = id; b.textContent = NAME[id];
+  b.onclick = () => workedTable(id);
+  $("worked-tabs").appendChild(b);
+}
+workedTable("coronado_north");
+
+// ================================================================ geometry
+// The facts the prose quotes, read from the same payload the drawing uses, so
+// the text cannot drift from the geometry the forecast reads.
+const brk = (id) => MODEL && MODEL.breaks.find((b) => b.id === id);
+const westOf = (b) => b.windows.find((w) => w.edges.some((e) => e.blocker === "Point Loma peninsula"));
+const GEO = {
+  "west-sweep": () => {
+    const n = westOf(brk("coronado_north")), s = westOf(brk("coronado_south"));
+    return fmtBrg(s.to - n.to);
+  },
+  "channel-deg": (id) => {
+    const w = brk(id).windows.find((w) => w.edges.every((e) => e.blocker && e.blocker.startsWith("Coronado Islands")));
+    return fmtBrg(w.span);
+  },
+  "tip-spread": () => fmtDist(MODEL.distances.find((d) => d.group === "tip").km),
+  "tangent-km": (id) => fmtDist(westOf(brk(id)).edges.find((e) => e.blocker === "Point Loma peninsula").range_km),
+  "costs": (id, blocker) => {
+    const e = brk(id).windows.flatMap((w) => w.edges).find((x) => x.blocker === blocker);
+    return `${costs(e.range_km).toFixed(2)}°`;
+  },
+  "baja-km": () => fmtDist(brk("coronado_center").windows.flatMap((w) => w.edges)
+    .find((e) => e.blocker === "Baja peninsula").range_km),
+  "normals": () => MODEL.breaks.map((b) => fmtBrg(b.normal)).join(", ").replace(/, ([^,]*)$/, " and $1"),
+};
+document.querySelectorAll("[data-geo]").forEach((el) => {
+  const [key, ...args] = el.dataset.geo.split(":");
+  try { if (MODEL) el.textContent = GEO[key](...args); } catch (err) { el.textContent = "—"; }
+});
+
+if (MODEL) {
+  // Status, as geometry.html's header.
+  const chartedB = MODEL.blockers.filter((b) => b.cells.length).length;
+  const imageryBreaks = MODEL.breaks.filter((b) => b.source === "imagery").length;
+  const chartedBreaks = MODEL.breaks.length - imageryBreaks;
+  $("geo-status").innerHTML =
+    `<span class="pill"><i></i>${chartedB} of ${MODEL.blockers.length} blockers from NOAA ENC</span>` +
+    (chartedBreaks ? `<span class="pill"><i></i>${chartedBreaks} of ${MODEL.breaks.length} break chords from NOAA ENC</span>` : "") +
+    (imageryBreaks ? `<span class="pill"><i class="ring"></i>${imageryBreaks} break positions still traced from imagery</span>` : "");
+
+  const sw = (id) => `<span class="sw" style="background:var(${BREAK_VAR[id]})"></span>`;
+  $("geo-west").innerHTML = `<thead><tr><th>Break</th><th>West window</th><th>Width</th><th>Tip is</th></tr></thead><tbody>`
+    + MODEL.breaks.map((b) => {
+      const w = westOf(b), e = w.edges.find((x) => x.blocker === "Point Loma peninsula");
+      return `<tr><td>${sw(b.id)}${NAME[b.id] || b.name}</td><td class="num">${fmtBrg(w.from)}–${fmtBrg(w.to)}</td>`
+        + `<td class="num">${fmtBrg(w.span)}</td><td class="num">${fmtDist(e.range_km)} away</td></tr>`;
+    }).join("") + `</tbody>`;
+  $("geo-breaks").innerHTML = `<thead><tr><th>Break</th><th>Faces</th><th>Chord</th><th>Source</th></tr></thead><tbody>`
+    + MODEL.breaks.map((b) => `<tr><td>${sw(b.id)}${NAME[b.id] || b.name}</td><td class="num">${fmtBrg(b.normal)}</td>`
+      + `<td class="num">${fmtDist(b.chord_m / 1000)}</td>`
+      + `<td><span class="src ${b.source === "imagery" ? "img" : ""}">${b.source === "imagery" ? "traced from imagery" : "NOAA ENC " + b.cells.join("/")} · ${b.date}</span></td></tr>`).join("")
+    + `</tbody>`;
+}
+
+// ---------- the drawing: one factory, many figures ----------
+// geometry.html's drawing, made re-entrant so the same vertices can be drawn
+// small beside the text and full size in 3.8. Projection: local
+// equirectangular, km, north up, centred on the center break.
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+let VIEWS = [], P, loma, islandsS, islandsN, baja, tangentOf = {};
+if (MODEL) {
+  const C = brk("coronado_center") || MODEL.breaks[0];
+  const LAT0 = C.position[0], LON0 = C.position[1];
+  const KX = 111.320 * Math.cos(LAT0 * Math.PI / 180), KY = 110.574;
+  P = (p) => [(p[1] - LON0) * KX, (p[0] - LAT0) * KY];
+  loma = MODEL.blockers.find((b) => b.name === "Point Loma peninsula");
+  islandsS = MODEL.blockers.find((b) => b.name === "Coronado Islands (South group)");
+  islandsN = MODEL.blockers.find((b) => b.name === "Coronado Islands (North group)");
+  baja = MODEL.blockers.find((b) => b.name === "Baja peninsula");
+  for (const b of MODEL.breaks)
+    for (const w of b.windows)
+      for (const e of w.edges)
+        if (e.blocker === "Point Loma peninsula") tangentOf[b.id] = e.vertex;
+  const bboxOf = (pts, padKm) => {
+    const xy = pts.map(P);
+    const xs = xy.map((p) => p[0]), ys = xy.map((p) => p[1]);
+    return [Math.min(...xs) - padKm, Math.min(...ys) - padKm, Math.max(...xs) + padKm, Math.max(...ys) + padKm];
+  };
+  const allPts = [...MODEL.breaks.map((b) => b.position),
+    ...MODEL.blockers.flatMap((b) => [b.a, b.b]), ...(MODEL.buoy.position ? [MODEL.buoy.position] : [])];
+  VIEWS = [
+    {id: "whole", label: "Whole aperture", box: bboxOf(allPts, 2.5), dist: ["far"],
+     caption: "The full aperture: Point Loma 5–7 km out, the Baja coast 23–25 km, the islands 28–33 km. Every window edge ends on a charted vertex."},
+    {id: "near", label: "Point Loma & breaks", box: bboxOf([...MODEL.breaks.flatMap((b) => b.chord), ...Object.values(tangentOf), loma.a], 0.6), dist: ["near", "beach"],
+     caption: "The west edge of each window is the ray to the Point Loma tip. It sweeps as you walk the sand — that sweep is the whole difference between the three breaks."},
+    {id: "tip", label: "The tip", box: bboxOf(loma.outline, 0.07), dist: ["tip"],
+     caption: "Point Loma's tip as the model carries it: the convex hull of the charted tip. Each break's tangent lands on its own vertex, so no single point can stand for all three."},
+    {id: "islands", label: "The islands", box: bboxOf([islandsS.a, islandsS.b, islandsN.a, islandsN.b], 1.4), dist: ["islands"],
+     caption: "Two islands, each modelled as a screen between its two extreme-bearing vertices, with open channel between them."},
+  ];
+}
+
+function geoMap(box, opts = {}) {
+  if (!MODEL) {
+    box.innerHTML = `<p class="empty">The drawing is filled in when the page is built from the
+      forecast's geometry (<code>python -m forecast.geomviz</code>, run by the publisher).</p>`;
+    return null;
+  }
+  const interactive = !!opts.interactive;
+  const svg = el("svg", {class: "map", role: "img",
+    "aria-label": "Map of the model's vertices, window edges and distances"}, box);
+  const tip = document.createElement("div");
+  tip.className = "maptip"; tip.hidden = true; box.appendChild(tip);
+  const cap = document.createElement("div");
+  cap.className = "caption";
+  if (interactive) box.appendChild(cap);
+  const m = {
+    current: opts.view || "near",
+    view: {cx: 0, cy: 0, s: 20},
+    state: {breaks: new Set(MODEL.breaks.map((b) => b.id)),
+            wedges: opts.wedges !== false, rays: opts.rays !== false, dists: opts.dists !== false},
+  };
+  const size = () => { const r = svg.getBoundingClientRect(); return [r.width, r.height]; };
+  m.fit = () => {
+    const bx = VIEWS.find((v) => v.id === m.current).box;
+    const [w, h] = size();
+    m.view = {cx: (bx[0] + bx[2]) / 2, cy: (bx[1] + bx[3]) / 2,
+              s: Math.min(w / (bx[2] - bx[0]), h / (bx[3] - bx[1]))};
+  };
+  const S = (p) => { const [x, y] = P(p); const [w, h] = size();
+    return [w / 2 + (x - m.view.cx) * m.view.s, h / 2 - (y - m.view.cy) * m.view.s]; };
+  const SK = (xy) => { const [w, h] = size();
+    return [w / 2 + (xy[0] - m.view.cx) * m.view.s, h / 2 - (xy[1] - m.view.cy) * m.view.s]; };
+  const along = (p, brg, km) => { const [x, y] = P(p); const r = brg * Math.PI / 180;
+    return [x + km * Math.sin(r), y + km * Math.cos(r)]; };
+
+  function hoverable(node, html) {
+    node.style.cursor = "pointer";
+    const show = (ev) => {
+      tip.innerHTML = html; tip.hidden = false;
+      const r = box.getBoundingClientRect();
+      let x = ev.clientX - r.left + 14, y = ev.clientY - r.top + 14;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      if (x + tw > r.width - 8) x = ev.clientX - r.left - tw - 14;
+      if (y + th > r.height - 8) y = ev.clientY - r.top - th - 14;
+      tip.style.left = Math.max(6, x) + "px"; tip.style.top = Math.max(6, y) + "px";
+    };
+    node.addEventListener("pointerenter", show);
+    node.addEventListener("pointermove", show);
+    node.addEventListener("pointerleave", () => { tip.hidden = true; });
+    node.addEventListener("pointerdown", (ev) => { ev.stopPropagation(); show(ev); });
+  }
+
+  m.draw = function draw() {
+    svg.replaceChildren();
+    const view = m.view, state = m.state, current = m.current;
+    const [w, h] = size();
+    const g = {grid: el("g", {}, svg), wedge: el("g", {}, svg), land: el("g", {}, svg),
+      ray: el("g", {}, svg), dist: el("g", {}, svg), mark: el("g", {}, svg), text: el("g", {}, svg)};
+
+    const stepKm = view.s > 400 ? 0.1 : view.s > 40 ? 1 : 10;
+    const x0 = view.cx - w / 2 / view.s, x1 = view.cx + w / 2 / view.s;
+    const y0 = view.cy - h / 2 / view.s, y1 = view.cy + h / 2 / view.s;
+    for (let x = Math.ceil(x0 / stepKm) * stepKm; x <= x1; x += stepKm) {
+      const [sx] = SK([x, 0]); el("line", {x1: sx, x2: sx, y1: 0, y2: h, stroke: cssv("--grid"), "stroke-width": 1}, g.grid);
+    }
+    for (let y = Math.ceil(y0 / stepKm) * stepKm; y <= y1; y += stepKm) {
+      const [, sy] = SK([0, y]); el("line", {x1: 0, x2: w, y1: sy, y2: sy, stroke: cssv("--grid"), "stroke-width": 1}, g.grid);
+    }
+
+    const REACH = 80;
+    const shown = MODEL.breaks.filter((b) => state.breaks.has(b.id));
+    if (state.wedges) for (const b of shown) {
+      const col = cssv(BREAK_VAR[b.id]);
+      for (const win of b.windows) {
+        const pts = [S(b.position)];
+        for (let t = win.from; t <= win.to + 1e-9; t += Math.max(0.25, (win.to - win.from) / 60)) pts.push(SK(along(b.position, t, REACH)));
+        pts.push(SK(along(b.position, win.to, REACH)));
+        el("polygon", {points: pts.map((p) => p.join(",")).join(" "), fill: col, "fill-opacity": 0.06, stroke: "none"}, g.wedge);
+      }
+    }
+
+    const land = cssv("--sand"), edge = cssv("--land-edge"), deep = cssv("--sand-deep");
+    // Point Loma: the charted hull, then the ridge running on. The hull's
+    // northern side is where the tip extract was cut, not coast, so it is
+    // filled but not stroked.
+    const hull = loma.outline.map(S);
+    const cutLat = Math.max(...loma.outline.map((p) => p[0])) - 0.0009;
+    el("polygon", {points: hull.map((p) => p.join(",")).join(" "), fill: land, stroke: "none"}, g.land);
+    loma.outline.forEach((p, i) => {
+      const q = loma.outline[(i + 1) % loma.outline.length];
+      if (p[0] > cutLat && q[0] > cutLat) return;
+      const [ax, ay] = S(p), [bx, by] = S(q);
+      el("line", {x1: ax, y1: ay, x2: bx, y2: by, stroke: edge, "stroke-width": 1.5, "stroke-linecap": "round"}, g.land);
+    });
+    const top = loma.outline.reduce((mx, p) => p[0] > mx[0] ? p : mx, loma.outline[0]);
+    const lb = S(loma.b), lt = S(top);
+    el("line", {x1: lt[0], y1: lt[1], x2: lb[0], y2: lb[1], stroke: edge, "stroke-width": 3, "stroke-linecap": "round"}, g.land);
+    const brgUp = Math.atan2(lb[0] - lt[0], -(lb[1] - lt[1]));
+    const onward = [lb[0] + Math.sin(brgUp) * 60, lb[1] - Math.cos(brgUp) * 60];
+    el("line", {x1: lb[0], y1: lb[1], x2: onward[0], y2: onward[1], stroke: edge, "stroke-width": 3, "stroke-dasharray": "2 6", "stroke-linecap": "round"}, g.land);
+    for (const isl of [islandsS, islandsN]) {
+      const a = S(isl.a), b2 = S(isl.b);
+      el("line", {x1: a[0], y1: a[1], x2: b2[0], y2: b2[1], stroke: deep, "stroke-width": 5, "stroke-linecap": "round"}, g.land);
+    }
+    { const a = S(baja.a), b2 = S(baja.b);
+      el("line", {x1: a[0], y1: a[1], x2: b2[0], y2: b2[1], stroke: edge, "stroke-width": 3, "stroke-linecap": "round"}, g.land);
+      const ang = Math.atan2(b2[1] - a[1], b2[0] - a[0]);
+      el("line", {x1: b2[0], y1: b2[1], x2: b2[0] + Math.cos(ang) * 60, y2: b2[1] + Math.sin(ang) * 60, stroke: edge, "stroke-width": 3, "stroke-dasharray": "2 6", "stroke-linecap": "round"}, g.land);
+    }
+
+    if (state.rays) for (const b of shown) {
+      const col = cssv(BREAK_VAR[b.id]);
+      const o = S(b.position);
+      for (const win of b.windows) for (const e of win.edges) {
+        if (!e.vertex) continue;
+        const v = S(e.vertex), far = SK(along(b.position, e.bearing, REACH));
+        el("line", {x1: o[0], y1: o[1], x2: v[0], y2: v[1], stroke: col, "stroke-width": 1.6, "stroke-opacity": 0.9}, g.ray);
+        el("line", {x1: v[0], y1: v[1], x2: far[0], y2: far[1], stroke: col, "stroke-width": 1.2, "stroke-dasharray": "5 5", "stroke-opacity": 0.55}, g.ray);
+        const hit = el("line", {x1: o[0], y1: o[1], x2: v[0], y2: v[1], stroke: "transparent", "stroke-width": 12}, g.ray);
+        hoverable(hit, `<b>${short(b.id)} · ${e.side === "high" ? "high" : "low"} edge ${fmtBrg(e.bearing)}</b><br>formed by ${e.blocker}<br>ray length ${fmtDist(e.range_km)}<br><span class="coord">${fmtLL(e.vertex)}</span>`);
+      }
+    }
+
+    if (state.dists) {
+      const groupsShown = VIEWS.find((v) => v.id === current).dist;
+      const ink = cssv("--ink"), card = cssv("--card");
+      const placed = [];
+      for (const d of MODEL.distances.filter((d) => groupsShown.includes(d.group))) {
+        const a = S(d.a), b2 = S(d.b);
+        const len = Math.hypot(b2[0] - a[0], b2[1] - a[1]);
+        if (len < 26) continue;
+        const nx = -(b2[1] - a[1]) / len, ny = (b2[0] - a[0]) / len;
+        el("line", {x1: a[0], y1: a[1], x2: b2[0], y2: b2[1], stroke: ink, "stroke-width": 1, "stroke-opacity": 0.7, "stroke-dasharray": "1 3"}, g.dist);
+        for (const p of [a, b2]) el("line", {x1: p[0] - nx * 5, y1: p[1] - ny * 5, x2: p[0] + nx * 5, y2: p[1] + ny * 5, stroke: ink, "stroke-width": 1.2}, g.dist);
+        const t = el("text", {"text-anchor": "middle", class: "t-dist"}, g.text);
+        t.textContent = fmtDist(d.km);
+        const hits = (bb) => placed.some((q) => bb.x < q.x + q.width + 6 && q.x < bb.x + bb.width + 6 && bb.y < q.y + q.height + 4 && q.y < bb.y + bb.height + 4);
+        let bb, free = false;
+        for (const f of [0.5, 0.38, 0.62, 0.27, 0.73, 0.18, 0.82]) {
+          t.setAttribute("x", a[0] + (b2[0] - a[0]) * f); t.setAttribute("y", a[1] + (b2[1] - a[1]) * f + 4);
+          bb = t.getBBox();
+          if (!hits(bb)) { free = true; break; }
+        }
+        for (let k = 0; !free && k < 8; k++) {
+          t.setAttribute("x", (a[0] + b2[0]) / 2); t.setAttribute("y", (a[1] + b2[1]) / 2 + 4 + (k + 1) * 22);
+          bb = t.getBBox(); free = !hits(bb);
+        }
+        placed.push(bb);
+        const bg = el("rect", {x: bb.x - 5, y: bb.y - 2, width: bb.width + 10, height: bb.height + 4, rx: 4, fill: card, stroke: cssv("--line-strong")}, g.text);
+        g.text.insertBefore(bg, t);
+        hoverable(bg, `<b>${d.label}</b><br>${fmtDist(d.km)}${d.note ? `<br>${d.note}` : ""}`);
+      }
+    }
+
+    const vtx = (p, html, o = {}) => {
+      const [x, y] = S(p);
+      const r = o.r || 4.5;
+      if (o.imagery) {
+        el("path", {d: `M${x},${y - r - 1.5} L${x + r + 1.5},${y} L${x},${y + r + 1.5} L${x - r - 1.5},${y} Z`, fill: cssv("--sea"), stroke: o.color || cssv("--ink"), "stroke-width": 1.8, "stroke-dasharray": "2 2"}, g.mark);
+      } else {
+        el("circle", {cx: x, cy: y, r, fill: o.color || cssv("--ink"), stroke: cssv("--sea"), "stroke-width": 1.5}, g.mark);
+      }
+      const hit = el("circle", {cx: x, cy: y, r: Math.max(r + 6, 10), fill: "transparent"}, g.mark);
+      hoverable(hit, html);
+    };
+    const label = (p, text, dx = 8, dy = -8, cls = "t-lbl", anchor = "start") => {
+      const [x, y] = S(p);
+      const t = el("text", {x: x + dx, y: y + dy, class: cls, "text-anchor": anchor}, g.text);
+      t.textContent = text;
+    };
+
+    if (view.s > 250) for (const p of loma.outline) {
+      const used = Object.values(tangentOf).some((v) => v[0] === p[0] && v[1] === p[1]);
+      if (used) continue;
+      vtx(p, `<b>Point Loma hull vertex</b><br>NOAA ENC, approach band<br>not a tangent from any Coronado break<br><span class="coord">${fmtLL(p)}</span>`, {r: 2.6, color: cssv("--land-edge")});
+    }
+    const tangentGroups = {};
+    for (const [id, v] of Object.entries(tangentOf)) (tangentGroups[v.join()] ||= {v, ids: []}).ids.push(id);
+    for (const {v, ids} of Object.values(tangentGroups)) {
+      const [x, y] = S(v);
+      ids.forEach((id, i) => el("circle", {cx: x, cy: y, r: 7 + i * 3, fill: "none", stroke: cssv(BREAK_VAR[id]), "stroke-width": 2}, g.mark));
+      vtx(v, `<b>Point Loma tangent · ${ids.map(short).join(", ")}</b><br>forms the west edge of ${ids.map(short).join(" and ")}<br>NOAA ENC ${loma.cells[0] || ""}, approach band<br><span class="coord">${fmtLL(v)}</span>`, {r: 3.5});
+      if (current === "tip") label(v, ids.map(short).join(" · ") + " tangent", 12, ids.includes("coronado_north") ? -10 : 20, "t-lbl", "start");
+    }
+    vtx(loma.b, `<b>Point Loma · b</b><br>only says the ridge runs on north<br>clipped by the query envelope, not the coast<br><span class="coord">${fmtLL(loma.b)}</span>`, {r: 4, color: cssv("--land-edge")});
+    label(loma.b, "Point Loma ridge continues", 10, 4, "t-soft");
+    for (const isl of [islandsS, islandsN]) {
+      for (const [k, p] of [["a", isl.a], ["b", isl.b]])
+        vtx(p, `<b>${isl.name} · ${k}</b><br>extreme-bearing vertex, NOAA ENC ${isl.cells.join(", ")}<br>screen width ${fmtDist(isl.span_km)}<br><span class="coord">${fmtLL(p)}</span>`, {color: cssv("--land-edge")});
+      const west = isl.a[1] < isl.b[1] ? isl.a : isl.b;
+      label(west, isl === islandsS ? "Coronado Islands · south group" : "Coronado Islands · north", -12, 4, "t-soft", "end");
+    }
+    vtx(baja.a, `<b>Baja coast · tangent</b><br>one vertex carries every south edge<br>NOAA ENC ${baja.cells.join(", ")}<br><span class="coord">${fmtLL(baja.a)}</span>`, {color: cssv("--land-edge")});
+    vtx(baja.b, `<b>Baja coast · b</b><br>says only that the coast runs on south<br><span class="coord">${fmtLL(baja.b)}</span>`, {r: 3.5, color: cssv("--land-edge")});
+    label(baja.a, "Baja coast · tangent", 10, 4, "t-soft");
+
+    if (MODEL.buoy.position) {
+      const [x, y] = S(MODEL.buoy.position);
+      el("path", {d: `M${x},${y - 8} L${x + 7},${y + 5} L${x - 7},${y + 5} Z`, fill: cssv("--surf"), stroke: cssv("--sea"), "stroke-width": 1.5}, g.mark);
+      const hit = el("circle", {cx: x, cy: y, r: 12, fill: "transparent"}, g.mark);
+      hoverable(hit, `<b>Buoy ${MODEL.buoy.id}</b><br>the anchor spectrum; position from NDBC metadata<br><span class="coord">${fmtLL(MODEL.buoy.position)}</span>`);
+      label(MODEL.buoy.position, `buoy ${MODEL.buoy.id}`, 10, 4, "t-soft");
+    }
+
+    for (const b of MODEL.breaks) {
+      const on = state.breaks.has(b.id);
+      const col = cssv(BREAK_VAR[b.id]);
+      const [p1, p2] = b.chord.map(S);
+      el("line", {x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], stroke: col, "stroke-width": 4, "stroke-linecap": "round", "stroke-opacity": on ? 1 : 0.35}, g.mark);
+      if (view.s > 60) {
+        const nEnd = SK(along(b.position, b.normal, 0.35));
+        const o = S(b.position);
+        el("line", {x1: o[0], y1: o[1], x2: nEnd[0], y2: nEnd[1], stroke: col, "stroke-width": 1.5, "stroke-opacity": on ? 0.9 : 0.3}, g.mark);
+      }
+      const charted = b.source === "chart";
+      b.chord.forEach((p, i) => vtx(p, `<b>${short(b.id)} chord · end ${i + 1}</b><br>${charted ? "NOAA ENC harbour-band vertex" : "traced from imagery"}, ${b.date}<br>chord ${fmtDist(b.chord_m / 1000)}<br><span class="coord">${fmtLL(p)}</span>`, {imagery: !charted, r: 3.5, color: col}));
+      vtx(b.position, `<b>${b.name}</b><br>position = chord midpoint (${charted ? "charted" : "imagery"})<br>faces ${fmtBrg(b.normal)}<br>${b.windows.map((w) => `${fmtBrg(w.from)}–${fmtBrg(w.to)}`).join(" · ")}<br><span class="coord">${fmtLL(b.position)}</span>`, {r: 4.5, color: col});
+      if (view.s > 40) label(b.position, short(b.id), 12, 5, "t-lbl t-cond");
+    }
+    if (view.s <= 40) label(brk("coronado_center").position, "Coronado breaks", 14, 5, "t-lbl t-cond");
+
+    const nice = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20];
+    const target = 110 / view.s; const sk = nice.find((n) => n >= target) || 20;
+    const bx = 14, by = 20, bw = sk * view.s;
+    const sb = el("g", {}, svg);
+    el("rect", {x: bx - 6, y: by - 14, width: bw + 12, height: 24, rx: 5, fill: cssv("--card"), "fill-opacity": 0.85}, sb);
+    el("line", {x1: bx, y1: by, x2: bx + bw, y2: by, stroke: cssv("--ink"), "stroke-width": 2}, sb);
+    for (const x of [bx, bx + bw]) el("line", {x1: x, y1: by - 5, x2: x, y2: by + 1, stroke: cssv("--ink"), "stroke-width": 2}, sb);
+    const st = el("text", {x: bx + bw / 2, y: by - 4, "text-anchor": "middle", class: "t-dist"}, sb);
+    st.textContent = fmtDist(sk);
+    const nt = el("text", {x: bx + bw + 16, y: by + 4, class: "t-soft"}, sb); nt.textContent = "N ↑";
+    cap.textContent = VIEWS.find((v) => v.id === current).caption;
+  };
+
+  if (interactive) {
+    const zoom = document.createElement("div");
+    zoom.className = "zoom";
+    zoom.innerHTML = `<button type="button" aria-label="Zoom in">+</button><button type="button" aria-label="Zoom out">−</button>`;
+    box.appendChild(zoom);
+    const zoomAt = (f, sx, sy) => {
+      const [w, h] = size();
+      const kx = m.view.cx + (sx - w / 2) / m.view.s, ky = m.view.cy - (sy - h / 2) / m.view.s;
+      m.view.s = Math.min(Math.max(m.view.s * f, 2), 20000);
+      m.view.cx = kx - (sx - w / 2) / m.view.s; m.view.cy = ky + (sy - h / 2) / m.view.s;
+      m.draw();
+    };
+    const pointers = new Map(); let pinch0 = null;
+    svg.addEventListener("wheel", (e) => { e.preventDefault(); const r = svg.getBoundingClientRect();
+      zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, {passive: false});
+    svg.addEventListener("pointerdown", (e) => { tip.hidden = true; svg.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, [e.clientX, e.clientY]); svg.classList.add("dragging");
+      if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = {d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: m.view.s}; } });
+    svg.addEventListener("pointermove", (e) => {
+      if (!pointers.has(e.pointerId)) return;
+      const prev = pointers.get(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pointers.size === 1) { m.view.cx -= (e.clientX - prev[0]) / m.view.s; m.view.cy += (e.clientY - prev[1]) / m.view.s; m.draw(); }
+      else if (pointers.size === 2 && pinch0) {
+        const [a, b] = [...pointers.values()]; const r = svg.getBoundingClientRect();
+        const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        zoomAt((pinch0.s * d / pinch0.d) / m.view.s, (a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top);
+      }
+    });
+    const up = (e) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = null; if (!pointers.size) svg.classList.remove("dragging"); };
+    svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
+    const [zin, zout] = zoom.querySelectorAll("button");
+    zin.onclick = () => { const [w, h] = size(); zoomAt(1.6, w / 2, h / 2); };
+    zout.onclick = () => { const [w, h] = size(); zoomAt(1 / 1.6, w / 2, h / 2); };
+  }
+  // Refit when the width changes (a rotated phone, the drawer), never on a
+  // height-only change, which mobile browsers make while scrolling.
+  let lastW = 0;
+  new ResizeObserver(() => { const [w] = size(); if (w > 0 && Math.abs(w - lastW) > 2) { lastW = w; m.fit(); m.draw(); } }).observe(svg);
+  return m;
+}
+
+// The small figures: a fixed view, tooltips but no pan, so a swipe over one
+// still scrolls the page.
+document.querySelectorAll("[data-map]").forEach((box) => geoMap(box, {
+  view: box.dataset.view,
+  wedges: box.dataset.wedges !== "0", rays: box.dataset.rays !== "0", dists: box.dataset.dists !== "0",
+}));
+
+// The full map, with geometry.html's controls.
+const full = geoMap($("fullmap"), {view: "near", interactive: true});
+if (full) {
+  const viewsBox = $("views");
+  for (const v of VIEWS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.id = "view-" + v.id; b.textContent = v.label; b.setAttribute("aria-pressed", String(v.id === full.current));
+    b.onclick = () => { full.current = v.id; full.fit(); full.draw();
+      viewsBox.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.id === "view-" + full.current))); };
+    viewsBox.appendChild(b);
+  }
+  for (const b of MODEL.breaks) {
+    const c = document.createElement("button");
+    c.type = "button"; c.className = "chip"; c.setAttribute("aria-pressed", "true");
+    c.innerHTML = `<i style="background:var(${BREAK_VAR[b.id]})"></i>${short(b.id)}`;
+    c.onclick = () => { const s = full.state.breaks; s.has(b.id) ? s.delete(b.id) : s.add(b.id);
+      c.setAttribute("aria-pressed", String(s.has(b.id))); full.draw(); };
+    $("breakchips").appendChild(c);
+  }
+  for (const [k, text] of [["wedges", "Windows"], ["rays", "Edge rays"], ["dists", "Distances"]]) {
+    const c = document.createElement("button");
+    c.type = "button"; c.className = "chip"; c.setAttribute("aria-pressed", "true"); c.textContent = text;
+    c.onclick = () => { full.state[k] = !full.state[k]; c.setAttribute("aria-pressed", String(full.state[k])); full.draw(); };
+    $("layerchips").appendChild(c);
+  }
+  $("legend").innerHTML = [
+    `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.6"/></svg>ray: break → the vertex forming that edge</span>`,
+    `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 4"/></svg>the edge carried on past it</span>`,
+    `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--land-edge)"/></svg>charted vertex (NOAA ENC)</span>`,
+    `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--land-edge)" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/></svg>land continues</span>`,
+    `<span><svg width="14" height="14"><path d="M7,1 L13,12 L1,12 Z" fill="var(--surf)"/></svg>buoy ${MODEL.buoy.id}</span>`,
+    ...(MODEL.breaks.some((b) => b.source === "imagery")
+      ? [`<span><svg width="14" height="14"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-dasharray="2 2"/></svg>traced from imagery</span>`] : []),
+  ].join("");
+}
+
+// ---------- geometry.html's tables ----------
+if (MODEL) {
+  $("wtable").innerHTML =
+    `<thead><tr><th>Break</th><th>Window</th><th>Span</th><th>Edge</th><th>Formed by</th><th>Vertex</th><th>Ray</th><th>100 m moves it</th></tr></thead><tbody>` +
+    MODEL.breaks.flatMap((b) => b.windows.flatMap((w) => w.edges.map((e, i) => `<tr>
+      <td>${i === 0 && w === b.windows[0] ? `<span class="sw" style="background:var(${BREAK_VAR[b.id]})"></span>${short(b.id)}` : ""}</td>
+      <td class="num">${i === 0 ? `${fmtBrg(w.from)}–${fmtBrg(w.to)}` : ""}</td>
+      <td class="num">${i === 0 ? fmtBrg(w.span) : ""}</td>
+      <td class="num">${e.side} ${fmtBrg(e.bearing)}</td>
+      <td>${e.blocker ? vbl(e.blocker) : "seaward limit"}</td>
+      <td class="coord">${e.vertex ? fmtLL(e.vertex) : "—"}</td>
+      <td class="num">${e.range_km ? fmtDist(e.range_km) : "—"}</td>
+      <td class="num">${e.range_km ? costs(e.range_km).toFixed(2) + "°" : "—"}</td></tr>`))).join("") + `</tbody>`;
+
+  const vrows = [];
+  for (const b of MODEL.breaks)
+    b.chord.forEach((p, i) => vrows.push([`${short(b.id)} chord end ${i + 1}`, p, b.source === "chart" ? "ENC" : "imagery", b.date]));
+  const tg = {};
+  for (const [id, v] of Object.entries(tangentOf)) (tg[v.join()] ||= {v, ids: []}).ids.push(id);
+  for (const {v, ids} of Object.values(tg)) vrows.push([`Point Loma tangent (${ids.map(short).join(", ")})`, v, "ENC", loma.date]);
+  vrows.push([`Point Loma hull (${loma.outline.length} vertices)`, null, "ENC", loma.date]);
+  vrows.push(["Point Loma b (ridge continues)", loma.b, "ENC", loma.date]);
+  for (const isl of [islandsS, islandsN]) { vrows.push([`${vbl(isl.name)} a`, isl.a, "ENC", isl.date]); vrows.push([`${vbl(isl.name)} b`, isl.b, "ENC", isl.date]); }
+  vrows.push(["Baja tangent (a)", baja.a, "ENC", baja.date]);
+  vrows.push(["Baja b (coast continues)", baja.b, "ENC", baja.date]);
+  $("vtable").innerHTML = `<thead><tr><th>Vertex</th><th>Lat, lon</th><th>Source</th></tr></thead><tbody>` +
+    vrows.map(([n, p, s, d]) => `<tr><td>${n}</td><td class="coord">${p ? fmtLL(p) : "see the tip view"}</td><td><span class="src ${s === "imagery" ? "img" : ""}">${s === "imagery" ? "imagery" : "NOAA ENC"} · ${d}</span></td></tr>`).join("") + `</tbody>`;
+
+  $("dtable").innerHTML = `<thead><tr><th>Between</th><th>Distance</th></tr></thead><tbody>` +
+    MODEL.distances.map((d) => `<tr><td>${d.label}${d.note ? `<br><span class="see">${d.note}</span>` : ""}</td><td class="num">${fmtDist(d.km)}</td></tr>`).join("") + `</tbody>`;
+
+  $("geo-foot").textContent =
+    `Built from forecast/spots.json by forecast/geomviz.py. Break chords: ${MODEL.breaks.map((b) => `${short(b.id)} ${b.source === "chart" ? "ENC " + b.cells.join("/") : "imagery"}`).join("; ")}; where along the coast each break sits is still chosen by hand. Blockers: ${MODEL.blockers.map((b) => `${vbl(b.name)} ${b.cells.length ? "ENC " + b.cells.join("/") : "imagery"} (${b.date})`).join("; ")}. ` +
+    `Distances are great-circle; the map is a local equirectangular projection centred on the center break. Geometry only — this says which bearings can reach each break, not how big anything is.`;
+}
+
+spy();
+if (location.hash) { const t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
+</script>

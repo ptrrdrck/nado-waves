@@ -537,6 +537,14 @@ forecaster actually verifies against, Surfline included.
     app/info.html       the caveat, the cycle line and each chain's
                         standing-on block; shipped by `forecast.publish` in
                         BOTH bundles, linked beneath Geometry
+    app/docs.html       the documentation: every card, chart and calculation,
+                        a left menu built from its own headings (a drawer on a
+                        phone), the geometry drawing filled by geomviz like
+                        geometry.html's, both standing-on blocks, and ONE worked
+                        hour through the chain that `tests/test_docs.py`
+                        rebuilds from the archive. Folds in info.html and
+                        geometry.html, which stay until the owner judges them
+                        covered (2026-10-02). Never links to the observation log
     app/geometry.html   template for the model-geometry drawing; filled by
                         `python -m forecast.geomviz OUT.html` from spots.json,
                         never hand-edited with coordinates. `forecast.publish`

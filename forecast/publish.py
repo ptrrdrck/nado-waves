@@ -27,6 +27,9 @@ The bundle:
                     spots.json; linked from the foot of index.html
     info.html       app/info.html: the caveat and each chain's standing-on
                     block; linked beneath geometry.html
+    docs.html       app/docs.html: the documentation, with the geometry
+                    drawing filled by forecast.geomviz as geometry.html's is,
+                    and both chains' standing-on blocks; linked beneath info.html
     .nojekyll       Pages must serve the files as-is, not run Jekyll over them
     README.md       says what the repository is and where to edit it
 
@@ -62,6 +65,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 PAGE_SOURCE = REPO_ROOT / "app" / "forecast.html"
 INFO_SOURCE = REPO_ROOT / "app" / "info.html"
+DOCS_SOURCE = REPO_ROOT / "app" / "docs.html"
 
 #: Publish every Nth forecast hour. Must match the `lead_h % 3` filter in
 #: app/forecast.html — the page renders nothing between these, so anything
@@ -124,7 +128,8 @@ from `app/forecast.html` in the private `nado-waves` repository, which holds the
 geometry, the transform and the tests, and `forecast.json` is written there by
 `forecast/live.py`. `geometry.html` is drawn there from the same geometry file
 the forecast reads, by `forecast/geomviz.py`, and `info.html` is built from
-`app/info.html`. All three are pushed here by a workflow. **Edit them there** —
+`app/info.html`, and `docs.html` from `app/docs.html`. All of them are pushed
+here by a workflow. **Edit them there** —
 anything committed directly to this repository is overwritten by the next cycle.
 
 ## What the page shows, and what it does not
@@ -265,6 +270,20 @@ def info_page(info: Path = INFO_SOURCE) -> str:
                 app_title="Nado Waves")
 
 
+def docs_page(data_dir: Path = DEFAULT_DATA_DIR, docs: Path = DOCS_SOURCE) -> str:
+    """`app/docs.html` as a standalone document: the geometry drawing filled
+    from spots.json as `geometry_page` fills its own, and repointed like the
+    page, because its standing-on blocks read both payloads.
+
+    In BOTH builds for `geometry_page`'s reason: index.html links to it.
+    """
+
+    from . import geomviz
+
+    filled = geomviz.render(geomviz.build(data_dir=data_dir), template=docs)
+    return wrap(repoint(filled, name=docs.name), app_title="Nado Waves")
+
+
 def build(
     out_dir: Path,
     *,
@@ -308,6 +327,10 @@ def build(
     info = out_dir / "info.html"
     info.write_text(info_page(), encoding="utf-8")
     written["info.html"] = info.stat().st_size
+
+    docs = out_dir / "docs.html"
+    docs.write_text(docs_page(data_dir), encoding="utf-8")
+    written["docs.html"] = docs.stat().st_size
 
     payload = out_dir / "forecast.json"
     payload.write_text(
@@ -389,6 +412,10 @@ def build_now_only(
     info = out_dir / "info.html"
     info.write_text(info_page(), encoding="utf-8")
     written["info.html"] = info.stat().st_size
+
+    docs = out_dir / "docs.html"
+    docs.write_text(docs_page(data_dir), encoding="utf-8")
+    written["docs.html"] = docs.stat().st_size
 
     target = out_dir / "now.json"
     target.write_text(
