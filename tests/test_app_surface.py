@@ -2886,9 +2886,20 @@ class TestOrigin:
         assert card.index("${srcLines(source, due)}") \
             < card.index("originFold(tab.id, tab.origin") < card.index("seriesChart(tab.id")
         assert "originBlock" not in SOURCE and "${originBlock" not in SOURCE
-        assert "<span>Origin</span>" in SOURCE and "data-origin-toggle" in SOURCE
+        assert "<span>Origin${n ? ` <span class=\"count\"" in SOURCE and "data-origin-toggle" in SOURCE
         assert "let ORIGIN_OPEN = false;" in SOURCE
         assert 'ORIGIN_OPEN = recall(KEEP.originOpen) === "open";' in SOURCE
+
+    def test_its_title_counts_what_is_arriving_now(self):
+        """Owner's request, 2026-10-03: a count beside the title, in
+        parentheses and gone when nothing is arriving. It counts
+        what the fold lists as arriving now, named storms and Origin's own
+        readings; the last readable arrival is not now and is not counted."""
+
+        assert "return o.hurricanes.length + o.current.length;" in SOURCE
+        fold = SOURCE[SOURCE.index("function originFold"):SOURCE.index("function setOriginOpen")]
+        assert "(${n})</span>` : \"\"}" in fold and "o.last" not in fold
+        assert 'aria-label="Origin${n ? `, ${said}` : ""}"' in fold
 
     def test_it_has_its_own_rule(self):
         assert re.search(r"\.cond > \.origin-fold\{[^}]*border-top:1px solid var\(--line\)", SOURCE)
