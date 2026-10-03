@@ -2947,10 +2947,16 @@ def test_every_script_on_both_pages_parses(tmp_path):
             assert got.returncode == 0, f"{name} script {k}: {got.stderr[:400]}"
 
 
+def _code(js: str) -> str:
+    """A script with its line comments removed."""
+
+    return "\n".join(line.split("//")[0] for line in js.splitlines())
+
+
 class TestHurricane:
-    """A hurricane named on the card (BRIEFING §37c): only one borne out by the
-    unshadowed buoys' measured energy, placed from NHC's track, and it takes
-    the place of Origin's own reading of the same train."""
+    """A hurricane named on the card (BRIEFING §37c-d): with its match against
+    the unshadowed buoys' measured energy, placed from NHC's track, and it
+    takes the place of Origin's own reading of the same train."""
 
     def test_it_is_named_from_nhc_and_says_so(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
@@ -2959,8 +2965,23 @@ class TestHurricane:
         assert "farAway(s.distance_km, 100)" in entry
         assert "speed(s.vmax_kt)" in entry
 
-    def test_it_says_which_buoys_bore_it_out(self):
-        assert "from its direction at ${h.gate.join(\" and \")}" in SOURCE
+    def test_it_states_its_match_with_the_count_behind_it(self):
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
+        assert "match, `\n    + `${Math.round(h.best * 100)}%" in entry
+        assert "${m.beaten} of ${m.trials}" in entry
+        assert "its own track moved earlier" in entry
+
+    def test_the_match_is_never_called_a_probability_or_a_confidence(self):
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
+        for word in ("probab", "confiden", "likel", "chance"):
+            assert word not in _code(entry).lower()
+
+    def test_the_words_are_the_reports(self):
+        from forecast.stormtrack import MATCH_SHOW, MATCH_WORDS
+
+        for lo, word in MATCH_WORDS:
+            if lo >= MATCH_SHOW:
+                assert f"{word}: \"{word.title()}\"" in SOURCE
 
     def test_it_replaces_origins_reading_of_the_same_train(self):
         assert "!named.has(c.train_period_s)" in SOURCE

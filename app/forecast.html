@@ -1238,18 +1238,27 @@ function originArrival(a, station) {
   </div>`;
 }
 
-// A hurricane NHC is tracking, named only when its best track run forward is
-// borne out by the directional energy 46047 or 46086 measured, as of now
-// (forecast.stormtrack, BRIEFING §37c). Where it was, and how strong, are
-// NHC's: the fix that sent the train now arriving. Never Origin's distance.
+// A hurricane NHC is tracking, named when its best track run forward matches
+// the directional energy 46047 or 46086 measured, as of now, better than the
+// same track moved back in time does (forecast.stormtrack, BRIEFING §37c-d).
+// The match is the share of those earlier moments beaten on timing AND
+// direction, with its word, never a probability; and it is about where a
+// train came from, never how big it is. Where the storm was, and how strong,
+// are NHC's: the fix that sent the train now arriving. Never Origin's distance.
+const MATCH_WORD = {strong: "Strong", partial: "Partial", weak: "Weak"};
 function hurricaneEntry(h) {
   const s = h.at;
+  const buoys = Object.entries(h.match || {}).sort((a, b) => b[1].score - a[1].score);
+  const tested = buoys.map(([id, m], k) =>
+    `${m.beaten} of ${m.trials}${k ? "" : " times"} at ${id}`).join(", ");
   return `<div class="origin" data-hurricane="${h.storm}">
     <span class="val">Hurricane ${h.name}</span>
     <span class="turn">${farAway(s.distance_km, 100)} ${point(s.bearing_deg)} when this swell `
     + `left, ${onDay(s.fix_utc)}, winds ${speed(s.vmax_kt)}</span>
-    ${srcLines([`The ${s.train_period_s.toFixed(1)} s train, arriving on its track's schedule `
-                + `from its direction at ${h.gate.join(" and ")}`,
+    <span class="turn" data-match="${h.word}">${MATCH_WORD[h.word] || h.word} match, `
+    + `${Math.round(h.best * 100)}%</span>
+    ${srcLines([`The ${s.train_period_s.toFixed(1)} s train, on its track's schedule`,
+                `Match: on timing and direction it beats its own track moved earlier ${tested}`,
                 `Position and winds: NHC best track, an analysis`])}
   </div>`;
 }

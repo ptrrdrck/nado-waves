@@ -362,17 +362,29 @@ forecaster actually verifies against, Surfline included.
    agree with a storm in timing AND bearing do so in 28% of bearing shuffles.
    Timing alone matches almost anything. **What the card shows instead
    (owner's request, 2026-10-03; BRIEFING §37c): "Hurricane X" under Origin**,
-   only when NHC's track, run forward with paths across land dropped
+   NHC's track run forward with paths across land dropped
    (`forecast/landpath.py`, Natural Earth 1:10m via `collector/coastline.py`),
-   is explained AS OF the newest spectrum at 46047 or 46086 (`stormtrack.live`,
-   the backtest's own question: nothing after `until` is seen), and on a break
-   only when one of its card trains is the one arriving. Placed and sized from
-   NHC's fix that sent that train, rounded to 100, never from Origin's
-   distance; it replaces Origin's reading of the same train. Backtest, 4 Aug –
-   2 Oct: Marie 5–8 Sep, nothing else, ever. The b-decks are archived hourly
-   by collect-beach-inputs.yml (their one writer). The directional sector is
+   **with its MATCH** (owner's request, same day, BRIEFING §37d: where a train
+   came from is separate from how big it is, so it may carry a figure): as of
+   the newest spectrum at 46047 or 46086, the share of the same track moved
+   BACK in time (every 12 h, to 30 days, each as of its own moment and ranked
+   against its own preceding 40 days) that the real band beats on timing AND
+   direction. Stated only with ≥ 20 trials and the real band livelier than
+   typical on both; named from 50% ("weak"), "partial" from 70%, "strong"
+   from 90%. A count, never a probability or a confidence — and the words are
+   read against the control in `docs/origin_best_tracks.md`: every track moved
+   8–24 days LATER was named at some moment 12 of 55 times, partial 9, strong
+   2 (both onto another swell from the same bearing: the test cannot tell two
+   sources on one bearing apart). Backtest: Marie strong at both buoys, Polo
+   partial (78% at best), Odalys partial (82%). On a break only when one of its
+   card trains is the one arriving. Placed and sized from NHC's fix that sent
+   that train, rounded to 100, never from Origin's distance; it replaces
+   Origin's reading of the same train. The b-decks are archived hourly by
+   collect-beach-inputs.yml (their one writer). The directional sector is
    integrated in closed form (`spreadmethod.mem_sector`, equal to MEM's 1° bins
-   to 1e-15, ~60× faster) — without it the gate cost ~20 s a collection.
+   to 1e-15, ~60× faster); the match loads 90 days of the two buoys and costs
+   ~5–7 s a collection while a storm's band is open at either, a file read
+   when none is.
    GFS-Wave's hindcast (`collector/wavehindcast.py` → `data/wave_hindcast/`,
    origin-tracks.yml its one writer) is a REPORT column, never on the card.
    **No chart carries a description under it** (owner's call, same day):

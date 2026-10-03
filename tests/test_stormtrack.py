@@ -131,7 +131,10 @@ def test_live_names_a_storm_its_buoys_bore_out_and_places_it_from_its_track():
     trains = {"coronado_south": [{"period_s": 1 / arriving[0]}], "coronado_north": [{"period_s": 7.0}]}
     got = S.live({"ep17": fixes}, {"46047": field}, at, positions, trains)
     assert [g["name"] for g in got] == ["Test"]
-    assert got[0]["gate"] == ["46047"]
+    assert list(got[0]["match"]) == ["46047"]
+    stated = got[0]["match"]["46047"]
+    assert stated["trials"] >= S.MATCH_MIN_TRIALS
+    assert stated["score"] == 1.0 and got[0]["word"] == "strong"
     south = got[0]["sites"]["coronado_south"]
     assert south["vmax_kt"] == 120 and 1900 < south["distance_km"] < 2100
     assert "coronado_north" not in got[0]["sites"]
@@ -153,3 +156,39 @@ def test_as_of_a_moment_nothing_after_it_counts():
     result = S.evaluate(band, S.Field(sp, spread="fourier"), until=early)
     full = S.evaluate(band, S.Field(sp, spread="fourier"))
     assert result.actual.have < full.actual.have
+
+
+def test_the_match_is_the_share_of_earlier_moments_beaten_on_timing_and_direction():
+    a = S.MatchScore(S.Trial(0.8, 2.0), [S.Trial(0.7, 1.0)] * 15 + [S.Trial(0.9, 1.0)] * 5
+                     + [S.Trial(0.7, 3.0)] * 5)
+    # Beaten on rank AND direction by 15 of 25; the other ten each win one.
+    assert a.beaten == 15 and a.score == pytest.approx(0.6)
+
+
+def test_no_match_is_stated_on_too_few_trials_or_a_band_no_livelier_than_usual():
+    many = [S.Trial(0.4, 0.5)] * S.MATCH_MIN_TRIALS
+    assert S.MatchScore(S.Trial(0.8, 2.0), many[:-1]).score is None
+    assert S.MatchScore(S.Trial(0.5, 2.0), many).score is None
+    assert S.MatchScore(S.Trial(0.8, 0.9), many).score is None
+    assert S.MatchScore(S.Trial(0.8, 2.0), many).score == 1.0
+
+
+def test_a_swell_from_somewhere_else_matches_nothing():
+    fixes = storm(bearing=150.0)
+    sp, band = spectra(fixes=fixes, signal_from=250.0)
+    m = S.match(band, S.Field(sp, spread="fourier"), until=fixes[-1].time + timedelta(hours=60))
+    assert m.score is None or m.score < S.MATCH_SHOW
+
+
+def test_a_misplaced_track_is_the_same_storm_later():
+    band = S.bands({"ep17": storm()}, {"46047": HOME})[0]
+    moved = S.misplaced(band, 12)
+    assert [f.time - g.time for f, g in zip(moved.fixes, band.fixes)] == [timedelta(days=12)] * 8
+    assert moved.distances == band.distances and moved.bearing == band.bearing
+
+
+def test_the_words_follow_the_floors():
+    assert S.match_word(0.95) == "strong"
+    assert S.match_word(0.78) == "partial"
+    assert S.match_word(0.55) == "weak"
+    assert S.MATCH_SHOW == min(lo for lo, w in S.MATCH_WORDS if w != "none")

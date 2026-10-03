@@ -48,6 +48,16 @@ south-south-east (BRIEFING §37: it reads them 20-37° off), so the GATE is read
 at the unshadowed buoys only (`GATE_STATIONS`). A best track is NHC's analysis,
 not an observation of the swell.
 
+**The match** (BRIEFING §37d) is what the card states: the same question
+asked of the same track moved back in time, every 12 h from just past its
+band's own length to 30 days, each as of its own moment. The match is the share
+of those trials the real band beats on BOTH timing (rank) and direction
+(ratio), stated only when the real band is livelier than typical on both and
+there are at least `MATCH_MIN_TRIALS`. It is a count, not a probability, and it
+cannot tell two sources on one bearing apart: a track moved onto another
+swell's schedule from its direction scores as if it sent it. So it is read
+against `CONTROL_DAYS`: every track moved later, where its swell was not.
+
 **As of a moment.** Every score takes `until`: only band cells up to it count,
 ranked against the `REFERENCE_DAYS` of spectra before it, and a control needs
 `MIN_CELLS` of its own. The live card asks exactly the question the backtest
@@ -59,6 +69,7 @@ from __future__ import annotations
 import argparse
 import bisect
 import math
+import multiprocessing
 import statistics
 import sys
 from dataclasses import dataclass, field
@@ -270,6 +281,8 @@ class Field:
         self.bins = [i for i, x in enumerate(f) if BAND_HZ[0] <= x <= BAND_HZ[1]]
         self.freqs = {i: f[i] for i in self.bins}
         self._cache: dict = {}
+        self._cells_cache: dict = {}
+        self._sorted: dict = {}
 
     def energy(self, center: float) -> dict[int, list[float]]:
         key = round(center) % 360
@@ -281,10 +294,12 @@ class Field:
     def ranked(self, center: float, lo: int, hi: int) -> dict[int, list[float]]:
         """Each bin's energies over spectra lo..hi-1, sorted, for mid-rank lookups."""
 
-        key = ("sorted", round(center) % 360, lo, hi)
-        if key not in self._cache:
-            self._cache[key] = {i: sorted(v[lo:hi]) for i, v in self.energy(center).items()}
-        return self._cache[key]
+        key = (round(center) % 360, lo, hi)
+        if key not in self._sorted:
+            if len(self._sorted) > 512:
+                self._sorted.clear()
+            self._sorted[key] = {i: sorted(v[lo:hi]) for i, v in self.energy(center).items()}
+        return self._sorted[key]
 
     def score(self, band: Band, center: float, shift: timedelta = timedelta(0),
               until: datetime | None = None) -> Score:
@@ -299,37 +314,64 @@ class Field:
 
         if not self.times or not band.fixes:
             return Score(None, 0.0, 0)
+        window = self._cells(band, shift, until)
+        if window is None:
+            return Score(None, 0.0, 0)
+        lo, hi, cells, wanted = window
+        energy = self.energy(center)
+        ordered = self.ranked(center, lo, hi)
+        ratios, raw = [], []
+        for i, k in cells:
+            x, pool = energy[i][k], ordered[i]
+            raw.append(x)
+            below = bisect.bisect_left(pool, x)
+            equal = bisect.bisect_right(pool, x) - below
+            ratios.append((below + 0.5 * equal) / len(pool))
+        if not ratios:
+            return Score(None, 0.0, wanted, 0)
+        have = len(cells)
+        return Score(statistics.fmean(ratios), have / wanted if wanted else 0.0, wanted, have,
+                     statistics.fmean(raw))
+
+    def _cells(self, band: Band, shift: timedelta, until: datetime | None):
+        """The band's (bin, spectrum) cells as of `until`, and how many it wanted.
+
+        The same for every sector, so kept for the last few (band, shift,
+        until) asked: a trial scores its own sector and the two turned ones
+        on one set of cells.
+        """
+
+        key = (id(band), shift, until)
+        hit = self._cells_cache.get(key)
+        # The band is held beside its cells, so its id cannot be reused
+        # while the entry lives.
+        if hit is not None and hit[0] is band:
+            return hit[1]
         end = self.times[-1] if until is None else min(self.times[-1], until)
         start = end - timedelta(days=REFERENCE_DAYS)
         lo = bisect.bisect_left(self.times, start)
         hi = bisect.bisect_right(self.times, end)
-        if hi - lo < MIN_CELLS:
-            return Score(None, 0.0, 0)
-        energy = self.energy(center)
-        ordered = self.ranked(center, lo, hi)
-        ratios, raw, wanted, have = [], [], 0, 0
-        hour = timedelta(hours=1)
-        for i in self.bins:
-            f = self.freqs[i]
-            times = band.arrivals(f)
-            first, last = times[0] + shift, times[-1] + shift
-            t = (first - timedelta(hours=TOL_H)).replace(minute=0, second=0, microsecond=0)
-            while t <= last + timedelta(hours=TOL_H):
-                if start <= t <= end and band.contains(t, f, shift):
-                    wanted += 1
-                    k = self.hours.get(t)
-                    if k is not None and lo <= k < hi:
-                        have += 1
-                        x, pool = energy[i][k], ordered[i]
-                        raw.append(x)
-                        below = bisect.bisect_left(pool, x)
-                        equal = bisect.bisect_right(pool, x) - below
-                        ratios.append((below + 0.5 * equal) / len(pool))
-                t += hour
-        if not ratios:
-            return Score(None, 0.0, wanted, 0)
-        return Score(statistics.fmean(ratios), have / wanted if wanted else 0.0, wanted, have,
-                     statistics.fmean(raw))
+        out = None
+        if hi - lo >= MIN_CELLS:
+            cells, wanted = [], 0
+            hour = timedelta(hours=1)
+            for i in self.bins:
+                f = self.freqs[i]
+                times = band.arrivals(f)
+                first, last = times[0] + shift, times[-1] + shift
+                t = (first - timedelta(hours=TOL_H)).replace(minute=0, second=0, microsecond=0)
+                while t <= last + timedelta(hours=TOL_H):
+                    if start <= t <= end and band.contains(t, f, shift):
+                        wanted += 1
+                        k = self.hours.get(t)
+                        if k is not None and lo <= k < hi:
+                            cells.append((i, k))
+                    t += hour
+            out = (lo, hi, cells, wanted)
+        if len(self._cells_cache) > 64:
+            self._cells_cache.clear()
+        self._cells_cache[key] = (band, out)
+        return out
 
 
 def evaluate(band: Band, field_: Field, until: datetime | None = None) -> Result:
@@ -441,47 +483,171 @@ def model_share(band: Band, hindcast: dict, shift: timedelta = timedelta(0)) -> 
     return (agree / open_hours if open_hours else None), open_hours
 
 
+# --- The match: how far the real band outscores the wrong ones -------------
+
+#: The trials: the whole question moved BACK in time by every MATCH_STEP_H,
+#: from just past the band's own length (a shorter shift overlaps the real
+#: arrival and scores it) to MATCH_SHIFT_DAYS. Back only: live, a later hour
+#: does not exist yet. The band AND its "as of" move together, so each trial is
+#: ranked against its own preceding REFERENCE_DAYS, as the real one is: a fixed
+#: reference made every late-September band beat quiet early August, and four
+#: storms the gate had rejected scored a perfect 1.0 on timing (2026-10-03).
+MATCH_SHIFT_DAYS = 30
+MATCH_STEP_H = 12
+#: Fewer trials than this and there is no percentage: the archive's first
+#: weeks offer a band only a handful of earlier moments with a reference of
+#: their own, and beating six of them is not a measurement (Lala at 46047 on
+#: 27 Aug scored 6 of 6 with a typical rank and its own sector the weaker).
+MATCH_MIN_TRIALS = 20
+
+
+@dataclass
+class Trial:
+    rank: float
+    direction: float
+
+
+@dataclass
+class MatchScore:
+    """How unusual the real schedule and direction are against the same test
+    on the same storm, moved back in time to when its swell was not arriving.
+
+    `score` is the share of those trials the real one beats on BOTH counts:
+    in-band rank (timing) and its sector's energy over the stronger of the two
+    sectors 45° either side (direction). NOT a probability that the swell came
+    from the storm, which needs a prior and an independent check this project
+    does not have; and not, ever, anything about a height at the beach.
+
+    There is no score at all unless the real band is itself above typical on
+    both counts (rank over 0.5, its own sector the stronger): beating trials
+    that were quieter still is not a sign of anything arriving.
+    """
+
+    actual: Trial | None
+    trials: list[Trial] = field(default_factory=list)
+
+    @property
+    def above_typical(self) -> bool:
+        a = self.actual
+        return a is not None and a.rank > 0.5 and a.direction > 1.0
+
+    @property
+    def beaten(self) -> int:
+        a = self.actual
+        if a is None:
+            return 0
+        return sum(1 for t in self.trials if t.rank < a.rank and t.direction < a.direction)
+
+    @property
+    def score(self) -> float | None:
+        if not self.above_typical or len(self.trials) < MATCH_MIN_TRIALS:
+            return None
+        return self.beaten / len(self.trials)
+
+
+def trial(band: Band, field_: Field, until: datetime | None,
+          shift: timedelta = timedelta(0)) -> Trial | None:
+    """The band's rank and direction ratio, as of `until`, moved by `shift`."""
+
+    at = None if until is None else until + shift
+    own = field_.score(band, band.bearing, shift, at)
+    if own.rank is None or own.have < MIN_CELLS or own.energy is None:
+        return None
+    turned = [field_.score(band, (band.bearing + t) % 360.0, shift, at) for t in TURN_DEG]
+    others = [t.energy for t in turned if t.energy is not None]
+    if not others:
+        return None
+    return Trial(own.rank, own.energy / max(max(others), 1e-12))
+
+
+def _span_h(band: Band, freqs) -> float:
+    """How long the band lasts at the buoy, at its longest-lasting frequency."""
+
+    return max((band.arrivals(f)[-1] - band.arrivals(f)[0]).total_seconds() / 3600.0
+               for f in freqs) + 2 * TOL_H
+
+
+def match(band: Band, field_: Field, until: datetime | None = None) -> MatchScore:
+    """The match as of `until`: the real band against itself moved back."""
+
+    if not band.fixes or not field_.times:
+        return MatchScore(None)
+    if until is None:
+        until = field_.times[-1]
+    real = trial(band, field_, until)
+    if real is None:
+        return MatchScore(None)
+    out = MatchScore(real)
+    shift = max(_span_h(band, field_.freqs.values()) + 24.0, 72.0)
+    while shift <= MATCH_SHIFT_DAYS * 24:
+        t = trial(band, field_, until, timedelta(hours=-shift))
+        if t is not None:
+            out.trials.append(t)
+        shift += MATCH_STEP_H
+    return out
+
+
 # --- As of each past hour: what the card would have said ------------------
 
 #: How often the backtest asks.
-BACKTEST_STEP_H = 3
+BACKTEST_STEP_H = 6
+#: The control: every storm's own track moved this many days LATER, where its
+#: swell was not arriving, asked the same question at the same moments of its
+#: band. How often a misplaced track would have been named, and how strongly,
+#: is what the words on the card are read against (BRIEFING §37d). Later only:
+#: the spectra start 2026-08-04, so an earlier move leaves no trials.
+CONTROL_DAYS = (8, 12, 16, 20, 24)
 
 
-def showing(band: Band, field_: Field, at: datetime) -> bool:
-    """The live question: is this storm's swell arriving NOW, and has its band
-    so far been explained, as of now, at this buoy?"""
-
-    if not band.fixes or not any(band.contains(at, f) for f in field_.freqs.values()):
-        return False
-    return evaluate(band, field_, until=at).explains
+def arriving_now(band: Band, field_: Field, at: datetime) -> bool:
+    return bool(band.fixes) and any(band.contains(at, f) for f in field_.freqs.values())
 
 
-def backtest(band: Band, field_: Field) -> list[datetime]:
-    """Every BACKTEST_STEP_H-hour moment the card would have shown this storm."""
+def moments(band: Band, field_: Field, step_h: int = BACKTEST_STEP_H) -> list[datetime]:
+    """Every `step_h`-hour moment some of the band is arriving, in the archive."""
 
     if not band.fixes or not field_.times:
         return []
     freqs = list(field_.freqs.values())
     first = min(band.arrivals(f)[0] for f in freqs) - timedelta(hours=TOL_H)
     last = max(band.arrivals(f)[-1] for f in freqs) + timedelta(hours=TOL_H)
-    first = max(first, field_.times[0]).replace(minute=0, second=0, microsecond=0)
+    t = max(first, field_.times[0]).replace(minute=0, second=0, microsecond=0)
     last = min(last, field_.times[-1])
-    shown, t = [], first
+    out = []
     while t <= last:
-        if showing(band, field_, t):
-            shown.append(t)
-        t += timedelta(hours=BACKTEST_STEP_H)
-    return shown
+        if arriving_now(band, field_, t):
+            out.append(t)
+        t += timedelta(hours=step_h)
+    return out
 
 
-# --- Live: the storms whose swell is arriving now, and explained so far ------
+def backtest(band: Band, field_: Field) -> list[tuple[datetime, float | None]]:
+    """The match the card would have stated at each moment, None where none."""
+
+    return [(t, match(band, field_, until=t).score) for t in moments(band, field_)]
+
+
+def misplaced(band: Band, days: float) -> Band:
+    """The same storm, its every fix `days` later: a track whose swell was not there."""
+
+    moved = [Fix(f.storm, f.name, f.time + timedelta(days=days), f.lat, f.lon, f.vmax_kt)
+             for f in band.fixes]
+    return Band(band.storm, band.name, band.station, moved, band.distances, band.bearing,
+                band.peak_kt, band.station_position, band.blocked)
+
+
+# --- Live: the storms whose swell is arriving now, and how well they match ---
 
 #: A card train is this storm's when its period sits within 1.5 bins of a
 #: frequency the band says is arriving now (Origin's own tolerance).
 TRAIN_MATCH_HZ = 0.0075
-#: Spectra loaded for the live gate: the reference window plus the longest
-#: band and its earliest control.
-LIVE_DAYS = REFERENCE_DAYS + 20
+#: Spectra loaded for the live match: the reference window behind the
+#: furthest trial, plus the longest band.
+LIVE_DAYS = REFERENCE_DAYS + MATCH_SHIFT_DAYS + 20
+#: The card names a storm whose match is at least this, and says how strong
+#: with the first word whose floor it reaches.
+MATCH_SHOW = 0.5
+MATCH_WORDS = ((0.9, "strong"), (0.7, "partial"), (0.5, "weak"), (0.0, "none"))
 
 
 def _sent_by(band: Band, freq_hz: float, at: datetime) -> tuple[Fix, float] | None:
@@ -500,62 +666,88 @@ def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
          land=(), min_kt: int = MIN_KT) -> list[dict]:
     """Every storm the card may name at `at`, as `now.json` carries it.
 
-    Named only when, AS OF `at`, its band so far is explained at one of the
-    `GATE_STATIONS` and some of its train is arriving there now. Where it is
-    shown is 46232's question: a site (a break, or "buoy") shows it when one of
-    its card trains has a period the storm's band at 46232 says is arriving
-    now, from fixes with open water to 46232. The position quoted is NHC's fix
-    that sent that train, never Origin's dispersion distance.
+    Named when some of its swell is arriving now at one of the
+    `GATE_STATIONS` and, AS OF `at`, its band so far there matches at least
+    `MATCH_SHOW` (`match`), with the match beside it at each gate buoy where
+    it has one. Where it is shown is 46232's question: a site (a break, or
+    "buoy") shows it when one of its card trains has a period the storm's band
+    at 46232 says is arriving now, from fixes with open water to 46232. The
+    position quoted is NHC's fix that sent that train, never Origin's
+    dispersion distance.
     """
 
-    out = []
+    found: dict[str, dict] = {}
     for band in bands(tracks, positions, min_kt, land):
         if band.station not in GATE_STATIONS or band.station not in fields:
             continue
-        if not showing(band, fields[band.station], at):
+        field_ = fields[band.station]
+        if not band.fixes or not any(band.contains(at, f) for f in field_.freqs.values()):
             continue
-        if any(o["storm"] == band.storm for o in out):
-            for o in out:
-                if o["storm"] == band.storm:
-                    o["gate"].append(band.station)
+        m = match(band, field_, until=at)
+        if m.score is None:
             continue
-        here = next((b for b in bands({band.storm: tracks[band.storm]}, positions, min_kt, land)
-                     if b.station == RIDGE_STATION), None)
-        sites = {}
-        if here is not None and here.fixes:
-            for site, trains in trains_now.items():
-                for train in trains or []:
-                    period = train.get("period_s")
-                    if not period or train.get("local") or train.get("wind_sea"):
-                        continue
-                    f = 1.0 / period
-                    # Only the swell band the gate itself scored: a 7 s train
-                    # can be on the schedule of a storm 2,000 km off, and it is
-                    # still the local sea.
-                    if not BAND_HZ[0] - TRAIN_MATCH_HZ <= f <= BAND_HZ[1] + TRAIN_MATCH_HZ:
-                        continue
-                    if not any(abs(g - f) <= TRAIN_MATCH_HZ and here.contains(at, g)
-                               for g in MODEL_FREQS + (f,)):
-                        continue
-                    sent = _sent_by(here, f, at) or next(
-                        (_sent_by(here, g, at) for g in MODEL_FREQS
-                         if abs(g - f) <= TRAIN_MATCH_HZ and _sent_by(here, g, at)), None)
-                    if sent is None:
-                        continue
-                    fix, d = sent
-                    sites[site] = {
-                        "train_period_s": period,
-                        "fix_utc": fix.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                        "lat": fix.lat, "lon": fix.lon,
-                        "distance_km": round(d),
-                        "bearing_deg": round(initial_bearing(positions[RIDGE_STATION],
-                                                             (fix.lat, fix.lon))),
-                        "vmax_kt": fix.vmax_kt,
-                    }
-                    break
-        out.append({"storm": band.storm, "name": band.name.title(),
-                    "peak_kt": band.peak_kt, "gate": [band.station], "sites": sites})
-    return out
+        entry = found.setdefault(band.storm, {
+            "storm": band.storm, "name": band.name.title(), "peak_kt": band.peak_kt,
+            "match": {}})
+        entry["match"][band.station] = {"score": round(m.score, 2), "beaten": m.beaten,
+                                        "trials": len(m.trials)}
+    out = []
+    for entry in found.values():
+        best = max(v["score"] for v in entry["match"].values())
+        if best < MATCH_SHOW:
+            continue
+        entry["best"] = best
+        entry["word"] = match_word(best)
+        entry["sites"] = _sites(tracks[entry["storm"]], entry["storm"], at, positions,
+                                trains_now, land, min_kt)
+        out.append(entry)
+    return sorted(out, key=lambda e: -e["best"])
+
+
+def match_word(score: float) -> str:
+    return next(word for floor, word in MATCH_WORDS if score >= floor)
+
+
+def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
+           trains_now: dict[str, list[dict]], land, min_kt: int) -> dict:
+    """{site: the card train this storm's band at 46232 says is arriving}."""
+
+    here = next((b for b in bands({storm: fixes}, positions, min_kt, land)
+                 if b.station == RIDGE_STATION), None)
+    sites = {}
+    if here is None or not here.fixes:
+        return sites
+    for site, trains in trains_now.items():
+        for train in trains or []:
+            period = train.get("period_s")
+            if not period or train.get("local") or train.get("wind_sea"):
+                continue
+            f = 1.0 / period
+            # Only the swell band the match itself scored: a 7 s train can be
+            # on the schedule of a storm 2,000 km off, and it is still the
+            # local sea.
+            if not BAND_HZ[0] - TRAIN_MATCH_HZ <= f <= BAND_HZ[1] + TRAIN_MATCH_HZ:
+                continue
+            if not any(abs(g - f) <= TRAIN_MATCH_HZ and here.contains(at, g)
+                       for g in MODEL_FREQS + (f,)):
+                continue
+            sent = _sent_by(here, f, at) or next(
+                (_sent_by(here, g, at) for g in MODEL_FREQS
+                 if abs(g - f) <= TRAIN_MATCH_HZ and _sent_by(here, g, at)), None)
+            if sent is None:
+                continue
+            fix, d = sent
+            sites[site] = {
+                "train_period_s": period,
+                "fix_utc": fix.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "lat": fix.lat, "lon": fix.lon,
+                "distance_km": round(d),
+                "bearing_deg": round(initial_bearing(positions[RIDGE_STATION],
+                                                     (fix.lat, fix.lon))),
+                "vmax_kt": fix.vmax_kt,
+            }
+            break
+    return sites
 
 
 def _fmt(score: Score) -> str:
@@ -595,13 +787,31 @@ def _mean_bearing(home: tuple[float, float], fixes: list[Fix]) -> float:
     return math.degrees(math.atan2(y, x)) % 360.0
 
 
+def _tier_row(label: str, group: list[list[tuple[datetime, float | None]]]) -> str:
+    """One row of shares: per moment, and per track ever reaching each word."""
+
+    words = [(lo, w) for lo, w in MATCH_WORDS if lo >= MATCH_SHOW]
+    scored = [x for series in group for _, x in series if x is not None]
+    tracks = [[x for _, x in series if x is not None] for series in group if series]
+    share = lambda n, d: f"{n / d:.0%}" if d else "—"
+    per_moment = [share(sum(1 for x in scored if match_word(x) == w), len(scored))
+                  for _, w in words]
+    ever = [share(sum(1 for t in tracks if any(x >= lo for x in t)), len(tracks))
+            for lo, _ in words]
+    moments_ = sum(len(series) for series in group)
+    return (f"| {label} | {len(tracks)} | {moments_} | {len(scored)} | "
+            f"{share(sum(1 for x in scored if x >= MATCH_SHOW), len(scored))} | "
+            + " | ".join(per_moment) + " | "
+            + " | ".join([ever[-1]] + ever) + " |")
+
+
 #: The per-day table is drawn at the buoy the islands do not shadow.
 DAY_STATION = "46047"
 
 
 def report(results: list[Result], ridges: list, ridge_bands: list[Band],
            days: list[Result] = (), models: dict | None = None,
-           shown: dict | None = None) -> str:
+           shown: dict | None = None, controls: list | None = None) -> str:
     lines = [
         f"Hurricanes run forward to the buoys (fixes >= the strength asked; sector "
         f"+/-{SECTOR_HALF_DEG}°, timing +/-{TOL_H:.0f} h; rank = in-band cells' mean place in "
@@ -632,15 +842,43 @@ def report(results: list[Result], ridges: list, ridge_bands: list[Band],
             f"{'—' if r.direction_ratio is None else f'x{r.direction_ratio:.1f}'} | "
             f"{'**yes**' if r.explains else 'no'} | {model_text} |")
     if shown is not None:
-        lines += ["", "What the card would have shown, asked every "
-                  f"{BACKTEST_STEP_H} h as of that moment (the band so far, ranked "
-                  f"against the {REFERENCE_DAYS} days before; no later hour seen), "
-                  f"at the buoys that gate it ({', '.join(GATE_STATIONS)}):", "",
-                  "| storm | buoy | shown | first | last |", "|---|---|---|---|---|"]
-        for (name, station), moments in shown.items():
-            lines.append(f"| {name} | {station} | {len(moments) * BACKTEST_STEP_H} h | "
-                         + (f"{moments[0]:%m-%d %H}Z | {moments[-1]:%m-%d %H}Z |" if moments
-                            else "never | |"))
+        lines += ["", "The match the card would have stated, asked every "
+                  f"{BACKTEST_STEP_H} h while the band was arriving, as of that moment (the "
+                  f"band so far against itself moved back {MATCH_SHIFT_DAYS} days at most, each "
+                  f"ranked against the {REFERENCE_DAYS} days before it; no later hour seen), at "
+                  f"the buoys that name a storm ({', '.join(GATE_STATIONS)}). Named at "
+                  f"{MATCH_SHOW:.0%} or more; " + ", ".join(
+                      f"{w} from {lo:.0%}" for lo, w in MATCH_WORDS if lo >= MATCH_SHOW) + ".", "",
+                  "| storm | buoy | moments arriving | with a match | named | "
+                  + " / ".join(w for lo, w in MATCH_WORDS if lo >= MATCH_SHOW)
+                  + " | highest | first named | last named |",
+                  "|---|---|---|---|---|---|---|---|---|"]
+        for (name, station), series in shown.items():
+            if not series:
+                continue
+            scored = [x for _, x in series if x is not None]
+            named = [(t, x) for t, x in series if x is not None and x >= MATCH_SHOW]
+            tiers = " / ".join(str(sum(1 for _, x in named if match_word(x) == w))
+                               for lo, w in MATCH_WORDS if lo >= MATCH_SHOW)
+            lines.append(
+                f"| {name} | {station} | {len(series)} | {len(scored)} | {len(named)} | {tiers} | "
+                + (f"{max(scored):.0%}" if scored else "—") + " | "
+                + (f"{named[0][0]:%m-%d %H}Z | {named[-1][0]:%m-%d %H}Z |" if named
+                   else "never | |"))
+    if controls is not None:
+        lines += ["", f"Control: every track above moved {', '.join(str(d) for d in CONTROL_DAYS)} "
+                  "days LATER, where its swell was not arriving, asked the same question at "
+                  "the same moments of its band. What a misplaced track would have been "
+                  "called:", "",
+                  "| | tracks | moments arriving | with a match | named, of those | "
+                  + " | ".join(w for lo, w in MATCH_WORDS if lo >= MATCH_SHOW)
+                  + " | tracks ever named | " + " | ".join(
+                      f"ever {w}" for lo, w in MATCH_WORDS if lo >= MATCH_SHOW) + " |",
+                  "|---|---|---|---|---|" + "---|" * (2 * len(
+                      [w for lo, w in MATCH_WORDS if lo >= MATCH_SHOW]) + 1)]
+        for label, group in (("real tracks", list(shown.values()) if shown else []),
+                             ("misplaced", controls)):
+            lines.append(_tier_row(label, group))
     if days:
         lines += ["", f"Day by day at {DAY_STATION} (each day's fixes alone, at that day's "
                   "own bearing):", "",
@@ -702,7 +940,7 @@ def run(data_dir: Path, min_kt: int = MIN_KT) -> str:
     all_bands = bands(tracks, positions, min_kt, load_land(str(data_dir)))
     fields: dict[str, Field] = {}
     hindcasts: dict[str, dict] = {}
-    results, models, shown = [], {}, {}
+    results, models = [], {}
     for band in all_bands:
         if band.station not in fields:
             try:
@@ -717,14 +955,29 @@ def run(data_dir: Path, min_kt: int = MIN_KT) -> str:
                         for d in SHIFT_DAYS]
             controls = [c for c in controls if c is not None]
             models[(band.storm, band.station)] = (share, max(controls) if controls else 0.0)
-        if band.station in GATE_STATIONS:
-            shown[(band.name.title(), band.station)] = backtest(band, fields[band.station])
     archives = origin.load_archives(data_dir)
     ridges = origin.arrivals(archives["46232"], archives, positions.get("46232"))
     ridge_bands = [b for b in all_bands if b.station == RIDGE_STATION]
     days = [evaluate(d, fields[DAY_STATION]) for b in all_bands if b.station == DAY_STATION
             for d in by_day(b)] if DAY_STATION in fields else []
-    return report(results, ridges, ridge_bands, days, models, shown)
+    gated = [b for b in all_bands if b.station in GATE_STATIONS and b.fixes]
+    jobs = [(b, 0) for b in gated] + [(b, d) for b in gated for d in CONTROL_DAYS]
+    global _FIELDS
+    _FIELDS = fields
+    with multiprocessing.get_context("fork").Pool() as pool:
+        series = pool.map(_backtest_job, jobs, chunksize=1)
+    shown = {(b.name.title(), b.station): out for (b, d), out in zip(jobs, series) if d == 0}
+    controls = [out for (_, d), out in zip(jobs, series) if d]
+    return report(results, ridges, ridge_bands, days, models, shown, controls)
+
+
+#: The fields a forked backtest worker reads: set by `run` before it forks.
+_FIELDS: dict = {}
+
+
+def _backtest_job(job: tuple[Band, float]) -> list[tuple[datetime, float | None]]:
+    band, days = job
+    return backtest(misplaced(band, days) if days else band, _FIELDS[band.station])
 
 
 def main(argv: list[str] | None = None) -> int:

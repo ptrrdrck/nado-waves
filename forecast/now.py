@@ -548,10 +548,12 @@ def build(
             "origin": f"OBSERVED, run backwards — each train's dispersion read off the "
                       f"{STATION} spectrum, its bearing off an unshadowed buoy's; nothing "
                       f"observes the storm, and two buoys reading one storm differ by about "
-                      f"a fifth. A hurricane is named only when NHC's best track (an "
-                      f"ANALYSIS, not a measurement), run forward, is borne out by the "
-                      f"directional energy measured at {' or '.join(GATE_STATIONS)}, as of "
-                      f"now; it names, and never sizes, anything on this tab",
+                      f"a fifth. A hurricane is named when NHC's best track (an "
+                      f"ANALYSIS, not a measurement), run forward, matches the directional "
+                      f"energy measured at {' or '.join(GATE_STATIONS)}, as of now, better "
+                      f"than the same track at earlier times does; the match is how often, "
+                      f"never a probability, and it names, and never sizes, anything on "
+                      f"this tab",
             "observation at the beach": "none — data/beach_log/ is empty; "
                                         "nothing has measured these breaks",
             "claim": "observed at a buoy 29 km offshore and carried by physics to where "
@@ -799,8 +801,8 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
 def hurricanes_now(data_dir: Path, at: datetime, trains_now: dict) -> list[dict]:
     """The hurricanes whose swell `forecast.stormtrack` finds arriving at `at`.
 
-    Each is named only when NHC's best track, run forward, is explained AS OF
-    `at` by an unshadowed buoy's directional energy (BRIEFING §37c). The
+    Each is named, with its match, when NHC's best track run forward matches
+    an unshadowed buoy's directional energy AS OF `at` (BRIEFING §37c-d). The
     directional field is built only when some storm's band is open at a gate
     buoy now, so a quiet hour costs a file read and no more.
     """
