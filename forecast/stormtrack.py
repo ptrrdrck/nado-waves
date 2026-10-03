@@ -39,11 +39,19 @@ least `MIN_COVERAGE` of its cells. Then
 each Origin ridge is tested against the explained bands: the share of its
 points inside a band, against the same share for the time-shifted band.
 
-What it does not know: the path. Deep water and a great circle are assumed;
-Baja's coast, the islands and refraction near the buoy are not modelled, which
-matters most at 46232 for storms south of ~150° (BRIEFING §37: 46232 reads the
-south-south-east 20-37° off). 46047 is read first for that reason. A best
-track is NHC's analysis, not an observation of the swell.
+The path: a great circle over deep water, and a fix whose path to a buoy
+crosses land is dropped for that buoy (`forecast.landpath`, Natural Earth
+1:10m; BRIEFING §37c). That is what stops Polo's strongest days, behind the
+Baja peninsula, diluting the days its swell had open water. Refraction near the
+buoy is not modelled, which matters most at 46232 for storms in the
+south-south-east (BRIEFING §37: it reads them 20-37° off), so the GATE is read
+at the unshadowed buoys only (`GATE_STATIONS`). A best track is NHC's analysis,
+not an observation of the swell.
+
+**As of a moment.** Every score takes `until`: only band cells up to it count,
+ranked against the `REFERENCE_DAYS` of spectra before it, and a control needs
+`MIN_CELLS` of its own. The live card asks exactly the question the backtest
+asks of every past hour (`backtest`), with no look at hours not yet measured.
 """
 
 from __future__ import annotations
@@ -64,6 +72,13 @@ from .swell import great_circle_km, initial_bearing
 
 #: Which buoys a storm is run forward to: the unshadowed one first.
 STATIONS = ("46047", "46086", "46232")
+#: Where a storm must explain its band before anything is shown: the buoys the
+#: islands do not shadow. 46232 says WHICH breaks, through their card trains.
+GATE_STATIONS = ("46047", "46086")
+#: The distribution a cell is ranked in: this many days of spectra up to `until`.
+REFERENCE_DAYS = 40
+#: A band, or a control, scored on fewer cells than this has no score.
+MIN_CELLS = 24
 #: The swell band, 25 s to 10 s: what a hurricane sends this far.
 BAND_HZ = (0.04, 0.10)
 #: Half-width of the direction sector around the storm's bearing. A buoy's
@@ -117,6 +132,8 @@ class Band:
     bearing: float
     peak_kt: int
     station_position: tuple[float, float] | None = None
+    #: Fixes at strength whose path to this buoy crosses land: dropped.
+    blocked: int = 0
 
     def contains(self, time: datetime, freq_hz: float, shift: timedelta = timedelta(0)) -> bool:
         for fix, d in zip(self.fixes, self.distances):
@@ -126,7 +143,13 @@ class Band:
 
 
 def bands(tracks: dict[str, list[Fix]], positions: dict[str, tuple[float, float]],
-          min_kt: int = MIN_KT) -> list[Band]:
+          min_kt: int = MIN_KT, land=()) -> list[Band]:
+    """One band per storm and buoy, from the fixes at strength with open water
+    to it. A storm with none at a buoy gets a band with no fixes, kept so the
+    report can say it was blocked rather than leaving it out."""
+
+    from .landpath import blocked as crosses
+
     out = []
     for storm, fixes in tracks.items():
         strong = [f for f in fixes if f.vmax_kt >= min_kt]
@@ -141,9 +164,12 @@ def bands(tracks: dict[str, list[Fix]], positions: dict[str, tuple[float, float]
             home = positions.get(station)
             if home is None:
                 continue
-            ds = [great_circle_km(home, (f.lat, f.lon)) for f in strong]
-            out.append(Band(storm, name, station, strong, ds, _mean_bearing(home, strong),
-                            max(f.vmax_kt for f in strong), home))
+            open_ = [f for f in strong if not crosses((f.lat, f.lon), home, land)]
+            ds = [great_circle_km(home, (f.lat, f.lon)) for f in open_]
+            out.append(Band(storm, name, station, open_, ds,
+                            _mean_bearing(home, open_ or strong),
+                            max(f.vmax_kt for f in strong), home,
+                            blocked=len(strong) - len(open_)))
     return out
 
 
@@ -152,6 +178,8 @@ class Score:
     rank: float | None
     coverage: float
     cells: int
+    #: Cells actually scored (had a spectrum).
+    have: int = 0
     #: Mean sector energy over the band's cells, m².
     energy: float | None = None
 
@@ -165,7 +193,8 @@ class Result:
 
     @property
     def best_control(self) -> float | None:
-        ranks = [s.rank for s in self.shifted.values() if s.rank is not None]
+        ranks = [s.rank for s in self.shifted.values()
+                 if s.rank is not None and s.have >= MIN_CELLS]
         return max(ranks) if ranks else None
 
     @property
@@ -181,16 +210,29 @@ class Result:
     def explains(self) -> bool:
         a, c, d = self.actual, self.best_control, self.direction_ratio
         return (a.rank is not None and c is not None and d is not None
+                and a.have >= MIN_CELLS
                 and a.coverage >= MIN_COVERAGE and a.rank >= MIN_RANK
                 and a.rank >= c + MARGIN and d >= DIR_RATIO)
 
 
 class Field:
-    """One buoy's sector energy, computed once per (center, bin, hour)."""
+    """One buoy's sector energy, computed once per (center, bin, hour).
+
+    One spectrum an hour: 46047 and 46086 report twice an hour (:20, :50) and
+    a band is scored hourly, so the second would be read by nothing.
+    """
 
     def __init__(self, spectra, spread: str = "mem"):
-        self.spectra = [s.with_spread(spread) for s in spectra]
+        kept, seen = [], set()
+        for s in sorted(spectra, key=lambda s: s.time):
+            hour = s.time.replace(minute=0, second=0, microsecond=0)
+            if hour not in seen:
+                seen.add(hour)
+                kept.append(s)
+        self.spectra = [s.with_spread(spread) for s in kept]
         self.times = [s.time for s in self.spectra]
+        self.hours = {s.time.replace(minute=0, second=0, microsecond=0): k
+                      for k, s in enumerate(self.spectra)}
         f = self.spectra[0].frequencies if self.spectra else []
         self.bins = [i for i, x in enumerate(f) if BAND_HZ[0] <= x <= BAND_HZ[1]]
         self.freqs = {i: f[i] for i in self.bins}
@@ -203,44 +245,47 @@ class Field:
                                 for i in self.bins}
         return self._cache[key]
 
-    def ranked(self, center: float) -> dict[int, list[float]]:
-        """Each bin's energies sorted, for mid-rank lookups."""
+    def ranked(self, center: float, lo: int, hi: int) -> dict[int, list[float]]:
+        """Each bin's energies over spectra lo..hi-1, sorted, for mid-rank lookups."""
 
-        key = ("sorted", round(center) % 360)
+        key = ("sorted", round(center) % 360, lo, hi)
         if key not in self._cache:
-            self._cache[key] = {i: sorted(v) for i, v in self.energy(center).items()}
+            self._cache[key] = {i: sorted(v[lo:hi]) for i, v in self.energy(center).items()}
         return self._cache[key]
 
-    def score(self, band: Band, center: float, shift: timedelta = timedelta(0)) -> Score:
+    def score(self, band: Band, center: float, shift: timedelta = timedelta(0),
+              until: datetime | None = None) -> Score:
         """Mean in-band rank within each bin's own distribution, and coverage.
 
-        Coverage is the share of the band's (hour, bin) cells inside the
-        archive's span that have a spectrum: a band over a 16-day outage is not
-        evidence either way, and says so.
+        As of `until` (the archive's end when None): a cell after it does not
+        exist yet, and the distribution is the `REFERENCE_DAYS` before it.
+        Coverage is the share of the band's (hour, bin) cells in that window
+        that have a spectrum: a band over an outage is not evidence either way,
+        and says so.
         """
 
-        if not self.times:
+        if not self.times or not band.fixes:
+            return Score(None, 0.0, 0)
+        end = self.times[-1] if until is None else min(self.times[-1], until)
+        start = end - timedelta(days=REFERENCE_DAYS)
+        lo = bisect.bisect_left(self.times, start)
+        hi = bisect.bisect_right(self.times, end)
+        if hi - lo < MIN_CELLS:
             return Score(None, 0.0, 0)
         energy = self.energy(center)
-        ordered = self.ranked(center)
-        start, end = self.times[0], self.times[-1]
-        by_time = {t: k for k, t in enumerate(self.times)}
+        ordered = self.ranked(center, lo, hi)
         ratios, raw, wanted, have = [], [], 0, 0
         hour = timedelta(hours=1)
         for i in self.bins:
             f = self.freqs[i]
-            lo = min(arrival(x, f, d) for x, d in zip(band.fixes, band.distances)) + shift
-            hi = max(arrival(x, f, d) for x, d in zip(band.fixes, band.distances)) + shift
-            t = (lo - timedelta(hours=TOL_H)).replace(minute=0, second=0, microsecond=0)
-            while t <= hi + timedelta(hours=TOL_H):
+            first = min(arrival(x, f, d) for x, d in zip(band.fixes, band.distances)) + shift
+            last = max(arrival(x, f, d) for x, d in zip(band.fixes, band.distances)) + shift
+            t = (first - timedelta(hours=TOL_H)).replace(minute=0, second=0, microsecond=0)
+            while t <= last + timedelta(hours=TOL_H):
                 if start <= t <= end and band.contains(t, f, shift):
                     wanted += 1
-                    k = by_time.get(t)
-                    if k is None:
-                        k = next((by_time[u] for u in (t + timedelta(minutes=20),
-                                                       t - timedelta(minutes=40))
-                                  if u in by_time), None)
-                    if k is not None:
+                    k = self.hours.get(t)
+                    if k is not None and lo <= k < hi:
                         have += 1
                         x, pool = energy[i][k], ordered[i]
                         raw.append(x)
@@ -249,17 +294,17 @@ class Field:
                         ratios.append((below + 0.5 * equal) / len(pool))
                 t += hour
         if not ratios:
-            return Score(None, 0.0, wanted)
-        return Score(statistics.fmean(ratios), have / wanted if wanted else 0.0, wanted,
+            return Score(None, 0.0, wanted, 0)
+        return Score(statistics.fmean(ratios), have / wanted if wanted else 0.0, wanted, have,
                      statistics.fmean(raw))
 
 
-def evaluate(band: Band, field_: Field) -> Result:
-    result = Result(band, field_.score(band, band.bearing))
+def evaluate(band: Band, field_: Field, until: datetime | None = None) -> Result:
+    result = Result(band, field_.score(band, band.bearing, until=until))
     for d in SHIFT_DAYS:
-        result.shifted[d] = field_.score(band, band.bearing, timedelta(days=d))
+        result.shifted[d] = field_.score(band, band.bearing, timedelta(days=d), until)
     for t in TURN_DEG:
-        result.turned[t] = field_.score(band, (band.bearing + t) % 360.0)
+        result.turned[t] = field_.score(band, (band.bearing + t) % 360.0, until=until)
     return result
 
 
@@ -340,6 +385,12 @@ def by_day(band: Band) -> list[Band]:
                  _mean_bearing(band.station_position, [f for f, _ in v]),
                  max(f.vmax_kt for f, _ in v), band.station_position)
             for _, v in sorted(days.items())]
+
+
+def arriving(band: Band, at: datetime, freqs: list[float]) -> list[float]:
+    """The frequencies whose train from this storm is at the buoy at `at`."""
+
+    return [f for f in freqs if band.contains(at, f)]
 
 
 def _mean_bearing(home: tuple[float, float], fixes: list[Fix]) -> float:
