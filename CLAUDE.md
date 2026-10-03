@@ -254,7 +254,7 @@ forecaster actually verifies against, Surfline included.
    red, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. **Under each Now card are the hourly charts** (owner's
    requests, 2026-09-27; `forecast/series.py`): height, north vs. south (north less south), window
-   ratio and a 24 h %K, switched above the plot, folded out from an
+   ratio, a 24 h %K and **Origins** (owner's request, 2026-10-03; below), switched above the plot, folded out from an
    "Charts" line with the calculation's caret (closed until opened) — the
    last line on every card, below the provenance and under the card's one
    rule; the provenance has space above it, no rule (owner's calls,
@@ -387,6 +387,24 @@ forecaster actually verifies against, Surfline included.
    when none is.
    GFS-Wave's hindcast (`collector/wavehindcast.py` → `data/wave_hindcast/`,
    origin-tracks.yml its one writer) is a REPORT column, never on the card.
+   **The Origins chart** (owner's request, 2026-10-03;
+   `forecast/originhistory.py`, BRIEFING §37e), on every LIVE swell tab, the
+   buoy's included: over time, a black dot every 6 h for each hurricane the
+   card would have named AS OF that moment, at the distance of NHC's fix that
+   sent that tab's train, its name by its first dot in view; and a grey bar
+   over the hours each Origin arrival no storm is named for was arriving, at
+   its dispersion distance. Log miles, 500–10,000; a bearing strip under it,
+   never tested against the windows. A mark is on a tab only where it was that
+   tab's card train (an arrival at its peak hour). An arrival is the storm's,
+   on chart AND card, only when the storm's train there is the ridge's own
+   AND, if Origin has a bearing, from within 45° of the storm's
+   (`SAME_SOURCE_DEG`): on 29 Sep a 304° ridge shared a period with Polo. A
+   moment with no 46232 spectrum places a storm on no tab — Marie arrived
+   during the September outage and is on no tab. The archive
+   (`data/series/46232_origins.json`, ~75 s) is series-archive.yml's;
+   each collection writes `data/live/origins.json` from it plus the last 21
+   days' arrivals, the named moments since its end (≤ 7 days), and now.json's
+   own hurricanes (~1 s, more while a band is open).
    **No chart carries a description under it** (owner's call, same day):
    what each draws lives on `docs.html` and in the plot's spoken label. The
    one line kept is the Ensemble's measured coverage, because the band is
@@ -693,6 +711,9 @@ forecaster actually verifies against, Surfline included.
                         [built]
       originreport.py   the measurements behind it; reports, never edits
       origintracks.py   readings against NHC's best tracks, by position
+      originhistory.py  the Origins chart's marks: every arrival and every
+                        named moment over the archive, and the page's
+                        file from it each collection             [built]
       stormtrack.py     each hurricane run forward to the buoys, with
                         controls, backtest and GFS-Wave cross-check; and
                         `live`, the card's "Hurricane X" gate       [built]
@@ -701,11 +722,12 @@ forecaster actually verifies against, Surfline included.
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
     data/live/          forecast.json, now.json, measured.json, series.json,
-                        series_all.json and windtide.json, what the app
+                        series_all.json, windtide.json and origins.json, what the app
                         surface reads (derived, gitignored)
     data/series/        46232/YYYY-MM.csv: the observed chain for every
-                        archived hour, rebuilt whole with today's chain by
-                        series-archive.yml, its only writer. DERIVED but
+                        archived hour, and 46232_origins.json, the Origins
+                        chart's marks, both rebuilt whole with today's chain
+                        by series-archive.yml, its only writer. DERIVED but
                         tracked: rebuilding a year costs minutes a
                         collection cannot spend (see Infrastructure)
     data/forecast_log/  46232/YYYY-MM.csv: what every forecast build said,

@@ -178,6 +178,10 @@ jobs:
           # tide, for the Wind and Tide cards' charts. Read straight from the
           # archives, not rebuilt: ~0.3 s.
           python -m forecast.windtide
+          # The Origins chart: the daily archive of arrivals and named
+          # hurricanes, and what the newest spectra add to it. ~1 s, more only
+          # while a hurricane's band is arriving at 46047 or 46086.
+          python -m forecast.originhistory --live
 
       # The archive is withheld from the page when it no longer says what
       # today's chain says (or does not exist yet). Ask for the rebuild rather

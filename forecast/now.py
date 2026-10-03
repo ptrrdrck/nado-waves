@@ -760,23 +760,14 @@ def build(
     return reading
 
 
-def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict,
-                   blockers, tables: dict) -> dict:
-    """`forecast.origin`'s block for the newest spectrum.
+def trains_builder(spectra, by_id: dict, blockers, tables: dict):
+    """`trains_at(moment)`: each site's card trains rebuilt for a past hour of
+    46232's spectrum (empty when that hour has none), the card's own two cases:
+    carried over the seabed when the tables are there, through the
+    straight-line window when they are not. Local chop is not rebuilt: it is
+    made at the beach, never a train with an origin."""
 
-    A break's card trains are what an arrival is matched against, now from the
-    reading just built and for a past arrival rebuilt the same way at its peak
-    hour: carried over the seabed when the tables are there, through the
-    straight-line window when they are not -- the card's own two cases.
-    """
-
-    archives = origin.load_archives(data_dir)
-    spectra = [s for s in archives.get(STATION, []) if s.time <= spectrum.time]
-    if not spectra:
-        return {}
     by_time = {s.time: s for s in spectra}
-    trains_now = {b.id: b.trains for b in reading.breaks}
-    trains_now["buoy"] = reading.buoy.get("trains", [])
 
     def trains_at(moment: datetime) -> dict:
         past = by_time.get(moment)
@@ -792,6 +783,26 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
                 out[break_id] = as_trains(through(past, by_id[break_id], blockers).trains)
         return out
 
+    return trains_at
+
+
+def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict,
+                   blockers, tables: dict) -> dict:
+    """`forecast.origin`'s block for the newest spectrum.
+
+    A break's card trains are what an arrival is matched against, now from the
+    reading just built and for a past arrival rebuilt the same way at its peak
+    hour: carried over the seabed when the tables are there, through the
+    straight-line window when they are not -- the card's own two cases.
+    """
+
+    archives = origin.load_archives(data_dir)
+    spectra = [s for s in archives.get(STATION, []) if s.time <= spectrum.time]
+    if not spectra:
+        return {}
+    trains_now = {b.id: b.trains for b in reading.breaks}
+    trains_now["buoy"] = reading.buoy.get("trains", [])
+    trains_at = trains_builder(spectra, by_id, blockers, tables)
     block = origin.reading(spectra, archives, load_coordinates().get(STATION),
                            newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
     block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now)

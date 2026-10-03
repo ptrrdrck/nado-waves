@@ -465,6 +465,18 @@ class TestTheMeasuredSeriesShips:
         assert publish.BUNDLE_WINDTIDE_PATH in index
         assert publish.REPO_WINDTIDE_PATH not in index
 
+    def test_the_origins_ship_beside_them(self, tmp_path):
+        """origins.json feeds the Origins chart under each LIVE swell tab."""
+
+        d = self.data(tmp_path)
+        (d / "live" / "origins.json").write_text('{"arrivals": []}', encoding="utf-8")
+        assert "origins.json" in publish.build(tmp_path / "site", data_dir=d)
+        assert "origins.json" in publish.build_now_only(tmp_path / "now", data_dir=d)
+        index = (tmp_path / "now" / "index.html").read_text()
+        assert publish.REPO_ORIGINS_PATH in PAGE_SOURCE
+        assert publish.BUNDLE_ORIGINS_PATH in index
+        assert publish.REPO_ORIGINS_PATH not in index
+
     def test_the_past_survives_thinning(self):
         data = {**forecast(), "past": [{"valid_utc": "2026-09-17T21:00:00Z", "lead_h": 21}]}
         assert publish.thin(data)["past"] == data["past"]

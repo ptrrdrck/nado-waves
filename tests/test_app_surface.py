@@ -1509,12 +1509,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert SOURCE.count("fetch(fresh(SERIES_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(SERIES_ALL_SOURCE)") == 2   # asked for + hourly
         assert SOURCE.count("fetch(fresh(WINDTIDE_SOURCE)") == 2
+        assert SOURCE.count("fetch(fresh(ORIGINS_SOURCE)") == 1     # boot and hourly, one function
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 12
+        assert SOURCE.count('{cache: "no-store"}') == 13
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -2984,8 +2985,47 @@ class TestHurricane:
                 assert f"{word}: \"{word.title()}\"" in SOURCE
 
     def test_it_replaces_origins_reading_of_the_same_train(self):
-        assert "!named.has(c.train_period_s)" in SOURCE
+        assert "!isNamed(c)" in SOURCE
+        assert "h.at.train_period_s === c.train_period_s" in SOURCE
+
+    def test_a_reading_from_elsewhere_is_not_the_storms(self):
+        from forecast.originhistory import SAME_SOURCE_DEG
+
+        assert f"const SAME_SOURCE_DEG = {SAME_SOURCE_DEG:g};" in SOURCE
 
     def test_it_comes_first(self):
         body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
         assert body.index("o.hurricanes.map(hurricaneEntry)") < body.index("o.current.map(")
+
+
+class TestOriginsChart:
+    """The Origins view (owner's request, 2026-10-03): named hurricanes and
+    unnamed arrivals over time, from origins.json, on every LIVE swell tab."""
+
+    def spec(self):
+        return SOURCE[SOURCE.index("function originsSpec"):SOURCE.index("function buildSpec")]
+
+    def test_it_is_a_view_on_every_live_swell_tab_the_buoys_included(self):
+        assert '{id: "origins", label: "Origins"}' in SOURCE
+        assert 'm.id === "height" || m.id === "origins"' in SOURCE
+        assert 'if (mode === "origins") return originsSpec(id, steps);' in SOURCE
+
+    def test_a_mark_is_on_a_tab_only_where_it_was_that_tabs_train(self):
+        spec = self.spec()
+        assert "(a.sites || []).includes(site)" in spec
+        assert "n.sites && n.sites[site]" in spec
+
+    def test_an_arrival_the_storm_named_is_drawn_as_the_storm(self):
+        assert "!(a.named || {})[site]" in self.spec()
+
+    def test_named_storms_are_placed_from_nhc_and_carry_their_match(self):
+        spec = self.spec()
+        assert "logMi(n.at.distance_km)" in spec
+        assert "match `\n        + `${Math.round(n.best * 100)}%" in spec
+
+    def test_bearings_are_never_tested_against_the_windows(self):
+        assert "lane: {points, arcs: []}" in self.spec()
+
+    def test_the_distance_axis_is_log_miles(self):
+        assert 'if (spec.scale === "distance")' in SOURCE
+        assert "Math.log10(km * MI_PER_KM)" in SOURCE
