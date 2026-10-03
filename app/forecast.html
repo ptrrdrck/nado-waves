@@ -333,6 +333,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    2026-09-30); the caret still lights with it. */
 .chart-head:hover .calc-toggle{color:var(--ink)}
 .origin-fold .chart-head:hover .calc-toggle{color:var(--ink)}
+.chart-head .count{margin-left:6px;color:var(--soft);font-weight:400;font-variant-numeric:tabular-nums}
 /* The "Charts" line is the last thing on every card, below the provenance,
    under a rule (owner's call, 2026-10-02): 8 px of margin on the card's 2 px
    gap above it, 9 px below. The swell card's gap is wider, so it takes less
@@ -1298,12 +1299,21 @@ function originBody(o) {
 // Whether Origin is folded out. One state for every tab, like the charts',
 // and kept across a refresh the same way.
 let ORIGIN_OPEN = false;
+// The count beside the title (owner's request, 2026-10-03) is what the fold
+// lists as arriving now: named hurricanes and Origin's own readings, each one
+// of this tab's trains. A "last readable arrival" is not now, and is not counted.
+function originCount(o) {
+  return o.hurricanes.length + o.current.length;
+}
 function originFold(id, o, hidden = false) {
   if (!o) return "";
+  const n = originCount(o);
+  const said = `${n} origin${n === 1 ? "" : "s"} arriving now`;
   return `<div class="origin-fold" data-origin-tab="${id}"${hidden ? " hidden" : ""}>
-    <div class="chart-head" data-origin-head><span>Origin</span><button type="button"
+    <div class="chart-head" data-origin-head><span>Origin <span class="count"
+      data-origin-count title="${said}">${n}</span></span><button type="button"
       class="calc-toggle" data-origin-toggle aria-controls="origin-fold-${id}"
-      aria-expanded="${ORIGIN_OPEN}" aria-label="Origin"><svg viewBox="0 0 16 16"
+      aria-expanded="${ORIGIN_OPEN}" aria-label="Origin, ${said}"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="origin-fold-${id}"${ORIGIN_OPEN ? "" : " hidden"}>${originBody(o)}</div>
   </div>`;

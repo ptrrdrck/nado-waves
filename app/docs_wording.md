@@ -418,7 +418,7 @@ The split is made on the spectrum by frequency, not on frequency and direction t
 
 ### [swell-origin] Origin: where the swell was born
 
-On “LIVE”, the **Origin** line folds out, like the charts, from its own line right above “Charts”. Under it, each train that came from a distant storm says where that storm was: a sea, about how far away and in which direction, and when the swell left it. It is read backwards off the buoy's own spectrum. It is not a forecast, and nothing observes the storm.
+On “LIVE”, the **Origin** line folds out, like the charts, from its own line right above “Charts”. The number beside its title counts the origins arriving at that tab now, named hurricanes and readings alike; a last readable arrival is not counted. Under it, each train that came from a distant storm says where that storm was: a sea, about how far away and in which direction, and when the swell left it. It is read backwards off the buoy's own spectrum. It is not a forecast, and nothing observes the storm.
 
 Long-period waves travel faster than short ones. In deep water a wave group moves at *gT*/4π, so a 20-second swell outruns a 14-second one. A storm makes every period at once, and by the time the energy has crossed an ocean the long periods have pulled ahead. At the buoy they arrive in order, longest first, and the frequency rises in a straight line with time:
 
