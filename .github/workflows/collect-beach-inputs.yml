@@ -130,6 +130,18 @@ jobs:
           set -euo pipefail
           python -m collector.spectra --bearing
 
+      # NHC's best tracks, eastern and central Pacific: the LIVE tab names a
+      # hurricane only when its track, run forward, is borne out by 46047 or
+      # 46086 (forecast.stormtrack, BRIEFING §37c), and NHC rewrites a working
+      # track every six hours. Archived byte for byte; this job is their one
+      # writer. ftp.nhc.noaa.gov is denied from a session, not from here.
+      - name: Best tracks (NHC)
+        id: besttracks
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.besttracks
+
       - name: Wind (KNZY)
         id: wind
         continue-on-error: true
@@ -166,6 +178,10 @@ jobs:
           # tide, for the Wind and Tide cards' charts. Read straight from the
           # archives, not rebuilt: ~0.3 s.
           python -m forecast.windtide
+          # The Origins chart: the daily archive of arrivals and named
+          # hurricanes, and what the newest spectra add to it. ~1 s, more only
+          # while a hurricane's band is arriving at 46047 or 46086.
+          python -m forecast.originhistory --live
 
       # The archive is withheld from the page when it no longer says what
       # today's chain says (or does not exist yet). Ask for the rebuild rather
@@ -187,6 +203,7 @@ jobs:
       - name: Say which sources came back
         env:
           SPECTRA: ${{ steps.spectra.outcome }}
+          TRACKS: ${{ steps.besttracks.outcome }}
           BEARING: ${{ steps.bearing.outcome }}
           WIND: ${{ steps.wind.outcome }}
           TIDE: ${{ steps.tide.outcome }}
@@ -196,7 +213,7 @@ jobs:
           # only turns the outcomes into a headline, because "the job went red"
           # does not say which of three sources failed.
           failed=""
-          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "wind:${WIND}" "tide:${TIDE}"; do
+          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "best-tracks:${TRACKS}" "wind:${WIND}" "tide:${TIDE}"; do
             name="${pair%%:*}"; outcome="${pair##*:}"
             if [ "${outcome}" != "success" ]; then
               failed="${failed} ${name}"
@@ -218,14 +235,14 @@ jobs:
           git config user.name "nado-waves collector"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/spectra data/wind data/tide 2>/dev/null || true
+          git add data/spectra data/wind data/tide data/besttracks 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No new beach inputs to commit."
             exit 0
           fi
 
-          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide \
+          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks \
             | awk '{sum += $1} END {print sum + 0}')
 
           git commit \

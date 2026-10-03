@@ -254,7 +254,7 @@ forecaster actually verifies against, Surfline included.
    red, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. **Under each Now card are the hourly charts** (owner's
    requests, 2026-09-27; `forecast/series.py`): height, north vs. south (north less south), window
-   ratio and a 24 h %K, switched above the plot, folded out from an
+   ratio, a 24 h %K and **Origins** (owner's request, 2026-10-03; below), switched above the plot, folded out from an
    "Charts" line with the calculation's caret (closed until opened) — the
    last line on every card, below the provenance and under the card's one
    rule; the provenance has space above it, no rule (owner's calls,
@@ -348,13 +348,63 @@ forecaster actually verifies against, Surfline included.
    21 days. **No upstream sighting is shown, ever**: measured, the predecessor's
    "confirmed in transit" check is blind to the distance (scaling every distance
    by 0.7 or 1.3 moved its hit rate by a point). LIVE only: the Forecast tab
-   has no Origin. **Checked against NHC's best tracks** (`forecast/
-   origintracks.py`, `origin-tracks.yml`, BRIEFING §37a): of seven readings
-   within ~4,000 km south to west, Aug–Sep 2026, one matched a hurricane
-   (Polo), one possibly (Nolo), and four S–SSW "tropical Pacific" readings had
-   none near. Count only ≥ 64 kt fixes: the b-decks' 20 kt disturbances match
-   anything, the control included. What the card does about it is the
-   owner's call, pending.
+   has no Origin. **Checked against NHC's best tracks** (b-decks archived
+   byte for byte in `data/besttracks/` by `collector/besttracks.py`, from
+   `origin-tracks.yml`; BRIEFING §37a–b). By position (`origintracks`), one of
+   seven readings within ~4,000 km "matched" Polo — **run FORWARD it does not**
+   (`forecast/stormtrack.py`, `docs/origin_best_tracks.md`): each ≥ 64 kt fix
+   sweeps a band in a buoy's time-frequency plane, scored as the rank of the
+   maximum-entropy energy from the storm's bearing, against the band shifted
+   ±5/10/15 d and the sector turned ±45° (energy, not rank: a spread lifts its
+   neighbours' ranks too). Marie is explained at 46047 and 46086
+   independently; Polo at no buoy on no day (best 0.65 against a 0.7 gate
+   fixed before the run, its peak days behind Baja); and the two ridges that
+   agree with a storm in timing AND bearing do so in 28% of bearing shuffles.
+   Timing alone matches almost anything. **What the card shows instead
+   (owner's request, 2026-10-03; BRIEFING §37c): "Hurricane X" under Origin**,
+   NHC's track run forward with paths across land dropped
+   (`forecast/landpath.py`, Natural Earth 1:10m via `collector/coastline.py`),
+   **with its MATCH** (owner's request, same day, BRIEFING §37d: where a train
+   came from is separate from how big it is, so it may carry a figure): as of
+   the newest spectrum at 46047 or 46086, the share of the same track moved
+   BACK in time (every 12 h, to 30 days, each as of its own moment and ranked
+   against its own preceding 40 days) that the real band beats on timing AND
+   direction. Stated only with ≥ 20 trials and the real band livelier than
+   typical on both; named from 50% ("weak"), "partial" from 70%, "strong"
+   from 90%. A count, never a probability or a confidence — and the words are
+   read against the control in `docs/origin_best_tracks.md`: every track moved
+   8–24 days LATER was named at some moment 12 of 55 times, partial 9, strong
+   2 (both onto another swell from the same bearing: the test cannot tell two
+   sources on one bearing apart). Backtest: Marie strong at both buoys, Polo
+   partial (78% at best), Odalys partial (82%). On a break only when one of its
+   card trains is the one arriving. Placed and sized from NHC's fix that sent
+   that train, rounded to 100, never from Origin's distance; it replaces
+   Origin's reading of the same train. The b-decks are archived hourly by
+   collect-beach-inputs.yml (their one writer). The directional sector is
+   integrated in closed form (`spreadmethod.mem_sector`, equal to MEM's 1° bins
+   to 1e-15, ~60× faster); the match loads 90 days of the two buoys and costs
+   ~5–7 s a collection while a storm's band is open at either, a file read
+   when none is.
+   GFS-Wave's hindcast (`collector/wavehindcast.py` → `data/wave_hindcast/`,
+   origin-tracks.yml its one writer) is a REPORT column, never on the card.
+   **The Origins chart** (owner's request, 2026-10-03;
+   `forecast/originhistory.py`, BRIEFING §37e), on every LIVE swell tab, the
+   buoy's included: over time, a black dot every 6 h for each hurricane the
+   card would have named AS OF that moment, at the distance of NHC's fix that
+   sent that tab's train, its name by its first dot in view; and a grey bar
+   over the hours each Origin arrival no storm is named for was arriving, at
+   its dispersion distance. Log miles, 500–10,000; a bearing strip under it,
+   never tested against the windows. A mark is on a tab only where it was that
+   tab's card train (an arrival at its peak hour). An arrival is the storm's,
+   on chart AND card, only when the storm's train there is the ridge's own
+   AND, if Origin has a bearing, from within 45° of the storm's
+   (`SAME_SOURCE_DEG`): on 29 Sep a 304° ridge shared a period with Polo. A
+   moment with no 46232 spectrum places a storm on no tab — Marie arrived
+   during the September outage and is on no tab. The archive
+   (`data/series/46232_origins.json`, ~75 s) is series-archive.yml's;
+   each collection writes `data/live/origins.json` from it plus the last 21
+   days' arrivals, the named moments since its end (≤ 7 days), and now.json's
+   own hurricanes (~1 s, more while a band is open).
    **No chart carries a description under it** (owner's call, same day):
    what each draws lives on `docs.html` and in the plot's spoken label. The
    one line kept is the Ensemble's measured coverage, because the band is
@@ -660,15 +710,24 @@ forecaster actually verifies against, Surfline included.
                         ridge in 46232's spectrum, bearing at 46047/46086
                         [built]
       originreport.py   the measurements behind it; reports, never edits
+      origintracks.py   readings against NHC's best tracks, by position
+      originhistory.py  the Origins chart's marks: every arrival and every
+                        named moment over the archive, and the page's
+                        file from it each collection             [built]
+      stormtrack.py     each hurricane run forward to the buoys, with
+                        controls, backtest and GFS-Wave cross-check; and
+                        `live`, the card's "Hurricane X" gate       [built]
+      landpath.py       does a swell's great circle cross land?   [built]
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
     data/live/          forecast.json, now.json, measured.json, series.json,
-                        series_all.json and windtide.json, what the app
+                        series_all.json, windtide.json and origins.json, what the app
                         surface reads (derived, gitignored)
     data/series/        46232/YYYY-MM.csv: the observed chain for every
-                        archived hour, rebuilt whole with today's chain by
-                        series-archive.yml, its only writer. DERIVED but
+                        archived hour, and 46232_origins.json, the Origins
+                        chart's marks, both rebuilt whole with today's chain
+                        by series-archive.yml, its only writer. DERIVED but
                         tracked: rebuilding a year costs minutes a
                         collection cannot spend (see Infrastructure)
     data/forecast_log/  46232/YYYY-MM.csv: what every forecast build said,

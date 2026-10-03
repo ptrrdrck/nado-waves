@@ -23,18 +23,15 @@ tracks (ATCF b-decks) and asks:
 
 Readings without a bearing are compared on distance alone, and said so.
 
-Run it on Actions: ftp.nhc.noaa.gov is denied at CONNECT from a session
-(2026-10-02, with HURDAT, IBTrACS and JTWC). A denial exits 2, an empty
-listing 1.
+The tracks are read from `data/besttracks/` (`collector.besttracks`, archived
+by origin-tracks.yml: ftp.nhc.noaa.gov is denied at CONNECT from a session),
+so this runs anywhere. No archive, exit 1.
 """
 
 from __future__ import annotations
 
 import argparse
-import re
 import sys
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -43,12 +40,7 @@ from collector.common import DEFAULT_DATA_DIR, write_step_summary
 
 from .swell import great_circle_km, initial_bearing
 
-BTK = "https://ftp.nhc.noaa.gov/atcf/btk/"
 YEAR = 2026
-#: Eastern and central Pacific: everything a ~3,000 km origin south and west
-#: of 46232 could be. The western Pacific is JTWC's and 8,000 km off.
-BASINS = ("ep", "cp")
-USER_AGENT = "nado-waves origin check (github.com/ptrrdrck/nado-waves)"
 
 #: Where a storm is looked for around a reading's birth time.
 BEFORE_H, AFTER_H = 48.0, 24.0
@@ -108,18 +100,16 @@ def parse_bdeck(text: str) -> list[Fix]:
     return [seen[t] for t in sorted(seen)]
 
 
-def _get(url: str, timeout: float = 60.0) -> str:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read().decode("utf-8", "replace")
+def load_tracks(data_dir: Path = DEFAULT_DATA_DIR, year: int = YEAR) -> dict[str, list[Fix]]:
+    """Every archived b-deck for `year` (`collector.besttracks`), by storm.
 
+    Read from the repository, never fetched here: the check is reproducible
+    against the files it read, and it runs in a session, where NHC is denied.
+    """
 
-def fetch_tracks(year: int = YEAR) -> dict[str, list[Fix]]:
-    listing = _get(BTK)
-    names = sorted(set(re.findall(rf'href="(b(?:{"|".join(BASINS)})\d{{2}}{year}\.dat)"', listing)))
     tracks = {}
-    for name in names:
-        fixes = parse_bdeck(_get(BTK + name))
+    for path in sorted((Path(data_dir) / "besttracks" / str(year)).glob("b*.dat")):
+        fixes = parse_bdeck(path.read_text(encoding="utf-8"))
         if fixes:
             tracks[fixes[0].storm] = fixes
     return tracks
@@ -224,15 +214,10 @@ def main(argv: list[str] | None = None) -> int:
 
     from .siting import load_coordinates
 
-    try:
-        tracks = fetch_tracks()
-    except urllib.error.URLError as exc:
-        reason = getattr(exc, "reason", exc)
-        print(f"best tracks not reachable from here: {reason}")
-        write_step_summary(f"**Best tracks not reachable:** {reason}")
-        return 2 if "403" in str(reason) or "Tunnel" in str(reason) else 1
+    tracks = load_tracks(args.data_dir)
     if not tracks:
-        print(f"no {YEAR} eastern or central Pacific b-decks listed at {BTK}")
+        print(f"no {YEAR} b-decks archived in data/besttracks/: run collector.besttracks "
+              f"on Actions (origin-tracks.yml)")
         return 1
     text = report(readings_from_archive(args.data_dir), tracks, load_coordinates()["46232"],
                   min_kt=args.min_kt)

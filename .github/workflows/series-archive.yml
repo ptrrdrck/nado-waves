@@ -1,6 +1,7 @@
 # Rebuild the hourly archive under data/series/46232/ with today's chain: every
 # hour since 46232's spectra begin, for the Now tab chart's zoomed-out views
-# (forecast/series.py).
+# (forecast/series.py); and data/series/46232_origins.json, every Origin
+# arrival and named hurricane, for its Origins view (forecast/originhistory.py).
 #
 # Why a workflow of its own. The chain costs 0.18 s an hour, so a year of
 # hours is ~26 minutes on one core -- far too much for every collection, which
@@ -54,6 +55,15 @@ jobs:
         run: |
           set -euo pipefail
           python -m forecast.series --archive --workers "$(nproc)"
+
+      # The Origins chart's marks over the whole archive: every arrival read
+      # off 46232's spectrum, and every hurricane the card would have named
+      # every 6 h, as of each moment (forecast.originhistory). ~75 s, so not a
+      # collection's job; each collection adds what this has not yet covered.
+      - name: Rebuild the origins
+        run: |
+          set -euo pipefail
+          python -m forecast.originhistory
 
       - name: Commit and push
         env:

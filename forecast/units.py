@@ -33,18 +33,19 @@ def speed(knots: float | None, *, dash: str = "\u2014") -> str:
     return f"{knots * MPH_PER_KT:.0f} mph ({knots:.0f} kt)"
 
 
-def _about(value: float) -> str:
-    return f"{max(500, round(value / 500) * 500):,}"
+def _about(value: float, step: int) -> str:
+    return f"{max(step, round(value / step) * step):,}"
 
 
-def distance(km: float | None, *, dash: str = "\u2014") -> str:
-    """A swell's distance from its origin, miles first, each rounded to 500.
+def distance(km: float | None, *, step: int = 500, dash: str = "\u2014") -> str:
+    """A swell's distance from its origin, miles first, each rounded to `step`.
 
-    Rounded, and said "about", because that is the precision measured: two
-    buoys reading one storm independently differ by ~18-25% at the median
-    (BRIEFING §37). The page rounds the same way (`farAway`).
+    500 for Origin's dispersion distances, said "about" because that is the
+    precision measured: two buoys reading one storm independently differ by
+    ~18-25% at the median (BRIEFING §37). 100 for a position from NHC's best
+    track. The page rounds the same way (`farAway`).
     """
 
     if km is None:
         return dash
-    return f"about {_about(km * MI_PER_KM)} mi ({_about(km)} km)"
+    return f"about {_about(km * MI_PER_KM, step)} mi ({_about(km, step)} km)"

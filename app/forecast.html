@@ -405,6 +405,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .series .tr.on{opacity:1;stroke:var(--card);stroke-width:1.5}
 .series .tr.ws.on{stroke:var(--ink)}
 .series .dir{fill:var(--ink)}
+.series .og{stroke:var(--soft);stroke-width:3;stroke-linecap:round;opacity:.7}
+.series .dir.og{fill:var(--soft);stroke:none;opacity:.7}
+.series .hn{fill:var(--ink)} .series .hn.on{stroke:var(--card);stroke-width:1.5}
+.series .oglabel{fill:var(--ink);paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
+.chart .legend .sw.og{height:3px;color:var(--soft);opacity:.7}
 /* The Wind and Tide cards' charts: gusts as dots, the measured direction in
    the measured red, and the Now tab's predicted tide dashed and soft -- the
    one modelled line on that tab. */
@@ -548,6 +553,9 @@ const SERIES_ALL_SOURCE = PARAM.get("series_all") || "../data/live/series_all.js
 // The measured wind and tide each hour, and the next day's predicted tide
 // (forecast.windtide), drawn under the Wind and Tide cards on both tabs.
 const WINDTIDE_SOURCE = PARAM.get("windtide") || "../data/live/windtide.json";
+// Every readable arrival, and every hurricane the card would have named, over
+// the archive (forecast.originhistory), for the Origins chart on the LIVE tab.
+const ORIGINS_SOURCE = PARAM.get("origins") || "../data/live/origins.json";
 
 // North to south along the sand: the west edge of the window is the bearing
 // to the Point Loma tip and it sweeps as you walk. This is the scope and the
@@ -909,6 +917,7 @@ let MEASURED = null;  // measured.json — the observed chain, past hours only
 let SERIES = null;    // series.json   — the observed chain, every hour for a week
 let SERIES_ALL = null; // series_all.json — every archived hour, once asked for
 let WT = null;        // windtide.json — measured wind and tide each hour
+let ORIGINS = null;   // origins.json  — arrivals and named hurricanes, over time
 // The hours the picker offers, oldest first: {valid_utc, from, lead_h} plus
 // `index` into each break's hours for the current run ("cycle"), or `entry`
 // from forecast.json's `past` for an hour an earlier run was on screen for.
@@ -1195,17 +1204,31 @@ function originFor(site) {
   const s = O && O.sites && O.sites[site];
   if (!s) return null;
   const A = O.arrivals || [];
+  // A hurricane borne out by the buoys names its own train; Origin's
+  // dispersion reading of that same train is then the weaker claim, and goes
+  // -- unless Origin read it from somewhere else: past SAME_SOURCE_DEG of the
+  // storm's bearing it is another swell sharing the period (forecast.
+  // originhistory; on 29 Sep a 304° ridge shared a train with Polo at 161°).
+  const hurricanes = (O.hurricanes || []).filter((h) => h.sites && h.sites[site])
+    .map((h) => ({...h, at: h.sites[site]}));
+  const isNamed = (c) => hurricanes.some((h) => h.at.train_period_s === c.train_period_s
+    && (A[c.arrival].bearing_deg == null
+        || Math.abs(((A[c.arrival].bearing_deg - h.at.bearing_deg) % 360 + 540) % 360 - 180)
+           <= SAME_SOURCE_DEG));
   return {
-    current: (s.current || []).filter((c) => A[c.arrival])
+    hurricanes,
+    current: (s.current || []).filter((c) => A[c.arrival] && !isNamed(c))
       .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
     last: s.last != null && A[s.last] ? A[s.last] : null,
     station: O.station, lookback: O.lookback_days,
   };
 }
 
-const about500 = (v) => Math.max(500, Math.round(v / 500) * 500).toLocaleString("en-US");
-const farAway = (km) =>
-  `about ${about500(km * MI_PER_KM)} mi <span class="unit">(${about500(km)} km)</span>`;
+// Rounded in each unit to `step`: 500 for Origin's dispersion distances, which
+// two buoys read about a fifth apart; 100 for a position from NHC's best track.
+const about = (v, step) => Math.max(step, Math.round(v / step) * step).toLocaleString("en-US");
+const farAway = (km, step = 500) =>
+  `about ${about(km * MI_PER_KM, step)} mi <span class="unit">(${about(km, step)} km)</span>`;
 const sea = (region) => {
   const r = (region || "").replace(/^the /, "");
   return r ? r[0].toUpperCase() + r.slice(1) : "";
@@ -1230,9 +1253,38 @@ function originArrival(a, station) {
   </div>`;
 }
 
+// A hurricane NHC is tracking, named when its best track run forward matches
+// the directional energy 46047 or 46086 measured, as of now, better than the
+// same track moved back in time does (forecast.stormtrack, BRIEFING §37c-d).
+// The match is the share of those earlier moments beaten on timing AND
+// direction, with its word, never a probability; and it is about where a
+// train came from, never how big it is. Where the storm was, and how strong,
+// are NHC's: the fix that sent the train now arriving. Never Origin's distance.
+const MATCH_WORD = {strong: "Strong", partial: "Partial", weak: "Weak"};
+const SAME_SOURCE_DEG = 45;
+function hurricaneEntry(h) {
+  const s = h.at;
+  const buoys = Object.entries(h.match || {}).sort((a, b) => b[1].score - a[1].score);
+  const tested = buoys.map(([id, m], k) =>
+    `${m.beaten} of ${m.trials}${k ? "" : " times"} at ${id}`).join(", ");
+  return `<div class="origin" data-hurricane="${h.storm}">
+    <span class="val">Hurricane ${h.name}</span>
+    <span class="turn">${farAway(s.distance_km, 100)} ${point(s.bearing_deg)} when this swell `
+    + `left, ${onDay(s.fix_utc)}, winds ${speed(s.vmax_kt)}</span>
+    <span class="turn" data-match="${h.word}">${MATCH_WORD[h.word] || h.word} match, `
+    + `${Math.round(h.best * 100)}%</span>
+    ${srcLines([`The ${s.train_period_s.toFixed(1)} s train, on its track's schedule`,
+                `Match: on timing and direction it beats its own track moved earlier ${tested}`,
+                `Position and winds: NHC best track, an analysis`])}
+  </div>`;
+}
+
 // What folds out under the "Origin" line.
 function originBody(o) {
-  if (o.current.length) return o.current.map((a) => originArrival(a, o.station)).join("");
+  if (o.hurricanes.length || o.current.length) {
+    return o.hurricanes.map(hurricaneEntry).join("")
+      + o.current.map((a) => originArrival(a, o.station)).join("");
+  }
   const a = o.last;
   const last = !a ? `No readable arrival in the last ${o.lookback} days`
     : `Last readable arrival: `
@@ -1712,8 +1764,9 @@ function buoyPanel(buoy, measured = null) {
 // An hour with no spectrum is a gap: a pale band, and the line is not joined
 // across it -- at every zoom. A single hour between two gaps is a dot.
 //
-// Four views of the same hours, switched above the plot. The buoy's tab has
-// only the heights, because the other three are about a break. Each tab plots
+// Five views of the same hours, switched above the plot. The buoy's tab has
+// only the heights and the origins, because the other three are about a
+// break. Each tab plots
 // its own line only, in ink (owner's call, 2026-09-28): comparing the breaks
 // on one plot is for another part of the page.
 const CHART_MODES = [
@@ -1721,6 +1774,7 @@ const CHART_MODES = [
   {id: "diff", label: "North vs. South"},
   {id: "window", label: "Window"},
   {id: "range", label: "Range %K"},
+  {id: "origins", label: "Origins"},
 ];
 let CHART_MODE = "height";
 // The Forecast tab's charts (owner's request, 2026-09-29): the same place on
@@ -1737,8 +1791,8 @@ const FC_MODES = [
   {id: "ensemble", label: "Ensemble"},
 ];
 let FC_MODE0 = "runs";
-// The views a tab's menu offers: none on Now's buoy tab, which has only its
-// height; on the Forecast tab's buoy, everything but the two breaks'
+// The views a tab's menu offers: on Now's buoy tab, its height and the
+// origins; on the Forecast tab's buoy, everything but the two breaks'
 // difference, which is about the breaks.
 function chartModes(id) {
   if (isWT(id)) return WT_MODES[CHAIN][id];
@@ -1747,7 +1801,8 @@ function chartModes(id) {
   if (CHAIN === "fc") {
     return FC_MODES.filter((m) => (id === BUOY_TAB ? m.id !== "diff" : m.id !== "ensemble"));
   }
-  return id === BUOY_TAB ? [] : CHART_MODES;
+  return id === BUOY_TAB ? CHART_MODES.filter((m) => m.id === "height" || m.id === "origins")
+    : CHART_MODES;
 }
 function chartModeFor(id) {
   const modes = chartModes(id);
@@ -2003,7 +2058,8 @@ function chartNote(steps) {
 const SPECS = new Map();
 function chartSpec(id, mode, steps = chartSteps(id)) {
   const memo = `${CHAIN}|${id}|${mode}|${steps.length}|${steps.key || (steps === MERGED ? MERGED_KEY
-    : steps === FC_STEPS ? FC_KEY : SERIES && SERIES.generated_utc)}`;
+    : steps === FC_STEPS ? FC_KEY : SERIES && SERIES.generated_utc)}`
+    + (mode === "origins" ? `|${ORIGINS && ORIGINS.generated_utc}` : "");
   if (SPECS.has(memo)) return SPECS.get(memo);
   if (SPECS.size > 24) SPECS.clear();
   const spec = buildSpec(id, mode, steps);
@@ -2011,6 +2067,72 @@ function chartSpec(id, mode, steps = chartSteps(id)) {
   return spec;
 }
 
+// ORIGINS (owner's request, 2026-10-03): where the swell arriving at this tab
+// came from, over time, from origins.json (forecast.originhistory). Two marks:
+//   - a hurricane the card would have NAMED at that moment, a dot every six
+//     hours at the distance of NHC's position that sent this tab's train, in
+//     ink, with its name once in view;
+//   - an arrival read off 46232's spectrum that no storm is named for, a grey
+//     bar over the hours it was arriving at its dispersion distance.
+// Both belong to this tab only where they were one of its card trains, as on
+// the card. Under them, where each came from, as seen from the buoy: a
+// bearing, never tested against this break's windows (BRIEFING §10). The y
+// axis is distance on a log scale: 500 to 10,000 miles. Every past mark is
+// rebuilt with today's chain, as the other charts are.
+const ORIGIN_KM = [480, 24000];
+const logMi = (km) => Math.log10(km * MI_PER_KM);
+function originsSpec(id, steps) {
+  const legend = [{cls: "dot", label: "Hurricane named, at NHC's position"},
+                  {cls: "og", label: "Read off the swell, no storm named"}];
+  const t0 = Date.parse(steps[0].valid_utc), per = stepMs(steps);
+  const idx = (iso) => (Date.parse(iso) - t0) / per;
+  const site = id;
+  const segs = [], dots = [], points = [], labels = [];
+  const arrivals = ((ORIGINS && ORIGINS.arrivals) || [])
+    .filter((a) => (a.sites || []).includes(site) && !(a.named || {})[site]);
+  arrivals.forEach((a) => {
+    const i0 = idx(a.first_utc), i1 = idx(a.last_utc), v = logMi(a.distance_km);
+    segs.push({i0, i1, v, cls: "og"});
+    if (a.bearing_deg != null) {
+      for (let i = Math.ceil(i0); i <= i1; i++) points.push({i, v: a.bearing_deg, cls: "dir og"});
+    }
+  });
+  const named = ((ORIGINS && ORIGINS.named) || []).filter((n) => n.sites && n.sites[site])
+    .map((n) => ({...n, at: n.sites[site], i: idx(n.time_utc)}));
+  const byStorm = new Map();
+  named.forEach((n) => {
+    const v = logMi(n.at.distance_km);
+    dots.push({i: n.i, v, r: 3, cls: "hn"});
+    points.push({i: Math.round(n.i), v: n.at.bearing_deg, cls: "dir"});
+    if (!byStorm.has(n.storm)) {
+      byStorm.set(n.storm, {text: n.name, points: []});
+      labels.push(byStorm.get(n.storm));
+    }
+    byStorm.get(n.storm).points.push({i: n.i, v});
+  });
+  const half = ((ORIGINS && ORIGINS.step_h) || 6) * HOUR_MS / 2;
+  const near = (i) => named.filter((n) => Math.abs(n.i - i) * per <= half);
+  const value = (text) => `<span class="v">${text}</span>`;
+  return {
+    scale: "distance", lines: [], segs, dots, labels, legend,
+    lane: {points, arcs: []},
+    says: `Where the swell arriving ${id === BUOY_TAB ? "at the buoy" : `at ${SHORT[id] || id}`} `
+      + "came from, over time: a dot every six hours for a hurricane named from NHC's track at "
+      + "the position that sent the train, and a grey bar over the hours an arrival read off "
+      + "the swell itself was arriving, at its distance, with no storm named. Distance on a "
+      + "log scale; under it, the bearing each came from, as seen from the buoy",
+    read: (i) => {
+      const t = Date.parse(steps[i].valid_utc);
+      const parts = near(i).map((n) => value(`Hurricane ${n.name}`) + `, ${n.word} match `
+        + `${Math.round(n.best * 100)}%, ${farAway(n.at.distance_km, 100)} ${point(n.at.bearing_deg)}`);
+      arrivals.filter((a) => Date.parse(a.first_utc) <= t && t <= Date.parse(a.last_utc))
+        .forEach((a) => parts.push(a.region
+          ? `${sea(a.region)}, ${farAway(a.distance_km)} ${point(a.bearing_deg)}`
+          : `${farAway(a.distance_km)}, no bearing`));
+      return parts.length ? parts.join(" &middot; ") : "no readable arrival this hour";
+    },
+  };
+}
 function buildSpec(id, mode, steps) {
   if (isWT(id)) return wtSpec(id, steps, mode);
   if (CHAIN === "fc") return fcSpec(id, mode, steps);
@@ -2023,6 +2145,7 @@ function buildSpec(id, mode, steps) {
   const named = (v, text) => (v == null ? `${text} —` : `${text} ${v}`);
   const value = (text) => `<span class="v">${text}</span>`;
 
+  if (mode === "origins") return originsSpec(id, steps);
   if (id === BUOY_TAB || mode === "height") {
     const buoy = id === BUOY_TAB;
     const values = steps.map((s) => num(buoy ? buoyOf(s).hs_m : brk(s, id).hs_m));
@@ -2406,6 +2529,11 @@ function chartDomain(spec, a, z) {
   if (spec.scale === "window") {
     return {domain: [0, 1], ticks: [0, 0.5, 1].map((v) => ({at: v, text: `${v * 100}%`}))};
   }
+  if (spec.scale === "distance") {
+    return {domain: ORIGIN_KM.map(logMi),
+            ticks: [500, 1000, 2000, 5000, 10000].map((mi) => ({at: Math.log10(mi),
+              text: `${mi.toLocaleString("en-US")} mi`}))};
+  }
   if (spec.scale === "period") {
     return {domain: [0, 24], ticks: [0, 6, 12, 18, 24].map((v) => ({at: v, text: v ? `${v} s` : "0"}))};
   }
@@ -2693,6 +2821,26 @@ function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)
 
   // The forecast's trains: a dot per train per hour, never joined, because a
   // train is split hour by hour and is not followed from one to the next.
+  // Origins: an arrival is a bar over the hours it was arriving, clipped to
+  // the hours in view; a named storm's name sits once, by its first dot in
+  // view.
+  let segs = "";
+  (spec.segs || []).forEach((sg) => {
+    const p = Math.max(sg.i0, a), q = Math.min(sg.i1, z);
+    if (q < p) return;
+    segs += `<line class="${sg.cls}" x1="${f(X(p))}" x2="${f(X(q))}" y1="${f(Y(sg.v))}" y2="${f(Y(sg.v))}"/>`;
+  });
+  const placed = [];
+  (spec.labels || []).forEach((lb) => {
+    const pt = lb.points.find((p) => p.i >= v0 - 0.5 && p.i <= v1);
+    if (!pt) return;
+    // Two storms named close together stack their names rather than overprint.
+    const x = Math.min(w - r - 6 * lb.text.length, Math.max(l + 2, X(pt.i) - 4));
+    let y = Y(pt.v) - 6;
+    while (placed.some((q) => Math.abs(q.x - x) < 6 * Math.max(q.n, lb.text.length) && Math.abs(q.y - y) < 11)) y -= 11;
+    placed.push({x, y, n: lb.text.length});
+    segs += `<text class="tick oglabel" x="${f(x)}" y="${f(y)}">${svgText(lb.text)}</text>`;
+  });
   let dots = "";
   (spec.dots || []).forEach((d) => {
     if (d.i < a || d.i > z) return;
@@ -2720,7 +2868,7 @@ function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)
   return `<svg class="series" viewBox="0 0 ${w} ${h}" role="group" tabindex="0"`
     + ` aria-label="${svgText(label)}" data-series="${id}">`
     + `<clipPath id="plot-clip-${id}"><rect x="${l}" y="${t - 4}" width="${plotW}" height="${floor - t + 8}"/></clipPath>`
-    + grid + laneGrid + marks + `<g clip-path="url(#plot-clip-${id})">${nights}${bands}${lane}${band}${nowLine}${lines}${dots}${cross}</g>`
+    + grid + laneGrid + marks + `<g clip-path="url(#plot-clip-${id})">${nights}${bands}${lane}${band}${nowLine}${lines}${segs}${dots}${cross}</g>`
     + sides + `</svg>`;
 }
 
@@ -4282,6 +4430,20 @@ function refreshWindTide() {
     .catch(() => {});
 }
 
+// Rebuilt with every collection from the daily archive and the newest
+// spectra; drawn only by the Origins view, so redrawn without the flash.
+function refreshOrigins() {
+  fetch(fresh(ORIGINS_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => {
+      if (!got || !got.generated_utc || !got.arrivals) return;
+      if (ORIGINS && got.generated_utc === ORIGINS.generated_utc) return;
+      ORIGINS = got;
+      if (MODE === "now") show();
+    })
+    .catch(() => {});
+}
+
 // The archive changes once a day; refetched hourly, and only once it has
 // been asked for.
 function refreshSeriesAll() {
@@ -4425,6 +4587,7 @@ function boot(data, observed, measured, series, windtide) {
   wireCharts();
 
   if (!adoptForecast(data, null)) return;
+  refreshOrigins();
 
   $("when").onchange = (e) => {
     choose(Math.max(0, Math.min(STEPS.length - 1, Number(e.target.value))));
@@ -4476,6 +4639,7 @@ function boot(data, observed, measured, series, windtide) {
   setInterval(refreshMeasured, NOW_REFRESH_MS);
   setInterval(refreshSeries, NOW_REFRESH_MS);
   setInterval(refreshWindTide, NOW_REFRESH_MS);
+  setInterval(refreshOrigins, NOW_REFRESH_MS);
   setInterval(refreshSeriesAll, FORECAST_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
 }

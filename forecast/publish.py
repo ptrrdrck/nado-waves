@@ -23,6 +23,8 @@ The bundle:
     windtide.json   data/live/windtide.json — the measured wind and tide each
                     hour, and the next day's predicted tide, drawn under the
                     Wind and Tide cards on both tabs
+    origins.json    data/live/origins.json — every readable arrival and every
+                    hurricane the card would have named, for the Origins chart
     docs.html       app/docs.html: the documentation, with the geometry
                     drawing filled by forecast.geomviz from spots.json, the
                     caveat and both chains' standing-on blocks; linked from
@@ -106,6 +108,10 @@ BUNDLE_SERIES_ALL_PATH = "series_all.json"
 #: under the Wind and Tide cards on both tabs. Optional in the same way.
 REPO_WINDTIDE_PATH = "../data/live/windtide.json"
 BUNDLE_WINDTIDE_PATH = "windtide.json"
+#: Every arrival and named hurricane over time (`forecast.originhistory`), for
+#: the Origins chart under each LIVE swell tab. Optional in the same way.
+REPO_ORIGINS_PATH = "../data/live/origins.json"
+BUNDLE_ORIGINS_PATH = "origins.json"
 
 DOCTYPE = "<!doctype html>"
 HEAD = """<html lang="en">
@@ -182,19 +188,20 @@ def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
             .replace(REPO_MEASURED_PATH, BUNDLE_MEASURED_PATH)
             .replace(REPO_SERIES_PATH, BUNDLE_SERIES_PATH)
             .replace(REPO_SERIES_ALL_PATH, BUNDLE_SERIES_ALL_PATH)
-            .replace(REPO_WINDTIDE_PATH, BUNDLE_WINDTIDE_PATH))
+            .replace(REPO_WINDTIDE_PATH, BUNDLE_WINDTIDE_PATH)
+            .replace(REPO_ORIGINS_PATH, BUNDLE_ORIGINS_PATH))
 
 
 def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
-    """`measured.json`, `series.json`, `series_all.json` and `windtide.json`,
-    minified, when the collection job has built them.
+    """`measured.json`, `series.json`, `series_all.json`, `windtide.json` and
+    `origins.json`, minified, when the collection job has built them.
 
     In BOTH builds: they change every collection (a past hour's measurement
     lands), and the forecast job republishes the page that reads them.
     """
 
     for name in (BUNDLE_MEASURED_PATH, BUNDLE_SERIES_PATH, BUNDLE_SERIES_ALL_PATH,
-                 BUNDLE_WINDTIDE_PATH):
+                 BUNDLE_WINDTIDE_PATH, BUNDLE_ORIGINS_PATH):
         source = Path(data_dir) / "live" / name
         if not source.exists():
             continue

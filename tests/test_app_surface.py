@@ -1509,12 +1509,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert SOURCE.count("fetch(fresh(SERIES_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(SERIES_ALL_SOURCE)") == 2   # asked for + hourly
         assert SOURCE.count("fetch(fresh(WINDTIDE_SOURCE)") == 2
+        assert SOURCE.count("fetch(fresh(ORIGINS_SOURCE)") == 1     # boot and hourly, one function
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 12
+        assert SOURCE.count('{cache: "no-store"}') == 13
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -2911,8 +2912,9 @@ class TestOrigin:
         """Two buoys reading one storm differ by about a fifth: a distance
         to the kilometre would claim a precision nobody measured."""
 
-        assert "Math.round(v / 500) * 500" in SOURCE
-        assert "`about ${about500(km * MI_PER_KM)} mi" in SOURCE
+        assert "Math.round(v / step) * step" in SOURCE
+        assert "const farAway = (km, step = 500) =>" in SOURCE
+        assert "`about ${about(km * MI_PER_KM, step)} mi" in SOURCE
 
     def test_the_empty_state_names_the_last_readable_arrival(self):
         assert "Last readable arrival: " in SOURCE
@@ -2944,3 +2946,86 @@ def test_every_script_on_both_pages_parses(tmp_path):
             path.write_text(body, encoding="utf-8")
             got = subprocess.run([node, "--check", str(path)], capture_output=True, text=True)
             assert got.returncode == 0, f"{name} script {k}: {got.stderr[:400]}"
+
+
+def _code(js: str) -> str:
+    """A script with its line comments removed."""
+
+    return "\n".join(line.split("//")[0] for line in js.splitlines())
+
+
+class TestHurricane:
+    """A hurricane named on the card (BRIEFING §37c-d): with its match against
+    the unshadowed buoys' measured energy, placed from NHC's track, and it
+    takes the place of Origin's own reading of the same train."""
+
+    def test_it_is_named_from_nhc_and_says_so(self):
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
+        assert "Hurricane ${h.name}" in entry
+        assert "Position and winds: NHC best track, an analysis" in entry
+        assert "farAway(s.distance_km, 100)" in entry
+        assert "speed(s.vmax_kt)" in entry
+
+    def test_it_states_its_match_with_the_count_behind_it(self):
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
+        assert "match, `\n    + `${Math.round(h.best * 100)}%" in entry
+        assert "${m.beaten} of ${m.trials}" in entry
+        assert "its own track moved earlier" in entry
+
+    def test_the_match_is_never_called_a_probability_or_a_confidence(self):
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
+        for word in ("probab", "confiden", "likel", "chance"):
+            assert word not in _code(entry).lower()
+
+    def test_the_words_are_the_reports(self):
+        from forecast.stormtrack import MATCH_SHOW, MATCH_WORDS
+
+        for lo, word in MATCH_WORDS:
+            if lo >= MATCH_SHOW:
+                assert f"{word}: \"{word.title()}\"" in SOURCE
+
+    def test_it_replaces_origins_reading_of_the_same_train(self):
+        assert "!isNamed(c)" in SOURCE
+        assert "h.at.train_period_s === c.train_period_s" in SOURCE
+
+    def test_a_reading_from_elsewhere_is_not_the_storms(self):
+        from forecast.originhistory import SAME_SOURCE_DEG
+
+        assert f"const SAME_SOURCE_DEG = {SAME_SOURCE_DEG:g};" in SOURCE
+
+    def test_it_comes_first(self):
+        body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
+        assert body.index("o.hurricanes.map(hurricaneEntry)") < body.index("o.current.map(")
+
+
+class TestOriginsChart:
+    """The Origins view (owner's request, 2026-10-03): named hurricanes and
+    unnamed arrivals over time, from origins.json, on every LIVE swell tab."""
+
+    def spec(self):
+        return SOURCE[SOURCE.index("function originsSpec"):SOURCE.index("function buildSpec")]
+
+    def test_it_is_a_view_on_every_live_swell_tab_the_buoys_included(self):
+        assert '{id: "origins", label: "Origins"}' in SOURCE
+        assert 'm.id === "height" || m.id === "origins"' in SOURCE
+        assert 'if (mode === "origins") return originsSpec(id, steps);' in SOURCE
+
+    def test_a_mark_is_on_a_tab_only_where_it_was_that_tabs_train(self):
+        spec = self.spec()
+        assert "(a.sites || []).includes(site)" in spec
+        assert "n.sites && n.sites[site]" in spec
+
+    def test_an_arrival_the_storm_named_is_drawn_as_the_storm(self):
+        assert "!(a.named || {})[site]" in self.spec()
+
+    def test_named_storms_are_placed_from_nhc_and_carry_their_match(self):
+        spec = self.spec()
+        assert "logMi(n.at.distance_km)" in spec
+        assert "match `\n        + `${Math.round(n.best * 100)}%" in spec
+
+    def test_bearings_are_never_tested_against_the_windows(self):
+        assert "lane: {points, arcs: []}" in self.spec()
+
+    def test_the_distance_axis_is_log_miles(self):
+        assert 'if (spec.scale === "distance")' in SOURCE
+        assert "Math.log10(km * MI_PER_KM)" in SOURCE

@@ -65,6 +65,7 @@ from . import origin
 from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea, summarise,
                         train_dicts)
 from .siting import load_coordinates
+from .stormtrack import GATE_STATIONS
 from .surfzone import load_profiles
 from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, anomaly, coast_height, coast_level, coast_turn,
                        msl_above_mllw)
@@ -547,7 +548,12 @@ def build(
             "origin": f"OBSERVED, run backwards — each train's dispersion read off the "
                       f"{STATION} spectrum, its bearing off an unshadowed buoy's; nothing "
                       f"observes the storm, and two buoys reading one storm differ by about "
-                      f"a fifth",
+                      f"a fifth. A hurricane is named when NHC's best track (an "
+                      f"ANALYSIS, not a measurement), run forward, matches the directional "
+                      f"energy measured at {' or '.join(GATE_STATIONS)}, as of now, better "
+                      f"than the same track at earlier times does; the match is how often, "
+                      f"never a probability, and it names, and never sizes, anything on "
+                      f"this tab",
             "observation at the beach": "none — data/beach_log/ is empty; "
                                         "nothing has measured these breaks",
             "claim": "observed at a buoy 29 km offshore and carried by physics to where "
@@ -754,23 +760,14 @@ def build(
     return reading
 
 
-def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict,
-                   blockers, tables: dict) -> dict:
-    """`forecast.origin`'s block for the newest spectrum.
+def trains_builder(spectra, by_id: dict, blockers, tables: dict):
+    """`trains_at(moment)`: each site's card trains rebuilt for a past hour of
+    46232's spectrum (empty when that hour has none), the card's own two cases:
+    carried over the seabed when the tables are there, through the
+    straight-line window when they are not. Local chop is not rebuilt: it is
+    made at the beach, never a train with an origin."""
 
-    A break's card trains are what an arrival is matched against, now from the
-    reading just built and for a past arrival rebuilt the same way at its peak
-    hour: carried over the seabed when the tables are there, through the
-    straight-line window when they are not -- the card's own two cases.
-    """
-
-    archives = origin.load_archives(data_dir)
-    spectra = [s for s in archives.get(STATION, []) if s.time <= spectrum.time]
-    if not spectra:
-        return {}
     by_time = {s.time: s for s in spectra}
-    trains_now = {b.id: b.trains for b in reading.breaks}
-    trains_now["buoy"] = reading.buoy.get("trains", [])
 
     def trains_at(moment: datetime) -> dict:
         past = by_time.get(moment)
@@ -786,8 +783,67 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
                 out[break_id] = as_trains(through(past, by_id[break_id], blockers).trains)
         return out
 
-    return origin.reading(spectra, archives, load_coordinates().get(STATION),
-                          newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
+    return trains_at
+
+
+def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict,
+                   blockers, tables: dict) -> dict:
+    """`forecast.origin`'s block for the newest spectrum.
+
+    A break's card trains are what an arrival is matched against, now from the
+    reading just built and for a past arrival rebuilt the same way at its peak
+    hour: carried over the seabed when the tables are there, through the
+    straight-line window when they are not -- the card's own two cases.
+    """
+
+    archives = origin.load_archives(data_dir)
+    spectra = [s for s in archives.get(STATION, []) if s.time <= spectrum.time]
+    if not spectra:
+        return {}
+    trains_now = {b.id: b.trains for b in reading.breaks}
+    trains_now["buoy"] = reading.buoy.get("trains", [])
+    trains_at = trains_builder(spectra, by_id, blockers, tables)
+    block = origin.reading(spectra, archives, load_coordinates().get(STATION),
+                           newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
+    block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now)
+    return block
+
+
+def hurricanes_now(data_dir: Path, at: datetime, trains_now: dict) -> list[dict]:
+    """The hurricanes whose swell `forecast.stormtrack` finds arriving at `at`.
+
+    Each is named, with its match, when NHC's best track run forward matches
+    an unshadowed buoy's directional energy AS OF `at` (BRIEFING §37c-d). The
+    directional field is built only when some storm's band is open at a gate
+    buoy now, so a quiet hour costs a file read and no more.
+    """
+
+    from . import stormtrack
+    from .landpath import load_land
+    from .origintracks import load_tracks
+
+    tracks = load_tracks(data_dir, at.year)
+    window = timedelta(days=stormtrack.LIVE_DAYS)
+    recent = {k: v for k, v in tracks.items() if any(at - window <= f.time <= at for f in v)}
+    if not recent:
+        return []
+    positions = load_coordinates()
+    land = load_land(str(data_dir))
+    open_now = [b for b in stormtrack.bands(recent, positions, land=land)
+                if b.station in stormtrack.GATE_STATIONS and b.fixes
+                and any(b.contains(at, f) for f in stormtrack.MODEL_FREQS)]
+    if not open_now:
+        return []
+    fields = {}
+    for station in {b.station for b in open_now}:
+        try:
+            spectra = load_spectra(Path(data_dir) / "spectra" / station)
+        except (FileNotFoundError, ValueError):
+            continue
+        fields[station] = stormtrack.Field([s for s in spectra if at - window <= s.time <= at])
+    storms = {b.storm for b in open_now}
+    return stormtrack.live({k: recent[k] for k in storms}, fields, at, positions,
+                           trains_now, land)
 
 
 def write(reading: Now, path: Path) -> None:
