@@ -3023,6 +3023,16 @@ class TestOriginsChart:
         assert "logMi(n.at.distance_km)" in spec
         assert "match `\n        + `${Math.round(n.best * 100)}%" in spec
 
+    def test_an_hour_reads_each_storm_once_from_the_moment_before_it(self):
+        """An hour half-way between two named moments read both, so each storm
+        twice (owner's report, 2026-10-03). The readout now takes, per storm,
+        the newest moment at or before the hour, within one step."""
+
+        spec = self.spec()
+        assert "Math.abs(n.i - i)" not in spec
+        assert "n.i <= i && (i - n.i) * per < step" in spec
+        assert "latest.set(n.storm, n)" in spec
+
     def test_bearings_are_never_tested_against_the_windows(self):
         assert "lane: {points, arcs: []}" in self.spec()
 

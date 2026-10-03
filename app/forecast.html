@@ -2110,8 +2110,19 @@ function originsSpec(id, steps) {
     }
     byStorm.get(n.storm).points.push({i: n.i, v});
   });
-  const half = ((ORIGINS && ORIGINS.step_h) || 6) * HOUR_MS / 2;
-  const near = (i) => named.filter((n) => Math.abs(n.i - i) * per <= half);
+  // What the card said at hour i: for each storm, its newest named moment at
+  // or before i, and only while no later moment has been asked (one step).
+  // Never the moment after i, which had not happened yet, and never two of
+  // one storm: an hour half-way between two moments read both, once each.
+  const step = ((ORIGINS && ORIGINS.step_h) || 6) * HOUR_MS;
+  const near = (i) => {
+    const latest = new Map();
+    named.forEach((n) => {
+      if (n.i <= i && (i - n.i) * per < step
+          && (!latest.has(n.storm) || n.i > latest.get(n.storm).i)) latest.set(n.storm, n);
+    });
+    return [...latest.values()];
+  };
   const value = (text) => `<span class="v">${text}</span>`;
   return {
     scale: "distance", lines: [], segs, dots, labels, legend,
