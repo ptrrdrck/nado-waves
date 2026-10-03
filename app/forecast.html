@@ -1195,17 +1195,25 @@ function originFor(site) {
   const s = O && O.sites && O.sites[site];
   if (!s) return null;
   const A = O.arrivals || [];
+  // A hurricane borne out by the buoys names its own train; Origin's
+  // dispersion reading of that same train is then the weaker claim, and goes.
+  const hurricanes = (O.hurricanes || []).filter((h) => h.sites && h.sites[site])
+    .map((h) => ({...h, at: h.sites[site]}));
+  const named = new Set(hurricanes.map((h) => h.at.train_period_s));
   return {
-    current: (s.current || []).filter((c) => A[c.arrival])
+    hurricanes,
+    current: (s.current || []).filter((c) => A[c.arrival] && !named.has(c.train_period_s))
       .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
     last: s.last != null && A[s.last] ? A[s.last] : null,
     station: O.station, lookback: O.lookback_days,
   };
 }
 
-const about500 = (v) => Math.max(500, Math.round(v / 500) * 500).toLocaleString("en-US");
-const farAway = (km) =>
-  `about ${about500(km * MI_PER_KM)} mi <span class="unit">(${about500(km)} km)</span>`;
+// Rounded in each unit to `step`: 500 for Origin's dispersion distances, which
+// two buoys read about a fifth apart; 100 for a position from NHC's best track.
+const about = (v, step) => Math.max(step, Math.round(v / step) * step).toLocaleString("en-US");
+const farAway = (km, step = 500) =>
+  `about ${about(km * MI_PER_KM, step)} mi <span class="unit">(${about(km, step)} km)</span>`;
 const sea = (region) => {
   const r = (region || "").replace(/^the /, "");
   return r ? r[0].toUpperCase() + r.slice(1) : "";
@@ -1230,9 +1238,28 @@ function originArrival(a, station) {
   </div>`;
 }
 
+// A hurricane NHC is tracking, named only when its best track run forward is
+// borne out by the directional energy 46047 or 46086 measured, as of now
+// (forecast.stormtrack, BRIEFING §37c). Where it was, and how strong, are
+// NHC's: the fix that sent the train now arriving. Never Origin's distance.
+function hurricaneEntry(h) {
+  const s = h.at;
+  return `<div class="origin" data-hurricane="${h.storm}">
+    <span class="val">Hurricane ${h.name}</span>
+    <span class="turn">${farAway(s.distance_km, 100)} ${point(s.bearing_deg)} when this swell `
+    + `left, ${onDay(s.fix_utc)}, winds ${speed(s.vmax_kt)}</span>
+    ${srcLines([`The ${s.train_period_s.toFixed(1)} s train, arriving on its track's schedule `
+                + `from its direction at ${h.gate.join(" and ")}`,
+                `Position and winds: NHC best track, an analysis`])}
+  </div>`;
+}
+
 // What folds out under the "Origin" line.
 function originBody(o) {
-  if (o.current.length) return o.current.map((a) => originArrival(a, o.station)).join("");
+  if (o.hurricanes.length || o.current.length) {
+    return o.hurricanes.map(hurricaneEntry).join("")
+      + o.current.map((a) => originArrival(a, o.station)).join("");
+  }
   const a = o.last;
   const last = !a ? `No readable arrival in the last ${o.lookback} days`
     : `Last readable arrival: `

@@ -2911,8 +2911,9 @@ class TestOrigin:
         """Two buoys reading one storm differ by about a fifth: a distance
         to the kilometre would claim a precision nobody measured."""
 
-        assert "Math.round(v / 500) * 500" in SOURCE
-        assert "`about ${about500(km * MI_PER_KM)} mi" in SOURCE
+        assert "Math.round(v / step) * step" in SOURCE
+        assert "const farAway = (km, step = 500) =>" in SOURCE
+        assert "`about ${about(km * MI_PER_KM, step)} mi" in SOURCE
 
     def test_the_empty_state_names_the_last_readable_arrival(self):
         assert "Last readable arrival: " in SOURCE
@@ -2944,3 +2945,26 @@ def test_every_script_on_both_pages_parses(tmp_path):
             path.write_text(body, encoding="utf-8")
             got = subprocess.run([node, "--check", str(path)], capture_output=True, text=True)
             assert got.returncode == 0, f"{name} script {k}: {got.stderr[:400]}"
+
+
+class TestHurricane:
+    """A hurricane named on the card (BRIEFING §37c): only one borne out by the
+    unshadowed buoys' measured energy, placed from NHC's track, and it takes
+    the place of Origin's own reading of the same train."""
+
+    def test_it_is_named_from_nhc_and_says_so(self):
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
+        assert "Hurricane ${h.name}" in entry
+        assert "Position and winds: NHC best track, an analysis" in entry
+        assert "farAway(s.distance_km, 100)" in entry
+        assert "speed(s.vmax_kt)" in entry
+
+    def test_it_says_which_buoys_bore_it_out(self):
+        assert "from its direction at ${h.gate.join(\" and \")}" in SOURCE
+
+    def test_it_replaces_origins_reading_of_the_same_train(self):
+        assert "!named.has(c.train_period_s)" in SOURCE
+
+    def test_it_comes_first(self):
+        body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
+        assert body.index("o.hurricanes.map(hurricaneEntry)") < body.index("o.current.map(")

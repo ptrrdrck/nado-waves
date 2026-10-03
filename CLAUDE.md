@@ -360,8 +360,21 @@ forecaster actually verifies against, Surfline included.
    independently; Polo at no buoy on no day (best 0.65 against a 0.7 gate
    fixed before the run, its peak days behind Baja); and the two ridges that
    agree with a storm in timing AND bearing do so in 28% of bearing shuffles.
-   Timing alone matches almost anything. What the card does about it is the
-   owner's call, pending.
+   Timing alone matches almost anything. **What the card shows instead
+   (owner's request, 2026-10-03; BRIEFING §37c): "Hurricane X" under Origin**,
+   only when NHC's track, run forward with paths across land dropped
+   (`forecast/landpath.py`, Natural Earth 1:10m via `collector/coastline.py`),
+   is explained AS OF the newest spectrum at 46047 or 46086 (`stormtrack.live`,
+   the backtest's own question: nothing after `until` is seen), and on a break
+   only when one of its card trains is the one arriving. Placed and sized from
+   NHC's fix that sent that train, rounded to 100, never from Origin's
+   distance; it replaces Origin's reading of the same train. Backtest, 4 Aug –
+   2 Oct: Marie 5–8 Sep, nothing else, ever. The b-decks are archived hourly
+   by collect-beach-inputs.yml (their one writer). The directional sector is
+   integrated in closed form (`spreadmethod.mem_sector`, equal to MEM's 1° bins
+   to 1e-15, ~60× faster) — without it the gate cost ~20 s a collection.
+   GFS-Wave's hindcast (`collector/wavehindcast.py` → `data/wave_hindcast/`,
+   origin-tracks.yml its one writer) is a REPORT column, never on the card.
    **No chart carries a description under it** (owner's call, same day):
    what each draws lives on `docs.html` and in the plot's spoken label. The
    one line kept is the Ensemble's measured coverage, because the band is
@@ -667,6 +680,11 @@ forecaster actually verifies against, Surfline included.
                         ridge in 46232's spectrum, bearing at 46047/46086
                         [built]
       originreport.py   the measurements behind it; reports, never edits
+      origintracks.py   readings against NHC's best tracks, by position
+      stormtrack.py     each hurricane run forward to the buoys, with
+                        controls, backtest and GFS-Wave cross-check; and
+                        `live`, the card's "Hurricane X" gate       [built]
+      landpath.py       does a swell's great circle cross land?   [built]
       verify.py         bias, RMSE, scatter index, calibration, band coverage
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control

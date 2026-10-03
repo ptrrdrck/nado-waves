@@ -118,3 +118,38 @@ def test_the_bearing_control_shuffles_the_ridges_own_bearings():
     observed, p = S.bearing_chance(ridges, timed)
     # Two ridges, one agreeing: any shuffle keeps one agreeing.
     assert observed == 1 and p == 1.0
+
+
+def test_live_names_a_storm_its_buoys_bore_out_and_places_it_from_its_track():
+    fixes = storm(bearing=150.0)
+    sp, _ = spectra(fixes=fixes)
+    positions = {"46047": HOME, "46086": HOME, "46232": HOME}
+    field = S.Field(sp, spread="fourier")
+    at = fixes[-1].time + timedelta(hours=60)
+    arriving = [f for f in FREQS if S.bands({"ep17": fixes}, positions)[0].contains(at, f)]
+    assert arriving, "the test hour must be inside the band"
+    trains = {"coronado_south": [{"period_s": 1 / arriving[0]}], "coronado_north": [{"period_s": 7.0}]}
+    got = S.live({"ep17": fixes}, {"46047": field}, at, positions, trains)
+    assert [g["name"] for g in got] == ["Test"]
+    assert got[0]["gate"] == ["46047"]
+    south = got[0]["sites"]["coronado_south"]
+    assert south["vmax_kt"] == 120 and 1900 < south["distance_km"] < 2100
+    assert "coronado_north" not in got[0]["sites"]
+
+
+def test_live_names_nothing_its_buoys_did_not_bear_out():
+    fixes = storm(bearing=150.0)
+    sp, _ = spectra(fixes=fixes, signal_from=250.0)
+    positions = {"46047": HOME, "46232": HOME}
+    at = fixes[-1].time + timedelta(hours=60)
+    got = S.live({"ep17": fixes}, {"46047": S.Field(sp, spread="fourier")}, at, positions,
+                 {"buoy": [{"period_s": 15.0}]})
+    assert got == []
+
+
+def test_as_of_a_moment_nothing_after_it_counts():
+    sp, band = spectra()
+    early = band.fixes[0].time + timedelta(hours=20)
+    result = S.evaluate(band, S.Field(sp, spread="fourier"), until=early)
+    full = S.evaluate(band, S.Field(sp, spread="fourier"))
+    assert result.actual.have < full.actual.have

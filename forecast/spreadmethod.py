@@ -155,6 +155,48 @@ def mem(r1: float, r2: float, a1: float, a2: float) -> list[float]:
     return [v / total for v in raw]
 
 
+def mem_sector(r1: float, r2: float, a1: float, a2: float,
+               lo_deg: float, hi_deg: float) -> float:
+    """The share of `mem`'s distribution between two bearings, exactly.
+
+    The same antiderivative `mem` evaluates at every 1° edge, evaluated only at
+    the sector's two edges and the circle's: a handful of complex logs where
+    `mem` takes 361 of each. `forecast.stormtrack` needs one sector per hour,
+    bin and centre over weeks of spectra, which through `mem` cost ~20 s a
+    collection. Agrees with summing `mem`'s 1° bins over the same edges (a
+    test pins it). The sector runs clockwise from `lo_deg` to `hi_deg`, and may
+    cross north.
+    """
+
+    c1 = r1 * cmath.exp(1j * math.radians(a1))
+    c2 = r2 * cmath.exp(2j * math.radians(a2))
+    phi1 = (c1 - c2 * c1.conjugate()) / (1.0 - abs(c1) ** 2)
+    phi2 = c2 - c1 * phi1
+    disc = cmath.sqrt(phi1 * phi1 + 4.0 * phi2)
+    p1, p2 = (phi1 + disc) / 2.0, (phi1 - disc) / 2.0
+    if max(abs(p1), abs(p2)) >= 1.0 - 1e-9 or abs(p1 - p2) < 1e-9:
+        raise Unrealisable(f"poles {abs(p1):.4f}, {abs(p2):.4f}")
+    k11 = 1.0 / (1.0 - abs(p1) ** 2)
+    k22 = 1.0 / (1.0 - abs(p2) ** 2)
+    k12 = 1.0 / (1.0 - p1 * p2.conjugate())
+
+    def v(theta: float) -> float:
+        ep, em = cmath.exp(1j * theta), cmath.exp(-1j * theta)
+
+        def anti(w_plus: complex, w_minus: complex) -> complex:
+            return (theta + 1j * cmath.log(1.0 - w_plus * ep)
+                    - 1j * cmath.log(1.0 - w_minus * em))
+
+        return (k11 * anti(p1.conjugate(), p1) + k22 * anti(p2.conjugate(), p2)
+                - 2.0 * (k12 * anti(p2.conjugate(), p1)).real).real
+
+    total = v(2.0 * math.pi) - v(0.0)
+    lo = math.radians(lo_deg % 360.0)
+    hi = math.radians(hi_deg % 360.0)
+    part = v(hi) - v(lo) if hi >= lo else (v(2.0 * math.pi) - v(lo)) + (v(hi) - v(0.0))
+    return max(0.0, part / total) if total > 0 else 0.0
+
+
 def moments(dist: list[float]) -> tuple[float, float, float, float]:
     """(r1, α1, r2, α2) of a distribution on the grid — the control.
 

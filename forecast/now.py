@@ -65,6 +65,7 @@ from . import origin
 from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea, summarise,
                         train_dicts)
 from .siting import load_coordinates
+from .stormtrack import GATE_STATIONS
 from .surfzone import load_profiles
 from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, anomaly, coast_height, coast_level, coast_turn,
                        msl_above_mllw)
@@ -547,7 +548,10 @@ def build(
             "origin": f"OBSERVED, run backwards — each train's dispersion read off the "
                       f"{STATION} spectrum, its bearing off an unshadowed buoy's; nothing "
                       f"observes the storm, and two buoys reading one storm differ by about "
-                      f"a fifth",
+                      f"a fifth. A hurricane is named only when NHC's best track (an "
+                      f"ANALYSIS, not a measurement), run forward, is borne out by the "
+                      f"directional energy measured at {' or '.join(GATE_STATIONS)}, as of "
+                      f"now; it names, and never sizes, anything on this tab",
             "observation at the beach": "none — data/beach_log/ is empty; "
                                         "nothing has measured these breaks",
             "claim": "observed at a buoy 29 km offshore and carried by physics to where "
@@ -786,8 +790,47 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
                 out[break_id] = as_trains(through(past, by_id[break_id], blockers).trains)
         return out
 
-    return origin.reading(spectra, archives, load_coordinates().get(STATION),
-                          newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
+    block = origin.reading(spectra, archives, load_coordinates().get(STATION),
+                           newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
+    block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now)
+    return block
+
+
+def hurricanes_now(data_dir: Path, at: datetime, trains_now: dict) -> list[dict]:
+    """The hurricanes whose swell `forecast.stormtrack` finds arriving at `at`.
+
+    Each is named only when NHC's best track, run forward, is explained AS OF
+    `at` by an unshadowed buoy's directional energy (BRIEFING §37c). The
+    directional field is built only when some storm's band is open at a gate
+    buoy now, so a quiet hour costs a file read and no more.
+    """
+
+    from . import stormtrack
+    from .landpath import load_land
+    from .origintracks import load_tracks
+
+    tracks = load_tracks(data_dir, at.year)
+    window = timedelta(days=stormtrack.LIVE_DAYS)
+    recent = {k: v for k, v in tracks.items() if any(at - window <= f.time <= at for f in v)}
+    if not recent:
+        return []
+    positions = load_coordinates()
+    land = load_land(str(data_dir))
+    open_now = [b for b in stormtrack.bands(recent, positions, land=land)
+                if b.station in stormtrack.GATE_STATIONS and b.fixes
+                and any(b.contains(at, f) for f in stormtrack.MODEL_FREQS)]
+    if not open_now:
+        return []
+    fields = {}
+    for station in {b.station for b in open_now}:
+        try:
+            spectra = load_spectra(Path(data_dir) / "spectra" / station)
+        except (FileNotFoundError, ValueError):
+            continue
+        fields[station] = stormtrack.Field([s for s in spectra if at - window <= s.time <= at])
+    storms = {b.storm for b in open_now}
+    return stormtrack.live({k: recent[k] for k in storms}, fields, at, positions,
+                           trains_now, land)
 
 
 def write(reading: Now, path: Path) -> None:

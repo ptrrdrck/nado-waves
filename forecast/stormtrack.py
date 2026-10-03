@@ -112,8 +112,29 @@ def arrival(fix: Fix, freq_hz: float, distance_km: float) -> datetime:
 
 
 def sector_energy(spectrum, index: int, center: float, half: int = SECTOR_HALF_DEG) -> float:
-    """m² arriving from within `half` of `center` in one frequency bin."""
+    """m² arriving from within `half` of `center` in one frequency bin.
 
+    The 1° bins `center - half` to `center + half`, as `Spectrum.density` lays
+    them out. Read by maximum entropy, the sector is integrated in closed form
+    (`spreadmethod.mem_sector`, identical to summing the bins and ~60x faster:
+    what makes the live gate affordable in a collection); a bin MEM cannot read
+    falls back to the two-term series, as `Spectrum.density` does.
+    """
+
+    if spectrum.spread == "mem":
+        from .spreadmethod import R1_CEILING, Unrealisable, mem_sector
+
+        vals = (spectrum.r1[index], spectrum.r2[index], spectrum.a1[index], spectrum.a2[index])
+        c11 = spectrum.c11[index]
+        if (c11 is not None and not math.isnan(c11)
+                and not any(v is None or math.isnan(v) for v in vals) and vals[0] < R1_CEILING):
+            try:
+                share = mem_sector(vals[0], vals[1], vals[2], vals[3],
+                                   center - half, center + half + 1)
+                return max(0.0, c11) * spectrum.bin_width(index) * share
+            except (Unrealisable, ZeroDivisionError, ValueError):
+                pass
+        spectrum = spectrum.with_spread("fourier")
     total = 0.0
     for d in range(-half, half + 1):
         total += spectrum.density(index, (center + d) % 360.0)
@@ -135,11 +156,23 @@ class Band:
     #: Fixes at strength whose path to this buoy crosses land: dropped.
     blocked: int = 0
 
+    def arrivals(self, freq_hz: float) -> list[datetime]:
+        """Every fix's arrival time at this frequency, sorted; cached."""
+
+        cache = self.__dict__.setdefault("_arrivals", {})
+        if freq_hz not in cache:
+            cache[freq_hz] = sorted(arrival(f, freq_hz, d) for f, d in zip(self.fixes, self.distances))
+        return cache[freq_hz]
+
     def contains(self, time: datetime, freq_hz: float, shift: timedelta = timedelta(0)) -> bool:
-        for fix, d in zip(self.fixes, self.distances):
-            if abs((time - shift - arrival(fix, freq_hz, d)).total_seconds()) <= TOL_H * 3600:
-                return True
-        return False
+        times = self.arrivals(freq_hz)
+        if not times:
+            return False
+        moment = time - shift
+        k = bisect.bisect_left(times, moment)
+        tol = TOL_H * 3600
+        return any(0 <= j < len(times) and abs((times[j] - moment).total_seconds()) <= tol
+                   for j in (k - 1, k))
 
 
 def bands(tracks: dict[str, list[Fix]], positions: dict[str, tuple[float, float]],
@@ -278,8 +311,8 @@ class Field:
         hour = timedelta(hours=1)
         for i in self.bins:
             f = self.freqs[i]
-            first = min(arrival(x, f, d) for x, d in zip(band.fixes, band.distances)) + shift
-            last = max(arrival(x, f, d) for x, d in zip(band.fixes, band.distances)) + shift
+            times = band.arrivals(f)
+            first, last = times[0] + shift, times[-1] + shift
             t = (first - timedelta(hours=TOL_H)).replace(minute=0, second=0, microsecond=0)
             while t <= last + timedelta(hours=TOL_H):
                 if start <= t <= end and band.contains(t, f, shift):
@@ -363,6 +396,168 @@ def bearing_chance(ridges: list, timed: list) -> tuple[int, float]:
     return actual, hits / PERMUTATIONS
 
 
+# --- GFS-Wave's hindcast: does the model have this storm's train? ----------
+
+#: The frequencies a band is asked about when no spectrum fixes them.
+MODEL_FREQS = tuple(round(0.04 + 0.005 * k, 3) for k in range(13))
+
+
+def load_hindcast(data_dir: Path, station: str) -> dict[datetime, list[tuple]]:
+    """`collector.wavehindcast`'s partitions by valid hour: (hs, tp, from, wind_sea)."""
+
+    import csv
+
+    path = Path(data_dir) / "wave_hindcast" / f"{station}.csv"
+    out: dict[datetime, list[tuple]] = {}
+    if not path.exists():
+        return out
+    with path.open(newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            t = datetime.fromisoformat(row["valid_utc"].replace("Z", "+00:00"))
+            parts = out.setdefault(t, [])
+            if row["part_tp_s"]:
+                parts.append((float(row["part_hs_m"]), float(row["part_tp_s"]),
+                              float(row["part_from_deg"]), row["wind_sea"] == "1"))
+    return out
+
+
+def model_share(band: Band, hindcast: dict, shift: timedelta = timedelta(0)) -> tuple[float | None, int]:
+    """Of the hours the band is open at some frequency, the share in which the
+    model has a swell partition from within the sector, at a period the band
+    holds at that hour. A MODEL: it says the attribution is consistent with
+    what WAVEWATCH III, which knows the storm, put in the water; it is never
+    the evidence that a swell arrived."""
+
+    open_hours = agree = 0
+    for t, parts in hindcast.items():
+        if not any(band.contains(t, f, shift) for f in MODEL_FREQS):
+            continue
+        open_hours += 1
+        if any(not wind and tp > 0
+               and abs((frm - band.bearing + 180) % 360 - 180) <= SECTOR_HALF_DEG
+               and band.contains(t, 1.0 / tp, shift)
+               for _, tp, frm, wind in parts):
+            agree += 1
+    return (agree / open_hours if open_hours else None), open_hours
+
+
+# --- As of each past hour: what the card would have said ------------------
+
+#: How often the backtest asks.
+BACKTEST_STEP_H = 3
+
+
+def showing(band: Band, field_: Field, at: datetime) -> bool:
+    """The live question: is this storm's swell arriving NOW, and has its band
+    so far been explained, as of now, at this buoy?"""
+
+    if not band.fixes or not any(band.contains(at, f) for f in field_.freqs.values()):
+        return False
+    return evaluate(band, field_, until=at).explains
+
+
+def backtest(band: Band, field_: Field) -> list[datetime]:
+    """Every BACKTEST_STEP_H-hour moment the card would have shown this storm."""
+
+    if not band.fixes or not field_.times:
+        return []
+    freqs = list(field_.freqs.values())
+    first = min(band.arrivals(f)[0] for f in freqs) - timedelta(hours=TOL_H)
+    last = max(band.arrivals(f)[-1] for f in freqs) + timedelta(hours=TOL_H)
+    first = max(first, field_.times[0]).replace(minute=0, second=0, microsecond=0)
+    last = min(last, field_.times[-1])
+    shown, t = [], first
+    while t <= last:
+        if showing(band, field_, t):
+            shown.append(t)
+        t += timedelta(hours=BACKTEST_STEP_H)
+    return shown
+
+
+# --- Live: the storms whose swell is arriving now, and explained so far ------
+
+#: A card train is this storm's when its period sits within 1.5 bins of a
+#: frequency the band says is arriving now (Origin's own tolerance).
+TRAIN_MATCH_HZ = 0.0075
+#: Spectra loaded for the live gate: the reference window plus the longest
+#: band and its earliest control.
+LIVE_DAYS = REFERENCE_DAYS + 20
+
+
+def _sent_by(band: Band, freq_hz: float, at: datetime) -> tuple[Fix, float] | None:
+    """The fix whose train at `freq_hz` reaches the buoy nearest `at`."""
+
+    best = None
+    for fix, d in zip(band.fixes, band.distances):
+        gap = abs((arrival(fix, freq_hz, d) - at).total_seconds())
+        if gap <= TOL_H * 3600 and (best is None or gap < best[0]):
+            best = (gap, fix, d)
+    return (best[1], best[2]) if best else None
+
+
+def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
+         positions: dict[str, tuple[float, float]], trains_now: dict[str, list[dict]],
+         land=(), min_kt: int = MIN_KT) -> list[dict]:
+    """Every storm the card may name at `at`, as `now.json` carries it.
+
+    Named only when, AS OF `at`, its band so far is explained at one of the
+    `GATE_STATIONS` and some of its train is arriving there now. Where it is
+    shown is 46232's question: a site (a break, or "buoy") shows it when one of
+    its card trains has a period the storm's band at 46232 says is arriving
+    now, from fixes with open water to 46232. The position quoted is NHC's fix
+    that sent that train, never Origin's dispersion distance.
+    """
+
+    out = []
+    for band in bands(tracks, positions, min_kt, land):
+        if band.station not in GATE_STATIONS or band.station not in fields:
+            continue
+        if not showing(band, fields[band.station], at):
+            continue
+        if any(o["storm"] == band.storm for o in out):
+            for o in out:
+                if o["storm"] == band.storm:
+                    o["gate"].append(band.station)
+            continue
+        here = next((b for b in bands({band.storm: tracks[band.storm]}, positions, min_kt, land)
+                     if b.station == RIDGE_STATION), None)
+        sites = {}
+        if here is not None and here.fixes:
+            for site, trains in trains_now.items():
+                for train in trains or []:
+                    period = train.get("period_s")
+                    if not period or train.get("local") or train.get("wind_sea"):
+                        continue
+                    f = 1.0 / period
+                    # Only the swell band the gate itself scored: a 7 s train
+                    # can be on the schedule of a storm 2,000 km off, and it is
+                    # still the local sea.
+                    if not BAND_HZ[0] - TRAIN_MATCH_HZ <= f <= BAND_HZ[1] + TRAIN_MATCH_HZ:
+                        continue
+                    if not any(abs(g - f) <= TRAIN_MATCH_HZ and here.contains(at, g)
+                               for g in MODEL_FREQS + (f,)):
+                        continue
+                    sent = _sent_by(here, f, at) or next(
+                        (_sent_by(here, g, at) for g in MODEL_FREQS
+                         if abs(g - f) <= TRAIN_MATCH_HZ and _sent_by(here, g, at)), None)
+                    if sent is None:
+                        continue
+                    fix, d = sent
+                    sites[site] = {
+                        "train_period_s": period,
+                        "fix_utc": fix.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "lat": fix.lat, "lon": fix.lon,
+                        "distance_km": round(d),
+                        "bearing_deg": round(initial_bearing(positions[RIDGE_STATION],
+                                                             (fix.lat, fix.lon))),
+                        "vmax_kt": fix.vmax_kt,
+                    }
+                    break
+        out.append({"storm": band.storm, "name": band.name.title(),
+                    "peak_kt": band.peak_kt, "gate": [band.station], "sites": sites})
+    return out
+
+
 def _fmt(score: Score) -> str:
     return "—" if score.rank is None else f"{score.rank:.2f}"
 
@@ -405,27 +600,47 @@ DAY_STATION = "46047"
 
 
 def report(results: list[Result], ridges: list, ridge_bands: list[Band],
-           days: list[Result] = ()) -> str:
+           days: list[Result] = (), models: dict | None = None,
+           shown: dict | None = None) -> str:
     lines = [
         f"Hurricanes run forward to the buoys (fixes >= the strength asked; sector "
         f"+/-{SECTOR_HALF_DEG}°, timing +/-{TOL_H:.0f} h; rank = in-band cells' mean place in "
         f"their frequency's own distribution, 0.5 typical)",
         "",
-        "| storm | buoy | bearing | distance | rank | coverage | time controls "
-        f"({', '.join(f'{d:+d} d' for d in SHIFT_DAYS)}) | own sector / turned ±45° | explains? |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| storm | buoy | fixes open (blocked by land) | bearing | distance | rank | coverage | "
+        f"time controls ({', '.join(f'{d:+d} d' for d in SHIFT_DAYS)}) | own sector / turned "
+        "±45° | explains? | GFS-Wave has it (best shifted) |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in results:
         b = r.band
+        if not b.fixes:
+            lines.append(f"| {b.name.title()} ({b.storm.upper()}), {b.peak_kt} kt | {b.station} | "
+                         f"0 ({b.blocked}) | every fix behind land | | | | | | no | |")
+            continue
         if r.actual.cells == 0:
             continue
+        model = models.get((b.storm, b.station)) if models else None
+        model_text = ("—" if not model or model[0] is None
+                      else f"{model[0]:.0%} ({model[1]:.0%})")
         lines.append(
             f"| {b.name.title()} ({b.storm.upper()}), {b.peak_kt} kt | {b.station} | "
+            f"{len(b.fixes)} ({b.blocked}) | "
             f"{b.bearing:.0f}° | {min(b.distances):,.0f}-{max(b.distances):,.0f} km | "
             f"{_fmt(r.actual)} | {r.actual.coverage:.0%} | "
             f"{' '.join(_fmt(r.shifted[d]) for d in SHIFT_DAYS)} | "
             f"{'—' if r.direction_ratio is None else f'x{r.direction_ratio:.1f}'} | "
-            f"{'**yes**' if r.explains else 'no'} |")
+            f"{'**yes**' if r.explains else 'no'} | {model_text} |")
+    if shown is not None:
+        lines += ["", "What the card would have shown, asked every "
+                  f"{BACKTEST_STEP_H} h as of that moment (the band so far, ranked "
+                  f"against the {REFERENCE_DAYS} days before; no later hour seen), "
+                  f"at the buoys that gate it ({', '.join(GATE_STATIONS)}):", "",
+                  "| storm | buoy | shown | first | last |", "|---|---|---|---|---|"]
+        for (name, station), moments in shown.items():
+            lines.append(f"| {name} | {station} | {len(moments) * BACKTEST_STEP_H} h | "
+                         + (f"{moments[0]:%m-%d %H}Z | {moments[-1]:%m-%d %H}Z |" if moments
+                            else "never | |"))
     if days:
         lines += ["", f"Day by day at {DAY_STATION} (each day's fixes alone, at that day's "
                   "own bearing):", "",
@@ -481,23 +696,35 @@ def run(data_dir: Path, min_kt: int = MIN_KT) -> str:
     if not tracks:
         return ("no b-decks archived in data/besttracks/: run collector.besttracks on "
                 "Actions (origin-tracks.yml)")
+    from .landpath import load_land
+
     positions = load_coordinates()
-    all_bands = bands(tracks, positions, min_kt)
+    all_bands = bands(tracks, positions, min_kt, load_land(str(data_dir)))
     fields: dict[str, Field] = {}
-    results = []
+    hindcasts: dict[str, dict] = {}
+    results, models, shown = [], {}, {}
     for band in all_bands:
         if band.station not in fields:
             try:
                 fields[band.station] = Field(load_spectra(Path(data_dir) / "spectra" / band.station))
             except (FileNotFoundError, ValueError):
                 fields[band.station] = Field([])
+            hindcasts[band.station] = load_hindcast(data_dir, band.station)
         results.append(evaluate(band, fields[band.station]))
+        if band.fixes and hindcasts[band.station]:
+            share, _ = model_share(band, hindcasts[band.station])
+            controls = [model_share(band, hindcasts[band.station], timedelta(days=d))[0]
+                        for d in SHIFT_DAYS]
+            controls = [c for c in controls if c is not None]
+            models[(band.storm, band.station)] = (share, max(controls) if controls else 0.0)
+        if band.station in GATE_STATIONS:
+            shown[(band.name.title(), band.station)] = backtest(band, fields[band.station])
     archives = origin.load_archives(data_dir)
     ridges = origin.arrivals(archives["46232"], archives, positions.get("46232"))
     ridge_bands = [b for b in all_bands if b.station == RIDGE_STATION]
     days = [evaluate(d, fields[DAY_STATION]) for b in all_bands if b.station == DAY_STATION
             for d in by_day(b)] if DAY_STATION in fields else []
-    return report(results, ridges, ridge_bands, days)
+    return report(results, ridges, ridge_bands, days, models, shown)
 
 
 def main(argv: list[str] | None = None) -> int:
