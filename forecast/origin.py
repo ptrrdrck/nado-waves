@@ -23,9 +23,15 @@ ridge; and each ridge is fitted with the same straight line
 The slope gives R, how far away the storm was; the line reaches f = 0 at t₀,
 when it blew. The bearing is the ridge's own direction at an UNSHADOWED buoy,
 46047 and then 46086, and never 46232's own: measured over the same arrivals
-(BRIEFING §37) 46232 reads a north-west swell 50-74° too far south, because the
-islands bend it, and a south-east one 20-37° off. An arrival neither unshadowed
-buoy has keeps its distance and date and gets no place.
+(BRIEFING §37) 46232's mean direction reads a north-west swell 50-74° too far
+south, and a south-east one 20-37° off. Why was measured in §38, and it is not
+"the islands bend it": about half is the average itself, taken across a
+westerly and a southerly lobe at one period; the rest is a westerly lobe that
+stays near 270° whatever 46047 reads -- and pins likewise at 46258 and 46086,
+a different hull, each at its own bearing, none of them at a charted island's
+edge. Its cause is open. An open-ocean bearing is what Origin needs, so it is
+read where the sea is open. An arrival neither unshadowed buoy has keeps its
+distance and date and gets no place.
 
 What it is: a measurement of the buoy's record, run backwards. What it is not:
 a forecast, a storm track, or a verified position. Nothing observes the storm.
@@ -87,8 +93,10 @@ PLAUSIBLE_KM = (500.0, 20000.0)
 #: The line is fitted on the ridge's first hours only: later, trains born
 #: elsewhere drift into the same bins and the ridge stops being one storm's.
 FIT_HOURS = 48.0
-#: Unshadowed only, most exposed first. 46232 is deliberately absent: see the
-#: module docstring.
+#: Most exposed first. 46232 is deliberately absent: see the module docstring.
+#: 46086 is open to the south and NOT to the north-west: on north-west hours
+#: its own westerly lobe sits ~30° south of 46047's and does not follow it
+#: (BRIEFING §38). Through 2026-10-02 it gave two bearings, both southerly.
 BEARING_STATIONS = ("46047", "46086")
 #: A bearing buoy's spectrum must be within this of the ridge's hour, and
 #: carry at least this much energy at the ridge's frequency, at this many of

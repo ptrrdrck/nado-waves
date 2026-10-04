@@ -340,7 +340,11 @@ forecaster actually verifies against, Surfline included.
    train**: a break shows only arrivals that are one of its own card trains,
    which is the aperture's answer, never a bearing tested against a window.
    **Its direction is never 46232's** (it reads north-west swell 50–74° too far
-   south), but 46047's, then 46086's; neither, and there is no place. Two buoys
+   south — half of that is its mean averaging two lobes, the rest a westerly
+   lobe that pins near 270°, not at any island's edge; BRIEFING §38), but
+   46047's, then 46086's; neither, and there is no place. 46086 pins too, so
+   it is a bearing buoy for the south only; whether to withhold its
+   north-west bearings is the owner's open decision (§38). Two buoys
    reading one storm differ by ~18–25% at the median, so distances are rounded
    to 500 mi and 500 km and said "about", and the place is a sea. Shown only
    once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "still arriving"
@@ -603,7 +607,9 @@ forecaster actually verifies against, Surfline included.
                         shoreline.py (NOAA's ENC coastline, by named REGION —
                         `coronado` carries the break chords, `baja` carries
                         the islands and the Mexican coast, `point_loma` the
-                        tip — run on Actions),
+                        tip, `channel_islands_south`/`_north` the eight
+                        Channel Islands, read by no chain (§38) — run on
+                        Actions),
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log),
@@ -688,6 +694,11 @@ forecaster actually verifies against, Surfline included.
       units.py          ft/mph first, m/kt in parentheses -- display only
       tideturns.py      the next high/low, and why its direction is not
                         differenced from the measured level      [built]
+      nwbearing.py      46232's north-west bearing: the mean against its
+                        lobes, the hull control, the Channel Islands' edges,
+                        what the lobe carries into each break, shown train
+                        headings against their own lobes; reports, never
+                        edits (BRIEFING §38)                      [built]
       shorenormal.py    surveyed shore normals vs the digitised chords,
                         swept over scale; reports, never edits    [built]
       blockeredge.py    a blocker's edges read off the charted coast, against
@@ -750,7 +761,9 @@ forecaster actually verifies against, Surfline included.
                         coastal 1431 - the islands and the Mexican coast to
                         32.383, where NOAA's charts stop) and `_point_loma`
                         (harbour 2815, approach 1612, coastal 879 — the
-                        harbour band is holed at the tip). A CHART product,
+                        harbour band is holed at the tip), and
+                        `_channel_islands_south`/`_north` (the eight Channel
+                        Islands; context, read by no chain). A CHART product,
                         generalised, not survey-grade MHW. Every file is
                         clipped by its own query envelope on all four edges,
                         which is why the region is in the filename.
@@ -883,6 +896,14 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   session), hourly, 7 days, per break on each `Hour` as `local_wind_*`.
   Chosen over KNZY's TAF: a TAF runs 24–30 h in coded change groups written
   for the runway.
+- **46232 is the sea after the Channel Islands, and that sea is not
+  uniform.** On north-west swell its westerly lobe pins near 270° whatever
+  46047 reads, 46258's at 286° and 46086's at 279° — each at its own bearing,
+  none at a charted island edge (BRIEFING §38). That lobe carries ~24% of
+  Center's and ~36% of South's 5 m energy on those hours, and the breaks'
+  rays leave deep water 25 km from both 46232 and 46258. Never "fix" 46232's
+  direction toward 46047's: the beach needs the sea where it is, not the
+  open ocean's, and §3a still forbids a substitute anchor.
 - **"At the buoy" means no aperture at all — `transform.at_buoy`, not
   `through(spectrum, spot, [])`.** The latter still applies that spot's seaward
   half-plane, which excludes 304–124° and dropped **12–26% of the energy** out

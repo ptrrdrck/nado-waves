@@ -946,33 +946,16 @@ class Train:
         return self.period_s < WIND_SEA_PERIOD_S
 
 
-def split_trains(
-    energies: list[tuple[int, float]],
-    frequencies: list[float],
-    sin_sums: dict[int, float],
-    cos_sums: dict[int, float],
-    *,
-    min_share: float = MIN_TRAIN_SHARE,
-    min_hs: float = MIN_TRAIN_HS_M,
-) -> list[Train]:
-    """Split a 1-D energy spectrum into trains at its local minima.
+def train_bands(energies: list[tuple[int, float]]) -> list[list[tuple[int, float]]]:
+    """The bins of each train `split_trains` reports, before its thresholds.
 
-    **This is a peak split, not a spectral partitioning.** WAVEWATCH III uses a
-    watershed over the full 2-D spectrum and can separate two trains that share
-    a frequency band while arriving from different directions; this cannot, and
-    will report them as one train at the energy-weighted mean heading. It is
-    honest for the common case — a long-period swell and a short-period wind
-    sea are well separated in frequency — and it is named for what it does so
-    that nobody later reads more into it.
-
-    `energies` is (bin index, energy in m²) in increasing frequency.
+    `split_trains`' own peak split, factored out so a report can ask where a
+    train's energy comes from bin by bin (`forecast.nwbearing`) without a
+    second copy of the rule drifting from this one.
     """
 
     live = [(i, e) for i, e in energies if e > 0.0]
-    if not live:
-        return []
-    total = sum(e for _, e in live)
-    if total <= 0:
+    if not live or sum(e for _, e in live) <= 0:
         return []
 
     # Local maxima, then assign every bin to the peak it descends from. With
@@ -1005,12 +988,40 @@ def split_trains(
         trough = min(range(left, right + 1), key=lambda k: live[k][1])
         bounds.append(trough)
     bounds.append(len(live))
+    return [live[a:b] for a, b in zip(bounds, bounds[1:]) if live[a:b]]
+
+
+def split_trains(
+    energies: list[tuple[int, float]],
+    frequencies: list[float],
+    sin_sums: dict[int, float],
+    cos_sums: dict[int, float],
+    *,
+    min_share: float = MIN_TRAIN_SHARE,
+    min_hs: float = MIN_TRAIN_HS_M,
+) -> list[Train]:
+    """Split a 1-D energy spectrum into trains at its local minima.
+
+    **This is a peak split, not a spectral partitioning.** WAVEWATCH III uses a
+    watershed over the full 2-D spectrum and can separate two trains that share
+    a frequency band while arriving from different directions; this cannot, and
+    will report them as one train at the energy-weighted mean heading. It is
+    honest for the common case — a long-period swell and a short-period wind
+    sea are well separated in frequency — and it is named for what it does so
+    that nobody later reads more into it.
+
+    `energies` is (bin index, energy in m²) in increasing frequency.
+    """
+
+    bands = train_bands(energies)
+    if not bands:
+        return []
+    total = sum(e for band in bands for _, e in band)
+    if total <= 0:
+        return []
 
     trains: list[Train] = []
-    for start, end in zip(bounds, bounds[1:]):
-        band = live[start:end]
-        if not band:
-            continue
+    for band in bands:
         m0 = sum(e for _, e in band)
         if m0 <= 0:
             continue

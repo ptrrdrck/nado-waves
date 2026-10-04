@@ -430,7 +430,7 @@ t₀ = where the line reaches f = 0    when it blew
 
 Every hour, each peak in the buoy's spectrum between 10 and 29 seconds is found and followed from hour to hour. A peak that moves steadily to shorter periods for at least 12 hours, starting at 13 seconds or longer, on a line straight enough to read (R² of 0.8 or more), is a readable arrival.
 
-The direction is read at a buoy the islands do not shadow: 46047 at Tanner Banks, then 46086 in the San Clemente Basin. Never at 46232 itself, which sits behind the islands and reads a north-west swell 50 to 74° too far south. An arrival neither of them saw gets a distance and a date and no place.
+The direction is read where the sea is open: 46047 at Tanner Banks, then 46086 in the San Clemente Basin, which is open to the south but not to the north-west. Never at 46232 itself: on a north-west swell it reads two directions at once, a westerly one held near 270° and the south's, and their average falls 50 to 74° too far south. An arrival neither of them saw gets a distance and a date and no place.
 
 An origin belongs to a train, so a break shows only the arrivals that are one of its own trains, and the buoy's tab only those among the buoy's. While a train is still arriving its reading can move, so it says “still arriving” and how many hours have been read. When nothing readable is arriving, the section names the last readable arrival at that break in the last three weeks.
 
