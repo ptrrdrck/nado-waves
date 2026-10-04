@@ -135,6 +135,9 @@ def test_live_names_a_storm_its_buoys_bore_out_and_places_it_from_its_track():
     stated = got[0]["match"]["46047"]
     assert stated["trials"] >= S.MATCH_MIN_TRIALS
     assert stated["score"] == 1.0 and got[0]["word"] == "strong"
+    # How long its band has been arriving at the buoy, as of `at`.
+    began = min(S.bands({"ep17": fixes}, positions)[0].arrivals(f)[0] for f in FREQS)
+    assert stated["hours"] == round((at - began).total_seconds() / 3600 + S.TOL_H)
     south = got[0]["sites"]["coronado_south"]
     assert south["vmax_kt"] == 120 and 1900 < south["distance_km"] < 2100
     assert "coronado_north" not in got[0]["sites"]
