@@ -2928,11 +2928,43 @@ class TestOrigin:
         assert "`about ${about(km * MI_PER_KM, step)} mi" in SOURCE
 
     def test_the_empty_state_names_the_last_readable_arrival(self):
-        assert "Last readable arrival: " in SOURCE
+        """In the same three lines as any other origin (owner's design,
+        2026-10-04), marked as past, on the train it was at its peak hour."""
+
+        assert 'tag: past ? "last readable arrival" : ""' in SOURCE
+        assert "Arrived ${onDay(a.first_utc)}, no longer arriving" in SOURCE
+        assert "past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s" in SOURCE
         assert "No readable arrival in the last ${o.lookback} days" in SOURCE
 
     def test_a_running_arrival_says_so(self):
-        assert "still arriving: " in SOURCE
+        assert "Read off the swell, ${Math.max(1, Math.round(a.hours_read))} h so far" in SOURCE
+
+    def test_every_origin_is_the_same_three_lines(self):
+        """What it is; where and when, with its train; how it is known."""
+
+        entry = SOURCE[SOURCE.index("function originEntry"):SOURCE.index("function hurricaneEntry")]
+        assert entry.count('<span class="turn">') == 2 and entry.count('<span class="val">') == 1
+        for kind in ("function hurricaneEntry", "function readingEntry"):
+            body = SOURCE[SOURCE.index(kind):].split("\n}\n")[0]
+            assert "originEntry({" in body and "srcLines" not in body
+            assert "s&nbsp;train`" in body
+
+    def test_one_provenance_follows_every_mix(self):
+        body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
+        assert body.count("originSources(") == 1 and "srcLines" not in body
+
+    def test_an_unplaced_storm_is_called_one(self):
+        assert 'isPlaced(a) ? sea(a.region) : "Unplaced storm"' in SOURCE
+        assert "Unplaced storm: neither ${o.bearingStations.map((id) => buoyName(o, id)).join(\" nor \")}" in SOURCE
+
+    def test_buoys_are_named_as_ndbc_names_them(self):
+        """"Tanner Banks, CA (NDBC 46047)", as the card's other provenance
+        lines name 46232, and never typed: now.json carries them from the
+        fetched metadata."""
+
+        assert "`${o.names[id]} (NDBC ${id})`" in SOURCE
+        sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
+        assert "46047" not in sources and "46086" not in sources and "46232" not in sources
 
     def test_nothing_upstream_is_called_a_confirmation(self):
         """Measured, the upstream check never tested the distance."""
@@ -2973,15 +3005,16 @@ class TestHurricane:
     def test_it_is_named_from_nhc_and_says_so(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
         assert "Hurricane ${h.name}" in entry
-        assert "Position and winds: NHC best track, an analysis" in entry
+        assert "Hurricanes: NHC best track, an analysis" in SOURCE
         assert "farAway(s.distance_km, 100)" in entry
         assert "speed(s.vmax_kt)" in entry
 
     def test_it_states_its_match_with_the_count_behind_it(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert "match, `\n    + `${Math.round(h.best * 100)}%" in entry
-        assert "${m.beaten} of ${m.trials}" in entry
-        assert "its own track moved earlier" in entry
+        assert "match to NHC's track, `\n      + `${Math.round(h.best * 100)}%" in entry
+        sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
+        assert "${m.beaten} of ${m.trials}" in sources
+        assert "beat the same track moved earlier" in sources
 
     def test_the_match_is_never_called_a_probability_or_a_confidence(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
