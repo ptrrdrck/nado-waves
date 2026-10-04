@@ -144,10 +144,21 @@ WANTED = re.compile(r"shorelin|cusp|coalne|coast.?line|\bmhw\b|coastal[_ ]?surve
 #:   envelope on every side and cannot be the box's own corner. The east edge
 #:   stops at -117.226 so the far side of the channel -- North Island -- stays
 #:   out of the file rather than being filtered out downstream.
+#: - `channel_islands_south` and `channel_islands_north` — the islands between
+#:   the open Pacific and 46232 (BRIEFING §38): San Clemente, Santa Catalina,
+#:   Santa Barbara and San Nicolas in the first; Santa Cruz, Santa Rosa, San
+#:   Miguel and Anacapa in the second. They exist to answer whether 46232's
+#:   north-west energy arrives from a bearing the islands' edges explain, and
+#:   whether those edges sit differently from the buoy than from the breaks.
+#:   Two boxes, not one: a single envelope round both groups would take in the
+#:   mainland from Palos Verdes to Ventura. Each keeps every island at least
+#:   5 km inside and the mainland out on every edge.
 REGIONS: dict[str, tuple[float, float, float, float]] = {
     "coronado": (-117.2200, 32.6550, -117.1500, 32.7060),
     "baja": (-117.4000, 31.6000, -116.5500, 32.6600),
     "point_loma": (-117.3000, 32.6400, -117.2260, 32.7500),
+    "channel_islands_south": (-119.6500, 32.7500, -118.2500, 33.5500),
+    "channel_islands_north": (-120.5500, 33.8500, -119.3000, 34.1200),
 }
 
 #: The default region, kept as a module constant because every existing caller
