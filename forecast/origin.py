@@ -373,6 +373,9 @@ def _arrival_dict(a: Arrival, running: bool) -> dict:
         "bearing_from": a.bearing_from,
         "origin": None if a.origin is None else [round(v, 1) for v in a.origin],
         "region": a.region,
+        # The train it was at its peak hour, where a past arrival is matched to
+        # a tab's trains: the card's "last readable arrival" names it by this.
+        "peak_period_s": round(1.0 / peak_point(a).freq_hz, 1),
     }
 
 

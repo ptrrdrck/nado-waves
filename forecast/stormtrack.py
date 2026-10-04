@@ -689,8 +689,14 @@ def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
         entry = found.setdefault(band.storm, {
             "storm": band.storm, "name": band.name.title(), "peak_kt": band.peak_kt,
             "match": {}})
+        # How long its band has been arriving at this buoy, as of `at`: the
+        # hours the match has read so far (from the archive's first spectrum
+        # when the band began before it).
+        began = max(min(band.arrivals(f)[0] for f in field_.freqs.values())
+                    - timedelta(hours=TOL_H), field_.times[0])
         entry["match"][band.station] = {"score": round(m.score, 2), "beaten": m.beaten,
-                                        "trials": len(m.trials)}
+                                        "trials": len(m.trials),
+                                        "hours": max(0, round((at - began).total_seconds() / 3600))}
     out = []
     for entry in found.values():
         best = max(v["score"] for v in entry["match"].values())

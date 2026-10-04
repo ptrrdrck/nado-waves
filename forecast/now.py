@@ -806,6 +806,11 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
     block = origin.reading(spectra, archives, load_coordinates().get(STATION),
                            newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
     block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now)
+    # NDBC's own names, from the fetched metadata (never typed), so the card's
+    # provenance can name each bearing buoy as "Name, CA (NDBC id)", as its
+    # other lines name the swell buoy.
+    block["station_names"] = {s: station_name(s, data_dir)
+                              for s in (STATION, *origin.BEARING_STATIONS)}
     return block
 
 
