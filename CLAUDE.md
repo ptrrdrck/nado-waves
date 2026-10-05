@@ -253,15 +253,22 @@ forecaster actually verifies against, Surfline included.
    was not kept" rather than borrowing another build's detail. Under it, in
    red, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. **Under each Now card are the hourly charts** (owner's
-   requests, 2026-09-27; `forecast/series.py`): height, north vs. south (north less south), window
-   ratio, a 24 h %K and **Origins** (owner's request, 2026-10-03; below), switched above the plot, folded out from an
+   requests, 2026-09-27; `forecast/series.py`), in the owner's order
+   (2026-10-05): Height, Window (ratio), **Origins** (owner's request, 2026-10-03;
+   below) and North vs. South (north less south) — the 24 h %K view taken off
+   the menu the same day by the owner's call, its spec (`buildSpec`'s
+   "range") and `series.py`'s pct_k / pct_d kept so it can return — switched above the plot, folded out from an
    "Charts" line with the calculation's caret (closed until opened) — the
    last line on every card, below the provenance and under the card's one
    rule; the provenance has space above it, no rule (owner's calls,
-   2026-10-02). **Each tab plots its own line only, in ink** — the break
+   2026-10-02). **Each tab plots its own line in ink** — the break
    on a break's tab, the buoy on the buoy's (owner's call, 2026-09-28, after
-   a round of per-break colours was rolled back: comparing the breaks on one
-   plot belongs somewhere else in the app). The Window chart carries a
+   a round of per-break colours was rolled back). **Height alone draws the
+   other two breaks under it** (owner's request, 2026-10-05), lighter and
+   thinner in `--faint`, north to south, the second dashed — greys and a
+   dash, never per-break colours — so the three compare at a glance on one
+   axis; the readout names all three, the tab's own first. The buoy's tab and
+   every other view keep one line. The Window chart carries a
    direction strip under it on the same hours: a dot an hour where the
    buoy's peak came from, never joined (the peak jumps between trains), over
    the break's open windows shaded. It says where the peak sits, never

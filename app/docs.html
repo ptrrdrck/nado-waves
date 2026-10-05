@@ -1179,11 +1179,12 @@ breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level<
       <p>An hour with no buoy spectrum is a gap: a pale band with no line
         through it, at every zoom, never filled from the hour beside it. A break
         has no breaking height for an hour whose water level was not measured,
-        which is every hour before 17 September 2026. Each tab draws its own line only.</p>
+        which is every hour before 17 September 2026. Each tab draws its own line, in ink; only
+        Height draws anything beside it.</p>
       <dl class="terms">
-        <dt>Height</dt><dd>The break's breaking height, or the buoy's own on its tab.</dd>
-        <dt>North vs. South</dt><dd>North's less South's. Where it crosses zero, which of the two
-          is bigger has flipped.</dd>
+        <dt>Height</dt><dd>The break's breaking height, with the other two breaks' in lighter
+          lines under it, the more southern of the two dashed, so the three can be compared at a
+          glance on one axis. On the buoy's tab, the buoy's own height alone.</dd>
         <dt>Window</dt><dd>A break's height through its windows as a share of the buoy's,
           before the seabed: the <a href="#calc-windows">Windows row</a>. Under it, a dot for each
           hour marks where the buoy's peak came from, over the break's open windows shaded. The
@@ -1191,9 +1192,6 @@ breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level<
           is spread as well as with where its peak sits. A dot is never &ldquo;inside&rdquo; or
           &ldquo;outside&rdquo;: a single bearing tested against a window is the yes-or-no the
           model refuses.</dd>
-        <dt>Range %K</dt><dd>Where the buoy sits in its own last 24 hours' range, less where the
-          break sits in its own. A position in a range, not a height, left blank where too few of
-          those 24 hours were measured.</dd>
         <dt>Origins</dt><dd>Where the swell arriving at the tab came from, over time, on every
           break's tab and the buoy's. A black dot every six hours is a hurricane the card would
           have named then, with the match it would have stated (see <a href="#swell-origin">Origin</a>),
@@ -1208,10 +1206,9 @@ breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level<
           of 1 to 17 September, places a named storm on no tab, so Marie's swell, which arrived
           then, is not on this chart. Rebuilt with today's chain like the rest: the whole archive
           once a day, the newest hours with every collection.</dd>
+        <dt>North vs. South</dt><dd>North's less South's. Where it crosses zero, which of the two
+          is bigger has flipped.</dd>
       </dl>
-<pre class="math">%K = 100 × (now − lowest) / (highest − lowest)      <span class="c">over the last 24 hours</span>
-                                                     <span class="c">blank under 20 measured hours, or a range under 2 cm</span>
-chart = buoy %K − break %K</pre>
       <figure>
         <div class="mapbox" data-map data-view="whole" data-dists="0" data-rays="0"></div>
         <figcaption>The windows the Window chart's direction strip shades, here as they sit on the
@@ -1488,8 +1485,6 @@ chart = buoy %K − break %K</pre>
         the seabed depths are measured from.</dd>
       <dt>Harmonic prediction</dt><dd>The tide worked out from its astronomical constituents.</dd>
       <dt>Departure</dt><dd>The gauge's measured level less its prediction.</dd>
-      <dt>%K</dt><dd>Where a value sits within its own range over a window of time, 0 at the low and
-        100 at the high.</dd>
       <dt>GFS-Wave, GEFS-Wave</dt><dd>NOAA's global wave model, and the same model run as a
         31-member ensemble.</dd>
       <dt>ENC</dt><dd>NOAA's electronic navigational charts, the source of every coordinate in the
