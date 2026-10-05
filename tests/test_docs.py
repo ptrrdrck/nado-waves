@@ -184,7 +184,7 @@ class TestItFoldsInInfo:
 
     def test_the_charts_are_explained(self):
         assert "today's" in TEXT and "rebuilt" in TEXT
-        for view in ("Height", "North vs. South", "Window", "Range %K", "Shore direction",
+        for view in ("Height", "North vs. South", "Window", "Day's Range", "Shore direction",
                      "Departure", "Forecast + Observed", "Swell trains", "Ensemble",
                      "Daily range"):
             assert f"<dt>{view}</dt>" in DOCS, view

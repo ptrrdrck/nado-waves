@@ -380,9 +380,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
               stroke-width:3px;stroke-linejoin:round}
 .series .gapband{fill:var(--line);opacity:.55}
 .series .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-/* One line, the tab's own, in ink like every other chart (owner's call,
-   2026-09-28): comparing breaks is for another part of the page. */
+/* The tab's own line in ink like every other chart (owner's call,
+   2026-09-28). Height alone draws the other two breaks under it, lighter and
+   thinner, the more southern of the two dashed (owner's request, 2026-10-05). */
 .series .ln{stroke:var(--ink)} .series .pt,.series .hot{fill:var(--ink)}
+.series .ln.other{stroke:var(--faint);stroke-width:1.25} .series .pt.other{fill:var(--faint)}
+.series .ln.other.alt{stroke-dasharray:4 3}
 .series .ln.slow{stroke:var(--soft);stroke-width:1}
 .series .pt.slow{fill:var(--soft)}
 .series .cross{stroke:var(--soft);stroke-width:1}
@@ -447,6 +450,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .chart .legend .sw{display:inline-block;width:16px;height:2px;border-radius:1px;
                    vertical-align:middle;margin-right:6px;background:var(--surf)}
 .chart .legend .sw.main{color:var(--ink)} .chart .legend .sw.slow{color:var(--soft);height:1.5px}
+.chart .legend .sw.other{color:var(--faint);height:1.5px}
+.chart .legend .sw.other.alt{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)}
 .chart .legend .sw{background:currentColor}
 .chart .legend .sw.winband{height:9px;border-radius:2px;color:var(--surf);opacity:.18}
 .chart .legend .sw.obs{color:var(--measured)} .chart .legend .sw.run{color:var(--soft);height:1px;opacity:.8}
@@ -1830,17 +1835,19 @@ function buoyPanel(buoy, measured = null) {
 // An hour with no spectrum is a gap: a pale band, and the line is not joined
 // across it -- at every zoom. A single hour between two gaps is a dot.
 //
-// Five views of the same hours, switched above the plot. The buoy's tab has
-// only the heights and the origins, because the other three are about a
-// break. Each tab plots
-// its own line only, in ink (owner's call, 2026-09-28): comparing the breaks
-// on one plot is for another part of the page.
+// Five views of the same hours, switched above the plot, in the owner's order
+// (2026-10-05). The buoy's tab has only the heights and the origins, because
+// the other three are about a break. Each tab plots its own line in ink
+// (owner's call, 2026-09-28); Height alone draws the other two breaks under it,
+// lighter, so the three can be compared at a glance (owner's request,
+// 2026-10-05). "Day's Range" was "Range %K" until the same day: the owner
+// asked for a name a reader needs no chartist's vocabulary for.
 const CHART_MODES = [
   {id: "height", label: "Height"},
-  {id: "diff", label: "North vs. South"},
   {id: "window", label: "Window"},
-  {id: "range", label: "Range %K"},
+  {id: "range", label: "Day's Range"},
   {id: "origins", label: "Origins"},
+  {id: "diff", label: "North vs. South"},
 ];
 let CHART_MODE = "height";
 // The Forecast tab's charts (owner's request, 2026-09-29): the same place on
@@ -2219,19 +2226,36 @@ function buildSpec(id, mode, steps) {
   const buoyOf = (s) => (live(s) && s.buoy) || {};
   const num = (v) => (v == null || !isFinite(v) ? null : v);
   const name = SHORT[id] || id;
-  const named = (v, text) => (v == null ? `${text} —` : `${text} ${v}`);
   const value = (text) => `<span class="v">${text}</span>`;
 
   if (mode === "origins") return originsSpec(id, steps);
-  if (id === BUOY_TAB || mode === "height") {
-    const buoy = id === BUOY_TAB;
-    const values = steps.map((s) => num(buoy ? buoyOf(s).hs_m : brk(s, id).hs_m));
+  if (id === BUOY_TAB) {
+    const values = steps.map((s) => num(buoyOf(s).hs_m));
     return {
       scale: "height",
-      lines: [{cls: "main", label: buoy ? `Buoy ${station}` : name, values}],
-      says: buoy ? `The buoy's height at ${station} each hour.`
-        : `${name}'s breaking height each hour.`,
-      read: (i) => value(`${buoy ? "Buoy" : name} ${height(values[i])}`),
+      lines: [{cls: "main", label: `Buoy ${station}`, values}],
+      says: `The buoy's height at ${station} each hour.`,
+      read: (i) => value(`Buoy ${height(values[i])}`),
+    };
+  }
+  if (mode === "height") {
+    // The other two breaks under the tab's own line, lighter, north to south,
+    // the second dashed so the two can be told apart without colour. A break
+    // with no height in the hours loaded is left out, key and readout too.
+    // The axis spans all three, so a break's tab does not rescale to its own.
+    const values = steps.map((s) => num(brk(s, id).hs_m));
+    const others = ORDER.filter((b) => b !== id).map((b, k) => ({
+      cls: k ? "other alt" : "other", label: SHORT[b] || b,
+      values: steps.map((s) => num(brk(s, b).hs_m)),
+    })).filter((ln) => ln.values.some((v) => v != null));
+    return {
+      scale: "height",
+      lines: [...others, {cls: "main", label: name, values}],
+      legend: others.length ? [{cls: "main", label: name}, ...others] : undefined,
+      says: `${name}'s breaking height each hour`
+        + (others.length ? `, with ${others.map((ln) => ln.label).join(" and ")}'s in lighter lines.` : "."),
+      read: (i) => [value(`${name} ${height(values[i])}`),
+                    ...others.map((ln) => `${ln.label} ${height(ln.values[i])}`)].join(" &middot; "),
     };
   }
 
@@ -2281,9 +2305,10 @@ function buildSpec(id, mode, steps) {
     };
   }
 
-  // Range %K: where the buoy sits in its own last day's range, less where this
-  // break sits in its. The page only subtracts; forecast.series computes both
-  // and leaves an hour without enough readings undefined, never filled.
+  // Day's Range: where the buoy sits in its own last day's range, less where
+  // this break sits in its (a chartist's %K, which the payload still calls it).
+  // The page only subtracts; forecast.series computes both and leaves an hour
+  // without enough readings undefined, never filled.
   const diff = (key) => steps.map((s) => {
     const a = num(buoyOf(s)[key]), b = num(brk(s, id)[key]);
     return a == null || b == null ? null : a - b;
@@ -2292,7 +2317,7 @@ function buildSpec(id, mode, steps) {
   return {
     scale: "range",
     lines: [{cls: "slow", label: `${SERIES.d_hours || 3} h mean`, values: diff("pct_d")},
-            {cls: "main", label: "Buoy %K less break %K", values: diff("pct_k")}],
+            {cls: "main", label: `Buoy less ${name}`, values: diff("pct_k")}],
     zero: true, above: "Buoy higher in its range", below: `${name} higher in its range`,
     says: `Where the buoy's height sits in its own last ${lookback} hours, 0 at the low and `
       + `100 at the high, less where ${name}'s sits in its. Above zero, the buoy is nearer its `
@@ -2303,7 +2328,8 @@ function buildSpec(id, mode, steps) {
       const a = num(buoyOf(steps[i]).pct_k), b = num(brk(steps[i], id).pct_k);
       const k = (v) => (v == null ? null : Math.round(v));
       const d = a == null || b == null ? null : k(a) - k(b);
-      return `${named(k(a), "Buoy %K")} &middot; ${named(k(b), `${name} %K`)} &middot; `
+      const at = (v) => (v == null ? "—" : `${v}%`);
+      return `Buoy at ${at(k(a))} of its day's range &middot; ${name} at ${at(k(b))} &middot; `
         + value(`difference ${d == null ? "—" : (d > 0 ? "+" : d < 0 ? "−" : "") + Math.abs(d)}`);
     },
   };
@@ -2601,7 +2627,7 @@ function fcSpec(id, mode, steps) {
 
 // The y axis for the hours in view: heights and the difference rescale to
 // what is on screen, so zooming in on a small day does not flatten it; the
-// window ratio and %K keep their fixed scales.
+// window ratio and the day's range keep their fixed scales.
 function chartDomain(spec, a, z) {
   if (spec.scale === "window") {
     return {domain: [0, 1], ticks: [0, 0.5, 1].map((v) => ({at: v, text: `${v * 100}%`}))};

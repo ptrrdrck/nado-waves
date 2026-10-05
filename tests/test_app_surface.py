@@ -2014,7 +2014,9 @@ class TestTheWeekChart:
             "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
             "console.log(chartSpec('coronado_north', 'range').read(0));"
         )
-        assert "Buoy %K 60" in got[0] and "North %K 20" in got[0] and "difference +40" in got[0]
+        assert "Buoy at 60% of its day's range" in got[0] and "North at 20%" in got[0] \
+            and "difference +40" in got[0]
+        assert "%K" not in got[0]
 
     def test_swiping_reads_pinching_zooms_and_the_page_still_scrolls(self):
         """The gestures are the owner's (2026-09-27): swipe along the lines to
@@ -2069,10 +2071,10 @@ class TestTheWeekChart:
         assert "<button" not in body
         assert 'strip.addEventListener("change"' in self.SECTION
 
-    def test_each_tab_plots_its_own_line_only_in_ink(self):
+    def test_each_tab_plots_its_own_line_in_ink(self):
         """Owner's call, 2026-09-28: the break tabs and the buoy's tab each plot
-        their own series and nothing else, in ink like every other chart.
-        Comparing the breaks on one plot is for another part of the page."""
+        their own series in ink like every other chart, never in per-break
+        colours. Height alone adds the other two breaks, lighter (below)."""
 
         css = SOURCE[:SOURCE.index("</style>")]
         assert "--buoy:" not in css and "--brk-" not in css
@@ -2089,10 +2091,49 @@ class TestTheWeekChart:
         assert got == ["height main:1.2/1.2", "height main:1/1.3", "window main:0.7/0.7",
                        "diff main:-0.1/-0.1", "range slow:20/20,main:40/40"]
 
+    def test_height_draws_the_other_two_breaks_lighter(self):
+        """Owner's request, 2026-10-05: on a break's tab the Height chart draws
+        the other two breaks under its own line, lighter, north to south, the
+        second dashed, so all three compare at a glance. The buoy's tab and
+        every other view keep one line."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert ".series .ln.other{stroke:var(--faint);" in css
+        assert ".series .ln.other.alt{stroke-dasharray:" in css
+        got = self._run(
+            "const steps = [hour(0, 1), hour(1, 1.3)];\n"
+            "steps.forEach((s, k) => { s.breaks.coronado_center = {hs_m: 0.8 + k};"
+            " s.breaks.coronado_south = {hs_m: 0.5}; });\n"
+            "SERIES = {station: '46232', generated_utc: 'g', steps};\n"
+            "for (const tab of ['coronado_north', 'coronado_center', 'coronado_south', 'buoy']) {\n"
+            "  const spec = chartSpec(tab, 'height');\n"
+            "  console.log(spec.lines.map((l) => l.cls + ':' + l.label).join(','));\n"
+            "}\n"
+            "console.log(chartSpec('coronado_center', 'height').read(1));\n"
+            "console.log(chartLegend(chartSpec('coronado_south', 'height'))"
+            ".match(/<\\/i>([^<]+)/g).map((m) => m.slice(4)).join(','));\n"
+            "console.log(chartSpec('coronado_center', 'window').lines.length);"
+        )
+        assert got[:4] == ["other:Center,other alt:South,main:North",
+                           "other:North,other alt:South,main:Center",
+                           "other:North,other alt:Center,main:South",
+                           "main:Buoy 46232"]
+        assert got[4] == ('<span class="v">Center 1.80 m</span> &middot; North 1.30 m'
+                          ' &middot; South 0.50 m')
+        assert got[5] == "South,North,Center"
+        assert got[6] == "1"
+
+    def test_the_chart_menu_is_in_the_owners_order(self):
+        got = self._run(
+            "console.log(chartModes('coronado_north').map((m) => m.label).join(','));\n"
+            "console.log(chartModes('buoy').map((m) => m.label).join(','));"
+        )
+        assert got == ["Height,Window,Day's Range,Origins,North vs. South", "Height,Origins"]
+
     def test_a_chart_of_one_line_has_no_key(self):
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: [hour(0, 1), hour(1, 1)]};\n"
-            "console.log(JSON.stringify(chartLegend(chartSpec('coronado_center', 'height'))));\n"
+            "console.log(JSON.stringify(chartLegend(chartSpec('coronado_center', 'diff'))));\n"
             "console.log(chartLegend(chartSpec('coronado_center', 'window'))"
             ".match(/<\\/i>([^<]+)/g).map((m) => m.slice(4)).join(','));"
         )

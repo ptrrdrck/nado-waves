@@ -566,23 +566,23 @@ Every card ends with a “Charts” line, closed until opened. The charts carry 
 
 Buoy 46232's own spectrum at every hour, carried in by the same chain as the reading above them. They open on the last day; zoom and pan them to go back to the start of the buoy's archive (4 August 2026). Every hour is rebuilt with today's windows, seabed and surf zone, so an earlier hour shows what the current chain makes of it, not what this page said at the time: the last week on every collection, the rest once a day. When the older hours no longer match today's chain they are not shown until they have been rebuilt, so two versions of the chain are never drawn on one line.
 
-An hour with no buoy spectrum is a gap: a pale band with no line through it, at every zoom, never filled from the hour beside it. A break has no breaking height for an hour whose water level was not measured, which is every hour before 17 September 2026. Each tab draws its own line only.
+An hour with no buoy spectrum is a gap: a pale band with no line through it, at every zoom, never filled from the hour beside it. A break has no breaking height for an hour whose water level was not measured, which is every hour before 17 September 2026. Each tab draws its own line, in ink; only Height draws anything beside it.
 
 - **Height**
-  The break's breaking height, or the buoy's own on its tab.
-- **North vs. South**
-  North's less South's. Where it crosses zero, which of the two is bigger has flipped.
+  The break's breaking height, with the other two breaks' in lighter lines under it, the more southern of the two dashed, so the three can be compared at a glance on one axis. On the buoy's tab, the buoy's own height alone.
 - **Window**
   A break's height through its windows as a share of the buoy's, before the seabed: the [Windows row](#calc-windows). Under it, a dot for each hour marks where the buoy's peak came from, over the break's open windows shaded. The share is the whole spectrum through the windows, so it moves with how widely the swell is spread as well as with where its peak sits. A dot is never “inside” or “outside”: a single bearing tested against a window is the yes-or-no the model refuses.
-- **Range %K**
-  Where the buoy sits in its own last 24 hours' range, less where the break sits in its own. A position in a range, not a height, left blank where too few of those 24 hours were measured.
+- **Day's Range**
+  Where the buoy sits in its own last 24 hours' range, 0% at the low and 100% at the high, less where the break sits in its own. Above zero, the buoy is nearer its day's high than the break is to its own. A position in a range, not a height, left blank where too few of those 24 hours were measured.
 - **Origins**
   Where the swell arriving at the tab came from, over time, on every break's tab and the buoy's. A black dot every six hours is a hurricane the card would have named then, with the match it would have stated (see [Origin](#swell-origin)), at the distance of NHC's position that sent the train; its name sits by its first dot in view. A grey bar is an arrival read off the swell itself with no storm named for it, at its dispersion distance, over the hours it was arriving. Distance runs on a log scale, 500 to 10,000 miles. Each mark is on a tab only where it was one of that tab's own trains, as on the card; and an arrival is drawn as the storm, not as a bar, where the storm's train at that tab is the arrival's own and Origin read it from within 45° of the storm. Under it, the bearing each came from, as seen from the buoy, never tested against the windows. A moment with no 46232 spectrum, such as the outage of 1 to 17 September, places a named storm on no tab, so Marie's swell, which arrived then, is not on this chart. Rebuilt with today's chain like the rest: the whole archive once a day, the newest hours with every collection.
+- **North vs. South**
+  North's less South's. Where it crosses zero, which of the two is bigger has flipped.
 
 ```
-%K = 100 × (now − lowest) / (highest − lowest)      over the last 24 hours
+place = 100 × (now − lowest) / (highest − lowest)   over the last 24 hours
                                                      blank under 20 measured hours, or a range under 2 cm
-chart = buoy %K − break %K
+chart = buoy's place − break's place
 ```
 
 [drawing: whole] Caption: The windows the Window chart's direction strip shades, here as they sit on the map.
@@ -770,8 +770,8 @@ Until that record exists, no figure on the forecast page states how well it does
   The tide worked out from its astronomical constituents.
 - **Departure**
   The gauge's measured level less its prediction.
-- **%K**
-  Where a value sits within its own range over a window of time, 0 at the low and 100 at the high.
+- **Day's range**
+  Where a value sits within its own range over the last 24 hours, 0% at the low and 100% at the high; a chartist's %K.
 - **GFS-Wave, GEFS-Wave**
   NOAA's global wave model, and the same model run as a 31-member ensemble.
 - **ENC**
