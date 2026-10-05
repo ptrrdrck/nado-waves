@@ -2928,11 +2928,43 @@ class TestOrigin:
         assert "`about ${about(km * MI_PER_KM, step)} mi" in SOURCE
 
     def test_the_empty_state_names_the_last_readable_arrival(self):
-        assert "Last readable arrival: " in SOURCE
+        """In the same three lines as any other origin (owner's design,
+        2026-10-04), marked as past, on the train it was at its peak hour."""
+
+        assert 'tag: past ? "last readable arrival" : ""' in SOURCE
+        assert "Arrived ${onDay(a.first_utc)}, no longer arriving" in SOURCE
+        assert "past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s" in SOURCE
         assert "No readable arrival in the last ${o.lookback} days" in SOURCE
 
     def test_a_running_arrival_says_so(self):
-        assert "still arriving: " in SOURCE
+        assert "Read off the swell, ${Math.max(1, Math.round(a.hours_read))} h so far" in SOURCE
+
+    def test_every_origin_is_the_same_three_lines(self):
+        """What it is; where and when, with its train; how it is known."""
+
+        entry = SOURCE[SOURCE.index("function originEntry"):SOURCE.index("function hurricaneEntry")]
+        assert entry.count('<span class="turn">') == 2 and entry.count('<span class="val">') == 1
+        for kind in ("function hurricaneEntry", "function readingEntry"):
+            body = SOURCE[SOURCE.index(kind):].split("\n}\n")[0]
+            assert "originEntry({" in body and "srcLines" not in body
+            assert "trainAt(" in body
+
+    def test_one_provenance_follows_every_mix(self):
+        body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
+        assert body.count("originSources(") == 1 and "srcLines" not in body
+
+    def test_an_unplaced_storm_is_called_one(self):
+        assert 'isPlaced(a) ? sea(a.region) : "Unplaced storm"' in SOURCE
+        assert "Unplaced storm: neither ${o.bearingStations.map((id) => buoyName(o, id)).join(\" nor \")}" in SOURCE
+
+    def test_buoys_are_named_as_ndbc_names_them(self):
+        """"Tanner Banks, CA (NDBC 46047)", as the card's other provenance
+        lines name 46232, and never typed: now.json carries them from the
+        fetched metadata."""
+
+        assert "`${o.names[id]} (NDBC ${id})`" in SOURCE
+        sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
+        assert "46047" not in sources and "46086" not in sources and "46232" not in sources
 
     def test_nothing_upstream_is_called_a_confirmation(self):
         """Measured, the upstream check never tested the distance."""
@@ -2973,15 +3005,17 @@ class TestHurricane:
     def test_it_is_named_from_nhc_and_says_so(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
         assert "Hurricane ${h.name}" in entry
-        assert "Position and winds: NHC best track, an analysis" in entry
-        assert "farAway(s.distance_km, 100)" in entry
-        assert "speed(s.vmax_kt)" in entry
+        assert "National Hurricane Center best track, an analysis" in SOURCE
+        # NHC's position, rounded to 100 where Origin's distances round to 500.
+        assert "trainAt(s.train_period_s, s.distance_km, 100, s.bearing_deg, s.fix_utc)" in entry
+        assert "tag: `winds ${speed(s.vmax_kt)}`" in entry
 
     def test_it_states_its_match_with_the_count_behind_it(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert "match, `\n    + `${Math.round(h.best * 100)}%" in entry
+        assert "match to NHC's track, `\n      + `${Math.round(h.best * 100)}%." in entry
         assert "${m.beaten} of ${m.trials}" in entry
-        assert "its own track moved earlier" in entry
+        assert "Timing and direction beat the same track moved `\n      + `earlier ${tested}." in entry
+        assert "h read so far." in entry
 
     def test_the_match_is_never_called_a_probability_or_a_confidence(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
@@ -3006,7 +3040,7 @@ class TestHurricane:
 
     def test_it_comes_first(self):
         body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
-        assert body.index("o.hurricanes.map(hurricaneEntry)") < body.index("o.current.map(")
+        assert body.index("o.hurricanes.map((h) => hurricaneEntry(h, o))") < body.index("o.current.map(")
 
 
 class TestOriginsChart:
@@ -3050,3 +3084,20 @@ class TestOriginsChart:
     def test_the_distance_axis_is_log_miles(self):
         assert 'if (spec.scale === "distance")' in SOURCE
         assert "Math.log10(km * MI_PER_KM)" in SOURCE
+
+
+def test_every_origin_names_its_train_distance_bearing_and_day_in_one_order():
+    """Owner's wording, 2026-10-04: "16.0 s train, about 700 mi (1,100 km)
+    bearing 161° SSE on Sep 28" -- the bearing in degrees and compass, and
+    none at all for an unplaced storm, which has none."""
+
+    at = SOURCE[SOURCE.index("const trainAt"):SOURCE.index("function hurricaneEntry")]
+    assert at.index("s train, ${farAway(") < at.index(" bearing ${Math.round(bearing)}&deg; ${point(bearing)}") \
+        < at.index(" on ${onDay(iso)}")
+    assert "isPlaced(a) ? a.bearing_deg : null" in SOURCE
+
+
+def test_every_train_is_read_off_46232_and_only_readings_backwards():
+    sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
+    assert "Trains read off the spectrum at ${buoyName(o, o.station)}" in sources
+    assert 'backwards ? ", and storms read backwards from them" : ""' in sources

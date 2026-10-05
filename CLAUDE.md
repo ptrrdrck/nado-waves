@@ -347,9 +347,21 @@ forecaster actually verifies against, Surfline included.
    north-west bearings is the owner's open decision (§38). Two buoys
    reading one storm differ by ~18–25% at the median, so distances are rounded
    to 500 mi and 500 km and said "about", and the place is a sea. Shown only
-   once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "still arriving"
-   while it runs; otherwise "Last readable arrival:" at that break in the last
-   21 days. **No upstream sighting is shown, ever**: measured, the predecessor's
+   once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "Read off the
+   swell, N h so far" while it runs; otherwise the last readable arrival at that
+   break in the last 21 days. **Every origin is the same three lines** (owner's
+   design and wording, 2026-10-04): what it is ("Hurricane Polo  winds 121 mph
+   (105 kt)", a sea, or "Unplaced storm"); "16.0 s train, about 700 mi
+   (1,100 km) bearing 161° SSE on Sep 28" (an unplaced storm has no bearing; a
+   hurricane adds "N h read so far", the hours its band has arrived at the
+   gate buoy; the last arrival's train is its peak hour's, `peak_period_s`);
+   and how it is known (the match with its count at each buoy, the hours read,
+   or "Arrived …, no longer arriving"). Then ONE provenance block for any mix:
+   every train is read off 46232's spectrum, a hurricane's too; "and storms
+   read backwards from them" only with a reading; "National Hurricane Center
+   best track, an analysis" only with a hurricane — each buoy as NDBC names
+   it, "Tanner Banks, CA (NDBC 46047)", from `origin.station_names` in
+   now.json (fetched metadata, never typed). **No upstream sighting is shown, ever**: measured, the predecessor's
    "confirmed in transit" check is blind to the distance (scaling every distance
    by 0.7 or 1.3 moved its hit rate by a point). LIVE only: the Forecast tab
    has no Origin. **Checked against NHC's best tracks** (b-decks archived

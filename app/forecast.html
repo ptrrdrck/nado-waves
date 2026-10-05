@@ -129,6 +129,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* Each arrival under ORIGIN: its sea, the line under it, its provenance. */
 .cond .origin{display:flex;flex-direction:column;gap:2px}
 .cond .origin + .origin{margin-top:10px}
+.cond .origin > .val > .unit{white-space:nowrap}
 /* ORIGIN folds out like the charts, from its own line with the same caret,
    right above "Charts" and under a rule of its own (owner's call,
    2026-10-02): the swell card's one other rule. Closed until opened. */
@@ -1221,7 +1222,8 @@ function originFor(site) {
     current: (s.current || []).filter((c) => A[c.arrival] && !isNamed(c))
       .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
     last: s.last != null && A[s.last] ? A[s.last] : null,
-    station: O.station, lookback: O.lookback_days,
+    station: O.station, lookback: O.lookback_days, names: O.station_names || {},
+    bearingStations: O.bearing_stations || [],
   };
 }
 
@@ -1236,21 +1238,22 @@ const sea = (region) => {
 };
 const onDay = (iso) => new Date(iso).toLocaleString(undefined, {month: "short", day: "numeric"});
 
-// One arrival: the sea, then how far and which way and when it left.
-function originArrival(a, station) {
-  const where = a.region
-    ? `<span class="val">${sea(a.region)}</span>
-      <span class="turn">${farAway(a.distance_km)} ${point(a.bearing_deg)}, `
-      + `left around ${onDay(a.generated_utc)}, about ${Math.max(1, Math.round(a.travel_days))} `
-      + `day${Math.round(a.travel_days) === 1 ? "" : "s"} crossing</span>`
-    : `<span class="val">${farAway(a.distance_km)} <span class="unit">away</span></span>
-      <span class="turn">left around ${onDay(a.generated_utc)}; no bearing: neither `
-      + `unshadowed buoy's archived spectrum has this train</span>`;
-  return `<div class="origin">${where}
-    ${srcLines([`The ${a.train_period_s.toFixed(1)} s train, still arriving: `
-                + `${Math.round(a.hours_read)} h read`,
-                `Read backwards off ${station}'s spectrum`
-                + (a.bearing_from ? `, bearing at ${a.bearing_from}` : "")])}
+// Every origin is the same three lines, whatever kind it is (owner's design,
+// 2026-10-04): WHAT it is (a hurricane with its winds, a sea, or an unplaced
+// storm), WHERE AND WHEN (how far, which way, the day it left, and the train
+// it is on this card), and HOW IT IS KNOWN (the match to NHC's track, or how
+// long the swell itself has been read). One provenance block follows them
+// all, naming only what is on screen, each buoy by its NDBC name and number.
+const MATCH_WORD = {strong: "Strong", partial: "Partial", weak: "Weak"};
+const SAME_SOURCE_DEG = 45;
+const ORIGIN_SEP = " &middot; ";
+const buoyName = (o, id) => (o.names && o.names[id] ? `${o.names[id]} (NDBC ${id})` : `NDBC ${id}`);
+const isPlaced = (a) => Boolean(a.region) && a.bearing_deg != null;
+function originEntry({head, tag, where, how, storm}) {
+  return `<div class="origin"${storm ? ` data-hurricane="${storm}"` : ""}>
+    <span class="val">${head}${tag ? ` <span class="unit">${tag}</span>` : ""}</span>
+    <span class="turn">${where}</span>
+    <span class="turn">${how}</span>
   </div>`;
 }
 
@@ -1261,39 +1264,69 @@ function originArrival(a, station) {
 // direction, with its word, never a probability; and it is about where a
 // train came from, never how big it is. Where the storm was, and how strong,
 // are NHC's: the fix that sent the train now arriving. Never Origin's distance.
-const MATCH_WORD = {strong: "Strong", partial: "Partial", weak: "Weak"};
-const SAME_SOURCE_DEG = 45;
-function hurricaneEntry(h) {
+const trainAt = (period, km, step, bearing, iso) =>
+  `${period.toFixed(1)}&nbsp;s train, ${farAway(km, step)}`
+  + (bearing == null ? "" : ` bearing ${Math.round(bearing)}&deg; ${point(bearing)}`)
+  + ` on ${onDay(iso)}`;
+function hurricaneEntry(h, o) {
   const s = h.at;
-  const buoys = Object.entries(h.match || {}).sort((a, b) => b[1].score - a[1].score);
+  const buoys = Object.entries(h.match || {}).sort((x, y) => y[1].score - x[1].score);
+  const hours = buoys.length && buoys[0][1].hours != null ? buoys[0][1].hours : null;
   const tested = buoys.map(([id, m], k) =>
-    `${m.beaten} of ${m.trials}${k ? "" : " times"} at ${id}`).join(", ");
-  return `<div class="origin" data-hurricane="${h.storm}">
-    <span class="val">Hurricane ${h.name}</span>
-    <span class="turn">${farAway(s.distance_km, 100)} ${point(s.bearing_deg)} when this swell `
-    + `left, ${onDay(s.fix_utc)}, winds ${speed(s.vmax_kt)}</span>
-    <span class="turn" data-match="${h.word}">${MATCH_WORD[h.word] || h.word} match, `
-    + `${Math.round(h.best * 100)}%</span>
-    ${srcLines([`The ${s.train_period_s.toFixed(1)} s train, on its track's schedule`,
-                `Match: on timing and direction it beats its own track moved earlier ${tested}`,
-                `Position and winds: NHC best track, an analysis`])}
-  </div>`;
+    `${m.beaten} of ${m.trials}${k ? "" : " times"} at ${buoyName(o, id)}`).join(", and ");
+  return originEntry({
+    head: `Hurricane ${h.name}`, tag: `winds ${speed(s.vmax_kt)}`, storm: h.storm,
+    where: trainAt(s.train_period_s, s.distance_km, 100, s.bearing_deg, s.fix_utc)
+      + (hours == null ? "." : `, ${hours} h read so far.`),
+    how: `<span data-match="${h.word}">${MATCH_WORD[h.word] || h.word} match to NHC's track, `
+      + `${Math.round(h.best * 100)}%.</span> Timing and direction beat the same track moved `
+      + `earlier ${tested}.`,
+  });
 }
 
-// What folds out under the "Origin" line.
-function originBody(o) {
-  if (o.hurricanes.length || o.current.length) {
-    return o.hurricanes.map(hurricaneEntry).join("")
-      + o.current.map((a) => originArrival(a, o.station)).join("");
+// An arrival read backwards off the swell: still arriving, or the last one
+// this tab had. The last is the train it was at its peak hour, when it was
+// matched to this tab's own trains. An unplaced storm has no bearing: neither
+// unshadowed buoy saw its train.
+function readingEntry(a, past = false) {
+  const period = past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s;
+  return originEntry({
+    head: isPlaced(a) ? sea(a.region) : "Unplaced storm", tag: past ? "last readable arrival" : "",
+    where: trainAt(period, a.distance_km, 500, isPlaced(a) ? a.bearing_deg : null,
+                   a.generated_utc) + ".",
+    how: past ? `Arrived ${onDay(a.first_utc)}, no longer arriving.`
+      : `Read off the swell, ${Math.max(1, Math.round(a.hours_read))} h so far.`,
+  });
+}
+
+// The one provenance block, after every entry, for whatever mix is shown.
+// Every origin's train is read off 46232's spectrum, a hurricane's too; only
+// a reading's storm is then read BACKWARDS from it, its direction at an
+// unshadowed buoy. A hurricane's place and winds are NHC's.
+function originSources(o, hurricanes, readings) {
+  const backwards = readings.length || !hurricanes.length;
+  const from = [...new Set(readings.filter(isPlaced).map((a) => a.bearing_from).filter(Boolean))];
+  const lines = [`Trains read off the spectrum at ${buoyName(o, o.station)}`
+    + (backwards ? ", and storms read backwards from them" : "")
+    + (from.length ? `; direction at ${from.map((id) => buoyName(o, id)).join(" and ")}` : "")];
+  if (readings.some((a) => !isPlaced(a))) {
+    lines.push(`Unplaced storm: neither ${o.bearingStations.map((id) => buoyName(o, id)).join(" nor ")}`
+      + " has that train");
   }
-  const a = o.last;
-  const last = !a ? `No readable arrival in the last ${o.lookback} days`
-    : `Last readable arrival: `
-      + (a.region ? `${sea(a.region)}, ${farAway(a.distance_km)} ${point(a.bearing_deg)}`
-        : farAway(a.distance_km))
-      + `, ${onDay(a.first_utc)}`;
-  return `<span class="val"><span class="unit">no readable arrival now</span></span>
-    ${srcLines(last)}`;
+  if (hurricanes.length) lines.push("National Hurricane Center best track, an analysis");
+  return srcLines(lines);
+}
+
+// What folds out under the "Origin" line: the entries, then the provenance.
+function originBody(o) {
+  const now = o.hurricanes.length || o.current.length;
+  const readings = now ? o.current : o.last ? [o.last] : [];
+  const entries = now
+    ? o.hurricanes.map((h) => hurricaneEntry(h, o)).join("")
+      + o.current.map((a) => readingEntry(a)).join("")
+    : o.last ? readingEntry(o.last, true)
+      : `<span class="val"><span class="unit">No readable arrival in the last ${o.lookback} days</span></span>`;
+  return entries + originSources(o, now ? o.hurricanes : [], readings);
 }
 
 // Whether Origin is folded out. One state for every tab, like the charts',
