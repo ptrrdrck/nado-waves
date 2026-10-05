@@ -51,6 +51,33 @@ def test_the_same_period_from_another_direction_stays_unnamed():
     assert a["named"] == {}
 
 
+def test_a_withheld_bearing_names_a_storm_only_from_one_of_its_directions():
+    """§38: a place withheld because 46047's energy was split must not make a
+    storm name easier to give than a bearing would."""
+
+    def withheld():
+        a = arrival("2026-09-29T00:00:00Z", "2026-09-30T00:00:00Z", 3000, None, ["buoy"],
+                    "2026-09-26T00:00:00Z")
+        a["bearing_lobes"] = [[318, 0.27], [148, 0.16]]
+        return a
+
+    a = withheld()
+    period = 1 / H.ridge_freq_hz(a, datetime(2026, 9, 29, 12, tzinfo=UTC))
+    H.link([a], [_named("2026-09-29T12:00:00Z", "buoy", round(period, 1), 161)])
+    assert a["named"] == {"buoy": "Polo"}          # 161° is 13° from the 148° lobe
+    b = withheld()
+    H.link([b], [_named("2026-09-29T12:00:00Z", "buoy", round(period, 1), 230)])
+    assert b["named"] == {}                         # 230° is near neither
+
+
+def test_no_reading_at_all_says_nothing_about_direction():
+    a = arrival("2026-09-29T00:00:00Z", "2026-09-30T00:00:00Z", 3000, None, ["buoy"],
+                "2026-09-26T00:00:00Z")
+    period = 1 / H.ridge_freq_hz(a, datetime(2026, 9, 29, 12, tzinfo=UTC))
+    H.link([a], [_named("2026-09-29T12:00:00Z", "buoy", round(period, 1), 230)])
+    assert a["named"] == {"buoy": "Polo"}
+
+
 def test_another_period_or_another_time_stays_unnamed():
     a = arrival("2026-09-29T00:00:00Z", "2026-09-30T00:00:00Z", 3000, 165, ["buoy"],
                 "2026-09-26T00:00:00Z")

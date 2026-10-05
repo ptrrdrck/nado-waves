@@ -406,7 +406,7 @@ The breaking height, in feet with metres in parentheses, and the depth it breaks
 
 ### [swell-drawing] The window drawing
 
-The break's windows, drawn facing the way the break faces: open water above the shore, the grey shadows of the land either side, and an arrow for each swell train. Tap a shadow for the land casting it and the share of this swell it takes; tap a window for the land either side and its width; tap an arrow for that train. Tap it again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with Tab.
+The break's windows, drawn facing the way the break faces: open water above the shore, the grey shadows of the land either side, and an arrow for each swell train, two for a train arriving from two directions. Tap a shadow for the land casting it and the share of this swell it takes; tap a window for the land either side and its width; tap an arrow for that train. Tap it again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with Tab.
 
 ### [swell-trains] Swell trains
 
@@ -414,7 +414,9 @@ The number is rarely one swell. The spectrum is split at its low points into sep
 
 The biggest train at the buoy need not be the biggest at a break, because the windows take whichever trains point at the blocked sectors. In the worked hour the buoy's lead was 11.8 s from 219°, and North's was 12.5 s from 206°.
 
-The split is made on the spectrum by frequency, not on frequency and direction together, so two swells of the same period from different directions read as one train.
+A train's direction is where its energy comes from. When two directions each carry a fifth of a train or more, both are given, “WSW 258° & S 180°”, and the drawing has an arrow from each: one direction there would be their average, which sits between them where almost none of it comes from. It happens most at South, whose trains often arrive through both the south window and the west one.
+
+The split is made on the spectrum by frequency, not on frequency and direction together, so two swells of the same period from different directions read as one train — with both its directions named.
 
 ### [swell-origin] Origin: where the swell was born
 
@@ -430,7 +432,7 @@ t₀ = where the line reaches f = 0    when it blew
 
 Every hour, each peak in the buoy's spectrum between 10 and 29 seconds is found and followed from hour to hour. A peak that moves steadily to shorter periods for at least 12 hours, starting at 13 seconds or longer, on a line straight enough to read (R² of 0.8 or more), is a readable arrival.
 
-The direction is read where the sea is open: 46047 at Tanner Banks, then 46086 in the San Clemente Basin, which is open to the south but not to the north-west. Never at 46232 itself: on a north-west swell it reads two directions at once, a westerly one held near 270° and the south's, and their average falls 50 to 74° too far south. An arrival neither of them saw gets a distance and a date and no place.
+The direction is read where the sea is open: at 46047, Tanner Banks. Never at 46232 itself: on a north-west swell it reads two directions at once, a westerly one held near 270° and the south's, and their average falls 50 to 74° too far south. Nor at 46086 in the San Clemente Basin, which is open to the south but holds a north-west swell near 279° whatever its real direction. And not at 46047 either when its energy at that period comes from two directions, each at least 15% of it: which one is the arrival's is not known, and their average would point between them. An arrival with no direction read gets a distance and a date and no place.
 
 An origin belongs to a train, so a break shows only the arrivals that are one of its own trains, and the buoy's tab only those among the buoy's.
 
@@ -637,7 +639,7 @@ The Shore direction “how often” bars and the Departure view are the “LIVE�
 | Source | What | Feeds |
 |---|---|---|
 | NDBC buoy 46232, Point Loma South | Hourly directional spectrum, 64 bands; position from NDBC's metadata | “LIVE” swell and its Origin, every chart's buoy line, the red line |
-| NDBC buoys 46047 and 46086, Tanner Banks and San Clemente Basin | Hourly directional spectra | Origin's direction |
+| NDBC buoys 46047 and 46086, Tanner Banks and San Clemente Basin | Hourly directional spectra | Origin's direction (46047), the hurricane match (both) |
 | KNZY, NAS North Island | Hourly airfield report (METAR) | “LIVE” wind, local chop, Shore direction |
 | NOAA tide gauge 9410170, San Diego | 6-minute measured level, hourly prediction, predicted highs and lows | Tide card, breaking depth, departure |
 | GFS-Wave (WAVEWATCH III), NOAA | The model's own directional spectrum and 10 m wind at the buoy, four runs a day | Forecast swell |

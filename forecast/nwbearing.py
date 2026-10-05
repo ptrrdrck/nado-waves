@@ -54,6 +54,7 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR
 
 from .swell import destination_point, great_circle_km, initial_bearing
+from .transform import lobes  # the one lobe finder: Origin and the train labels use it too
 
 #: The swell band the bearing comparisons use: 20 s to 11 s.
 BAND_HZ = (1.0 / 20.0, 1.0 / 11.0)
@@ -66,10 +67,6 @@ NW_MIN_SHARE = 0.4
 #: least this share of its band.
 WEST_SECTOR = (225.0, 345.0)
 WEST_MIN_SHARE = 0.15
-#: Lobe finding (module docstring).
-SMOOTH_HALF = 10
-LOBE_SEPARATION = 30
-SHARE_HALF = 25
 #: A train's heading is "off" when it sits further than this from every lobe
 #: holding at least `BIG_LOBE` of the train.
 OFF_DEG = 20.0
@@ -124,26 +121,6 @@ def band_distribution(spectrum, band: tuple[float, float] = BAND_HZ):
     if m0 <= 0:
         return None, 0.0
     return [v / m0 for v in dist], m0
-
-
-def lobes(dist: list[float]) -> list[tuple[float, float]]:
-    """(heading, share) of each lobe, largest share first."""
-
-    n = len(dist)
-    total = sum(dist) or 1.0
-    smooth = [sum(dist[(i + k) % n] for k in range(-SMOOTH_HALF, SMOOTH_HALF + 1)) for i in range(n)]
-    out: list[tuple[float, float]] = []
-    for i in range(n):
-        if smooth[i] <= 0:
-            continue
-        if not all(smooth[i] >= smooth[(i + k) % n] for k in range(-LOBE_SEPARATION, LOBE_SEPARATION + 1)):
-            continue
-        heading = i + 0.5
-        if out and min(abs(angular(heading, h)) for h, _ in out) < LOBE_SEPARATION:
-            continue
-        share = sum(dist[(i + k) % n] for k in range(-SHARE_HALF, SHARE_HALF + 1)) / total
-        out.append((heading, share))
-    return sorted(out, key=lambda lobe: -lobe[1])
 
 
 def mean_heading(dist: list[float]) -> float:

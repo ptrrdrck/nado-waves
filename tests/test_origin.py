@@ -116,11 +116,52 @@ class TestReadingARidge:
 
 class TestTheBearing:
     def test_46232_is_never_a_bearing_buoy(self):
-        """Measured (BRIEFING §37): it reads a north-west swell 50-74° too far
-        south, because the islands bend it."""
+        """Measured (BRIEFING §37-38): its mean reads a north-west swell 50-74°
+        too far south -- half the average of two lobes, half a westerly lobe
+        that pins near 270° whatever 46047 reads."""
 
         assert "46232" not in BEARING_STATIONS
         assert BEARING_STATIONS[0] == "46047"
+
+    def test_46086_is_not_a_bearing_buoy(self):
+        """Owner's decision 2026-10-05 (§38): its north-west lobe stays near
+        279° whatever 46047 reads, so it carries no reading of where a
+        north-west swell came from. It stays in the hurricane gate."""
+
+        from forecast.stormtrack import GATE_STATIONS
+
+        assert BEARING_STATIONS == ("46047",)
+        assert "46086" in GATE_STATIONS
+
+    @staticmethod
+    def witness(here, r1, r2, a1, a2):
+        """46047's spectra over the same hours: the same energy, given moments."""
+
+        out = []
+        for s in here:
+            n = len(s.frequencies)
+            out.append(Spectrum(time=s.time, frequencies=s.frequencies, c11=list(s.c11),
+                                a1=[a1] * n, a2=[a2] * n, r1=[r1] * n, r2=[r2] * n))
+        return out
+
+    def test_a_split_sea_at_the_bearing_buoy_withholds_the_place(self):
+        """Two directions holding ~44% each: the mean (240°) sits where
+        neither is, and which one is the ridge's is not known (§38)."""
+
+        here = arrival_series(5000.0, 30)
+        split = self.witness(here, 0.45, 0.45, 240.0, 150.0)
+        got = arrivals(here, {"46232": here, "46047": split}, (32.517, -117.425))[0]
+        assert got.bearing_deg is None and got.origin is None
+        assert got.bearing_from == "46047"
+        assert sorted(round(h, -1) for h, _ in got.bearing_lobes) == [180.0, 300.0]
+        assert all(share >= origin.SPLIT_SHARE for _, share in got.bearing_lobes)
+
+    def test_one_direction_at_the_bearing_buoy_keeps_the_place(self):
+        here = arrival_series(5000.0, 30)
+        one = self.witness(here, 0.8, 0.5, 200.0, 200.0)
+        got = arrivals(here, {"46232": here, "46047": one}, (32.517, -117.425))[0]
+        assert got.bearing_deg == pytest.approx(200.0, abs=0.5)
+        assert got.origin is not None and got.bearing_lobes == []
 
     def test_the_most_exposed_buoy_that_has_the_train_is_read(self):
         here = arrival_series(5000.0, 30, from_deg=230.0)

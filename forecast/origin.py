@@ -93,11 +93,21 @@ PLAUSIBLE_KM = (500.0, 20000.0)
 #: The line is fitted on the ridge's first hours only: later, trains born
 #: elsewhere drift into the same bins and the ridge stops being one storm's.
 FIT_HOURS = 48.0
-#: Most exposed first. 46232 is deliberately absent: see the module docstring.
-#: 46086 is open to the south and NOT to the north-west: on north-west hours
-#: its own westerly lobe sits ~30° south of 46047's and does not follow it
-#: (BRIEFING §38). Through 2026-10-02 it gave two bearings, both southerly.
-BEARING_STATIONS = ("46047", "46086")
+#: 46047 only. 46232 is deliberately absent: see the module docstring. 46086
+#: was the fallback until 2026-10-05 (owner's decision, BRIEFING §38): on
+#: north-west swell its westerly lobe stays near 279° whatever 46047 reads
+#: (slope -0.19), so it carries no reading of where a north-west swell came
+#: from, and no correction can put one back. It gave two bearings, both
+#: southerly and both before 46047's archive began. It stays in the
+#: hurricane gate (`stormtrack.GATE_STATIONS`) and on hourly collection.
+BEARING_STATIONS = ("46047",)
+#: A bearing is WITHHELD when the bearing buoy's energy at the ridge holds two
+#: directions of at least this share each (`transform.lobes`): the mean of a
+#: split sea sits between its sources, and which one is the ridge's is not
+#: known. Set at 15% so the three readings the mean put 54-58° from every
+#: direction 46047 measured (29 Sep 05Z, 1 Oct 19Z, 2 Oct 11Z, second lobes
+#: 16-20%) are withheld: fitted on those, n = 14, revisit in winter (§38).
+SPLIT_SHARE = 0.15
 #: A bearing buoy's spectrum must be within this of the ridge's hour, and
 #: carry at least this much energy at the ridge's frequency, at this many of
 #: its hours, before its direction is read.
@@ -147,6 +157,11 @@ class Arrival:
     bearing_deg: float | None = None
     bearing_from: str | None = None
     origin: tuple[float, float] | None = None
+    #: When the bearing was withheld because the bearing buoy's energy at the
+    #: ridge was split: the directions it holds, (heading FROM, share). The
+    #: arrival keeps its distance and date and gets no place; a storm can
+    #: still be its source only from within 45° of one of these.
+    bearing_lobes: list[tuple[float, float]] = field(default_factory=list)
 
     @property
     def first_utc(self) -> datetime:
@@ -325,6 +340,41 @@ def ridge_bearing(ridge: Ridge, archives: dict[str, list],
     return None
 
 
+def ridge_lobes(ridge: Ridge, archives: dict[str, list], station: str) -> list[tuple[float, float]]:
+    """The directions the bearing buoy's energy at the ridge comes from:
+    the maximum-entropy distribution at the bin nearest the ridge, summed over
+    the same fitted hours and energy gate `ridge_bearing` reads its mean on,
+    as `transform.lobes`."""
+
+    from .transform import lobes
+
+    spectra = archives.get(station) or []
+    if not spectra:
+        return []
+    by_time = {s.time: s for s in spectra}
+    times = sorted(by_time)
+    start = ridge.points[0].time
+    dist = [0.0] * 360
+    for point in ridge.points:
+        if (point.time - start).total_seconds() / 3600.0 > FIT_HOURS:
+            continue
+        spectrum = _nearest(by_time, times, point.time)
+        if spectrum is None:
+            continue
+        i = min(range(len(spectrum.frequencies)),
+                key=lambda j: abs(spectrum.frequencies[j] - point.freq_hz))
+        energy = spectrum.c11[i]
+        if energy is None or math.isnan(energy) or energy < MIN_DENSITY:
+            continue
+        direction = spectrum.a1[i]
+        if direction is None or math.isnan(direction):
+            continue
+        mem = spectrum if spectrum.spread == "mem" else spectrum.with_spread("mem")
+        for k in range(360):
+            dist[k] += mem.density(i, k + 0.5)
+    return lobes(dist)
+
+
 def arrivals(spectra, archives: dict[str, list] | None = None,
              position: tuple[float, float] | None = None) -> list[Arrival]:
     """Every readable arrival in `spectra` (46232's), oldest first.
@@ -342,9 +392,15 @@ def arrivals(spectra, archives: dict[str, list] | None = None,
         arrival = Arrival(ridge=ridge, fit=fit)
         read = ridge_bearing(ridge, archives or {})
         if read is not None:
-            arrival.bearing_deg, arrival.bearing_from = read
-            if position is not None:
-                arrival.origin = destination_point(position, read[0], fit.distance_km)
+            split = [lobe for lobe in ridge_lobes(ridge, archives or {}, read[1])
+                     if lobe[1] >= SPLIT_SHARE]
+            arrival.bearing_from = read[1]
+            if len(split) >= 2:
+                arrival.bearing_lobes = split
+            else:
+                arrival.bearing_deg = read[0]
+                if position is not None:
+                    arrival.origin = destination_point(position, read[0], fit.distance_km)
         found.append(arrival)
     found.sort(key=lambda a: a.first_utc)
     return found
@@ -379,6 +435,7 @@ def _arrival_dict(a: Arrival, running: bool) -> dict:
         "r_squared": round(a.fit.r_squared, 3),
         "bearing_deg": None if a.bearing_deg is None else round(a.bearing_deg),
         "bearing_from": a.bearing_from,
+        "bearing_lobes": [[round(h), round(share, 2)] for h, share in a.bearing_lobes],
         "origin": None if a.origin is None else [round(v, 1) for v in a.origin],
         "region": a.region,
         # The train it was at its peak hour, where a past arrival is matched to
@@ -470,9 +527,15 @@ def reading(spectra, archives: dict[str, list], position, *, newest: datetime,
 
 
 def describe(arrival: Arrival) -> str:
-    where = (f"{arrival.region}, {arrival.fit.distance_km:,.0f} km on "
-             f"{arrival.bearing_deg:.0f}° (read at {arrival.bearing_from})"
-             if arrival.origin else f"{arrival.fit.distance_km:,.0f} km, no bearing")
+    if arrival.origin:
+        where = (f"{arrival.region}, {arrival.fit.distance_km:,.0f} km on "
+                 f"{arrival.bearing_deg:.0f}° (read at {arrival.bearing_from})")
+    elif arrival.bearing_lobes:
+        split = " and ".join(f"{h:.0f}° ({share:.0%})" for h, share in arrival.bearing_lobes)
+        where = (f"{arrival.fit.distance_km:,.0f} km, bearing withheld: "
+                 f"{arrival.bearing_from} split, {split}")
+    else:
+        where = f"{arrival.fit.distance_km:,.0f} km, no bearing"
     return (f"{arrival.first_utc:%Y-%m-%d %H}Z  "
             f"{arrival.lead_period_s:4.1f}->{arrival.latest_period_s:4.1f} s over "
             f"{arrival.fit.hours:3.0f} h ({arrival.fit.points} h read, R² "

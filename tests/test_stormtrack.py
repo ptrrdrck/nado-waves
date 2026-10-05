@@ -195,3 +195,24 @@ def test_the_words_follow_the_floors():
     assert S.match_word(0.78) == "partial"
     assert S.match_word(0.55) == "weak"
     assert S.MATCH_SHOW == min(lo for lo, w in S.MATCH_WORDS if w != "none")
+
+
+def test_a_withheld_bearing_is_stated_and_attributes_nothing():
+    """BRIEFING §38a: the ridge report says why a ridge has no bearing, and a
+    withheld one takes no part in attribution or the shuffle."""
+
+    from types import SimpleNamespace
+
+    from forecast.stormtrack import _reading, bearing_chance
+
+    fit = SimpleNamespace(distance_km=3311.0)
+    withheld = SimpleNamespace(fit=fit, bearing_deg=None, bearing_from="46047",
+                               bearing_lobes=[(316.0, 0.29), (182.0, 0.20)])
+    placed = SimpleNamespace(fit=fit, bearing_deg=255.0, bearing_from="46047", bearing_lobes=[])
+    none = SimpleNamespace(fit=fit, bearing_deg=None, bearing_from=None, bearing_lobes=[])
+    assert _reading(withheld) == "3,311 km, bearing withheld (46047 split: 316° 29%, 182° 20%)"
+    assert _reading(placed) == "3,311 km at 255°"
+    assert _reading(none) == "3,311 km, no bearing"
+    day = SimpleNamespace(bearing=256.0)
+    observed, _ = bearing_chance([withheld], [(withheld, day, 1.0)])
+    assert observed == 0

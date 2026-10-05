@@ -432,3 +432,60 @@ class TestSplittingIntoTrains:
         shared = set(buoy) & set(beach)
         assert shared
         assert any(abs(buoy[k].from_deg - beach[k].from_deg) > 1.0 for k in shared)
+
+
+class TestTrainDirections:
+    """BRIEFING §38: a train fed from two directions is labelled with both,
+    because its mean heading sits between them, where little of it comes from."""
+
+    @staticmethod
+    def hist(*lobes):
+        out = [0.0] * 360
+        for center, width, weight in lobes:
+            for k in range(360):
+                d = (k + 0.5 - center + 180.0) % 360.0 - 180.0
+                out[k] += weight * math.exp(-0.5 * (d / width) ** 2)
+        return out
+
+    def test_two_sources_give_two_directions_and_the_mean_between(self):
+        from forecast.transform import split_trains
+
+        h = self.hist((180, 8, 0.4), (260, 8, 0.6))
+        energies = [(0, 0.1), (1, 1.0), (2, 0.1)]
+        freqs = [0.06, 0.07, 0.08]
+        sins = {i: sum(v * math.sin(math.radians(k + 0.5)) for k, v in enumerate(h)) * e for i, e in energies}
+        coss = {i: sum(v * math.cos(math.radians(k + 0.5)) for k, v in enumerate(h)) * e for i, e in energies}
+        hists = {i: [v * e for v in h] for i, e in energies}
+        (train,) = split_trains(energies, freqs, sins, coss, hists=hists)
+        assert [round(d) for d, _ in train.lobes] == [260, 180]
+        assert 200 < train.from_deg < 240           # the mean, between the two
+        assert train.lobes[0][1] >= 0.2 and train.lobes[1][1] >= 0.2
+
+    def test_one_source_carries_no_directions(self):
+        from forecast.transform import split_trains
+
+        h = self.hist((205, 10, 1.0))
+        energies = [(0, 1.0)]
+        (train,) = split_trains(energies, [0.07], {0: 0.0}, {0: -1.0}, hists={0: h})
+        assert train.lobes == ()
+
+    def test_a_small_second_source_is_not_named(self):
+        """Below a fifth of the train a second direction is not named."""
+
+        from forecast.transform import split_lobes
+
+        assert split_lobes(self.hist((180, 8, 0.9), (270, 8, 0.1))) == []
+
+    def test_without_histograms_nothing_changes(self):
+        from forecast.transform import split_trains
+
+        (train,) = split_trains([(0, 1.0)], [0.07], {0: 0.0}, {0: -1.0})
+        assert train.lobes == ()
+
+    def test_the_payload_carries_them_rounded(self):
+        from forecast.transform import Train, lobes_payload
+
+        t = Train(hs_m=1.0, period_s=14.3, from_deg=234.2, share=1.0,
+                  lobes=((258.4, 0.481), (180.5, 0.276)))
+        assert lobes_payload(t) == [[258, 0.48], [180, 0.28]]
+        assert lobes_payload(Train(hs_m=1.0, period_s=14.3, from_deg=200.0, share=1.0)) == []

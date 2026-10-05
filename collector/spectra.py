@@ -1,7 +1,7 @@
 """Archive NDBC directional spectra for 46232, and for three context buoys.
 
 Run: ``python -m collector.spectra`` — on Actions, not from a session.
-     ``python -m collector.spectra --bearing`` — 46047 and 46086, hourly.
+     ``python -m collector.spectra --hourly`` — 46047 and 46086, hourly.
      ``python -m collector.spectra --context`` — the rest of the context buoys.
 
 `probe_spectra` answered whether the five files are reachable and complete
@@ -59,7 +59,7 @@ DEFAULT_STATION = "46232"
 #: stand-in for 46232 (BRIEFING §3a). One reader since 2026-10-02: the Now
 #: tab's Origin takes a train's DIRECTION from 46047, then 46086, because
 #: 46232's own is bent by the islands (`forecast.origin`, BRIEFING §37).
-#: Those two are collected HOURLY with 46232 (`--bearing`, collect-beach-
+#: Those two are collected HOURLY with 46232 (`--hourly`, collect-beach-
 #: inputs.yml) so a new arrival's bearing lands with its distance; the rest
 #: stay on collect.yml (`--context`). Never both: each file has one writer:
 #:
@@ -79,9 +79,15 @@ DEFAULT_STATION = "46232"
 #: earn their few seconds there by feeding a card on that tab.
 CONTEXT_STATIONS = ("46086", "46047", "46258")
 
-#: The context buoys Origin reads a direction from: `forecast.origin`'s
-#: BEARING_STATIONS, which a test holds equal to this.
-BEARING_STATIONS = ("46047", "46086")
+#: The context buoys collected HOURLY, beside 46232: every one a Now-tab
+#: reader needs within the hour. `forecast.origin.BEARING_STATIONS` (where a
+#: train came from) and `forecast.stormtrack.GATE_STATIONS` (which hurricane
+#: sent it) both read from here, and a test holds this to their union. Since
+#: 2026-10-05 the two differ: 46086 sends no bearing to Origin, being open to
+#: the south only (BRIEFING §38), but stays in the hurricane gate, where Marie
+#: was explained at it independently (§37b) -- so it stays hourly. A reader
+#: dropping a buoy never drops its collection.
+HOURLY_STATIONS = ("46047", "46086")
 
 
 class SpectraError(RuntimeError):
@@ -290,16 +296,17 @@ def main(argv: list[str] | None = None) -> int:
                         help="One station id, or several separated by commas.")
     parser.add_argument("--context", action="store_true",
                         help="Collect the context buoys not collected hourly: "
-                             f"{', '.join(s for s in CONTEXT_STATIONS if s not in BEARING_STATIONS)}.")
-    parser.add_argument("--bearing", action="store_true",
-                        help=f"Collect Origin's bearing buoys: {', '.join(BEARING_STATIONS)}.")
+                             f"{', '.join(s for s in CONTEXT_STATIONS if s not in HOURLY_STATIONS)}.")
+    parser.add_argument("--hourly", "--bearing", dest="hourly", action="store_true",
+                        help=f"Collect the hourly context buoys: {', '.join(HOURLY_STATIONS)}. "
+                             "(--bearing is the old name, kept so a workflow on another branch still runs.)")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     args = parser.parse_args(argv)
 
-    if args.bearing:
-        stations = list(BEARING_STATIONS)
+    if args.hourly:
+        stations = list(HOURLY_STATIONS)
     elif args.context:
-        stations = [s for s in CONTEXT_STATIONS if s not in BEARING_STATIONS]
+        stations = [s for s in CONTEXT_STATIONS if s not in HOURLY_STATIONS]
     else:
         stations = [s.strip() for s in args.station.split(",") if s.strip()]
     results = []
