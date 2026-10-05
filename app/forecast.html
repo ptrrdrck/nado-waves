@@ -180,6 +180,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
 .train.lead .ht,.train.lead .dr{color:var(--ink)}
 .train:not(.lead){opacity:.72}
+/* A train with an arrow on the drawing picks it there (owner's request,
+   2026-10-05). */
+.train[data-train]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:4px}
+.train[data-train]:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* The break card's headline with its caret at the right end. The caret
    points up while the calculation is folded away and down once it is open
    beneath the line (owner's design, 2026-09-26). */
@@ -1072,10 +1076,15 @@ function cardsForForecast(step) {
 // Trains, largest first, the leader emphasised. Height leads the line because
 // it is what a reader compares between trains; period and heading say which
 // wave it is.
-function trainList(trains, {limit = 4} = {}) {
+// `drawn(i)` says whether the break's drawing has an arrow for train i; a
+// row that has one picks it there, as a tap on the arrow does (owner's
+// request, 2026-10-05). Local chop and swell aimed behind the beach have no
+// arrow, so their rows pick nothing.
+function trainList(trains, {limit = 4, drawn = () => false} = {}) {
   if (!trains || !trains.length) return "";
   return `<div class="trains">` + trains.slice(0, limit).map((t, i) => `
-    <div class="train${i === 0 ? " lead" : ""}">
+    <div class="train${i === 0 ? " lead" : ""}"${drawn(i)
+      ? ` data-train="${i}" tabindex="0" role="button" aria-label="Show this train on the drawing"` : ""}>
       <span class="ht">${height(t.hs_m)}</span>
       <span class="tp">${t.period_s.toFixed(1)} s</span>
       <span class="dr">${fromText(t)}</span>
@@ -1181,6 +1190,9 @@ function breakPanel(c) {
   }
 
   const drawing = windowDrawing(c);
+  // Which trains have an arrow there, for the list's rows to pick.
+  const drawn = (i) => !!drawing
+    && (drawing.includes(`data-pick="t${i}"`) || drawing.includes(`data-pick="t${i}-`));
   // How the headline was made folds out beneath it, from a caret at the end
   // of the line (owner's layout, 2026-09-26). Without the effects to tabulate
   // there is no caret, and the buoy's figure stays as a provenance line.
@@ -1196,7 +1208,7 @@ function breakPanel(c) {
   return `
     ${head}
 
-    ${c.trains && c.trains.length ? trainList(c.trains) : `
+    ${c.trains && c.trains.length ? trainList(c.trains, {drawn}) : `
     <div class="quiet">
       peak <b>${c.period ? c.period.toFixed(1) + " s" : "—"}</b>
       from <b>${compass(c.direction)}</b>
@@ -1720,14 +1732,27 @@ function windowDrawing(c) {
 // re-renders a refresh or the hour picker causes; lost with the page.
 const PICKED = {};
 
+// Which keys a pick lights. A section or one arrow is its own key; a train
+// picked from the list ("T2") is every arrow it has, one per direction it
+// arrives from ("t2", "t2-1").
+const pickMatch = (key) => (key && /^T\d+$/.test(key)
+  ? (k) => k === `t${key.slice(1)}` || k.startsWith(`t${key.slice(1)}-`)
+  : (k) => k === key);
+const pickDrawn = (svg, key) => !!key
+  && [...svg.querySelectorAll("[data-pick]")].some((el) => pickMatch(key)(el.getAttribute("data-pick")));
+
 // Show one section's state -- or the default drawing for none.
 function showPick(svg, key) {
+  const hit = pickMatch(key);
   svg.classList.toggle("picked", !!key);
   svg.querySelectorAll("[data-pick]").forEach((el) =>
-    el.classList.toggle("on", el.getAttribute("data-pick") === key));
-  const want = key || "default";
+    el.classList.toggle("on", !!key && hit(el.getAttribute("data-pick"))));
+  // Every arrow's bearing, but one caption: a train's arrows share its text.
+  let captioned = false;
   svg.querySelectorAll("[data-show]").forEach((el) => {
-    const on = el.getAttribute("data-show") === want;
+    const show = el.getAttribute("data-show");
+    let on = key ? hit(show) : show === "default";
+    if (on && el.classList.contains("faces")) { on = !captioned; captioned = true; }
     if (on) el.removeAttribute("hidden"); else el.setAttribute("hidden", "");
   });
 }
@@ -1772,13 +1797,41 @@ function togglePick(svg, key) {
 function restorePicks() {
   document.querySelectorAll("svg.aperture[data-break]").forEach((svg) => {
     const key = PICKED[svg.getAttribute("data-break")];
-    showPick(svg, key && svg.querySelector(`[data-pick="${key}"]`) ? key : null);
+    showPick(svg, pickDrawn(svg, key) ? key : null);
   });
 }
 
 // Delegated once, like the tabs, because the cards are rebuilt on every render.
 function wireDrawings() {
   const strip = $("conditions");
+  // A train in the list and the drawing in the same tab: the row picks its
+  // arrows as a tap on them does, and a mouse over it previews them.
+  const rowOf = (e) => {
+    const row = e.target.closest(".train[data-train]");
+    const pane = row && row.closest(".pane");
+    const svg = pane && pane.querySelector("svg.aperture");
+    const key = row && `T${row.getAttribute("data-train")}`;
+    return svg && pickDrawn(svg, key) ? {row, svg, key} : null;
+  };
+  const settle = (svg) => showPick(svg, PICKED[svg.getAttribute("data-break")] || null);
+  strip.addEventListener("click", (e) => {
+    const got = rowOf(e);
+    if (got) togglePick(got.svg, got.key);
+  });
+  strip.addEventListener("pointerover", (e) => {
+    const got = e.pointerType === "mouse" && rowOf(e);
+    if (got) showPick(got.svg, got.key);
+  });
+  strip.addEventListener("pointerout", (e) => {
+    const got = e.pointerType === "mouse" && rowOf(e);
+    if (got && !got.row.contains(e.relatedTarget)) settle(got.svg);
+  });
+  strip.addEventListener("keydown", (e) => {
+    const got = (e.key === "Enter" || e.key === " ") && rowOf(e);
+    if (!got) return;
+    e.preventDefault();
+    togglePick(got.svg, got.key);
+  });
   strip.addEventListener("click", (e) => {
     const svg = e.target.closest("svg.aperture");
     if (!svg) return;

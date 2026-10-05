@@ -157,7 +157,7 @@ class TestTheBreakCard:
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         panel = panel[:panel.index("function depthLabel")]
         order = ("depthLabel(c)", "calculationTable(c)", 'id="calc-${c.id}"',
-                 "trainList(c.trains)", "drawing || windowList(c.swellWindow)")
+                 "trainList(c.trains, {drawn})", "drawing || windowList(c.swellWindow)")
         at = [panel.index(mark) for mark in order]
         assert at == sorted(at)
         # The windows and the shares are in the drawing now (2026-09-26); the
@@ -213,8 +213,45 @@ class TestTheDrawingIsInteractive:
     def test_each_pick_shows_only_its_own_edges_and_line(self):
         fn = SOURCE[SOURCE.index("function showPick"):]
         fn = fn[:fn.index("\n}\n")]
-        assert 'const want = key || "default";' in fn
+        assert 'let on = key ? hit(show) : show === "default";' in fn
         assert '[data-show]' in fn
+
+    def test_a_train_in_the_list_picks_every_arrow_it_has(self):
+        """Owner's request, 2026-10-05: tapping a train in the list, or
+        hovering it with a mouse, lights its arrows on the drawing as a tap on
+        an arrow does -- both, for a train from two directions, under one
+        caption. A row with no arrow (local chop, swell aimed behind the
+        beach) picks nothing."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        match = SOURCE[SOURCE.index("const pickMatch = "):]
+        match = match[:match.index(";\n") + 2]
+        got = subprocess.run([node, "-e", match + (
+            "const keys = ['t0', 't0-1', 't1', 't10', 'w0', 's1'];\n"
+            "console.log(keys.filter(pickMatch('T0')).join(','));\n"
+            "console.log(keys.filter(pickMatch('T1')).join(','));\n"
+            "console.log(keys.filter(pickMatch('t0')).join(','));\n"
+            "console.log(keys.filter(pickMatch(null)).join(',') || '-');")],
+            capture_output=True, text=True, check=True).stdout.split()
+        assert got == ["t0,t0-1", "t1", "t0", "-"]
+
+        rows = SOURCE[SOURCE.index("function trainList("):]
+        rows = rows[:rows.index("\n}\n")]
+        assert '` data-train="${i}" tabindex="0" role="button"' in rows
+        panel = SOURCE[SOURCE.index("function breakPanel("):]
+        panel = panel[:panel.index("\n}\n")]
+        assert "drawing.includes(`data-pick=\"t${i}\"`) || drawing.includes(`data-pick=\"t${i}-`)" in panel
+        wire = SOURCE[SOURCE.index("function wireDrawings"):]
+        wire = wire[:wire.index("\n}\n")]
+        assert 'e.target.closest(".train[data-train]")' in wire
+        assert "if (got) togglePick(got.svg, got.key);" in wire
+        assert 'const got = e.pointerType === "mouse" && rowOf(e);' in wire
+        show = SOURCE[SOURCE.index("function showPick"):]
+        show = show[:show.index("\n}\n")]
+        assert 'el.classList.contains("faces")) { on = !captioned; captioned = true; }' in show
+        assert "showPick(svg, pickDrawn(svg, key) ? key : null);" in SOURCE
 
     def test_thin_sections_can_still_be_hit(self):
         """The island shadows are 2-5 degrees wide beside a 6-degree channel."""
@@ -1026,8 +1063,8 @@ class TestWaveTrainsOnScreen:
 
         card = SOURCE[SOURCE.index("function breakPanel"):]
         card = card[:card.index("function buoyPanel")]
-        assert "trainList(c.trains)" in card and "buoy.trains" not in card
-        assert card.index("in window") < card.index("trainList(c.trains)")
+        assert "trainList(c.trains, {drawn})" in card and "buoy.trains" not in card
+        assert card.index("in window") < card.index("trainList(c.trains, {drawn})")
 
     def test_the_swell_card_is_styled_like_wind_and_tide(self):
         """Same .cond card in the same strip, not a dashed aside."""
