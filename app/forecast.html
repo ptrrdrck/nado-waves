@@ -660,6 +660,21 @@ function compass(deg) {
   return points[Math.round(deg / 22.5) % 16] + " " + Math.round(deg) + "°";
 }
 
+// The headings a train comes FROM. A train fed by two sources carries both
+// (`lobes`, each holding a fifth of it or more): its mean heading sits between
+// them, where little of it comes from -- on 46% of South's trains and 23% of
+// the buoy's, measured (BRIEFING §38). One source, one heading, the mean.
+// A payload built before 2026-10-05 has no lobes and reads as one heading.
+function headings(t) {
+  return t && t.lobes && t.lobes.length >= 2 ? t.lobes.map((l) => l[0]) : [t ? t.from_deg : null];
+}
+function fromText(t) {
+  return headings(t).map(compass).join(" & ");
+}
+function pointsText(t) {
+  return headings(t).map(point).join(" and ");
+}
+
 function when(iso) {
   return new Date(iso).toLocaleString(undefined, {
     weekday: "long", month: "short", day: "numeric",
@@ -1058,7 +1073,7 @@ function trainList(trains, {limit = 4} = {}) {
     <div class="train${i === 0 ? " lead" : ""}">
       <span class="ht">${height(t.hs_m)}</span>
       <span class="tp">${t.period_s.toFixed(1)} s</span>
-      <span class="dr">${compass(t.from_deg)}</span>
+      <span class="dr">${fromText(t)}</span>
       ${t.local ? '<span class="tag">local chop</span>'
         : t.wind_sea ? '<span class="tag">wind sea</span>' : ""}
     </div>`).join("") + `</div>`;
@@ -1213,10 +1228,15 @@ function originFor(site) {
   // originhistory; on 29 Sep a 304° ridge shared a train with Polo at 161°).
   const hurricanes = (O.hurricanes || []).filter((h) => h.sites && h.sites[site])
     .map((h) => ({...h, at: h.sites[site]}));
+  // An arrival whose bearing was withheld because 46047's energy at it was
+  // split (BRIEFING §38) is the storm's only from within SAME_SOURCE_DEG of one
+  // of the directions it held: withholding a place must not make a name easier.
+  const near = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180) <= SAME_SOURCE_DEG;
+  const sameSource = (a, deg) => a.bearing_deg != null ? near(a.bearing_deg, deg)
+    : (a.bearing_lobes || []).length ? a.bearing_lobes.some(([h]) => near(h, deg))
+    : true;
   const isNamed = (c) => hurricanes.some((h) => h.at.train_period_s === c.train_period_s
-    && (A[c.arrival].bearing_deg == null
-        || Math.abs(((A[c.arrival].bearing_deg - h.at.bearing_deg) % 360 + 540) % 360 - 180)
-           <= SAME_SOURCE_DEG));
+    && sameSource(A[c.arrival], h.at.bearing_deg));
   return {
     hurricanes,
     current: (s.current || []).filter((c) => A[c.arrival] && !isNamed(c))
@@ -1635,11 +1655,13 @@ function windowDrawing(c) {
   // Local chop is made by the wind over the last few kilometres, not
   // carried in from the ocean, so it gets no arrow from the rim.
   const trains = [];
-  const arrows = (c.trains || []).map((t, i) => ({t, i, a: rel(t.from_deg)}))
-    .filter(({t, a}) => !t.local && isFinite(t.from_deg) && a > -90 && a < 90)
+  // A train from two directions gets an arrow from each (`headings`).
+  const arrows = (c.trains || [])
+    .flatMap((t, i) => headings(t).map((deg, j) => ({t, i, j, deg, a: rel(deg)})))
+    .filter(({t, deg, a}) => !t.local && isFinite(deg) && a > -90 && a < 90)
     .reverse()
-    .map(({t, i, a}) => {
-      const key = `t${i}`;
+    .map(({t, i, j, deg, a}) => {
+      const key = j ? `t${i}-${j}` : `t${i}`;
       const lead = i === 0;
       const len = lead ? 10 : 8, half = lead ? 4.5 : 3.5;
       const tip = r * 0.62;
@@ -1649,13 +1671,13 @@ function windowDrawing(c) {
       const [bx, by] = at(a, tip + len);
       const [px, py] = [Math.cos(th) * half, Math.sin(th) * half];
       const head = `${xy(at(a, tip))} ${xy([bx + px, by + py])} ${xy([bx - px, by - py])}`;
-      const text = `${heightText(t.hs_m)} at ${t.period_s.toFixed(1)} s, ${point(t.from_deg)}`
+      const text = `${heightText(t.hs_m)} at ${t.period_s.toFixed(1)} s, ${pointsText(t)}`
         + (t.wind_sea ? ", wind sea" : "");
       const [ex, ey] = at(a, tip);
       trains.push({key, x0: +x0.toFixed(1), y0: +y0.toFixed(1), x1: +ex.toFixed(1), y1: +ey.toFixed(1)});
       labels.push(`<text class="deg" data-show="${key}" hidden x="${at(a, r + 12)[0].toFixed(1)}"`
         + ` y="${at(a, r + 12)[1].toFixed(1)}" text-anchor="${Math.sin(th) > 0.25 ? "start"
-          : Math.sin(th) < -0.25 ? "end" : "middle"}">${Math.round(t.from_deg)}°</text>`);
+          : Math.sin(th) < -0.25 ? "end" : "middle"}">${Math.round(deg)}°</text>`);
       captions.push(caption(text, key));
       return `<g class="swell${lead ? " lead" : ""}" data-pick="${key}" tabindex="0" role="button"`
         + ` aria-label="${svgText(text)}">`
@@ -1665,7 +1687,7 @@ function windowDrawing(c) {
 
   const said = wins.map((win) => `${Math.round(win.from)} to ${Math.round(win.to)} degrees`).join(", ");
   const heard = (c.trains || []).filter((t) => !t.local && isFinite(t.from_deg))
-    .map((t) => `${Math.round(t.from_deg)}`).join(", ");
+    .map((t) => headings(t).map(Math.round).join(" and ")).join(", ");
   const summary = `Swell windows facing ${compass(c.normal)}: ${said}.`
     + (heard ? ` Swell arriving from ${heard} degrees.` : "")
     + " Select a window, a shadow or an arrow for its detail.";
@@ -2451,7 +2473,7 @@ function fcSpec(id, mode, steps) {
     trainsAt.forEach((list, i) => (list || []).forEach((tr) => {
       const r = Math.max(1.2, Math.min(5, 2.4 * Math.sqrt(Math.max(0, tr.hs_m || 0))));
       dots.push({i, v: tr.period_s, r, cls: tr.wind_sea ? "tr ws" : "tr"});
-      if (isFinite(tr.from_deg)) points.push({i, v: tr.from_deg});
+      headings(tr).filter(isFinite).forEach((deg) => points.push({i, v: deg}));
     }));
     const card = buoy ? {} : (DATA.breaks || []).find((b) => b.id === id) || {};
     const arcs = (card.swell_window || []).filter((w) => isFinite(w.from) && isFinite(w.to));
@@ -2474,7 +2496,7 @@ function fcSpec(id, mode, steps) {
         }
         if (!list.length) return "no trains";
         return list.slice(0, 3).map((tr, k) => (k === 0 ? value : (t) => t)(
-          `${height(tr.hs_m)} at ${tr.period_s.toFixed(1)} s from ${compass(tr.from_deg)}`
+          `${height(tr.hs_m)} at ${tr.period_s.toFixed(1)} s from ${fromText(tr)}`
           + (tr.wind_sea ? " (wind sea)" : ""))).join(" &middot; ");
       },
     };

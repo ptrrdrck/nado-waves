@@ -73,6 +73,7 @@ from .transform import (
     WIND_SEA_SPREAD_DEG,
     PartitionsThrough,
     attribution,
+    lobes_payload,
     through,
     through_partitions,
 )
@@ -677,7 +678,8 @@ def build(
                 "trains": [
                     {"hs_m": round(t.hs_m, 3), "period_s": round(t.period_s, 1),
                      "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
-                     "share": round(t.share, 4), "wind_sea": t.is_wind_sea}
+                     "share": round(t.share, 4), "wind_sea": t.is_wind_sea,
+                     "lobes": lobes_payload(t)}
                     for t in view.trains[:3]
                 ],
             })
@@ -784,7 +786,8 @@ def build(
                 hour_trains = [
                     {"hs_m": round(t.hs_m, 3), "period_s": round(t.period_s, 1),
                      "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
-                     "share": round(t.share, 4), "wind_sea": t.is_wind_sea}
+                     "share": round(t.share, 4), "wind_sea": t.is_wind_sea,
+                     "lobes": lobes_payload(t)}
                     for t in survived.trains[:3]
                 ]
             else:

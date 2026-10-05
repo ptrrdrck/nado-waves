@@ -39,7 +39,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .transform import WIND_SEA_PERIOD_S, Spectrum, load_spectra, through
+from .transform import WIND_SEA_PERIOD_S, Spectrum, load_spectra, lobes_payload, through
 
 ROOT = Path(__file__).resolve().parent.parent
 TABLE_DIR = ROOT / "data" / "nearshore"
@@ -183,6 +183,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
     per_bin: list[tuple[int, float]] = []
     bin_sin: dict[int, float] = {}
     bin_cos: dict[int, float] = {}
+    hists: dict[int, list[float]] = {}
     unmatched = 0
     for i, f in enumerate(spectrum.frequencies):
         grid = grids.get(i)
@@ -196,6 +197,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         short = f > 1.0 / WIND_SEA_PERIOD_S
         ks2 = shoaling_squared(f, table.start_depth_m)
         bin_e = bs = bc = 0.0
+        hist = hists[i] = [0.0] * 360
         for ray in table.by_freq[near]:
             if ray.gain > 0:
                 e_hard += at(grid, ray.off_from) * width * ray.width_rad * ray.gain / ks2
@@ -214,6 +216,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
             t = math.radians(ray.diff_off_from)
             so += e * math.sin(t); co += e * math.cos(t)
             bs += e * math.sin(t); bc += e * math.cos(t)
+            hist[int(ray.diff_off_from) % 360] += e
         per_bin.append((i, bin_e))
         bin_sin[i], bin_cos[i] = bs, bc
     peak = max(per_bin, key=lambda item: item[1]) if per_bin else None
@@ -225,7 +228,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         1.0 / spectrum.frequencies[peak[0]] if peak and peak[1] > 0 else float("nan"),
         unmatched,
         hs(e_fric),
-        split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos) if e10 > 0 else [],
+        split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos, hists=hists) if e10 > 0 else [],
         hs(e_short),
     )
 
@@ -358,6 +361,7 @@ def train_dicts(trains) -> list[dict]:
             "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
             "share": round(t.share, 4),
             "wind_sea": t.is_wind_sea,
+            "lobes": lobes_payload(t),
         }
         for t in trains
     ]

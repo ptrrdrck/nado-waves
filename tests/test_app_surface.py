@@ -196,7 +196,14 @@ class TestTheDrawingIsInteractive:
         assert ("${shortBlocker(win.opened_by)} \u2192 ${shortBlocker(win.closed_by)}, "
                 in self.DRAW)
         assert "° wide" in self.DRAW
-        assert "${heightText(t.hs_m)} at ${t.period_s.toFixed(1)} s, ${point(t.from_deg)}" in self.DRAW
+        assert "${heightText(t.hs_m)} at ${t.period_s.toFixed(1)} s, ${pointsText(t)}" in self.DRAW
+
+    def test_a_train_from_two_directions_gets_an_arrow_from_each(self):
+        """BRIEFING §38: the mean of a train fed from two directions points
+        between them, where little of it comes from."""
+
+        assert "headings(t).map((deg, j)" in self.DRAW
+        assert "const key = j ? `t${i}-${j}` : `t${i}`;" in self.DRAW
 
     def test_a_second_tap_returns_to_the_default(self):
         fn = SOURCE[SOURCE.index("function togglePick"):]
@@ -792,7 +799,7 @@ class TestItMatchesTheLiveOutput:
             known |= {f.name for f in fields(cls)}
         known |= {"blocker", "share", "verified"}       # taken_by entries
         known |= {"swell_deg", "wind_sea_deg", "note"}  # spread_assumption
-        known |= {"hs_m", "period_s", "from_deg", "wind_sea", "local"}  # train entries
+        known |= {"hs_m", "period_s", "from_deg", "wind_sea", "local", "lobes"}  # train entries
         known |= {"peak_period_s", "peak_direction_deg", "frequency_bins"}  # buoy
         known |= {"age_hours", "observed_utc", "trains", "height_m", "kind"}
         known |= {"detail"}  # `past` entries: forecastlog.past_hours
@@ -984,7 +991,25 @@ class TestWaveTrainsOnScreen:
     def test_a_train_shows_height_period_and_heading(self):
         assert "height(t.hs_m)" in SOURCE
         assert "t.period_s.toFixed(1)" in SOURCE
-        assert "compass(t.from_deg)" in SOURCE
+        assert "${fromText(t)}" in SOURCE
+
+    def test_two_directions_are_named_and_one_is_the_mean(self):
+        """`lobes` holds two directions or none (`transform.split_lobes`);
+        a payload from before 2026-10-05 has none and reads as before."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        fns = ""
+        for name in ("compass", "point", "headings", "fromText", "pointsText"):
+            start = SOURCE.index(f"function {name}(")
+            fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        script = (fns + "console.log(fromText({from_deg: 234, lobes: [[258, 0.48], [180, 0.28]]}));\n"
+                  "console.log(fromText({from_deg: 202, lobes: []}));\n"
+                  "console.log(fromText({from_deg: 202}));\n"
+                  "console.log(pointsText({from_deg: 234, lobes: [[258, 0.48], [180, 0.28]]}));")
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        assert out.stdout.splitlines() == ["WSW 258° & S 180°", "SSW 202°", "SSW 202°", "WSW and S"]
 
     def test_the_leading_train_is_emphasised(self):
         assert 'i === 0 ? " lead"' in SOURCE
@@ -1819,8 +1844,9 @@ class TestTheWeekChart:
             pytest.skip("node is not available")
         start = SOURCE.index("function compass(")
         compass = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
-        start = SOURCE.index("function point(")
-        compass += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        for name in ("point", "headings", "fromText", "pointsText"):
+            start = SOURCE.index(f"function {name}(")
+            compass += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
         prelude = (
             "const FT_PER_M = 3.28084;\n"
             "const ORDER = ['coronado_north', 'coronado_center', 'coronado_south'];\n"

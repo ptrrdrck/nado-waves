@@ -340,7 +340,17 @@ forecaster actually verifies against, Surfline included.
    train**: a break shows only arrivals that are one of its own card trains,
    which is the aperture's answer, never a bearing tested against a window.
    **Its direction is never 46232's** (it reads north-west swell 50–74° too far
-   south), but 46047's, then 46086's; neither, and there is no place. Two buoys
+   south — half of that is its mean averaging two lobes, the rest a westerly
+   lobe that pins near 270°, not at any island's edge; BRIEFING §38), but
+   46047's only; without it there is no place. **46086 was dropped from
+   Origin 2026-10-05** (owner's decision, §38a): its north-west lobe stays
+   near 279° whatever 46047 reads, so it holds no reading of where that swell
+   came from; it stays in the hurricane gate and on hourly collection. And a
+   bearing is **withheld** when 46047's energy at the ridge holds two
+   directions of ≥ 15% each (`origin.SPLIT_SHARE`, `transform.lobes`): its
+   mean would point between them. A withheld arrival keeps distance and date,
+   lists the directions it held, and is a storm's only from within 45° of one
+   of them — withholding a place never makes a name easier. Two buoys
    reading one storm differ by ~18–25% at the median, so distances are rounded
    to 500 mi and 500 km and said "about", and the place is a sea. Shown only
    once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "Read off the
@@ -371,7 +381,9 @@ forecaster actually verifies against, Surfline included.
    neighbours' ranks too). Marie is explained at 46047 and 46086
    independently; Polo at no buoy on no day (best 0.65 against a 0.7 gate
    fixed before the run, its peak days behind Baja); and the two ridges that
-   agree with a storm in timing AND bearing do so in 28% of bearing shuffles.
+   agree with a storm in timing AND bearing do so in 28% of bearing shuffles
+   (under §38a's bearings, one ridge, Polo's, and 20%: the "possible" Nolo
+   ridge's bearing is withheld; `stormtrack --ridges`).
    Timing alone matches almost anything. **What the card shows instead
    (owner's request, 2026-10-03; BRIEFING §37c): "Hurricane X" under Origin**,
    NHC's track run forward with paths across land dropped
@@ -524,7 +536,12 @@ forecaster actually verifies against, Surfline included.
   2 × 48 h, so the alert had 09-01 to 09-05 to be seen and has been silent by
   design since. Whether it was ever *delivered* in that window is still
   unchased. A station that had never reported at all had no date to age from
-  and alerted forever; `first_checked_utc` fixes that.
+  and alerted forever; `first_checked_utc` fixes that. **The directional
+  spectra are checked too, file by file** (`staleness.spectra_report`, since
+  2026-10-05): the standard met keeps a station "live" on any column, and
+  46086 reported wind for ten days after its wave sensor stopped on
+  2026-09-25 with nothing noticing. A spectrum newly past 48 h alerts once; all
+  of them stale is a dead spectra collector.
 - **GitHub Pages caches for ten minutes and you cannot change it.** Measured on
   the live bundle 2026-09-25T15:48:58Z: Pages serves through Fastly with
   `Cache-Control: max-age=600`, and Pages exposes no header configuration, so
@@ -603,7 +620,10 @@ forecaster actually verifies against, Surfline included.
                         direction — BRIEFING §35),
                         probe_spectra.py (are directional spectra reachable?),
                         spectra.py (archive them: 46232, 46047 and 46086
-                        hourly — the last two give Origin its direction —
+                        hourly (`--hourly`; HOURLY_STATIONS, held by a
+                        test to the union of Origin's and the hurricane
+                        gate's readers, so dropping a reader never drops a
+                        collection) —
                         and 46258 from collect.yml; context for checks, read
                         by no height), wind.py (KNZY),
                         wavespec.py (WW3's own spectrum + wind, not archived),
@@ -615,7 +635,9 @@ forecaster actually verifies against, Surfline included.
                         shoreline.py (NOAA's ENC coastline, by named REGION —
                         `coronado` carries the break chords, `baja` carries
                         the islands and the Mexican coast, `point_loma` the
-                        tip — run on Actions),
+                        tip, `channel_islands_south`/`_north` the eight
+                        Channel Islands, read by no chain (§38) — run on
+                        Actions),
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log),
@@ -700,6 +722,11 @@ forecaster actually verifies against, Surfline included.
       units.py          ft/mph first, m/kt in parentheses -- display only
       tideturns.py      the next high/low, and why its direction is not
                         differenced from the measured level      [built]
+      nwbearing.py      46232's north-west bearing: the mean against its
+                        lobes, the hull control, the Channel Islands' edges,
+                        what the lobe carries into each break, shown train
+                        headings against their own lobes; reports, never
+                        edits (BRIEFING §38)                      [built]
       shorenormal.py    surveyed shore normals vs the digitised chords,
                         swept over scale; reports, never edits    [built]
       blockeredge.py    a blocker's edges read off the charted coast, against
@@ -719,7 +746,7 @@ forecaster actually verifies against, Surfline included.
       forensics.py      a past swell's origin off the historical record;
                         "seen upstream" tests no distance (BRIEFING §37)
       origin.py         the LIVE tab's Origin: each train's dispersion
-                        ridge in 46232's spectrum, bearing at 46047/46086
+                        ridge in 46232's spectrum, bearing at 46047
                         [built]
       originreport.py   the measurements behind it; reports, never edits
       origintracks.py   readings against NHC's best tracks, by position
@@ -762,7 +789,9 @@ forecaster actually verifies against, Surfline included.
                         coastal 1431 - the islands and the Mexican coast to
                         32.383, where NOAA's charts stop) and `_point_loma`
                         (harbour 2815, approach 1612, coastal 879 — the
-                        harbour band is holed at the tip). A CHART product,
+                        harbour band is holed at the tip), and
+                        `_channel_islands_south`/`_north` (the eight Channel
+                        Islands; context, read by no chain). A CHART product,
                         generalised, not survey-grade MHW. Every file is
                         clipped by its own query envelope on all four edges,
                         which is why the region is in the filename.
@@ -895,6 +924,14 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   session), hourly, 7 days, per break on each `Hour` as `local_wind_*`.
   Chosen over KNZY's TAF: a TAF runs 24–30 h in coded change groups written
   for the runway.
+- **46232 is the sea after the Channel Islands, and that sea is not
+  uniform.** On north-west swell its westerly lobe pins near 270° whatever
+  46047 reads, 46258's at 286° and 46086's at 279° — each at its own bearing,
+  none at a charted island edge (BRIEFING §38). That lobe carries ~24% of
+  Center's and ~36% of South's 5 m energy on those hours, and the breaks'
+  rays leave deep water 25 km from both 46232 and 46258. Never "fix" 46232's
+  direction toward 46047's: the beach needs the sea where it is, not the
+  open ocean's, and §3a still forbids a substitute anchor.
 - **"At the buoy" means no aperture at all — `transform.at_buoy`, not
   `through(spectrum, spot, [])`.** The latter still applies that spot's seaward
   half-plane, which excludes 304–124° and dropped **12–26% of the energy** out
@@ -909,6 +946,12 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   trains rather than collapsing them to one "dominant"
   (`transform.split_trains`, BRIEFING §16). It is a peak split of the 1-D
   spectrum, not a 2-D watershed, and must not be described as partitioning.
+  **A train fed from two directions names both** (owner's decision
+  2026-10-05, BRIEFING §38a): when two directions each hold ≥ 20% of it
+  (`Train.lobes`), the card reads "WSW 258° & S 180°" and the drawing draws
+  an arrow from each, because the mean sits between them — more than 20° from
+  every direction on 46% of South's trains and 23% of the buoy's. `from_deg`
+  stays the mean for every other use; no height reads either.
 - **Imperial leads, metric in parentheses, everywhere a number is shown.**
   "2.3 ft (0.71 m)", "9 mph (8 kt)". **Nothing upstream of a display converts**:
   the JSON, the transform and the collectors stay in metres and knots, because

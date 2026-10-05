@@ -184,28 +184,59 @@ class TestSeveralStations:
         assert main(["--context", "--data-dir", str(tmp_path)]) == 0
         assert seen == ["46258"] and set(seen) < set(CONTEXT_STATIONS)
 
-    def test_bearing_collects_origins_two_and_context_does_not(self, tmp_path, monkeypatch):
+    def test_hourly_collects_both_witnesses_and_context_does_not(self, tmp_path, monkeypatch):
         """Each file has one writer: 46047 and 46086 hourly, 46258 on
-        collect.yml, and the bearing set is the one Origin reads."""
+        collect.yml. `--bearing` is the old name and still does the same."""
 
-        from collector.spectra import BEARING_STATIONS, main
-        from forecast.origin import BEARING_STATIONS as READ
+        from collector.spectra import HOURLY_STATIONS, main
 
         seen = []
         monkeypatch.setattr("collector.spectra.collect",
                             lambda station, data_dir: seen.append(station) or complete(station))
+        assert main(["--hourly", "--data-dir", str(tmp_path)]) == 0
+        assert seen == ["46047", "46086"] == list(HOURLY_STATIONS)
+        seen.clear()
         assert main(["--bearing", "--data-dir", str(tmp_path)]) == 0
-        assert seen == ["46047", "46086"] == list(BEARING_STATIONS) == list(READ)
+        assert seen == list(HOURLY_STATIONS)
         seen.clear()
         main(["--context", "--data-dir", str(tmp_path)])
-        assert not set(seen) & set(BEARING_STATIONS)
+        assert not set(seen) & set(HOURLY_STATIONS)
+
+    def test_every_reader_of_a_context_buoy_is_served_hourly(self):
+        """Origin and the hurricane gate read these within the hour. A reader
+        that drops a buoy (Origin dropped 46086 on 2026-10-05, BRIEFING §38)
+        must never take its collection with it: the hourly list is held to
+        the union of its readers, not to any one of them."""
+
+        from collector.spectra import HOURLY_STATIONS
+        from forecast.origin import BEARING_STATIONS
+        from forecast.stormtrack import GATE_STATIONS
+
+        assert set(BEARING_STATIONS) | set(GATE_STATIONS) <= set(HOURLY_STATIONS)
+        assert "46086" in HOURLY_STATIONS
+
+    def test_every_buoy_any_report_reads_is_collected(self):
+        """Directional data at every buoy keeps flowing: 46232 by default,
+        the hourly two, and the rest of the context list on collect.yml."""
+
+        from collector.spectra import CONTEXT_STATIONS, DEFAULT_STATION, HOURLY_STATIONS
+        from forecast.nwbearing import REFERENCE, STATIONS as NW
+        from forecast.stormtrack import STATIONS as STORM
+
+        collected = {DEFAULT_STATION} | set(HOURLY_STATIONS) | set(CONTEXT_STATIONS)
+        assert set(NW) | {REFERENCE} | set(STORM) <= collected
+        assert collected == {"46232", "46047", "46086", "46258"}
 
     def test_the_workflows_split_them(self):
         from pathlib import Path
 
         flows = Path(__file__).resolve().parent.parent / ".github" / "workflows"
-        assert "collector.spectra --bearing" in (flows / "collect-beach-inputs.yml").read_text()
-        assert "--bearing" not in (flows / "collect.yml").read_text()
+        beach = (flows / "collect-beach-inputs.yml").read_text()
+        assert "collector.spectra --hourly" in beach
+        assert 'collector.spectra --station "${STATION:-46232}"' in beach
+        collect = (flows / "collect.yml").read_text()
+        assert "collector.spectra --context" in collect
+        assert "--hourly" not in collect and "--bearing" not in collect
 
     def test_a_comma_list_is_several_stations(self, tmp_path, monkeypatch):
         from collector.spectra import main

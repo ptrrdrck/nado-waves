@@ -363,6 +363,7 @@ def through(
     per_bin: list[tuple[int, float]] = []
     bin_sin: dict[int, float] = {}
     bin_cos: dict[int, float] = {}
+    hists: dict[int, list[float]] = {}
 
     for index, freq in enumerate(spectrum.frequencies):
         density = spectrum.c11[index]
@@ -372,6 +373,7 @@ def through(
         period = 1.0 / freq if freq > 0 else 0.0
         bin_surviving = 0.0
         bin_sin_sum = bin_cos_sum = 0.0
+        hist = hists[index] = [0.0] * 360
         for n in range(steps):
             theta = (n + 0.5) * d_theta
             energy = spectrum.density(index, theta) * radians_step * width
@@ -387,6 +389,7 @@ def through(
                 cos_sum += surviving * math.cos(math.radians(theta))
                 bin_sin_sum += surviving * math.sin(math.radians(theta))
                 bin_cos_sum += surviving * math.cos(math.radians(theta))
+                hist[int(theta) % 360] += surviving
             else:
                 who = culprit[n]
                 if who:
@@ -447,7 +450,7 @@ def through(
         confidence=confidence,
         removed=removed,
         diffraction_suspect=suspect,
-        trains=split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos),
+        trains=split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos, hists=hists),
     )
 
 
@@ -933,6 +936,11 @@ class Train:
     from_deg: float
     #: Share of the energy this train is of the spectrum it was split out of.
     share: float
+    #: (heading FROM, share of this train) of each direction holding at least
+    #: `TRAIN_LOBE_SHARE` of it, when two or more do: where the energy of a
+    #: train fed by two sources actually comes from. `from_deg` is then their
+    #: mean, which sits between them (BRIEFING §38). Empty for one direction.
+    lobes: tuple = ()
 
     @property
     def is_wind_sea(self) -> bool:
@@ -946,33 +954,16 @@ class Train:
         return self.period_s < WIND_SEA_PERIOD_S
 
 
-def split_trains(
-    energies: list[tuple[int, float]],
-    frequencies: list[float],
-    sin_sums: dict[int, float],
-    cos_sums: dict[int, float],
-    *,
-    min_share: float = MIN_TRAIN_SHARE,
-    min_hs: float = MIN_TRAIN_HS_M,
-) -> list[Train]:
-    """Split a 1-D energy spectrum into trains at its local minima.
+def train_bands(energies: list[tuple[int, float]]) -> list[list[tuple[int, float]]]:
+    """The bins of each train `split_trains` reports, before its thresholds.
 
-    **This is a peak split, not a spectral partitioning.** WAVEWATCH III uses a
-    watershed over the full 2-D spectrum and can separate two trains that share
-    a frequency band while arriving from different directions; this cannot, and
-    will report them as one train at the energy-weighted mean heading. It is
-    honest for the common case — a long-period swell and a short-period wind
-    sea are well separated in frequency — and it is named for what it does so
-    that nobody later reads more into it.
-
-    `energies` is (bin index, energy in m²) in increasing frequency.
+    `split_trains`' own peak split, factored out so a report can ask where a
+    train's energy comes from bin by bin (`forecast.nwbearing`) without a
+    second copy of the rule drifting from this one.
     """
 
     live = [(i, e) for i, e in energies if e > 0.0]
-    if not live:
-        return []
-    total = sum(e for _, e in live)
-    if total <= 0:
+    if not live or sum(e for _, e in live) <= 0:
         return []
 
     # Local maxima, then assign every bin to the peak it descends from. With
@@ -1005,12 +996,106 @@ def split_trains(
         trough = min(range(left, right + 1), key=lambda k: live[k][1])
         bounds.append(trough)
     bounds.append(len(live))
+    return [live[a:b] for a, b in zip(bounds, bounds[1:]) if live[a:b]]
+
+
+#: Direction lobes (`lobes`): maxima of the distribution summed over a
+#: (2 x LOBE_SMOOTH_HALF + 1)° window, each the largest within
+#: LOBE_SEPARATION_DEG either side; a lobe's share is the energy within
+#: LOBE_SHARE_HALF° of it. Measured on (BRIEFING §38), not tuned to anything.
+LOBE_SMOOTH_HALF = 10
+LOBE_SEPARATION_DEG = 30
+LOBE_SHARE_HALF = 25
+#: A train is labelled with two directions when two lobes each hold at least
+#: this share of it (BRIEFING §38: the average sat > 20° from every lobe on
+#: 23% of the buoy's trains and 46% of South's).
+TRAIN_LOBE_SHARE = 0.20
+
+
+def lobes(dist: list[float]) -> list[tuple[float, float]]:
+    """(heading FROM, share) of each lobe of a 1° distribution, largest first.
+
+    Where energy actually comes from, which an energy-weighted mean heading is
+    not when there are two sources: the mean of a southerly and a westerly
+    lobe sits between them, where almost none of it is (§38).
+    """
+
+    n = len(dist)
+    total = sum(dist)
+    if n == 0 or total <= 0:
+        return []
+    ext = dist + dist + dist
+    prefix = [0.0]
+    for v in ext:
+        prefix.append(prefix[-1] + v)
+
+    def window(i: int, half: int) -> float:
+        return prefix[n + i + half + 1] - prefix[n + i - half]
+
+    smooth = [window(i, LOBE_SMOOTH_HALF) for i in range(n)]
+    out: list[tuple[float, float]] = []
+    for i in range(n):
+        v = smooth[i]
+        if v <= 0 or v < smooth[i - 1] or v < smooth[(i + 1) % n]:
+            continue
+        if any(smooth[(i + k) % n] > v for k in range(-LOBE_SEPARATION_DEG, LOBE_SEPARATION_DEG + 1)):
+            continue
+        heading = i + 0.5
+        if any(abs((heading - h + 180.0) % 360.0 - 180.0) < LOBE_SEPARATION_DEG for h, _ in out):
+            continue
+        out.append((heading, window(i, LOBE_SHARE_HALF) / total))
+    return sorted(out, key=lambda lobe: -lobe[1])
+
+
+def lobes_payload(train: "Train") -> list[list[float]]:
+    """A train's directions as a payload carries them: [[deg, share], ...],
+    or [] for one direction. Rounded as `from_deg` and `share` are."""
+
+    return [[round(h) % 360, round(share, 2)] for h, share in train.lobes]
+
+
+def split_lobes(dist: list[float], share: float = TRAIN_LOBE_SHARE) -> list[tuple[float, float]]:
+    """The lobes holding at least `share`, when there are two or more of
+    them; otherwise empty -- one direction, which the mean heading states."""
+
+    big = [lobe for lobe in lobes(dist) if lobe[1] >= share]
+    return big if len(big) >= 2 else []
+
+
+def split_trains(
+    energies: list[tuple[int, float]],
+    frequencies: list[float],
+    sin_sums: dict[int, float],
+    cos_sums: dict[int, float],
+    *,
+    min_share: float = MIN_TRAIN_SHARE,
+    min_hs: float = MIN_TRAIN_HS_M,
+    hists: dict[int, list[float]] | None = None,
+) -> list[Train]:
+    """Split a 1-D energy spectrum into trains at its local minima.
+
+    **This is a peak split, not a spectral partitioning.** WAVEWATCH III uses a
+    watershed over the full 2-D spectrum and can separate two trains that share
+    a frequency band while arriving from different directions; this cannot, and
+    will report them as one train at the energy-weighted mean heading. It is
+    honest for the common case — a long-period swell and a short-period wind
+    sea are well separated in frequency — and it is named for what it does so
+    that nobody later reads more into it.
+
+    `energies` is (bin index, energy in m²) in increasing frequency.
+    `hists`, when given, is each bin's energy over 1° headings FROM; each
+    train then carries the directions that hold its energy (`Train.lobes`).
+    """
+
+    bands = train_bands(energies)
+    if not bands:
+        return []
+    total = sum(e for band in bands for _, e in band)
+    if total <= 0:
+        return []
 
     trains: list[Train] = []
-    for start, end in zip(bounds, bounds[1:]):
-        band = live[start:end]
-        if not band:
-            continue
+    for band in bands:
         m0 = sum(e for _, e in band)
         if m0 <= 0:
             continue
@@ -1019,11 +1104,21 @@ def split_trains(
         cos_total = sum(cos_sums.get(i, 0.0) for i, _ in band)
         heading = (math.degrees(math.atan2(sin_total, cos_total)) % 360.0
                    if (sin_total or cos_total) else float("nan"))
+        split = ()
+        if hists:
+            dist = [0.0] * 360
+            for i, _ in band:
+                h = hists.get(i)
+                if h:
+                    for k, v in enumerate(h):
+                        dist[k] += v
+            split = tuple(split_lobes(dist))
         trains.append(Train(
             hs_m=4.0 * math.sqrt(m0),
             period_s=1.0 / frequencies[top] if frequencies[top] > 0 else float("nan"),
             from_deg=heading,
             share=m0 / total,
+            lobes=split,
         ))
 
     trains = [t for t in trains if t.share >= min_share and t.hs_m >= min_hs]
@@ -1062,6 +1157,7 @@ def at_buoy(spectrum: Spectrum, *, step: float = STEP_DEG) -> BuoyView:
     per_bin: list[tuple[int, float]] = []
     bin_sin: dict[int, float] = {}
     bin_cos: dict[int, float] = {}
+    hists: dict[int, list[float]] = {}
 
     for index, freq in enumerate(spectrum.frequencies):
         density = spectrum.c11[index]
@@ -1069,6 +1165,7 @@ def at_buoy(spectrum: Spectrum, *, step: float = STEP_DEG) -> BuoyView:
             continue
         width = spectrum.bin_width(index)
         total = sin_sum = cos_sum = 0.0
+        hist = hists[index] = [0.0] * 360
         for n in range(steps):
             theta = (n + 0.5) * d_theta
             energy = spectrum.density(index, theta) * radians_step * width
@@ -1077,6 +1174,7 @@ def at_buoy(spectrum: Spectrum, *, step: float = STEP_DEG) -> BuoyView:
             total += energy
             sin_sum += energy * math.sin(math.radians(theta))
             cos_sum += energy * math.cos(math.radians(theta))
+            hist[int(theta) % 360] += energy
         m0 += total
         per_bin.append((index, total))
         bin_sin[index], bin_cos[index] = sin_sum, cos_sum
@@ -1094,6 +1192,6 @@ def at_buoy(spectrum: Spectrum, *, step: float = STEP_DEG) -> BuoyView:
         hs_m=4.0 * math.sqrt(max(0.0, m0)),
         peak_period_s=peak_period,
         peak_direction_deg=peak_direction,
-        trains=split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos),
+        trains=split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos, hists=hists),
         frequency_bins=len(spectrum.frequencies),
     )

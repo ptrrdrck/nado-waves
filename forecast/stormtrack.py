@@ -73,7 +73,7 @@ import multiprocessing
 import statistics
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, write_step_summary
@@ -901,22 +901,46 @@ def report(results: list[Result], ridges: list, ridge_bands: list[Band],
                 f"{_fmt(r.actual)} | {'—' if r.best_control is None else f'{r.best_control:.2f}'} | "
                 f"{'—' if r.direction_ratio is None else f'x{r.direction_ratio:.1f}'} | "
                 f"{'**yes**' if r.explains else 'no'} |")
-    lines += ["", "Origin's ridges at 46232 against each storm-DAY's band there. Timing "
-              f"alone matches almost anything (a whole track's band is days wide), so a "
-              f"ridge is attributed only when >= {RIDGE_SHARE:.0%} of its points sit in a "
-              f"day's band, under {RIDGE_SHARE_CONTROL:.0%} with that band shifted, AND its "
-              f"bearing is within {RIDGE_BEARING_DEG}° of the storm's that day:", "",
-              "| ridge first seen | reading | timing matches (storm, day, share, bearing) | "
-              "attributed |", "|---|---|---|---|"]
+    lines += [""] + ridge_lines(ridges, ridge_bands)
+    lines += ["", f"A storm explains its band when it ranks at least {MIN_RANK}, beats "
+              f"every time control by {MARGIN}, its sector carries x{DIR_RATIO} either "
+              f"turned sector's energy, and coverage is at least {MIN_COVERAGE:.0%}. A best "
+              "track is NHC's analysis; the swell path is assumed open deep water."]
+    return "\n".join(lines)
+
+
+def _reading(a) -> str:
+    """A ridge's reading as the report states it: a bearing, a bearing
+    withheld because 46047's energy was split (BRIEFING §38), or none."""
+
+    if a.bearing_deg is not None:
+        return f"{a.fit.distance_km:,.0f} km at {a.bearing_deg:.0f}°"
+    lobes = getattr(a, "bearing_lobes", None) or []
+    if lobes:
+        split = ", ".join(f"{h:.0f}° {share:.0%}" for h, share in lobes)
+        return f"{a.fit.distance_km:,.0f} km, bearing withheld ({a.bearing_from} split: {split})"
+    return f"{a.fit.distance_km:,.0f} km, no bearing"
+
+
+def ridge_lines(ridges: list, ridge_bands: list[Band]) -> list[str]:
+    """Origin's ridges against each storm-day's band: the table and the
+    shuffle. A withheld bearing attributes nothing and takes no part in the
+    shuffle: it is not a bearing."""
+
+    lines = ["Origin's ridges at 46232 against each storm-DAY's band there. Timing "
+             f"alone matches almost anything (a whole track's band is days wide), so a "
+             f"ridge is attributed only when >= {RIDGE_SHARE:.0%} of its points sit in a "
+             f"day's band, under {RIDGE_SHARE_CONTROL:.0%} with that band shifted, AND its "
+             f"bearing is within {RIDGE_BEARING_DEG}° of the storm's that day:", "",
+             "| ridge first seen | reading | timing matches (storm, day, share, bearing) | "
+             "attributed |", "|---|---|---|---|"]
     attributed, timed_pairs = matches(ridges, ridge_bands)
     for a in ridges:
-        what = (f"{a.fit.distance_km:,.0f} km"
-                + (f" at {a.bearing_deg:.0f}°" if a.bearing_deg is not None else ", no bearing"))
         timed = [m for m in timed_pairs if m[0] is a]
         listed = "; ".join(f"{d.name.title()} {d.fixes[0].time:%m-%d} {sh:.0%} at {d.bearing:.0f}°"
                            for _, d, sh in timed) or "none"
         hit = [m for m in attributed if m[0] is a]
-        lines.append(f"| {a.first_utc:%Y-%m-%d %H}Z | {what} | {listed} | "
+        lines.append(f"| {a.first_utc:%Y-%m-%d %H}Z | {_reading(a)} | {listed} | "
                      + ("; ".join(f"**{d.name.title()}** ({d.fixes[0].time:%m-%d}), "
                                   f"storm {d.distances[0]:,.0f} km" for _, d, _ in hit) or "no")
                      + " |")
@@ -924,11 +948,31 @@ def report(results: list[Result], ridges: list, ridge_bands: list[Band],
     lines += ["", f"Chance: {observed} ridge(s) agree in bearing with a timing match; with the ridges' "
               f"bearings shuffled among themselves ({PERMUTATIONS} times), as many or more "
               f"agree in {p:.0%} of shuffles."]
-    lines += ["", f"A storm explains its band when it ranks at least {MIN_RANK}, beats "
-              f"every time control by {MARGIN}, its sector carries x{DIR_RATIO} either "
-              f"turned sector's energy, and coverage is at least {MIN_COVERAGE:.0%}. A best "
-              "track is NHC's analysis; the swell path is assumed open deep water."]
-    return "\n".join(lines)
+    return lines
+
+
+def ridges_run(data_dir: Path, min_kt: int = MIN_KT, until: datetime | None = None) -> str:
+    """Only the ridge section, on the spectra archived to `until`: what
+    re-checks the ridges after a change to how Origin reads a bearing,
+    without moving every other number the full report states."""
+
+    from . import origin
+    from .landpath import load_land
+    from .siting import load_coordinates
+
+    tracks = load_tracks(data_dir)
+    if not tracks:
+        return "no b-decks archived in data/besttracks/"
+    positions = load_coordinates()
+    ridge_bands = [b for b in bands(tracks, positions, min_kt, load_land(str(data_dir)))
+                   if b.station == RIDGE_STATION]
+    archives = origin.load_archives(data_dir)
+    if until is not None:
+        archives = {k: [s for s in v if s.time <= until] for k, v in archives.items()}
+    ridges = origin.arrivals(archives["46232"], archives, positions.get("46232"))
+    head = (f"Spectra to {until:%Y-%m-%d %H}Z; " if until else "") + \
+        f"bearing buoys {', '.join(origin.BEARING_STATIONS)}; split share {origin.SPLIT_SHARE:.0%}."
+    return "\n".join([head, ""] + ridge_lines(ridges, ridge_bands))
 
 
 def run(data_dir: Path, min_kt: int = MIN_KT) -> str:
@@ -990,7 +1034,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--min-kt", type=int, default=MIN_KT)
+    parser.add_argument("--ridges", action="store_true",
+                        help="only Origin's ridges against the storm-day bands")
+    parser.add_argument("--until", help="with --ridges: spectra to this UTC time, YYYY-MM-DDTHH")
     args = parser.parse_args(argv)
+    if args.ridges:
+        until = (datetime.strptime(args.until, "%Y-%m-%dT%H").replace(tzinfo=timezone.utc)
+                 if args.until else None)
+        text = ridges_run(args.data_dir, args.min_kt, until)
+        print(text)
+        return 0
     text = run(args.data_dir, args.min_kt)
     print(text)
     write_step_summary(text)

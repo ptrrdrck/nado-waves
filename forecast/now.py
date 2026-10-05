@@ -69,7 +69,7 @@ from .stormtrack import GATE_STATIONS
 from .surfzone import load_profiles
 from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, anomaly, coast_height, coast_level, coast_turn,
                        msl_above_mllw)
-from .transform import Spectrum, at_buoy, load_spectra, through
+from .transform import Spectrum, at_buoy, load_spectra, lobes_payload, through
 
 #: Older than this and the spectrum is not "now". NDBC publishes hourly and the
 #: collector runs hourly, so a healthy reading is under two hours old. Three
@@ -486,6 +486,7 @@ def as_trains(trains) -> list[dict]:
             "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
             "share": round(t.share, 4),
             "wind_sea": t.is_wind_sea,
+            "lobes": lobes_payload(t),
         }
         for t in trains
     ]

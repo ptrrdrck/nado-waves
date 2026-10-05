@@ -147,14 +147,29 @@ def named_mark(at: datetime, hurricane: dict) -> dict:
     return {"time_utc": _iso(at), **{k: hurricane.get(k) for k in keep}}
 
 
+def same_source(arrival: dict, storm_bearing: float) -> bool:
+    """Could this arrival be that storm's train, by direction? Within
+    `SAME_SOURCE_DEG` of its bearing; or, when its bearing was withheld
+    because 46047's energy was split (BRIEFING §38), of one of the
+    directions it held -- withholding a place never makes a name easier;
+    with no reading at all, direction says nothing either way."""
+
+    from .stats import angular_difference
+
+    if arrival.get("bearing_deg") is not None:
+        return abs(angular_difference(arrival["bearing_deg"], storm_bearing)) <= SAME_SOURCE_DEG
+    lobes = arrival.get("bearing_lobes") or []
+    if lobes:
+        return any(abs(angular_difference(h, storm_bearing)) <= SAME_SOURCE_DEG for h, _ in lobes)
+    return True
+
+
 def link(arrivals: list[dict], named: list[dict]) -> None:
     """`named` on each arrival: {site: storm} where a named moment inside its
     hours has, at that site, a train within Origin's tolerance of the ridge's
     own frequency then, and, when the arrival has a bearing, from within
-    `SAME_SOURCE_DEG` of the storm's. The card shows that train as the storm,
-    not as Origin's reading, and so does the chart."""
-
-    from .stats import angular_difference
+    `SAME_SOURCE_DEG` of the storm's (`same_source`). The card shows that train
+    as the storm, not as Origin's reading, and so does the chart."""
 
     for a in arrivals:
         first, last = _time(a["first_utc"]), _time(a["last_utc"])
@@ -168,9 +183,7 @@ def link(arrivals: list[dict], named: list[dict]) -> None:
                 train = (n.get("sites") or {}).get(site)
                 if not train or abs(1.0 / train["train_period_s"] - f) > origin.TRAIN_MATCH_HZ:
                     continue
-                if (a["bearing_deg"] is None
-                        or abs(angular_difference(a["bearing_deg"], train["bearing_deg"]))
-                        <= SAME_SOURCE_DEG):
+                if same_source(a, train["bearing_deg"]):
                     hit.setdefault(site, n["name"])
         a["named"] = hit
 

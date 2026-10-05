@@ -544,6 +544,45 @@ class TestRegions:
         _, _, xmax, _ = mod.REGIONS["point_loma"]
         assert xmax < -117.22
 
+    #: Public landmark positions, rounded: each island's far ends, and the
+    #: mainland points nearest each box. Used only to place the boxes; nothing
+    #: downstream reads them.
+    ISLANDS_SOUTH = {
+        "San Clemente NW": (33.03, -118.59), "San Clemente SE": (32.80, -118.35),
+        "Catalina W": (33.48, -118.60), "Catalina E": (33.33, -118.31),
+        "Santa Barbara": (33.48, -119.04), "San Nicolas W": (33.24, -119.57),
+    }
+    ISLANDS_NORTH = {
+        "San Miguel W": (34.04, -120.45), "Santa Rosa": (33.95, -120.10),
+        "Santa Cruz": (34.00, -119.72), "Anacapa E": (34.01, -119.36),
+    }
+    MAINLAND = {
+        "Palos Verdes Pt": (33.77, -118.42), "Dana Point": (33.46, -117.71),
+        "Point Mugu": (34.085, -119.06), "Ventura": (34.27, -119.29),
+        "Santa Barbara city": (34.40, -119.70), "Point Conception": (34.45, -120.47),
+        "Point Loma": (32.67, -117.24),
+    }
+
+    @pytest.mark.parametrize("region,islands", [
+        ("channel_islands_south", ISLANDS_SOUTH), ("channel_islands_north", ISLANDS_NORTH)])
+    def test_channel_island_boxes_hold_each_island_well_inside(self, region, islands):
+        """An island's tangent is the vertex the region exists to find; on the
+        envelope's edge it would be the box's corner (the §24 fault). Every
+        island end sits at least 0.045° (~5 km) inside on all four sides."""
+
+        xmin, ymin, xmax, ymax = mod.REGIONS[region]
+        for name, (lat, lon) in islands.items():
+            assert min(lat - ymin, ymax - lat, lon - xmin, xmax - lon) >= 0.045, name
+
+    @pytest.mark.parametrize("region", ["channel_islands_south", "channel_islands_north"])
+    def test_channel_island_boxes_keep_the_mainland_out(self, region):
+        """A box that took in Palos Verdes or the Ventura coast would store the
+        mainland as an island and put a blocker where there is open channel."""
+
+        xmin, ymin, xmax, ymax = mod.REGIONS[region]
+        for name, (lat, lon) in self.MAINLAND.items():
+            assert not (xmin <= lon <= xmax and ymin <= lat <= ymax), name
+
     def test_every_region_is_a_well_formed_box(self):
         for name, (xmin, ymin, xmax, ymax) in mod.REGIONS.items():
             assert xmin < xmax and ymin < ymax, name

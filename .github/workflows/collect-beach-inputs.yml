@@ -119,16 +119,19 @@ jobs:
           set -euo pipefail
           python -m collector.spectra --station "${STATION:-46232}"
 
-      # The two buoys Origin reads a train's DIRECTION from (forecast.origin,
-      # BRIEFING §37): 46232's own is bent by the islands. Hourly, so a new
-      # arrival's bearing lands with its distance rather than a collect.yml run
-      # later; collect.yml no longer fetches them, so each file has one writer.
-      - name: Directional spectra (46047, 46086, Origin's bearing)
+      # The hourly context buoys (collector.spectra.HOURLY_STATIONS): Origin
+      # reads a train's DIRECTION from 46047 (forecast.origin, BRIEFING §37-38),
+      # and the hurricane gate reads both 46047 and 46086 (forecast.stormtrack).
+      # Hourly, so a new arrival's bearing lands with its distance rather than a
+      # collect.yml run later; collect.yml no longer fetches them, so each file
+      # has one writer. 46086 stays here while its wave sensor is dark: the
+      # day it returns is archived the same hour.
+      - name: Directional spectra (46047, 46086, hourly)
         id: bearing
         continue-on-error: true
         run: |
           set -euo pipefail
-          python -m collector.spectra --bearing
+          python -m collector.spectra --hourly
 
       # NHC's best tracks, eastern and central Pacific: the LIVE tab names a
       # hurricane only when its track, run forward, is borne out by 46047 or

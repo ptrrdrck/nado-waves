@@ -153,3 +153,60 @@ def test_staleness_report_distinguishes_dead_collector_from_dead_buoy(tmp_path):
 
     one_stale, _ = staleness_module.format_report([stale, fresh], now, 48.0)
     assert "1 of 2 stations are dark" in one_stale
+
+
+def _spectrum_with_age(data_dir: Path, station: str, hours_old: float) -> None:
+    stamp = datetime.now(timezone.utc) - timedelta(hours=hours_old)
+    path = data_dir / "spectra" / station / "c11.csv"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("time_utc,0.0330,0.0380\n"
+                    f"{(stamp - timedelta(hours=1)):%Y-%m-%dT%H:%M:%SZ},0,0.1\n"
+                    f"{stamp:%Y-%m-%dT%H:%M:%SZ},0,0.2\n", encoding="utf-8")
+
+
+class TestSpectraStaleness:
+    """BRIEFING §38: 46086's wave sensor stopped on 2026-09-25 while its wind
+    kept the standard met "live" for ten days. The spectra are checked on
+    their own."""
+
+    def test_every_collected_spectrum_is_checked(self):
+        assert set(staleness_module.SPECTRA_STATIONS) == {"46232", "46047", "46086", "46258"}
+
+    def test_a_spectrum_that_just_stopped_alerts_once(self, tmp_path):
+        now = datetime.now(timezone.utc)
+        _spectrum_with_age(tmp_path, "46232", 1)
+        _spectrum_with_age(tmp_path, "46086", 60)
+        table, newly, dead = staleness_module.spectra_report(tmp_path, now, 48.0, ("46232", "46086"))
+        assert newly == ["46086"] and not dead
+        assert "NEWLY STALE" in table
+
+    def test_a_long_dark_spectrum_is_listed_not_alerted(self, tmp_path):
+        now = datetime.now(timezone.utc)
+        _spectrum_with_age(tmp_path, "46232", 1)
+        _spectrum_with_age(tmp_path, "46086", 238)
+        table, newly, dead = staleness_module.spectra_report(tmp_path, now, 48.0, ("46232", "46086"))
+        assert newly == [] and not dead
+        assert "known, not re-alerting" in table
+
+    def test_every_spectrum_stale_is_a_dead_collector(self, tmp_path):
+        now = datetime.now(timezone.utc)
+        for station in ("46232", "46047"):
+            _spectrum_with_age(tmp_path, station, 200)
+        _, _, dead = staleness_module.spectra_report(tmp_path, now, 48.0, ("46232", "46047"))
+        assert dead
+
+    def test_no_file_is_not_collected_rather_than_dead(self, tmp_path):
+        table, newly, dead = staleness_module.spectra_report(
+            tmp_path, datetime.now(timezone.utc), 48.0)
+        assert not newly and not dead and "NOT COLLECTED" in table
+
+    def test_main_alerts_on_a_newly_stale_spectrum(self, tmp_path):
+        _archive_with_age(tmp_path, hours_old=2)
+        for station in staleness_module.SPECTRA_STATIONS:
+            _spectrum_with_age(tmp_path, station, 1)
+        assert staleness_module.main(["--data-dir", str(tmp_path), "--stations", "46222"]) == 0
+        _spectrum_with_age(tmp_path, "46047", 50)
+        output = tmp_path / "report.md"
+        assert staleness_module.main(
+            ["--data-dir", str(tmp_path), "--stations", "46222", "--output", str(output)]) == 1
+        assert "46047" in output.read_text() and "Directional spectra" in output.read_text()

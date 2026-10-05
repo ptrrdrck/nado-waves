@@ -264,19 +264,42 @@ def far_distance_test(data_dir: Path, cases) -> list[str]:
 
 
 def bearing_shadow(archives: dict[str, list]) -> list[str]:
-    lines = ["6. Bearing: 46232's own direction against the first unshadowed buoy that has the ridge"]
+    """46232's mean heading for each ridge against the bearing buoy's, and
+    46232's westerly lobe beside it (BRIEFING §38): on a north-west swell the
+    mean averages a westerly and a southerly lobe and lands between them, so
+    roughly half the gap is the average and half the lobe. The lobe is read
+    off the band 11-20 s at the ridge's first hour, by `forecast.nwbearing`."""
+
+    from .nwbearing import band_distribution, westerly_lobe
+
+    lines = ["6. Bearing: 46232's own direction against the bearing buoy (46047, else 46086) that has the ridge",
+             "   (mean: the a1 average Origin would have used; lobe: 46232's westerly lobe, §38)"]
     diffs = []
+    lobe_diffs = []
     for a in arrivals(archives["46232"], archives):
         own = ridge_bearing(a.ridge, archives, ("46232",))
         if not own or a.bearing_from == "46232" or a.bearing_deg is None:
             continue
         d = (own[0] - a.bearing_deg + 180.0) % 360.0 - 180.0
         diffs.append(d)
+        first = next((s for s in archives["46232"] if s.time == a.ridge.points[0].time), None)
+        lobe = None
+        if first is not None:
+            dist, _ = band_distribution(first.with_spread("mem"))
+            lobe = westerly_lobe(dist) if dist else None
+        text = ""
+        if lobe is not None and a.bearing_deg >= 270.0:
+            ld = (lobe - a.bearing_deg + 180.0) % 360.0 - 180.0
+            lobe_diffs.append(ld)
+            text = f" | lobe {lobe:4.0f}° ({ld:+.0f}°)"
         lines.append(f"   {a.first_utc:%m-%d %H}Z {a.bearing_from} {a.bearing_deg:5.0f}° | "
-                     f"46232 {own[0]:5.0f}°  ({d:+.0f}°)")
+                     f"46232 mean {own[0]:5.0f}°  ({d:+.0f}°){text}")
     if diffs:
         lines.append(f"   n = {len(diffs)}: median {statistics.median(diffs):+.0f}°, "
                      f"largest {max(diffs, key=abs):+.0f}°")
+    if lobe_diffs:
+        lines.append(f"   north-west ridges (bearing >= 270°), lobe against the bearing buoy: "
+                     f"n = {len(lobe_diffs)}, median {statistics.median(lobe_diffs):+.0f}°")
     return lines
 
 
