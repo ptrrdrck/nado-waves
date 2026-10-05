@@ -2128,7 +2128,7 @@ class TestTheWeekChart:
             "console.log(chartModes('coronado_north').map((m) => m.label).join(','));\n"
             "console.log(chartModes('buoy').map((m) => m.label).join(','));"
         )
-        assert got == ["Height,Window,Day's Range,Origins,North vs. South", "Height,Origins"]
+        assert got == ["Height,Window,Origins,North vs. South", "Height,Origins"]
 
     def test_a_chart_of_one_line_has_no_key(self):
         got = self._run(

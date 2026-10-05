@@ -254,9 +254,10 @@ forecaster actually verifies against, Surfline included.
    red, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. **Under each Now card are the hourly charts** (owner's
    requests, 2026-09-27; `forecast/series.py`), in the owner's order
-   (2026-10-05): Height, Window (ratio), Day's Range (a 24 h %K, renamed the
-   same day so the menu needs no chartist's word), **Origins** (owner's
-   request, 2026-10-03; below) and North vs. South (north less south), switched above the plot, folded out from an
+   (2026-10-05): Height, Window (ratio), **Origins** (owner's request, 2026-10-03;
+   below) and North vs. South (north less south) — the 24 h %K view taken off
+   the menu the same day by the owner's call, its spec (`buildSpec`'s
+   "range") and `series.py`'s pct_k / pct_d kept so it can return — switched above the plot, folded out from an
    "Charts" line with the calculation's caret (closed until opened) — the
    last line on every card, below the provenance and under the card's one
    rule; the provenance has space above it, no rule (owner's calls,

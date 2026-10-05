@@ -1192,10 +1192,6 @@ breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level<
           is spread as well as with where its peak sits. A dot is never &ldquo;inside&rdquo; or
           &ldquo;outside&rdquo;: a single bearing tested against a window is the yes-or-no the
           model refuses.</dd>
-        <dt>Day's Range</dt><dd>Where the buoy sits in its own last 24 hours' range, 0% at the
-          low and 100% at the high, less where the break sits in its own. Above zero, the buoy is
-          nearer its day's high than the break is to its own. A position in a range, not a height,
-          left blank where too few of those 24 hours were measured.</dd>
         <dt>Origins</dt><dd>Where the swell arriving at the tab came from, over time, on every
           break's tab and the buoy's. A black dot every six hours is a hurricane the card would
           have named then, with the match it would have stated (see <a href="#swell-origin">Origin</a>),
@@ -1213,9 +1209,6 @@ breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level<
         <dt>North vs. South</dt><dd>North's less South's. Where it crosses zero, which of the two
           is bigger has flipped.</dd>
       </dl>
-<pre class="math">place = 100 × (now − lowest) / (highest − lowest)   <span class="c">over the last 24 hours</span>
-                                                     <span class="c">blank under 20 measured hours, or a range under 2 cm</span>
-chart = buoy's place − break's place</pre>
       <figure>
         <div class="mapbox" data-map data-view="whole" data-dists="0" data-rays="0"></div>
         <figcaption>The windows the Window chart's direction strip shades, here as they sit on the
@@ -1492,8 +1485,6 @@ chart = buoy's place − break's place</pre>
         the seabed depths are measured from.</dd>
       <dt>Harmonic prediction</dt><dd>The tide worked out from its astronomical constituents.</dd>
       <dt>Departure</dt><dd>The gauge's measured level less its prediction.</dd>
-      <dt>Day's range</dt><dd>Where a value sits within its own range over the last 24 hours, 0%
-        at the low and 100% at the high; a chartist's %K.</dd>
       <dt>GFS-Wave, GEFS-Wave</dt><dd>NOAA's global wave model, and the same model run as a
         31-member ensemble.</dd>
       <dt>ENC</dt><dd>NOAA's electronic navigational charts, the source of every coordinate in the

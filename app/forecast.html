@@ -1835,17 +1835,20 @@ function buoyPanel(buoy, measured = null) {
 // An hour with no spectrum is a gap: a pale band, and the line is not joined
 // across it -- at every zoom. A single hour between two gaps is a dot.
 //
-// Five views of the same hours, switched above the plot, in the owner's order
+// Four views of the same hours, switched above the plot, in the owner's order
 // (2026-10-05). The buoy's tab has only the heights and the origins, because
-// the other three are about a break. Each tab plots its own line in ink
+// the other two are about a break. Each tab plots its own line in ink
 // (owner's call, 2026-09-28); Height alone draws the other two breaks under it,
 // lighter, so the three can be compared at a glance (owner's request,
-// 2026-10-05). "Day's Range" was "Range %K" until the same day: the owner
-// asked for a name a reader needs no chartist's vocabulary for.
+// 2026-10-05).
+//
+// The range view (a 24 h %K, buoy less break; `buildSpec`'s "range") is off
+// the menu by the owner's call the same day, and kept, with series.py's
+// pct_k / pct_d, so it can come back: put {id: "range", label: ...} back in
+// this list. A reader whose remembered view was "range" opens on Height.
 const CHART_MODES = [
   {id: "height", label: "Height"},
   {id: "window", label: "Window"},
-  {id: "range", label: "Day's Range"},
   {id: "origins", label: "Origins"},
   {id: "diff", label: "North vs. South"},
 ];
@@ -2305,8 +2308,9 @@ function buildSpec(id, mode, steps) {
     };
   }
 
-  // Day's Range: where the buoy sits in its own last day's range, less where
-  // this break sits in its (a chartist's %K, which the payload still calls it).
+  // The range view, off the menu since 2026-10-05 (see CHART_MODES): where the
+  // buoy sits in its own last day's range, less where this break sits in its
+  // (a chartist's %K, which the payload still calls it).
   // The page only subtracts; forecast.series computes both and leaves an hour
   // without enough readings undefined, never filled.
   const diff = (key) => steps.map((s) => {
