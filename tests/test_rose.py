@@ -126,3 +126,15 @@ class TestOnThePage:
         assert 'const ROSE_MODES = [{id: "height", label: "Height"}, {id: "period", label: "Period"}];' in PAGE
         assert "KEEP.roseMode" in PAGE
         assert "prefers-reduced-motion" in PAGE.split("// THE ROSES")[1]
+
+    def test_each_buoys_scale_is_its_own_largest_petal(self):
+        """The edge is the largest petal in that buoy's own loop, exactly:
+        rounded up to a ring and shared across both buoys, 46232's largest
+        petal filled 22% of its rose (owner's report, 2026-10-06)."""
+
+        scale = PAGE[PAGE.index("function roseScale("):]
+        scale = scale[:scale.index("\n}\n")]
+        assert "function roseScale(mode, station)" in scale
+        assert "roseOf(station)" in scale and "BUOYS.roses" not in scale
+        assert "return {step, max: top};" in scale
+        assert "rosePlot(v.state, ROSE_MODE, station)" in PAGE
