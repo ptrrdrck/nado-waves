@@ -244,6 +244,21 @@ forecaster actually verifies against, Surfline included.
    heading and from its own file, beside the "physically derived" caveat and
    the cycle line; it is the live page's one link (it replaced info.html and
    geometry.html, 2026-10-02).
+   **The buoy's tab reads "Buoys"** (owner's request, 2026-10-06; BRIEFING
+   §39), on both chains, its id still `buoy`. On LIVE it holds 46232 and under
+   it **46047, Tanner Banks**, built the same way — combined height, maximum-
+   entropy trains, two directions named by §38a's rule — with its own name,
+   observed time, countdown and "carried to no break" line
+   (`forecast/buoys.py` → `buoys.json`, its own step in the collection).
+   **It feeds nothing**: its own module and file, never a key in now.json, so
+   the context-station guard still keeps "46047" out of now.py and the chain,
+   and `tests/test_buoys.py` keeps `through`/`carry`/the surf zone out of it.
+   Its countdown is measured, not borrowed: stamped :20 and :50, 25 min
+   typical and 85 worst, bracketed against the collection log on 148 stamps.
+   Its opposed lobes (≥ 150° apart, 168 over the archive; 46232 has none) are
+   shown by the same rule: 46232 saw the southern one on 163 of 163. The
+   Forecast tab's Buoys tab holds 46232 alone. A 46047 line on the Height
+   chart is the next step, not built.
    **The Forecast tab reaches 48 h back** (owner's decision, 2026-09-26). For a
    past hour it shows what the page showed then: the newest run published
    before that hour, from `forecast.json`'s `past`, read back from the
@@ -508,7 +523,10 @@ forecaster actually verifies against, Surfline included.
   the worst — twelve minutes pessimistic on the common hour, promising an hourly
   source **100 minutes from stamp to screen where 80 was honest**, and still red
   on the late one. Swell 15/36, tide 5/8, wind 3/4. n = 6 for the swell, which
-  is thin; revisit as the archive fills. The first version added
+  is thin; revisit as the archive fills (re-bracketed 2026-10-06 on 260: 15
+  holds, and 36 rounds to the H+45 run, red on 4 of 260 that came later —
+  BRIEFING §39, not changed). 46047 on the Buoys tab: 25/85, its own, in
+  `forecast/buoys.py`, through `now.deadline`'s same arithmetic. The first version added
   `source interval + 2 × collection interval` to the reading on screen instead,
   which charged a tide sample due in ninety seconds a full six minutes and then
   twenty more as slack — **over twenty minutes of countdown for a source that
@@ -752,6 +770,8 @@ forecaster actually verifies against, Surfline included.
                         dominant period (historical files only)
       forensics.py      a past swell's origin off the historical record;
                         "seen upstream" tests no distance (BRIEFING §37)
+      buoys.py          the LIVE tab's Buoys tab below 46232: 46047 at the
+                        buoy, carried to no break, its own countdown  [built]
       origin.py         the LIVE tab's Origin: each train's dispersion
                         ridge in 46232's spectrum, bearing at 46047
                         [built]
@@ -768,8 +788,9 @@ forecaster actually verifies against, Surfline included.
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
     data/live/          forecast.json, now.json, measured.json, series.json,
-                        series_all.json, windtide.json and origins.json, what the app
-                        surface reads (derived, gitignored)
+                        series_all.json, windtide.json, origins.json and
+                        buoys.json, what the app surface reads (derived,
+                        gitignored)
     data/series/        46232/YYYY-MM.csv: the observed chain for every
                         archived hour, and 46232_origins.json, the Origins
                         chart's marks, both rebuilt whole with today's chain

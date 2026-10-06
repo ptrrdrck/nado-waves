@@ -79,6 +79,8 @@ Built from what was measured: buoy 46232's directional spectrum, the wind report
 
 It carries exactly one modelled number, the tide's next high or low, and that is labelled *predicted* wherever it appears. [Why that one](#tide-turn).
 
+Its Buoys tab also shows a second buoy, 46047 at Tanner Banks, measured the same way. Nothing on the tab is computed from it. [Why it is there](#swell-tabs).
+
 ### [chains-forecast] Forecast: the model only
 
 Built from the GFS-Wave model run by NOAA (WAVEWATCH III), read at the buoy's position and carried in through the same windows, seabed and surf zone. Its wind is the National Weather Service's forecast at Coronado and its tide is the harmonic prediction. It shows every third hour, from 48 hours back to the end of the newest run.
@@ -396,9 +398,11 @@ The Local chop row names the chop's period, its kind (behind land, or open water
 
 ## [swell] The Swell card
 
-### [swell-tabs] Break tabs and the buoy tab
+### [swell-tabs] Break tabs and the Buoys tab
 
-One tab per break, ranked by how much of the buoy's energy its windows let through, with the buoy always last. The buoy's tab shows the swell 29 km offshore with nothing in the way, so it is always the biggest number, and it is the one the breaks are measured from.
+One tab per break, ranked by how much of the buoy's energy its windows let through, with the Buoys tab always last. It shows the swell at buoy 46232, 29 km offshore, with nothing in the way, so it is always the biggest number, and it is the one the breaks are measured from.
+
+On “LIVE” the Buoys tab also shows buoy 46047 at Tanner Banks, 222 km west, the buoy in the array that the islands shadow least. It is read the same way as 46232: the combined height of its directional spectrum, and its [swell trains](#swell-trains), with a train fed from two directions naming both. It is open ocean outside every break's windows, so it is carried to no break, and no number on any other tab comes from it. It is there so the swell before the Channel Islands and the Bight can be read beside the swell at 46232. Its spectra are stamped every half hour, at :20 and :50, so it has its own observed time and its own [countdown](#swell-countdown). The Forecast tab's Buoys tab shows 46232 only, because the model run is read at 46232 alone.
 
 ### [swell-headline] The headline
 
@@ -461,6 +465,7 @@ then the page adds its own refresh, every 5 minutes.
 | Source | Publishes | Typical lag | Late after | Reading at 12:00 PM, next due |
 |---|---|---|---|---|
 | Swell, buoy 46232 | hourly, stamped :00 |  |  | 1:15 PM, red after 1:45 PM |
+| Swell, buoy 46047 (Buoys tab) | half-hourly, stamped :20 and :50 |  |  | (12:20 PM reading) 1:15 PM, red after 2:15 PM |
 | Wind, KNZY | hourly at :52 |  |  | (11:52 AM reading) 12:55 PM, red after 1:05 PM |
 | Tide, 9410170 | every 6 min |  |  | 12:15 PM |
 

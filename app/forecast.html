@@ -567,6 +567,9 @@ const WINDTIDE_SOURCE = PARAM.get("windtide") || "../data/live/windtide.json";
 // Every readable arrival, and every hurricane the card would have named, over
 // the archive (forecast.originhistory), for the Origins chart on the LIVE tab.
 const ORIGINS_SOURCE = PARAM.get("origins") || "../data/live/origins.json";
+// The context buoys shown under 46232 on the LIVE tab's Buoys tab
+// (forecast.buoys): what each measured at the buoy, carried to no break.
+const BUOYS_SOURCE = PARAM.get("buoys") || "../data/live/buoys.json";
 
 // North to south along the sand: the west edge of the window is the bearing
 // to the Point Loma tip and it sweeps as you walk. This is the scope and the
@@ -944,6 +947,7 @@ let SERIES = null;    // series.json   — the observed chain, every hour for a 
 let SERIES_ALL = null; // series_all.json — every archived hour, once asked for
 let WT = null;        // windtide.json — measured wind and tide each hour
 let ORIGINS = null;   // origins.json  — arrivals and named hurricanes, over time
+let BUOYS = null;     // buoys.json    — the context buoys, at the buoy only
 // The hours the picker offers, oldest first: {valid_utc, from, lead_h} plus
 // `index` into each break's hours for the current run ("cycle"), or `entry`
 // from forecast.json's `past` for an hour an earlier run was on screen for.
@@ -1861,17 +1865,51 @@ function wireDrawings() {
   });
 }
 
-// The buoy's tab: the offshore spectrum itself, before any aperture.
-function buoyPanel(buoy, measured = null) {
+// The buoy's tab ("Buoys" since 2026-10-06): the offshore spectrum itself,
+// before any aperture.
+//
+// On the LIVE tab it also carries the context buoys from buoys.json (owner's
+// request, 2026-10-06): 46047, Tanner Banks, the least shadowed buoy in the
+// array, built the same way -- combined height and maximum-entropy trains --
+// under its own name, its own observed time and its own countdown, because
+// its spectra are stamped at :20 and :50 and land on their own measured lag
+// (forecast.buoys). It is outside every break's windows and carried to no
+// break (BRIEFING §3a), and its block says so. With a context buoy on the
+// tab, each block is named, since the pane then holds two heights.
+function buoyPanel(buoy, measured = null, station = null, others = []) {
   const line = measuredLine(measured, (m) => m.buoy);
+  const named = others.length && station;
+  const head = named ? `<span class="sublbl">${buoyLabel(station.name, station.id)}</span>` : "";
   if (!buoy || buoy.hs_m == null) {
-    return '<span class="val"><span class="unit">no spectrum</span></span>' + line;
+    return head + '<span class="val"><span class="unit">no spectrum</span></span>' + line
+      + others.map(contextBuoy).join("");
   }
+  return head + buoyReading(buoy) + line + others.map(contextBuoy).join("");
+}
+
+function buoyReading(buoy) {
   const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains)
     : buoy.period_s ? `<div class="quiet">peak <b>${buoy.period_s.toFixed(1)} s</b>`
       + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
   return `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
-    + trains + line;
+    + trains;
+}
+
+const buoyLabel = (name, id) => (name && name !== id ? `${name} (${id})` : `NDBC ${id}`);
+
+// One context buoy's block: its name, its reading, and its provenance --
+// observed when, from which buoy, carried to no break, and its countdown,
+// red past its measured worst or past the build's three hours.
+function contextBuoy(b) {
+  const old = b.observed_utc && (b.stale || (ageHours(b.observed_utc) || 0) > (b.stale_hours || 3));
+  const reading = b.hs_m != null ? buoyReading(b)
+    : '<span class="val"><span class="unit">no spectrum</span></span>';
+  return `<hr><span class="sublbl">${buoyLabel(b.station_name, b.station)}</span>${reading}`
+    + srcLines([
+      b.observed_utc ? `Observed ${observedAt(b.observed_utc)}` : "",
+      b.station_name ? `Spectral wave data, ${b.station_name} (NDBC ${b.station})` : "",
+      "Outside every break's windows: carried to no break",
+    ], b.observed_utc ? dueSpan(b.next_expected, b.overdue_after, {forceOver: !!old}) : "");
 }
 
 // THE CHARTS, under each card on the Now tab (owner's requests, 2026-09-27).
@@ -4054,21 +4092,25 @@ function cardChart(id) {
 // stale reading has to be marked whichever tab is open. Tucked into the
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
-function swellCard({label, buoy, station, cards, source, due = "", measured = null,
-                    chart = false, origin = null}) {
+function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
+                    due = "", measured = null, chart = false, origin = null}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
     origin: c.origin || null,
   }));
-  tabs.push({id: BUOY_TAB, title: station ? `Buoy ${station}` : "Buoy",
-             body: buoyPanel(buoy, measured), chart, origin});
+  // "Buoys" on both chains (owner's request, 2026-10-06), though only the
+  // LIVE tab carries a second one: GFS-Wave's run is at 46232 alone. The id
+  // stays "buoy", so a reader's remembered tab and chart still find it.
+  tabs.push({id: BUOY_TAB, title: "Buoys",
+             body: buoyPanel(buoy, measured, {id: station, name: stationName}, others),
+             chart, origin});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
 
   return `<div class="cond swell" data-card="swell">
     <span class="lbl">${label}</span>
-    <div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoy">
+    <div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoys">
       ${tabs.map((tab) => `<button type="button" role="tab" id="swell-tab-${tab.id}"
         data-swell-tab="${tab.id}" aria-controls="swell-pane-${tab.id}"
         aria-selected="${tab.id === chosen}" tabindex="${tab.id === chosen ? 0 : -1}"
@@ -4209,6 +4251,8 @@ function renderConditions(step, cards) {
       label: "Swell",
       buoy,
       station: NOW && NOW.station,
+      stationName: NOW && NOW.station_name,
+      others: (BUOYS && BUOYS.buoys) || [],
       cards,
       source: [
         NOW && NOW.observed_utc ? `Observed ${observedAt(NOW.observed_utc)}` : "",
@@ -4604,6 +4648,22 @@ function refreshOrigins() {
     .catch(() => {});
 }
 
+// Rebuilt with every collection, like now.json; a new reading at 46047 is a
+// change in a card's numbers, so it flashes like one. The first fetch, at
+// load, is not an update: it fills the tab without the flash.
+function refreshBuoys() {
+  fetch(fresh(BUOYS_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => {
+      if (!got || !got.generated_utc || !got.buoys) return;
+      if (BUOYS && got.generated_utc === BUOYS.generated_utc) return;
+      const first = !BUOYS;
+      BUOYS = got;
+      if (MODE === "now") (first ? show() : showAndFlash());
+    })
+    .catch(() => {});
+}
+
 // The archive changes once a day; refetched hourly, and only once it has
 // been asked for.
 function refreshSeriesAll() {
@@ -4748,6 +4808,7 @@ function boot(data, observed, measured, series, windtide) {
 
   if (!adoptForecast(data, null)) return;
   refreshOrigins();
+  refreshBuoys();
 
   $("when").onchange = (e) => {
     choose(Math.max(0, Math.min(STEPS.length - 1, Number(e.target.value))));
@@ -4800,6 +4861,7 @@ function boot(data, observed, measured, series, windtide) {
   setInterval(refreshSeries, NOW_REFRESH_MS);
   setInterval(refreshWindTide, NOW_REFRESH_MS);
   setInterval(refreshOrigins, NOW_REFRESH_MS);
+  setInterval(refreshBuoys, NOW_REFRESH_MS);
   setInterval(refreshSeriesAll, FORECAST_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
 }

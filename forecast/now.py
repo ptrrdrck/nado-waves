@@ -282,10 +282,21 @@ def overdue_after(observed_utc: str | None, source: str) -> str | None:
 def _deadline(observed_utc: str | None, source: str, lags: dict) -> str | None:
     """`next_expected` and `overdue_after` differ only in which lag they use."""
 
-    if not observed_utc:
-        return None
-    marks = PUBLISH_MINUTES.get(source)
-    if not marks:
+    return deadline(observed_utc, PUBLISH_MINUTES.get(source), lags.get(source, 0))
+
+
+def deadline(observed_utc: str | None, marks: tuple[int, ...] | None,
+             lag_min: float) -> str | None:
+    """The three steps for any source: its next stamp after `observed_utc` on
+    `marks`, plus `lag_min` until it is fetchable, rounded up to a collection.
+
+    Public so a payload beside this one -- the context buoys on the LIVE
+    tab's Buoys tab, which this module may not read -- counts down by the same
+    arithmetic against its own measured lags, rather than a second copy of it
+    drifting.
+    """
+
+    if not observed_utc or not marks:
         return None
     try:
         taken = datetime.strptime(observed_utc, ISO).replace(tzinfo=timezone.utc)
@@ -293,7 +304,7 @@ def _deadline(observed_utc: str | None, source: str, lags: dict) -> str | None:
         return None
 
     published = _next_mark(taken, marks)
-    fetchable = published + timedelta(minutes=lags.get(source, 0))
+    fetchable = published + timedelta(minutes=lag_min)
     return _mark_at_or_after(fetchable, _collect_minutes()).strftime(ISO)
 
 

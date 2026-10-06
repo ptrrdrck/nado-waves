@@ -1367,7 +1367,7 @@ class TestAnUpdateAnnouncesItself:
         """Stepping the forecast to +48 h re-renders without a refresh. Only
         the two refresh paths go through `showAndFlash`."""
 
-        assert SOURCE.count("showAndFlash()") == 4          # the definition, and three callers
+        assert SOURCE.count("showAndFlash()") == 5          # the definition, and four callers
         for nav in ('$("earlier").onclick', '$("later").onclick', '$("when").onchange'):
             start = SOURCE.index(nav)
             assert "showAndFlash" not in SOURCE[start:start + 200], f"{nav} flashes"
@@ -1577,7 +1577,7 @@ class TestTheCdnCannotServeAStalePayload:
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 13
+        assert SOURCE.count('{cache: "no-store"}') == 14
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -1736,12 +1736,13 @@ class TestEveryMeasurementSaysHowOldItIs:
     twelve minutes ago at breakfast and nine hours ago after work, and the
     second is a different card."""
 
-    def test_all_four_measurement_lines_go_through_one_helper(self):
-        """Three cards on Now plus the forecast tab's KNZY fallback. Four
-        hand-rolled age expressions is four chances to drift."""
+    def test_all_five_measurement_lines_go_through_one_helper(self):
+        """Three cards on Now, the Buoys tab's context buoy (2026-10-06), and
+        the forecast tab's KNZY fallback. Five hand-rolled age expressions is
+        five chances to drift."""
 
         assert "function observedAt" in SOURCE
-        assert SOURCE.count("observedAt(") == 5      # the definition plus four uses
+        assert SOURCE.count("observedAt(") == 6      # the definition plus five uses
         for site in ("Observed ${observedAt(NOW.observed_utc)}",
                      "Observed ${observedAt(wind.observed_utc)}",
                      "Measured ${observedAt(tide.observed_utc)}"):
@@ -3021,7 +3022,7 @@ class TestOrigin:
 
     def test_the_buoy_tab_has_one_too(self):
         assert 'origin: originFor("buoy")' in SOURCE
-        assert "body: buoyPanel(buoy, measured), chart, origin}" in SOURCE
+        assert "body: buoyPanel(buoy, measured, {id: station, name: stationName}, others),\n             chart, origin}" in SOURCE
 
     def test_distances_are_rounded_and_said_about(self):
         """Two buoys reading one storm differ by about a fifth: a distance
