@@ -2015,8 +2015,10 @@ function contextBuoy(b) {
 // on the newest. A rose shows the newest spectrum stamped at or before that
 // moment, until its successor was due (its own stamp spacing, in the file);
 // past that it is a gap and says so, never the frame beside it. Its newest
-// frame stays until a newer one lands: a stamp not out yet is not a gap. Both buoys
-// share one scale per view, so a petal at 46047 and one at 46232 compare. A
+// frame stays until a newer one lands: a stamp not out yet is not a gap. Each
+// buoy has its own scale per view, fitted to the largest petal in its own
+// loop (owner's request, 2026-10-06), so that petal reaches the edge and the
+// rest are as large as they can be; the rings say what each scale is. A
 // reader who asks for less motion gets the newest frame, paused.
 const ROSE_MODES = [{id: "height", label: "Height"}, {id: "period", label: "Period"}];
 let ROSE_MODE = recall(KEEP.roseMode) === "period" ? "period" : "height";
@@ -2047,16 +2049,21 @@ function roseMoment(span) {
     : span.t0 + (span.t1 - span.t0) * ROSE_PHASE / ROSE_PLAY_MS;
 }
 
-// One scale per view for every frame of every buoy: feet for Height, a
-// share for Period, rounded up to a step that leaves at most four rings.
-function roseScale(mode) {
-  const frames = Object.values((BUOYS && BUOYS.roses) || {}).flatMap((r) => r.frames || []);
+// One scale per view for every frame of ONE buoy's loop: feet for Height, a
+// share for Period. The edge is the largest petal in the loop, exactly --
+// never rounded up to a ring, which left a third of the rose empty -- and the
+// rings sit at a round step inside it, at most four of them. Fixed across the
+// loop, so a petal that grows between frames really grew.
+function roseScale(mode, station) {
+  const frames = (roseOf(station) || {}).frames || [];
   const top = Math.max(0, ...frames.flatMap((f) => mode === "height"
     ? f.sector_hs_m.map((m) => m * FT_PER_M)
     : f.period_share.map((row) => row.reduce((a, b) => a + b, 0))));
   const steps = mode === "height" ? [0.25, 0.5, 1, 2, 5, 10, 20] : [0.05, 0.1, 0.2, 0.25];
-  const step = steps.find((s) => Math.ceil(top / s - 1e-9) <= 4) || steps[steps.length - 1];
-  return {step, max: Math.max(step, step * Math.ceil(top / step - 1e-9))};
+  // A loop with almost nothing in it still draws one ring, at the edge.
+  if (top < steps[0]) return {step: steps[0], max: steps[0]};
+  const step = steps.find((s) => Math.floor(top / s + 1e-9) <= 4) || steps[steps.length - 1];
+  return {step, max: top};
 }
 
 // What a buoy's rose shows at a moment: a frame, a gap, or a stamp not in yet.
@@ -2093,9 +2100,9 @@ function rosePetal(i, r0, r1) {
 
 const rosePct = (s) => `${Math.round(s * 100)}%`;
 
-function rosePlot(state, mode) {
+function rosePlot(state, mode, station) {
   const {c, r: R} = ROSE;
-  const scale = roseScale(mode);
+  const scale = roseScale(mode, station);
   const rings = [];
   for (let v = scale.step; v <= scale.max + 1e-9; v += scale.step) rings.push(v);
   const grid = rings.map((v) => `<circle class="ring" cx="${c}" cy="${c}" r="${(R * v / scale.max).toFixed(2)}"/>`).join("")
@@ -2105,9 +2112,12 @@ function rosePlot(state, mode) {
     const [x, y] = rosePt(R + 11, deg).split(",");
     return `<text class="pt" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${p}</text>`;
   }).join("");
+  // The outermost ring is labelled, on that ring; the largest petal may
+  // reach past it to the edge.
+  const ring = rings[rings.length - 1];
   const outer = mode === "height"
-    ? `${+scale.max.toFixed(2)} ft (${(scale.max / FT_PER_M).toFixed(2)} m)` : rosePct(scale.max);
-  const [lx, ly] = rosePt(R, 45).split(",");
+    ? `${+ring.toFixed(2)} ft (${(ring / FT_PER_M).toFixed(2)} m)` : rosePct(ring);
+  const [lx, ly] = rosePt(R * ring / scale.max, 45).split(",");
   const label = `<text class="rl" x="${(+lx + 3).toFixed(1)}" y="${(+ly - 3).toFixed(1)}">${outer}</text>`;
 
   let petals = "";
@@ -2195,7 +2205,7 @@ function roseBlock(station) {
     <div class="rose-head"><span class="ranges" role="group" aria-label="Which rose">${modes}</span>
       <button type="button" class="rose-play" data-rose-play aria-pressed="${ROSE_PLAYING}">${ROSE_PLAYING ? "Pause" : "Play"}</button></div>
     <div class="readout" data-rose-live aria-live="off">${roseReadout(v.state)}</div>
-    <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE)}</div>
+    <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
     <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
       aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg>
@@ -2212,7 +2222,7 @@ function roseUpdate(el) {
   if (el.getAttribute("data-k") !== v.key) {
     el.setAttribute("data-k", v.key);
     el.querySelector(".readout").innerHTML = roseReadout(v.state);
-    el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE);
+    el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE, el.getAttribute("data-rose"));
     el.querySelector(".rose-line").setAttribute("aria-valuenow", rosePercent(v));
     el.querySelector(".rose-line").setAttribute("aria-valuetext",
       v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);
