@@ -26,7 +26,8 @@ The bundle:
     origins.json    data/live/origins.json — every readable arrival and every
                     hurricane the card would have named, for the Origins chart
     buoys.json      data/live/buoys.json — the context buoys under 46232 on
-                    the LIVE tab's Buoys tab, at the buoy only (forecast.buoys)
+                    the LIVE tab's Buoys tab, at the buoy only, and each
+                    buoy's last six hours of roses (forecast.buoys)
     docs.html       app/docs.html: the documentation, with the geometry
                     drawing filled by forecast.geomviz from spots.json, the
                     caveat and both chains' standing-on blocks; linked from

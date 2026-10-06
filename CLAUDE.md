@@ -259,7 +259,22 @@ forecaster actually verifies against, Surfline included.
    Its countdown is measured, not borrowed: stamped :20 and :50, 25 min
    typical and 85 worst, bracketed against the collection log on 148 stamps.
    Its opposed lobes (≥ 150° apart, 168 over the archive; 46232 has none) are
-   shown by the same rule: 46232 saw the southern one on 163 of 163. The
+   shown by the same rule: 46232 saw the southern one on 163 of 163.
+   **Under each buoy's reading, a rose** (owner's request, 2026-10-06;
+   `forecast/rose.py`, in `buoys.json` as `roses`): one per spectrum, the
+   energy in sixteen 22.5° sectors, petals pointing FROM, integrated as
+   `at_buoy` integrates it so the sectors are the reading's own m0 (a test
+   pins it). A Height / Period switch, one state for both: Height is each
+   sector's energy as 4√E — the petals combine in energy and do not add to
+   the combined height — and Period each sector's share split into five
+   bands (< 8, 8–11, 11–14, 14–17, 17 s +), greys from the faintest rule to
+   ink. Every spectrum of the last six hours loops on ONE clock for both
+   buoys, so the two show the same moment, then holds on the newest; a frame
+   shows until its successor was due (each buoy's own stamp spacing) and a
+   gap says so — never the frame beside it — but the newest stays until a
+   newer one lands, because a stamp not out yet is not a gap. One scale per
+   view across both buoys. Reduced motion opens paused on the newest. LIVE
+   only; carried to no break. The
    Forecast tab's Buoys tab holds 46232 alone. A 46047 line on the Height
    chart is the next step, not built.
    **The Forecast tab reaches 48 h back** (owner's decision, 2026-09-26). For a
@@ -775,6 +790,8 @@ forecaster actually verifies against, Surfline included.
                         "seen upstream" tests no distance (BRIEFING §37)
       buoys.py          the LIVE tab's Buoys tab below 46232: 46047 at the
                         buoy, carried to no break, its own countdown  [built]
+      rose.py           one spectrum's height and period rose by compass
+                        sector, for the Buoys tab's six-hour loop   [built]
       origin.py         the LIVE tab's Origin: each train's dispersion
                         ridge in 46232's spectrum, bearing at 46047
                         [built]

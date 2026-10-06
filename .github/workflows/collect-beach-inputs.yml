@@ -190,7 +190,8 @@ jobs:
       # the newest spectrum at the buoy, carried to no break, with its own
       # measured countdown. Its own file and its own step: nothing on the chain
       # may read a context buoy (BRIEFING §3a), and `forecast.now` exits 1 when
-      # 46232 is dark, which must not take 46047's reading with it. ~0.5 s.
+      # 46232 is dark, which must not take 46047's reading with it. Also each
+      # buoy's last six hours of roses (forecast.rose). ~2 s.
       - name: Context buoys
         id: buoys
         continue-on-error: true

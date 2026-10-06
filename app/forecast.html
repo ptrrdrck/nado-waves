@@ -445,6 +445,40 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .series .hn{fill:var(--ink)} .series .hn.on{stroke:var(--card);stroke-width:1.5}
 .series .oglabel{fill:var(--ink);paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
 .chart .legend .sw.og{height:3px;color:var(--soft);opacity:.7}
+/* The roses under each buoy's reading on the Buoys tab: petals in ink for
+   Height; for Period, five greys ordered from the faintest rule (shortest
+   periods) to ink (longest), the Shore direction chart's scale with two
+   steps between. A hairline of the card's colour parts every segment. */
+.rose{display:flex;flex-direction:column;gap:6px}
+.rose-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rose .ranges{display:flex;gap:2px}
+.rose .ranges button,.rose .rose-play{font:inherit;font-size:12px;font-weight:600;padding:2px 9px;border:0;
+  border-radius:6px;cursor:pointer;background:transparent;color:var(--soft)}
+.rose .ranges button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
+.rose button:focus-visible,.rose .rose-line:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.rose .readout{font-size:13.5px;font-variant-numeric:tabular-nums}
+.rose-svg{display:block;width:100%;max-width:280px;height:auto;margin:0 auto;overflow:visible}
+.rose-svg .ring{fill:none;stroke:var(--line);stroke-width:1}
+.rose-svg .pt{font-size:10px;fill:var(--faint)}
+.rose-svg .rl{font-size:10px;fill:var(--soft);paint-order:stroke;stroke:var(--card);stroke-width:3px;
+  stroke-linejoin:round;font-variant-numeric:tabular-nums}
+.rose-svg .rp{fill:var(--ink);opacity:.85;stroke:var(--card);stroke-width:.75}
+.rose-svg .rb{stroke:var(--card);stroke-width:.75}
+.rose-svg .rb0,.rose .legend .sw.rb0{fill:var(--line-strong);background:var(--line-strong)}
+.rose-svg .rb1,.rose .legend .sw.rb1{fill:var(--faint);background:var(--faint)}
+.rose-svg .rb2,.rose .legend .sw.rb2{fill:var(--soft);background:var(--soft)}
+.rose-svg .rb3,.rose .legend .sw.rb3{fill:color-mix(in srgb,var(--soft),var(--ink));
+  background:color-mix(in srgb,var(--soft),var(--ink))}
+.rose-svg .rb4,.rose .legend .sw.rb4{fill:var(--ink);background:var(--ink)}
+.rose-line{display:block;width:100%;max-width:280px;height:auto;margin:0 auto;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.rose-line .base{stroke:var(--line-strong);stroke-width:1}
+.rose-line .tk{stroke:var(--faint);stroke-width:1.5}
+.rose-line .tk.on{stroke:var(--ink);stroke-width:2.5}
+.rose-line .head{stroke:var(--soft);stroke-width:1;stroke-dasharray:2 2}
+.rose-line .tt{font-size:9px;fill:var(--faint);font-variant-numeric:tabular-nums}
+.rose .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:3px 12px;font-size:12px;color:var(--soft)}
+.rose .legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 6px 0 3px}
 /* The Wind and Tide cards' charts: gusts as dots, the measured direction in
    the measured red, and the Now tab's predicted tide dashed and soft -- the
    one modelled line on that tab. */
@@ -1005,7 +1039,8 @@ const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
               calc: "nado-waves.calc", chart: "nado-waves.chart",
               fcChart: "nado-waves.fc-chart", chartOpen: "nado-waves.chart-open",
               windChart: "nado-waves.wind-chart-open", tideChart: "nado-waves.tide-chart-open",
-              wtView: "nado-waves.wt-view", originOpen: "nado-waves.origin-open"};
+              wtView: "nado-waves.wt-view", originOpen: "nado-waves.origin-open",
+              roseMode: "nado-waves.rose-mode"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -1930,14 +1965,14 @@ function wireDrawings() {
 // (owner's call, 2026-10-06): 46232's reading here, then the card's own
 // provenance lines, which are 46232's, then each context buoy's block after
 // them (`swellCard`'s `after`), its provenance in the same style.
-function buoyPanel(buoy, measured = null, station = null, named = false) {
+function buoyPanel(buoy, measured = null, station = null, named = false, rose = "") {
   const line = measuredLine(measured, (m) => m.buoy);
   const head = named && station
     ? `<span class="sublbl">${buoyLabel(station.name, station.id)}</span>` : "";
   if (!buoy || buoy.hs_m == null) {
-    return head + '<span class="val"><span class="unit">no spectrum</span></span>' + line;
+    return head + '<span class="val"><span class="unit">no spectrum</span></span>' + rose + line;
   }
-  return head + buoyReading(buoy) + line;
+  return head + buoyReading(buoy) + rose + line;
 }
 
 function buoyReading(buoy) {
@@ -1958,11 +1993,297 @@ function contextBuoy(b) {
   const reading = b.hs_m != null ? buoyReading(b)
     : '<span class="val"><span class="unit">no spectrum</span></span>';
   return `<hr><span class="sublbl">${buoyLabel(b.station_name, b.station)}</span>${reading}`
+    + roseBlock(b.station)
     + srcLines([
       b.observed_utc ? `Observed ${observedAt(b.observed_utc)}` : "",
       b.station_name ? `Spectral wave data, ${b.station_name} (NDBC ${b.station})` : "",
       "Open ocean witness, not carried to any break",
     ], b.observed_utc ? dueSpan(b.next_expected, b.overdue_after, {forceOver: !!old}) : "");
+}
+
+// THE ROSES, under each buoy's reading on the LIVE tab's Buoys tab (owner's
+// request, 2026-10-06; forecast.rose, in buoys.json). One rose per spectrum:
+// that spectrum's energy summed into the sixteen compass sectors, petals
+// pointing where the energy comes FROM. Two views on one switch -- Height,
+// each sector's energy as a height (they combine in energy, so they do not
+// add up to the combined height), and Period, each sector's share of the
+// energy split into five period bands, longest in ink -- and every spectrum
+// of the last six hours looped.
+//
+// ONE clock drives both buoys, so the two roses always show the same moment:
+// the loop runs from the oldest frame to the newest across both, then holds
+// on the newest. A rose shows the newest spectrum stamped at or before that
+// moment, until its successor was due (its own stamp spacing, in the file);
+// past that it is a gap and says so, never the frame beside it. Its newest
+// frame stays until a newer one lands: a stamp not out yet is not a gap. Both buoys
+// share one scale per view, so a petal at 46047 and one at 46232 compare. A
+// reader who asks for less motion gets the newest frame, paused.
+const ROSE_MODES = [{id: "height", label: "Height"}, {id: "period", label: "Period"}];
+let ROSE_MODE = recall(KEEP.roseMode) === "period" ? "period" : "height";
+const ROSE_PLAY_MS = 9000;
+const ROSE_HOLD_MS = 2500;
+const ROSE_STILL = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+let ROSE_PLAYING = !ROSE_STILL;
+let ROSE_PHASE = ROSE_PLAYING ? 0 : ROSE_PLAY_MS;
+let ROSE_LAST = performance.now();
+const ROSE_POINTS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+// forecast.rose.PERIOD_EDGES_S, as the legend names them.
+const ROSE_BANDS = ["under 8 s", "8–11 s", "11–14 s", "14–17 s", "17 s +"];
+const ROSE = {c: 120, r: 92};
+
+const roseOf = (station) => (BUOYS && BUOYS.roses && BUOYS.roses[station]) || null;
+const roseTime = (f) => new Date(f.time_utc).getTime();
+
+// The loop's span: the oldest frame to the newest, over every buoy.
+function roseSpan() {
+  const all = Object.values((BUOYS && BUOYS.roses) || {}).flatMap((r) => r.frames || []);
+  if (!all.length) return null;
+  const times = all.map(roseTime);
+  return {t0: Math.min(...times), t1: Math.max(...times)};
+}
+
+function roseMoment(span) {
+  return ROSE_PHASE >= ROSE_PLAY_MS ? span.t1
+    : span.t0 + (span.t1 - span.t0) * ROSE_PHASE / ROSE_PLAY_MS;
+}
+
+// One scale per view for every frame of every buoy: feet for Height, a
+// share for Period, rounded up to a step that leaves at most four rings.
+function roseScale(mode) {
+  const frames = Object.values((BUOYS && BUOYS.roses) || {}).flatMap((r) => r.frames || []);
+  const top = Math.max(0, ...frames.flatMap((f) => mode === "height"
+    ? f.sector_hs_m.map((m) => m * FT_PER_M)
+    : f.period_share.map((row) => row.reduce((a, b) => a + b, 0))));
+  const steps = mode === "height" ? [0.25, 0.5, 1, 2, 5, 10, 20] : [0.05, 0.1, 0.2, 0.25];
+  const step = steps.find((s) => Math.ceil(top / s - 1e-9) <= 4) || steps[steps.length - 1];
+  return {step, max: Math.max(step, step * Math.ceil(top / step - 1e-9))};
+}
+
+// What a buoy's rose shows at a moment: a frame, a gap, or a stamp not in yet.
+function roseAt(rose, t) {
+  const frames = rose.frames || [];
+  let k = -1;
+  frames.forEach((f, i) => { if (roseTime(f) <= t + 1000) k = i; });
+  const every = (rose.interval_min || 60) * 60000;
+  if (k < 0) {
+    return {key: "none", note: "No spectrum yet at " + clock(new Date(t).toISOString())};
+  }
+  // The newest is shown until a newer one lands, under its own time: a stamp
+  // not published yet is not a gap, and a paused rose rests on the newest.
+  const due = roseTime(frames[k]) + every;
+  if (k === frames.length - 1 || t + 1000 < due) return {key: String(k), frame: frames[k], k};
+  return {key: "gap" + k, note: `No spectrum at ${clock(new Date(due).toISOString())}`};
+}
+
+const rosePt = (r, deg) => {
+  const a = deg * Math.PI / 180;
+  return `${(ROSE.c + r * Math.sin(a)).toFixed(2)},${(ROSE.c - r * Math.cos(a)).toFixed(2)}`;
+};
+
+// A petal from r0 to r1 across one sector, a degree short of each edge so
+// neighbours never touch.
+function rosePetal(i, r0, r1) {
+  const a0 = i * 22.5 - 10.25, a1 = i * 22.5 + 10.25;
+  if (r0 <= 0.01) {
+    return `M${ROSE.c},${ROSE.c}L${rosePt(r1, a0)}A${r1.toFixed(2)},${r1.toFixed(2)} 0 0 1 ${rosePt(r1, a1)}Z`;
+  }
+  return `M${rosePt(r0, a0)}L${rosePt(r1, a0)}A${r1.toFixed(2)},${r1.toFixed(2)} 0 0 1 ${rosePt(r1, a1)}`
+    + `L${rosePt(r0, a1)}A${r0.toFixed(2)},${r0.toFixed(2)} 0 0 0 ${rosePt(r0, a0)}Z`;
+}
+
+const rosePct = (s) => `${Math.round(s * 100)}%`;
+
+function rosePlot(state, mode) {
+  const {c, r: R} = ROSE;
+  const scale = roseScale(mode);
+  const rings = [];
+  for (let v = scale.step; v <= scale.max + 1e-9; v += scale.step) rings.push(v);
+  const grid = rings.map((v) => `<circle class="ring" cx="${c}" cy="${c}" r="${(R * v / scale.max).toFixed(2)}"/>`).join("")
+    + `<line class="ring" x1="${c}" y1="${c - R}" x2="${c}" y2="${c + R}"/>`
+    + `<line class="ring" x1="${c - R}" y1="${c}" x2="${c + R}" y2="${c}"/>`;
+  const marks = [["N", 0], ["E", 90], ["S", 180], ["W", 270]].map(([p, deg]) => {
+    const [x, y] = rosePt(R + 11, deg).split(",");
+    return `<text class="pt" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${p}</text>`;
+  }).join("");
+  const outer = mode === "height"
+    ? `${+scale.max.toFixed(2)} ft (${(scale.max / FT_PER_M).toFixed(2)} m)` : rosePct(scale.max);
+  const [lx, ly] = rosePt(R, 45).split(",");
+  const label = `<text class="rl" x="${(+lx + 3).toFixed(1)}" y="${(+ly - 3).toFixed(1)}">${outer}</text>`;
+
+  let petals = "";
+  let said = "";
+  if (state.frame) {
+    const f = state.frame;
+    if (mode === "height") {
+      petals = f.sector_hs_m.map((m, i) => (m * FT_PER_M < scale.max * 0.004 ? ""
+        : `<path class="rp" d="${rosePetal(i, 0, R * m * FT_PER_M / scale.max)}">`
+          + `<title>${ROSE_POINTS[i]}: ${heightText(m)}</title></path>`)).join("");
+      const top = f.sector_hs_m.map((m, i) => [m, i]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+      said = `largest from ${top.map(([m, i]) => `${ROSE_POINTS[i]} ${heightText(m)}`).join(", ")}`;
+    } else {
+      petals = f.period_share.map((row, i) => {
+        let cum = 0;
+        return row.map((s, b) => {
+          const r0 = R * cum / scale.max;
+          cum += s;
+          if (s < 0.0005) return "";
+          return `<path class="rb rb${b}" d="${rosePetal(i, r0, R * cum / scale.max)}">`
+            + `<title>${ROSE_POINTS[i]}, ${ROSE_BANDS[b]}: ${rosePct(s)} of the energy</title></path>`;
+        }).join("");
+      }).join("");
+      const sums = f.period_share.map((row, i) => [row.reduce((a, b) => a + b, 0), i])
+        .sort((a, b) => b[0] - a[0]).slice(0, 3);
+      said = `largest shares from ${sums.map(([s, i]) => `${ROSE_POINTS[i]} ${rosePct(s)}`).join(", ")}`;
+    }
+  }
+  const when = state.frame ? clock(state.frame.time_utc) : "";
+  const aria = state.frame ? `${mode === "height" ? "Height" : "Period"} rose at ${when}: ${said}`
+    : state.note;
+  return `<svg class="rose-svg" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
+    + grid + petals + marks + label + `</svg>`;
+}
+
+function roseReadout(state) {
+  if (!state.frame) return `<span class="unit">${state.note}</span>`;
+  return `${clock(state.frame.time_utc)} <span class="unit">·</span> `
+    + `${height(state.frame.hs_m)} <span class="unit">combined</span>`;
+}
+
+// The six hours under the rose: a tick for every spectrum this buoy sent, so
+// a missing one is a missing tick; the moment shown, and a tap to go to one.
+function roseLine(rose, span, t, state) {
+  const x = (ms) => (8 + 224 * (span.t1 > span.t0 ? (ms - span.t0) / (span.t1 - span.t0) : 1)).toFixed(1);
+  const ticks = (rose.frames || []).map((f, i) =>
+    `<line class="tk${state.k === i ? " on" : ""}" x1="${x(roseTime(f))}" y1="4" x2="${x(roseTime(f))}" y2="14"/>`).join("");
+  const ends = `<text class="tt" x="8" y="25">${clock(new Date(span.t0).toISOString())}</text>`
+    + `<text class="tt" x="232" y="25" text-anchor="end">${clock(new Date(span.t1).toISOString())}</text>`;
+  return `<line class="base" x1="8" y1="14" x2="232" y2="14"/>${ticks}`
+    + `<line class="head" x1="${x(t)}" y1="1" x2="${x(t)}" y2="16"/>${ends}`;
+}
+
+function roseLegend(mode) {
+  if (mode !== "period") return "";
+  return `<div class="legend">${ROSE_BANDS.map((b, i) =>
+    `<span><i class="sw rb rb${i}"></i>${b}</span>`).join("")}</div>`;
+}
+
+function roseView(station) {
+  const rose = roseOf(station);
+  const span = roseSpan();
+  if (!rose || !span) return null;
+  const t = roseMoment(span);
+  const state = roseAt(rose, t);
+  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}`, rose, span, t, state};
+}
+
+const rosePercent = (v) => (v.span.t1 > v.span.t0
+  ? Math.round(100 * (v.t - v.span.t0) / (v.span.t1 - v.span.t0)) : 100);
+
+// One buoy's rose block, under its reading. Its moving parts are marked
+// `data-rose-live`, so a refresh never flashes the card for a frame that was
+// only ever going to change.
+function roseBlock(station) {
+  const rose = roseOf(station);
+  if (!rose) return "";
+  const v = roseView(station);
+  if (!v || !(rose.frames || []).length) {
+    return `<div class="rose"><span class="src">No spectrum from ${station} in the last six hours.</span></div>`;
+  }
+  const modes = ROSE_MODES.map((m) => `<button type="button" data-rose-mode="${m.id}"`
+    + ` aria-pressed="${m.id === ROSE_MODE}">${m.label}</button>`).join("");
+  return `<div class="rose" data-rose="${station}" data-k="${v.key}">
+    <div class="rose-head"><span class="ranges" role="group" aria-label="Which rose">${modes}</span>
+      <button type="button" class="rose-play" data-rose-play aria-pressed="${ROSE_PLAYING}">${ROSE_PLAYING ? "Pause" : "Play"}</button></div>
+    <div class="readout" data-rose-live aria-live="off">${roseReadout(v.state)}</div>
+    <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE)}</div>
+    <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
+      aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
+      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg>
+    ${roseLegend(ROSE_MODE)}
+  </div>`;
+}
+
+// Redraw a rose in place: the petals only when the frame or view changed,
+// the playhead every tick.
+function roseUpdate(el) {
+  if (el.offsetParent === null) return;
+  const v = roseView(el.getAttribute("data-rose"));
+  if (!v) return;
+  if (el.getAttribute("data-k") !== v.key) {
+    el.setAttribute("data-k", v.key);
+    el.querySelector(".readout").innerHTML = roseReadout(v.state);
+    el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE);
+    el.querySelector(".rose-line").setAttribute("aria-valuenow", rosePercent(v));
+    el.querySelector(".rose-line").setAttribute("aria-valuetext",
+      v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);
+  }
+  el.querySelector(".rose-line").innerHTML = roseLine(v.rose, v.span, v.t, v.state);
+}
+
+function roseTick() {
+  const at = performance.now();
+  const dt = Math.min(at - ROSE_LAST, 250);
+  ROSE_LAST = at;
+  if (MODE !== "now") return;
+  if (ROSE_PLAYING) ROSE_PHASE = (ROSE_PHASE + dt) % (ROSE_PLAY_MS + ROSE_HOLD_MS);
+  document.querySelectorAll("[data-rose]").forEach(roseUpdate);
+}
+
+function setRosePlaying(on) {
+  ROSE_PLAYING = on;
+  document.querySelectorAll("[data-rose-play]").forEach((b) => {
+    b.setAttribute("aria-pressed", String(on));
+    b.textContent = on ? "Pause" : "Play";
+  });
+}
+
+// A tap or an arrow key on the six hours goes to that moment and pauses.
+function roseSeek(phase) {
+  ROSE_PHASE = Math.max(0, Math.min(ROSE_PLAY_MS, phase));
+  setRosePlaying(false);
+  document.querySelectorAll("[data-rose]").forEach(roseUpdate);
+}
+
+function wireRoses() {
+  const strip = $("conditions");
+  strip.addEventListener("click", (e) => {
+    const mode = e.target.closest("[data-rose-mode]");
+    if (mode) {
+      ROSE_MODE = mode.getAttribute("data-rose-mode");
+      remember(KEEP.roseMode, ROSE_MODE);
+      document.querySelectorAll("[data-rose-mode]").forEach((b) =>
+        b.setAttribute("aria-pressed", String(b.getAttribute("data-rose-mode") === ROSE_MODE)));
+      document.querySelectorAll("[data-rose]").forEach((el) => {
+        const legend = el.querySelector(".legend");
+        if (legend) legend.remove();
+        el.insertAdjacentHTML("beforeend", roseLegend(ROSE_MODE));
+        roseUpdate(el);
+      });
+      return;
+    }
+    if (e.target.closest("[data-rose-play]")) {
+      if (!ROSE_PLAYING && ROSE_PHASE >= ROSE_PLAY_MS) ROSE_PHASE = 0;
+      setRosePlaying(!ROSE_PLAYING);
+      return;
+    }
+    const line = e.target.closest("[data-rose-scrub]");
+    if (line) {
+      const box = line.getBoundingClientRect();
+      const x = (e.clientX - box.left) / box.width * 240;
+      roseSeek((x - 8) / 224 * ROSE_PLAY_MS);
+    }
+  });
+  strip.addEventListener("keydown", (e) => {
+    if (!e.target.closest("[data-rose-scrub]")) return;
+    const span = roseSpan();
+    if (!span || span.t1 <= span.t0) return;
+    // Half an hour a key: 46047's stamp spacing, the finer of the two.
+    const half = ROSE_PLAY_MS * 1800000 / (span.t1 - span.t0);
+    const step = e.key === "ArrowRight" ? half : e.key === "ArrowLeft" ? -half : null;
+    if (step == null) return;
+    e.preventDefault();
+    roseSeek(Math.min(ROSE_PHASE, ROSE_PLAY_MS) + step);
+  });
 }
 
 // THE CHARTS, under each card on the Now tab (owner's requests, 2026-09-27).
@@ -4146,7 +4467,7 @@ function cardChart(id) {
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
-                    due = "", measured = null, chart = false, origin = null}) {
+                    due = "", measured = null, chart = false, origin = null, buoyRose = ""}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
     origin: c.origin || null,
@@ -4158,7 +4479,8 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   // provenance stays under 46232's reading and each context buoy's under its
   // own; shown and hidden with the tab like its pane.
   tabs.push({id: BUOY_TAB, title: "Buoys",
-             body: buoyPanel(buoy, measured, {id: station, name: stationName}, others.length > 0),
+             body: buoyPanel(buoy, measured, {id: station, name: stationName}, others.length > 0,
+                             buoyRose),
              after: others.map(contextBuoy).join(""), chart, origin});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
@@ -4314,6 +4636,7 @@ function renderConditions(step, cards) {
       station: NOW && NOW.station,
       stationName: NOW && NOW.station_name,
       others: (BUOYS && BUOYS.buoys) || [],
+      buoyRose: roseBlock(NOW && NOW.station),
       cards,
       source: [
         NOW && NOW.observed_utc ? `Observed ${observedAt(NOW.observed_utc)}` : "",
@@ -4542,7 +4865,7 @@ function setMode(mode) {
 // and a render either side of a second boundary disagree on the countdown --
 // and at a minute boundary, on the age. Both are marked in the DOM rather than
 // stripped by pattern, so the rule stays true as the wording changes.
-const VOLATILE = "[data-due], .age";
+const VOLATILE = "[data-due], .age, [data-rose-live]";
 
 function cardText() {
   const out = new Map();
@@ -4864,6 +5187,7 @@ function boot(data, observed, measured, series, windtide) {
   $("tab-now").onclick = () => setMode("now");
   $("tab-forecast").onclick = () => setMode("forecast");
   wireSwellTabs();
+  wireRoses();
   wireDrawings();
   wireCharts();
 
@@ -4914,6 +5238,8 @@ function boot(data, observed, measured, series, windtide) {
   // the whole page, which is the right cadence for "2 h ago" and far too heavy
   // for a clock that has to move every second.
   setInterval(tickDue, 1000);
+  // The roses' one clock (both buoys on it), ten times a second.
+  setInterval(roseTick, 100);
 
   // And the payloads themselves, which used to be fetched once and never
   // again. See REFRESH above.
