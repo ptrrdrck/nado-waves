@@ -18,6 +18,11 @@ not even name it (`tests/test_spectra_collector.py`), this module calls
 `at_buoy` and never `through`, `carry` or the surf zone (`tests/test_buoys.py`),
 and its file is its own, not a key inside now.json.
 
+**Each buoy's roses ride in the same file** (`roses`, `forecast.rose`): the
+last six hours of spectra at 46232 and at 46047, one rose each, for the loop
+under each buoy's reading. 46232's are a picture of the anchor's spectrum at
+the buoy, as its block is; nothing reads them back.
+
 **Its countdown is its own, measured.** 46047's spectra are stamped at :20 and
 :50, not on the hour, and they reach the collection on a different lag from
 46232's. Bracketed 2026-10-06 against the collection log -- master's commit
@@ -53,12 +58,14 @@ import argparse
 import json
 import math
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
 
+from . import rose
 from .live import station_name
+from .now import PUBLISH_MINUTES as ANCHOR_MINUTES
 from .now import STALE_HOURS, as_trains, deadline
 from .transform import at_buoy, load_spectra
 from .units import height as fmt_height
@@ -76,6 +83,32 @@ PUBLISH_MINUTES = {"46047": (20, 50)}
 #: worst seen -- bracketed in the module docstring.
 PUBLISH_LAG_MIN = {"46047": 25}
 PUBLISH_LAG_LATE_MIN = {"46047": 85}
+
+#: The anchor, whose reading is `forecast.now`'s. Named here only for its
+#: rose: a picture of 46232's spectrum at the buoy, carried to no break.
+ANCHOR = "46232"
+
+
+def roses(data_dir: Path, moment: datetime) -> dict:
+    """Each buoy's last six hours of roses, 46232 first (`forecast.rose`).
+
+    Owner's request, 2026-10-06: under each buoy's reading on the Buoys tab, a
+    rose redrawn for every spectrum and looped. Maximum entropy, as the reading
+    above it. A buoy with no spectrum in the window has no frames; nothing is
+    borrowed from the other.
+    """
+
+    out: dict = {}
+    for station in (ANCHOR, *STATIONS):
+        marks = ANCHOR_MINUTES["swell"] if station == ANCHOR else PUBLISH_MINUTES[station]
+        try:
+            spectra = load_spectra(Path(data_dir) / "spectra" / station)
+        except (FileNotFoundError, ValueError):
+            spectra = []
+        recent = [sp.with_spread("mem") for sp in spectra
+                  if sp.time > moment - timedelta(hours=rose.WINDOW_HOURS)]
+        out[station] = rose.payload(recent, moment, 60.0 / len(marks))
+    return out
 
 
 def reading(station: str, data_dir: Path, moment: datetime) -> dict:
@@ -147,6 +180,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
                 "so carried to no break",
         },
         "buoys": shown,
+        "roses": roses(data_dir, moment),
     }
 
 

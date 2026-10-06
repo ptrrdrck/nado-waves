@@ -79,7 +79,7 @@ Built from what was measured: buoy 46232's directional spectrum, the wind report
 
 It carries exactly one modelled number, the tide's next high or low, and that is labelled *predicted* wherever it appears. [Why that one](#tide-turn).
 
-Its Buoys tab also shows a second buoy, 46047 at Tanner Banks, measured the same way. Nothing on the tab is computed from it. [Why it is there](#swell-tabs).
+Its Buoys tab also shows a second buoy, 46047 at Tanner Banks, measured the same way, and a [rose](#swell-roses) under each buoy. Nothing on any other tab is computed from 46047. [Why it is there](#swell-tabs).
 
 ### [chains-forecast] Forecast: the model only
 
@@ -421,6 +421,14 @@ The biggest train at the buoy need not be the biggest at a break, because the wi
 A train's direction is where its energy comes from. When two directions each carry a fifth of a train or more, both are given by compass point, “WSW & S”, and the drawing has an arrow from each: one direction there would be their average, which sits between them where almost none of it comes from. A train with one direction gives its degrees, “SSW 197°”. Every train keeps to one line: on a narrow phone, a row tagged “wind sea” or “local chop” shortens its direction to a single compass point, the larger one's when there are two. It happens most at South, whose trains often arrive through both the south window and the west one.
 
 The split is made on the spectrum by frequency, not on frequency and direction together, so two swells of the same period from different directions read as one train — with both its directions named.
+
+### [swell-roses] The roses on the Buoys tab
+
+On “LIVE”, under each buoy's reading on the Buoys tab, a rose drawn from that buoy's spectrum. Each petal points where its energy comes from, one petal for each of the sixteen compass points, 22.5° wide. A new rose is drawn for every spectrum: hourly at 46232, every half hour at 46047. The last six hours of them play in a loop, then the newest holds. One clock drives both roses, so both always show the same moment. The line under each rose is those six hours, with a tick for every spectrum that buoy sent; a missing spectrum is a missing tick, and while the loop passes it the rose says so rather than showing the one before. Tap the line to go to a moment, or step it with the arrow keys; Play and Pause start and stop the loop. A reader whose device asks for less motion gets the newest rose, paused.
+
+**Height** gives each sector's energy as a height. Heights combine in energy, so the petals do not add up to the combined height above them; the square root of the sum of their squares does, exactly. **Period** gives each sector's share of the spectrum's energy, split into five bands by the period of the energy, the shortest palest and the longest in ink. Both buoys share one scale for each view, so a petal at one compares with a petal at the other.
+
+A rose is the direction-reading method's picture of four numbers per frequency, not a measurement at each bearing, and it is the same reading the trains above it come from. 46047's spread reads broader than 46232's, so its petals spread over more compass points. The two buoys can also point one swell different ways for a real reason: 46232 sits behind the Channel Islands, 46047 in the open ocean before them. Neither rose is carried to a break.
 
 ### [swell-origin] Origin: where the swell was born
 

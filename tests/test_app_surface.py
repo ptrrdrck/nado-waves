@@ -1383,7 +1383,9 @@ class TestAnUpdateAnnouncesItself:
         Both are marked in the DOM rather than stripped by pattern, so the rule
         survives the wording changing."""
 
-        assert 'const VOLATILE = "[data-due], .age"' in SOURCE
+        # The roses' frames move ten times a second on their own clock, so
+        # they are volatile too (forecast.rose).
+        assert 'const VOLATILE = "[data-due], .age, [data-rose-live]"' in SOURCE
         assert 'copy.querySelectorAll(VOLATILE).forEach((v) => v.remove())' in SOURCE
         assert '<span class="age">${age}</span>' in SOURCE
 

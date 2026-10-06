@@ -390,8 +390,9 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         always some minutes old, and each card's countdown says exactly how old.</p>
       <p>It carries exactly one modelled number, the tide's next high or low, and that is labelled
         <em>predicted</em> wherever it appears. <a href="#tide-turn">Why that one</a>.</p>
-      <p>Its Buoys tab also shows a second buoy, 46047 at Tanner Banks, measured the same way.
-        Nothing on the tab is computed from it. <a href="#swell-tabs">Why it is there</a>.</p>
+      <p>Its Buoys tab also shows a second buoy, 46047 at Tanner Banks, measured the same way,
+        and a <a href="#swell-roses">rose</a> under each buoy. Nothing on any other tab is computed
+        from 46047. <a href="#swell-tabs">Why it is there</a>.</p>
     </section>
 
     <section id="chains-forecast">
@@ -899,6 +900,32 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
       <p class="see">The split is made on the spectrum by frequency, not on frequency and direction
         together, so two swells of the same period from different directions read as one train
         &mdash; with both its directions named.</p>
+    </section>
+
+    <section id="swell-roses">
+      <h3>The roses on the Buoys tab</h3>
+      <p>On &ldquo;LIVE&rdquo;, under each buoy's reading on the Buoys tab, a rose drawn from
+        that buoy's spectrum. Each petal points where its energy comes from, one petal for each of
+        the sixteen compass points, 22.5&deg; wide. A new rose is drawn for every spectrum: hourly
+        at 46232, every half hour at 46047. The last six hours of them play in a loop, then the
+        newest holds. One clock drives both roses, so both always show the same moment. The line
+        under each rose is those six hours, with a tick for every spectrum that buoy sent; a
+        missing spectrum is a missing tick, and while the loop passes it the rose says so rather
+        than showing the one before. Tap the line to go to a moment, or step it with the arrow
+        keys; Play and Pause start and stop the loop. A reader whose device asks for less motion
+        gets the newest rose, paused.</p>
+      <p><b>Height</b> gives each sector's energy as a height. Heights combine in energy, so the
+        petals do not add up to the combined height above them; the square root of the sum of
+        their squares does, exactly. <b>Period</b> gives each sector's share of the spectrum's
+        energy, split into five bands by the period of the energy, the shortest palest and the
+        longest in ink. Both buoys share one scale for each view, so a petal at one compares with
+        a petal at the other.</p>
+      <p class="see">A rose is the direction-reading method's picture of four numbers per
+        frequency, not a measurement at each bearing, and it is the same reading the trains above
+        it come from. 46047's spread reads broader than 46232's, so its petals spread over more
+        compass points. The two buoys can also point one swell different ways for a real reason:
+        46232 sits behind the Channel Islands, 46047 in the open ocean before them. Neither rose is
+        carried to a break.</p>
     </section>
 
     <section id="swell-origin">
