@@ -2016,9 +2016,10 @@ function contextBuoy(b) {
 // moment, until its successor was due (its own stamp spacing, in the file);
 // past that it is a gap and says so, never the frame beside it. Its newest
 // frame stays until a newer one lands: a stamp not out yet is not a gap. Each
-// buoy has its own scale per view, fitted to the largest petal in its own
-// loop (owner's request, 2026-10-06), so that petal reaches the edge and the
-// rest are as large as they can be; the rings say what each scale is. A
+// buoy has its own scale per view (owner's request, 2026-10-06): its
+// outermost ring is the largest petal in its own loop rounded up to a whole
+// foot (or percent), so the petals are as large as they can be and none
+// passes the last ring; the rings say what each scale is. A
 // reader who asks for less motion gets the newest frame, paused.
 const ROSE_MODES = [{id: "height", label: "Height"}, {id: "period", label: "Period"}];
 let ROSE_MODE = recall(KEEP.roseMode) === "period" ? "period" : "height";
@@ -2050,20 +2051,26 @@ function roseMoment(span) {
 }
 
 // One scale per view for every frame of ONE buoy's loop: feet for Height, a
-// share for Period. The edge is the largest petal in the loop, exactly --
-// never rounded up to a ring, which left a third of the rose empty -- and the
-// rings sit at a round step inside it, at most four of them. Fixed across the
-// loop, so a petal that grows between frames really grew.
+// share for Period. The edge is the outermost ring, always drawn and
+// labelled: the loop's largest petal rounded UP to the next whole foot (whole
+// percent for Period), so no petal ever passes it (owner's call, 2026-10-06).
+// Inner rings at a round step below it, at most three, none crowding it.
+// Fixed across the loop, so a petal that grows between frames really grew.
 function roseScale(mode, station) {
   const frames = (roseOf(station) || {}).frames || [];
   const top = Math.max(0, ...frames.flatMap((f) => mode === "height"
     ? f.sector_hs_m.map((m) => m * FT_PER_M)
     : f.period_share.map((row) => row.reduce((a, b) => a + b, 0))));
-  const steps = mode === "height" ? [0.25, 0.5, 1, 2, 5, 10, 20] : [0.05, 0.1, 0.2, 0.25];
-  // A loop with almost nothing in it still draws one ring, at the edge.
-  if (top < steps[0]) return {step: steps[0], max: steps[0]};
-  const step = steps.find((s) => Math.floor(top / s + 1e-9) <= 4) || steps[steps.length - 1];
-  return {step, max: top};
+  const unit = mode === "height" ? 1 : 0.01;
+  // The tolerance is far under the 0.1 ft shown, and keeps a petal of exactly
+  // 6 ft (1.8288 m, 6.000002 ft through the converter) on the 6 ft ring.
+  const max = Math.max(unit, unit * Math.ceil(top / unit - 1e-4));
+  const steps = mode === "height" ? [1, 2, 5, 10, 20] : [0.05, 0.1, 0.2, 0.25];
+  const step = steps.find((st) => Math.ceil(max / st - 1e-9) - 1 <= 3) || steps[steps.length - 1];
+  const rings = [];
+  for (let v = step; v < max * 0.85; v += step) rings.push(v);
+  rings.push(max);
+  return {max, rings};
 }
 
 // What a buoy's rose shows at a moment: a frame, a gap, or a stamp not in yet.
@@ -2103,8 +2110,7 @@ const rosePct = (s) => `${Math.round(s * 100)}%`;
 function rosePlot(state, mode, station) {
   const {c, r: R} = ROSE;
   const scale = roseScale(mode, station);
-  const rings = [];
-  for (let v = scale.step; v <= scale.max + 1e-9; v += scale.step) rings.push(v);
+  const rings = scale.rings;
   const grid = rings.map((v) => `<circle class="ring" cx="${c}" cy="${c}" r="${(R * v / scale.max).toFixed(2)}"/>`).join("")
     + `<line class="ring" x1="${c}" y1="${c - R}" x2="${c}" y2="${c + R}"/>`
     + `<line class="ring" x1="${c - R}" y1="${c}" x2="${c + R}" y2="${c}"/>`;
@@ -2112,9 +2118,8 @@ function rosePlot(state, mode, station) {
     const [x, y] = rosePt(R + 11, deg).split(",");
     return `<text class="pt" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${p}</text>`;
   }).join("");
-  // The outermost ring is labelled, on that ring; the largest petal may
-  // reach past it to the edge.
-  const ring = rings[rings.length - 1];
+  // The outermost ring is the edge, and labelled on it.
+  const ring = scale.max;
   const outer = mode === "height"
     ? `${+ring.toFixed(2)} ft (${(ring / FT_PER_M).toFixed(2)} m)` : rosePct(ring);
   const [lx, ly] = rosePt(R * ring / scale.max, 45).split(",");
