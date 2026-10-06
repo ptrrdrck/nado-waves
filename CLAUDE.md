@@ -248,8 +248,11 @@ forecaster actually verifies against, Surfline included.
    §39), on both chains, its id still `buoy`. On LIVE it holds 46232 and under
    it **46047, Tanner Banks**, built the same way — combined height, maximum-
    entropy trains, two directions named by §38a's rule — with its own name,
-   observed time, countdown and "carried to no break" line
-   (`forecast/buoys.py` → `buoys.json`, its own step in the collection).
+   observed time, countdown and "Open ocean witness, not carried to any
+   break." line (`forecast/buoys.py` → `buoys.json`, its own step in the
+   collection). **Each buoy's provenance follows its own measurements**
+   (owner's call, same day): 46232's reading, then the card's provenance
+   (46232's), then 46047's block with its provenance in the same style.
    **It feeds nothing**: its own module and file, never a key in now.json, so
    the context-station guard still keeps "46047" out of now.py and the chain,
    and `tests/test_buoys.py` keeps `through`/`carry`/the surf zone out of it.

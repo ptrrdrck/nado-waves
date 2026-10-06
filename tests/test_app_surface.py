@@ -3022,7 +3022,7 @@ class TestOrigin:
 
     def test_the_buoy_tab_has_one_too(self):
         assert 'origin: originFor("buoy")' in SOURCE
-        assert "body: buoyPanel(buoy, measured, {id: station, name: stationName}, others),\n             chart, origin}" in SOURCE
+        assert "after: others.map(contextBuoy).join(\"\"), chart, origin}" in SOURCE
 
     def test_distances_are_rounded_and_said_about(self):
         """Two buoys reading one storm differ by about a fifth: a distance

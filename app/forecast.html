@@ -1875,16 +1875,20 @@ function wireDrawings() {
 // its spectra are stamped at :20 and :50 and land on their own measured lag
 // (forecast.buoys). It is outside every break's windows and carried to no
 // break (BRIEFING §3a), and its block says so. With a context buoy on the
-// tab, each block is named, since the pane then holds two heights.
-function buoyPanel(buoy, measured = null, station = null, others = []) {
+// tab, each block is named, since the tab then holds two heights.
+//
+// Each buoy's provenance follows its own measurements, all beneath 46232
+// (owner's call, 2026-10-06): 46232's reading here, then the card's own
+// provenance lines, which are 46232's, then each context buoy's block after
+// them (`swellCard`'s `after`), its provenance in the same style.
+function buoyPanel(buoy, measured = null, station = null, named = false) {
   const line = measuredLine(measured, (m) => m.buoy);
-  const named = others.length && station;
-  const head = named ? `<span class="sublbl">${buoyLabel(station.name, station.id)}</span>` : "";
+  const head = named && station
+    ? `<span class="sublbl">${buoyLabel(station.name, station.id)}</span>` : "";
   if (!buoy || buoy.hs_m == null) {
-    return head + '<span class="val"><span class="unit">no spectrum</span></span>' + line
-      + others.map(contextBuoy).join("");
+    return head + '<span class="val"><span class="unit">no spectrum</span></span>' + line;
   }
-  return head + buoyReading(buoy) + line + others.map(contextBuoy).join("");
+  return head + buoyReading(buoy) + line;
 }
 
 function buoyReading(buoy) {
@@ -1908,7 +1912,7 @@ function contextBuoy(b) {
     + srcLines([
       b.observed_utc ? `Observed ${observedAt(b.observed_utc)}` : "",
       b.station_name ? `Spectral wave data, ${b.station_name} (NDBC ${b.station})` : "",
-      "Outside every break's windows: carried to no break",
+      "Open ocean witness, not carried to any break",
     ], b.observed_utc ? dueSpan(b.next_expected, b.overdue_after, {forceOver: !!old}) : "");
 }
 
@@ -4101,9 +4105,12 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   // "Buoys" on both chains (owner's request, 2026-10-06), though only the
   // LIVE tab carries a second one: GFS-Wave's run is at 46232 alone. The id
   // stays "buoy", so a reader's remembered tab and chart still find it.
+  // The context buoys render AFTER the provenance lines below, so 46232's
+  // provenance stays under 46232's reading and each context buoy's under its
+  // own; shown and hidden with the tab like its pane.
   tabs.push({id: BUOY_TAB, title: "Buoys",
-             body: buoyPanel(buoy, measured, {id: station, name: stationName}, others),
-             chart, origin});
+             body: buoyPanel(buoy, measured, {id: station, name: stationName}, others.length > 0),
+             after: others.map(contextBuoy).join(""), chart, origin});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
@@ -4119,6 +4126,8 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
     ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
       aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
     ${srcLines(source, due)}
+    ${tabs.filter((tab) => tab.after).map((tab) => `<div class="pane after" data-after-tab="${tab.id}"`
+      + `${tab.id === chosen ? "" : " hidden"}>${tab.after}</div>`).join("")}
     ${tabs.map((tab) => originFold(tab.id, tab.origin, tab.id !== chosen)).join("")}
     ${tabs.filter((tab) => tab.chart).map((tab) => seriesChart(tab.id, tab.id !== chosen)).join("")}
   </div>`;
@@ -4160,6 +4169,9 @@ function selectSwellTab(id, {focus = false} = {}) {
   });
   document.querySelectorAll("[data-origin-tab]").forEach((fold) => {
     fold.hidden = fold.getAttribute("data-origin-tab") !== id;
+  });
+  document.querySelectorAll("[data-after-tab]").forEach((block) => {
+    block.hidden = block.getAttribute("data-after-tab") !== id;
   });
   document.querySelectorAll("[data-swell-tab]").forEach((btn) => {
     const on = btn.getAttribute("data-swell-tab") === id;

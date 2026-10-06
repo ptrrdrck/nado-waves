@@ -197,7 +197,21 @@ class TestOnThePage:
     def test_its_block_says_it_feeds_no_break_and_has_its_own_clock(self):
         block = PAGE[PAGE.index("function contextBuoy("):]
         block = block[:block.index("\n}\n")]
-        assert "carried to no break" in block
+        assert '"Open ocean witness, not carried to any break"' in block
         assert "observedAt(b.observed_utc)" in block
         assert "dueSpan(b.next_expected, b.overdue_after" in block
         assert "NOW." not in block
+
+    def test_each_buoys_provenance_follows_its_own_measurements(self):
+        """46232's reading, then the card's provenance (46232's), then each
+        context buoy with its own provenance under it (owner's call,
+        2026-10-06) -- shown and hidden with the Buoys tab."""
+
+        card = PAGE[PAGE.index("function swellCard("):]
+        card = card[:card.index("\n}\n")]
+        assert (card.index("${tab.body}</div>") < card.index("${srcLines(source, due)}")
+                < card.index('data-after-tab="${tab.id}"'))
+        assert "contextBuoy" not in PAGE[PAGE.index("function buoyPanel("):
+                                         PAGE.index("function buoyReading(")]
+        select = PAGE[PAGE.index("function selectSwellTab("):]
+        assert '"[data-after-tab]"' in select[:select.index("\n}\n")]
