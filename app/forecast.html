@@ -176,8 +176,34 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
        font-variant-numeric:tabular-nums}
 .train .ht{font-weight:600;min-width:112px}
 .train .tp{color:var(--soft);min-width:48px}
-.train .dr{color:var(--soft);flex:1;white-space:nowrap}
-.train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.train .dr{color:var(--soft);flex:1;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;
+            white-space:nowrap;flex:none}
+/* One line per train (owner's call, 2026-10-06). Measured at 360 px: height
+   112 + period 48 + gaps leave a 301 px row; "WNW 282°" is 76, "WNW & WSW"
+   95, one point 38, the "wind sea" tag 61 and "local chop" 77, each with an
+   8 px gap. So a tagged row swaps its heading for one compass point below
+   the width the full heading needs beside its tag (+4 px), an untagged
+   split row does below its own (+3 px, a 320 px phone's 261), and only on a
+   row too narrow even for one point beside the tag may the tag wrap again.
+   The direction cell shrinks rather than push past the card if a font
+   renders wider than measured. */
+.trains{container:trains / inline-size}
+.train .dr-short{display:none}
+@container trains (max-width: 324px){
+  .train.ws:not(.split) .dr-full{display:none} .train.ws:not(.split) .dr-short{display:inline} }
+@container trains (max-width: 343px){
+  .train.ws.split .dr-full{display:none} .train.ws.split .dr-short{display:inline} }
+@container trains (max-width: 340px){
+  .train.chop:not(.split) .dr-full{display:none} .train.chop:not(.split) .dr-short{display:inline} }
+@container trains (max-width: 359px){
+  .train.chop.split .dr-full{display:none} .train.chop.split .dr-short{display:inline} }
+@container trains (max-width: 274px){
+  .train.split:not(.tagged) .dr-full{display:none} .train.split:not(.tagged) .dr-short{display:inline} }
+@container trains (max-width: 286px){
+  .train.ws .tag{white-space:normal;flex:0 1 auto} .train.ws .dr{min-width:auto;overflow:visible} }
+@container trains (max-width: 300px){
+  .train.chop .tag{white-space:normal;flex:0 1 auto} .train.chop .dr{min-width:auto;overflow:visible} }
 .train.lead .ht,.train.lead .dr{color:var(--ink)}
 .train:not(.lead){opacity:.72}
 /* A train with an arrow on the drawing picks it there (owner's request,
@@ -680,8 +706,18 @@ function compass(deg) {
 function headings(t) {
   return t && t.lobes && t.lobes.length >= 2 ? t.lobes.map((l) => l[0]) : [t ? t.from_deg : null];
 }
+// One heading reads "SSW 197°"; a train fed from two directions names both
+// by compass point alone, "WNW & WSW" (owner's call, 2026-10-06): with both
+// degrees it ran to 171 px against 125 of room on a 360 px phone and pushed
+// the row past the card. The degrees of each are on the drawing's arrows.
 function fromText(t) {
-  return headings(t).map(compass).join(" & ");
+  const h = headings(t);
+  return h.length >= 2 ? h.map(point).join(" & ") : compass(h[0]);
+}
+// The shortest a tagged row's heading gets on a narrow phone: one compass
+// point, the larger direction's when there are two (lobes come largest first).
+function shortFromText(t) {
+  return point(headings(t)[0]);
 }
 function pointsText(t) {
   return headings(t).map(point).join(" and ");
@@ -1084,17 +1120,30 @@ function cardsForForecast(step) {
 // row that has one picks it there, as a tap on the arrow does (owner's
 // request, 2026-10-05). Local chop and swell aimed behind the beach have no
 // arrow, so their rows pick nothing.
+//
+// One line per train, always (owner's call, 2026-10-06). A tagged row ("wind
+// sea", "local chop") keeps its tag on one line and, where the row is too
+// narrow for the full heading beside it, shows `shortFromText` instead -- the
+// swap is a container query on `.trains`, so it follows the card's width,
+// not the window's. Untagged rows fit at 360 px as they are; on a 320 px
+// phone an untagged split row takes the one point too.
 function trainList(trains, {limit = 4, drawn = () => false} = {}) {
   if (!trains || !trains.length) return "";
-  return `<div class="trains">` + trains.slice(0, limit).map((t, i) => `
-    <div class="train${i === 0 ? " lead" : ""}"${drawn(i)
+  return `<div class="trains">` + trains.slice(0, limit).map((t, i) => {
+    const tag = t.local ? "chop" : t.wind_sea ? "ws" : "";
+    const split = headings(t).length >= 2;
+    return `
+    <div class="train${i === 0 ? " lead" : ""}${tag ? ` tagged ${tag}` : ""}${split ? " split" : ""}"${drawn(i)
       ? ` data-train="${i}" tabindex="0" role="button" aria-label="Show this train on the drawing"` : ""}>
       <span class="ht">${height(t.hs_m)}</span>
       <span class="tp">${t.period_s.toFixed(1)} s</span>
-      <span class="dr">${fromText(t)}</span>
-      ${t.local ? '<span class="tag">local chop</span>'
-        : t.wind_sea ? '<span class="tag">wind sea</span>' : ""}
-    </div>`).join("") + `</div>`;
+      <span class="dr">${tag || split
+        ? `<span class="dr-full">${fromText(t)}</span><span class="dr-short">${shortFromText(t)}</span>`
+        : fromText(t)}</span>
+      ${tag === "chop" ? '<span class="tag">local chop</span>'
+        : tag === "ws" ? '<span class="tag">wind sea</span>' : ""}
+    </div>`;
+  }).join("") + `</div>`;
 }
 
 // Breaks, most window energy first. That ordering IS the claim the page makes
