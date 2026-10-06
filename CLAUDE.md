@@ -273,10 +273,12 @@ forecaster actually verifies against, Surfline included.
    shows until its successor was due (each buoy's own stamp spacing) and a
    gap says so — never the frame beside it — but the newest stays until a
    newer one lands, because a stamp not out yet is not a gap. Each buoy has
-   its own scale per view, fixed over its loop, its edge the loop's largest
-   petal exactly (owner's request, same day: rounded up to a ring and shared,
-   46232's largest petal filled 22% of its rose); rings at a round step
-   inside, the outermost labelled. Reduced motion opens paused on the newest. LIVE
+   its own scale per view, fixed over its loop (owner's request, same day:
+   rounded up to a ring and shared, 46232's largest petal filled 22% of its
+   rose). Its outermost ring is the edge, always drawn and labelled: the
+   loop's largest petal rounded UP to the next whole foot (whole percent for
+   Period), so no petal passes it (owner's call: an edge at the petal
+   exactly drew no ring there). Inner rings at a round step, at most three. Reduced motion opens paused on the newest. LIVE
    only; carried to no break. The
    Forecast tab's Buoys tab holds 46232 alone. A 46047 line on the Height
    chart is the next step, not built.

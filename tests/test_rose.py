@@ -5,6 +5,7 @@ for every spectrum in the last six hours, at the buoy only."""
 from __future__ import annotations
 
 import ast
+import json
 import math
 from datetime import timedelta
 from pathlib import Path
@@ -127,14 +128,34 @@ class TestOnThePage:
         assert "KEEP.roseMode" in PAGE
         assert "prefers-reduced-motion" in PAGE.split("// THE ROSES")[1]
 
-    def test_each_buoys_scale_is_its_own_largest_petal(self):
-        """The edge is the largest petal in that buoy's own loop, exactly:
-        rounded up to a ring and shared across both buoys, 46232's largest
-        petal filled 22% of its rose (owner's report, 2026-10-06)."""
+    def test_each_buoys_scale_is_its_own_largest_petal_rounded_up(self):
+        """Each buoy's own loop sets its scale (shared across both, 46232's
+        largest petal filled 22% of its rose), and the outermost ring is that
+        petal rounded UP to a whole foot or percent, always drawn: an edge at
+        the petal exactly left petals past the last ring (owner's report,
+        2026-10-06). Run in node against the page's own function."""
+
+        import subprocess
 
         scale = PAGE[PAGE.index("function roseScale("):]
-        scale = scale[:scale.index("\n}\n")]
-        assert "function roseScale(mode, station)" in scale
+        scale = scale[:scale.index("\n}\n") + 3]
         assert "roseOf(station)" in scale and "BUOYS.roses" not in scale
-        assert "return {step, max: top};" in scale
         assert "rosePlot(v.state, ROSE_MODE, station)" in PAGE
+        script = (
+            "const FT_PER_M = 3.28084; let FRAMES;\n"
+            "const roseOf = () => ({frames: FRAMES});\n" + scale +
+            "const out = [];\n"
+            "for (const [h, s] of [[0.41, 0.26], [1.2526, 0.431], [0.05, 0.02], [1.8288, 0.10]]) {\n"
+            "  FRAMES = [{sector_hs_m: [h, 0.1], period_share: [[s, 0, 0, 0, 0], [0.01, 0, 0, 0, 0]]}];\n"
+            "  out.push([roseScale('height', 'x'), roseScale('period', 'x')]);\n"
+            "}\nconsole.log(JSON.stringify(out));\n")
+        got = json.loads(subprocess.run(["node", "-e", script], capture_output=True,
+                                        text=True, check=True).stdout)
+        # 1.35 ft -> 2; 4.11 ft -> 5; a near-empty loop still draws 1 ft; 6.0 ft stays 6.
+        assert [g[0]["max"] for g in got] == [2, 5, 1, 6]
+        assert [round(g[1]["max"], 2) for g in got] == [0.26, 0.44, 0.02, 0.1]
+        for height, period in got:
+            for sc in (height, period):
+                assert sc["rings"][-1] == sc["max"]
+                assert len(sc["rings"]) <= 4
+                assert all(r < sc["max"] * 0.85 for r in sc["rings"][:-1])
