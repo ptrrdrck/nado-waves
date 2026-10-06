@@ -418,7 +418,7 @@ The number is rarely one swell. The spectrum is split at its low points into sep
 
 The biggest train at the buoy need not be the biggest at a break, because the windows take whichever trains point at the blocked sectors. In the worked hour the buoy's lead was 11.8 s from 219°, and North's was 12.5 s from 206°.
 
-A train's direction is where its energy comes from. When two directions each carry a fifth of a train or more, both are given, “WSW 258° & S 180°”, and the drawing has an arrow from each: one direction there would be their average, which sits between them where almost none of it comes from. It happens most at South, whose trains often arrive through both the south window and the west one.
+A train's direction is where its energy comes from. When two directions each carry a fifth of a train or more, both are given by compass point, “WSW & S”, and the drawing has an arrow from each: one direction there would be their average, which sits between them where almost none of it comes from. A train with one direction gives its degrees, “SSW 197°”. Every train keeps to one line: on a narrow phone, a row tagged “wind sea” or “local chop” shortens its direction to a single compass point, the larger one's when there are two. It happens most at South, whose trains often arrive through both the south window and the west one.
 
 The split is made on the spectrum by frequency, not on frequency and direction together, so two swells of the same period from different directions read as one train — with both its directions named.
 

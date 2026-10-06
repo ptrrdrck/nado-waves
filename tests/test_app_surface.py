@@ -1046,7 +1046,31 @@ class TestWaveTrainsOnScreen:
                   "console.log(fromText({from_deg: 202}));\n"
                   "console.log(pointsText({from_deg: 234, lobes: [[258, 0.48], [180, 0.28]]}));")
         out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
-        assert out.stdout.splitlines() == ["WSW 258° & S 180°", "SSW 202°", "SSW 202°", "WSW and S"]
+        assert out.stdout.splitlines() == ["WSW & S", "SSW 202°", "SSW 202°", "WSW and S"]
+
+    def test_a_train_is_one_line_at_any_phone_width(self):
+        """Owner's call, 2026-10-06: two headings with degrees ran to 171 px
+        against 125 of room at 360 px, past the card. Two read as points; a
+        tagged row has a one-point short form a container query swaps in;
+        the tag never wraps until one point beside it cannot fit."""
+
+        assert "white-space:nowrap;flex:none}" in SOURCE
+        assert ".trains{container:trains / inline-size}" in SOURCE
+        assert "min-width:0;overflow:hidden;text-overflow:ellipsis" in SOURCE
+        rows = SOURCE[SOURCE.index("function trainList("):]
+        rows = rows[:rows.index("\n}\n")]
+        assert '<span class="dr-full">${fromText(t)}</span><span class="dr-short">${shortFromText(t)}</span>' in rows
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        fns = ""
+        for name in ("compass", "point", "headings", "fromText", "shortFromText"):
+            start = SOURCE.index(f"function {name}(")
+            fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        script = (fns + "console.log(shortFromText({from_deg: 234, lobes: [[258, 0.48], [180, 0.28]]}));\n"
+                  "console.log(shortFromText({from_deg: 202}));")
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        assert out.stdout.splitlines() == ["WSW", "SSW"]
 
     def test_the_leading_train_is_emphasised(self):
         assert 'i === 0 ? " lead"' in SOURCE
