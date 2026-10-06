@@ -186,6 +186,18 @@ jobs:
           # while a hurricane's band is arriving at 46047 or 46086.
           python -m forecast.originhistory --live
 
+      # The context buoys on the LIVE tab's Buoys tab (46047, Tanner Banks):
+      # the newest spectrum at the buoy, carried to no break, with its own
+      # measured countdown. Its own file and its own step: nothing on the chain
+      # may read a context buoy (BRIEFING §3a), and `forecast.now` exits 1 when
+      # 46232 is dark, which must not take 46047's reading with it. ~0.5 s.
+      - name: Context buoys
+        id: buoys
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m forecast.buoys
+
       # The archive is withheld from the page when it no longer says what
       # today's chain says (or does not exist yet). Ask for the rebuild rather
       # than waiting for the daily one; series-archive.yml queues at most one.

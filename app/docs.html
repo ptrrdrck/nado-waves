@@ -363,6 +363,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         <span class="lbl">What &ldquo;LIVE&rdquo; is standing on</span>
         <dl class="standing" id="standing-now"><dt>Status</dt><dd>loading&hellip;</dd></dl>
         <p class="note" id="foot-now"></p>
+        <dl class="standing" id="standing-buoys"></dl>
       </div>
       <div class="card" id="standing-forecast-card">
         <span class="lbl">What Forecast is standing on</span>
@@ -389,6 +390,8 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         always some minutes old, and each card's countdown says exactly how old.</p>
       <p>It carries exactly one modelled number, the tide's next high or low, and that is labelled
         <em>predicted</em> wherever it appears. <a href="#tide-turn">Why that one</a>.</p>
+      <p>Its Buoys tab also shows a second buoy, 46047 at Tanner Banks, measured the same way.
+        Nothing on the tab is computed from it. <a href="#swell-tabs">Why it is there</a>.</p>
     </section>
 
     <section id="chains-forecast">
@@ -841,10 +844,21 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
     <h2>The Swell card</h2>
 
     <section id="swell-tabs">
-      <h3>Break tabs and the buoy tab</h3>
+      <h3>Break tabs and the Buoys tab</h3>
       <p>One tab per break, ranked by how much of the buoy's energy its windows let through, with
-        the buoy always last. The buoy's tab shows the swell 29 km offshore with nothing in the
-        way, so it is always the biggest number, and it is the one the breaks are measured from.</p>
+        the Buoys tab always last. It shows the swell at buoy 46232, 29 km offshore, with nothing in
+        the way, so it is always the biggest number, and it is the one the breaks are measured
+        from.</p>
+      <p>On &ldquo;LIVE&rdquo; the Buoys tab also shows buoy 46047 at Tanner Banks, 222 km
+        west, the buoy in the array that the islands shadow least. It is read the same way as
+        46232: the combined height of its directional spectrum, and its
+        <a href="#swell-trains">swell trains</a>, with a train fed from two directions naming both.
+        It is open ocean outside every break's windows, so it is carried to no break, and no
+        number on any other tab comes from it. It is there so the swell before the Channel
+        Islands and the Bight can be read beside the swell at 46232. Its spectra are stamped
+        every half hour, at :20 and :50, so it has its own observed time and its own
+        <a href="#swell-countdown">countdown</a>. The Forecast tab's Buoys tab shows 46232 only,
+        because the model run is read at 46232 alone.</p>
     </section>
 
     <section id="swell-headline">
@@ -996,6 +1010,7 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         <thead><tr><th>Source</th><th>Publishes</th><th>Typical lag</th><th>Late after</th><th>Reading at 12:00 PM, next due</th></tr></thead>
         <tbody>
           <tr><th scope="row">Swell, buoy 46232</th><td>hourly, stamped :00</td><td class="num">15 min</td><td class="num">36 min</td><td>1:15 PM, red after 1:45 PM</td></tr>
+          <tr><th scope="row">Swell, buoy 46047 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">85 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:15 PM</td></tr>
           <tr><th scope="row">Wind, KNZY</th><td>hourly at :52</td><td class="num">3 min</td><td class="num">4 min</td><td>(11:52 AM reading) 12:55 PM, red after 1:05 PM</td></tr>
           <tr><th scope="row">Tide, 9410170</th><td>every 6 min</td><td class="num">5 min</td><td class="num">8 min</td><td>12:15 PM</td></tr>
         </tbody></table></div>
@@ -1528,6 +1543,8 @@ breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level<
 const PARAM = new URLSearchParams(location.search);
 const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
 const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
+// The context buoys on the LIVE tab's Buoys tab, from their own file.
+const BUOYS_SOURCE = PARAM.get("buoys") || "../data/live/buoys.json";
 // Filled by forecast.geomviz from spots.json at publish time. Null in the
 // unbuilt template, and every drawing then says so instead of drawing.
 const MODEL = /*__MODEL__*/null;
@@ -1855,9 +1872,19 @@ function loadForecast() {
         + "rather than from the filesystem.";
     });
 }
+// The Buoys tab's context buoys, under the LIVE block: their own file, their
+// own line, because no other number on that tab is computed from them.
+function loadBuoys() {
+  fetch(fresh(BUOYS_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null)
+    .then((got) => { if (got && got.standing_on) renderStanding($("standing-buoys"), got.standing_on); });
+}
 loadNow();
+loadBuoys();
 loadForecast();
 setInterval(loadNow, NOW_REFRESH_MS);
+setInterval(loadBuoys, NOW_REFRESH_MS);
 setInterval(loadForecast, FORECAST_REFRESH_MS);
 
 // ================================================================ worked hour

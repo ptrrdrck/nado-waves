@@ -186,6 +186,7 @@ median wind latency of **110 minutes** before any of this.
 |---|---|---|---|---|
 | wind | `:52`, pinned | H+3 | H+3.2 | **3 min** |
 | swell | `:00` | H+15 | H+35.3 | **10 min** |
+| swell, 46047 (Buoys tab) | `:20`, `:50` | H+25 | H+85 | **10 min** |
 | tide | every 6 min | H+5 | H+13.4 | **10 min** |
 
 The middle columns are the ones that are easy to skip, and skipping them is what
@@ -227,6 +228,12 @@ accusing a source of missing a deadline it had not reached.
 The spectra files carry no `first_seen_utc`, so their bracketing uses git
 history instead: each collection commits the file, so the commit time *is* when
 that row first existed here.
+
+46047, shown under 46232 on the "LIVE" tab's Buoys tab, was bracketed the
+same way on 2026-10-06 over 148 stamps from 10-02 20Z, when it joined this
+collection: never in the run 15 minutes after its stamp, 56% in the run at
+25, 95% by 45, the worst at 85. Its countdown runs to 25 and turns red past
+85 (`forecast/buoys.py`, BRIEFING §39).
 
 ### What it costs
 
