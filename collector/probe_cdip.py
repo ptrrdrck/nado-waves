@@ -1084,6 +1084,15 @@ def watch(pairs: list[tuple[str, str]], minutes: float, poll_s: float, timeout: 
     first-seen minus the record's own stamp, bracketed by the poll before it.
     """
 
+    def seen(event: tuple[str, datetime, datetime, datetime]) -> None:
+        # Printed the moment it is seen, not only in the table at the end: the
+        # first watch (2026-10-07) was cancelled at 12 minutes and, holding
+        # everything for its summary, left nothing behind.
+        events.append(event)
+        feed, stamp, before, first = event
+        print(f"seen: {feed} {stamp:%Y-%m-%dT%H:%MZ} absent at +{(before - stamp).total_seconds() / 60:.1f} "
+              f"min, present at +{(first - stamp).total_seconds() / 60:.1f} min", flush=True)
+
     seen_cdip: dict[str, int] = {}
     seen_ndbc: dict[str, datetime | None] = {}
     events: list[tuple[str, datetime, datetime, datetime]] = []
@@ -1099,8 +1108,8 @@ def watch(pairs: list[tuple[str, str]], minutes: float, poll_s: float, timeout: 
                 if cdip_id in seen_cdip and n > seen_cdip[cdip_id]:
                     arr = parse_ascii(opendap(ascii_url(base, f"waveTime[{seen_cdip[cdip_id]}:1:{n - 1}]"), timeout=timeout))
                     for t in arr["waveTime"]:
-                        events.append((f"CDIP {cdip_id}", datetime.fromtimestamp(t, tz=timezone.utc),
-                                       last_poll.get("c" + cdip_id, now), now))
+                        seen((f"CDIP {cdip_id}", datetime.fromtimestamp(t, tz=timezone.utc),
+                              last_poll.get("c" + cdip_id, now), now))
                 seen_cdip[cdip_id] = n
                 last_poll["c" + cdip_id] = now
             except Exception as exc:  # noqa: BLE001
@@ -1116,7 +1125,7 @@ def watch(pairs: list[tuple[str, str]], minutes: float, poll_s: float, timeout: 
                 _, rows, _, _ = parse_spectral(text.decode("utf-8", errors="replace"))
                 newest = rows[-1][0] if rows else None
                 if ndbc_id in seen_ndbc and newest and (seen_ndbc[ndbc_id] is None or newest > seen_ndbc[ndbc_id]):
-                    events.append((f"NDBC {ndbc_id}", newest, last_poll.get("n" + ndbc_id, now), now))
+                    seen((f"NDBC {ndbc_id}", newest, last_poll.get("n" + ndbc_id, now), now))
                 seen_ndbc[ndbc_id] = newest
                 last_poll["n" + ndbc_id] = now
             except Exception as exc:  # noqa: BLE001
