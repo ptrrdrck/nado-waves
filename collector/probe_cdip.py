@@ -83,6 +83,7 @@ from .ndbc import USER_AGENT
 from .probe_mop import DENIAL_NOTE
 from .probe_spectra import REALTIME as NDBC_REALTIME
 from .probe_spectra import fetch, parse_spectral
+from .shoreline import is_denial
 
 THREDDS = "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip"
 REALTIME_PATH = "realtime/{stn}_rt.nc"
@@ -257,12 +258,60 @@ def opendap(url: str, *, timeout: float = 90.0, raw_dir: Path | None = None, lab
 
 
 def classify(exc: Exception) -> tuple[str, bool]:
-    """Text of a failure, and whether it is a denial (BRIEFING §8)."""
+    """Text of a failure, and whether it is an EGRESS denial (BRIEFING §8, §21a).
 
-    text = f"{exc.__class__.__name__}: {exc}"
+    An HTTPError carries a real status from a real response, so it is never an
+    egress denial: on a runner a 403 is the origin server saying no. The first
+    run of this probe (2026-10-07) printed "egress-policy denial" over a 403
+    THREDDS had sent to an Actions runner — §21a's fault, repeated — so the
+    rule is `shoreline.is_denial`'s, and the server's own words go in the text.
+    """
+
     if isinstance(exc, urllib.error.HTTPError):
-        return f"HTTP {exc.code} {exc.reason}", exc.code == 403
-    return text, isinstance(exc, urllib.error.URLError) or "CONNECT" in text
+        return f"HTTP {exc.code} {exc.reason} from the server{_served_by(exc)}", False
+    return f"{exc.__class__.__name__}: {exc}", is_denial(exc)
+
+
+def _served_by(exc: urllib.error.HTTPError) -> str:
+    server = exc.headers.get("Server", "") if exc.headers else ""
+    try:
+        body = exc.read(600).decode("utf-8", errors="replace")
+    except Exception:  # noqa: BLE001 - the body is evidence, not required
+        body = ""
+    body = re.sub(r"<[^>]+>", " ", body)
+    body = re.sub(r"\s+", " ", body).strip()[:240]
+    return (f" (Server: {server})" if server else "") + (f": \"{body}\"" if body else "")
+
+
+#: Every CDIP door the 2026-10-07 email named, asked once each, so a refusal
+#: can be placed: one host or all of them, one protocol or both.
+DOORS = (
+    "https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/realtime/catalog.html",
+    "https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime/{stn}_rt.nc.dds",
+    "https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/archive/{stn}/catalog.html",
+    "https://cdip.ucsd.edu/data_access/ndar.cdip?{num}+st+h",
+    "http://cdip.ucsd.edu/data_access/ndar.cdip?{num}+st+h",
+    "https://cdip.ucsd.edu/m/products/?stn={stn}",
+)
+
+
+def knock(cdip_id: str, *, timeout: float) -> list[str]:
+    """Each door's status, server and first bytes. Nothing is retried."""
+
+    num = re.sub(r"\D.*$", "", cdip_id)
+    lines = ["### Reachability from this runner", "", "| URL | result |", "|---|---|"]
+    for door in DOORS:
+        url = door.format(stn=cdip_id, num=num)
+        try:
+            payload = fetch(url, timeout=timeout)
+            head = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", payload[:400].decode("utf-8", errors="replace"))).strip()
+            result = f"200, {len(payload)} bytes: {head[:120]}"
+        except Exception as exc:  # noqa: BLE001 - classified
+            text, denied = classify(exc)
+            result = ("EGRESS DENIAL — " if denied else "") + text
+        lines.append(f"| `{url}` | {result.replace('|', '/')} |")
+    lines.append("")
+    return lines
 
 
 # --------------------------------------------------------------------------
@@ -911,6 +960,8 @@ def main(argv: list[str] | None = None) -> int:
     for cdip_id, ndbc_id in [] if args.watch_only else stations:
         result = probe_station(cdip_id, ndbc_id, records=args.records, data_dir=args.data_dir,
                                raw_dir=args.raw_dir, timeout=args.timeout)
+        if result.failed and not result.denied:
+            result.lines += knock(cdip_id, timeout=args.timeout)
         if not args.no_historic and not result.denied:
             result.lines += probe_historic(cdip_id, timeout=args.timeout, raw_dir=args.raw_dir)
         if not args.no_ndar and not result.denied:

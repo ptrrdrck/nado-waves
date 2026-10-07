@@ -239,3 +239,33 @@ def test_a_buoy_that_names_another_wmo_id_is_not_compared(monkeypatch, tmp_path)
 
     monkeypatch.setattr(probe_cdip, "fetch", serve)
     assert probe_cdip.main(["--no-historic", "--no-ndar", "--data-dir", str(tmp_path)]) == 1
+
+
+def test_a_403_from_the_server_is_not_an_egress_denial():
+    """BRIEFING §21a, repeated by this probe's first run on 2026-10-07.
+
+    On a runner there is no proxy: an HTTPError is the origin saying no, and
+    its words belong in the report rather than a note about session egress.
+    """
+
+    import io
+    from email.message import Message
+
+    headers = Message()
+    headers["Server"] = "Apache"
+    exc = urllib.error.HTTPError("https://x", 403, "Forbidden", headers,
+                                 io.BytesIO(b"<html><h1>Access denied</h1> by policy</html>"))
+    text, denied = classify(exc)
+    assert not denied
+    assert "from the server" in text and "Server: Apache" in text and "Access denied by policy" in text
+
+
+def test_a_server_refusal_is_placed_across_every_door(monkeypatch, capsys):
+    def refuse(url, *, timeout=0):
+        raise urllib.error.HTTPError(url, 403, "Forbidden", None, None)
+
+    monkeypatch.setattr(probe_cdip, "fetch", refuse)
+    assert probe_cdip.main(["--no-historic", "--no-ndar", "--station", "191p1=46232"]) == 1
+    out = capsys.readouterr().out
+    assert "EGRESS" not in out and "egress-policy" not in out
+    assert out.count("HTTP 403 Forbidden from the server") == 1 + len(probe_cdip.DOORS)
