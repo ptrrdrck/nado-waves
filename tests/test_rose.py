@@ -178,3 +178,36 @@ class TestOnThePage:
         plot = PAGE[PAGE.index("function rosePlot("):]
         assert 'class="rl"' not in plot[:plot.index("\n}\n")]
         assert 'aria-label="${ROSE_PLAYING ? "Pause" : "Play"}"' in PAGE
+
+
+class TestTheLoopsStart:
+    def test_every_buoy_has_a_frame_where_the_loop_starts(self):
+        """46047 stamps :20/:50 and 46232 :00, so the oldest frame overall is
+        46047's, ten minutes before 46232's first: the loop opened on "No
+        spectrum yet" at 46232 (owner's report, 2026-10-07). Run in node
+        against the page's own roseSpan and roseAt."""
+
+        import subprocess
+
+        def fn(name):
+            body = PAGE[PAGE.index(f"function {name}("):]
+            return body[:body.index("\n}\n") + 3]
+
+        script = (
+            "let BUOYS; const clock = (iso) => iso.slice(11, 16);\n"
+            "const roseTime = (f) => new Date(f.time_utc).getTime();\n"
+            + fn("roseSpan") + fn("roseAt") +
+            "const at = (h, m) => `2026-10-07T${h}:${m}:00Z`;\n"
+            "BUOYS = {roses: {\n"
+            "  '46232': {interval_min: 60, frames: [14, 15, 16, 17, 18, 19].map((h) => ({time_utc: at(h, '00')}))},\n"
+            "  '46047': {interval_min: 30, frames: [[13, '50'], [14, '20'], [14, '50'], [19, '20']]"
+            ".map(([h, m]) => ({time_utc: at(h, m)}))}}};\n"
+            "const span = roseSpan();\n"
+            "console.log(JSON.stringify({t0: new Date(span.t0).toISOString(),"
+            " a: roseAt(BUOYS.roses['46232'], span.t0), b: roseAt(BUOYS.roses['46047'], span.t0)}));\n")
+        got = json.loads(subprocess.run(["node", "-e", script], capture_output=True,
+                                        text=True, check=True).stdout)
+        assert got["t0"] == "2026-10-07T14:00:00.000Z"
+        assert got["a"]["frame"]["time_utc"] == "2026-10-07T14:00:00Z"
+        # 46047's 13:50 frame is the one in force at 14:00, not dropped.
+        assert got["b"]["frame"]["time_utc"] == "2026-10-07T13:50:00Z"
