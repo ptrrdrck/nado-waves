@@ -130,10 +130,11 @@ class TestOnThePage:
 
     def test_each_buoys_scale_is_its_own_largest_petal_rounded_up(self):
         """Each buoy's own loop sets its scale (shared across both, 46232's
-        largest petal filled 22% of its rose), and the outermost ring is that
-        petal rounded UP to a whole foot or percent, always drawn: an edge at
-        the petal exactly left petals past the last ring (owner's report,
-        2026-10-06). Run in node against the page's own function."""
+        largest petal filled 22% of its rose); the outermost ring is that
+        petal rounded UP to the next ring, always drawn (an edge at the petal
+        exactly left petals past the last ring); and the rings are EVEN, at
+        most five (2, 4 and 5 ft read as uneven; owner's reports, 2026-10-06
+        and -07). Run in node against the page's own function."""
 
         import subprocess
 
@@ -145,17 +146,35 @@ class TestOnThePage:
             "const FT_PER_M = 3.28084; let FRAMES;\n"
             "const roseOf = () => ({frames: FRAMES});\n" + scale +
             "const out = [];\n"
-            "for (const [h, s] of [[0.41, 0.26], [1.2526, 0.431], [0.05, 0.02], [1.8288, 0.10]]) {\n"
+            "for (const [h, s] of [[0.41, 0.26], [1.2526, 0.431], [0.05, 0.02], [1.8288, 0.10],"
+            " [0.5517, 0.24]]) {\n"
             "  FRAMES = [{sector_hs_m: [h, 0.1], period_share: [[s, 0, 0, 0, 0], [0.01, 0, 0, 0, 0]]}];\n"
             "  out.push([roseScale('height', 'x'), roseScale('period', 'x')]);\n"
             "}\nconsole.log(JSON.stringify(out));\n")
         got = json.loads(subprocess.run(["node", "-e", script], capture_output=True,
                                         text=True, check=True).stdout)
-        # 1.35 ft -> 2; 4.11 ft -> 5; a near-empty loop still draws 1 ft; 6.0 ft stays 6.
-        assert [g[0]["max"] for g in got] == [2, 5, 1, 6]
-        assert [round(g[1]["max"], 2) for g in got] == [0.26, 0.44, 0.02, 0.1]
+        # 1.35 ft -> 2; 4.11 -> 5; a near-empty loop still draws 1 ft; exactly
+        # 6.0 ft stays on 6 (in 2 ft rings); 1.81 ft (46232, 7 Oct) -> 2.
+        assert [g[0]["max"] for g in got] == [2, 5, 1, 6, 2]
+        assert [g[0]["step"] for g in got] == [1, 1, 1, 2, 1]
+        assert [round(g[1]["max"], 2) for g in got] == [0.3, 0.5, 0.05, 0.1, 0.25]
         for height, period in got:
             for sc in (height, period):
-                assert sc["rings"][-1] == sc["max"]
-                assert len(sc["rings"]) <= 4
-                assert all(r < sc["max"] * 0.85 for r in sc["rings"][:-1])
+                assert sc["rings"][-1] == sc["max"] and len(sc["rings"]) <= 5
+                assert sc["rings"] == pytest.approx(
+                    [sc["step"] * (k + 1) for k in range(len(sc["rings"]))])
+
+    def test_the_scale_is_a_line_under_the_rose_and_play_sits_by_the_time(self):
+        """Owner's request, 2026-10-07: no figure on the plot, where every
+        spot is a bearing; the scale in one line under it; play / pause as
+        symbols, left of the six hours."""
+
+        block = PAGE[PAGE.index("function roseBlock("):]
+        block = block[:block.index("\n}\n")]
+        assert (block.index('class="rose-plot"') < block.index('class="rose-scale"')
+                < block.index('class="rose-time">${rosePlayButton()}')
+                < block.index('class="rose-line"'))
+        assert "rose-head" in block and "rosePlayButton" not in block[:block.index('class="readout"')]
+        plot = PAGE[PAGE.index("function rosePlot("):]
+        assert 'class="rl"' not in plot[:plot.index("\n}\n")]
+        assert 'aria-label="${ROSE_PLAYING ? "Pause" : "Play"}"' in PAGE

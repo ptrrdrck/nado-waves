@@ -449,19 +449,26 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    Height; for Period, five greys ordered from the faintest rule (shortest
    periods) to ink (longest), the Shore direction chart's scale with two
    steps between. A hairline of the card's colour parts every segment. */
-.rose{display:flex;flex-direction:column;gap:6px}
+.rose{display:flex;flex-direction:column;gap:6px;margin-top:3px}
 .rose-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .rose .ranges{display:flex;gap:2px}
-.rose .ranges button,.rose .rose-play{font:inherit;font-size:12px;font-weight:600;padding:2px 9px;border:0;
+.rose .ranges button{font:inherit;font-size:12px;font-weight:600;padding:2px 9px;border:0;
   border-radius:6px;cursor:pointer;background:transparent;color:var(--soft)}
+/* The scale, one line under the rose; then play / pause left of the six hours. */
+.rose .rose-scale{font-size:12px;color:var(--soft);text-align:center;font-variant-numeric:tabular-nums}
+.rose .rose-time{display:flex;align-items:center;gap:6px;width:100%;max-width:300px;margin:0 auto}
+.rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+  padding:0;border:0;border-radius:6px;cursor:pointer;background:var(--paper);color:var(--ink)}
+.rose .rose-play svg{width:12px;height:12px;fill:currentColor}
 .rose .ranges button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
 .rose button:focus-visible,.rose .rose-line:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* A tap focuses the timeline too, and the browser rings an SVG on any focus;
+   only the keyboard's focus is ringed, in the page's blue. */
+.rose .rose-line:focus:not(:focus-visible){outline:none}
 .rose .readout{font-size:13.5px;font-variant-numeric:tabular-nums}
 .rose-svg{display:block;width:100%;max-width:280px;height:auto;margin:0 auto;overflow:visible}
 .rose-svg .ring{fill:none;stroke:var(--line);stroke-width:1}
 .rose-svg .pt{font-size:10px;fill:var(--faint)}
-.rose-svg .rl{font-size:10px;fill:var(--soft);paint-order:stroke;stroke:var(--card);stroke-width:3px;
-  stroke-linejoin:round;font-variant-numeric:tabular-nums}
 .rose-svg .rp{fill:var(--ink);opacity:.85;stroke:var(--card);stroke-width:.75}
 .rose-svg .rb{stroke:var(--card);stroke-width:.75}
 .rose-svg .rb0,.rose .legend .sw.rb0{fill:var(--line-strong);background:var(--line-strong)}
@@ -470,7 +477,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose-svg .rb3,.rose .legend .sw.rb3{fill:color-mix(in srgb,var(--soft),var(--ink));
   background:color-mix(in srgb,var(--soft),var(--ink))}
 .rose-svg .rb4,.rose .legend .sw.rb4{fill:var(--ink);background:var(--ink)}
-.rose-line{display:block;width:100%;max-width:280px;height:auto;margin:0 auto;cursor:pointer;
+.rose-line{display:block;flex:1;min-width:0;height:auto;cursor:pointer;
   touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .rose-line .base{stroke:var(--line-strong);stroke-width:1}
 .rose-line .tk{stroke:var(--faint);stroke-width:1.5}
@@ -2051,26 +2058,35 @@ function roseMoment(span) {
 }
 
 // One scale per view for every frame of ONE buoy's loop: feet for Height, a
-// share for Period. The edge is the outermost ring, always drawn and
-// labelled: the loop's largest petal rounded UP to the next whole foot (whole
-// percent for Period), so no petal ever passes it (owner's call, 2026-10-06).
-// Inner rings at a round step below it, at most three, none crowding it.
+// share for Period. The rings are evenly spaced, at most five, and the
+// outermost is the edge: the loop's largest petal rounded UP to the next ring,
+// so no petal passes it. A step of 1 ft makes that the next whole foot; past
+// 5 ft the step widens to 2 ft, so the rings stay even rather than one of them
+// falling short (owner's report, 2026-10-07: 2, 4 and 5 ft read as uneven).
 // Fixed across the loop, so a petal that grows between frames really grew.
 function roseScale(mode, station) {
   const frames = (roseOf(station) || {}).frames || [];
   const top = Math.max(0, ...frames.flatMap((f) => mode === "height"
     ? f.sector_hs_m.map((m) => m * FT_PER_M)
     : f.period_share.map((row) => row.reduce((a, b) => a + b, 0))));
-  const unit = mode === "height" ? 1 : 0.01;
+  const steps = mode === "height" ? [1, 2, 5, 10, 20] : [0.05, 0.1, 0.2, 0.25];
   // The tolerance is far under the 0.1 ft shown, and keeps a petal of exactly
   // 6 ft (1.8288 m, 6.000002 ft through the converter) on the 6 ft ring.
-  const max = Math.max(unit, unit * Math.ceil(top / unit - 1e-4));
-  const steps = mode === "height" ? [1, 2, 5, 10, 20] : [0.05, 0.1, 0.2, 0.25];
-  const step = steps.find((st) => Math.ceil(max / st - 1e-9) - 1 <= 3) || steps[steps.length - 1];
+  const count = (st) => Math.max(1, Math.ceil(top / st - 1e-4));
+  const step = steps.find((st) => count(st) <= 5) || steps[steps.length - 1];
   const rings = [];
-  for (let v = step; v < max * 0.85; v += step) rings.push(v);
-  rings.push(max);
-  return {max, rings};
+  for (let k = 1; k <= count(step); k++) rings.push(+(k * step).toFixed(4));
+  return {max: rings[rings.length - 1], step, rings};
+}
+
+// The scale in words, one line under the rose (owner's request, 2026-10-07),
+// rather than a figure on the plot, where any spot is a bearing.
+function roseScaleLine(mode, station) {
+  const sc = roseScale(mode, station);
+  return mode === "height"
+    ? `Rings every ${sc.step} ft (${(sc.step / FT_PER_M).toFixed(2)} m) to `
+      + `${sc.max} ft (${(sc.max / FT_PER_M).toFixed(2)} m)`
+    : `Rings every ${rosePct(sc.step)} to ${rosePct(sc.max)} of the energy`;
 }
 
 // What a buoy's rose shows at a moment: a frame, a gap, or a stamp not in yet.
@@ -2118,12 +2134,6 @@ function rosePlot(state, mode, station) {
     const [x, y] = rosePt(R + 11, deg).split(",");
     return `<text class="pt" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${p}</text>`;
   }).join("");
-  // The outermost ring is the edge, and labelled on it.
-  const ring = scale.max;
-  const outer = mode === "height"
-    ? `${+ring.toFixed(2)} ft (${(ring / FT_PER_M).toFixed(2)} m)` : rosePct(ring);
-  const [lx, ly] = rosePt(R * ring / scale.max, 45).split(",");
-  const label = `<text class="rl" x="${(+lx + 3).toFixed(1)}" y="${(+ly - 3).toFixed(1)}">${outer}</text>`;
 
   let petals = "";
   let said = "";
@@ -2155,7 +2165,7 @@ function rosePlot(state, mode, station) {
   const aria = state.frame ? `${mode === "height" ? "Height" : "Period"} rose at ${when}: ${said}`
     : state.note;
   return `<svg class="rose-svg" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
-    + grid + petals + marks + label + `</svg>`;
+    + grid + petals + marks + `</svg>`;
 }
 
 function roseReadout(state) {
@@ -2207,13 +2217,14 @@ function roseBlock(station) {
   const modes = ROSE_MODES.map((m) => `<button type="button" data-rose-mode="${m.id}"`
     + ` aria-pressed="${m.id === ROSE_MODE}">${m.label}</button>`).join("");
   return `<div class="rose" data-rose="${station}" data-k="${v.key}">
-    <div class="rose-head"><span class="ranges" role="group" aria-label="Which rose">${modes}</span>
-      <button type="button" class="rose-play" data-rose-play aria-pressed="${ROSE_PLAYING}">${ROSE_PLAYING ? "Pause" : "Play"}</button></div>
+    <div class="rose-head"><span class="ranges" role="group" aria-label="Which rose">${modes}</span></div>
     <div class="readout" data-rose-live aria-live="off">${roseReadout(v.state)}</div>
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
+    <div class="rose-scale" data-rose-live>${roseScaleLine(ROSE_MODE, station)}</div>
+    <div class="rose-time">${rosePlayButton()}
     <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
-      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg>
+      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg></div>
     ${roseLegend(ROSE_MODE)}
   </div>`;
 }
@@ -2228,6 +2239,7 @@ function roseUpdate(el) {
     el.setAttribute("data-k", v.key);
     el.querySelector(".readout").innerHTML = roseReadout(v.state);
     el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE, el.getAttribute("data-rose"));
+    el.querySelector(".rose-scale").innerHTML = roseScaleLine(ROSE_MODE, el.getAttribute("data-rose"));
     el.querySelector(".rose-line").setAttribute("aria-valuenow", rosePercent(v));
     el.querySelector(".rose-line").setAttribute("aria-valuetext",
       v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);
@@ -2244,11 +2256,22 @@ function roseTick() {
   document.querySelectorAll("[data-rose]").forEach(roseUpdate);
 }
 
+// Play and pause as symbols, left of the six hours (owner's request,
+// 2026-10-07): the button shows what a tap will do, its label says it too.
+const ROSE_ICON = {
+  play: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z"/></svg>',
+  pause: '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" rx=".5"/>'
+    + '<rect x="7" y="1.5" width="3" height="9" rx=".5"/></svg>',
+};
+function rosePlayButton() {
+  return `<button type="button" class="rose-play" data-rose-play aria-label="${ROSE_PLAYING ? "Pause" : "Play"}">`
+    + `${ROSE_PLAYING ? ROSE_ICON.pause : ROSE_ICON.play}</button>`;
+}
 function setRosePlaying(on) {
   ROSE_PLAYING = on;
   document.querySelectorAll("[data-rose-play]").forEach((b) => {
-    b.setAttribute("aria-pressed", String(on));
-    b.textContent = on ? "Pause" : "Play";
+    b.setAttribute("aria-label", on ? "Pause" : "Play");
+    b.innerHTML = on ? ROSE_ICON.pause : ROSE_ICON.play;
   });
 }
 
