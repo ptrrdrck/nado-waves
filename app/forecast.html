@@ -2018,7 +2018,8 @@ function contextBuoy(b) {
 // of the last six hours looped.
 //
 // ONE clock drives both buoys, so the two roses always show the same moment:
-// the loop runs from the oldest frame to the newest across both, then holds
+// the loop runs from the first moment every buoy has a frame to the newest
+// across both, then holds
 // on the newest. A rose shows the newest spectrum stamped at or before that
 // moment, until its successor was due (its own stamp spacing, in the file);
 // past that it is a gap and says so, never the frame beside it. Its newest
@@ -2045,11 +2046,22 @@ const roseOf = (station) => (BUOYS && BUOYS.roses && BUOYS.roses[station]) || nu
 const roseTime = (f) => new Date(f.time_utc).getTime();
 
 // The loop's span: the oldest frame to the newest, over every buoy.
+// The loop's span: from the first moment EVERY buoy has a spectrum to the
+// newest frame over all of them. Starting at the oldest frame overall put the
+// loop on 46047's :50 stamp, ten minutes before 46232's first on the hour,
+// and 46232 opened every loop on "No spectrum yet" for a moment it did have
+// one, just outside the six hours (owner's report, 2026-10-07). The earlier
+// buoy loses nothing: its first frame is the one in force at the start.
 function roseSpan() {
-  const all = Object.values((BUOYS && BUOYS.roses) || {}).flatMap((r) => r.frames || []);
-  if (!all.length) return null;
-  const times = all.map(roseTime);
-  return {t0: Math.min(...times), t1: Math.max(...times)};
+  const firsts = [], times = [];
+  Object.values((BUOYS && BUOYS.roses) || {}).forEach((r) => {
+    const own = (r.frames || []).map(roseTime);
+    if (!own.length) return;
+    firsts.push(Math.min(...own));
+    times.push(...own);
+  });
+  if (!times.length) return null;
+  return {t0: Math.max(...firsts), t1: Math.max(...times)};
 }
 
 function roseMoment(span) {
@@ -2177,7 +2189,10 @@ function roseReadout(state) {
 // The six hours under the rose: a tick for every spectrum this buoy sent, so
 // a missing one is a missing tick; the moment shown, and a tap to go to one.
 function roseLine(rose, span, t, state) {
-  const x = (ms) => (8 + 224 * (span.t1 > span.t0 ? (ms - span.t0) / (span.t1 - span.t0) : 1)).toFixed(1);
+  // A frame stamped before the loop starts (the earlier buoy's first) sits at
+  // the line's left end: it is the one shown there.
+  const x = (ms) => (8 + 224 * (span.t1 > span.t0
+    ? Math.max(0, Math.min(1, (ms - span.t0) / (span.t1 - span.t0))) : 1)).toFixed(1);
   const ticks = (rose.frames || []).map((f, i) =>
     `<line class="tk${state.k === i ? " on" : ""}" x1="${x(roseTime(f))}" y1="4" x2="${x(roseTime(f))}" y2="14"/>`).join("");
   const ends = `<text class="tt" x="8" y="25">${clock(new Date(span.t0).toISOString())}</text>`
