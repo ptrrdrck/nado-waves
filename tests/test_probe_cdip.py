@@ -291,3 +291,20 @@ def test_a_stamping_convention_that_changes_shows_as_two_runs():
     assert max(m.energy_rel for m in matches) < 1e-9
     text = "\n".join(probe_cdip.match_lines(matches))
     assert "| +0 | 23 |" in text and "| -30 | 23 |" in text
+
+
+def test_flooring_and_rounding_to_one_percent_of_the_peak_are_told_apart():
+    t = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    truth = [2.0, 1.234, 0.567, 0.0149, 0.005]
+    q = max(truth) / 100
+    floored = [math.floor(e / q) * q for e in truth]
+    rounded = [round(e / q) * q for e in truth]
+    cdip = _record(t, truth, 200.0)
+    bins = {j: j for j in range(5)}
+    for spectrum, floor_all in ((floored, True), (rounded, False)):
+        ndbc = NdbcRecord(t, [round(v, 3) for v in spectrum], [200.0] * 5, [200.0] * 5, [0.7] * 5, [0.0] * 5)
+        floor_share, round_share, zeroed = probe_cdip.quantum_test(cdip, ndbc, bins, [0.005] * 5)
+        assert (floor_share == 1.0) is floor_all
+        assert round_share == 1.0 if not floor_all else round_share < 1.0
+    # 0.005 sits under one step: floored to zero, and its energy counted as lost.
+    assert zeroed > 0

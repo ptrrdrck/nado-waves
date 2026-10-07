@@ -516,6 +516,14 @@ class Match:
     bin_rel: float
     hs_cdip: float
     hs_ndbc: float
+    #: NDBC's bins are whole multiples of 1% of the record's peak bin (every
+    #: one of 1,151 archived 46232 records, checked 2026-10-07). With that
+    #: step q, the share of bins where CDIP - NDBC lies in [0, q) — what
+    #: FLOORING to the step leaves — and in [-q/2, q/2], what ROUNDING leaves.
+    floor_share: float = float("nan")
+    round_share: float = float("nan")
+    #: CDIP's energy in bins NDBC reports as exactly zero, as a share of m0.
+    zeroed_m0: float = float("nan")
 
 
 def best_matches(
@@ -550,9 +558,41 @@ def best_matches(
         ratios = [abs(rec.c11[bins[j]] / n.c11[j] - 1.0) for j in energetic(n.c11)
                   if n.c11[j] > 0 and not math.isnan(rec.c11[bins[j]])]
         ndbc_bw = [bandwidth[bins[j]] for j in range(len(n.c11))]
+        floor_s, round_s, zeroed = quantum_test(rec, n, bins, ndbc_bw)
         out.append(Match(t, off, rel, runner, median(ratios) if ratios else float("nan"),
-                         hs_from(rec.c11, bandwidth), hs_from(n.c11, ndbc_bw)))
+                         hs_from(rec.c11, bandwidth), hs_from(n.c11, ndbc_bw), floor_s, round_s, zeroed))
     return out
+
+
+#: NDBC writes three decimals, so a residual is only known to half of 0.001.
+DECIMAL_SLACK = 0.0005 + 1e-9
+
+
+def quantum_test(
+    cdip: CdipRecord, ndbc: NdbcRecord, bins: dict[int, int], ndbc_bw: list[float],
+) -> tuple[float, float, float]:
+    """Floor or round: which does NDBC's 1%-of-peak step look like?"""
+
+    finite = [v for v in ndbc.c11 if not math.isnan(v)]
+    if not finite or max(finite) <= 0:
+        return float("nan"), float("nan"), float("nan")
+    q = max(finite) / 100.0
+    floor_hits = round_hits = total = 0
+    zeroed = m0 = 0.0
+    for j, e_n in enumerate(ndbc.c11):
+        e_c = cdip.c11[bins[j]]
+        if math.isnan(e_n) or math.isnan(e_c):
+            continue
+        d = e_c - e_n
+        total += 1
+        floor_hits += -DECIMAL_SLACK <= d < q + DECIMAL_SLACK
+        round_hits += abs(d) <= q / 2 + DECIMAL_SLACK
+        m0 += e_c * ndbc_bw[j]
+        if e_n == 0:
+            zeroed += e_c * ndbc_bw[j]
+    if not total:
+        return float("nan"), float("nan"), float("nan")
+    return floor_hits / total, round_hits / total, (zeroed / m0 if m0 > 0 else float("nan"))
 
 
 def quantiles(values: list[float], qs=(0.1, 0.5, 0.9, 0.99)) -> str:
@@ -584,6 +624,11 @@ def match_lines(matches: list[Match], *, poor: float = 0.15) -> list[str]:
         "",
         "Hs from the two spectra, CDIP / NDBC: "
         + quantiles([m.hs_cdip / m.hs_ndbc for m in matches if m.hs_ndbc > 0], (0.01, 0.1, 0.5, 0.9, 0.99)),
+        "",
+        "NDBC's step (1% of the record's peak bin): share of bins where CDIP − NDBC lies in [0, q), "
+        f"as FLOORING leaves it: {quantiles([m.floor_share for m in matches])}; within ±q/2, as ROUNDING "
+        f"leaves it: {quantiles([m.round_share for m in matches])}. CDIP's energy in bins NDBC writes as 0, "
+        f"share of m0: {quantiles([m.zeroed_m0 for m in matches])}.",
         "",
         f"Best match worse than {poor:.0%} (no CDIP record is this NDBC record): "
         f"**{sum(m.energy_rel > poor for m in matches)}** of {len(matches)}"
