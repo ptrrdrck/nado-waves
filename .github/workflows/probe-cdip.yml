@@ -15,9 +15,14 @@
 # Writes nothing back to the repository. The raw responses are uploaded as an
 # artifact so a format surprise can be read rather than guessed at.
 #
-# Runs on dispatch, and on a push to a claude/ branch that changes the probe
-# itself: a changed probe re-asks its question (the watch only when the commit
-# message carries "[watch]"). Never scheduled.
+# DISPATCH ONLY, and only after CDIP has been written to. On 2026-10-07 the
+# fourth run in ten minutes was refused on every CDIP host by its firewall
+# (awselb/2.0: "Access Denied ... Please contact us at www@cdip.ucsd.edu"),
+# as the very first request had been; runs two and three, on other runners,
+# got through. Whether it keys on runner addresses or on volume is unknown.
+# The probe now stops at the first such refusal and exits 3. This file used to
+# run on every push that changed the probe; that is how four runs landed on
+# CDIP in ten minutes, and it is gone.
 
 name: Probe CDIP spectra
 
@@ -33,20 +38,18 @@ on:
         required: false
         default: "1500"
       watch_minutes:
-        description: "Minutes to time both feeds, polled once a minute (0 = skip the watch job)"
+        description: "Minutes to time both feeds, one small request per station every 2 minutes (0 = skip the watch job)"
         required: false
         default: "95"
-  push:
-    branches: ["claude/**"]
-    paths:
-      - "collector/probe_cdip.py"
-      - ".github/workflows/probe-cdip.yml"
 
 permissions:
   contents: read
 
-# No concurrency group: a push that changes the probe must not cancel a watch
-# job already timing the feeds (it holds 95 minutes nothing can replay).
+# One run at a time, queued rather than cancelled: never two runs asking CDIP
+# at once, and never a cancelled watch (it holds minutes nothing can replay).
+concurrency:
+  group: probe-cdip
+  cancel-in-progress: false
 
 jobs:
   probe:
@@ -77,9 +80,7 @@ jobs:
           retention-days: 14
 
   watch:
-    # On a push only when the commit asks for it with "[watch]", so iterating
-    # on the comparison does not start a second 95-minute job beside the first.
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[watch]')
+    if: inputs.watch_minutes != '0'
     runs-on: ubuntu-latest
     # The one job here that holds a runner while it waits. It runs once, on
     # demand, to measure a lag nothing else can reconstruct afterwards.
@@ -96,10 +97,6 @@ jobs:
         run: |
           set -euo pipefail
           minutes="${MINUTES:-95}"
-          if [ "${minutes}" = "0" ]; then
-            echo "Watch skipped."
-            exit 0
-          fi
           python -m collector.probe_cdip --watch-only \
             --station "${STATION:-191p1=46232,220p1=46258}" \
-            --watch-minutes "${minutes}"
+            --watch-minutes "${minutes}" --poll-seconds 120

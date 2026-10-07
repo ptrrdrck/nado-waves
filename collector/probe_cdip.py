@@ -283,6 +283,21 @@ def _served_by(exc: urllib.error.HTTPError) -> str:
     return (f" (Server: {server})" if server else "") + (f": \"{body}\"" if body else "")
 
 
+#: What CDIP's firewall (an AWS load balancer, `awselb/2.0`) says when it
+#: refuses a client. Measured 2026-10-07: the first run's very first request
+#: got it, the next two runs (other runners, minutes later) got through, and
+#: the fourth got it on every host and path — THREDDS, NDAR and the products
+#: page alike, http and https. Whether it keys on the runner's address or on
+#: request volume is not known. It asks to be contacted, so on seeing it the
+#: probe stops asking anything of CDIP: retrying a refusal that names an email
+#: address is not a measurement.
+CDIP_REFUSAL = "contact us at www@cdip.ucsd.edu"
+
+
+def refused_by_cdip(lines: list[str]) -> bool:
+    return any(CDIP_REFUSAL in line for line in lines)
+
+
 #: Every CDIP door the 2026-10-07 email named, asked once each, so a refusal
 #: can be placed: one host or all of them, one protocol or both.
 DOORS = (
@@ -1089,7 +1104,12 @@ def watch(pairs: list[tuple[str, str]], minutes: float, poll_s: float, timeout: 
                 seen_cdip[cdip_id] = n
                 last_poll["c" + cdip_id] = now
             except Exception as exc:  # noqa: BLE001
-                errors[f"CDIP {cdip_id}: {classify(exc)[0][:80]}"] += 1
+                text = classify(exc)[0]
+                errors[f"CDIP {cdip_id}: {text[:80]}"] += 1
+                if CDIP_REFUSAL in text:
+                    # Polling once a minute against a refusal that asks to be
+                    # contacted is exactly what not to do. Stop the watch.
+                    deadline = time.monotonic()
             now = utcnow()
             try:
                 text = fetch(NDBC_REALTIME.format(station=ndbc_id, suffix=".data_spec"), timeout=timeout)
@@ -1159,31 +1179,45 @@ def main(argv: list[str] | None = None) -> int:
 
     stations = parse_stations(args.station)
     results = []
+    refused = False
     for cdip_id, ndbc_id in [] if args.watch_only else stations:
         result = probe_station(cdip_id, ndbc_id, records=args.records, data_dir=args.data_dir,
                                raw_dir=args.raw_dir, timeout=args.timeout)
-        if result.failed and not result.denied:
-            result.lines += knock(cdip_id, timeout=args.timeout)
-        if not args.no_historic and not result.denied:
-            result.lines += probe_historic(cdip_id, ndbc_id, timeout=args.timeout, raw_dir=args.raw_dir,
-                                           data_dir=args.data_dir)
-        if not args.no_ndar and not result.denied:
-            num = re.sub(r"\D.*$", "", cdip_id)
-            month = utcnow().strftime("%Y%m")
-            result.lines += probe_ndar([f"{num}+st+h", f"{num}+mp+{month}+h"],
-                                       timeout=args.timeout, raw_dir=args.raw_dir)
+        refused = refused_by_cdip(result.lines)
+        if not refused:
+            if result.failed and not result.denied:
+                result.lines += knock(cdip_id, timeout=args.timeout)
+            if not args.no_historic and not result.denied:
+                result.lines += probe_historic(cdip_id, ndbc_id, timeout=args.timeout, raw_dir=args.raw_dir,
+                                               data_dir=args.data_dir)
+            if not args.no_ndar and not result.denied:
+                num = re.sub(r"\D.*$", "", cdip_id)
+                month = utcnow().strftime("%Y%m")
+                result.lines += probe_ndar([f"{num}+st+h", f"{num}+mp+{month}+h"],
+                                           timeout=args.timeout, raw_dir=args.raw_dir)
+            refused = refused_by_cdip(result.lines)
+        if refused:
+            result.lines += [
+                "**Refused by CDIP's firewall, which asks to be contacted.** Nothing more is "
+                "asked of CDIP in this run. Write to www@cdip.ucsd.edu before running this again.",
+                "",
+            ]
         text = "\n".join(result.lines)
         print(text, flush=True)
         write_step_summary(text)
         results.append(result)
+        if refused:
+            break
 
-    if args.watch_minutes > 0 and not any(r.denied for r in results):
+    if args.watch_minutes > 0 and not refused and not any(r.denied for r in results):
         text = "\n".join(watch(stations, args.watch_minutes, args.poll_seconds, args.timeout))
         print(text, flush=True)
         write_step_summary(text)
 
     if any(r.denied for r in results):
         return 2
+    if refused:
+        return 3
     if any(r.failed or r.stale for r in results):
         return 1
     return 0

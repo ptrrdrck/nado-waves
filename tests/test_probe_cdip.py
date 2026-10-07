@@ -308,3 +308,21 @@ def test_flooring_and_rounding_to_one_percent_of_the_peak_are_told_apart():
         assert round_share == 1.0 if not floor_all else round_share < 1.0
     # 0.005 sits under one step: floored to zero, and its energy counted as lost.
     assert zeroed > 0
+
+
+def test_a_cdip_refusal_stops_every_further_request(monkeypatch, capsys):
+    import io
+    calls = []
+
+    def refuse(url, *, timeout=0):
+        calls.append(url)
+        body = b'{ "error": "Access Denied", "message": "Please contact us at www@cdip.ucsd.edu to resolve this issue." }'
+        raise urllib.error.HTTPError(url, 403, "Forbidden", None, io.BytesIO(body))
+
+    monkeypatch.setattr(probe_cdip, "fetch", refuse)
+    code = probe_cdip.main(["--station", "191p1=46232,220p1=46258", "--watch-minutes", "5"])
+    assert code == 3
+    # One request (the DDS), then nothing: no doors, no historic, no NDAR,
+    # no second station, no watch.
+    assert len(calls) == 1
+    assert "Refused by CDIP's firewall" in capsys.readouterr().out

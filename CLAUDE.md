@@ -132,8 +132,10 @@ forecaster actually verifies against, Surfline included.
    on/off switch.** Do not reintroduce a binary blocker test against a single
    `MWD`.
    **Caveat: 46232 was dark for 16.2 days, 2026-09-01 to 2026-09-17**, and is
-   reporting again. Cause unknown, nothing was done to fix it, and the 48-hour
-   staleness alert never visibly fired. The anchor buoy for every transform
+   reporting again. Not a feed fault: the buoy itself was out of service
+   (CDIP, 2026-10-07), and CDIP's realtime file restarts at the new
+   deployment, 2026-09-17 17:00. The 48-hour staleness alert never visibly
+   fired. The anchor buoy for every transform
    here can disappear for a fortnight without notice, and BRIEFING §3a says no
    other station in the array can stand in for it.
 3a. **The nearshore transform — built and SHIPPED 2026-09-25, by the owner's
@@ -608,6 +610,11 @@ forecaster actually verifies against, Surfline included.
   `Date`), so `no-store` was honoured there; the reason to fix it anyway is that
   honouring a client `no-cache` is Fastly CONFIGURATION rather than a guarantee,
   and says nothing about what another edge node holds for the next reader.
+- **CDIP's firewall refuses clients and asks to be written to** (BRIEFING
+  §40). On 2026-10-07 four probe runs in ten minutes from Actions met
+  `awselb/2.0` "Access Denied … Please contact us at www@cdip.ucsd.edu" on
+  the first and the fourth, every host and path. Nothing collects from CDIP
+  until the owner has written to them; `probe_cdip` stops at the first refusal.
 - **Egress from a Claude session is policy-controlled and changes mid-session.**
   A 403 at CONNECT is a denial, not throttling: check
   `$HTTPS_PROXY/__agentproxy/status`, report the blocked host, do not route
@@ -669,6 +676,9 @@ forecaster actually verifies against, Surfline included.
                         31-member bulletin at 46232: mean and spread, no
                         direction — BRIEFING §35),
                         probe_spectra.py (are directional spectra reachable?),
+                        probe_cdip.py (46232 and 46258 from CDIP itself,
+                        every 30 min, against NDBC's hourly relay; dispatch
+                        only, and only after writing to CDIP — BRIEFING §40),
                         spectra.py (archive them: 46232, 46047 and 46086
                         hourly (`--hourly`; HOURLY_STATIONS, held by a
                         test to the union of Origin's and the hurricane
