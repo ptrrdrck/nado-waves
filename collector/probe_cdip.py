@@ -505,6 +505,107 @@ def offsets_table(
     return by_offset
 
 
+@dataclass
+class Match:
+    ndbc_time: datetime
+    offset_min: float
+    energy_rel: float
+    runner_up: float
+    #: Median |E_cdip / E_ndbc - 1| over NDBC's energetic bins: what the relay
+    #: changes inside one sample, once the right sample is found.
+    bin_rel: float
+    hs_cdip: float
+    hs_ndbc: float
+
+
+def best_matches(
+    cdip: list[CdipRecord],
+    ndbc: dict[datetime, NdbcRecord],
+    bins: dict[int, int],
+    bandwidth: list[float],
+) -> list[Match]:
+    """For each NDBC record, the CDIP record it agrees with best, and by how much.
+
+    The offsets table pools every pair at one offset; this asks each NDBC
+    record separately, so a convention that CHANGES over time shows as a run
+    of one offset and then another, rather than as two muddied medians.
+    """
+
+    by_time = sorted(cdip, key=lambda r: r.time)
+    window = timedelta(minutes=PAIR_WINDOW_MIN)
+    out = []
+    for t in sorted(ndbc):
+        n = ndbc[t]
+        scored = []
+        for rec in by_time:
+            if abs(rec.time - t) <= window:
+                s = score_pair(rec, n, bins, "atan2(b,a)")
+                if s is not None:
+                    scored.append((s.energy_rel, s.offset_min, rec))
+        if not scored:
+            continue
+        scored.sort(key=lambda x: x[0])
+        rel, off, rec = scored[0]
+        runner = scored[1][0] if len(scored) > 1 else float("nan")
+        ratios = [abs(rec.c11[bins[j]] / n.c11[j] - 1.0) for j in energetic(n.c11)
+                  if n.c11[j] > 0 and not math.isnan(rec.c11[bins[j]])]
+        ndbc_bw = [bandwidth[bins[j]] for j in range(len(n.c11))]
+        out.append(Match(t, off, rel, runner, median(ratios) if ratios else float("nan"),
+                         hs_from(rec.c11, bandwidth), hs_from(n.c11, ndbc_bw)))
+    return out
+
+
+def quantiles(values: list[float], qs=(0.1, 0.5, 0.9, 0.99)) -> str:
+    v = sorted(x for x in values if not math.isnan(x))
+    if not v:
+        return "—"
+    return ", ".join(f"p{int(q * 100)} {v[min(len(v) - 1, int(q * (len(v) - 1) + 0.5))]:.4f}" for q in qs)
+
+
+def match_lines(matches: list[Match], *, poor: float = 0.15) -> list[str]:
+    """Runs of one best offset over time, and how close the best match is."""
+
+    if not matches:
+        return []
+    runs: list[list[Match]] = []
+    for m in matches:
+        if runs and runs[-1][-1].offset_min == m.offset_min:
+            runs[-1].append(m)
+        else:
+            runs.append([m])
+    lines = [
+        "#### Each NDBC record's best CDIP record",
+        "",
+        f"{len(matches)} NDBC records. Best-match energy difference: {quantiles([m.energy_rel for m in matches])}. "
+        f"Runner-up: {quantiles([m.runner_up for m in matches])}.",
+        "",
+        f"Inside the matched sample, energetic bins differ by (median per record): "
+        f"{quantiles([m.bin_rel for m in matches])}.",
+        "",
+        "Hs from the two spectra, CDIP / NDBC: "
+        + quantiles([m.hs_cdip / m.hs_ndbc for m in matches if m.hs_ndbc > 0], (0.01, 0.1, 0.5, 0.9, 0.99)),
+        "",
+        f"Best match worse than {poor:.0%} (no CDIP record is this NDBC record): "
+        f"**{sum(m.energy_rel > poor for m in matches)}** of {len(matches)}"
+        + (": " + ", ".join(f"{m.ndbc_time:%m-%d %H:%M} ({m.energy_rel:.2f})"
+                            for m in matches if m.energy_rel > poor)[:900]
+           if any(m.energy_rel > poor for m in matches) else ""),
+        "",
+        "| from (NDBC stamp) | to | best offset (min) | records | median best | median runner-up |",
+        "|---|---|---|---|---|---|",
+    ]
+    shown = [r for r in runs if len(r) >= 3 or len(runs) <= 40]
+    for r in shown[:60]:
+        lines.append(
+            f"| {r[0].ndbc_time:%Y-%m-%d %H:%M} | {r[-1].ndbc_time:%Y-%m-%d %H:%M} | {r[0].offset_min:+g} "
+            f"| {len(r)} | {median(m.energy_rel for m in r):.4f} | {median(m.runner_up for m in r if not math.isnan(m.runner_up)) if any(not math.isnan(m.runner_up) for m in r) else float('nan'):.4f} |"
+        )
+    if len(shown) < len(runs):
+        lines.append(f"| … | | {len(runs) - len(shown)} runs of 1–2 records not listed | | | |")
+    lines.append("")
+    return lines
+
+
 def convention_against_own_mean(records: list[CdipRecord], convention: str) -> float | None:
     errs = []
     for rec in records:
@@ -759,6 +860,7 @@ def probe_station(
                 else f"**Best offset {best_offset:+g} min.**",
                 "",
             ]
+            offset_lines += match_lines(best_matches(recs, ndbc, bins, bandwidth))
             for rec in recs:
                 t = rec.time - timedelta(minutes=best_offset)
                 if t in ndbc:
@@ -817,11 +919,38 @@ def probe_station(
     return out
 
 
-def probe_historic(cdip_id: str, *, timeout: float, raw_dir: Path | None) -> list[str]:
+def read_window(
+    base: str, dds: dict, das: dict, i0: int, i1: int, *, timeout: float,
+    raw_dir: Path | None = None, label: str = "",
+) -> tuple[list[CdipRecord], list[float], list[float]]:
+    """Records i0..i1 of a dataset, with its bands and bandwidths."""
+
+    n_freq = dds["waveFrequency"][0][1]
+    bulk = [v for v in BULK_VARS if v in dds]
+    query = ",".join(
+        [f"waveTime[{i0}:1:{i1}]", *(f"{v}[0:1:{n_freq - 1}]" for v in FREQ_VARS)]
+        + [f"{v}[{i0}:1:{i1}][0:1:{n_freq - 1}]" for v in SPEC_VARS]
+        + [f"{v}[{i0}:1:{i1}]" for v in bulk]
+    )
+    arrays = parse_ascii(opendap(ascii_url(base, query), timeout=timeout * 3, raw_dir=raw_dir, label=label))
+    fills = {v: fill_value(das, v) for v in (*SPEC_VARS, *bulk)}
+    return records_from(arrays, fills), arrays["waveFrequency"], arrays["waveBandwidth"]
+
+
+def probe_historic(
+    cdip_id: str, ndbc_id: str, *, timeout: float, raw_dir: Path | None, data_dir: Path,
+) -> list[str]:
+    """The historic file's span, and its tail against NDBC's archive.
+
+    The realtime file starts at the current deployment (191p1: 2026-09-17,
+    after the outage), so the NDBC records before it can only be matched here.
+    """
+
     base = f"{THREDDS}/{HISTORIC_PATH.format(stn=cdip_id)}"
     lines = [f"### Historic dataset — {cdip_id}", "", f"`{base}`", ""]
     try:
         dds = parse_dds(opendap(base + ".dds", timeout=timeout, raw_dir=raw_dir, label=f"{cdip_id}_historic.dds"))
+        das = parse_das(opendap(base + ".das", timeout=timeout, raw_dir=raw_dir, label=f"{cdip_id}_historic.das"))
         n = dds["waveTime"][0][1]
         # Two projections of one variable would come back as two blocks under
         # one name, so the first and last stamps are asked for separately.
@@ -832,7 +961,35 @@ def probe_historic(cdip_id: str, *, timeout: float, raw_dir: Path | None) -> lis
         return lines + [f"{'DENIED' if denied else 'Not read'}: {text}", ""]
     t0 = datetime.fromtimestamp(first, tz=timezone.utc)
     t1 = datetime.fromtimestamp(last, tz=timezone.utc)
-    return lines + [f"**{n} records, {t0:%Y-%m-%d %H:%M} → {t1:%Y-%m-%d %H:%M} UTC.**", ""]
+    lines += [f"**{n} records, {t0:%Y-%m-%d %H:%M} → {t1:%Y-%m-%d %H:%M} UTC.**", ""]
+
+    ndbc_freqs, ndbc = load_ndbc_archive(Path(data_dir) / "spectra" / ndbc_id)
+    ndbc = {t: r for t, r in ndbc.items() if t <= t1 + timedelta(hours=1)}
+    if not ndbc:
+        return lines + [f"No NDBC record of {ndbc_id} falls inside the historic file; nothing to pair.", ""]
+    span_h = (t1 - min(ndbc)).total_seconds() / 3600.0
+    count = min(n, int(span_h * 2) + 8)
+    try:
+        recs, freqs, bandwidth = read_window(base, dds, das, n - count, n - 1, timeout=timeout,
+                                             raw_dir=raw_dir, label=f"{cdip_id}_historic_tail.ascii")
+    except Exception as exc:  # noqa: BLE001
+        text, _ = classify(exc) if not isinstance(exc, ValueError) else (str(exc), False)
+        return lines + [f"Tail of {count} records not read: {text}", ""]
+    bins = bin_map(freqs, ndbc_freqs)
+    if not bins:
+        return lines + ["Frequency bins do not map one-to-one; no pairing.", ""]
+    spacing = Counter(round((b.time - a.time).total_seconds() / 60.0) for a, b in zip(recs, recs[1:]))
+    lines += [
+        f"Tail read: {len(recs)} records, {recs[0].time:%Y-%m-%d %H:%M} → {recs[-1].time:%Y-%m-%d %H:%M}; "
+        f"spacing (min: count) " + ", ".join(f"{k}: {v}" for k, v in spacing.most_common(5))
+        + f"; flags " + ", ".join(f"{k:g}: {v}" for k, v in Counter(r.flag for r in recs).items()),
+        "",
+    ]
+    table = offsets_table(recs, ndbc, bins, "atan2(b,a)")
+    lines += ["| CDIP minus NDBC stamp (min) | pairs | energy, median rel. diff |", "|---|---|---|"]
+    lines += [f"| {k:+g} | {len(v)} | {median(x.energy_rel for x in v):.4f} |" for k, v in sorted(table.items())]
+    lines.append("")
+    return lines + match_lines(best_matches(recs, ndbc, bins, bandwidth))
 
 
 def probe_ndar(queries: list[str], *, timeout: float, raw_dir: Path | None) -> list[str]:
@@ -963,7 +1120,8 @@ def main(argv: list[str] | None = None) -> int:
         if result.failed and not result.denied:
             result.lines += knock(cdip_id, timeout=args.timeout)
         if not args.no_historic and not result.denied:
-            result.lines += probe_historic(cdip_id, timeout=args.timeout, raw_dir=args.raw_dir)
+            result.lines += probe_historic(cdip_id, ndbc_id, timeout=args.timeout, raw_dir=args.raw_dir,
+                                           data_dir=args.data_dir)
         if not args.no_ndar and not result.denied:
             num = re.sub(r"\D.*$", "", cdip_id)
             month = utcnow().strftime("%Y%m")

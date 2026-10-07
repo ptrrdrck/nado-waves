@@ -269,3 +269,25 @@ def test_a_server_refusal_is_placed_across_every_door(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "EGRESS" not in out and "egress-policy" not in out
     assert out.count("HTTP 403 Forbidden from the server") == 1 + len(probe_cdip.DOORS)
+
+
+def test_a_stamping_convention_that_changes_shows_as_two_runs():
+    """46258's pooled table said +0 while its newest pair disagreed 2x: if NDBC
+    switched which half-hour it relays, each record must say so on its own."""
+
+    base = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    cdip, ndbc = [], {}
+    for k in range(96):
+        t = base + timedelta(minutes=30 * k)
+        cdip.append(_record(t, [1.0 + 0.4 * math.sin(1.7 * k + j) for j in range(5)], 210.0))
+    by_time = {r.time: r for r in cdip}
+    for h in range(1, 47):
+        stamp = base + timedelta(hours=h)
+        source = by_time[stamp] if h < 24 else by_time[stamp - timedelta(minutes=30)]
+        ndbc[stamp] = NdbcRecord(stamp, list(source.c11), [210.0] * 5, [210.0] * 5, [0.7] * 5, [0.0] * 5)
+    matches = probe_cdip.best_matches(cdip, ndbc, {j: j for j in range(5)}, [0.01] * 5)
+    assert [m.offset_min for m in matches[:23]] == [0] * 23
+    assert [m.offset_min for m in matches[23:]] == [-30] * 23
+    assert max(m.energy_rel for m in matches) < 1e-9
+    text = "\n".join(probe_cdip.match_lines(matches))
+    assert "| +0 | 23 |" in text and "| -30 | 23 |" in text

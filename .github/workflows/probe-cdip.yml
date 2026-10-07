@@ -16,7 +16,8 @@
 # artifact so a format surprise can be read rather than guessed at.
 #
 # Runs on dispatch, and on a push to a claude/ branch that changes the probe
-# itself: a changed probe re-asks its question. Never scheduled.
+# itself: a changed probe re-asks its question (the watch only when the commit
+# message carries "[watch]"). Never scheduled.
 
 name: Probe CDIP spectra
 
@@ -44,9 +45,8 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: probe-cdip-${{ github.ref }}
-  cancel-in-progress: true
+# No concurrency group: a push that changes the probe must not cancel a watch
+# job already timing the feeds (it holds 95 minutes nothing can replay).
 
 jobs:
   probe:
@@ -77,6 +77,9 @@ jobs:
           retention-days: 14
 
   watch:
+    # On a push only when the commit asks for it with "[watch]", so iterating
+    # on the comparison does not start a second 95-minute job beside the first.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[watch]')
     runs-on: ubuntu-latest
     # The one job here that holds a runner while it waits. It runs once, on
     # demand, to measure a lag nothing else can reconstruct afterwards.
