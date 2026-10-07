@@ -374,7 +374,11 @@ forecaster actually verifies against, Surfline included.
    the week grid 100% offshore 11 PM–10 AM, where KNZY over the same hours
    was calm or variable 29% and ≤ 3 kt 44%). `LIGHT_KT`, Beaufort force 1,
    lives in the page's one `sense()`, so the card's line and both Shore
-   direction charts change together. The Tide view is shaded by night on both tabs
+   direction charts change together. **The card still names a light wind's
+   side** ("light offshore", "light cross-shore", "light onshore"; owner's
+   request, 2026-10-07) while the charts count it as light or variable, and
+   **0 kt is "calm"**: KNZY's `00000KT` is archived as 0° at 0 kt, and the
+   card says calm rather than "N 0°". The Tide view is shaded by night on both tabs
    (`forecast/daylight.py`: NOAA's solar equations at the center break from
    spots.json, within a minute of `astral`; `nights` in both payloads).
    **Right above each LIVE swell tab's Charts line, an Origin line** (owner's
