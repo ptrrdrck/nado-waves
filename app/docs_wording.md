@@ -503,6 +503,7 @@ offshore component = −cos(wind from − shore normal)     +1 straight off the 
   between  cross-shore
   ≤ 3 kt   light offshore, light cross-shore or light onshore
   0 kt     calm
+  VRB      variable, or light and variable at 3 kt or less   a reported wind with no direction
 
 worked hour: 8 kt from 270°
 North   normal 194.1°   −cos(75.9°) = −0.24   cross-shore

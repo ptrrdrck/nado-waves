@@ -2999,6 +2999,8 @@ class TestTheLocalWindOnTheForecastTab:
         body = "".join(fn(n) for n in ("compass", "sense", "windAtBreaks", "localWindBlock"))
         start = SOURCE.index("const windVal")
         body += "const LIGHT_KT = 3;\n" + SOURCE[start:SOURCE.index(";\n", start) + 2]
+        start = SOURCE.index("const windHeard")
+        body += SOURCE[start:SOURCE.index(";\n", start) + 2]
         out = subprocess.run([node, "-e", prelude + body + script], capture_output=True,
                              text=True, check=True).stdout
         return out.strip()
@@ -3025,6 +3027,21 @@ class TestTheLocalWindOnTheForecastTab:
         )
         assert '<span class="val">calm</span>' in got and "N 0°" not in got
         assert "<b>calm</b> at this break" in got
+
+    def test_a_variable_wind_reads_variable_not_not_collected(self):
+        """KNZY's VRB03KT has a speed and no direction: the card shows it as
+        "variable at", and each break's line says light and variable, never
+        "not collected" (owner's request, 2026-10-07)."""
+        got = self._run(
+            "console.log(windVal(null, 3).replace(/<[^>]+>/g, ''), '|', windHeard({from_deg: null, speed_kt: 3}),"
+            " windHeard({from_deg: null, speed_kt: null}), windHeard(null));\n"
+            "console.log(windAtBreaks([{id: 'coronado_north', windOffshore: null, windKt: 3, windVariable: true},"
+            " {id: 'coronado_south', windOffshore: null, windKt: 6, windVariable: true}]));"
+        )
+        first, second = got.splitlines()
+        assert first == "variable at 3 mph (3 kt) | true false false"
+        assert "<b>light and variable</b> at this break" in second
+        assert "<b>variable</b> at this break" in second
 
     def test_an_hour_without_it_says_so_and_a_past_hour_borrows_nothing(self):
         got = self._run(
