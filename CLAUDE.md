@@ -1003,19 +1003,23 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   spectrum, not a 2-D watershed, and must not be described as partitioning.
   **A train fed from two directions names both** (owner's decision
   2026-10-05, BRIEFING §38a): when two directions each hold ≥ 20% of it
-  (`Train.lobes`), the card reads "WSW & S" — compass points only, because
-  with both degrees the row ran 171 px against 125 of room at 360 px and
-  pushed past the card (owner's call, 2026-10-06) — and the drawing draws
+  (`Train.lobes`), the card reads "WSW 258° & S 180°" where the row has
+  room and "WSW & S" where it does not (below) — and the drawing draws
   an arrow from each, because the mean sits between them — more than 20° from
   every direction on 46% of South's trains and 23% of the buoy's. `from_deg`
   stays the mean for every other use; no height reads either.
-  **A train is one line at every phone width** (owner's call, 2026-10-06):
-  never a second line, never past the card. Measured at 360 px, the row
-  leaves 125 px for heading and tag; a "wind sea" / "local chop" row
-  therefore swaps its heading for one compass point (the larger lobe's)
-  by a container query on `.trains`, and only on a 320 px phone may the
-  tag itself wrap. The direction cell shrinks rather than overflow if a
-  font renders wider than measured.
+  **A train is one line at every phone width, and keeps its degrees
+  wherever they fit** (owner's calls, 2026-10-06 and -07): never a second
+  line, never past the card, never shorter than the row needs. Each row
+  carries its heading's forms longest first (`trainForms`) and `fitRow`
+  shows the first that FITS, measured on the laid-out row — re-fitted on
+  every render and by a ResizeObserver on width change and when a hidden
+  tab opens. Degrees on an untagged row and on a tagged one with one
+  direction; a tagged row with two names them by point at most beside its
+  tag; then one point, the larger lobe's. Only when that cannot sit beside
+  its tag (a 320 px phone) does the tag wrap. Worst-case width thresholds
+  (the 2026-10-06 container queries) dropped degrees on rows that had room
+  for them; measuring each row is what stops that.
 - **Imperial leads, metric in parentheses, everywhere a number is shown.**
   "2.3 ft (0.71 m)", "9 mph (8 kt)". **Nothing upstream of a display converts**:
   the JSON, the transform and the collectors stay in metres and knots, because

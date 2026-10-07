@@ -1028,7 +1028,7 @@ class TestWaveTrainsOnScreen:
     def test_a_train_shows_height_period_and_heading(self):
         assert "height(t.hs_m)" in SOURCE
         assert "t.period_s.toFixed(1)" in SOURCE
-        assert "${fromText(t)}" in SOURCE
+        assert "trainForms(t, !!tag)" in SOURCE and "return tagged ? [points, one] : [fromText(t), points, one];" in SOURCE
 
     def test_two_directions_are_named_and_one_is_the_mean(self):
         """`lobes` holds two directions or none (`transform.split_lobes`);
@@ -1046,31 +1046,52 @@ class TestWaveTrainsOnScreen:
                   "console.log(fromText({from_deg: 202}));\n"
                   "console.log(pointsText({from_deg: 234, lobes: [[258, 0.48], [180, 0.28]]}));")
         out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
-        assert out.stdout.splitlines() == ["WSW & S", "SSW 202°", "SSW 202°", "WSW and S"]
+        assert out.stdout.splitlines() == ["WSW 258° & S 180°", "SSW 202°", "SSW 202°", "WSW and S"]
 
     def test_a_train_is_one_line_at_any_phone_width(self):
-        """Owner's call, 2026-10-06: two headings with degrees ran to 171 px
-        against 125 of room at 360 px, past the card. Two read as points; a
-        tagged row has a one-point short form a container query swaps in;
-        the tag never wraps until one point beside it cannot fit."""
+        """Owner's calls, 2026-10-06 and -07: never a second line, never past
+        the card, and never shorter than the row needs -- each row carries
+        its heading's forms longest first and `fitRow` shows the first that
+        fits, measured, re-fitted on every render and width change."""
 
         assert "white-space:nowrap;flex:none}" in SOURCE
-        assert ".trains{container:trains / inline-size}" in SOURCE
         assert "min-width:0;overflow:hidden;text-overflow:ellipsis" in SOURCE
+        assert "@container trains" not in SOURCE
         rows = SOURCE[SOURCE.index("function trainList("):]
         rows = rows[:rows.index("\n}\n")]
-        assert '<span class="dr-full">${fromText(t)}</span><span class="dr-short">${shortFromText(t)}</span>' in rows
+        assert "trainForms(t, !!tag)" in rows
+        assert 'forms.map((f, k) => `<span${k ? " hidden" : ""}>${f}</span>`)' in rows
+        fit = SOURCE[SOURCE.index("function fitRow("):]
+        fit = fit[:fit.index("\n}\n")]
+        assert "dr.scrollWidth <= dr.clientWidth" in fit and 'row.classList.add("tight")' in fit
+        assert "new ResizeObserver(" in SOURCE
+        assert 'new MutationObserver(() => fitTrains($("conditions")))' in SOURCE
+
+    def test_degrees_whenever_there_is_room_but_not_beside_a_tag_on_two(self):
+        """Degrees on an untagged row and on a tagged one with one direction;
+        a tagged row with two names them by point at most. The last form is
+        always one point, the larger direction's."""
+
         node = shutil.which("node")
         if node is None:
             pytest.skip("node is not available")
         fns = ""
-        for name in ("compass", "point", "headings", "fromText", "shortFromText"):
+        for name in ("compass", "point", "headings", "fromText", "trainForms"):
             start = SOURCE.index(f"function {name}(")
             fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
-        script = (fns + "console.log(shortFromText({from_deg: 234, lobes: [[258, 0.48], [180, 0.28]]}));\n"
-                  "console.log(shortFromText({from_deg: 202}));")
+        split = "{from_deg: 234, lobes: [[258, 0.48], [180, 0.28]]}"
+        script = (fns
+                  + f"console.log(JSON.stringify(trainForms({split})));\n"
+                  + f"console.log(JSON.stringify(trainForms({split}, true)));\n"
+                  + "console.log(JSON.stringify(trainForms({from_deg: 202})));\n"
+                  + "console.log(JSON.stringify(trainForms({from_deg: 202}, true)));")
         out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
-        assert out.stdout.splitlines() == ["WSW", "SSW"]
+        assert out.stdout.splitlines() == [
+            '["WSW 258° & S 180°","WSW & S","WSW"]',
+            '["WSW & S","WSW"]',
+            '["SSW 202°"]',
+            '["SSW 202°","SSW"]',
+        ]
 
     def test_the_leading_train_is_emphasised(self):
         assert 'i === 0 ? " lead"' in SOURCE
