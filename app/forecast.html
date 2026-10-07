@@ -1053,13 +1053,22 @@ function remember(key, value) {
 const LIGHT_KT = 3;
 
 // The card's verdict, and the Shore direction charts': offshore, cross-shore
-// or onshore against the break's normal, or light when the wind is too light
-// for its side to matter. `kt` left out keeps the old reading.
+// or onshore against the break's normal, "light offshore" (and so on) when
+// the wind is too light for its side to matter much, and calm at 0 kt.
+// The card names a light wind's side (owner's request, 2026-10-07); the
+// charts still count every light or calm hour as one kind (`shoreKind`).
+// A calm METAR is 00000KT, which the archive holds as 0° at 0 kt: that is
+// no wind, not a due-north one. `kt` left out keeps the old reading.
 function sense(offshore, kt) {
+  if (kt === 0) return "calm";
   if (offshore == null) return null;
-  if (kt != null && kt <= LIGHT_KT) return "light";
-  return offshore > 0.3 ? "offshore" : offshore < -0.3 ? "onshore" : "cross-shore";
+  const side = offshore > 0.3 ? "offshore" : offshore < -0.3 ? "onshore" : "cross-shore";
+  return kt != null && kt <= LIGHT_KT ? `light ${side}` : side;
 }
+
+// A measured or local wind as the card shows it: calm at 0 kt, never "N 0°".
+const windVal = (from, kt) => (kt === 0 ? "calm"
+  : `${compass(from)} <span class="unit">at</span> ${speed(kt || 0)}`);
 
 // Both chains describe the same three breaks, so they are normalised to one
 // shape here and the card renderer stays single-branched. What differs is not
@@ -4341,9 +4350,13 @@ function staticHover(plot, clientX, clientY) {
 }
 // One hour's kind on the Shore direction charts: the card's own verdict, so
 // the two never disagree; calm, light and variable share the last.
-const shoreKind = (w, normal) => (!w || w.kt == null ? null : w.from == null ? "still"
-  : {offshore: "off", "cross-shore": "cross", onshore: "on", light: "still"}[
-    sense(-Math.cos((w.from - normal) * Math.PI / 180), w.kt)]);
+const shoreKind = (w, normal) => {
+  if (!w || w.kt == null) return null;
+  if (w.from == null) return "still";
+  const s = sense(-Math.cos((w.from - normal) * Math.PI / 180), w.kt);
+  return s === "calm" || s.startsWith("light ") ? "still"
+    : {offshore: "off", "cross-shore": "cross", onshore: "on"}[s];
+};
 const dayKey = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 // "Sat 3": the weekday first, whatever order the locale would put them in.
 const dayName = (ms) => `${new Date(ms).toLocaleDateString(undefined, {weekday: "short"})} ${new Date(ms).getDate()}`;
@@ -4595,7 +4608,7 @@ function windAtBreaks(cards) {
     const s = sense(c.windOffshore, c.windKt);
     if (!s) return "";
     return `<span class="turn" data-wind-for="${c.id}"${c.id === SWELL_TAB ? "" : " hidden"}>`
-      + `<b>${s === "light" ? "light wind" : s}</b> at this break`
+      + `<b>${s}</b> at this break`
       + (c.windNote ? ` <span class="tag">${c.windNote}</span>` : "")
       + `</span>`;
   }).join("");
@@ -4672,7 +4685,7 @@ function localWindBlock(hour, cards, stampWhen, past) {
     const issued = L.updated_utc ? `, updated ${when(L.updated_utc)}` : "";
     return `<div class="subcond" data-wind="local">
       <span class="sublbl">Local</span>
-      <span class="val">${compass(hour.local_wind_from_deg)} <span class="unit">at</span> ${speed(hour.local_wind_kt || 0)}${gust}</span>
+      <span class="val">${windVal(hour.local_wind_from_deg, hour.local_wind_kt)}${gust}</span>
       ${windAtBreaks(cards)}
       ${srcLines([`Forecast for ${stampWhen}`, `${grid}${past ? "" : issued}`])}
     </div>`;
@@ -4727,7 +4740,7 @@ function renderConditions(step, cards) {
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
       <span class="val">${wind.from_deg != null
-        ? `${compass(wind.from_deg)} <span class="unit">at</span> ${speed(wind.speed_kt || 0)}`
+        ? windVal(wind.from_deg, wind.speed_kt)
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
       ${wind.from_deg != null ? windAtBreaks(cards) : ""}
@@ -4794,8 +4807,9 @@ function renderConditions(step, cards) {
     // those cards carry only the measurement, in the same red and saying so.
     const seenWind = got && got.wind_kt != null
       ? `<div class="measured"><span class="lbl">Observed at ${clock(step.valid_utc)}</span>`
-        + `<span class="mval">${got.wind_from_deg != null ? compass(got.wind_from_deg) + " " : ""}`
-        + `<span class="unit">at</span> ${speed(got.wind_kt)}</span></div>` : "";
+        + `<span class="mval">${got.wind_kt === 0 ? "calm"
+          : `${got.wind_from_deg != null ? compass(got.wind_from_deg) + " " : ""}`
+            + `<span class="unit">at</span> ${speed(got.wind_kt)}`}</span></div>` : "";
     const seenTide = got && got.tide_m != null
       ? `<div class="measured"><span class="lbl">Measured at ${clock(step.valid_utc)}</span>`
         + `<span class="mval">${height(got.tide_m)}</span></div>` : "";
@@ -4827,7 +4841,7 @@ function renderConditions(step, cards) {
       <span class="val">${modelled
         ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
         : fallback.from_deg != null
-          ? `${compass(fallback.from_deg)} <span class="unit">at</span> ${speed(fallback.speed_kt || 0)}`
+          ? windVal(fallback.from_deg, fallback.speed_kt)
           : `<span class="unit">${past ? fallback.note : "not collected yet"}</span>`}</span>
       ${seenWind}
       ${modelled
