@@ -179,31 +179,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .train .dr{color:var(--soft);flex:1;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;
             white-space:nowrap;flex:none}
-/* One line per train (owner's call, 2026-10-06). Measured at 360 px: height
-   112 + period 48 + gaps leave a 301 px row; "WNW 282°" is 76, "WNW & WSW"
-   95, one point 38, the "wind sea" tag 61 and "local chop" 77, each with an
-   8 px gap. So a tagged row swaps its heading for one compass point below
-   the width the full heading needs beside its tag (+4 px), an untagged
-   split row does below its own (+3 px, a 320 px phone's 261), and only on a
-   row too narrow even for one point beside the tag may the tag wrap again.
-   The direction cell shrinks rather than push past the card if a font
-   renders wider than measured. */
-.trains{container:trains / inline-size}
-.train .dr-short{display:none}
-@container trains (max-width: 324px){
-  .train.ws:not(.split) .dr-full{display:none} .train.ws:not(.split) .dr-short{display:inline} }
-@container trains (max-width: 343px){
-  .train.ws.split .dr-full{display:none} .train.ws.split .dr-short{display:inline} }
-@container trains (max-width: 340px){
-  .train.chop:not(.split) .dr-full{display:none} .train.chop:not(.split) .dr-short{display:inline} }
-@container trains (max-width: 359px){
-  .train.chop.split .dr-full{display:none} .train.chop.split .dr-short{display:inline} }
-@container trains (max-width: 274px){
-  .train.split:not(.tagged) .dr-full{display:none} .train.split:not(.tagged) .dr-short{display:inline} }
-@container trains (max-width: 286px){
-  .train.ws .tag{white-space:normal;flex:0 1 auto} .train.ws .dr{min-width:auto;overflow:visible} }
-@container trains (max-width: 300px){
-  .train.chop .tag{white-space:normal;flex:0 1 auto} .train.chop .dr{min-width:auto;overflow:visible} }
+/* One line per train (owner's calls, 2026-10-06 and -07). Each row carries
+   its heading in every form it may take, longest first, and `fitTrains`
+   shows the first that fits the row as it is -- so a row with room keeps its
+   degrees and none is cut to a worst-case width. Only when even one compass
+   point cannot sit beside its tag (a 320 px phone) does the row go `tight`
+   and the tag wrap. The cell shrinks with an ellipsis until the fit has run,
+   never past the card. */
+.train .dr > [hidden]{display:none}
+.train.tight .tag{white-space:normal;flex:0 1 auto}
+.train.tight .dr{min-width:auto;overflow:visible}
 .train.lead .ht,.train.lead .dr{color:var(--ink)}
 .train:not(.lead){opacity:.72}
 /* A train with an arrow on the drawing picks it there (owner's request,
@@ -747,18 +732,21 @@ function compass(deg) {
 function headings(t) {
   return t && t.lobes && t.lobes.length >= 2 ? t.lobes.map((l) => l[0]) : [t ? t.from_deg : null];
 }
-// One heading reads "SSW 197°"; a train fed from two directions names both
-// by compass point alone, "WNW & WSW" (owner's call, 2026-10-06): with both
-// degrees it ran to 171 px against 125 of room on a 360 px phone and pushed
-// the row past the card. The degrees of each are on the drawing's arrows.
 function fromText(t) {
-  const h = headings(t);
-  return h.length >= 2 ? h.map(point).join(" & ") : compass(h[0]);
+  return headings(t).map(compass).join(" & ");
 }
-// The shortest a tagged row's heading gets on a narrow phone: one compass
-// point, the larger direction's when there are two (lobes come largest first).
-function shortFromText(t) {
-  return point(headings(t)[0]);
+// The forms a train row's heading may take, longest first; `fitTrains` shows
+// the first that fits (owner's calls, 2026-10-06 and -07). Degrees whenever
+// there is room -- "WNW 282° & WSW 248°", "SSW 197°" -- except a TAGGED row
+// with two directions, which names them by point at most ("WNW & WSW") beside
+// its tag. Then points, then one point: the larger direction's (lobes come
+// largest first), the last resort on a narrow phone.
+function trainForms(t, tagged = false) {
+  const h = headings(t);
+  const one = point(h[0]);
+  if (h.length < 2) return tagged ? [compass(h[0]), one] : [compass(h[0])];
+  const points = h.map(point).join(" & ");
+  return tagged ? [points, one] : [fromText(t), points, one];
 }
 function pointsText(t) {
   return headings(t).map(point).join(" and ");
@@ -1163,29 +1151,64 @@ function cardsForForecast(step) {
 // request, 2026-10-05). Local chop and swell aimed behind the beach have no
 // arrow, so their rows pick nothing.
 //
-// One line per train, always (owner's call, 2026-10-06). A tagged row ("wind
-// sea", "local chop") keeps its tag on one line and, where the row is too
-// narrow for the full heading beside it, shows `shortFromText` instead -- the
-// swap is a container query on `.trains`, so it follows the card's width,
-// not the window's. Untagged rows fit at 360 px as they are; on a 320 px
-// phone an untagged split row takes the one point too.
+// One line per train, always (owner's calls, 2026-10-06 and -07). The row
+// carries every form of its heading (`trainForms`), the longest shown, and
+// `fitTrains` steps down to the first that fits the row once it is laid out.
 function trainList(trains, {limit = 4, drawn = () => false} = {}) {
   if (!trains || !trains.length) return "";
   return `<div class="trains">` + trains.slice(0, limit).map((t, i) => {
     const tag = t.local ? "chop" : t.wind_sea ? "ws" : "";
-    const split = headings(t).length >= 2;
+    const forms = trainForms(t, !!tag);
     return `
-    <div class="train${i === 0 ? " lead" : ""}${tag ? ` tagged ${tag}` : ""}${split ? " split" : ""}"${drawn(i)
+    <div class="train${i === 0 ? " lead" : ""}"${drawn(i)
       ? ` data-train="${i}" tabindex="0" role="button" aria-label="Show this train on the drawing"` : ""}>
       <span class="ht">${height(t.hs_m)}</span>
       <span class="tp">${t.period_s.toFixed(1)} s</span>
-      <span class="dr">${tag || split
-        ? `<span class="dr-full">${fromText(t)}</span><span class="dr-short">${shortFromText(t)}</span>`
-        : fromText(t)}</span>
+      <span class="dr">${forms.map((f, k) => `<span${k ? " hidden" : ""}>${f}</span>`).join("")}</span>
       ${tag === "chop" ? '<span class="tag">local chop</span>'
         : tag === "ws" ? '<span class="tag">wind sea</span>' : ""}
     </div>`;
   }).join("") + `</div>`;
+}
+
+// Show each row's longest heading that fits beside its height, period and
+// tag. Measured, not thresholded: a cell whose text runs past its width
+// (`scrollWidth > clientWidth`, the cell shrinking with an ellipsis) steps
+// to the next form; when the last form still does not fit, the row goes
+// `tight` and its tag may wrap. A row in a hidden pane has no width and is
+// left for the ResizeObserver to fit when its tab opens.
+function fitRow(row) {
+  const forms = [...row.querySelectorAll(".dr > span")];
+  if (!forms.length) return;
+  row.classList.remove("tight");
+  const dr = row.querySelector(".dr");
+  for (let k = 0; k < forms.length; k += 1) {
+    forms.forEach((f, j) => { f.hidden = j !== k; });
+    if (dr.scrollWidth <= dr.clientWidth) return;
+  }
+  row.classList.add("tight");
+}
+const TRAIN_WIDTH = new WeakMap();
+const trainResize = typeof ResizeObserver === "undefined" ? null
+  : new ResizeObserver((entries) => entries.forEach(({target, contentRect}) => {
+    const width = Math.round(contentRect.width);
+    if (!width || TRAIN_WIDTH.get(target) === width) return;
+    TRAIN_WIDTH.set(target, width);
+    target.querySelectorAll(".train").forEach(fitRow);
+  }));
+function fitTrains(root = document) {
+  root.querySelectorAll(".trains").forEach((list) => {
+    if (trainResize) trainResize.observe(list);
+    if (list.clientWidth) {
+      TRAIN_WIDTH.set(list, list.clientWidth);
+      list.querySelectorAll(".train").forEach(fitRow);
+    }
+  });
+}
+// Every render rewrites the cards; fit the new rows before they are painted.
+if (typeof MutationObserver !== "undefined" && document.getElementById("conditions")) {
+  new MutationObserver(() => fitTrains($("conditions")))
+    .observe(document.getElementById("conditions"), {childList: true, subtree: true});
 }
 
 // Breaks, most window energy first. That ordering IS the claim the page makes
