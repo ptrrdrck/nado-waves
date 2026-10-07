@@ -604,7 +604,7 @@ class TestWindAndTideAreHoisted:
         fn = SOURCE[SOURCE.index("function windAtBreaks"):]
         fn = fn[:fn.index("\n}\n")]
         assert "c.windOffshore" in fn
-        assert '<b>${s === "light" ? "light wind" : s}</b> at this break' in fn
+        assert '<b>${s}</b> at this break' in fn
         assert 'data-wind-for="${c.id}"' in fn and "c.id === SWELL_TAB" in fn
         select = SOURCE[SOURCE.index("function selectSwellTab"):]
         select = select[:select.index("\n}\n")]
@@ -2559,7 +2559,7 @@ class TestTheWindAndTideCharts:
         assert "over 1 day" in got[3] and "light or variable 100%" in got[3]
         assert got[4] == "null"                                  # the buoy has no shore
 
-    def test_a_light_wind_has_no_side(self):
+    def test_a_light_wind_keeps_its_side_on_the_card_only(self):
         """Owner's report, 2026-10-02: the NWS grid's 2-5 kt northerly every
         night read as 100% offshore. At Beaufort force 1 and under (3 kt) the
         verdict is "light", on the card and on both Shore direction charts."""
@@ -2568,12 +2568,18 @@ class TestTheWindAndTideCharts:
         sense = SOURCE[start:SOURCE.index("\n}\n", SOURCE.index("function sense(")) + 2]
         got = self._run(
             sense +
-            "console.log(sense(0.9, 3), sense(0.9, 4), sense(0.9), sense(-0.9, 0), sense(null, 2));\n"
+            "console.log([sense(0.9, 3), sense(0.9, 4), sense(0.9), sense(-0.9, 0), sense(null, 2),"
+            " sense(0.1, 2), sense(-0.9, 1), sense(null, 0)].join('|'));\n"
             "console.log(shoreKind({kt: 3, from: 20}, 214), shoreKind({kt: 4, from: 20}, 214),"
-            " shoreKind({kt: 5, from: null}, 214), shoreKind({kt: null, from: 20}, 214));"
+            " shoreKind({kt: 5, from: null}, 214), shoreKind({kt: null, from: 20}, 214),"
+            " shoreKind({kt: 0, from: 0}, 214), shoreKind({kt: 2, from: 300}, 214));"
         )
-        assert got[0] == "light offshore offshore light null"
-        assert got[1] == "still off still null"
+        # Owner's request, 2026-10-07: the card names a light wind's side, and
+        # 0 kt (KNZY's 00000KT, archived as 0° at 0 kt) is calm, not a due-north
+        # wind. The charts still count all of those as one kind.
+        assert got[0] == ("light offshore|offshore|offshore|calm|"
+                          "|light cross-shore|light onshore|calm")
+        assert got[1] == "still off still null still still"
         cards = SOURCE[SOURCE.index("function windAtBreaks"):]
         assert "sense(c.windOffshore, c.windKt)" in cards
         assert "windKt: NOW.wind ? NOW.wind.speed_kt : null," in SOURCE
@@ -2991,6 +2997,10 @@ class TestTheLocalWindOnTheForecastTab:
             " updated_utc: '2026-09-30T04:00:00Z'}};\n"
         )
         body = "".join(fn(n) for n in ("compass", "sense", "windAtBreaks", "localWindBlock"))
+        start = SOURCE.index("const windVal")
+        body += "const LIGHT_KT = 3;\n" + SOURCE[start:SOURCE.index(";\n", start) + 2]
+        start = SOURCE.index("const windHeard")
+        body += SOURCE[start:SOURCE.index(";\n", start) + 2]
         out = subprocess.run([node, "-e", prelude + body + script], capture_output=True,
                              text=True, check=True).stdout
         return out.strip()
@@ -3006,6 +3016,32 @@ class TestTheLocalWindOnTheForecastTab:
         assert "<b>offshore</b> at this break" in got and "<b>onshore</b> at this break" in got
         assert "<src>Forecast for Tue 3 PM</src>" in got
         assert "NWS forecast grid SGX 55,12 at Coronado, updated 2026-09-30T04:00:00Z" in got
+
+    def test_a_calm_hour_reads_calm_not_north(self):
+        """A calm is archived as 0° at 0 kt; the card says calm, never "N 0°",
+        and each break's line says calm too (owner's request, 2026-10-07)."""
+        got = self._run(
+            "const hour = {local_wind_from_deg: 0, local_wind_kt: 0};\n"
+            "const cards = [{id: 'coronado_north', windOffshore: 0.97, windKt: 0}];\n"
+            "console.log(localWindBlock(hour, cards, 'Tue 3 PM', false).replace(/\\s+/g, ' '));"
+        )
+        assert '<span class="val">calm</span>' in got and "N 0°" not in got
+        assert "<b>calm</b> at this break" in got
+
+    def test_a_variable_wind_reads_variable_not_not_collected(self):
+        """KNZY's VRB03KT has a speed and no direction: the card shows it as
+        "variable at", and each break's line says light and variable, never
+        "not collected" (owner's request, 2026-10-07)."""
+        got = self._run(
+            "console.log(windVal(null, 3).replace(/<[^>]+>/g, ''), '|', windHeard({from_deg: null, speed_kt: 3}),"
+            " windHeard({from_deg: null, speed_kt: null}), windHeard(null));\n"
+            "console.log(windAtBreaks([{id: 'coronado_north', windOffshore: null, windKt: 3, windVariable: true},"
+            " {id: 'coronado_south', windOffshore: null, windKt: 6, windVariable: true}]));"
+        )
+        first, second = got.splitlines()
+        assert first == "variable at 3 mph (3 kt) | true false false"
+        assert "<b>light and variable</b> at this break" in second
+        assert "<b>variable</b> at this break" in second
 
     def test_an_hour_without_it_says_so_and_a_past_hour_borrows_nothing(self):
         got = self._run(
