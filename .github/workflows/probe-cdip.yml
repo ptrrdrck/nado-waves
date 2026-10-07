@@ -1,0 +1,102 @@
+# Probe CDIP's own directional spectra against NDBC's relay — run on demand.
+#
+# 46232 is CDIP station 191 (Point Loma South); NDBC republishes it hourly, and
+# that republication is what data/spectra/46232/ archives. CDIP publishes the
+# same buoy every 30 minutes. This answers, from a runner, whether collecting
+# it from CDIP instead is sound: which CDIP record NDBC stamps HH:00, which
+# Fourier-to-bearing convention reproduces NDBC's alpha1 bin by bin, the
+# cadence and freshness CDIP actually delivers, and (the watch job) how soon
+# each new sample is fetchable at CDIP against NDBC, for the same samples.
+#
+# Why a workflow: CDIP and NDBC are both denied at CONNECT from a Claude
+# session (BRIEFING section 8, re-checked 2026-10-07). A runner has no such
+# policy in front of it.
+#
+# Writes nothing back to the repository. The raw responses are uploaded as an
+# artifact so a format surprise can be read rather than guessed at.
+#
+# Runs on dispatch, and on a push to a claude/ branch that changes the probe
+# itself: a changed probe re-asks its question. Never scheduled.
+
+name: Probe CDIP spectra
+
+on:
+  workflow_dispatch:
+    inputs:
+      station:
+        description: "CDIP id = NDBC id, comma-separated (the NDBC id is checked against the dataset's wmo_id)"
+        required: false
+        default: "191p1=46232,220p1=46258"
+      records:
+        description: "Newest CDIP records to read (1500 at 30 min is about 31 days)"
+        required: false
+        default: "1500"
+      watch_minutes:
+        description: "Minutes to time both feeds, polled once a minute (0 = skip the watch job)"
+        required: false
+        default: "95"
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "collector/probe_cdip.py"
+      - ".github/workflows/probe-cdip.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: probe-cdip-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Compare CDIP with NDBC's relay
+        env:
+          STATION: ${{ inputs.station }}
+          RECORDS: ${{ inputs.records }}
+        run: |
+          set -euo pipefail
+          python -m collector.probe_cdip \
+            --station "${STATION:-191p1=46232,220p1=46258}" \
+            --records "${RECORDS:-1500}" \
+            --raw-dir raw
+      - name: Keep the raw responses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdip-raw
+          path: raw/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  watch:
+    runs-on: ubuntu-latest
+    # The one job here that holds a runner while it waits. It runs once, on
+    # demand, to measure a lag nothing else can reconstruct afterwards.
+    timeout-minutes: 130
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Time new samples at CDIP and at NDBC
+        env:
+          STATION: ${{ inputs.station }}
+          MINUTES: ${{ inputs.watch_minutes }}
+        run: |
+          set -euo pipefail
+          minutes="${MINUTES:-95}"
+          if [ "${minutes}" = "0" ]; then
+            echo "Watch skipped."
+            exit 0
+          fi
+          python -m collector.probe_cdip --watch-only \
+            --station "${STATION:-191p1=46232,220p1=46258}" \
+            --watch-minutes "${minutes}"
