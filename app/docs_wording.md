@@ -414,13 +414,17 @@ The break's windows, drawn facing the way the break faces: open water above the 
 
 ### [swell-trains] Swell trains
 
-The number is rarely one swell. The spectrum is split at its low points into separate trains, each with its height, period and direction, and the local chop is listed as its own train, tagged. The trains add up, in energy, to the number above them.
+The number is rarely one swell. The spectrum is split into separate trains, each with its height, period and direction, and the local chop is listed as its own train, tagged. The trains add up, in energy, to the number above them.
+
+The split happens in two steps. First by period: the energy is followed from long periods to short, and cut wherever it dips between two peaks. A dip counts only if it is deeper than the buoy's own sampling noise could make it, so a single swell is not cut in two by the wobble between neighbouring bands. Then by direction: where one of those pieces gets its energy from two directions, each carrying a fifth of it or more, it is divided heading by heading, and each direction becomes its own train with its own height, and its own period, read from its own energy. A south swell at 14 s and a west-north-west swell at 12 s that share a stretch of periods are two lines, not one line with two directions.
 
 The biggest train at the buoy need not be the biggest at a break, because the windows take whichever trains point at the blocked sectors. In the worked hour the buoy's lead was 11.8 s from 219°, and North's was 12.5 s from 206°.
 
-A train's direction is where its energy comes from. When two directions each carry a fifth of a train or more, both are given, “WSW 258° & S 180°”, and the drawing has an arrow from each: one direction there would be their average, which sits between them where almost none of it comes from. Every train keeps to one line, and each line gives as much as fits beside its height and period: the degrees when there is room, the compass points alone (“WSW & S”) when there is not, and on the narrowest phones one point, the larger direction's. A train tagged “wind sea” or “local chop” with two directions names them by point beside its tag. It happens most at South, whose trains often arrive through both the south window and the west one.
+What the buoy cannot tell apart, no split can. A buoy reports four numbers about direction for each band, and from those one swell 20° wide and two narrow swells 30° apart look the same. Read by maximum entropy, a single swell 20–35° wide even comes back as two equal peaks 32–60° apart. So two equal directions closer than 60° are kept as one swell. Two swells of the same period are told apart only when they are far apart in direction, and two from the same direction only when a real dip separates their periods.
 
-The split is made on the spectrum by frequency, not on frequency and direction together, so two swells of the same period from different directions read as one train — with both its directions named.
+Rarely, a single train still carries two directions it could not be divided by, and then both are given, “WSW 258° & S 180°”, with an arrow from each on the drawing. Every train keeps to one line, giving as much as fits beside its height and period: the degrees when there is room, the compass points alone when there is not.
+
+This replaced, on 8 October 2026, a split by period alone, which labelled a quarter of swell trains with two directions at one period and one height — and the two directions’ own peaks sat a second or more apart on most of them.
 
 ### [swell-roses] The roses on the Buoys tab
 

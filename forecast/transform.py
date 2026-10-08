@@ -913,11 +913,33 @@ class GridSpectrum:
 # re-ordering is the project's claim, so the surface has to be able to show it.
 # ---------------------------------------------------------------------------
 
+#: How many degrees of freedom a buoy's band estimates carry. Matched to the
+#: archive (BRIEFING §40): 46232's median band-to-band jump in r1 is 0.045,
+#: and synthetic spectra carry 0.046 at 32 dof (0.064 at 16, 0.032 at 64).
+#: One number for both buoys: estimated per spectrum it scattered 14-154 on
+#: spectra whose dof was 16, so a per-spectrum threshold would move with the
+#: noise rather than with the sea.
+BUOY_DOF = 32
+
+#: How many standard deviations of sampling noise a dip between two peaks has
+#: to clear before they are two trains (BRIEFING §40, the synthetic control).
+DIP_SIGMAS = 1.5
+
+#: The [1, 2, 1] smoothing the band finder reads energy through, and the
+#: degrees of freedom that buys: (sum w)^2 / sum w^2 = 16 / 6.
+BAND_SMOOTH = (1, 2, 1)
+SMOOTHED_DOF = BUOY_DOF * sum(BAND_SMOOTH) ** 2 / sum(w * w for w in BAND_SMOOTH)
+
 #: Two peaks are one train unless the trough between them drops to this
-#: fraction of the smaller peak. Without it, ordinary wiggle in a wind sea
-#: splits into four "trains" at 4.2, 5.3, 6.2 and 7.1 s, which is a
-#: description of the noise and not of the water.
-PROMINENCE = 0.6
+#: fraction of the smaller peak, on the SMOOTHED energy: the ratio a peak and
+#: a trough each DIP_SIGMAS of noise from the truth would show,
+#: (1 - z s) / (1 + z s) with s = sqrt(2 / dof). It comes to 0.63. Until
+#: 2026-10-08 it was 0.6 on the raw bins, which is a one-sigma dip at 32 dof:
+#: a single clean swell split along period in half the synthetic trials.
+#: Without any such rule, ordinary wiggle in a wind sea splits into four
+#: "trains" at 4.2, 5.3, 6.2 and 7.1 s, a description of the noise.
+PROMINENCE = ((1 - DIP_SIGMAS * math.sqrt(2 / SMOOTHED_DOF))
+              / (1 + DIP_SIGMAS * math.sqrt(2 / SMOOTHED_DOF)))
 
 #: A train carrying less than this share of the surviving energy is noise from
 #: the splitter rather than a wave anybody would name.
@@ -955,16 +977,31 @@ class Train:
 
 
 def train_bands(energies: list[tuple[int, float]]) -> list[list[tuple[int, float]]]:
-    """The bins of each train `split_trains` reports, before its thresholds.
+    """The bins of each period band `split_trains` reads, before its thresholds.
 
     `split_trains`' own peak split, factored out so a report can ask where a
     train's energy comes from bin by bin (`forecast.nwbearing`) without a
     second copy of the rule drifting from this one.
+
+    Peaks and troughs are found on the energy smoothed [1, 2, 1] across
+    neighbouring bins, and the bands are cut on the raw bins at those
+    troughs (BRIEFING §40): one band's sampling noise is ±25% at 32 dof, so a
+    single swell read raw grows dips that are only noise.
     """
 
-    live = [(i, e) for i, e in energies if e > 0.0]
-    if not live or sum(e for _, e in live) <= 0:
+    raw = [(i, e) for i, e in energies if e > 0.0]
+    if not raw or sum(e for _, e in raw) <= 0:
         return []
+    n = len(raw)
+    half = len(BAND_SMOOTH) // 2
+    live = []
+    for k in range(n):
+        tot = wt = 0.0
+        for d, w in zip(range(-half, half + 1), BAND_SMOOTH):
+            if 0 <= k + d < n:
+                tot += raw[k + d][1] * w
+                wt += w
+        live.append((raw[k][0], tot / wt))
 
     # Local maxima, then assign every bin to the peak it descends from. With
     # one peak this is the whole spectrum, which is the right answer.
@@ -996,7 +1033,7 @@ def train_bands(energies: list[tuple[int, float]]) -> list[list[tuple[int, float
         trough = min(range(left, right + 1), key=lambda k: live[k][1])
         bounds.append(trough)
     bounds.append(len(live))
-    return [live[a:b] for a, b in zip(bounds, bounds[1:]) if live[a:b]]
+    return [raw[a:b] for a, b in zip(bounds, bounds[1:]) if raw[a:b]]
 
 
 #: Direction lobes (`lobes`): maxima of the distribution summed over a
@@ -1010,6 +1047,26 @@ LOBE_SHARE_HALF = 25
 #: this share of it (BRIEFING §38: the average sat > 20° from every lobe on
 #: 23% of the buoy's trains and 46% of South's).
 TRAIN_LOBE_SHARE = 0.20
+
+#: Maximum entropy reads ONE swell 20-35° wide as two equal lobes 32-60°
+#: apart (no noise: 284/316° for a 20° swell at 300°, 270/330° for 35°), and
+#: from four moments that is indistinguishable from two real swells that far
+#: apart. So a pair this close AND this even is left as one train (BRIEFING
+#: §40): in 46232's archive every divided pair under 45° was equal (14 of
+#: 14), 34% at 45-60°, and 20-26% from 60° on, the background of real pairs.
+#: Unequal pairs are kept: the artifact is symmetric by construction.
+MEM_TWIN_SEPARATION_DEG = 60
+MEM_TWIN_BALANCE = 0.8
+
+
+def mem_twin(lobes_: list[tuple[float, float]]) -> bool:
+    """Two lobes shaped like one swell read through maximum entropy."""
+
+    if len(lobes_) != 2:
+        return False
+    (a, sa), (b, sb) = lobes_
+    gap = abs((a - b + 180.0) % 360.0 - 180.0)
+    return gap < MEM_TWIN_SEPARATION_DEG and min(sa, sb) / max(sa, sb) > MEM_TWIN_BALANCE
 
 
 def lobes(dist: list[float]) -> list[tuple[float, float]]:
@@ -1072,19 +1129,38 @@ def split_trains(
     min_hs: float = MIN_TRAIN_HS_M,
     hists: dict[int, list[float]] | None = None,
 ) -> list[Train]:
-    """Split a 1-D energy spectrum into trains at its local minima.
+    """Split a spectrum into trains: by period, then by direction.
 
-    **This is a peak split, not a spectral partitioning.** WAVEWATCH III uses a
-    watershed over the full 2-D spectrum and can separate two trains that share
-    a frequency band while arriving from different directions; this cannot, and
-    will report them as one train at the energy-weighted mean heading. It is
-    honest for the common case — a long-period swell and a short-period wind
-    sea are well separated in frequency — and it is named for what it does so
-    that nobody later reads more into it.
+    First the period bands (`train_bands`: peaks and troughs of the energy
+    across period, noise-smoothed). Then, when `hists` is given and a band's
+    energy comes from two or more directions (`split_lobes`: lobes of at
+    least TRAIN_LOBE_SHARE each), the band is divided by DIRECTION — every
+    heading's energy goes to its nearest lobe — and each direction becomes
+    its own train, with its own height, its own peak period read off its own
+    energy, and its own mean heading (owner's decision, 2026-10-08; BRIEFING
+    §40). Until then the band stayed one train labelled "A & B" at one period
+    and one height, and the two directions' own peaks sat 1 s or more apart
+    on 61% of those trains at 46232.
+
+    **This is not a full 2-D watershed**, and was measured against one (§40):
+    over period x direction on a fixed 10° grid, a single clean swell came
+    back as two in 96% of 100 synthetic trials, because maximum entropy reads
+    one swell as two peaks and noise lets the watershed keep them. Dividing
+    only where a band holds two lobes ≥ 20% each, ≥ 30° apart and not
+    maximum entropy's even twin (`mem_twin`) kept single swells 10-35° wide
+    whole in 97-100% of trials, and found a real south + north-west combo in
+    49% (period alone: 25%).
+
+    What the data cannot do, by either method: tell two swells of the SAME
+    period apart in direction when they are less than ~90° apart (from four
+    moments one 15° swell and two narrow ones 28° apart give the same
+    numbers), or two swells from the SAME direction a few seconds apart in
+    period when the smaller sits on the bigger one's tail.
 
     `energies` is (bin index, energy in m²) in increasing frequency.
-    `hists`, when given, is each bin's energy over 1° headings FROM; each
-    train then carries the directions that hold its energy (`Train.lobes`).
+    `hists`, when given, is each bin's energy over 1° headings FROM. Without
+    it no band can be divided, and each train is its band at its mean
+    heading, as before.
     """
 
     bands = train_bands(energies)
@@ -1099,12 +1175,7 @@ def split_trains(
         m0 = sum(e for _, e in band)
         if m0 <= 0:
             continue
-        top = max(band, key=lambda item: item[1])[0]
-        sin_total = sum(sin_sums.get(i, 0.0) for i, _ in band)
-        cos_total = sum(cos_sums.get(i, 0.0) for i, _ in band)
-        heading = (math.degrees(math.atan2(sin_total, cos_total)) % 360.0
-                   if (sin_total or cos_total) else float("nan"))
-        split = ()
+        parts = None
         if hists:
             dist = [0.0] * 360
             for i, _ in band:
@@ -1112,18 +1183,65 @@ def split_trains(
                 if h:
                     for k, v in enumerate(h):
                         dist[k] += v
-            split = tuple(split_lobes(dist))
-        trains.append(Train(
-            hs_m=4.0 * math.sqrt(m0),
-            period_s=1.0 / frequencies[top] if frequencies[top] > 0 else float("nan"),
-            from_deg=heading,
-            share=m0 / total,
-            lobes=split,
-        ))
+            found = split_lobes(dist)
+            if len(found) >= 2 and not mem_twin(found):
+                parts = _divide_by_direction(band, hists, [h for h, _ in found])
+        if parts is None:
+            top = max(band, key=lambda item: item[1])[0]
+            sin_total = sum(sin_sums.get(i, 0.0) for i, _ in band)
+            cos_total = sum(cos_sums.get(i, 0.0) for i, _ in band)
+            heading = (math.degrees(math.atan2(sin_total, cos_total)) % 360.0
+                       if (sin_total or cos_total) else float("nan"))
+            trains.append(Train(
+                hs_m=4.0 * math.sqrt(m0),
+                period_s=1.0 / frequencies[top] if frequencies[top] > 0 else float("nan"),
+                from_deg=heading,
+                share=m0 / total,
+            ))
+            continue
+        for per_bin, part in parts:
+            pm0 = sum(per_bin.values())
+            if pm0 <= 0:
+                continue
+            top = max(per_bin, key=per_bin.get)
+            sn = sum(v * math.sin(math.radians(k + 0.5)) for k, v in enumerate(part))
+            cs = sum(v * math.cos(math.radians(k + 0.5)) for k, v in enumerate(part))
+            trains.append(Train(
+                hs_m=4.0 * math.sqrt(pm0),
+                period_s=1.0 / frequencies[top] if frequencies[top] > 0 else float("nan"),
+                from_deg=math.degrees(math.atan2(sn, cs)) % 360.0,
+                share=pm0 / total,
+                lobes=_real_lobes(part),
+            ))
 
     trains = [t for t in trains if t.share >= min_share and t.hs_m >= min_hs]
     trains.sort(key=lambda t: -t.hs_m)
     return trains
+
+
+def _real_lobes(dist: list[float]) -> tuple:
+    """A train's own lobes, unless they are one swell's maximum-entropy twin."""
+
+    found = split_lobes(dist)
+    return () if mem_twin(found) else tuple(found)
+
+
+def _divide_by_direction(band, hists, heads):
+    """A band's energy by its nearest lobe, heading by heading: [(per_bin, dist)]."""
+
+    owner = [min(range(len(heads)), key=lambda n: abs((k + 0.5 - heads[n] + 180.0) % 360.0 - 180.0))
+             for k in range(360)]
+    parts = [({}, [0.0] * 360) for _ in heads]
+    for i, _ in band:
+        h = hists.get(i)
+        if not h:
+            continue
+        for k, v in enumerate(h):
+            if v:
+                per_bin, dist = parts[owner[k]]
+                per_bin[i] = per_bin.get(i, 0.0) + v
+                dist[k] += v
+    return parts
 
 
 @dataclass
