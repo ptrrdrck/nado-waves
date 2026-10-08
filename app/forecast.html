@@ -462,9 +462,14 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A tap focuses the timeline too, and the browser rings an SVG on any focus;
    only the keyboard's focus is ringed, in the page's blue. */
 .rose .rose-line:focus:not(:focus-visible){outline:none}
-.rose-svg{display:block;width:100%;max-width:280px;height:auto;margin:0 auto;overflow:visible}
+/* 260 px across: the circle 21% wider than when the compass points sat
+   outside it, the block 20 px shorter (owner's choice C, 2026-10-08). */
+.rose-svg{display:block;width:100%;max-width:260px;height:auto;margin:0 auto;overflow:visible}
 .rose-svg .ring{fill:none;stroke:var(--line);stroke-width:1}
-.rose-svg .pt{font-size:10px;fill:var(--faint)}
+/* A halo in the card's colour, so a ring, an axis or a petal under a point
+   never hides it. */
+.rose-svg .pt{font-size:10px;fill:var(--faint);paint-order:stroke;stroke:var(--card);stroke-width:3px;
+  stroke-linejoin:round}
 .rose-svg .rp{fill:var(--ink);opacity:.85;stroke:var(--card);stroke-width:.75}
 .rose-svg .rb{stroke:var(--card);stroke-width:.75}
 /* A lit period range in ink over the whole rose, dimmed beneath it. */
@@ -2103,7 +2108,9 @@ const ROSE_POINTS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","W
 const ROSE_BANDS = ["under 8 s", "8–11 s", "11–14 s", "14–17 s", "17 s +"];
 // The legend's own, on one row: the unit once, at the end.
 const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];
-const ROSE = {c: 120, r: 92};
+// The outer ring is the drawing's edge, N, E, S and W just inside it (owner's
+// choice, 2026-10-08): no band of empty card around the circle.
+const ROSE = {c: 120, r: 119};
 // The train row tapped on each buoy's reading, by index into the newest
 // spectrum's trains (owner's request, 2026-10-08), or none. Its period range
 // is lit on that buoy's rose in every frame: the same range, not the same
@@ -2229,7 +2236,7 @@ function rosePlot(state, mode, station) {
     + `<line class="ring" x1="${c}" y1="${c - R}" x2="${c}" y2="${c + R}"/>`
     + `<line class="ring" x1="${c - R}" y1="${c}" x2="${c + R}" y2="${c}"/>`;
   const marks = [["N", 0], ["E", 90], ["S", 180], ["W", 270]].map(([p, deg]) => {
-    const [x, y] = rosePt(R + 11, deg).split(",");
+    const [x, y] = rosePt(R - 9, deg).split(",");
     return `<text class="pt" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${p}</text>`;
   }).join("");
 

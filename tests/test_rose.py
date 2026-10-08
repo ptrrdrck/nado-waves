@@ -191,6 +191,18 @@ class TestOnThePage:
         assert 'aria-label="${m.label}"' in block and "${m.symbol}</button>" in block
         assert 'const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];' in PAGE
 
+    def test_the_outer_ring_is_the_drawing_edge(self):
+        """Owner's choice, 2026-10-08: N, E, S and W just inside the outer
+        ring, no empty band around it, the circle 260 px across."""
+
+        assert "const ROSE = {c: 120, r: 119};" in PAGE
+        plot = PAGE[PAGE.index("function rosePlot("):]
+        plot = plot[:plot.index("\n}\n")]
+        assert "rosePt(R - 9, deg)" in plot and "R + 11" not in plot
+        assert 'viewBox="0 0 240 240"' in plot
+        assert "max-width:260px" in PAGE[PAGE.index(".rose-svg{"):PAGE.index(".rose-svg .ring")]
+        assert "paint-order:stroke" in PAGE[PAGE.index(".rose-svg .pt{"):PAGE.index(".rose-svg .rp{")]
+
     def test_switching_views_never_moves_the_page(self):
         """Owner's request, 2026-10-08: the Period legend's row is kept on
         Height too, laid out but unseen, and play / pause is the ft / s
