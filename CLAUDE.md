@@ -280,7 +280,15 @@ forecaster actually verifies against, Surfline included.
    2 ft past 5 ft — so no petal passes it (owner's calls: an edge at the
    petal exactly drew no ring there; 2, 4 and 5 ft read as uneven, 7 Oct).
    The scale is one line under the rose, never a figure on the plot; play /
-   pause is a symbol button left of the timeline. Reduced motion opens paused on the newest. LIVE
+   pause is a symbol button left of the timeline. **A tapped train row lights
+   its PERIOD RANGE on the rose** (owner's request, 2026-10-08): the bins
+   that train holds in the newest spectrum (`Train.bins`, ignored by
+   equality), and each frame's share within them, in ink over the rose
+   dimmed; the readout names the range, never "the train", because nothing
+   follows a train between spectra (owner's question, same day: Origin's
+   ridges are the one tracker, and a later step could follow one). Only
+   under the reading split from that same spectrum (`trains_from_utc`); a
+   new spectrum clears it. Reduced motion opens paused on the newest. LIVE
    only; carried to no break. The
    Forecast tab's Buoys tab holds 46232 alone. A 46047 line on the Height
    chart is the next step, not built.
