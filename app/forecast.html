@@ -440,11 +440,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    periods) to ink (longest), the Shore direction chart's scale with two
    steps between. A hairline of the card's colour parts every segment. */
 .rose{display:flex;flex-direction:column;gap:6px;margin-top:3px}
-.rose-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .rose .ranges{display:flex;gap:2px}
+.rose .rose-modes{flex:none}
 .rose .ranges button{font:inherit;font-size:12px;font-weight:600;padding:2px 9px;border:0;
   border-radius:6px;cursor:pointer;background:transparent;color:var(--soft)}
-/* The scale, one line under the rose; then play / pause left of the six hours. */
+/* Under the rose: play / pause, the six hours, then the ft / s switch. */
 /* One line under the rose: the ring spacing, then the frame's time and what
    it holds. Room is kept for two lines, so a frame whose line wraps on a
    narrow phone never moves the timeline under it while the loop plays. */
@@ -452,7 +452,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
   font-variant-numeric:tabular-nums}
 .rose .rose-scale .rs{white-space:nowrap}
 .rose .rose-scale .v{color:var(--ink)} .rose .rose-scale .v .unit{color:var(--soft)}
-.rose .rose-time{display:flex;align-items:center;gap:6px;width:100%;max-width:300px;margin:0 auto}
+.rose .rose-time{display:flex;align-items:center;gap:6px;width:100%;max-width:340px;margin:0 auto}
 .rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
   padding:0;border:0;border-radius:6px;cursor:pointer;background:var(--paper);color:var(--ink)}
 .rose .rose-play svg{width:12px;height:12px;fill:currentColor}
@@ -482,8 +482,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose-line .tk.on{stroke:var(--ink);stroke-width:2.5}
 .rose-line .head{stroke:var(--soft);stroke-width:1;stroke-dasharray:2 2}
 .rose-line .tt{font-size:9px;fill:var(--faint);font-variant-numeric:tabular-nums}
-.rose .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:3px 12px;font-size:12px;color:var(--soft)}
-.rose .legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 6px 0 3px}
+.rose .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:3px 10px;font-size:12px;color:var(--soft);
+  font-variant-numeric:tabular-nums}
+.rose .legend span{white-space:nowrap}
+.rose .legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 0}
 /* The Wind and Tide cards' charts: gusts as dots, the measured direction in
    the measured red, and the Now tab's predicted tide dashed and soft -- the
    one modelled line on that tab. */
@@ -2082,7 +2084,11 @@ function contextBuoy(b) {
 // foot (or percent), so the petals are as large as they can be and none
 // passes the last ring; the rings say what each scale is. A
 // reader who asks for less motion gets the newest frame, paused.
-const ROSE_MODES = [{id: "height", label: "Height"}, {id: "period", label: "Period"}];
+// Height and Period, switched by their units at the right end of the
+// timeline row (owner's request, 2026-10-08: a row of its own cost 28 px a
+// rose): "ft" and "s", the units the line under the rose reads in. The
+// label is what a screen reader says.
+const ROSE_MODES = [{id: "height", label: "Height", symbol: "ft"}, {id: "period", label: "Period", symbol: "s"}];
 let ROSE_MODE = recall(KEEP.roseMode) === "period" ? "period" : "height";
 const ROSE_PLAY_MS = 9000;
 const ROSE_HOLD_MS = 2500;
@@ -2093,6 +2099,8 @@ let ROSE_LAST = performance.now();
 const ROSE_POINTS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
 // forecast.rose.PERIOD_EDGES_S, as the legend names them.
 const ROSE_BANDS = ["under 8 s", "8–11 s", "11–14 s", "14–17 s", "17 s +"];
+// The legend's own, on one row: the unit once, at the end.
+const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];
 const ROSE = {c: 120, r: 92};
 // The train row tapped on each buoy's reading, by index into the newest
 // spectrum's trains (owner's request, 2026-10-08), or none. Its period range
@@ -2313,8 +2321,8 @@ function roseLine(rose, span, t, state) {
 
 function roseLegend(mode) {
   if (mode !== "period") return "";
-  return `<div class="legend">${ROSE_BANDS.map((b, i) =>
-    `<span><i class="sw rb rb${i}"></i>${b}</span>`).join("")}</div>`;
+  return `<div class="legend" aria-label="Periods, shortest palest">${ROSE_BAND_KEYS.map((b, i) =>
+    `<span title="${ROSE_BANDS[i]}"><i class="sw rb rb${i}"></i>${b}</span>`).join("")}</div>`;
 }
 
 function roseView(station) {
@@ -2341,15 +2349,15 @@ function roseBlock(station) {
     return `<div class="rose"><span class="src">No spectrum from ${station} in the last six hours.</span></div>`;
   }
   const modes = ROSE_MODES.map((m) => `<button type="button" data-rose-mode="${m.id}"`
-    + ` aria-pressed="${m.id === ROSE_MODE}">${m.label}</button>`).join("");
+    + ` aria-pressed="${m.id === ROSE_MODE}" aria-label="${m.label}" title="${m.label}">${m.symbol}</button>`).join("");
   return `<div class="rose" data-rose="${station}" data-k="${v.key}">
-    <div class="rose-head"><span class="ranges" role="group" aria-label="Which rose">${modes}</span></div>
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
     <div class="rose-scale" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
     <div class="rose-time">${rosePlayButton()}
     <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
-      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg></div>
+      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg>
+    <span class="ranges rose-modes" role="group" aria-label="Which rose">${modes}</span></div>
     ${roseLegend(ROSE_MODE)}
   </div>`;
 }
