@@ -280,6 +280,9 @@ forecaster actually verifies against, Surfline included.
    largest petal rounded UP to the next ring — the next whole foot, every
    2 ft past 5 ft — so no petal passes it (owner's calls: an edge at the
    petal exactly drew no ring there; 2, 4 and 5 ft read as uneven, 7 Oct).
+   That ring is the drawing's edge, N / E / S / W just inside it on a
+   card-coloured halo, the circle 260 px across (owner's choice, 2026-10-08:
+   21% wider than with the points outside, and the block 20 px shorter).
    The scale is one line under the rose, never a figure on the plot, and
    it carries the frame too: "Rings every 1 ft (0.30 m) · 11:00 AM · 4.6 ft
    (1.39 m) combined" (owner's request, 2026-10-08; no values line above
