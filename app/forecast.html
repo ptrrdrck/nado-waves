@@ -442,9 +442,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose{display:flex;flex-direction:column;gap:6px;margin-top:3px}
 .rose .ranges{display:flex;gap:2px}
 .rose .rose-modes{flex:none}
-.rose .ranges button{font:inherit;font-size:12px;font-weight:600;padding:2px 9px;border:0;
+.rose .ranges button{font:inherit;font-size:12px;font-weight:600;height:22px;padding:0 9px;border:0;
   border-radius:6px;cursor:pointer;background:transparent;color:var(--soft)}
-/* Under the rose: play / pause, the six hours, then the ft / s switch. */
+/* Under the rose: play / pause, the six hours, then the ft / s switch, all
+   three buttons one height (22 px). */
 /* One line under the rose: the ring spacing, then the frame's time and what
    it holds. Room is kept for two lines, so a frame whose line wraps on a
    narrow phone never moves the timeline under it while the loop plays. */
@@ -453,7 +454,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose .rose-scale .rs{white-space:nowrap}
 .rose .rose-scale .v{color:var(--ink)} .rose .rose-scale .v .unit{color:var(--soft)}
 .rose .rose-time{display:flex;align-items:center;gap:6px;width:100%;max-width:340px;margin:0 auto}
-.rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+.rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:22px;
   padding:0;border:0;border-radius:6px;cursor:pointer;background:var(--paper);color:var(--ink)}
 .rose .rose-play svg{width:12px;height:12px;fill:currentColor}
 .rose .ranges button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
@@ -485,6 +486,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:3px 10px;font-size:12px;color:var(--soft);
   font-variant-numeric:tabular-nums}
 .rose .legend span{white-space:nowrap}
+.rose .legend.off{visibility:hidden}
 .rose .legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 0}
 /* The Wind and Tide cards' charts: gusts as dots, the measured direction in
    the measured red, and the Now tab's predicted tide dashed and soft -- the
@@ -2319,10 +2321,14 @@ function roseLine(rose, span, t, state) {
     + `<line class="head" x1="${x(t)}" y1="1" x2="${x(t)}" y2="16"/>${ends}`;
 }
 
+// The Period legend's row is kept on Height too, laid out and unseen, so
+// switching views never moves the page under the reader (owner's request,
+// 2026-10-08).
 function roseLegend(mode) {
-  if (mode !== "period") return "";
-  return `<div class="legend" aria-label="Periods, shortest palest">${ROSE_BAND_KEYS.map((b, i) =>
-    `<span title="${ROSE_BANDS[i]}"><i class="sw rb rb${i}"></i>${b}</span>`).join("")}</div>`;
+  const off = mode !== "period";
+  return `<div class="legend${off ? " off" : ""}"${off ? ' aria-hidden="true"' : ' aria-label="Periods, shortest palest"'}>`
+    + `${ROSE_BAND_KEYS.map((b, i) =>
+      `<span title="${ROSE_BANDS[i]}"><i class="sw rb rb${i}"></i>${b}</span>`).join("")}</div>`;
 }
 
 function roseView(station) {

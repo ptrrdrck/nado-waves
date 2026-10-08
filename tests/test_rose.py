@@ -191,6 +191,20 @@ class TestOnThePage:
         assert 'aria-label="${m.label}"' in block and "${m.symbol}</button>" in block
         assert 'const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];' in PAGE
 
+    def test_switching_views_never_moves_the_page(self):
+        """Owner's request, 2026-10-08: the Period legend's row is kept on
+        Height too, laid out but unseen, and play / pause is the ft / s
+        buttons' height."""
+
+        legend = PAGE[PAGE.index("function roseLegend("):]
+        legend = legend[:legend.index("\n}\n")]
+        assert 'if (mode !== "period") return ""' not in legend
+        assert '" off"' in legend and 'aria-hidden="true"' in legend
+        assert ".rose .legend.off{visibility:hidden}" in PAGE
+        css = PAGE[PAGE.index(".rose .ranges button{"):PAGE.index(".rose .rose-play svg")]
+        heights = re.findall(r"[;{]height:(\d+)px", css)
+        assert len(heights) == 2 and len(set(heights)) == 1, heights
+
     def test_one_line_under_the_rose_carries_the_scale_and_the_frame(self):
         """Owner's request, 2026-10-08: "Rings every 1 ft (0.30 m) · 11:00 AM
         · 4.6 ft (1.39 m) combined" under the rose, no values line above it,

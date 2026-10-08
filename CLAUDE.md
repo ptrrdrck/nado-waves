@@ -286,7 +286,9 @@ forecaster actually verifies against, Surfline included.
    the rose, and no "to 4 ft" ending), breaking only at a "·"; play /
    pause is a symbol button left of the timeline, and the Height / Period
    switch is "ft | s" at its right (owner's request, 2026-10-08: its own row
-   above the rose cost 28 px), the Period legend one row ("<8 … 17+ s"). **A tapped train row lights
+   above the rose cost 28 px), the Period legend one row ("<8 … 17+ s"), its row kept, unseen, on
+   Height so the switch never moves the page, and play / pause the ft / s
+   buttons' 22 px height (owner's requests, same day). **A tapped train row lights
    its PERIOD RANGE on the rose** (owner's request, 2026-10-08): the bins
    that train holds in the newest spectrum (`Train.bins`, ignored by
    equality) — and, for a train divided from a band of two directions
