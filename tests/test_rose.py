@@ -125,7 +125,8 @@ class TestOnThePage:
         assert block.index("roseBlock(b.station)") < block.index("srcLines(")
 
     def test_one_switch_and_one_clock_for_both(self):
-        assert 'const ROSE_MODES = [{id: "height", label: "Height"}, {id: "period", label: "Period"}];' in PAGE
+        assert ('const ROSE_MODES = [{id: "height", label: "Height", symbol: "ft"},'
+                ' {id: "period", label: "Period", symbol: "s"}];') in PAGE
         assert "KEEP.roseMode" in PAGE
         assert "prefers-reduced-motion" in PAGE.split("// THE ROSES")[1]
 
@@ -175,7 +176,20 @@ class TestOnThePage:
         assert (block.index('class="rose-plot"') < block.index('class="rose-scale"')
                 < block.index('class="rose-time">${rosePlayButton()}')
                 < block.index('class="rose-line"'))
-        assert "rose-head" in block and "rosePlayButton" not in block[:block.index('class="rose-plot"')]
+        assert "rosePlayButton" not in block[:block.index('class="rose-plot"')]
+
+    def test_the_switch_sits_at_the_end_of_the_timeline_row(self):
+        """Owner's request, 2026-10-08: no row of its own above the rose; "ft"
+        and "s" right of the six hours, still named Height and Period to a
+        screen reader; the Period legend on one row."""
+
+        block = PAGE[PAGE.index("function roseBlock("):]
+        block = block[:block.index("\n}\n")]
+        assert "rose-head" not in block
+        assert (block.index('class="rose-line"') < block.index('class="ranges rose-modes"')
+                < block.index("${roseLegend(ROSE_MODE)}"))
+        assert 'aria-label="${m.label}"' in block and "${m.symbol}</button>" in block
+        assert 'const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];' in PAGE
 
     def test_one_line_under_the_rose_carries_the_scale_and_the_frame(self):
         """Owner's request, 2026-10-08: "Rings every 1 ft (0.30 m) · 11:00 AM
