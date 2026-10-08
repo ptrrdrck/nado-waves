@@ -445,7 +445,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose .ranges button{font:inherit;font-size:12px;font-weight:600;padding:2px 9px;border:0;
   border-radius:6px;cursor:pointer;background:transparent;color:var(--soft)}
 /* The scale, one line under the rose; then play / pause left of the six hours. */
-.rose .rose-scale{font-size:12px;color:var(--soft);text-align:center;font-variant-numeric:tabular-nums}
+/* One line under the rose: the ring spacing, then the frame's time and what
+   it holds. Room is kept for two lines, so a frame whose line wraps on a
+   narrow phone never moves the timeline under it while the loop plays. */
+.rose .rose-scale{font-size:12px;line-height:1.4;min-height:2.8em;color:var(--soft);text-align:center;
+  font-variant-numeric:tabular-nums}
+.rose .rose-scale .rs{white-space:nowrap}
+.rose .rose-scale .v{color:var(--ink)} .rose .rose-scale .v .unit{color:var(--soft)}
 .rose .rose-time{display:flex;align-items:center;gap:6px;width:100%;max-width:300px;margin:0 auto}
 .rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
   padding:0;border:0;border-radius:6px;cursor:pointer;background:var(--paper);color:var(--ink)}
@@ -455,7 +461,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A tap focuses the timeline too, and the browser rings an SVG on any focus;
    only the keyboard's focus is ringed, in the page's blue. */
 .rose .rose-line:focus:not(:focus-visible){outline:none}
-.rose .readout{font-size:13.5px;font-variant-numeric:tabular-nums}
 .rose-svg{display:block;width:100%;max-width:280px;height:auto;margin:0 auto;overflow:visible}
 .rose-svg .ring{fill:none;stroke:var(--line);stroke-width:1}
 .rose-svg .pt{font-size:10px;fill:var(--faint)}
@@ -2168,9 +2173,8 @@ function roseScale(mode, station) {
 function roseScaleLine(mode, station) {
   const sc = roseScale(mode, station);
   return mode === "height"
-    ? `Rings every ${sc.step} ft (${(sc.step / FT_PER_M).toFixed(2)} m) to `
-      + `${sc.max} ft (${(sc.max / FT_PER_M).toFixed(2)} m)`
-    : `Rings every ${rosePct(sc.step)} to ${rosePct(sc.max)} of the energy`;
+    ? `Rings every ${sc.step} ft (${(sc.step / FT_PER_M).toFixed(2)} m)`
+    : `Rings every ${rosePct(sc.step)}`;
 }
 
 // What a buoy's rose shows at a moment: a frame, a gap, or a stamp not in yet.
@@ -2267,21 +2271,29 @@ function rosePlot(state, mode, station) {
     + grid + petals + marks + `</svg>`;
 }
 
-// With a row picked it names the period range, never "the train": in an
-// older frame that range may hold another swell.
+// The one line under the rose (owner's request, 2026-10-08): its ring
+// spacing, then the frame's time and what it holds -- "Rings every 1 ft
+// (0.30 m) · 11:00 AM · 4.6 ft (1.39 m) combined". Each part keeps to
+// itself, so a narrow phone breaks the line only at a "·". With a row
+// picked it names the period range, never "the train": in an older frame
+// that range may hold another swell.
 function roseReadout(state, station) {
-  if (!state.frame) return `<span class="unit">${state.note}</span>`;
+  const seg = (html, cls = "") => `<span class="rs${cls}">${html}</span>`;
+  const sep = " \u00b7 ";
+  const scale = seg(roseScaleLine(ROSE_MODE, station));
+  if (!state.frame) return scale + sep + seg(state.note);
   const f = state.frame;
+  const when = seg(clock(f.time_utc), " v");
   const k = rosePick(station);
   const share = k != null && f.train_share && f.train_share[k];
   if (share) {
     const sum = share.reduce((a, b) => a + b, 0);
-    return `${clock(f.time_utc)} <span class="unit">·</span> ${roseRange(station, k)}: `
+    return scale + sep + when + sep + seg(`${roseRange(station, k)}: `
       + (ROSE_MODE === "height" ? height(f.hs_m * Math.sqrt(sum))
-        : `${rosePct(sum)} <span class="unit">of the energy</span>`);
+        : `${rosePct(sum)} <span class="unit">of the energy</span>`), " v");
   }
-  return `${clock(f.time_utc)} <span class="unit">·</span> `
-    + `${height(f.hs_m)} <span class="unit">combined</span>`;
+  return scale + sep + when + sep
+    + seg(`${height(f.hs_m)} <span class="unit">combined</span>`, " v");
 }
 
 // The six hours under the rose: a tick for every spectrum this buoy sent, so
@@ -2332,9 +2344,8 @@ function roseBlock(station) {
     + ` aria-pressed="${m.id === ROSE_MODE}">${m.label}</button>`).join("");
   return `<div class="rose" data-rose="${station}" data-k="${v.key}">
     <div class="rose-head"><span class="ranges" role="group" aria-label="Which rose">${modes}</span></div>
-    <div class="readout" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
-    <div class="rose-scale" data-rose-live>${roseScaleLine(ROSE_MODE, station)}</div>
+    <div class="rose-scale" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
     <div class="rose-time">${rosePlayButton()}
     <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
@@ -2351,9 +2362,8 @@ function roseUpdate(el) {
   if (!v) return;
   if (el.getAttribute("data-k") !== v.key) {
     el.setAttribute("data-k", v.key);
-    el.querySelector(".readout").innerHTML = roseReadout(v.state, el.getAttribute("data-rose"));
     el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE, el.getAttribute("data-rose"));
-    el.querySelector(".rose-scale").innerHTML = roseScaleLine(ROSE_MODE, el.getAttribute("data-rose"));
+    el.querySelector(".rose-scale").innerHTML = roseReadout(v.state, el.getAttribute("data-rose"));
     el.querySelector(".rose-line").setAttribute("aria-valuenow", rosePercent(v));
     el.querySelector(".rose-line").setAttribute("aria-valuetext",
       v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);

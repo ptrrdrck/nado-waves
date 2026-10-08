@@ -175,7 +175,23 @@ class TestOnThePage:
         assert (block.index('class="rose-plot"') < block.index('class="rose-scale"')
                 < block.index('class="rose-time">${rosePlayButton()}')
                 < block.index('class="rose-line"'))
-        assert "rose-head" in block and "rosePlayButton" not in block[:block.index('class="readout"')]
+        assert "rose-head" in block and "rosePlayButton" not in block[:block.index('class="rose-plot"')]
+
+    def test_one_line_under_the_rose_carries_the_scale_and_the_frame(self):
+        """Owner's request, 2026-10-08: "Rings every 1 ft (0.30 m) · 11:00 AM
+        · 4.6 ft (1.39 m) combined" under the rose, no values line above it,
+        and the ring line without its "to 4 ft" ending."""
+
+        block = PAGE[PAGE.index("function roseBlock("):]
+        block = block[:block.index("\n}\n")]
+        assert 'class="readout"' not in block
+        assert '<div class="rose-scale" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>' in block
+        read = PAGE[PAGE.index("function roseReadout("):]
+        read = read[:read.index("\n}\n")]
+        assert read.index("roseScaleLine(ROSE_MODE, station)") < read.index("clock(f.time_utc)")
+        line = PAGE[PAGE.index("function roseScaleLine("):]
+        line = line[:line.index("\n}\n")]
+        assert " to " not in line and "of the energy" not in line
         plot = PAGE[PAGE.index("function rosePlot("):]
         assert 'class="rl"' not in plot[:plot.index("\n}\n")]
         assert 'aria-label="${ROSE_PLAYING ? "Pause" : "Play"}"' in PAGE

@@ -280,7 +280,10 @@ forecaster actually verifies against, Surfline included.
    largest petal rounded UP to the next ring — the next whole foot, every
    2 ft past 5 ft — so no petal passes it (owner's calls: an edge at the
    petal exactly drew no ring there; 2, 4 and 5 ft read as uneven, 7 Oct).
-   The scale is one line under the rose, never a figure on the plot; play /
+   The scale is one line under the rose, never a figure on the plot, and
+   it carries the frame too: "Rings every 1 ft (0.30 m) · 11:00 AM · 4.6 ft
+   (1.39 m) combined" (owner's request, 2026-10-08; no values line above
+   the rose, and no "to 4 ft" ending), breaking only at a "·"; play /
    pause is a symbol button left of the timeline. **A tapped train row lights
    its PERIOD RANGE on the rose** (owner's request, 2026-10-08): the bins
    that train holds in the newest spectrum (`Train.bins`, ignored by
