@@ -455,7 +455,8 @@ forecaster actually verifies against, Surfline included.
    2 (both onto another swell from the same bearing: the test cannot tell two
    sources on one bearing apart). Backtest: Marie strong at both buoys, Polo
    partial (78% at best), Odalys partial (82%). On a break only when one of its
-   card trains is the one arriving. Placed and sized from NHC's fix that sent
+   card trains is the one arriving — of two (one band, two directions, §40),
+   the one within 45° of the storm's bearing. Placed and sized from NHC's fix that sent
    that train, rounded to 100, never from Origin's distance; it replaces
    Origin's reading of the same train. The b-decks are archived hourly by
    collect-beach-inputs.yml (their one writer). The directional sector is

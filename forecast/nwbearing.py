@@ -424,13 +424,18 @@ def on_the_page(spectra46232: list) -> list[str]:
     counts = {k: [0, 0, 0, set()] for k in ["buoy", *tables]}   # trains, off, split, hours
     peak = [0, 0]
 
-    def tally(key, bands, hists, trains, when):
-        mine = [(4.0 * math.sqrt(sum(e for _, e in band)),
-                 [sum(hists[i][k] for i, _ in band) for k in range(360)]) for band in bands]
+    def tally(key, bands, hists, trains, when, freqs):
+        # A train is matched to the period band its peak bin sits in: since
+        # BRIEFING §40 one band can be two trains, each from one of its lobes.
+        mine = [({i for i, _ in band}, [sum(hists[i][k] for i, _ in band) for k in range(360)])
+                for band in bands]
         for train in trains:
             if train.is_wind_sea or math.isnan(train.from_deg) or not mine:
                 continue
-            hs, hist = min(mine, key=lambda m: abs(m[0] - train.hs_m))
+            peak = min(range(len(freqs)), key=lambda i: abs(1.0 / freqs[i] - train.period_s))
+            hist = next((h for bins, h in mine if peak in bins), None)
+            if hist is None:
+                continue
             off = off_lobe(hist, train.from_deg)
             if off is None:
                 continue
@@ -450,7 +455,8 @@ def on_the_page(spectra46232: list) -> list[str]:
             hists[i] = [v * w for v in grid]
             per_bin.append((i, sum(hists[i])))
         view = at_buoy(spectrum)
-        tally("buoy", train_bands(per_bin), hists, view.trains, spectrum.time)
+        tally("buoy", train_bands(per_bin), hists, view.trains, spectrum.time,
+              spectrum.frequencies)
         if per_bin:
             best = max(per_bin, key=lambda item: item[1])[0]
             off = off_lobe(hists[best], view.peak_direction_deg)
@@ -477,7 +483,9 @@ def on_the_page(spectra46232: list) -> list[str]:
                 pb.append((i, sum(h)))
                 sins[i] = sum(v * math.sin(math.radians(k + 0.5)) for k, v in enumerate(h))
                 coss[i] = sum(v * math.cos(math.radians(k + 0.5)) for k, v in enumerate(h))
-            tally(name, train_bands(pb), bh, split_trains(pb, spectrum.frequencies, sins, coss), spectrum.time)
+            tally(name, train_bands(pb), bh,
+                  split_trains(pb, spectrum.frequencies, sins, coss, hists=bh), spectrum.time,
+                  spectrum.frequencies)
 
     out = [f"5. Shown train headings against their own energy's lobes ({len(spectra46232)} spectra at 46232)"]
     for key, (n, off, split, hours) in counts.items():

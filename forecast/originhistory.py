@@ -54,7 +54,7 @@ GRAVITY = 9.81
 #: this of the storm's own: the match's turned sectors sit 45° either side and
 #: count as somewhere else. Period alone is not enough: on 29 Sep a north-west
 #: ridge (304°) shared a 13 s train with Polo (161°).
-SAME_SOURCE_DEG = 45.0
+SAME_SOURCE_DEG = stormtrack.SAME_SOURCE_DEG
 
 
 def _iso(t: datetime) -> str:
