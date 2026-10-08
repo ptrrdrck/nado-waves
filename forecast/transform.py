@@ -963,6 +963,16 @@ class Train:
     #: train fed by two sources actually comes from. `from_deg` is then their
     #: mean, which sits between them (BRIEFING §38). Empty for one direction.
     lobes: tuple = ()
+    #: The frequency-bin indices of the spectrum this train was split from --
+    #: its band, for a surface that asks where in that spectrum it sits
+    #: (`forecast.rose`, the Buoys tab's highlight). Not part of the train's
+    #: identity: equality and repr ignore it.
+    bins: tuple = field(default=(), compare=False, repr=False)
+    #: The headings it holds when its band came from two directions and was
+    #: divided (BRIEFING §40): (first degree FROM, one past the last),
+    #: clockwise. Empty for a whole band, which holds every heading in `bins`.
+    #: With `bins`, where in the spectrum this train is; not its identity.
+    arc: tuple = field(default=(), compare=False, repr=False)
 
     @property
     def is_wind_sea(self) -> bool:
@@ -1197,9 +1207,10 @@ def split_trains(
                 period_s=1.0 / frequencies[top] if frequencies[top] > 0 else float("nan"),
                 from_deg=heading,
                 share=m0 / total,
+                bins=tuple(i for i, _ in band),
             ))
             continue
-        for per_bin, part in parts:
+        for per_bin, part, arc in parts:
             pm0 = sum(per_bin.values())
             if pm0 <= 0:
                 continue
@@ -1212,6 +1223,8 @@ def split_trains(
                 from_deg=math.degrees(math.atan2(sn, cs)) % 360.0,
                 share=pm0 / total,
                 lobes=_real_lobes(part),
+                bins=tuple(i for i, _ in band if i in per_bin),
+                arc=arc,
             ))
 
     trains = [t for t in trains if t.share >= min_share and t.hs_m >= min_hs]
@@ -1227,18 +1240,25 @@ def _real_lobes(dist: list[float]) -> tuple:
 
 
 def _divide_by_direction(band, hists, heads):
-    """A band's energy by its nearest lobe, heading by heading: [(per_bin, dist)]."""
+    """A band's energy by its nearest lobe, heading by heading:
+    [(per_bin, dist, arc)], `arc` the headings each lobe holds."""
 
     owner = [min(range(len(heads)), key=lambda n: abs((k + 0.5 - heads[n] + 180.0) % 360.0 - 180.0))
              for k in range(360)]
-    parts = [({}, [0.0] * 360) for _ in heads]
+    # Each lobe holds the headings nearer it than any other: one arc each,
+    # (first degree, one past the last), clockwise, wrapping through north.
+    arcs = [(next((k for k in range(360) if owner[k] == n and owner[k - 1] != n), 0),
+             next(((k + 1) % 360 for k in range(360) if owner[k] == n and owner[(k + 1) % 360] != n),
+                  360))
+            for n in range(len(heads))]
+    parts = [({}, [0.0] * 360, arc) for arc in arcs]
     for i, _ in band:
         h = hists.get(i)
         if not h:
             continue
         for k, v in enumerate(h):
             if v:
-                per_bin, dist = parts[owner[k]]
+                per_bin, dist, _ = parts[owner[k]]
                 per_bin[i] = per_bin.get(i, 0.0) + v
                 dist[k] += v
     return parts

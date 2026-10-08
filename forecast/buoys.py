@@ -107,7 +107,11 @@ def roses(data_dir: Path, moment: datetime) -> dict:
             spectra = []
         recent = [sp.with_spread("mem") for sp in spectra
                   if sp.time > moment - timedelta(hours=rose.WINDOW_HOURS)]
-        out[station] = rose.payload(recent, moment, 60.0 / len(marks))
+        # The newest spectrum's trains, as the reading above the rose lists
+        # them (the same `at_buoy` on the same spectrum), so a tapped row can
+        # light its period range in every frame.
+        trains = at_buoy(recent[-1]).trains if recent else None
+        out[station] = rose.payload(recent, moment, 60.0 / len(marks), trains)
     return out
 
 

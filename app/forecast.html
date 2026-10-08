@@ -195,6 +195,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    2026-10-05). */
 .train[data-train]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:4px}
 .train[data-train]:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* On the Buoys tab a row lights its period range on the rose (owner's
+   request, 2026-10-08); the lit row reads as pressed. */
+.train[data-rose-train]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:4px}
+.train[data-rose-train]:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.train[data-rose-train][aria-pressed="true"]{background:var(--paper);opacity:1}
 /* The break card's headline with its caret at the right end. The caret
    points up while the calculation is folded away and down once it is open
    beneath the line (owner's design, 2026-09-26). */
@@ -456,6 +461,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose-svg .pt{font-size:10px;fill:var(--faint)}
 .rose-svg .rp{fill:var(--ink);opacity:.85;stroke:var(--card);stroke-width:.75}
 .rose-svg .rb{stroke:var(--card);stroke-width:.75}
+/* A lit period range in ink over the whole rose, dimmed beneath it. */
+.rose-svg .dim{opacity:.3}
+.rose-svg .rt{fill:var(--ink);stroke:var(--card);stroke-width:.75}
 .rose-svg .rb0,.rose .legend .sw.rb0{fill:var(--line-strong);background:var(--line-strong)}
 .rose-svg .rb1,.rose .legend .sw.rb1{fill:var(--faint);background:var(--faint)}
 .rose-svg .rb2,.rose .legend .sw.rb2{fill:var(--soft);background:var(--soft)}
@@ -1167,14 +1175,18 @@ function cardsForForecast(step) {
 // One line per train, always (owner's calls, 2026-10-06 and -07). The row
 // carries every form of its heading (`trainForms`), the longest shown, and
 // `fitTrains` steps down to the first that fits the row once it is laid out.
-function trainList(trains, {limit = 4, drawn = () => false} = {}) {
+function trainList(trains, {limit = 4, drawn = () => false, rose = null} = {}) {
   if (!trains || !trains.length) return "";
   return `<div class="trains">` + trains.slice(0, limit).map((t, i) => {
     const tag = t.local ? "chop" : t.wind_sea ? "ws" : "";
     const forms = trainForms(t, !!tag);
+    // On the Buoys tab a row lights its period range on the rose below.
+    const onRose = rose && roseTrainOK(rose, i);
     return `
     <div class="train${i === 0 ? " lead" : ""}"${drawn(i)
-      ? ` data-train="${i}" tabindex="0" role="button" aria-label="Show this train on the drawing"` : ""}>
+      ? ` data-train="${i}" tabindex="0" role="button" aria-label="Show this train on the drawing"`
+      : onRose ? ` data-rose-train="${i}" data-rose-for="${rose}" tabindex="0" role="button"`
+        + ` aria-pressed="${ROSE_TRAIN[rose] === i}" aria-label="Show this period range on the rose"` : ""}>
       <span class="ht">${height(t.hs_m)}</span>
       <span class="tp">${t.period_s.toFixed(1)} s</span>
       <span class="dr">${forms.map((f, k) => `<span${k ? " hidden" : ""}>${f}</span>`).join("")}</span>
@@ -2015,11 +2027,11 @@ function buoyPanel(buoy, measured = null, station = null, named = false, rose = 
   if (!buoy || buoy.hs_m == null) {
     return head + '<span class="val"><span class="unit">no spectrum</span></span>' + rose + line;
   }
-  return head + buoyReading(buoy) + rose + line;
+  return head + buoyReading(buoy, rose && station ? station.id : null) + rose + line;
 }
 
-function buoyReading(buoy) {
-  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains)
+function buoyReading(buoy, roseFor = null) {
+  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor})
     : buoy.period_s ? `<div class="quiet">peak <b>${buoy.period_s.toFixed(1)} s</b>`
       + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
   return `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
@@ -2033,7 +2045,7 @@ const buoyLabel = (name, id) => (name && name !== id ? `${name} (${id})` : `NDBC
 // red past its measured worst or past the build's three hours.
 function contextBuoy(b) {
   const old = b.observed_utc && (b.stale || (ageHours(b.observed_utc) || 0) > (b.stale_hours || 3));
-  const reading = b.hs_m != null ? buoyReading(b)
+  const reading = b.hs_m != null ? buoyReading(b, b.station)
     : '<span class="val"><span class="unit">no spectrum</span></span>';
   return `<hr><span class="sublbl">${buoyLabel(b.station_name, b.station)}</span>${reading}`
     + roseBlock(b.station)
@@ -2077,8 +2089,32 @@ const ROSE_POINTS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","W
 // forecast.rose.PERIOD_EDGES_S, as the legend names them.
 const ROSE_BANDS = ["under 8 s", "8–11 s", "11–14 s", "14–17 s", "17 s +"];
 const ROSE = {c: 120, r: 92};
+// The train row tapped on each buoy's reading, by index into the newest
+// spectrum's trains (owner's request, 2026-10-08), or none. Its period range
+// is lit on that buoy's rose in every frame: the same range, not the same
+// swell, since nothing follows a train from one spectrum to the next.
+let ROSE_TRAIN = {};
 
 const roseOf = (station) => (BUOYS && BUOYS.roses && BUOYS.roses[station]) || null;
+
+// A row can light the rose only when the rose's trains were split from the
+// very spectrum the reading above it lists.
+function roseTrainOK(station, i) {
+  const rose = roseOf(station);
+  if (!rose || !rose.trains || !rose.trains[i]) return false;
+  const observed = NOW && station === NOW.station ? NOW.observed_utc
+    : (((BUOYS && BUOYS.buoys) || []).find((b) => b.station === station) || {}).observed_utc;
+  return !!observed && observed === rose.trains_from_utc;
+}
+const rosePick = (station) => (Number.isInteger(ROSE_TRAIN[station])
+  && roseTrainOK(station, ROSE_TRAIN[station]) ? ROSE_TRAIN[station] : null);
+// A train divided from a band of two directions (BRIEFING §40) shares its
+// period range with its twin, so its headings are part of the range.
+function roseRange(station, i) {
+  const t = roseOf(station).trains[i];
+  return `${t.period_lo_s.toFixed(1)}\u2013${t.period_hi_s.toFixed(1)} s`
+    + (t.from_lo_deg != null ? ` from ${t.from_lo_deg}\u2013${t.from_hi_deg}&deg;` : "");
+}
 const roseTime = (f) => new Date(f.time_utc).getTime();
 
 // The loop's span: the oldest frame to the newest, over every buoy.
@@ -2185,6 +2221,7 @@ function rosePlot(state, mode, station) {
 
   let petals = "";
   let said = "";
+  const pick = rosePick(station);
   if (state.frame) {
     const f = state.frame;
     if (mode === "height") {
@@ -2208,18 +2245,43 @@ function rosePlot(state, mode, station) {
         .sort((a, b) => b[0] - a[0]).slice(0, 3);
       said = `largest shares from ${sums.map(([s, i]) => `${ROSE_POINTS[i]} ${rosePct(s)}`).join(", ")}`;
     }
+    // A picked row's period range over the whole rose, dimmed beneath it.
+    const share = pick != null && f.train_share && f.train_share[pick];
+    if (share) {
+      const range = roseRange(station, pick);
+      const lit = share.map((s, i) => {
+        const v = mode === "height" ? f.hs_m * Math.sqrt(s) * FT_PER_M : s;
+        if (v < scale.max * 0.004) return "";
+        const what = mode === "height" ? heightText(f.hs_m * Math.sqrt(s)) : `${rosePct(s)} of the energy`;
+        return `<path class="rt" d="${rosePetal(i, 0, R * v / scale.max)}">`
+          + `<title>${ROSE_POINTS[i]}, ${range}: ${what}</title></path>`;
+      }).join("");
+      petals = `<g class="dim">${petals}</g>${lit}`;
+      said += `; ${range} lit`;
+    }
   }
   const when = state.frame ? clock(state.frame.time_utc) : "";
   const aria = state.frame ? `${mode === "height" ? "Height" : "Period"} rose at ${when}: ${said}`
     : state.note;
-  return `<svg class="rose-svg" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
+  return `<svg class="rose-svg${pick != null ? " picked" : ""}" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
     + grid + petals + marks + `</svg>`;
 }
 
-function roseReadout(state) {
+// With a row picked it names the period range, never "the train": in an
+// older frame that range may hold another swell.
+function roseReadout(state, station) {
   if (!state.frame) return `<span class="unit">${state.note}</span>`;
-  return `${clock(state.frame.time_utc)} <span class="unit">·</span> `
-    + `${height(state.frame.hs_m)} <span class="unit">combined</span>`;
+  const f = state.frame;
+  const k = rosePick(station);
+  const share = k != null && f.train_share && f.train_share[k];
+  if (share) {
+    const sum = share.reduce((a, b) => a + b, 0);
+    return `${clock(f.time_utc)} <span class="unit">·</span> ${roseRange(station, k)}: `
+      + (ROSE_MODE === "height" ? height(f.hs_m * Math.sqrt(sum))
+        : `${rosePct(sum)} <span class="unit">of the energy</span>`);
+  }
+  return `${clock(f.time_utc)} <span class="unit">·</span> `
+    + `${height(f.hs_m)} <span class="unit">combined</span>`;
 }
 
 // The six hours under the rose: a tick for every spectrum this buoy sent, so
@@ -2249,7 +2311,8 @@ function roseView(station) {
   if (!rose || !span) return null;
   const t = roseMoment(span);
   const state = roseAt(rose, t);
-  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}`, rose, span, t, state};
+  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}:${rosePick(station)}`,
+    rose, span, t, state, station};
 }
 
 const rosePercent = (v) => (v.span.t1 > v.span.t0
@@ -2269,7 +2332,7 @@ function roseBlock(station) {
     + ` aria-pressed="${m.id === ROSE_MODE}">${m.label}</button>`).join("");
   return `<div class="rose" data-rose="${station}" data-k="${v.key}">
     <div class="rose-head"><span class="ranges" role="group" aria-label="Which rose">${modes}</span></div>
-    <div class="readout" data-rose-live aria-live="off">${roseReadout(v.state)}</div>
+    <div class="readout" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
     <div class="rose-scale" data-rose-live>${roseScaleLine(ROSE_MODE, station)}</div>
     <div class="rose-time">${rosePlayButton()}
@@ -2288,7 +2351,7 @@ function roseUpdate(el) {
   if (!v) return;
   if (el.getAttribute("data-k") !== v.key) {
     el.setAttribute("data-k", v.key);
-    el.querySelector(".readout").innerHTML = roseReadout(v.state);
+    el.querySelector(".readout").innerHTML = roseReadout(v.state, el.getAttribute("data-rose"));
     el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE, el.getAttribute("data-rose"));
     el.querySelector(".rose-scale").innerHTML = roseScaleLine(ROSE_MODE, el.getAttribute("data-rose"));
     el.querySelector(".rose-line").setAttribute("aria-valuenow", rosePercent(v));
@@ -2333,9 +2396,27 @@ function roseSeek(phase) {
   document.querySelectorAll("[data-rose]").forEach(roseUpdate);
 }
 
+// Tap a row again, or another, to clear or move the light.
+function toggleRoseTrain(row) {
+  const station = row.getAttribute("data-rose-for");
+  const i = Number(row.getAttribute("data-rose-train"));
+  ROSE_TRAIN[station] = ROSE_TRAIN[station] === i ? null : i;
+  document.querySelectorAll(`[data-rose-for="${station}"]`).forEach((r) =>
+    r.setAttribute("aria-pressed", String(Number(r.getAttribute("data-rose-train")) === ROSE_TRAIN[station])));
+  document.querySelectorAll(`[data-rose="${station}"]`).forEach(roseUpdate);
+}
+
 function wireRoses() {
   const strip = $("conditions");
+  strip.addEventListener("keydown", (e) => {
+    const row = (e.key === "Enter" || e.key === " ") && e.target.closest("[data-rose-train]");
+    if (!row) return;
+    e.preventDefault();
+    toggleRoseTrain(row);
+  });
   strip.addEventListener("click", (e) => {
+    const row = e.target.closest("[data-rose-train]");
+    if (row) { toggleRoseTrain(row); return; }
     const mode = e.target.closest("[data-rose-mode]");
     if (mode) {
       ROSE_MODE = mode.getAttribute("data-rose-mode");
@@ -5137,6 +5218,12 @@ function refreshBuoys() {
       if (!got || !got.generated_utc || !got.buoys) return;
       if (BUOYS && got.generated_utc === BUOYS.generated_utc) return;
       const first = !BUOYS;
+      // New spectra mean new trains: a remembered row would light another.
+      const was = BUOYS && BUOYS.roses;
+      Object.keys(ROSE_TRAIN).forEach((st) => {
+        if (!was || !was[st] || !got.roses || !got.roses[st]
+            || was[st].trains_from_utc !== got.roses[st].trains_from_utc) ROSE_TRAIN[st] = null;
+      });
       BUOYS = got;
       if (MODE === "now") (first ? show() : showAndFlash());
     })

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import math
 from datetime import timedelta
 from pathlib import Path
@@ -100,7 +101,7 @@ class TestTheLoop:
         payload = buoys.build(data_dir=tmp_path, now=MOMENT)
         frame = payload["roses"]["46047"]["frames"][-1]
         assert frame["hs_m"] == pytest.approx(payload["buoys"][0]["hs_m"], abs=2e-3)
-        assert frame == rose.frame(sp.with_spread("mem"))
+        assert {k: v for k, v in frame.items() if k != "train_share"} == rose.frame(sp.with_spread("mem"))
 
     def test_it_carries_nothing_to_a_break(self):
         tree = ast.parse((ROOT / "forecast" / "rose.py").read_text())
@@ -211,3 +212,115 @@ class TestTheLoopsStart:
         assert got["a"]["frame"]["time_utc"] == "2026-10-07T14:00:00Z"
         # 46047's 13:50 frame is the one in force at 14:00, not dropped.
         assert got["b"]["frame"]["time_utc"] == "2026-10-07T13:50:00Z"
+
+
+class TestATrainsPetals:
+    """A tapped train lights its period range in every frame (owner's
+    request, 2026-10-08): the newest spectrum's trains, their ranges, and
+    each frame's share within them. Nothing follows a train between
+    spectra."""
+
+    def two_trains(self, at):
+        """A 15 s swell from 200° and a 4 s sea from 290°, summed."""
+
+        a = spectrum(at, peak_dir=200.0, tp=15.0, hs=1.2)
+        b = spectrum(at, peak_dir=290.0, tp=4.0, hs=0.8)
+        import math as m
+        c11 = [x + y for x, y in zip(a.c11, b.c11)]
+        a1 = [m.degrees(m.atan2(x * m.sin(m.radians(200)) + y * m.sin(m.radians(290)),
+                                x * m.cos(m.radians(200)) + y * m.cos(m.radians(290)))) % 360
+              for x, y in zip(a.c11, b.c11)]
+        from forecast.transform import Spectrum
+        return Spectrum(at, a.frequencies, c11, a1, a1, a.r1, a.r2)
+
+    def test_the_trains_are_the_readings_own_in_order(self, tmp_path):
+        write_many(tmp_path, "46047", [self.two_trains(MOMENT - timedelta(minutes=m))
+                                       for m in (70, 40, 10)])
+        payload = buoys.build(data_dir=tmp_path, now=MOMENT)
+        reading = payload["buoys"][0]
+        r = payload["roses"]["46047"]
+        assert r["trains_from_utc"] == reading["observed_utc"]
+        assert len(r["trains"]) == len(reading["trains"]) >= 2
+        newest = r["frames"][-1]
+        for t, share in zip(reading["trains"], newest["train_share"]):
+            # The range's energy in the newest frame IS the train.
+            assert newest["hs_m"] * math.sqrt(sum(share)) == pytest.approx(t["hs_m"], rel=0.01)
+        for t in r["trains"]:
+            assert t["period_lo_s"] < t["period_hi_s"]
+
+    def test_every_frame_carries_the_newest_trains_ranges(self, tmp_path):
+        write_many(tmp_path, "46047", [spectrum(MOMENT - timedelta(minutes=m)) for m in (130, 70, 10)])
+        r = buoys.build(data_dir=tmp_path, now=MOMENT)["roses"]["46047"]
+        assert all(len(f["train_share"]) == len(r["trains"]) for f in r["frames"])
+        assert all(len(row) == 16 for f in r["frames"] for row in f["train_share"])
+
+    def test_no_frames_no_trains(self, tmp_path):
+        write_spectrum(tmp_path, "46232", spectrum(MOMENT - timedelta(minutes=30)))
+        r = buoys.build(data_dir=tmp_path, now=MOMENT)["roses"]["46047"]
+        assert r["frames"] == [] and "trains" not in r
+
+    def test_a_trains_bins_are_not_its_identity(self):
+        from forecast.transform import Train
+
+        assert Train(1.0, 12.0, 200.0, 0.5, bins=(3, 4)) == Train(1.0, 12.0, 200.0, 0.5)
+
+    def test_the_page_names_the_range_not_the_train(self):
+        """In an older frame the range may hold another swell: the readout
+        says the period range, never "this train"."""
+
+        read = PAGE[PAGE.index("function roseReadout("):]
+        read = read[:read.index("\n}\n")]
+        assert "roseRange(station, k)" in read
+        shown = " ".join(re.findall(r"`[^`]*`", read)).lower()
+        assert "train" not in re.sub(r"\$\{[^}]*\}", "", shown)
+        assert 'data-rose-train="${i}"' in PAGE
+        assert 'aria-label="Show this period range on the rose"' in PAGE
+
+
+class TestADividedTrainsPetals:
+    """A band from two directions is two trains on one period range
+    (BRIEFING §40): each lights its own headings, not its twin's."""
+
+    def two_directions(self, at):
+        """A 14 s swell from 190° and another from 290°, both 12° wide:
+        moments summed, so maximum entropy reads two lobes in one band."""
+
+        from forecast.transform import Spectrum
+
+        base = spectrum(at, tp=14.0, hs=1.2)
+        sig = math.radians(12.0)
+        r1, r2 = math.exp(-sig * sig / 2), math.exp(-2 * sig * sig)
+        c11, a1, a2, R1, R2 = [], [], [], [], []
+        for e in base.c11:
+            parts = [(0.6 * e, 190.0), (0.4 * e, 290.0)]
+            tot = sum(p for p, _ in parts) or 1.0
+            m = [sum(p * r * f(k * math.radians(d)) for p, d in parts) / tot
+                 for k, r, f in ((1, r1, math.cos), (1, r1, math.sin), (2, r2, math.cos), (2, r2, math.sin))]
+            c11.append(e)
+            a1.append(math.degrees(math.atan2(m[1], m[0])) % 360)
+            a2.append((math.degrees(math.atan2(m[3], m[2])) / 2) % 360)
+            R1.append(math.hypot(m[0], m[1]))
+            R2.append(math.hypot(m[2], m[3]))
+        return Spectrum(at, base.frequencies, c11, a1, a2, R1, R2)
+
+    def test_each_lights_its_own_side_and_together_the_band(self, tmp_path):
+        write_many(tmp_path, "46047", [self.two_directions(MOMENT - timedelta(minutes=m))
+                                       for m in (70, 40, 10)])
+        payload = buoys.build(data_dir=tmp_path, now=MOMENT)
+        reading = payload["buoys"][0]
+        r = payload["roses"]["46047"]
+        divided = [k for k, t in enumerate(r["trains"]) if "from_lo_deg" in t]
+        assert len(divided) == 2, r["trains"]
+        a, b = (r["trains"][k] for k in divided)
+        assert (a["period_lo_s"], a["period_hi_s"]) == (b["period_lo_s"], b["period_hi_s"])
+        newest = r["frames"][-1]
+        for k in divided:
+            share = newest["train_share"][k]
+            # The lit petals ARE that train, and they sit on its own side.
+            assert newest["hs_m"] * math.sqrt(sum(share)) == pytest.approx(
+                reading["trains"][k]["hs_m"], rel=0.01)
+            lit = max(range(16), key=share.__getitem__)
+            assert abs((lit * 22.5 - reading["trains"][k]["from_deg"] + 180) % 360 - 180) <= 22.5
+        # Between them, nothing lit twice.
+        whole = [x + y for x, y in zip(*(newest["train_share"][k] for k in divided))]
+        assert sum(whole) <= 1.0 + 1e-3
