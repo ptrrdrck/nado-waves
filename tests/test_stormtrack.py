@@ -143,6 +143,30 @@ def test_live_names_a_storm_its_buoys_bore_out_and_places_it_from_its_track():
     assert "coronado_north" not in got[0]["sites"]
 
 
+def test_a_storm_names_the_card_train_from_its_side():
+    """Since BRIEFING §40 a band from two directions is two trains, both on
+    the storm's schedule: the storm names the one from its bearing, and card
+    order decides only when none is."""
+
+    fixes = storm(bearing=150.0)
+    positions = {"46232": HOME}
+    at = fixes[-1].time + timedelta(hours=60)
+    arriving = [f for f in FREQS if S.bands({"ep17": fixes}, positions)[0].contains(at, f)]
+    assert len(arriving) >= 2, "the test hour must have two periods arriving"
+    period, other = (round(1 / f, 1) for f in arriving[:2])
+    west = {"period_s": period, "from_deg": 262, "lobes": []}
+    south = {"period_s": other, "from_deg": 158, "lobes": []}
+    two = {"lobes": [[262, 0.6], [155, 0.4]], "period_s": period, "from_deg": 220}
+    named = lambda trains: S._sites(fixes, "ep17", at, positions, {"x": trains}, (), S.MIN_KT)
+    assert named([west, south])["x"]["train_period_s"] == other
+    assert not S._from_storm(west, named([west, south])["x"]["bearing_deg"])
+    # Either direction of a train that still holds two counts.
+    assert S._from_storm(two, 150.0)
+    # No train from its side: the first that fits, as before.
+    assert named([west])["x"]["train_period_s"] == period
+    assert named([{"period_s": period}])["x"]["train_period_s"] == period
+
+
 def test_live_names_nothing_its_buoys_did_not_bear_out():
     fixes = storm(bearing=150.0)
     sp, _ = spectra(fixes=fixes, signal_from=250.0)

@@ -26,8 +26,10 @@ bands.
 a rose are the NEWEST spectrum's, and nothing here follows a train from one
 spectrum to the next (its period, split and direction all move). So a tapped
 train is highlighted as its period range -- the frequency bins it holds in the
-newest spectrum -- and every frame carries each sector's share of the energy
-in that same range. Exact in every frame; in an older one the range may hold a
+newest spectrum, and for a train divided from a band of two directions
+(BRIEFING §40) the arc of headings it holds, so its twin on the same range
+lights the other side -- and every frame carries each sector's share of the
+energy in that same range. Exact in every frame; in an older one the range may hold a
 different swell, and the page names the range, never the train, there.
 
 Sector shapes are the maximum-entropy reading of four moments, not a
@@ -105,17 +107,48 @@ def energies(spectrum: Spectrum, *, step: float = STEP_DEG,
     return out
 
 
-def train_range(spectrum: Spectrum, train) -> tuple[float, float]:
-    """The frequency range (Hz, lowest and highest bin centre) a train holds
-    in the spectrum it was split from (`Train.bins`)."""
+def train_range(spectrum: Spectrum, train) -> tuple[float, float, tuple]:
+    """Where a train sits in the spectrum it was split from: the frequency
+    range (Hz, lowest and highest bin centre, `Train.bins`), and the headings
+    it holds (`Train.arc`, empty for all of them). A band from two directions
+    is two trains on one range since BRIEFING §40, told apart by their arcs."""
 
     freqs = [spectrum.frequencies[i] for i in train.bins]
-    return (min(freqs), max(freqs))
+    return (min(freqs), max(freqs), tuple(train.arc))
 
 
-def frame(spectrum: Spectrum, ranges: list[tuple[float, float]] | None = None) -> dict:
-    """One spectrum's rose, as the page draws it. With `ranges` (Hz), each
-    sector's share of the whole energy within each range, too."""
+def in_arc(theta: float, arc: tuple) -> bool:
+    """Is heading `theta` (deg FROM) inside `arc`, (first degree, one past the
+    last) clockwise? An empty arc holds every heading."""
+
+    if not arc:
+        return True
+    lo, hi = arc
+    return (int(theta) - lo) % 360 < ((hi - lo) % 360 or 360)
+
+
+def arc_energies(spectrum: Spectrum, index: int, arc: tuple, *,
+                 step: float = STEP_DEG) -> list[float]:
+    """One bin's energy in each sector, from the headings in `arc` only,
+    integrated as `bin_energies` integrates the whole circle."""
+
+    steps = max(int(round(360.0 / step)), 1)
+    d_theta = 360.0 / steps
+    width = spectrum.bin_width(index)
+    row = [0.0] * SECTORS
+    for n in range(steps):
+        theta = (n + 0.5) * d_theta
+        if in_arc(theta, arc):
+            energy = spectrum.density(index, theta) * math.radians(d_theta) * width
+            if energy > 0.0:
+                row[sector_of(theta)] += energy
+    return row
+
+
+def frame(spectrum: Spectrum, ranges: list[tuple] | None = None) -> dict:
+    """One spectrum's rose, as the page draws it. With `ranges` (Hz, and the
+    headings of a divided train), each sector's share of the whole energy
+    within each range, too."""
 
     per_bin = bin_energies(spectrum)
     grid = energies(spectrum, bins=per_bin)
@@ -131,8 +164,9 @@ def frame(spectrum: Spectrum, ranges: list[tuple[float, float]] | None = None) -
     }
     if ranges is not None:
         shares = []
-        for lo, hi in ranges:
-            inside = [row for i, row in per_bin.items()
+        for lo, hi, *arc in ranges:
+            arc = arc[0] if arc else ()
+            inside = [arc_energies(spectrum, i, arc) if arc else row for i, row in per_bin.items()
                       if lo - 1e-9 <= spectrum.frequencies[i] <= hi + 1e-9]
             shares.append([round(sum(row[k] for row in inside) / total, 4) if total > 0 else 0.0
                            for k in range(SECTORS)])
@@ -142,7 +176,7 @@ def frame(spectrum: Spectrum, ranges: list[tuple[float, float]] | None = None) -
 
 def frames(spectra: list[Spectrum], moment: datetime,
            hours: float = WINDOW_HOURS,
-           ranges: list[tuple[float, float]] | None = None) -> list[dict]:
+           ranges: list[tuple] | None = None) -> list[dict]:
     """A rose for every spectrum stamped in the `hours` up to `moment`, oldest
     first. Only what was measured: a missing stamp is a missing frame, never
     the one beside it."""
@@ -173,6 +207,7 @@ def payload(spectra: list[Spectrum], moment: datetime, interval_min: float,
     }
     if ranges:
         out["trains_from_utc"] = newest.time.strftime("%Y-%m-%dT%H:%M:%SZ")
-        out["trains"] = [{"period_lo_s": round(1.0 / hi, 1), "period_hi_s": round(1.0 / lo, 1)}
-                         for lo, hi in ranges]
+        out["trains"] = [{"period_lo_s": round(1.0 / hi, 1), "period_hi_s": round(1.0 / lo, 1),
+                          **({"from_lo_deg": arc[0], "from_hi_deg": arc[1] % 360} if arc else {})}
+                         for lo, hi, arc in ranges]
     return out

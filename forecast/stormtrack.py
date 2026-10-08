@@ -641,6 +641,13 @@ def misplaced(band: Band, days: float) -> Band:
 #: A card train is this storm's when its period sits within 1.5 bins of a
 #: frequency the band says is arriving now (Origin's own tolerance).
 TRAIN_MATCH_HZ = 0.0075
+
+#: How far a direction may sit from a storm's bearing and still be that
+#: storm's: the match's turned sectors sit 45° either side and count as
+#: somewhere else. Read by `originhistory` for Origin's arrivals, and here for
+#: which card train the storm names.
+SAME_SOURCE_DEG = 45.0
+
 #: Spectra loaded for the live match: the reference window behind the
 #: furthest trial, plus the longest band.
 LIVE_DAYS = REFERENCE_DAYS + MATCH_SHIFT_DAYS + 20
@@ -724,6 +731,7 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
     if here is None or not here.fixes:
         return sites
     for site, trains in trains_now.items():
+        found = []
         for train in trains or []:
             period = train.get("period_s")
             if not period or train.get("local") or train.get("wind_sea"):
@@ -743,17 +751,31 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
             if sent is None:
                 continue
             fix, d = sent
-            sites[site] = {
+            bearing = initial_bearing(positions[RIDGE_STATION], (fix.lat, fix.lon))
+            found.append((train, {
                 "train_period_s": period,
                 "fix_utc": fix.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "lat": fix.lat, "lon": fix.lon,
                 "distance_km": round(d),
-                "bearing_deg": round(initial_bearing(positions[RIDGE_STATION],
-                                                     (fix.lat, fix.lon))),
+                "bearing_deg": round(bearing),
                 "vmax_kt": fix.vmax_kt,
-            }
-            break
+            }))
+        # A band from two directions is two trains since BRIEFING §40, often a
+        # second apart and both on the storm's schedule: the storm's is the one
+        # from its side. Card order (the first that fits) only when none is.
+        if found:
+            sites[site] = next((hit for train, hit in found
+                                if _from_storm(train, hit["bearing_deg"])), found[0][1])
     return sites
+
+
+def _from_storm(train: dict, bearing: float) -> bool:
+    """Does this train come from within `SAME_SOURCE_DEG` of the storm's
+    bearing from the buoy? Either of its directions, when it holds two."""
+
+    heads = [h for h, _ in train.get("lobes") or []] or [train.get("from_deg")]
+    return any(h is not None and abs((h - bearing + 180.0) % 360.0 - 180.0) <= SAME_SOURCE_DEG
+               for h in heads)
 
 
 def _fmt(score: Score) -> str:

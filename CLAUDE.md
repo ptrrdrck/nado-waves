@@ -247,7 +247,7 @@ forecaster actually verifies against, Surfline included.
    **The buoy's tab reads "Buoys"** (owner's request, 2026-10-06; BRIEFING
    §39), on both chains, its id still `buoy`. On LIVE it holds 46232 and under
    it **46047, Tanner Banks**, built the same way — combined height, maximum-
-   entropy trains, two directions named by §38a's rule — with its own name,
+   entropy trains split by period then direction (§40) — with its own name,
    observed time, countdown and "Open ocean witness, not carried to any
    break." line (`forecast/buoys.py` → `buoys.json`, its own step in the
    collection). **Each buoy's provenance follows its own measurements**
@@ -259,7 +259,8 @@ forecaster actually verifies against, Surfline included.
    Its countdown is measured, not borrowed: stamped :20 and :50, 25 min
    typical and 85 worst, bracketed against the collection log on 148 stamps.
    Its opposed lobes (≥ 150° apart, 168 over the archive; 46232 has none) are
-   shown by the same rule: 46232 saw the southern one on 163 of 163.
+   real — 46232 saw the southern one on 163 of 163 — and since §40 each is
+   its own train.
    **Under each buoy's reading, a rose** (owner's request, 2026-10-06;
    `forecast/rose.py`, in `buoys.json` as `roses`): one per spectrum, the
    energy in sixteen 22.5° sectors, petals pointing FROM, integrated as
@@ -283,7 +284,9 @@ forecaster actually verifies against, Surfline included.
    pause is a symbol button left of the timeline. **A tapped train row lights
    its PERIOD RANGE on the rose** (owner's request, 2026-10-08): the bins
    that train holds in the newest spectrum (`Train.bins`, ignored by
-   equality), and each frame's share within them, in ink over the rose
+   equality) — and, for a train divided from a band of two directions
+   (§40), the headings it holds (`Train.arc`), since its twin shares the
+   range — and each frame's share within them, in ink over the rose
    dimmed; the readout names the range, never "the train", because nothing
    follows a train between spectra (owner's question, same day: Origin's
    ridges are the one tracker, and a later step could follow one). Only
@@ -462,7 +465,8 @@ forecaster actually verifies against, Surfline included.
    2 (both onto another swell from the same bearing: the test cannot tell two
    sources on one bearing apart). Backtest: Marie strong at both buoys, Polo
    partial (78% at best), Odalys partial (82%). On a break only when one of its
-   card trains is the one arriving. Placed and sized from NHC's fix that sent
+   card trains is the one arriving — of two (one band, two directions, §40),
+   the one within 45° of the storm's bearing. Placed and sized from NHC's fix that sent
    that train, rounded to 100, never from Origin's distance; it replaces
    Origin's reading of the same train. The b-decks are archived hourly by
    collect-beach-inputs.yml (their one writer). The directional sector is
@@ -786,6 +790,11 @@ forecaster actually verifies against, Surfline included.
       units.py          ft/mph first, m/kt in parentheses -- display only
       tideturns.py      the next high/low, and why its direction is not
                         differenced from the measured level      [built]
+      trainsplit.py     how a spectrum is split into trains: a synthetic
+                        control with a known answer (buoy noise, maximum
+                        entropy, as the chain reads it) and the archive,
+                        period-only vs 10° watershed vs shipped; reports,
+                        never edits (BRIEFING §40)                [built]
       nwbearing.py      46232's north-west bearing: the mean against its
                         lobes, the hull control, the Channel Islands' edges,
                         what the lobe carries into each break, shown train
@@ -1013,15 +1022,28 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   re-ordering happens on 23% of archived spectra, and on 2026-09-19T04:00Z the
   leader differed *between the three breaks* on one reading. Surfaces list the
   trains rather than collapsing them to one "dominant"
-  (`transform.split_trains`, BRIEFING §16). It is a peak split of the 1-D
-  spectrum, not a 2-D watershed, and must not be described as partitioning.
-  **A train fed from two directions names both** (owner's decision
-  2026-10-05, BRIEFING §38a): when two directions each hold ≥ 20% of it
-  (`Train.lobes`), the card reads "WSW 258° & S 180°" where the row has
-  room and "WSW & S" where it does not (below) — and the drawing draws
-  an arrow from each, because the mean sits between them — more than 20° from
-  every direction on 46% of South's trains and 23% of the buoy's. `from_deg`
-  stays the mean for every other use; no height reads either.
+  (`transform.split_trains`, BRIEFING §16). **Split by period, then by
+  direction** (owner's decision 2026-10-08, BRIEFING §40): period bands are
+  cut at dips in the energy smoothed [1, 2, 1], and a dip must clear the
+  buoy's own sampling noise — `PROMINENCE` is DERIVED, 1.5σ at
+  `BUOY_DOF` = 32 (matched to the archive's band-to-band jitter), 0.63;
+  the old raw 0.6 was a one-sigma dip and split a single clean swell in half
+  the synthetic trials. Then a band whose energy comes from two directions
+  of ≥ 20% each (`split_lobes`) is divided heading by heading, and each
+  direction is its own train with its own height and its own PEAK PERIOD:
+  until then it was one "A & B" row at one period, and the directions' own
+  peaks sat ≥ 1 s apart on 61% of those at 46232. **Except maximum
+  entropy's twin** (`mem_twin`): one swell 20–35° wide reads as two EQUAL
+  lobes 32–60° apart, which four moments cannot tell from two swells, so an
+  even pair (> 0.8) under 60° stays one train. It is NOT a full 2-D
+  watershed, and that was measured, not assumed: a fixed 10° watershed split
+  a single clean swell in 96% of synthetic trials. Nothing here can part
+  two swells of one period less than ~90° apart, or two from one direction
+  a few seconds apart when the smaller rides the bigger's tail. A train
+  that still holds two directions (0.3% of the buoy's) is labelled with
+  both (§38a), "WSW 258° & S 180°" where the row has room and "WSW & S"
+  where it does not (below), an arrow from each. `from_deg` is the mean of
+  the train's own energy; no height reads a direction.
   **A train is one line at every phone width, and keeps its degrees
   wherever they fit** (owner's calls, 2026-10-06 and -07): never a second
   line, never past the card, never shorter than the row needs. Each row

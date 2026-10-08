@@ -883,25 +883,35 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
 
     <section id="swell-trains">
       <h3>Swell trains</h3>
-      <p>The number is rarely one swell. The spectrum is split at its low points into separate
-        trains, each with its height, period and direction, and the local chop is listed as its
-        own train, tagged. The trains add up, in energy, to the number above them.</p>
+      <p>The number is rarely one swell. The spectrum is split into separate trains, each with
+        its height, period and direction, and the local chop is listed as its own train, tagged.
+        The trains add up, in energy, to the number above them.</p>
+      <p>The split happens in two steps. First by period: the energy is followed from long
+        periods to short, and cut wherever it dips between two peaks. A dip counts only if it is
+        deeper than the buoy's own sampling noise could make it, so a single swell is not cut in
+        two by the wobble between neighbouring bands. Then by direction: where one of those
+        pieces gets its energy from two directions, each carrying a fifth of it or more, it is
+        divided heading by heading, and each direction becomes its own train with its own
+        height, and its own period, read from its own energy. A south swell at 14 s and a
+        west-north-west swell at 12 s that share a stretch of periods are two lines, not one
+        line with two directions.</p>
       <p>The biggest train at the buoy need not be the biggest at a break, because the windows
         take whichever trains point at the blocked sectors. In the worked hour the buoy's lead
         was 11.8 s from 219°, and North's was 12.5 s from 206°.</p>
-      <p>A train's direction is where its energy comes from. When two directions each carry a fifth
-        of a train or more, both are given, &ldquo;WSW 258&deg; &amp; S 180&deg;&rdquo;, and the
-        drawing has an arrow from each: one direction there would be their average, which sits
-        between them where almost none of it comes from. Every train keeps to one line, and
-        each line gives as much as fits beside its height and period: the degrees when there
-        is room, the compass points alone (&ldquo;WSW &amp; S&rdquo;) when there is not, and on
-        the narrowest phones one point, the larger direction's. A train tagged &ldquo;wind
-        sea&rdquo; or &ldquo;local chop&rdquo; with two directions names them by point beside
-        its tag. It happens most at South, whose trains
-        often arrive through both the south window and the west one.</p>
-      <p class="see">The split is made on the spectrum by frequency, not on frequency and direction
-        together, so two swells of the same period from different directions read as one train
-        &mdash; with both its directions named.</p>
+      <p>What the buoy cannot tell apart, no split can. A buoy reports four numbers about
+        direction for each band, and from those one swell 20&deg; wide and two narrow swells
+        30&deg; apart look the same. Read by maximum entropy, a single swell 20&ndash;35&deg;
+        wide even comes back as two equal peaks 32&ndash;60&deg; apart. So two equal directions
+        closer than 60&deg; are kept as one swell. Two swells of the same period are told
+        apart only when they are far apart in direction, and two from the same direction only
+        when a real dip separates their periods.</p>
+      <p>Rarely, a single train still carries two directions it could not be divided by, and then
+        both are given, &ldquo;WSW 258&deg; &amp; S 180&deg;&rdquo;, with an arrow from each on the
+        drawing. Every train keeps to one line, giving as much as fits beside its height and
+        period: the degrees when there is room, the compass points alone when there is not.</p>
+      <p class="see">This replaced, on 8 October 2026, a split by period alone, which labelled a
+        quarter of swell trains with two directions at one period and one height &mdash; and
+        the two directions&rsquo; own peaks sat a second or more apart on most of them.</p>
     </section>
 
     <section id="swell-roses">
@@ -927,7 +937,9 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         grows from one frame to the next really grew. The two buoys' scales differ, so compare them
         by their rings, not by the size of the petals.</p>
       <p>Tap a swell train above a rose to light its period range on it: the frequencies that
-        train holds in the newest spectrum, in ink, over the whole rose dimmed. The light stays
+        train holds in the newest spectrum, in ink, over the whole rose dimmed. Where one band of
+        periods came from two directions and is listed as two trains, each lights its own side
+        of the rose, and the range names its directions too. The light stays
         through the loop, and the line above the rose names the range and what it holds in that
         frame. It is the same range in every frame, not the same swell: nothing follows a train
         from one spectrum to the next, so in an older frame the range may hold part of another.
@@ -1023,7 +1035,9 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         not a probability, and it says where a train came from, never how big it is.</p>
       <p>Under Origin, &ldquo;Hurricane&nbsp;&hellip;&rdquo; appears when the match is 50% or
         more, with a word: <b>strong</b> from 90%, <b>partial</b> from 70%, <b>weak</b> from
-        50%. It shows on a break only when one of that break's own trains is the one arriving.
+        50%. It shows on a break only when one of that break's own trains is the one arriving;
+        when two of them are, one period band from two directions, it names the one from the
+        storm's side.
         Where the storm was and how strong are NHC's, from the position that sent that train,
         rounded to 100 miles and 100 km, and the sources say so: a best track is an analysis,
         not a measurement.</p>

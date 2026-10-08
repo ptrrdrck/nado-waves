@@ -275,3 +275,52 @@ class TestATrainsPetals:
         assert "train" not in re.sub(r"\$\{[^}]*\}", "", shown)
         assert 'data-rose-train="${i}"' in PAGE
         assert 'aria-label="Show this period range on the rose"' in PAGE
+
+
+class TestADividedTrainsPetals:
+    """A band from two directions is two trains on one period range
+    (BRIEFING §40): each lights its own headings, not its twin's."""
+
+    def two_directions(self, at):
+        """A 14 s swell from 190° and another from 290°, both 12° wide:
+        moments summed, so maximum entropy reads two lobes in one band."""
+
+        from forecast.transform import Spectrum
+
+        base = spectrum(at, tp=14.0, hs=1.2)
+        sig = math.radians(12.0)
+        r1, r2 = math.exp(-sig * sig / 2), math.exp(-2 * sig * sig)
+        c11, a1, a2, R1, R2 = [], [], [], [], []
+        for e in base.c11:
+            parts = [(0.6 * e, 190.0), (0.4 * e, 290.0)]
+            tot = sum(p for p, _ in parts) or 1.0
+            m = [sum(p * r * f(k * math.radians(d)) for p, d in parts) / tot
+                 for k, r, f in ((1, r1, math.cos), (1, r1, math.sin), (2, r2, math.cos), (2, r2, math.sin))]
+            c11.append(e)
+            a1.append(math.degrees(math.atan2(m[1], m[0])) % 360)
+            a2.append((math.degrees(math.atan2(m[3], m[2])) / 2) % 360)
+            R1.append(math.hypot(m[0], m[1]))
+            R2.append(math.hypot(m[2], m[3]))
+        return Spectrum(at, base.frequencies, c11, a1, a2, R1, R2)
+
+    def test_each_lights_its_own_side_and_together_the_band(self, tmp_path):
+        write_many(tmp_path, "46047", [self.two_directions(MOMENT - timedelta(minutes=m))
+                                       for m in (70, 40, 10)])
+        payload = buoys.build(data_dir=tmp_path, now=MOMENT)
+        reading = payload["buoys"][0]
+        r = payload["roses"]["46047"]
+        divided = [k for k, t in enumerate(r["trains"]) if "from_lo_deg" in t]
+        assert len(divided) == 2, r["trains"]
+        a, b = (r["trains"][k] for k in divided)
+        assert (a["period_lo_s"], a["period_hi_s"]) == (b["period_lo_s"], b["period_hi_s"])
+        newest = r["frames"][-1]
+        for k in divided:
+            share = newest["train_share"][k]
+            # The lit petals ARE that train, and they sit on its own side.
+            assert newest["hs_m"] * math.sqrt(sum(share)) == pytest.approx(
+                reading["trains"][k]["hs_m"], rel=0.01)
+            lit = max(range(16), key=share.__getitem__)
+            assert abs((lit * 22.5 - reading["trains"][k]["from_deg"] + 180) % 360 - 180) <= 22.5
+        # Between them, nothing lit twice.
+        whole = [x + y for x, y in zip(*(newest["train_share"][k] for k in divided))]
+        assert sum(whole) <= 1.0 + 1e-3

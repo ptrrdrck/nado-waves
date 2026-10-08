@@ -840,7 +840,7 @@ class TestItMatchesTheLiveOutput:
         known |= {"peak_period_s", "peak_direction_deg", "frequency_bins"}  # buoy
         known |= {"age_hours", "observed_utc", "trains", "height_m", "kind"}
         known |= {"detail"}  # `past` entries: forecastlog.past_hours
-        known |= {"period_lo_s", "period_hi_s"}  # a rose's train ranges: forecast.rose.payload
+        known |= {"period_lo_s", "period_hi_s", "from_lo_deg", "from_hi_deg"}  # a rose's train ranges: forecast.rose.payload
 
         for accessor in re.findall(r"\b(?:hour|entry|data|t|spread)\.([a-z_]{3,})\b", SOURCE):
             if accessor in {"map", "filter", "find", "join", "length", "split",

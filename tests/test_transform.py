@@ -447,7 +447,12 @@ class TestTrainDirections:
                 out[k] += weight * math.exp(-0.5 * (d / width) ** 2)
         return out
 
-    def test_two_sources_give_two_directions_and_the_mean_between(self):
+    def test_two_sources_become_two_trains_each_with_its_own_direction(self):
+        """BRIEFING §40 (owner's decision, 2026-10-08): a band fed from two
+        directions is divided by direction, heading by heading, so each
+        direction is its own train with its own height. Until then it was one
+        train labelled "A & B" at the mean, one period, one height."""
+
         from forecast.transform import split_trains
 
         h = self.hist((180, 8, 0.4), (260, 8, 0.6))
@@ -456,10 +461,55 @@ class TestTrainDirections:
         sins = {i: sum(v * math.sin(math.radians(k + 0.5)) for k, v in enumerate(h)) * e for i, e in energies}
         coss = {i: sum(v * math.cos(math.radians(k + 0.5)) for k, v in enumerate(h)) * e for i, e in energies}
         hists = {i: [v * e for v in h] for i, e in energies}
-        (train,) = split_trains(energies, freqs, sins, coss, hists=hists)
-        assert [round(d) for d, _ in train.lobes] == [260, 180]
-        assert 200 < train.from_deg < 240           # the mean, between the two
-        assert train.lobes[0][1] >= 0.2 and train.lobes[1][1] >= 0.2
+        trains = split_trains(energies, freqs, sins, coss, hists=hists)
+        assert [round(t.from_deg) for t in trains] == [260, 180]   # largest first
+        assert all(t.lobes == () for t in trains)
+        # energy is conserved: the two trains add up to the band in energy
+        total = sum(sum(h_) for h_ in hists.values())
+        assert sum((t.hs_m / 4) ** 2 for t in trains) == pytest.approx(total, rel=1e-9)
+        assert (trains[0].hs_m / trains[1].hs_m) ** 2 == pytest.approx(0.6 / 0.4, rel=0.02)
+
+    def test_each_direction_reads_its_own_period(self):
+        """The question that started §40: were both directions really at
+        the printed period? Here the 180° swell peaks in the long bin and the
+        260° one in the short bin, so each train says so."""
+
+        from forecast.transform import split_trains
+
+        south, west = self.hist((180, 8, 1.0)), self.hist((260, 8, 1.0))
+        mix = {0: (0.9, 0.1), 1: (0.5, 0.5), 2: (0.1, 0.9)}
+        hists = {i: [a * x + b * y for x, y in zip(south, west)] for i, (a, b) in mix.items()}
+        energies = [(i, sum(h)) for i, h in hists.items()]
+        trains = split_trains(energies, [0.065, 0.07, 0.075], {i: 0 for i in hists}, {i: 0 for i in hists},
+                              hists=hists)
+        by_dir = {round(t.from_deg / 10) * 10: t for t in trains}
+        assert by_dir[180].period_s == pytest.approx(1 / 0.065)
+        assert by_dir[260].period_s == pytest.approx(1 / 0.075)
+
+    def test_one_swells_maximum_entropy_twin_stays_one_swell(self):
+        """MEM reads ONE swell 20° wide as two equal lobes ~32° apart; from
+        four moments that cannot be told from two swells, so it stays one
+        train and names one direction (`mem_twin`)."""
+
+        from forecast.spreadmethod import mem
+        from forecast.transform import split_trains
+
+        s = math.radians(20)
+        h = list(mem(math.exp(-s * s / 2), math.exp(-2 * s * s), 300.0, 300.0))
+        (train,) = split_trains([(0, sum(h))], [0.07], {0: 0.0}, {0: 0.0}, hists={0: h})
+        assert train.lobes == ()
+
+    def test_an_uneven_pair_as_close_is_two_swells(self):
+        """The twin is symmetric by construction; a 70/30 pair 50° apart,
+        inside the twin's 60°, is not one swell's artifact, so it is divided."""
+
+        from forecast.transform import split_trains
+
+        h = self.hist((250, 6, 0.7), (300, 6, 0.3))
+        trains = split_trains([(0, sum(h))], [0.07], {0: 0.0}, {0: 0.0}, hists={0: h})
+        assert sorted(round(t.from_deg) for t in trains) == [250, 300]
+        even = self.hist((250, 6, 0.5), (300, 6, 0.5))
+        (one,) = split_trains([(0, sum(even))], [0.07], {0: 0.0}, {0: 0.0}, hists={0: even})
 
     def test_one_source_carries_no_directions(self):
         from forecast.transform import split_trains
@@ -489,3 +539,32 @@ class TestTrainDirections:
                   lobes=((258.4, 0.481), (180.5, 0.276)))
         assert lobes_payload(t) == [[258, 0.48], [180, 0.28]]
         assert lobes_payload(Train(hs_m=1.0, period_s=14.3, from_deg=200.0, share=1.0)) == []
+
+
+class TestTheBandRuleIsTheNoise:
+    """BRIEFING §40: a dip between two peaks must clear the buoy's own sampling
+    noise. Read raw, one band's energy is ±25% at 32 dof, and a single swell
+    split along period in half the synthetic trials."""
+
+    def test_the_dip_rule_is_derived_not_chosen(self):
+        from forecast import transform as T
+
+        s = math.sqrt(2 / (T.BUOY_DOF * 16 / 6))
+        assert T.PROMINENCE == pytest.approx((1 - T.DIP_SIGMAS * s) / (1 + T.DIP_SIGMAS * s))
+        assert round(T.PROMINENCE, 2) == 0.63
+
+    def test_band_to_band_noise_does_not_split_a_swell(self):
+        from forecast.transform import train_bands
+
+        hump = [math.exp(-0.5 * ((k - 10) / 3) ** 2) for k in range(21)]
+        noisy = [(k, v * (1.25 if k % 2 else 0.8)) for k, v in enumerate(hump)]
+        assert len(train_bands(noisy)) == 1
+
+    def test_a_real_dip_still_splits(self):
+        from forecast.transform import train_bands
+
+        two = [(k, math.exp(-0.5 * ((k - 6) / 2) ** 2) + 0.8 * math.exp(-0.5 * ((k - 18) / 2) ** 2))
+               for k in range(25)]
+        bands = train_bands(two)
+        assert len(bands) == 2
+        assert sum(len(b) for b in bands) == 25          # every bin in exactly one band

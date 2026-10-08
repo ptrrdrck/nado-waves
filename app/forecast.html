@@ -2108,9 +2108,12 @@ function roseTrainOK(station, i) {
 }
 const rosePick = (station) => (Number.isInteger(ROSE_TRAIN[station])
   && roseTrainOK(station, ROSE_TRAIN[station]) ? ROSE_TRAIN[station] : null);
+// A train divided from a band of two directions (BRIEFING §40) shares its
+// period range with its twin, so its headings are part of the range.
 function roseRange(station, i) {
   const t = roseOf(station).trains[i];
-  return `${t.period_lo_s.toFixed(1)}\u2013${t.period_hi_s.toFixed(1)} s`;
+  return `${t.period_lo_s.toFixed(1)}\u2013${t.period_hi_s.toFixed(1)} s`
+    + (t.from_lo_deg != null ? ` from ${t.from_lo_deg}\u2013${t.from_hi_deg}&deg;` : "");
 }
 const roseTime = (f) => new Date(f.time_utc).getTime();
 
