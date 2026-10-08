@@ -941,6 +941,11 @@ class Train:
     #: train fed by two sources actually comes from. `from_deg` is then their
     #: mean, which sits between them (BRIEFING §38). Empty for one direction.
     lobes: tuple = ()
+    #: The frequency-bin indices of the spectrum this train was split from --
+    #: its band, for a surface that asks where in that spectrum it sits
+    #: (`forecast.rose`, the Buoys tab's highlight). Not part of the train's
+    #: identity: equality and repr ignore it.
+    bins: tuple = field(default=(), compare=False, repr=False)
 
     @property
     def is_wind_sea(self) -> bool:
@@ -1119,6 +1124,7 @@ def split_trains(
             from_deg=heading,
             share=m0 / total,
             lobes=split,
+            bins=tuple(i for i, _ in band),
         ))
 
     trains = [t for t in trains if t.share >= min_share and t.hs_m >= min_hs]
