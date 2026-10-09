@@ -272,6 +272,22 @@ class TestThePills:
         panel = _fn("buoyPanel")
         assert "named && station && !pill" in panel
         assert "valWithPill(" in _fn("buoyReading")
+
+    def test_the_combined_height_sits_in_a_break_headlines_row(self):
+        """Owner's request, 2026-10-09: the buoys' combined height sat about
+        1 px above a break's breaking height. Both now sit in one row rule,
+        centred in at least the caret's 24 px footprint, so they land alike
+        in any engine -- and the buoys' row is never `.val-row`, whose tap
+        folds a break's calculation."""
+
+        css = PAGE[:PAGE.index("</style>")]
+        rule = css[css.index(".val-row,.val-line{"):]
+        rule = rule[:rule.index("}")]
+        assert "display:flex;align-items:center" in rule and "min-height:24px" in rule
+        assert "width:32px;height:32px;margin:-4px -6px -4px 0;" in css   # 32 - 4 - 4 = 24
+        assert 'const valWithPill = (val, pill = "") => `<div class="val-line">${val}${pill}</div>`;' in PAGE
+        for name in ("buoyReading", "buoyPanel", "contextBuoy"):
+            assert 'class="val-row"' not in _fn(name)
         # The Forecast chain's buoy is a model at 46232: no feed, no dot.
         assert PAGE.count("buoyPill: anchorPill(") == 1
 
