@@ -87,7 +87,7 @@ Built from the GFS-Wave model run by NOAA (WAVEWATCH III), read at the buoy's po
 
 ### [chains-apart] Why they are never mixed
 
-So that you always know which chain a number belongs to. A forecast hour that has gone by gets a red line under it that comes from the measured chain, and that line is labelled “Observed at” with its hour, never blended into the forecast figure above it. [The red line](#time-observed).
+So that you always know which chain a number belongs to. A forecast hour that has gone by gets a blue line under it that comes from the measured chain, and that line is labelled “Observed at” with its hour, never blended into the forecast figure above it. [The blue line](#time-observed).
 
 A refresh keeps the tab you chose. A new visit always opens on “LIVE”.
 
@@ -569,9 +569,9 @@ On the Forecast tab, the arrows step through the hours three at a time, and tapp
 
 The Forecast tab reaches 48 hours back. For each hour that has gone by, the forecast figure is what this page showed for that hour: the newest run that had been published before it, which is not always the run on screen now. A past hour is drawn as it was published, with the drawing and the calculation, from that build's own record. When an older build kept only the headline, the card says “The calculation for this hour was not kept” rather than borrowing another build's detail.
 
-### [time-observed] The red “Observed at” line
+### [time-observed] The blue “Observed at” line
 
-The red line under it is what buoy 46232 measured at that hour, carried in by the same chain the “LIVE” tab uses: the same windows, seabed and surf zone, with the airfield's wind and the gauge's water level from that hour. It is labelled “Observed at 8:00 AM” with its hour, and the tide's reads “Measured at”. An hour with no buoy spectrum is shown as a gap. It is never filled from the hour beside it, and the newest hour reads “not in yet” until a later spectrum has passed it.
+The blue line under it is what buoy 46232 measured at that hour, carried in by the same chain the “LIVE” tab uses: the same windows, seabed and surf zone, with the airfield's wind and the gauge's water level from that hour. It is labelled “Observed at 8:00 AM” with its hour, and the tide's reads “Measured at”. The airfield's wind sits under the Local forecast, the forecast for the same sand, not under GFS-Wave's wind at the buoy. An hour with no buoy spectrum is shown as a gap. It is never filled from the hour beside it, and the newest hour reads “not in yet” until a later spectrum has passed it.
 
 Because both figures go through the same physics, the difference between them is the model's error at the buoy, carried in. It does not check the beach. Nothing has been fitted from it, and no difference or percentage is put on screen, because that would be a claim about the forecast without a verification series behind it.
 
@@ -594,7 +594,7 @@ Buoy 46232's own spectrum at every hour, carried in by the same chain as the rea
 An hour with no buoy spectrum is a gap: a pale band with no line through it, at every zoom, never filled from the hour beside it. A break has no breaking height for an hour whose water level was not measured, which is every hour before 17 September 2026. Each tab draws its own line, in ink; only Height draws anything beside it.
 
 - **Height**
-  The break's breaking height, with the other two breaks' in lighter lines under it, the more southern of the two dashed, so the three can be compared at a glance on one axis. On the buoy's tab, the buoy's own height alone.
+  The break's breaking height, with the other two breaks' in lighter lines under it, the more southern of the two dashed, so the three can be compared at a glance on one axis. On the buoy's tab, the buoy's own height, and under it in a lighter line buoy 46047's, Tanner Banks, at its own readings: it measures at :20 and :50 past the hour, so each is drawn where it was taken and read out with its own time, never moved onto 46232's hour. A missing reading is a gap in its line. It is the open ocean before the Channel Islands and is carried to no break.
 - **Window**
   A break's height through its windows as a share of the buoy's, before the seabed: the [Windows row](#calc-windows). Under it, a dot for each hour marks where the buoy's peak came from, over the break's open windows shaded. The share is the whole spectrum through the windows, so it moves with how widely the swell is spread as well as with where its peak sits. A dot is never “inside” or “outside”: a single bearing tested against a window is the yes-or-no the model refuses.
 - **Origins**
@@ -624,26 +624,26 @@ Night, from sunset to sunrise at the center break, is shaded behind the tide on 
 Drawn from the model, every 3 hours, from 48 hours back to the end of the run. They open on three days with the present a quarter of the way in. A break's line is its breaking height only; an hour whose figure was at 5 m of water, or that no run covered, is a gap.
 
 - **Forecast + Observed**
-  The newest GFS-Wave run's line over what each of the last eight runs said for the same hours, as the page showed them, and beside the hours that have passed, buoy 46232 carried in by the same chain, in red. Where the run lines bunch, the runs agree; where they fan out, the model has been changing its mind. Runs agreeing is not the same as being right, and the spread between them is not a range the swell will fall in.
+  The newest GFS-Wave run's line over what each of the last eight runs said for the same hours, as the page showed them, and beside the hours that have passed, buoy 46232 carried in by the same chain, in blue. Where the run lines bunch, the runs agree; where they fan out, the model has been changing its mind. Runs agreeing is not the same as being right, and the spread between them is not a range the swell will fall in.
 - **Swell trains**
   Each train the chain carries in, a dot at its period, larger for a bigger train, with the heading it comes from under it. A new swell arrives long-period first, so it shows as dots stepping down in period. Trains are split hour by hour, so a dot is not the same train as the one beside it, and they are kept only for the runs whose hours were kept in full.
 - **North vs. South**
   North's forecast breaking height less South's.
 - **Ensemble**
-  On the buoy's tab only. GEFS-Wave is the same wave model run 31 times from slightly different weather. The dashed line is the mean of its members at the buoy and the shading one standard deviation either side, beside the newest GFS-Wave run and the red line. It is total height at the buoy with no direction, so it cannot be carried through a break's windows and says nothing about the beach. The chart states how often buoy 46232 has fallen inside the shading, per lead time, over which dates and how many hours. So far that is far less often than a range that size would imply, because the members agree with each other more closely than any of them agrees with the sea, and their mean runs above the buoy. Nothing has been removed from it or added to it to make it look better.
+  On the buoy's tab only. GEFS-Wave is the same wave model run 31 times from slightly different weather. The dashed line is the mean of its members at the buoy and the shading one standard deviation either side, beside the newest GFS-Wave run and the blue line. It is total height at the buoy with no direction, so it cannot be carried through a break's windows and says nothing about the beach. The chart states how often buoy 46232 has fallen inside the shading, per lead time, over which dates and how many hours. So far that is far less often than a range that size would imply, because the members agree with each other more closely than any of them agrees with the sea, and their mean runs above the buoy. Nothing has been removed from it or added to it to make it look better.
 
-Only the Ensemble view carries a band, and only beside how often the buoy it is drawn for has fallen inside it. No chart shows a difference between the forecast and the red line.
+Only the Ensemble view carries a band, and only beside how often the buoy it is drawn for has fallen inside it. No chart shows a difference between the forecast and the blue line.
 
 ### [charts-fc-wt] Forecast: the Wind and Tide charts
 
 Hourly, over the same reach.
 
 - **Wind**
-  The National Weather Service's forecast wind at Coronado (the card's Local wind), with a dot for any gust and its direction under it. Beside the hours that have passed, the airfield's measured wind in red. In grey, GFS-Wave's own wind at the buoy, the one the model makes its wind sea from: hourly to five days and every third hour after, joined across the hours it does not give, never across a measured gap.
+  The National Weather Service's forecast wind at Coronado (the card's Local wind), with a dot for any gust and its direction under it. Beside the hours that have passed, the airfield's measured wind in blue. In grey, GFS-Wave's own wind at the buoy, the one the model makes its wind sea from: hourly to five days and every third hour after, joined across the hours it does not give, never across a measured gap.
 - **Shore direction**
   The local forecast's wind at the break whose tab is open, one row a day and one square an hour, so which mornings are offshore reads straight off it. An hour the forecast does not cover is an empty square.
 - **Tide**
-  The harmonic tide at the open coast with the measured departure added, as the card's is, and the gauge's measured level in red beside the hours that have passed.
+  The harmonic tide at the open coast with the measured departure added, as the card's is, and the gauge's measured level in blue beside the hours that have passed.
 - **Daily range**
   Each day's biggest swing between one predicted high or low and the next, starting that day: long bars are spring tides, short ones neaps. Measured between consecutive turns, never as the day's highest high less its lowest low, which would drop a low that crossed midnight and draw a neap that is not there.
 
@@ -655,7 +655,7 @@ The Shore direction “how often” bars and the Departure view are the “LIVE�
 
 | Source | What | Feeds |
 |---|---|---|
-| NDBC buoy 46232, Point Loma South | Hourly directional spectrum, 64 bands; position from NDBC's metadata | “LIVE” swell and its Origin, every chart's buoy line, the red line |
+| NDBC buoy 46232, Point Loma South | Hourly directional spectrum, 64 bands; position from NDBC's metadata | “LIVE” swell and its Origin, every chart's buoy line, the blue line |
 | NDBC buoys 46047 and 46086, Tanner Banks and San Clemente Basin | Hourly directional spectra | Origin's direction (46047), the hurricane match (both) |
 | KNZY, NAS North Island | Hourly airfield report (METAR) | “LIVE” wind, local chop, Shore direction |
 | NOAA tide gauge 9410170, San Diego | 6-minute measured level, hourly prediction, predicted highs and lows | Tide card, breaking depth, departure |

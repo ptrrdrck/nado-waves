@@ -326,8 +326,16 @@ forecaster actually verifies against, Surfline included.
    no site blue on the chord, the break, the swell or a picked window.
    Reduced motion opens paused on the newest. LIVE
    only; carried to no break. The
-   Forecast tab's Buoys tab holds 46232 alone. A 46047 line on the Height
-   chart is the next step, not built.
+   Forecast tab's Buoys tab holds 46232 alone. **46047 is on the LIVE Buoys
+   tab's Height chart** (owner's request, 2026-10-09), a lighter line under
+   46232's at its OWN :20 / :50 stamps — never moved onto 46232's hour, a
+   stamp > 45 min from the last a gap, the readout naming its own time —
+   from `buoys.json`'s `heights` (the week) and `buoys_all.json` (every
+   archived stamp, fetched with series_all.json). Its height is
+   `transform.combined_hs`: `at_buoy`'s m0 to rounding (a test pins it)
+   without the trains, MEM's bins summing to one by its pole test alone
+   (`spreadmethod.realisable`) — 0.7 s for two months, where `at_buoy` took
+   ~90.
    **The Forecast tab reaches 48 h back** (owner's decision, 2026-09-26). For a
    past hour it shows what the page showed then: the newest run published
    before that hour, from `forecast.json`'s `past`, read back from the
@@ -335,7 +343,7 @@ forecaster actually verifies against, Surfline included.
    from that build's own hour as it was published (`46232_shown/`). A past
    hour whose build kept only a headline says "The calculation for this hour
    was not kept" rather than borrowing another build's detail. Under it, in
-   red, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
+   blue, is the measured chain rebuilt for that hour (`measured.json`). It opens on the first hour not yet passed, never
    one that has. **Under each Now card are the hourly charts** (owner's
    requests, 2026-09-27; `forecast/series.py`), in the owner's order
    (2026-10-05): Height, Window (ratio), **Origins** (owner's request, 2026-10-03;
@@ -376,7 +384,7 @@ forecaster actually verifies against, Surfline included.
    "Forecast & observed" into the runs view): *Forecast + Observed* (the
    newest GFS-Wave run over the last eight runs' lines from
    `forecast.json`'s `runs`, `forecastlog.recent_runs`, with 46232 carried
-   in beside the passed hours in red), *Swell trains*
+   in beside the passed hours in blue), *Swell trains*
    (a dot per train at its period, sized by height, with a direction strip
    over the break's windows) and *North vs. South*; and on the buoy's tab
    only, *Ensemble* (below, build order 5). **Only the Ensemble view carries
@@ -393,7 +401,7 @@ forecaster actually verifies against, Surfline included.
    plus the tide's next 24 h of harmonic prediction with the departure,
    dashed, the tab's one modelled line beside its one modelled number. On
    Forecast, `forecast.json`'s `hourly` (the NWS local wind, and the card's
-   tide) to the run's end, the measured hours in red, and GFS-Wave's own
+   tide) to the run's end, the measured hours in blue, and GFS-Wave's own
    buoy wind in grey (owner's request, same day) — hourly to +120 h and
    3-hourly after, so its line `bridge`s the model's own spacing, never a
    measured gap. Read from the archives, not rebuilt: today's chain cannot
@@ -1194,12 +1202,14 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   forecast carries the last 3 days' measured departure forward — and computes
   no breaking at all without one.
 - **The line under a past forecast hour says when it was observed, never
-  "what happened".** Red, in a 1 px outline at the card's radius, and
+  "what happened".** Blue, in a 1 px outline at the card's radius, and
   labelled "Observed at 8:00 AM" (the tide's "Measured at 8:00 AM") — owner's
   wording and style, 2026-09-27. Every measured element on the Forecast tab is
-  `--measured`: pure red, #E00000 light / #FF4545 dark (owner's call,
-  2026-10-02, replacing sea green; #FF0000 itself fails 4.5:1 for text on
-  both cards). Where it comes from is said on `docs.html`:
+  `--measured`: the selected tab's blue, `var(--surf)`, on both themes
+  (owner's call, 2026-10-09, after red from 2026-10-02 and sea green before;
+  5.4:1 light, 7.0:1 dark), so the Ensemble's mean and band went grey. Under
+  a past hour KNZY's observed wind sits under the Local forecast, not under
+  GFS-Wave's wind at the buoy (same day): both are the wind on the sand. Where it comes from is said on `docs.html`:
   46232's spectrum at that hour, through identical windows, seabed and surf
   zone, so its difference from the forecast is the MODEL's error at the buoy,
   carried in, with any physics error cancelled out. It checks nothing at the

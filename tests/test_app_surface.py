@@ -1637,12 +1637,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert SOURCE.count("fetch(fresh(SERIES_ALL_SOURCE)") == 2   # asked for + hourly
         assert SOURCE.count("fetch(fresh(WINDTIDE_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(ORIGINS_SOURCE)") == 1     # boot and hourly, one function
+        assert SOURCE.count("fetch(fresh(BUOYS_ALL_SOURCE)") == 1   # with series_all, once
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 14
+        assert SOURCE.count('{cache: "no-store"}') == 15
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -1961,6 +1962,7 @@ class TestTheWeekChart:
             "const srcLines = () => ''; const remember = () => {}; const KEEP = {};\n"
             "const $ = () => null; let SHOWN = 0; const show = () => { SHOWN += 1; };\n"
             "const fresh = (u) => u; const SERIES_ALL_SOURCE = 'series_all.json';\n"
+            "const BUOYS_ALL_SOURCE = 'buoys_all.json'; let BUOYS = null, BUOYS_ALL = null;\n"
             "let FETCHED = []; globalThis.fetch = (u) => { FETCHED.push(u);"
             " return new Promise(() => {}); };\n"
             "let SERIES = null, SERIES_ALL = null, NOW = null;\n"
@@ -2060,14 +2062,15 @@ class TestTheWeekChart:
             "console.log(v.v1 - v.v0);\n"
             "console.log(FETCHED.length);\n"
             "setChartView(SERIES.steps, -50, 150);\n"
-            "console.log(FETCHED.length, ALL_STATE);\n"
+            "console.log(FETCHED.filter((u) => u === SERIES_ALL_SOURCE).length, ALL_STATE,"
+            " FETCHED.filter((u) => u === BUOYS_ALL_SOURCE).length);\n"
             "v = chartView(SERIES.steps); console.log(v.v0 >= 0, v.v1 <= 190);\n"
             "console.log(chartNote(SERIES.steps));"
         )
         assert got[0] == "24 190"                 # owner's default, 2026-09-27
         assert got[1] == "12"                     # never narrower than 12 hours
         assert got[2] == "0"                      # nothing fetched inside the week
-        assert got[3] == "1 loading"              # past its left edge asks once
+        assert got[3] == "1 loading 1"            # past its left edge asks once, 46047's too
         assert got[4] == "true true"              # but only draws what is loaded
         assert "Loading earlier hours" in got[5]
 
@@ -2193,6 +2196,29 @@ class TestTheWeekChart:
         )
         assert got == ["height main:1.2/1.2", "height main:1/1.3", "window main:0.7/0.7",
                        "diff main:-0.1/-0.1", "range slow:20/20,main:40/40"]
+
+    def test_the_buoys_tab_draws_46047_at_its_own_stamps(self):
+        """Owner's request, 2026-10-09: 46047 on the LIVE Buoys tab's Height
+        chart. Its :20 and :50 readings sit where they were taken, a missing
+        stamp breaks its line, and the readout names its own time."""
+
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 6)};\n"
+            "const clock = (iso) => iso.slice(11, 16);\n"
+            "BUOYS = {generated_utc: 'b', heights: {'46047': {start_utc: '2026-09-19T23:50:00Z',"
+            " t_min: [0, 30, 60, 150, 180], hs_m: [1.5, 1.6, 1.7, 2.0, 2.1]}}};\n"
+            "const spec = chartSpec('buoy', 'height');\n"
+            "console.log(spec.tracks[0].points.map((p) => p.i.toFixed(3)).join(','));\n"
+            "console.log(spec.read(3));\n"
+            "const d = chartPlot('buoy', spec, 1).match(/<path class=\"ln other\" d=\"([^\"]+)\"/)[1];\n"
+            "console.log((d.match(/M/g) || []).length, (d.match(/L/g) || []).length);\n"
+            "BUOYS = null; console.log(chartSpec('buoy', 'height').read(3));"
+        )
+        assert got[0] == "-0.167,0.333,0.833,2.333,2.833"         # :50 and :20, not on the hour
+        assert got[1].endswith("Buoy 46047 2.10 m at 02:50")
+        assert got[1].startswith('<span class="v">Buoy 46232 1.20 m</span>')
+        assert got[2] == "2 3"                                     # 60 to 150 min is a gap
+        assert got[3] == '<span class="v">Buoy 1.20 m</span>'      # without it, as before
 
     def test_height_draws_the_other_two_breaks_lighter(self):
         """Owner's request, 2026-10-05: on a break's tab the Height chart draws
@@ -2942,12 +2968,32 @@ class TestTheProvenanceDivider:
         cards = cards[:cards.index("\nfunction renderBreaks(")]
         assert "srcLines(" in cards and '<span class="src">' not in cards
 
+    def test_measured_is_the_selected_tabs_blue(self):
+        """Owner's call, 2026-10-09: the observed values under past forecast
+        hours in the blue of the selected tab, both themes, from one token."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert css.count("--measured:") == 1
+        assert "--measured:var(--surf);" in css
+        assert ".series .ln.ens{stroke:var(--soft)" in css      # the ensemble is not blue too
+
+    def test_the_observed_wind_sits_under_the_local_forecast(self):
+        """Owner's call, 2026-10-09: KNZY is a local observation, so its box
+        goes under the Local forecast, not under GFS-Wave's wind at the buoy."""
+
+        local = SOURCE[SOURCE.index("function localWindBlock"):]
+        local = local[:local.index("\n}\n")]
+        assert local.index("${windAtBreaks(cards)}") < local.index("${seen}") < local.index("srcLines(")
+        render = SOURCE[SOURCE.index("function renderConditions"):]
+        assert 'localWindBlock(hour, cards, stampWhen, past, underLocal ? seenWind : "")' in render
+        assert '${underLocal ? "" : seenWind}' in render
+
     def test_a_measured_box_under_a_value_gets_room_above_it(self):
         """Owner's design, 2026-09-27: on the wind and tide cards the measured box
         sat in the card's 2 px gap, tight against the value above it."""
 
         css = SOURCE[:SOURCE.index("</style>")]
-        assert ".cond > .measured{margin-top:8px}" in css
+        assert ".cond > .measured,.cond .subcond > .measured{margin-top:8px}" in css
 
     def test_the_chart_no_longer_draws_its_own(self):
         css = SOURCE[:SOURCE.index("</style>")]
