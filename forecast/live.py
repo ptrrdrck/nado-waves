@@ -423,6 +423,21 @@ def station_name(station: str, data_dir: Path) -> str:
     return station
 
 
+def cdip_id(station: str) -> str:
+    """The buoy's CDIP station number from the registry, or "" for a buoy
+    CDIP does not operate (or a registry that cannot be read)."""
+
+    try:
+        from collector.stations import load_stations
+
+        for record in load_stations():
+            if record.id == station.upper():
+                return record.cdip
+    except Exception:  # noqa: BLE001 — a missing number must not stop a forecast
+        pass
+    return ""
+
+
 def read_tide(data_dir: Path) -> dict[str, tuple[float, str]]:
     """Predicted tide by hour. Empty when the collector has not run."""
 

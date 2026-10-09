@@ -402,6 +402,8 @@ The Local chop row names the chop's period, its kind (behind land, or open water
 
 One tab per break, ranked by how much of the buoy's energy its windows let through, with the Buoys tab always last. It shows the swell at buoy 46232, 29 km offshore, with nothing in the way, so it is always the biggest number, and it is the one the breaks are measured from.
 
+On “LIVE”, 46232's combined height carries a pill at its right, “CDIP 191” (the buoy's number at Scripps' Coastal Data Information Program, which runs it) and a dot: green while its spectra arrive on time, amber once the next one is due, red once it is overdue. The dot changes exactly when the [countdown](#swell-countdown) under the card says “Update due” and “Overdue”, from the same two instants.
+
 On “LIVE” the Buoys tab also shows buoy 46047 at Tanner Banks, 222 km west, the buoy in the array that the islands shadow least. It is read the same way as 46232: the combined height of its directional spectrum, and its [swell trains](#swell-trains), with a train fed from two directions naming both. It is open ocean outside every break's windows, so it is carried to no break, and no number on any other tab comes from it. It is there so the swell before the Channel Islands and the Bight can be read beside the swell at 46232. Its spectra are stamped every half hour, at :20 and :50, so it has its own observed time and its own [countdown](#swell-countdown). The Forecast tab's Buoys tab shows 46232 only, because the model run is read at 46232 alone.
 
 ### [swell-headline] The headline
@@ -410,7 +412,7 @@ The breaking height, in feet with metres in parentheses, and the depth it breaks
 
 ### [swell-drawing] The window drawing
 
-The break's windows, drawn facing the way the break faces: open water above the shore, the grey shadows of the land either side, and an arrow for each swell train, two for a train arriving from two directions. Tap a shadow for the land casting it and the share of this swell it takes; tap a window for the land either side and its width; tap an arrow for that train. Tap it again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with Tab.
+The break's windows, drawn facing the way the break faces: open water above the shore, the grey shadows of the land either side, and an arrow for each swell train, two for a train arriving from two directions. Tap a shadow for the land casting it and the share of this swell it takes; tap a window for the land either side and its width; tap an arrow for that train. Tapping a train in the list above the drawing picks its arrows the same way, and the train's row stays highlighted while it is picked. Tap it again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with Tab.
 
 ### [swell-trains] Swell trains
 

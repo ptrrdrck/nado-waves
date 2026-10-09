@@ -14,6 +14,7 @@
   --sand:#D9C9A8; --sand-deep:#B9A47C;
   --signal:#C62828; --signal-wash:#F9DEDE;
   --ok:#2F7D4F;
+  --due:#B58100;
   /* Measured, under a forecast: pure red, 0° hue, no orange (owner's call,
      2026-10-02). #FF0000 itself is 3.75:1 on the light card and 3.89:1 on
      the dark, short of 4.5 for text; these keep its hue and pass:
@@ -30,6 +31,7 @@
     --sand:#8C7A55; --sand-deep:#A8935F;
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
+    --due:#F2C14E;
     --measured:#FF4545;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
@@ -41,6 +43,7 @@
   --sand:#8C7A55; --sand-deep:#A8935F;
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
+  --due:#F2C14E;
   --measured:#FF4545;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
@@ -199,7 +202,18 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    request, 2026-10-08); the lit row reads as pressed. */
 .train[data-rose-train]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:4px}
 .train[data-rose-train]:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
-.train[data-rose-train][aria-pressed="true"]{background:var(--paper);opacity:1}
+/* A picked row reads as pressed, on the Buoys tab and on a break's alike
+   (owner's request, 2026-10-09). */
+.train[data-rose-train][aria-pressed="true"],.train[data-train][aria-pressed="true"]{background:var(--paper);opacity:1}
+/* 46232's pill on the LIVE Buoys tab: its CDIP number in the lead train's
+   heading style, on the picked row's background, and a dot that is green
+   while its spectra arrive, amber once one is due and red once overdue --
+   the swell countdown's own three states (owner's request, 2026-10-09). */
+.buoy-pill{display:inline-flex;align-items:center;gap:6px;flex:none;padding:2px 9px;border-radius:999px;
+  background:var(--paper);color:var(--ink);font-size:14px;font-weight:400;line-height:1.3;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.status{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.status.due{background:var(--due)} .status.over{background:var(--signal)}
 /* The break card's headline with its caret at the right end. The caret
    points up while the calculation is folded away and down once it is open
    beneath the line (owner's design, 2026-09-26). */
@@ -439,7 +453,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    Height; for Period, five greys ordered from the faintest rule (shortest
    periods) to ink (longest), the Shore direction chart's scale with two
    steps between. A hairline of the card's colour parts every segment. */
-.rose{display:flex;flex-direction:column;gap:6px;margin-top:3px}
+/* As far below the trains as the timeline sits above the provenance on
+   Height, the unseen legend row included (owner's request, 2026-10-09). */
+.rose{display:flex;flex-direction:column;gap:6px;margin-top:27px}
 .rose .ranges{display:flex;gap:2px}
 .rose .rose-modes{flex:none}
 .rose .ranges button{font:inherit;font-size:12px;font-weight:600;height:22px;padding:0 9px;border:0;
@@ -942,17 +958,22 @@ const FORECAST_REFRESH_MS = 60 * 60 * 1000;
 //
 // Both get this page's refresh leg added, for the same reason: the reader sees
 // nothing until the page refetches.
-function dueSpan(iso, lateIso, {forceOver = false} = {}) {
-  if (!iso) return "";
+function dueInstants(iso, lateIso) {
+  if (!iso) return null;
   const at = new Date(iso).getTime();
-  if (!Number.isFinite(at)) return "";
+  if (!Number.isFinite(at)) return null;
   const plusRefresh = (ms) =>
     new Date(ms + NOW_REFRESH_MS).toISOString().replace(/\.\d+Z$/, "Z");
   const lateAt = lateIso ? new Date(lateIso).getTime() : NaN;
   // Falling back to `at` keeps a payload without `overdue_after` behaving
   // exactly as it did before the two split, rather than never going red.
-  const late = plusRefresh(Number.isFinite(lateAt) ? Math.max(lateAt, at) : at);
-  return ` <span class="due" data-due="${plusRefresh(at)}" data-late="${late}"`
+  return {due: plusRefresh(at), late: plusRefresh(Number.isFinite(lateAt) ? Math.max(lateAt, at) : at)};
+}
+
+function dueSpan(iso, lateIso, {forceOver = false} = {}) {
+  const when = dueInstants(iso, lateIso);
+  if (!when) return "";
+  return ` <span class="due" data-due="${when.due}" data-late="${when.late}"`
     + (forceOver ? ' data-force-over="1"' : "") + "></span>";
 }
 
@@ -976,6 +997,18 @@ function tickDue() {
       : forced ? "Overdue."
       : now >= due ? "Update due."
       : `Update in ${hms(due - now)}.`;
+  });
+  document.querySelectorAll("[data-status-due]").forEach((el) => {
+    const due = new Date(el.getAttribute("data-status-due")).getTime();
+    const parsedLate = new Date(el.getAttribute("data-status-late")).getTime();
+    const late = Number.isFinite(parsedLate) ? Math.max(parsedLate, due) : due;
+    const over = el.getAttribute("data-status-force") === "1" || now >= late;
+    const isDue = !over && now >= due;
+    el.classList.toggle("over", over);
+    el.classList.toggle("due", isDue);
+    const said = over ? "Overdue" : isDue ? "Update due" : "Receiving normally";
+    el.setAttribute("aria-label", said);
+    el.setAttribute("title", said);
   });
 }
 
@@ -1198,7 +1231,7 @@ function trainList(trains, {limit = 4, drawn = () => false, rose = null} = {}) {
     const onRose = rose && roseTrainOK(rose, i);
     return `
     <div class="train${i === 0 ? " lead" : ""}"${drawn(i)
-      ? ` data-train="${i}" tabindex="0" role="button" aria-label="Show this train on the drawing"`
+      ? ` data-train="${i}" tabindex="0" role="button" aria-pressed="false" aria-label="Show this train on the drawing"`
       : onRose ? ` data-rose-train="${i}" data-rose-for="${rose}" tabindex="0" role="button"`
         + ` aria-pressed="${ROSE_TRAIN[rose] === i}" aria-label="Show this period range on the rose"` : ""}>
       <span class="ht">${height(t.hs_m)}</span>
@@ -1902,6 +1935,16 @@ const pickDrawn = (svg, key) => !!key
 function showPick(svg, key) {
   const hit = pickMatch(key);
   svg.classList.toggle("picked", !!key);
+  // The row of the train lit, whether picked from the list or by its arrow,
+  // reads as pressed, as a Buoys tab row does over its rose.
+  const pane = svg.closest(".pane");
+  if (pane) {
+    pane.querySelectorAll(".train[data-train]").forEach((row) => {
+      const n = row.getAttribute("data-train");
+      row.setAttribute("aria-pressed", String(!!key
+        && (key === `T${n}` || key === `t${n}` || key.startsWith(`t${n}-`))));
+    });
+  }
   svg.querySelectorAll("[data-pick]").forEach((el) =>
     el.classList.toggle("on", !!key && hit(el.getAttribute("data-pick"))));
   // Every arrow's bearing, but one caption: a train's arrows share its text.
@@ -2034,22 +2077,47 @@ function wireDrawings() {
 // (owner's call, 2026-10-06): 46232's reading here, then the card's own
 // provenance lines, which are 46232's, then each context buoy's block after
 // them (`swellCard`'s `after`), its provenance in the same style.
-function buoyPanel(buoy, measured = null, station = null, named = false, rose = "") {
+// With a pill (the LIVE tab's, `buoyPill`) the name line gives way to it,
+// at the right end of the combined height's line (owner's request,
+// 2026-10-09): the provenance under the reading still names the buoy.
+function buoyPanel(buoy, measured = null, station = null, named = false, rose = "", pill = "") {
   const line = measuredLine(measured, (m) => m.buoy);
-  const head = named && station
+  const head = named && station && !pill
     ? `<span class="sublbl">${buoyLabel(station.name, station.id)}</span>` : "";
   if (!buoy || buoy.hs_m == null) {
-    return head + '<span class="val"><span class="unit">no spectrum</span></span>' + rose + line;
+    return head + valWithPill('<span class="val"><span class="unit">no spectrum</span></span>', pill)
+      + rose + line;
   }
-  return head + buoyReading(buoy, rose && station ? station.id : null) + rose + line;
+  return head + buoyReading(buoy, rose && station ? station.id : null, pill) + rose + line;
 }
 
-function buoyReading(buoy, roseFor = null) {
+const valWithPill = (val, pill) => (pill ? `<div class="val-row">${val}${pill}</div>` : val);
+
+function buoyReading(buoy, roseFor = null, pill = "") {
   const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor})
     : buoy.period_s ? `<div class="quiet">peak <b>${buoy.period_s.toFixed(1)} s</b>`
       + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
-  return `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`
+  return valWithPill(`<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`, pill)
     + trains;
+}
+
+// "CDIP <number> •": the anchor buoy's CDIP number and a status dot on the swell
+// card's own two instants, so it goes amber and red exactly when "Update
+// due." and "Overdue by …" do below it. No number, no pill.
+function buoyPill(cdip, iso, lateIso, {forceOver = false} = {}) {
+  if (!cdip) return "";
+  return `<span class="buoy-pill">CDIP ${cdip}${statusDot(iso, lateIso, {forceOver})}</span>`;
+}
+
+// The dot is filled by `tickDue` with the countdown it sits beside: the same
+// instants with this page's refresh leg added, and the same three states.
+function statusDot(iso, lateIso, {forceOver = false} = {}) {
+  const when = dueInstants(iso, lateIso);
+  if (!when) {
+    return forceOver ? '<i class="status over" role="img" aria-label="Overdue" title="Overdue"></i>' : "";
+  }
+  return `<i class="status" role="img" data-status-due="${when.due}" data-status-late="${when.late}"`
+    + (forceOver ? ' data-status-force="1"' : "") + "></i>";
 }
 
 const buoyLabel = (name, id) => (name && name !== id ? `${name} (${id})` : `NDBC ${id}`);
@@ -4672,7 +4740,8 @@ function cardChart(id) {
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
-                    due = "", measured = null, chart = false, origin = null, buoyRose = ""}) {
+                    due = "", measured = null, chart = false, origin = null, buoyRose = "",
+                    buoyPill = ""}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
     origin: c.origin || null,
@@ -4685,7 +4754,7 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   // own; shown and hidden with the tab like its pane.
   tabs.push({id: BUOY_TAB, title: "Buoys",
              body: buoyPanel(buoy, measured, {id: station, name: stationName}, others.length > 0,
-                             buoyRose),
+                             buoyRose, buoyPill),
              after: others.map(contextBuoy).join(""), chart, origin});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
@@ -4852,6 +4921,7 @@ function renderConditions(step, cards) {
           ? `Spectral wave data, ${NOW.station_name} (NDBC ${NOW.station})` : "",
       ],
       due: dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),
+      buoyPill: buoyPill(NOW && NOW.station_cdip, due.swell, late.swell, {forceOver: nowIsStale()}),
       chart: true,
       origin: originFor("buoy"),
     }));

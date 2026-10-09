@@ -28,6 +28,9 @@ class Station:
     name: str
     region: str = ""
     notes: str = ""
+    #: The station's number at CDIP, Scripps' Coastal Data Information
+    #: Program, for a buoy CDIP operates (NDBC's owner code R); empty otherwise.
+    cdip: str = ""
 
 
 def load_stations(path: Path | None = None) -> list[Station]:
@@ -38,6 +41,7 @@ def load_stations(path: Path | None = None) -> list[Station]:
             name=entry.get("name", ""),
             region=entry.get("region", ""),
             notes=entry.get("notes", ""),
+            cdip=str(entry.get("cdip", "")),
         )
         for entry in payload["stations"]
     ]

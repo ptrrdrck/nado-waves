@@ -56,6 +56,7 @@ from .live import (
     WindAtTime,
     offshore_component,
     read_latest_wind,
+    cdip_id,
     station_name,
     wind_at_break,
     wind_measurement,
@@ -391,6 +392,9 @@ class Now:
     #: and structured rather than a sentence so the card can print a
     #: provenance line without the page hardcoding a claim of its own.
     geometry: dict = field(default_factory=dict)
+    #: The anchor buoy's CDIP number (the registry's, `live.cdip_id`), which
+    #: the Buoys tab names it by beside its status dot; "" when it has none.
+    station_cdip: str = ""
     #: Predicted turning points of the tide. A MODEL, on a tab that is
     #: otherwise measurements only, and named as one everywhere it shows.
     tide_turns: list = field(default_factory=list)
@@ -539,6 +543,7 @@ def build(
         stale=True,
         station=STATION,
         station_name=station_name(STATION, data_dir),
+        station_cdip=cdip_id(STATION),
         geometry=geometry_provenance(blockers, [by_id[b] for b in BREAKS]),
         standing_on={
             "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),
