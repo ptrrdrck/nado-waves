@@ -282,11 +282,18 @@ class TestThePills:
 
 
 class TestTheSpacing:
-    def test_the_rose_sits_as_far_below_the_trains_as_the_timeline_above_the_provenance(self):
-        """Owner's request, 2026-10-09: measured 38 px both ways at 320 and
-        360 px, the unseen legend row included."""
+    def test_the_rose_is_spaced_as_a_break_tabs_drawing(self):
+        """Owner's request, 2026-10-09: 31 px of card above the first ink and
+        28 px under the timeline to the provenance on Height, a break tab's
+        drawing's own, in painted pixels at 360 px (within 3 px at 320 and
+        390, where the drawing scales and the rose does not); the Period
+        legend inside the lower space, so the switch never moves the page."""
 
-        assert ".rose{display:flex;flex-direction:column;gap:6px;margin-top:27px}" in PAGE
+        assert (".rose{display:flex;flex-direction:column;gap:6px;margin-top:20px;margin-bottom:-11px}"
+                in PAGE)
+        assert ".pane .rose + .srcs{margin-top:3px}" in PAGE
+        # The legend's row is still laid out on Height.
+        assert ".rose .legend.off{visibility:hidden}" in PAGE
 
 
 class TestBreakRowsLightToo:

@@ -311,8 +311,8 @@ class TestTheBreakDrawing:
         as its own shape in the leg's colour, faded with it as one group."""
 
         assert "<marker" not in self.DRAW and "context-stroke" not in SOURCE
-        assert ".aperture .swell polygon{fill:var(--surf)}" in SOURCE
-        assert ".aperture .swell line{stroke:var(--surf)" in SOURCE
+        assert ".aperture .swell polygon{fill:var(--ink)}" in SOURCE
+        assert ".aperture .swell line{stroke:var(--ink)" in SOURCE
 
     def test_the_leg_stops_inside_the_head(self):
         assert "tip + 0.6 * len" in self.DRAW
@@ -343,10 +343,17 @@ class TestTheBreakDrawing:
         assert 'class="ray"' in self.DRAW
         assert 'show === "default" ? "" : " hidden"' in self.DRAW
 
-    def test_the_shadows_are_grey_and_the_chord_is_blue(self):
+    def test_the_drawing_is_greys_and_ink_only(self):
+        """Owner's call, 2026-10-09: no blue in the drawing, as there is none
+        in the Buoys tab's rose -- shadows grey, chord, break and swell ink,
+        a picked window washed in grey."""
+
         assert ".aperture .shadow{fill:var(--faint)" in SOURCE
-        assert ".aperture .chord{stroke:var(--surf)" in SOURCE
-        assert ".aperture .spot{fill:var(--surf)" in SOURCE
+        assert ".aperture .chord{stroke:var(--ink)" in SOURCE
+        assert ".aperture .spot{fill:var(--ink)" in SOURCE
+        assert ".aperture .win{fill:var(--soft)" in SOURCE
+        css = SOURCE[SOURCE.index(".aperture{"):SOURCE.index("/* The week under each Now card")]
+        assert "--surf" not in css
 
 
 class TestTheGeometryProvenance:

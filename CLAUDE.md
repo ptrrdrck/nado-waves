@@ -314,8 +314,14 @@ forecaster actually verifies against, Surfline included.
    under the reading split from that same spectrum (`trains_from_utc`); a
    new spectrum clears it. A break tab's train row lights the same way
    when its train is picked, from the list or by its arrow on the drawing
-   (owner's request, 2026-10-09). The rose sits as far below the trains as
-   its timeline sits above the provenance on Height (38 px, same day).
+   (owner's request, 2026-10-09). The rose is spaced as a break tab's
+   drawing is (owner's request, same day): 31 px of card above its first
+   ink, 28 px from its timeline to the provenance on Height, in painted
+   pixels at 360 px — the drawing scales with the width and the rose does
+   not, so 320 and 390 differ by up to 3 px — with the Period legend inside
+   that lower space, closer to the provenance, so the switch never moves the
+   page. And the drawing is greys and ink only, as the rose is (same day):
+   no site blue on the chord, the break, the swell or a picked window.
    Reduced motion opens paused on the newest. LIVE
    only; carried to no break. The
    Forecast tab's Buoys tab holds 46232 alone. A 46047 line on the Height
