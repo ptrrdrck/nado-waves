@@ -159,8 +159,10 @@ forecaster actually verifies against, Surfline included.
    surveyed profile (`<break>_profile.csv`, the 2016 CoNED beach, not this
    season's bars) at the tide of the moment, Battjes–Janssen breaking with
    Battjes–Stive's γ, and reports the largest Hs and the depth it breaks in.
-   **The number on every break card is that breaking height**, labelled with
-   its depth, on both chains — a significant height, never a face height; the
+   **The number on every break card is that breaking height**, labelled
+   "breaking height" on both chains, the depth it breaks in under the
+   calculation's Wave break row (owner's call, 2026-10-09) — a significant
+   height, never a face height; the
    5 m figure stands in only when there is no tide, never a breaking height at
    an assumed one. The straight-line window figure survives only in
    the card's calculation table, which folds out under the headline from a

@@ -1618,16 +1618,26 @@ function depthText(m) {
 // surf zone; otherwise a height at the depth the rays start from (no current
 // tide); and an older payload without the nearshore block still says "in
 // window", because that is what its number is.
+// A breaking height says only that it is one (owner's call, 2026-10-09);
+// the depth it breaks in is under "Wave break" in the calculation, as
+// shoaling's start depth is under "Shoaling" (`breakDepth`).
 function depthLabel(c) {
   const n = c.nearshore || {};
   const b = n.breaking;
-  if (b && b.depth_m != null) {
-    return b.outside_start ? `breaking at ${depthText(n.depth_m)} depth or deeper`
-      : `breaking at ${depthText(b.depth_m)} depth`;
-  }
+  if (b && b.depth_m != null) return "breaking height";
   const d = n.depth_m;
   return d != null && isFinite(d)
     ? `at ${Math.round(d * FT_PER_M)} ft (${Math.round(d)} m) depth` : "in window";
+}
+
+// Where the headline's breaking height breaks, under "Wave break": the
+// depth found, or the start depth "or deeper" when it is already breaking
+// there and the break is further out.
+function breakDepth(n) {
+  const b = (n || {}).breaking;
+  if (!b || b.depth_m == null) return "";
+  return b.outside_start ? `at ${depthText(n.depth_m)} depth or deeper`
+    : `at ${depthText(b.depth_m)} depth`;
 }
 
 // A step's change as a signed percentage of the step before it; one decimal
@@ -1704,7 +1714,7 @@ function calculationTable(c) {
   const b = n.breaking;
   let foot = "";
   if (b && b.hs_m != null && withChop != null) {
-    row("Wave break", b.hs_m, withChop, {bound: !!b.outside_start});
+    row("Wave break", b.hs_m, withChop, {note: breakDepth(n), bound: !!b.outside_start});
     if (b.outside_start) {
       const depth = n.depth_m != null ? depthText(n.depth_m) : "shallow";
       foot = `<div class="quiet">At this tide it is already breaking in ${depth}`

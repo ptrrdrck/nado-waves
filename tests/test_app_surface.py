@@ -517,7 +517,7 @@ class TestTheSeekBar:
         )
         hour = got[3]
         assert f"Observed at {hour}" in got[0]
-        assert "0.80 m" in got[0] and "breaking at 6 ft (1.9 m) depth" in got[0]
+        assert "0.80 m" in got[0] and "breaking height" in got[0] and "depth" not in got[0]
         assert got[1] == "true"
         assert f"Observed at {hour}" not in got[2] and "Observed at" in got[2]
         assert "same chain" not in got[0]
@@ -974,10 +974,19 @@ class TestTheCalculationTable:
             for key in re.findall(r"\bb\.([a-z_]+)", text[:3000]):
                 assert key in written, key
 
-    def test_the_headline_names_where_it_breaks(self):
+    def test_the_headline_says_breaking_height_and_the_table_where(self):
+        """Owner's call, 2026-10-09: "3.5 ft (1.07 m) breaking height" on
+        the headline, and "at 8 ft (2.4 m) depth" under Wave break, as
+        Shoaling carries its start depth."""
+
         label = SOURCE[SOURCE.index("function depthLabel"):]
         label = label[:label.index("\n}\n")]
-        assert "breaking at ${depthText(b.depth_m)} depth" in label
+        assert 'if (b && b.depth_m != null) return "breaking height";' in label
+        where = SOURCE[SOURCE.index("function breakDepth"):]
+        where = where[:where.index("\n}\n")]
+        assert "`at ${depthText(b.depth_m)} depth`" in where
+        assert "`at ${depthText(n.depth_m)} depth or deeper`" in where
+        assert 'row("Wave break", b.hs_m, withChop, {note: breakDepth(n), bound: !!b.outside_start});' in self.LINE
 
     def test_the_trains_still_sum_to_the_breaking_headline(self):
         """Breaking scales every train by one factor, so the list under the

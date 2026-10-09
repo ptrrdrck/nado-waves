@@ -47,7 +47,7 @@ From the top of the forecast page down. The figures are a real hour, noon on Mon
 [annotated card, row by row:]
 - “LIVE” / Forecast
 - North / Center / South / Buoy
-- 3.5 ft (1.07 m) breaking at 8 ft (2.3 m) depth ▾
+- 3.5 ft (1.07 m) breaking height ▾
 - the window drawing, and the swell trains under it
 - Observed 12:00 PM, 15 min ago · Spectral wave data, Point Loma South, CA (NDBC 46232) · **Update in 59:12.**
 - **Charts** ▴
@@ -382,7 +382,7 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
 > **Model choice · the standard 1-D surf zone, γ from the literature**
 > One line straight in, the same all along the beach, one period (the peak's). That is the textbook surf-zone model and no more. The breaker index γ is taken from Battjes & Stive and not tuned. Fitting it to anything here would be calibration, and there is nothing observed at these beaches to fit it to.
 
-If the waves are already breaking at the start point, the true break is further out than the profile begins. The card then says “breaking at 16 ft (5.0 m) depth or deeper”, and the last row of the table is marked ≤ as an upper bound. Without a measured tide no breaking height is computed at all, and the card shows the 5 m figure, labelled with its depth. That is why no hour before 17 September 2026 has one.
+If the waves are already breaking at the start point, the true break is further out than the profile begins. The Wave break row then says “at 16 ft (5.0 m) depth or deeper”, and its height is marked ≤ as an upper bound. Without a measured tide no breaking height is computed at all, and the card shows the 5 m figure, labelled with its depth. That is why no hour before 17 September 2026 has one.
 
 ### [calc-table] Reading the calculation table
 
@@ -408,7 +408,7 @@ On “LIVE” the Buoys tab also shows buoy 46047 at Tanner Banks, 222 km west, 
 
 ### [swell-headline] The headline
 
-The breaking height, in feet with metres in parentheses, and the depth it breaks in: “3.5 ft (1.07 m) breaking at 8 ft (2.3 m) depth”. When there is no tide to break it at, the headline is the height in 5 m of water and says so. The caret at its end opens [the calculation](#calc-table).
+The breaking height, in feet with metres in parentheses: “3.5 ft (1.07 m) breaking height”. The depth it breaks in is the last row of [the calculation](#calc-table), under Wave break: “at 8 ft (2.3 m) depth”. When there is no tide to break it at, the headline is the height in 5 m of water and says so. The caret at its end opens the calculation.
 
 ### [swell-drawing] The window drawing
 
