@@ -224,8 +224,14 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    beneath the line (owner's design, 2026-09-26). */
 /* The whole breaking-height line folds the calculation out, not only its
    caret (owner's call, 2026-10-01), as the "Charts" line does its charts. */
-.val-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
-         cursor:pointer;-webkit-user-select:none;user-select:none}
+.val-row{cursor:pointer;-webkit-user-select:none;user-select:none}
+/* The buoys' combined height sits in the same row as a break's breaking
+   height (owner's request, 2026-10-09: it sat about 1 px higher): centred in
+   at least the caret's footprint, 32 px less its -4 px margins, so the two
+   land alike whatever a browser's line box comes to. `.val-line` is that
+   row without the calculation's toggle. */
+.val-row,.val-line{display:flex;align-items:center;justify-content:space-between;gap:10px;
+                   min-height:24px}
 .val-row:hover .calc-toggle{color:var(--ink)}
 .calc-toggle{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 0;
              padding:0;border:0;border-radius:6px;background:transparent;color:var(--soft);cursor:pointer}
@@ -2105,7 +2111,9 @@ function buoyPanel(buoy, measured = null, station = null, named = false, rose = 
   return head + buoyReading(buoy, rose && station ? station.id : null, pill) + rose + line;
 }
 
-const valWithPill = (val, pill) => (pill ? `<div class="val-row">${val}${pill}</div>` : val);
+// In a break headline's row, pill or not, so the buoys' line sits where a
+// break's does; never `.val-row`, whose tap folds a break's calculation.
+const valWithPill = (val, pill = "") => `<div class="val-line">${val}${pill}</div>`;
 
 function buoyReading(buoy, roseFor = null, pill = "") {
   const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor})
