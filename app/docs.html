@@ -327,7 +327,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       <div class="card mock" aria-hidden="true">
         <div class="row"><span class="pin">1</span><span class="tabs"><span class="on">&ldquo;LIVE&rdquo;</span><span>Forecast</span></span></div>
         <div class="row"><span class="pin">2</span><span class="tabs"><span class="on">North</span><span>Center</span><span>South</span><span>Buoy</span></span></div>
-        <div class="row"><span class="pin">3</span><span><span class="big">3.5 ft</span> <span class="unit">(1.07 m)</span> breaking at 8 ft (2.3 m) depth &#9662;</span></div>
+        <div class="row"><span class="pin">3</span><span><span class="big">3.5 ft</span> <span class="unit">(1.07 m)</span> breaking height &#9662;</span></div>
         <div class="row"><span class="pin">4</span><span>the window drawing, and the swell trains under it</span></div>
         <div class="row"><span class="pin">5</span><span class="source">Observed 12:00 PM, 15 min ago · Spectral wave data, Point Loma South, CA (NDBC 46232) · <b>Update in 59:12.</b></span></div>
         <div class="row"><span class="pin">6</span><span><b>Charts</b> &#9652;</span></div>
@@ -806,8 +806,8 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
           &amp; Stive and not tuned. Fitting it to anything here would be calibration, and there
           is nothing observed at these beaches to fit it to.</p></div>
       <p>If the waves are already breaking at the start point, the true break is further out than
-        the profile begins. The card then says &ldquo;breaking at 16 ft (5.0 m) depth or deeper&rdquo;,
-        and the last row of the table is marked &le; as an upper bound. Without a measured tide no
+        the profile begins. The Wave break row then says &ldquo;at 16 ft (5.0 m) depth or deeper&rdquo;,
+        and its height is marked &le; as an upper bound. Without a measured tide no
         breaking height is computed at all, and the card shows the 5 m figure, labelled with its
         depth. That is why no hour before 17 September 2026 has one.</p>
     </section>
@@ -872,10 +872,11 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
 
     <section id="swell-headline">
       <h3>The headline</h3>
-      <p>The breaking height, in feet with metres in parentheses, and the depth it breaks in:
-        &ldquo;3.5 ft (1.07 m) breaking at 8 ft (2.3 m) depth&rdquo;. When there is no tide to
-        break it at, the headline is the height in 5 m of water and says so. The caret at its end
-        opens <a href="#calc-table">the calculation</a>.</p>
+      <p>The breaking height, in feet with metres in parentheses: &ldquo;3.5 ft (1.07 m)
+        breaking height&rdquo;. The depth it breaks in is the last row of
+        <a href="#calc-table">the calculation</a>, under Wave break: &ldquo;at 8 ft (2.3 m)
+        depth&rdquo;. When there is no tide to break it at, the headline is the height in 5 m of
+        water and says so. The caret at its end opens the calculation.</p>
     </section>
 
     <section id="swell-drawing">
@@ -1988,8 +1989,8 @@ function workedTable(id) {
   row("Shoaling", e.shoaled_hs_m, e.friction_hs_m, "to 16 ft (5.0 m)");
   row("Local chop", e.with_chop_hs_m, e.shoaled_hs_m,
     `${e.local.tp_s.toFixed(1)} s, ${e.local.fetch === "open" ? "open water" : "behind land"}, ${e.local.wind} wind`);
-  row("Wave break", k.hs_m, e.with_chop_hs_m);
   const depth = `${Math.round(k.depth_m * FT_PER_M)} ft (${k.depth_m.toFixed(1)} m)`;
+  row("Wave break", k.hs_m, e.with_chop_hs_m, `at ${depth} depth`);
   $("worked-table").innerHTML = `<table><thead><tr><th scope="col">Calc</th><th scope="col">Change</th>`
     + `<th scope="col">%</th><th scope="col">Hs</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
     + `<p class="source" style="padding:8px 12px">${NAME[id]}: ${height(k.hs_m)} breaking at ${depth} depth, `
