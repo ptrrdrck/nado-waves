@@ -261,7 +261,8 @@ forecaster actually verifies against, Surfline included.
    buoy's own countdown instants (`dueInstants`), so it turns exactly when
    "Update due." and "Overdue by …" do: green, green fading in and out
    while due (held at half strength under reduced motion), red overdue --
-   dark mode's green and red on both themes (`--dot-ok`, `--dot-over`).
+   dark mode's green and red on both themes (`--dot-ok`, `--dot-over`), and
+   every card's "Overdue by …" in that same red (owner's call, same day).
    LIVE only: the Forecast chain's buoy is a model.
    **It feeds nothing**: its own module and file, never a key in now.json, so
    the context-station guard still keeps "46047" out of now.py and the chain,

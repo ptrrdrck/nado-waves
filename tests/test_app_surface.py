@@ -697,7 +697,7 @@ class TestTheTwoChains:
         reading sat under a notice calling it not current and a dead wind
         station sat under nothing at all. The judgement now lands on the card
         whose own source is late: the swell card is forced overdue by the
-        build's flag, and overdue renders in the signal colour.
+        build's flag, and overdue renders in the status dot's red.
 
         What must not come back is a page that renders a stale reading with no
         mark on it at all, so the three halves are pinned together here.
@@ -706,7 +706,8 @@ class TestTheTwoChains:
         assert "NOW.stale" in SOURCE
         assert "forceOver: nowIsStale()" in SOURCE
         assert "function nowIsStale()" in SOURCE
-        assert ".due.over{color:var(--signal)" in SOURCE
+        # The status dot's red since 2026-10-09 (owner's call), so words and dot agree.
+        assert ".due.over{color:var(--dot-over)}" in SOURCE
 
     def test_a_missing_observation_says_so_and_points_at_the_forecast(self):
         assert "No current observation" in TEXT

@@ -99,10 +99,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    arrived, beside the reading it qualifies rather than in a banner over all
    three. `nowrap` because a clock broken across two lines is unreadable. */
 .due{white-space:nowrap}
-/* Normal weight: the colour carries this on its own. --signal is picked for
-   contrast rather than heat (5.3:1 on the card in light, 5.6:1 in dark), which
-   matters more without the bolding to lean on. */
-.due.over{color:var(--signal)}
+/* Normal weight: the colour carries this on its own. The status dot's red on
+   every card and both themes, so the words and the dot read as one signal
+   (owner's call, 2026-10-09; it replaced --signal, 5.3:1 on the light card,
+   where this red is about 2.6:1). */
+.due.over{color:var(--dot-over)}
 
 /* A stale observation is not "now". Loud, above everything it qualifies. */
 .stale{background:var(--signal-wash);border:1px solid var(--signal);color:var(--ink);
