@@ -331,13 +331,15 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 
 /* The break's windows, drawn facing the way the break faces. The shadows are
    grey, not sand: they are where a blocker casts shadow, not the land itself.
-   The chord and the break on it are the site blue, and so is the swell --
-   the two things in the drawing that are not geometry-as-obstacle. */
+   Greys and ink only, as the Buoys tab's rose is (owner's call, 2026-10-09,
+   replacing the site blue): the chord, the break on it and the swell in ink
+   -- the things in the drawing that are not geometry-as-obstacle -- and a
+   picked window washed in grey. */
 .aperture{display:block;width:100%;max-width:420px;height:auto;margin:0 auto;overflow:visible;
   cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .aperture [data-pick]{outline:none}
-.aperture .win{fill:var(--surf);fill-opacity:0;stroke:none}
-.aperture .win.on{fill-opacity:.16}
+.aperture .win{fill:var(--soft);fill-opacity:0;stroke:none}
+.aperture .win.on{fill-opacity:.3}
 .aperture .shadow.on{fill:var(--soft);fill-opacity:.6}
 .aperture.picked .shadow:not(.on){fill-opacity:.2}
 .aperture.picked .swell:not(.on){opacity:.15}
@@ -349,14 +351,14 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .aperture .ray{stroke:var(--soft);stroke-width:1}
 .aperture .deg{font-size:11px;font-weight:600;fill:var(--ink);
                font-variant-numeric:tabular-nums;dominant-baseline:middle}
-.aperture .chord{stroke:var(--surf);stroke-width:4;stroke-linecap:round}
-.aperture .spot{fill:var(--surf)}
+.aperture .chord{stroke:var(--ink);stroke-width:4;stroke-linecap:round}
+.aperture .spot{fill:var(--ink)}
 .aperture .faces{font-size:11px;font-weight:600;fill:var(--ink);text-anchor:middle}
 /* Opacity on the group, so the leg and head fade as one shape rather than
    darkening where they overlap. */
 .aperture .swell{opacity:.45}
-.aperture .swell line{stroke:var(--surf);stroke-width:1.75;stroke-linecap:round}
-.aperture .swell polygon{fill:var(--surf)}
+.aperture .swell line{stroke:var(--ink);stroke-width:1.75;stroke-linecap:round}
+.aperture .swell polygon{fill:var(--ink)}
 .aperture .swell.lead{opacity:1}
 .aperture .swell.lead line{stroke-width:3}
 
@@ -458,9 +460,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    Height; for Period, five greys ordered from the faintest rule (shortest
    periods) to ink (longest), the Shore direction chart's scale with two
    steps between. A hairline of the card's colour parts every segment. */
-/* As far below the trains as the timeline sits above the provenance on
-   Height, the unseen legend row included (owner's request, 2026-10-09). */
-.rose{display:flex;flex-direction:column;gap:6px;margin-top:27px}
+/* Spaced as a break tab's drawing is (owner's request, 2026-10-09): 31 px of
+   card from the trains to the first ink above it, and 28 px from the
+   timeline to the provenance on Height, measured in painted pixels at 320,
+   360 and 390 px. The Period legend lives inside that lower space -- its row
+   kept, unseen, on Height, so the switch never moves the page -- and so sits
+   closer to the provenance than the timeline does. A context buoy's
+   provenance follows the rose inside its pane, a gap 3 px wider than
+   46232's, whose provenance follows the card; its 6 px margin is 3 here. */
+.rose{display:flex;flex-direction:column;gap:6px;margin-top:20px;margin-bottom:-11px}
+.pane .rose + .srcs{margin-top:3px}
 .rose .ranges{display:flex;gap:2px}
 .rose .rose-modes{flex:none}
 .rose .ranges button{font:inherit;font-size:12px;font-weight:600;height:22px;padding:0 9px;border:0;
