@@ -126,6 +126,19 @@ class Spectrum:
                     self._mem[index] = None
         return self._mem[index]
 
+    def mem_ok(self, index: int) -> bool:
+        """Whether `_mem_bin` gives this bin a maximum-entropy distribution,
+        decided by MEM's pole test alone rather than by solving it."""
+
+        if index in self._mem:
+            return self._mem[index] is not None
+        from .spreadmethod import R1_CEILING, realisable
+
+        vals = (self.r1[index], self.r2[index], self.a1[index], self.a2[index])
+        if any(v is None or math.isnan(v) for v in vals) or vals[0] >= R1_CEILING:
+            return False
+        return realisable(*vals)
+
     def __post_init__(self) -> None:
         n = len(self.frequencies)
         for name in ("c11", "a1", "a2", "r1", "r2"):
@@ -1282,6 +1295,36 @@ class BuoyView:
     peak_direction_deg: float
     trains: list[Train] = field(default_factory=list)
     frequency_bins: int = 0
+
+
+def combined_hs(spectrum: Spectrum) -> float:
+    """`at_buoy(spectrum).hs_m`, the combined height, without the trains.
+
+    A maximum-entropy bin is integrated exactly per 1° bin and sums to one, so
+    its energy over the circle is its whole c11 x width; only a bin MEM cannot
+    read falls back to the clamped Fourier integral, as `density` does. That
+    is the same m0 `at_buoy` sums, to rounding (a test pins it over the
+    archive), at a fraction of the cost: for a chart of every archived
+    spectrum, where `at_buoy` would split trains nobody reads.
+    """
+
+    steps = max(int(round(360.0 / STEP_DEG)), 1)
+    d_theta = 360.0 / steps
+    radians_step = math.radians(d_theta)
+    m0 = 0.0
+    for index in range(len(spectrum.frequencies)):
+        density = spectrum.c11[index]
+        if density <= 0.0 or math.isnan(density):
+            continue
+        width = spectrum.bin_width(index)
+        if spectrum.spread == "mem" and spectrum.mem_ok(index):
+            m0 += density * width
+            continue
+        for n in range(steps):
+            energy = spectrum.density(index, (n + 0.5) * d_theta) * radians_step * width
+            if energy > 0.0:
+                m0 += energy
+    return 4.0 * math.sqrt(max(0.0, m0))
 
 
 def at_buoy(spectrum: Spectrum, *, step: float = STEP_DEG) -> BuoyView:

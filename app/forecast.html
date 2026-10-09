@@ -17,11 +17,11 @@
   /* The status dot is dark mode's green and red on both themes (owner's call,
      2026-10-09). */
   --dot-ok:#5FBF86; --dot-over:#FF6B6B;
-  /* Measured, under a forecast: pure red, 0° hue, no orange (owner's call,
-     2026-10-02). #FF0000 itself is 3.75:1 on the light card and 3.89:1 on
-     the dark, short of 4.5 for text; these keep its hue and pass:
-     #E00000 4.72:1, #FF4545 4.58:1. */
-  --measured:#E00000;
+  /* Measured, under a forecast: the blue of the selected tab above it,
+     light and dark (owner's call, 2026-10-09, after red from 2026-10-02 and
+     sea green before that). Set from --surf, so the two cannot drift apart:
+     5.5:1 on the light card, 6.6:1 on the dark. */
+  --measured:var(--surf);
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
 }
@@ -33,7 +33,6 @@
     --sand:#8C7A55; --sand-deep:#A8935F;
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
-    --measured:#FF4545;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
@@ -44,7 +43,6 @@
   --sand:#8C7A55; --sand-deep:#A8935F;
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
-  --measured:#FF4545;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
@@ -252,7 +250,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .calc-table tbody tr:last-child th{border-bottom:0}
 
 /* The measured reading under a past forecast hour: 46232's own spectrum at
-   that hour, carried in by the same chain (docs.html says so). Red (it was sea green until 2026-10-02), in
+   that hour, carried in by the same chain (docs.html says so). Blue (sea green until 2026-10-02, red until 2026-10-09), in
    a 1 px outline at the card's radius (owner's style, 2026-09-27), so it can
    never be read as part of the forecast above it; its label names the hour
    it was observed on every line, not once per page. */
@@ -265,7 +263,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .measured.none{font-size:13px}
 /* On the wind and tide cards the box sits straight under the value, in the
    card's 2 px gap; the swell card's pane gives its box 11 px. */
-.cond > .measured{margin-top:8px}
+.cond > .measured,.cond .subcond > .measured{margin-top:8px}
 
 /* Earlier / later seek bar. */
 .seek{display:flex;align-items:stretch;gap:8px}
@@ -431,7 +429,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    2026-09-28). Height alone draws the other two breaks under it, lighter and
    thinner, the more southern of the two dashed (owner's request, 2026-10-05). */
 .series .ln{stroke:var(--ink)} .series .pt,.series .hot{fill:var(--ink)}
-.series .ln.other{stroke:var(--faint);stroke-width:1.25} .series .pt.other{fill:var(--faint)}
+.series .ln.other{stroke:var(--faint);stroke-width:1.25} .series .pt.other,.series .hot.other{fill:var(--faint)}
 .series .ln.other.alt{stroke-dasharray:4 3}
 .series .ln.slow{stroke:var(--soft);stroke-width:1}
 .series .pt.slow{fill:var(--soft)}
@@ -441,17 +439,18 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    dot where the buoy's peak came from each hour. */
 .series .winband{fill:var(--surf);opacity:.18}
 /* The Forecast tab's charts: 46232's own spectrum carried in, in the sea
-   red every measured line under a forecast wears; earlier runs thin and
+   blue every measured line under a forecast wears; earlier runs thin and
    soft under this run's ink; the present as a dotted rule; the trains as
    dots, hollow for wind sea, the picked hour's ringed. */
 .series .ln.obs{stroke:var(--measured);stroke-width:1.5} .series .pt.obs,.series .hot.obs{fill:var(--measured)}
 .series .ln.run{stroke:var(--soft);stroke-width:1;opacity:.6} .series .pt.run{fill:var(--soft);opacity:.6}
 .series .nowline{stroke:var(--soft);stroke-width:1;stroke-dasharray:2 3}
 .series .nowtick{fill:var(--soft);paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
-/* The ensemble: its mean in the site blue, dashed, over its spread shaded in
-   the same blue -- one family, apart from the single run's ink. */
-.series .ln.ens{stroke:var(--surf);stroke-width:1.5;stroke-dasharray:5 3} .series .pt.ens,.series .hot.ens{fill:var(--surf)}
-.series .ensband{fill:var(--surf);opacity:.2}
+/* The ensemble: its mean in grey, dashed, over its spread shaded in the same
+   grey -- one family, apart from the single run's ink. Grey since 2026-10-09,
+   when the measured line beside it took the site blue. */
+.series .ln.ens{stroke:var(--soft);stroke-width:1.5;stroke-dasharray:5 3} .series .pt.ens,.series .hot.ens{fill:var(--soft)}
+.series .ensband{fill:var(--soft);opacity:.2}
 .series .tr{fill:var(--ink);opacity:.75}
 .series .tr.ws{fill:var(--card);stroke:var(--ink);stroke-width:1;opacity:.75}
 .series .tr.on{opacity:1;stroke:var(--card);stroke-width:1.5}
@@ -530,7 +529,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose .legend.off{visibility:hidden}
 .rose .legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 0}
 /* The Wind and Tide cards' charts: gusts as dots, the measured direction in
-   the measured red, and the Now tab's predicted tide dashed and soft -- the
+   the measured blue, and the Now tab's predicted tide dashed and soft -- the
    one modelled line on that tab. */
 .series .gust{fill:var(--ink);opacity:.55} .series .gust.obs{fill:var(--measured);opacity:.8}
 .series .dir.obs{fill:var(--measured)}
@@ -569,9 +568,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .chart .legend .sw{background:currentColor}
 .chart .legend .sw.winband{height:9px;border-radius:2px;color:var(--surf);opacity:.18}
 .chart .legend .sw.obs{color:var(--measured)} .chart .legend .sw.run{color:var(--soft);height:1px;opacity:.8}
-.chart .legend .sw.ens{height:1.5px;color:var(--surf);
+.chart .legend .sw.ens{height:1.5px;color:var(--soft);
                        background:repeating-linear-gradient(90deg,currentColor 0 5px,transparent 5px 8px)}
-.chart .legend .sw.ensband{height:9px;border-radius:2px;color:var(--surf);opacity:.3}
+.chart .legend .sw.ensband{height:9px;border-radius:2px;color:var(--soft);opacity:.3}
 .chart .legend .sw.dot{width:7px;height:7px;border-radius:50%;margin:0 8px 0 5px;color:var(--ink)}
 .chart .legend .sw.ring{width:7px;height:7px;border-radius:50%;margin:0 8px 0 5px;background:transparent;
                         border:1px solid var(--ink)}
@@ -664,7 +663,7 @@ const PARAM = new URLSearchParams(location.search);
 const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
 const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
 // The observed chain rebuilt for each of the last 48 h (forecast.measured),
-// shown in red under every forecast hour that has gone by.
+// shown in blue under every forecast hour that has gone by.
 const MEASURED_SOURCE = PARAM.get("measured") || "../data/live/measured.json";
 // The same chain every hour for the last week (forecast.series), drawn under
 // each card on the Now tab.
@@ -680,6 +679,9 @@ const ORIGINS_SOURCE = PARAM.get("origins") || "../data/live/origins.json";
 // The context buoys shown under 46232 on the LIVE tab's Buoys tab
 // (forecast.buoys): what each measured at the buoy, carried to no break.
 const BUOYS_SOURCE = PARAM.get("buoys") || "../data/live/buoys.json";
+// Their heights at every archived stamp, for the Buoys tab's Height chart past
+// the week (forecast.buoys); fetched with series_all.json, only when asked for.
+const BUOYS_ALL_SOURCE = PARAM.get("buoys_all") || "../data/live/buoys_all.json";
 
 // North to south along the sand: the west edge of the window is the bearing
 // to the Point Loma tip and it sweeps as you walk. This is the scope and the
@@ -1088,6 +1090,7 @@ let SERIES_ALL = null; // series_all.json — every archived hour, once asked fo
 let WT = null;        // windtide.json — measured wind and tide each hour
 let ORIGINS = null;   // origins.json  — arrivals and named hurricanes, over time
 let BUOYS = null;     // buoys.json    — the context buoys, at the buoy only
+let BUOYS_ALL = null; // buoys_all.json — their heights at every stamp, once asked for
 // The hours the picker offers, oldest first: {valid_utc, from, lead_h} plus
 // `index` into each break's hours for the current run ("cycle"), or `entry`
 // from forecast.json's `past` for an hour an earlier run was on screen for.
@@ -2628,7 +2631,7 @@ let CHART_MODE = "height";
 // The Forecast tab's charts (owner's request, 2026-09-29): the same place on
 // its Swell card, over the model's 3-hourly hours instead of Now's hourly
 // observed ones. Past hours are what the page showed then, with 46232's own
-// spectrum carried in beside them in red; nothing here is a band, a
+// spectrum carried in beside them in blue; nothing here is a band, a
 // range the swell will fall in, or a score.
 // "Forecast & observed" was folded into the runs view (owner's call,
 // 2026-09-30): the newest run, the earlier runs and 46232 on one plot.
@@ -2869,6 +2872,12 @@ function setChartRange(hours) {
 function wantAll() {
   if (ALL_STATE !== "idle") return;
   ALL_STATE = "loading";
+  // 46047's heights before the week, for the Buoys tab's Height chart. On its
+  // own: without it the line is drawn over the week alone, and says nothing.
+  fetch(fresh(BUOYS_ALL_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => { if (got && got.heights) { BUOYS_ALL = got; show(); } })
+    .catch(() => {});
   fetch(fresh(SERIES_ALL_SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
     .then((got) => {
@@ -2907,7 +2916,9 @@ const SPECS = new Map();
 function chartSpec(id, mode, steps = chartSteps(id)) {
   const memo = `${CHAIN}|${id}|${mode}|${steps.length}|${steps.key || (steps === MERGED ? MERGED_KEY
     : steps === FC_STEPS ? FC_KEY : SERIES && SERIES.generated_utc)}`
-    + (mode === "origins" ? `|${ORIGINS && ORIGINS.generated_utc}` : "");
+    + (mode === "origins" ? `|${ORIGINS && ORIGINS.generated_utc}` : "")
+    + (id === BUOY_TAB && CHAIN === "now"
+      ? `|${BUOYS && BUOYS.generated_utc}|${BUOYS_ALL && BUOYS_ALL.generated_utc}` : "");
   if (SPECS.has(memo)) return SPECS.get(memo);
   if (SPECS.size > 24) SPECS.clear();
   const spec = buildSpec(id, mode, steps);
@@ -2992,6 +3003,67 @@ function originsSpec(id, steps) {
     },
   };
 }
+// The context buoys' heights (buoys.json's week, and buoys_all.json once
+// asked for), placed on the chart's hours by their own stamps: a fractional
+// step, so a :20 reading sits a third of the way past its hour. A stamp more
+// than 45 min from the one before (46047 stamps every 30) is a gap in the
+// line, never joined across. Only the stamps within the chart's hours.
+function contextTracks(steps) {
+  if (!steps.length || !BUOYS || !BUOYS.heights) return [];
+  const t0 = Date.parse(steps[0].valid_utc), tn = Date.parse(steps[steps.length - 1].valid_utc);
+  return Object.keys(BUOYS.heights).map((station) => {
+    const byMs = new Map();
+    [BUOYS_ALL && BUOYS_ALL.heights && BUOYS_ALL.heights[station], BUOYS.heights[station]]
+      .forEach((h) => {
+        if (!h || !h.start_utc) return;
+        const start = Date.parse(h.start_utc);
+        h.t_min.forEach((m, k) => { if (h.hs_m[k] != null) byMs.set(start + m * 60000, h.hs_m[k]); });
+      });
+    const points = [...byMs.keys()].sort((p, q) => p - q)
+      .filter((ms) => ms >= t0 - HOUR_MS && ms <= tn + HOUR_MS)
+      .map((ms) => ({i: (ms - t0) / HOUR_MS, v: byMs.get(ms), t: new Date(ms).toISOString()}));
+    return {cls: "other", label: `Buoy ${station}`, points, join: 0.75};
+  }).filter((tr) => tr.points.length);
+}
+
+// One context buoy's line: its points joined while they are close enough,
+// thinned to the lowest and highest in each pixel column when zoomed out, as
+// `chartPath` thins an hourly line.
+function trackPath(tr, a, z, X, Y, cols) {
+  const f = (v) => v.toFixed(1);
+  const shown = tr.points.filter((p) => p.i >= a - 1 && p.i <= z + 1);
+  const runs = [];
+  let run = [], prev = null;
+  shown.forEach((p) => {
+    if (prev && p.i - prev.i > tr.join) { runs.push(run); run = []; }
+    run.push(p);
+    prev = p;
+  });
+  if (run.length) runs.push(run);
+  const per = Math.max(1, (z - a + 1) / cols);
+  let d = "", dots = "";
+  runs.forEach((pts) => {
+    let keep = pts;
+    if (per > 2) {
+      const cells = new Map();
+      pts.forEach((p) => {
+        const c = Math.floor((p.i - a) / per);
+        const got = cells.get(c) || {lo: p, hi: p};
+        if (p.v < got.lo.v) got.lo = p;
+        if (p.v > got.hi.v) got.hi = p;
+        cells.set(c, got);
+      });
+      keep = [...cells.values()].flatMap((g) => (g.lo === g.hi ? [g.lo] : g.lo.i <= g.hi.i ? [g.lo, g.hi] : [g.hi, g.lo]));
+    }
+    if (keep.length === 1) {
+      dots += `<circle class="pt ${tr.cls}" cx="${f(X(keep[0].i))}" cy="${f(Y(keep[0].v))}" r="1.5"/>`;
+      return;
+    }
+    d += keep.map((p, k) => `${k ? "L" : "M"}${f(X(p.i))},${f(Y(p.v))}`).join("");
+  });
+  return (d ? `<path class="ln ${tr.cls}" d="${d}"/>` : "") + dots;
+}
+
 function buildSpec(id, mode, steps) {
   if (isWT(id)) return wtSpec(id, steps, mode);
   if (CHAIN === "fc") return fcSpec(id, mode, steps);
@@ -3006,11 +3078,30 @@ function buildSpec(id, mode, steps) {
   if (mode === "origins") return originsSpec(id, steps);
   if (id === BUOY_TAB) {
     const values = steps.map((s) => num(buoyOf(s).hs_m));
+    const main = `Buoy ${station}`;
+    // The context buoys under it, lighter, at their own stamps (owner's
+    // request, 2026-10-09): 46047 measures at :20 and :50, never on 46232's
+    // hour, so each reading is drawn where it was taken and read out with
+    // its own time, never moved onto the hour beside it.
+    const tracks = contextTracks(steps);
+    const near = (tr, i) => {
+      let best = null;
+      tr.points.forEach((p) => { if (Math.abs(p.i - i) <= 0.5 && (!best || Math.abs(p.i - i) < Math.abs(best.i - i))) best = p; });
+      return best;
+    };
     return {
       scale: "height",
-      lines: [{cls: "main", label: `Buoy ${station}`, values}],
-      says: `The buoy's height at ${station} each hour.`,
-      read: (i) => value(`Buoy ${height(values[i])}`),
+      lines: [{cls: "main", label: main, values}],
+      tracks,
+      near,
+      legend: tracks.length ? [{cls: "main", label: main}, ...tracks] : undefined,
+      says: `The buoy's height at ${station} each hour`
+        + (tracks.length ? `, with ${tracks.map((tr) => tr.label).join(" and ")}'s in a lighter line, at its own stamps.` : "."),
+      // "Buoy" alone when it is the only line, as it always read.
+      read: (i) => [value(`${tracks.length ? main : "Buoy"} ${height(values[i])}`), ...tracks.map((tr) => {
+        const p = near(tr, i);
+        return p ? `${tr.label} ${height(p.v)} at ${clock(p.t)}` : `${tr.label} —`;
+      })].join(" &middot; "),
     };
   }
   if (mode === "height") {
@@ -3255,7 +3346,7 @@ function fcSpec(id, mode, steps) {
               {cls: "main", label: "North less South", values}],
       zero: true, above: "North bigger", below: "South bigger",
       says: "North's forecast breaking height less South's, every 3 hours, the same on every "
-        + "break's tab. Before this run was published it is what the page showed then; the red "
+        + "break's tab. Before this run was published it is what the page showed then; the blue "
         + `line is ${station}'s own spectrum at those hours, carried in by the same chain`,
       read: (i) => value(`${which(i) === "forecast" ? "Forecast" : "Shown then"}, North less South `
         + signedHeight(values[i])) + obsRead(i, observed[i] == null ? null : signedHeight(observed[i])),
@@ -3369,7 +3460,7 @@ function fcSpec(id, mode, steps) {
   // run over what each of the last few runs said for the same hours, and
   // 46232 carried in beside the hours that have passed. No difference or
   // percentage between them: that would be a claim about the forecast
-  // without a verification series named beside it, and the red line
+  // without a verification series named beside it, and the blue line
   // checks nothing at the beach. Every view not named above lands here.
   const n = (DATA.runs || []).length;
   const earlier = (DATA.runs || []).map((r, k) => ({
@@ -3439,6 +3530,9 @@ function chartDomain(spec, a, z) {
       if (v != null && Math.abs(v) > reach) reach = Math.abs(v);
     }
   });
+  (spec.tracks || []).forEach((tr) => tr.points.forEach((p) => {
+    if (p.i >= a && p.i <= z && Math.abs(p.v) > reach) reach = Math.abs(p.v);
+  }));
   return spec.scale === "diff" ? feetAxis(reach, {floor: 0.1, signed: true}) : feetAxis(reach);
 }
 
@@ -3630,7 +3724,8 @@ function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)
     i = j;
   }
 
-  const lines = spec.lines.map((ln) => chartPath(ln.values, a, z, X, Y, plotW, ln.cls, ln.bridge)).join("");
+  const lines = (spec.tracks || []).map((tr) => trackPath(tr, a, z, X, Y, plotW)).join("")
+    + spec.lines.map((ln) => chartPath(ln.values, a, z, X, Y, plotW, ln.cls, ln.bridge)).join("");
 
   // A shaded band, one polygon per run of hours that have both edges, so a
   // missing hour is a gap in it as it is in a line.
@@ -3739,6 +3834,10 @@ function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)
       + hotOn.map((ln) => (ln.values[at] != null
         ? `<circle class="hot${ln.cls === "obs" || ln.cls === "ens" || ln.cls === "model" ? " " + ln.cls : ""}" cx="${f(X(at))}" cy="${f(Y(ln.values[at]))}" r="3.5"/>` : "")).join("")
       + laneHot
+      + (spec.tracks || []).map((tr) => {
+        const p = spec.near && spec.near(tr, at);
+        return p ? `<circle class="hot ${tr.cls}" cx="${f(X(p.i))}" cy="${f(Y(p.v))}" r="3"/>` : "";
+      }).join("")
     : "";
 
   const label = `${spec.says} From ${dayClock(steps[Math.max(0, Math.ceil(v0))].valid_utc)} to `
@@ -4103,7 +4202,7 @@ function wireCharts() {
 // card already carries a predicted turn). Forecast: the forecast each hour to
 // the end of the run (forecast.json's `hourly`: the NWS local wind, and the
 // harmonic tide with the measured departure the card carries), with the
-// measured hours beside it in red. A missing reading is a gap in its
+// measured hours beside it in blue. A missing reading is a gap in its
 // line, never the hour beside it. Nothing here is a difference or a score.
 function isWT(id) {
   return id === "wind" || id === "tide";
@@ -4347,7 +4446,7 @@ function wtSpec(id, steps, mode) {
       says: "The National Weather Service's hourly forecast wind at Coronado, the Local wind on "
         + "the card; GFS-Wave's own wind, the one on the card above it, in grey: it is at the "
         + `buoy, 29 km offshore, the wind the model makes its wind sea from; and beside the `
-        + `hours that have passed, ${station}'s measured wind in red. Dots are gusts; under it, `
+        + `hours that have passed, ${station}'s measured wind in blue. Dots are gusts; under it, `
         + "the direction each blows from"
         + (none ? `. No local forecast came with this run${L.why ? ` (${L.why})` : ""}` : ""),
       read: (i) => {
@@ -4364,7 +4463,7 @@ function wtSpec(id, steps, mode) {
 
   // The gauge's measured departure from its own harmonic prediction, each
   // hour, and the trailing 3-day mean of it a forecast built at that hour
-  // would have added (forecast.windtide). Measured on both tabs: red on
+  // would have added (forecast.windtide). Measured on both tabs: blue on
   // the forecast's, as everything measured there is.
   if (mode === "departure") {
     const dep = steps.map((s) => (s.seen ? s.seen.dep : null));
@@ -4433,7 +4532,7 @@ function wtSpec(id, steps, mode) {
     night,
     says: `The harmonic tide each hour at ${site} to the end of the run, carried out from the `
       + `${gauge} with the gauge's measured departure from it over the last 3 days added, as the `
-      + "card's is; beside the hours that have passed, the level measured there, in red. On MLLW",
+      + "card's is; beside the hours that have passed, the level measured there, in blue. On MLLW",
     read: (i) => {
       const f = said[i], m = seen[i];
       return (f != null ? value(`Predicted ${height(f)}`) : "no prediction for this hour")
@@ -4903,7 +5002,10 @@ function wireSwellTabs() {
 // the model is making offshore; this one says whether it is offshore at a
 // break, per break, as the Now tab's measured KNZY wind does. A past hour
 // whose build kept no local wind says nothing rather than borrowing today's.
-function localWindBlock(hour, cards, stampWhen, past) {
+// Under a passed hour, KNZY's observed wind sits in this block, under the
+// local forecast it can be read against (owner's call, 2026-10-09): both are
+// the wind on the sand, where GFS-Wave's above is the model's at the buoy.
+function localWindBlock(hour, cards, stampWhen, past, seen = "") {
   const L = (DATA && DATA.local_wind) || {};
   if (hour && hour.local_wind_from_deg != null) {
     const gust = hour.local_gust_kt ? ` <span class="unit">gusting ${Math.round(hour.local_gust_kt * MPH_PER_KT)} mph</span>` : "";
@@ -4913,6 +5015,7 @@ function localWindBlock(hour, cards, stampWhen, past) {
       <span class="sublbl">Local</span>
       <span class="val">${windVal(hour.local_wind_from_deg, hour.local_wind_kt)}${gust}</span>
       ${windAtBreaks(cards)}
+      ${seen}
       ${srcLines([`Forecast for ${stampWhen}`, `${grid}${past ? "" : issued}`])}
     </div>`;
   }
@@ -5031,7 +5134,7 @@ function renderConditions(step, cards) {
     }));
 
     // Wind and tide under an earlier run's hour: the log kept neither, so
-    // those cards carry only the measurement, in the same red and saying so.
+    // those cards carry only the measurement, in the same blue and saying so.
     const seenWind = got && got.wind_kt != null
       ? `<div class="measured"><span class="lbl">Observed at ${clock(step.valid_utc)}</span>`
         + `<span class="mval">${windVal(got.wind_from_deg, got.wind_kt)}</span></div>` : "";
@@ -5060,7 +5163,10 @@ function renderConditions(step, cards) {
     // Today's KNZY reading stands in for a run without model wind -- but never
     // under a past hour, where it would be a reading from the wrong time.
     const fallback = past ? {note: "not kept for earlier runs"} : wind;
-    const local = localWindBlock(hour, cards, stampWhen, past);
+    // The observed wind goes under the Local forecast when there is one,
+    // else it stays under the model's, the only forecast wind the hour has.
+    const underLocal = hour.local_wind_from_deg != null;
+    const local = localWindBlock(hour, cards, stampWhen, past, underLocal ? seenWind : "");
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
       <span class="val">${modelled
@@ -5068,7 +5174,7 @@ function renderConditions(step, cards) {
         : windHeard(fallback)
           ? windVal(fallback.from_deg, fallback.speed_kt)
           : `<span class="unit">${past ? fallback.note : "not collected yet"}</span>`}</span>
-      ${seenWind}
+      ${underLocal ? "" : seenWind}
       ${modelled
         ? srcLines([`Forecast for ${stampWhen}`,
                     `GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})`,

@@ -111,6 +111,35 @@ def shipped(r1: float, r2: float, a1: float, a2: float) -> list[float]:
     return fourier(r1, r2, a1, a2, normalise=False)
 
 
+def mem_poles(r1: float, r2: float, a1: float, a2: float) -> tuple[complex, complex]:
+    """MEM's two poles, or `Unrealisable` when no distribution has these
+    moments. `mem` and `mem_sector` both start here; `realisable` is it alone,
+    for a caller that needs only to know whether `mem` would succeed."""
+
+    c1 = r1 * cmath.exp(1j * math.radians(a1))
+    c2 = r2 * cmath.exp(2j * math.radians(a2))
+    phi1 = (c1 - c2 * c1.conjugate()) / (1.0 - abs(c1) ** 2)
+    phi2 = c2 - c1 * phi1
+    disc = cmath.sqrt(phi1 * phi1 + 4.0 * phi2)
+    p1, p2 = (phi1 + disc) / 2.0, (phi1 - disc) / 2.0
+    if max(abs(p1), abs(p2)) >= 1.0 - 1e-9 or abs(p1 - p2) < 1e-9:
+        raise Unrealisable(f"poles {abs(p1):.4f}, {abs(p2):.4f}")
+    return p1, p2
+
+
+def realisable(r1: float, r2: float, a1: float, a2: float) -> bool:
+    """Whether `mem` would return a distribution for these moments, at the
+    cost of its pole test alone. MEM's bins then sum to exactly one, so a bin's
+    energy is its whole c11 -- which is what `transform.combined_hs` needs to
+    skip the 361 complex logs per bin."""
+
+    try:
+        mem_poles(r1, r2, a1, a2)
+    except (Unrealisable, ZeroDivisionError, ValueError):
+        return False
+    return True
+
+
 def mem(r1: float, r2: float, a1: float, a2: float) -> list[float]:
     """Lygre & Krogstad (1986) maximum entropy, integrated EXACTLY per 1° bin.
 
@@ -125,14 +154,7 @@ def mem(r1: float, r2: float, a1: float, a2: float) -> list[float]:
     is θ ± i·log(1 − w e^{±iθ}), with no branch to cross.
     """
 
-    c1 = r1 * cmath.exp(1j * math.radians(a1))
-    c2 = r2 * cmath.exp(2j * math.radians(a2))
-    phi1 = (c1 - c2 * c1.conjugate()) / (1.0 - abs(c1) ** 2)
-    phi2 = c2 - c1 * phi1
-    disc = cmath.sqrt(phi1 * phi1 + 4.0 * phi2)
-    p1, p2 = (phi1 + disc) / 2.0, (phi1 - disc) / 2.0
-    if max(abs(p1), abs(p2)) >= 1.0 - 1e-9 or abs(p1 - p2) < 1e-9:
-        raise Unrealisable(f"poles {abs(p1):.4f}, {abs(p2):.4f}")
+    p1, p2 = mem_poles(r1, r2, a1, a2)
 
     def anti(k: int, w_plus: complex, w_minus: complex) -> complex:
         # ∫ [1/(1 − w₊ e^{iθ}) + 1/(1 − w₋ e^{-iθ}) − 1] dθ, at edge k.

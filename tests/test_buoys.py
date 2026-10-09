@@ -323,3 +323,62 @@ class TestBreakRowsLightToo:
         assert "key === `T${n}` || key === `t${n}` || key.startsWith(`t${n}-`)" in show
         assert ('.train[data-rose-train][aria-pressed="true"],.train[data-train][aria-pressed="true"]'
                 '{background:var(--paper);opacity:1}') in PAGE
+
+
+class TestTheHeightChart:
+    """Owner's request, 2026-10-09: 46047 on the LIVE Buoys tab's Height
+    chart, beside 46232, at its own stamps."""
+
+    def test_the_fast_height_is_at_buoys_to_rounding(self):
+        """`combined_hs` skips the train split and MEM's per-bin solve; it must
+        still be the reading's own number, maximum entropy and Fourier alike,
+        over real spectra (fallback bins included)."""
+
+        from forecast.transform import combined_hs
+
+        spectra = load_spectra(ROOT / "data" / "spectra" / "46047")[::97]
+        assert len(spectra) > 20
+        for sp in spectra:
+            mem = sp.with_spread("mem")
+            assert abs(combined_hs(mem) - at_buoy(mem).hs_m) < 1e-9
+            assert abs(combined_hs(sp) - at_buoy(sp).hs_m) < 1e-9
+
+    def test_realisable_is_whether_mem_succeeds(self):
+        from forecast.spreadmethod import Unrealisable, mem, realisable
+
+        for moments in [(0.6, 0.3, 270.0, 268.0), (0.2, 0.9, 10.0, 200.0),
+                        (0.95, 0.1, 90.0, 0.0), (0.5, 0.5, 180.0, 180.0)]:
+            try:
+                mem(*moments)
+                ok = True
+            except (Unrealisable, ZeroDivisionError, ValueError):
+                ok = False
+            assert realisable(*moments) == ok
+
+    def test_heights_keep_each_stamp_where_it_was_measured(self):
+        t0 = datetime(2026, 10, 1, 0, 20, tzinfo=timezone.utc)
+        spectra = [spectrum(t0 + timedelta(minutes=m)) for m in (0, 30, 60, 120)]
+        got = buoys.heights(spectra)
+        assert got["start_utc"] == "2026-10-01T00:20:00Z"
+        assert got["t_min"] == [0, 30, 60, 120]                # the 90 is a gap, not filled
+        assert len(got["hs_m"]) == 4
+        assert buoys.heights(spectra, since=t0 + timedelta(minutes=45))["t_min"] == [0, 60]
+        assert buoys.heights([]) == {"start_utc": None, "t_min": [], "hs_m": []}
+
+    def test_the_week_rides_in_buoys_json_and_the_rest_in_its_own_file(self):
+        assert buoys.HEIGHT_DAYS >= 7
+        build = (ROOT / "forecast" / "buoys.py").read_text()
+        assert '"heights": {station: heights(_spectra(data_dir, station),' in build
+        assert 'out.with_name("buoys_all.json")' in build
+        from forecast import publish
+        assert publish.BUNDLE_BUOYS_ALL_PATH == "buoys_all.json"
+
+    def test_the_page_draws_it_at_its_own_stamps_and_reads_its_own_time(self):
+        tracks = _fn("contextTracks")
+        assert "(ms - t0) / HOUR_MS" in tracks                # fractional, never snapped
+        assert "join: 0.75" in tracks                          # > 45 min apart is a gap
+        spec = _fn("buildSpec")
+        assert "`${tr.label} ${height(p.v)} at ${clock(p.t)}`" in spec
+        assert "Math.abs(p.i - i) <= 0.5" in spec
+        assert "(spec.tracks || []).map((tr) => trackPath(tr, a, z, X, Y, plotW))" in PAGE
+        assert ".series .ln.other{stroke:var(--faint)" in PAGE

@@ -67,7 +67,7 @@ from . import rose
 from .live import station_name
 from .now import PUBLISH_MINUTES as ANCHOR_MINUTES
 from .now import STALE_HOURS, as_trains, deadline
-from .transform import at_buoy, load_spectra
+from .transform import at_buoy, combined_hs, load_spectra
 from .units import height as fmt_height
 
 #: The buoys shown under 46232 on the Buoys tab, in order. 46086 is not here:
@@ -88,6 +88,40 @@ PUBLISH_LAG_LATE_MIN = {"46047": 85}
 #: rose: a picture of 46232's spectrum at the buoy, carried to no break.
 ANCHOR = "46232"
 
+#: How far back buoys.json's heights reach: the LIVE tab's week
+#: (`forecast.series`), and a day over so its first hour always has a stamp
+#: either side. Older stamps are in buoys_all.json, fetched only when the
+#: reader zooms out past the week, as series_all.json is.
+HEIGHT_DAYS = 8
+
+
+def heights(spectra: list, since: datetime | None = None) -> dict:
+    """Each spectrum's combined height, at its own stamp, for the Height chart.
+
+    Owner's request, 2026-10-09: 46047 on the LIVE Buoys tab's Height chart,
+    beside 46232. Maximum entropy, as the reading above it (`combined_hs` is
+    `at_buoy`'s m0 without the trains). At the buoy's OWN stamps -- :20 and
+    :50, never moved onto 46232's hours -- as minutes from the first, so the
+    page draws each where it was measured and a missing stamp is a gap.
+    """
+
+    kept = [sp for sp in spectra if since is None or sp.time >= since]
+    if not kept:
+        return {"start_utc": None, "t_min": [], "hs_m": []}
+    start = kept[0].time
+    return {
+        "start_utc": start.strftime(ISO),
+        "t_min": [round((sp.time - start).total_seconds() / 60.0) for sp in kept],
+        "hs_m": [round(combined_hs(sp.with_spread("mem")), 3) for sp in kept],
+    }
+
+
+def all_heights(data_dir: Path, moment: datetime) -> dict:
+    """buoys_all.json: every archived stamp's height, for each context buoy."""
+
+    out = {station: heights(_spectra(data_dir, station)) for station in STATIONS}
+    return {"generated_utc": moment.strftime(ISO), "spread": "mem", "heights": out}
+
 
 def roses(data_dir: Path, moment: datetime) -> dict:
     """Each buoy's last six hours of roses, 46232 first (`forecast.rose`).
@@ -101,10 +135,7 @@ def roses(data_dir: Path, moment: datetime) -> dict:
     out: dict = {}
     for station in (ANCHOR, *STATIONS):
         marks = ANCHOR_MINUTES["swell"] if station == ANCHOR else PUBLISH_MINUTES[station]
-        try:
-            spectra = load_spectra(Path(data_dir) / "spectra" / station)
-        except (FileNotFoundError, ValueError):
-            spectra = []
+        spectra = _spectra(data_dir, station)
         recent = [sp.with_spread("mem") for sp in spectra
                   if sp.time > moment - timedelta(hours=rose.WINDOW_HOURS)]
         # The newest spectrum's trains, as the reading above the rose lists
@@ -113,6 +144,13 @@ def roses(data_dir: Path, moment: datetime) -> dict:
         trains = at_buoy(recent[-1]).trains if recent else None
         out[station] = rose.payload(recent, moment, 60.0 / len(marks), trains)
     return out
+
+
+def _spectra(data_dir: Path, station: str) -> list:
+    try:
+        return load_spectra(Path(data_dir) / "spectra" / station)
+    except (FileNotFoundError, ValueError):
+        return []
 
 
 def reading(station: str, data_dir: Path, moment: datetime) -> dict:
@@ -185,6 +223,10 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
         },
         "buoys": shown,
         "roses": roses(data_dir, moment),
+        # The context buoys' own heights over the week, for the Height chart.
+        "heights": {station: heights(_spectra(data_dir, station),
+                                     since=moment - timedelta(days=HEIGHT_DAYS))
+                    for station in STATIONS},
     }
 
 
@@ -218,6 +260,14 @@ def main(argv: list[str] | None = None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=1), encoding="utf-8")
     print(f"\nWrote {out}")
+    # Every archived stamp, beside it: ~0.7 s for 46047's two months, and
+    # fetched by the page only when the chart is zoomed out past the week.
+    whole = all_heights(args.data_dir, datetime.strptime(payload["generated_utc"], ISO)
+                        .replace(tzinfo=timezone.utc))
+    every = out.with_name("buoys_all.json")
+    every.write_text(json.dumps(whole, separators=(",", ":")), encoding="utf-8")
+    counts = ", ".join(f"{s}: {len(h['hs_m'])} stamps" for s, h in whole["heights"].items())
+    print(f"Wrote {every} ({counts})")
     return 0
 
 
