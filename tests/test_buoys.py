@@ -222,10 +222,11 @@ def _fn(name: str) -> str:
     return body[:body.index("\n}\n")]
 
 
-class TestTheAnchorsPill:
-    """Owner's request, 2026-10-09: 46232's name line gives way to a pill,
-    "CDIP 191 •", at the right of the combined height, the dot green, amber
-    or red on the swell countdown's own three states."""
+class TestThePills:
+    """Owner's requests, 2026-10-09: each buoy's name line gives way to a
+    pill at the right of its combined height -- "CDIP 191 •" and "NDBC
+    46047 •" -- the dot green, green fading while an update is due, and red
+    once overdue, on that buoy's own countdown."""
 
     def test_the_number_is_the_registrys_not_the_pages(self):
         from collector.stations import load_stations
@@ -236,11 +237,11 @@ class TestTheAnchorsPill:
         assert by_id["46232"].cdip == "191"
         assert cdip_id("46232") == "191" and cdip_id("46047") == ""
         assert "station_cdip" in Now.__dataclass_fields__
-        assert "CDIP 191" not in PAGE and "CDIP ${cdip}" in PAGE
+        assert "CDIP 191" not in PAGE and "CDIP ${now.station_cdip}" in PAGE
 
     def test_the_dot_runs_on_the_swell_countdowns_instants(self):
-        assert ("buoyPill: buoyPill(NOW && NOW.station_cdip, due.swell, late.swell,"
-                " {forceOver: nowIsStale()})") in PAGE
+        assert "buoyPill: anchorPill(NOW, due.swell, late.swell)," in PAGE
+        assert "{forceOver: nowIsStale()}" in PAGE[PAGE.index("const anchorPill"):][:300]
         assert "dueSpan(due.swell, late.swell, {forceOver: nowIsStale()})" in PAGE
         # One computation of the two instants for the countdown and the dot.
         assert "dueInstants(iso, lateIso)" in _fn("dueSpan")
@@ -248,16 +249,31 @@ class TestTheAnchorsPill:
         tick = _fn("tickDue")
         assert "[data-status-due]" in tick
         assert '"Receiving normally"' in tick and '"Update due"' in tick and '"Overdue"' in tick
-        for rule in (".status{", "background:var(--ok)", ".status.due{background:var(--due)}",
-                     ".status.over{background:var(--signal)}"):
+        for rule in (".status{", "background:var(--dot-ok)",
+                     ".status.due{animation:status-due 2s ease-in-out infinite}",
+                     ".status.over{background:var(--dot-over)}",
+                     "@keyframes status-due{0%,100%{opacity:1}50%{opacity:.2}}",
+                     "@media (prefers-reduced-motion: reduce){ .status.due{animation:none;opacity:.45} }"):
             assert rule in PAGE, rule
+
+    def test_the_dot_is_dark_modes_green_and_red_on_both_themes(self):
+        root = PAGE[PAGE.index(":root{"):PAGE.index("}", PAGE.index(":root{"))]
+        assert "--dot-ok:#5FBF86; --dot-over:#FF6B6B;" in root
+        assert PAGE.count("--dot-ok:") == 1 and PAGE.count("--dot-over:") == 1
+        assert "--due:" not in PAGE
+
+    def test_46047_wears_one_on_its_own_countdown(self):
+        block = _fn("contextBuoy")
+        assert 'buoyPill(`NDBC ${b.station}`' in block
+        assert "b.next_expected" in block and "b.overdue_after" in block
+        assert "sublbl" not in block
 
     def test_the_pill_replaces_the_name_line_on_the_live_tab_only(self):
         panel = _fn("buoyPanel")
         assert "named && station && !pill" in panel
         assert "valWithPill(" in _fn("buoyReading")
         # The Forecast chain's buoy is a model at 46232: no feed, no dot.
-        assert PAGE.count("buoyPill: buoyPill(") == 1
+        assert PAGE.count("buoyPill: anchorPill(") == 1
 
     def test_the_pill_wears_the_lead_trains_heading_and_the_picked_rows_background(self):
         css = PAGE[PAGE.index(".buoy-pill{"):PAGE.index(".status{")]

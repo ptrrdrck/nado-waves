@@ -253,13 +253,16 @@ forecaster actually verifies against, Surfline included.
    collection). **Each buoy's provenance follows its own measurements**
    (owner's call, same day): 46232's reading, then the card's provenance
    (46232's), then 46047's block with its provenance in the same style.
-   46232 is named by a pill, not a name line (owner's request, 2026-10-09):
-   "CDIP 191 •" at the right of its combined height, the number from the
-   registry (`stations.json` `cdip`, `now.json` `station_cdip`, never typed
-   on the page), in the lead train's heading style on the picked row's
-   background, the dot green / amber / red on the swell countdown's own two
-   instants (`dueInstants`), so it turns exactly when "Update due." and
-   "Overdue by …" do. LIVE only: the Forecast chain's buoy is a model.
+   Each buoy is named by a pill, not a name line (owner's requests,
+   2026-10-09): "CDIP 191 •" and "NDBC 46047 •" at the right of the combined
+   height, 46232's number from the registry (`stations.json` `cdip`,
+   `now.json` `station_cdip`, never typed on the page), in the lead train's
+   heading style on the picked row's background. The dot runs on that
+   buoy's own countdown instants (`dueInstants`), so it turns exactly when
+   "Update due." and "Overdue by …" do: green, green fading in and out
+   while due (held at half strength under reduced motion), red overdue --
+   dark mode's green and red on both themes (`--dot-ok`, `--dot-over`).
+   LIVE only: the Forecast chain's buoy is a model.
    **It feeds nothing**: its own module and file, never a key in now.json, so
    the context-station guard still keeps "46047" out of now.py and the chain,
    and `tests/test_buoys.py` keeps `through`/`carry`/the surf zone out of it.

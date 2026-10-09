@@ -14,7 +14,9 @@
   --sand:#D9C9A8; --sand-deep:#B9A47C;
   --signal:#C62828; --signal-wash:#F9DEDE;
   --ok:#2F7D4F;
-  --due:#B58100;
+  /* The status dot is dark mode's green and red on both themes (owner's call,
+     2026-10-09). */
+  --dot-ok:#5FBF86; --dot-over:#FF6B6B;
   /* Measured, under a forecast: pure red, 0° hue, no orange (owner's call,
      2026-10-02). #FF0000 itself is 3.75:1 on the light card and 3.89:1 on
      the dark, short of 4.5 for text; these keep its hue and pass:
@@ -31,7 +33,6 @@
     --sand:#8C7A55; --sand-deep:#A8935F;
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
-    --due:#F2C14E;
     --measured:#FF4545;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
@@ -43,7 +44,6 @@
   --sand:#8C7A55; --sand-deep:#A8935F;
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
   --ok:#5FBF86;
-  --due:#F2C14E;
   --measured:#FF4545;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
@@ -205,15 +205,19 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A picked row reads as pressed, on the Buoys tab and on a break's alike
    (owner's request, 2026-10-09). */
 .train[data-rose-train][aria-pressed="true"],.train[data-train][aria-pressed="true"]{background:var(--paper);opacity:1}
-/* 46232's pill on the LIVE Buoys tab: its CDIP number in the lead train's
-   heading style, on the picked row's background, and a dot that is green
-   while its spectra arrive, amber once one is due and red once overdue --
-   the swell countdown's own three states (owner's request, 2026-10-09). */
+/* Each buoy's pill on the LIVE Buoys tab, "CDIP <n>" or "NDBC <id>": its
+   number in the lead train's heading style, on the picked row's background,
+   and a dot on that buoy's own countdown -- green while its spectra arrive,
+   green fading in and out once one is due, red once overdue (owner's
+   requests, 2026-10-09). */
 .buoy-pill{display:inline-flex;align-items:center;gap:6px;flex:none;padding:2px 9px;border-radius:999px;
   background:var(--paper);color:var(--ink);font-size:14px;font-weight:400;line-height:1.3;
   font-variant-numeric:tabular-nums;white-space:nowrap}
-.status{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok)}
-.status.due{background:var(--due)} .status.over{background:var(--signal)}
+.status{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dot-ok)}
+.status.due{animation:status-due 2s ease-in-out infinite} .status.over{background:var(--dot-over)}
+@keyframes status-due{0%,100%{opacity:1}50%{opacity:.2}}
+/* Without motion, due is the green held half-faded: still not the resting dot. */
+@media (prefers-reduced-motion: reduce){ .status.due{animation:none;opacity:.45} }
 /* The break card's headline with its caret at the right end. The caret
    points up while the calculation is folded away and down once it is open
    beneath the line (owner's design, 2026-09-26). */
@@ -2101,13 +2105,16 @@ function buoyReading(buoy, roseFor = null, pill = "") {
     + trains;
 }
 
-// "CDIP <number> •": the anchor buoy's CDIP number and a status dot on the swell
-// card's own two instants, so it goes amber and red exactly when "Update
-// due." and "Overdue by …" do below it. No number, no pill.
-function buoyPill(cdip, iso, lateIso, {forceOver = false} = {}) {
-  if (!cdip) return "";
-  return `<span class="buoy-pill">CDIP ${cdip}${statusDot(iso, lateIso, {forceOver})}</span>`;
+// A buoy's pill: who numbers it -- "CDIP <number>" for 46232, the program
+// that runs it, from the registry; "NDBC <id>" otherwise -- and a status dot
+// on that buoy's own two instants, so it changes exactly when "Update due."
+// and "Overdue by …" do in its provenance. No label, no pill.
+function buoyPill(label, iso, lateIso, {forceOver = false} = {}) {
+  if (!label) return "";
+  return `<span class="buoy-pill">${label}${statusDot(iso, lateIso, {forceOver})}</span>`;
 }
+const anchorPill = (now, due, late) => (now && now.station_cdip
+  ? buoyPill(`CDIP ${now.station_cdip}`, due, late, {forceOver: nowIsStale()}) : "");
 
 // The dot is filled by `tickDue` with the countdown it sits beside: the same
 // instants with this page's refresh leg added, and the same three states.
@@ -2127,9 +2134,12 @@ const buoyLabel = (name, id) => (name && name !== id ? `${name} (${id})` : `NDBC
 // red past its measured worst or past the build's three hours.
 function contextBuoy(b) {
   const old = b.observed_utc && (b.stale || (ageHours(b.observed_utc) || 0) > (b.stale_hours || 3));
-  const reading = b.hs_m != null ? buoyReading(b, b.station)
-    : '<span class="val"><span class="unit">no spectrum</span></span>';
-  return `<hr><span class="sublbl">${buoyLabel(b.station_name, b.station)}</span>${reading}`
+  // Its pill, as 46232's (owner's request, 2026-10-09), on its own countdown.
+  const pill = buoyPill(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after,
+                        {forceOver: !!old || !b.observed_utc});
+  const reading = b.hs_m != null ? buoyReading(b, b.station, pill)
+    : valWithPill('<span class="val"><span class="unit">no spectrum</span></span>', pill);
+  return `<hr>${reading}`
     + roseBlock(b.station)
     + srcLines([
       b.observed_utc ? `Observed ${observedAt(b.observed_utc)}` : "",
@@ -4921,7 +4931,7 @@ function renderConditions(step, cards) {
           ? `Spectral wave data, ${NOW.station_name} (NDBC ${NOW.station})` : "",
       ],
       due: dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),
-      buoyPill: buoyPill(NOW && NOW.station_cdip, due.swell, late.swell, {forceOver: nowIsStale()}),
+      buoyPill: anchorPill(NOW, due.swell, late.swell),
       chart: true,
       origin: originFor("buoy"),
     }));
