@@ -3352,10 +3352,15 @@ class TestOriginsChart:
     def test_an_arrival_the_storm_named_is_drawn_as_the_storm(self):
         assert "!(a.named || {})[site]" in self.spec()
 
-    def test_named_storms_are_placed_from_nhc_and_carry_their_match(self):
+    def test_named_storms_are_placed_from_nhc_without_a_match_word(self):
+        """Owner's call, 2026-10-10: the readout names storms as the Origin
+        fold does, with no match word or percentage, and an arrival with no
+        place is an "Unplaced storm"."""
+
         spec = self.spec()
         assert "logMi(n.at.distance_km)" in spec
-        assert "match `\n        + `${Math.round(n.best * 100)}%" in spec
+        assert "n.word" not in spec and "n.best" not in spec and "%" not in _code(spec)
+        assert "`Unplaced storm, ${farAway(a.distance_km)}, no bearing`" in spec
 
     def test_an_hour_reads_each_storm_once_from_the_moment_before_it(self):
         """An hour half-way between two named moments read both, so each storm

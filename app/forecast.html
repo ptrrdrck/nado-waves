@@ -3045,12 +3045,15 @@ function originsSpec(id, steps) {
       + "log scale; under it, the bearing each came from, as seen from the buoy",
     read: (i) => {
       const t = Date.parse(steps[i].valid_utc);
-      const parts = near(i).map((n) => value(`Hurricane ${n.name}`) + `, ${n.word} match `
-        + `${Math.round(n.best * 100)}%, ${farAway(n.at.distance_km, 100)} ${point(n.at.bearing_deg)}`);
+      // Named as the Origin fold names them (owner's call, 2026-10-10): a
+      // hurricane by name with no match word or figure, a sea, or "Unplaced
+      // storm".
+      const parts = near(i).map((n) => value(`Hurricane ${n.name}`)
+        + `, ${farAway(n.at.distance_km, 100)} ${point(n.at.bearing_deg)}`);
       arrivals.filter((a) => Date.parse(a.first_utc) <= t && t <= Date.parse(a.last_utc))
         .forEach((a) => parts.push(a.region
           ? `${sea(a.region)}, ${farAway(a.distance_km)} ${point(a.bearing_deg)}`
-          : `${farAway(a.distance_km)}, no bearing`));
+          : `Unplaced storm, ${farAway(a.distance_km)}, no bearing`));
       return parts.length ? parts.join(" &middot; ") : "no readable arrival this hour";
     },
   };

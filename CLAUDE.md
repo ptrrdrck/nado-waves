@@ -535,7 +535,10 @@ forecaster actually verifies against, Surfline included.
    card would have named AS OF that moment, at the distance of NHC's fix that
    sent that tab's train, its name by its first dot in view; and a grey bar
    over the hours each Origin arrival no storm is named for was arriving, at
-   its dispersion distance. Log miles, 500–10,000; a bearing strip under it,
+   its dispersion distance. Its readout names each as the fold does — a
+   hurricane by name with no match word or figure, a sea, or "Unplaced storm,
+   about … , no bearing" (owner's call, 2026-10-10). Log miles, 500–10,000;
+   a bearing strip under it,
    never tested against the windows. A mark is on a tab only where it was that
    tab's card train (an arrival at its peak hour). An arrival is the storm's,
    on chart AND card, only when the storm's train there is the ridge's own
