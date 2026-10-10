@@ -27,6 +27,15 @@ def test_a_bdeck_is_one_fix_per_time_in_signed_degrees():
     assert fixes[1].vmax_kt == 85 and fixes[1].name == "TEST" and fixes[1].storm == "EP12"
 
 
+def test_a_fix_carries_its_pressure_and_a_missing_one_is_none():
+    """The card names a hurricane's pressure beside its winds (owner's call,
+    2026-10-10). An invest's early rows write 0, which is no reading."""
+
+    assert [f.mslp_mb for f in parse_bdeck(BDECK)] == [990, 975, 965]
+    zero = "EP, 91, 2026082000,   , BEST,   0, 140N, 1150W,  20,    0, DB,"
+    assert parse_bdeck(zero)[0].mslp_mb is None
+
+
 def reading_at(fix_lat, fix_lon, *, born="2026-08-20T06:00:00Z", placed=True):
     d = great_circle_km(HOME, (fix_lat, fix_lon))
     from forecast.swell import initial_bearing

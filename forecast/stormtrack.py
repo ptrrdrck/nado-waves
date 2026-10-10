@@ -630,7 +630,8 @@ def backtest(band: Band, field_: Field) -> list[tuple[datetime, float | None]]:
 def misplaced(band: Band, days: float) -> Band:
     """The same storm, its every fix `days` later: a track whose swell was not there."""
 
-    moved = [Fix(f.storm, f.name, f.time + timedelta(days=days), f.lat, f.lon, f.vmax_kt)
+    moved = [Fix(f.storm, f.name, f.time + timedelta(days=days), f.lat, f.lon, f.vmax_kt,
+                 f.mslp_mb)
              for f in band.fixes]
     return Band(band.storm, band.name, band.station, moved, band.distances, band.bearing,
                 band.peak_kt, band.station_position, band.blocked)
@@ -759,6 +760,7 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
                 "distance_km": round(d),
                 "bearing_deg": round(bearing),
                 "vmax_kt": fix.vmax_kt,
+                "mslp_mb": fix.mslp_mb,
             }))
         # A band from two directions is two trains since BRIEFING §40, often a
         # second apart and both on the storm's schedule: the storm's is the one

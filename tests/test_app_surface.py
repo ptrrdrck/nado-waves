@@ -3189,7 +3189,8 @@ class TestOrigin:
         assert "No readable arrival in the last ${o.lookback} days" in SOURCE
 
     def test_a_running_arrival_says_so(self):
-        assert "Read off the swell, ${Math.max(1, Math.round(a.hours_read))} h so far" in SOURCE
+        assert "const hours = Math.max(1, Math.round(a.hours_read));" in SOURCE
+        assert "`Read backwards off the swell, ${hours} h so far.`" in SOURCE
 
     def test_every_origin_is_the_same_three_lines(self):
         """What it is; where and when, with its train; how it is known."""
@@ -3205,9 +3206,15 @@ class TestOrigin:
         body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
         assert body.count("originSources(") == 1 and "srcLines" not in body
 
-    def test_an_unplaced_storm_is_called_one(self):
-        assert 'isPlaced(a) ? sea(a.region) : "Unplaced storm"' in SOURCE
-        assert "Unplaced storm: neither ${o.bearingStations.map((id) => buoyName(o, id)).join(\" nor \")}" in SOURCE
+    def test_an_unplaced_storm_and_a_split_direction_are_told_apart(self):
+        """Owner's call, 2026-10-10: a train 46047 holds from two directions
+        is a "Split direction", never an unplaced storm, whose source line
+        says 46047 does not have the train at all (BRIEFING §38). Rendered
+        per case by tests/test_originwording.py."""
+
+        assert 'isSplit(a) ? "Split direction" : isPlaced(a) ? sea(a.region) : "Unplaced storm"' in SOURCE
+        assert "const isSplit = (a) => a.bearing_deg == null && (a.bearing_lobes || []).length > 0;" in SOURCE
+        assert "`${by[0]} does not have`" in SOURCE
 
     def test_buoys_are_named_as_ndbc_names_them(self):
         """"Tanner Banks, CA (NDBC 46047)", as the card's other provenance
@@ -3259,15 +3266,25 @@ class TestHurricane:
         assert "Hurricane ${h.name}" in entry
         assert "National Hurricane Center best track, an analysis" in SOURCE
         # NHC's position, rounded to 100 where Origin's distances round to 500.
-        assert "trainAt(s.train_period_s, s.distance_km, 100, s.bearing_deg, s.fix_utc)" in entry
-        assert "tag: `winds ${speed(s.vmax_kt)}`" in entry
+        assert ("trainAt({period: s.train_period_s, sent: s.fix_utc, fitted: false,\n"
+                "                    km: s.distance_km, step: 100, bearings: [s.bearing_deg]})") in entry
+        # Its winds and pressure are the fix's that sent the train, and say so.
+        assert "tag: `winds ${speed(s.vmax_kt)}${s.mslp_mb ? `, ${s.mslp_mb} mb` : \"\"} when sent`" in entry
 
     def test_it_states_its_match_with_the_count_behind_it(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert "match to NHC's track, `\n      + `${Math.round(h.best * 100)}%." in entry
+        assert "match to NHC's track.</span>`" in entry
         assert "${m.beaten} of ${m.trials}" in entry
-        assert "Timing and direction beat the same track moved `\n      + `earlier ${tested}." in entry
-        assert "h read so far." in entry
+        assert "` Timing and direction beat the same track moved earlier ${tested}.`" in entry
+        # The hours are each gate buoy's own, beside its count (2026-10-10).
+        assert '(m.hours == null ? "" : ` over ${m.hours} h`)' in entry
+
+    def test_the_match_is_a_count_never_a_percentage(self):
+        """Owner's call, 2026-10-10: "92%" restated the first count as a bare
+        figure beside "match", where it read as a probability."""
+
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
+        assert "%" not in _code(entry) and "h.best" not in entry
 
     def test_the_match_is_never_called_a_probability_or_a_confidence(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
@@ -3339,17 +3356,19 @@ class TestOriginsChart:
 
 
 def test_every_origin_names_its_train_distance_bearing_and_day_in_one_order():
-    """Owner's wording, 2026-10-04: "16.0 s train, about 700 mi (1,100 km)
-    bearing 161° SSE on Sep 28" -- the bearing in degrees and compass, and
-    none at all for an unplaced storm, which has none."""
+    """Owner's formula, 2026-10-10: "16.0 s train, sent about Sep 28 from
+    about 700 mi (1,100 km) bearing 161° SSE" -- the day it was SENT, "about"
+    when fitted off the swell; the bearing in degrees and compass, both of a
+    split direction's, and none at all for an unplaced storm."""
 
     at = SOURCE[SOURCE.index("const trainAt"):SOURCE.index("function hurricaneEntry")]
-    assert at.index("s train, ${farAway(") < at.index(" bearing ${Math.round(bearing)}&deg; ${point(bearing)}") \
-        < at.index(" on ${onDay(iso)}")
-    assert "isPlaced(a) ? a.bearing_deg : null" in SOURCE
+    assert at.index("s train, sent ${fitted ? \"about \" : \"\"}${onDay(sent)}") \
+        < at.index(" from ${farAway(km, step)}") < at.index(" bearing ${bearings.map(")
+    assert '.join(" or ")' in at
+    assert "isSplit(a) ? a.bearing_lobes.map(([d]) => d) : []" in SOURCE
 
 
 def test_every_train_is_read_off_46232_and_only_readings_backwards():
     sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
     assert "Trains read off the spectrum at ${buoyName(o, o.station)}" in sources
-    assert 'backwards ? ", and storms read backwards from them" : ""' in sources
+    assert 'readings.length ? ", and storms read backwards from them" : ""' in sources

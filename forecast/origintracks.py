@@ -62,6 +62,9 @@ class Fix:
     lat: float
     lon: float
     vmax_kt: int
+    #: Minimum sea-level pressure, hPa; None where the b-deck writes 0 or
+    #: nothing (an invest's early fixes).
+    mslp_mb: int | None = None
 
 
 def _coord(text: str) -> float:
@@ -76,7 +79,8 @@ def parse_bdeck(text: str) -> list[Fix]:
     """One storm's b-deck, one fix per six-hourly time.
 
     A b-deck repeats a time once per wind-radius threshold (34, 50, 64 kt);
-    the position and peak wind are the same on each, so the first is kept.
+    the position, peak wind and pressure are the same on each, so the first
+    is kept.
     """
 
     seen: dict[datetime, Fix] = {}
@@ -93,6 +97,7 @@ def parse_bdeck(text: str) -> list[Fix]:
                 lat=_coord(cols[6]),
                 lon=_coord(cols[7]),
                 vmax_kt=int(cols[8] or 0),
+                mslp_mb=int(cols[9]) if len(cols) > 9 and cols[9] and int(cols[9]) > 0 else None,
             )
         except (ValueError, IndexError):
             continue
