@@ -463,20 +463,26 @@ forecaster actually verifies against, Surfline included.
    break in the last 21 days. **Every origin is the same three lines** (owner's
    design, 2026-10-04), **each a fixed run of slots** (owner's formula,
    2026-10-10, `docs/origin_wording.md`): a slot with no value drops with its
-   joining words, nothing is reworded per case. What it is ("Hurricane Polo
-   winds 121 mph (105 kt), 950 mb when sent" — NHC's fix that SENT the train,
-   so a storm that has weakened since still reads as it was then; a sea; "Split
-   direction" when 46047 holds the train from two directions; "Unplaced storm"
-   when 46047 does not have it); "16.0 s train, sent about Sep 28 from about
-   700 mi (1,100 km) bearing 161° SSE" ("about" on a reading's fitted day, bare
-   on NHC's; both bearings of a split, none for unplaced; the last arrival's
-   train is its peak hour's, `peak_period_s`); and how it is known (the match
-   as a word and its count at each gate buoy with that buoy's hours, **never a
-   percentage**; or the hours read, and "Arrived …, no longer arriving").
-   Then ONE provenance block, a line per claim on screen: every train read off
-   46232's spectrum, "and storms read backwards from them" only with a
-   reading; why a split or unplaced reading has no place; NHC's best track for
-   a hurricane's position, winds and pressure — each buoy as NDBC names it,
+   joining words, nothing is reworded per case. What it is, the head alone
+   ("Hurricane Polo", a sea, or "Unplaced storm" — 46047 holds the train from
+   several directions, or does not have it); "The 16.0 s train, sent about
+   Sep 28 from about 700 mi (1,100 km) away, bearing 161° SSE" ("about" on a
+   reading's fitted day, bare on NHC's; ", with a split bearing (… or …)" for
+   a split, nothing when 46047 lacks it; a hurricane ends "with winds of
+   121 mph (105 kt) and 950 mb pressure", NHC's fix that SENT the train, so a
+   storm that has weakened since still reads as it was then; the last
+   arrival's train is its peak hour's, `peak_period_s`); and how it is known
+   ("Timing and direction beat NHC's track moved earlier N of M times at" each
+   gate buoy, with its hours — the count of earlier copies beaten, **never a
+   percentage and, since the owner's second pass that day, no
+   strong/partial/weak word**; or the hours read, and "Arrived …, no longer
+   arriving"). Then ONE provenance block, a line per claim on screen, in this
+   order: every train read off 46232's spectrum, "and storms read backwards
+   from them" only with a reading; NHC's best track for a hurricane's
+   position, winds and pressure, the storm's NAME linked to NHC's b-deck
+   (`atcf/btk/`); why each unplaced reading has no place — each buoy as NDBC
+   names it, the bearing buoys and every gate buoy a shown hurricane was
+   matched at (46086 printed bare until 2026-10-10),
    "Tanner Banks, CA (NDBC 46047)", from `origin.station_names` in
    now.json (fetched metadata, never typed). **No upstream sighting is shown, ever**: measured, the predecessor's
    "confirmed in transit" check is blind to the distance (scaling every distance

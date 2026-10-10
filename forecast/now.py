@@ -823,11 +823,14 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
     block = origin.reading(spectra, archives, load_coordinates().get(STATION),
                            newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
     block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now)
-    # NDBC's own names, from the fetched metadata (never typed), so the card's
-    # provenance can name each bearing buoy as "Name, CA (NDBC id)", as its
-    # other lines name the swell buoy.
+    # NDBC's own names, from the fetched metadata (never typed), so the card
+    # can name every buoy it cites as "Name, CA (NDBC id)", as its other lines
+    # name the swell buoy: the bearing buoys and each hurricane's gate buoys.
+    # Bearing buoys alone left 46086 bare on a hurricane's line once §38a
+    # dropped it from Origin's bearings (2026-10-10).
+    cited = {buoy for h in block["hurricanes"] for buoy in h.get("match", {})}
     block["station_names"] = {s: station_name(s, data_dir)
-                              for s in (STATION, *origin.BEARING_STATIONS)}
+                              for s in (STATION, *origin.BEARING_STATIONS, *sorted(cited))}
     return block
 
 

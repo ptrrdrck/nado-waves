@@ -50,11 +50,12 @@ def _arrival(**over) -> dict:
 PLACED = {"bearing_deg": 212, "bearing_from": "46047", "origin": [-40.0, -150.0],
           "region": "the South Pacific"}
 SPLIT = {"bearing_from": "46047", "bearing_lobes": [[205, 0.55], [285, 0.31]]}
+SPLIT3 = {"bearing_from": "46047", "bearing_lobes": [[140, 0.22], [196, 0.41], [254, 0.18]]}
 UNSEEN: dict = {}
 
 
 def _hurricane(**over) -> dict:
-    h = {"storm": "EP182026", "name": "Rachel", "peak_kt": 105, "best": 0.92, "word": "strong",
+    h = {"storm": "EP18", "name": "Rachel", "peak_kt": 105, "best": 0.92, "word": "strong",
          "match": {"46047": {"score": 0.92, "beaten": 46, "trials": 50, "hours": 30}},
          "sites": {"buoy": {"train_period_s": 14.3, "fix_utc": "2026-10-02T00:00:00Z",
                             "lat": 19.4, "lon": -109.6, "distance_km": 1680,
@@ -69,6 +70,15 @@ def _no_pressure() -> dict:
     return h
 
 
+def _sergio() -> dict:
+    h = _hurricane(storm="EP20", name="Sergio", best=0.74, word="partial",
+                   match={"46047": {"score": 0.74, "beaten": 37, "trials": 50, "hours": 22}})
+    h["sites"] = {"buoy": dict(h["sites"]["buoy"], train_period_s=12.5,
+                               fix_utc="2026-10-08T12:00:00Z", distance_km=2150,
+                               bearing_deg=178, vmax_kt=95, mslp_mb=964)}
+    return h
+
+
 def _site(current=(), last=None) -> dict:
     return {"buoy": {"current": [{"arrival": k, "train_period_s": p} for k, p in current],
                      "last": last}}
@@ -79,15 +89,15 @@ CASES = [
     ("E0", "nothing in 21 days", {"arrivals": [], "sites": _site()}),
     ("L1", "last readable arrival, placed",
      {"arrivals": [_arrival(**PLACED)], "sites": _site(last=0)}),
-    ("L2", "last readable arrival, split direction",
+    ("L2", "last readable arrival, unplaced: split bearing",
      {"arrivals": [_arrival(**SPLIT)], "sites": _site(last=0)}),
-    ("L3", "last readable arrival, unplaced (46047 does not have it)",
+    ("L3", "last readable arrival, unplaced: 46047 does not have it",
      {"arrivals": [_arrival(**UNSEEN)], "sites": _site(last=0)}),
     ("C1", "arriving, placed",
      {"arrivals": [_arrival(**PLACED)], "sites": _site(current=[(0, 15.1)])}),
-    ("C2", "arriving, split direction",
-     {"arrivals": [_arrival(**SPLIT)], "sites": _site(current=[(0, 15.1)])}),
-    ("C3", "arriving, unplaced",
+    ("C2", "arriving, unplaced: split three ways",
+     {"arrivals": [_arrival(**SPLIT3)], "sites": _site(current=[(0, 15.1)])}),
+    ("C3", "arriving, unplaced: 46047 does not have it",
      {"arrivals": [_arrival(**UNSEEN)], "sites": _site(current=[(0, 15.1)])}),
     ("C4", "arriving, one of each",
      {"arrivals": [_arrival(**PLACED),
@@ -101,13 +111,18 @@ CASES = [
          best=0.78, word="partial",
          match={"46086": {"score": 0.70, "beaten": 28, "trials": 40, "hours": 26},
                 "46047": {"score": 0.78, "beaten": 39, "trials": 50, "hours": 30}})]}),
-    ("H3", "hurricane, weak, no hours, no pressure",
+    ("H3", "hurricane, no hours, no pressure",
      {"arrivals": [], "sites": _site(), "hurricanes": [dict(_no_pressure(),
          best=0.55, word="weak",
          match={"46047": {"score": 0.55, "beaten": 11, "trials": 20, "hours": None}})]}),
+    ("H4", "two hurricanes",
+     {"arrivals": [], "sites": _site(), "hurricanes": [_hurricane(), _sergio()]}),
     ("M1", "hurricane and a placed reading",
      {"arrivals": [_arrival(**PLACED)], "sites": _site(current=[(0, 15.1)]),
       "hurricanes": [_hurricane()]}),
+    ("M3", "hurricane and a split bearing, as live on 2026-10-10",
+     {"arrivals": [_arrival(**SPLIT3, distance_km=15000, peak_period_s=20.0)],
+      "sites": _site(current=[(0, 20.0)]), "hurricanes": [_hurricane()]}),
     ("M2", "hurricane and a last readable arrival (the last is not shown)",
      {"arrivals": [_arrival(**PLACED)], "sites": _site(last=0),
       "hurricanes": [_hurricane()]}),
@@ -137,6 +152,7 @@ def script(source: str) -> str:
 const text = (html) => html
   .replace(/<span class="(turn|src)">/g, "\\n").replace(/<div class="origin"[^>]*>/g, "\\n")
   .replace(/ <span class="unit">(?!\\()/g, "  ")
+  .replace(/<a href="([^"]+)"[^>]*>([^<]+)<\\/a>/g, "[$2]($1)")
   .replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&deg;/g, "°")
   .split("\\n").map((s) => s.trim()).filter(Boolean);
 const out = {{}};

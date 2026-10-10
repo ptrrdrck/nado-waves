@@ -3206,14 +3206,16 @@ class TestOrigin:
         body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
         assert body.count("originSources(") == 1 and "srcLines" not in body
 
-    def test_an_unplaced_storm_and_a_split_direction_are_told_apart(self):
-        """Owner's call, 2026-10-10: a train 46047 holds from two directions
-        is a "Split direction", never an unplaced storm, whose source line
-        says 46047 does not have the train at all (BRIEFING §38). Rendered
-        per case by tests/test_originwording.py."""
+    def test_a_split_bearing_and_a_missing_train_say_which(self):
+        """Owner's calls, 2026-10-10: a train 46047 holds from several
+        directions and a train 46047 does not have are both an unplaced
+        storm, and line 2 and the source line say which (BRIEFING §38).
+        Rendered per case by tests/test_originwording.py."""
 
-        assert 'isSplit(a) ? "Split direction" : isPlaced(a) ? sea(a.region) : "Unplaced storm"' in SOURCE
+        assert 'head: isPlaced(a) ? sea(a.region) : "Unplaced storm"' in SOURCE
         assert "const isSplit = (a) => a.bearing_deg == null && (a.bearing_lobes || []).length > 0;" in SOURCE
+        assert "split: isSplit(a) ? a.bearing_lobes.map(([d]) => d) : []" in SOURCE
+        assert '" that train from multiple directions, so no place is given"' in SOURCE
         assert "`${by[0]} does not have`" in SOURCE
 
     def test_buoys_are_named_as_ndbc_names_them(self):
@@ -3263,19 +3265,31 @@ class TestHurricane:
 
     def test_it_is_named_from_nhc_and_says_so(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert "Hurricane ${h.name}" in entry
-        assert "National Hurricane Center best track, an analysis" in SOURCE
+        assert "head: `Hurricane ${h.name}`," in entry
+        own = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
+        assert "tag:" not in own
+        assert ": National Hurricane Center best track${names.length > 1 ? \"s\" : \"\"}`" in SOURCE
         # NHC's position, rounded to 100 where Origin's distances round to 500.
         assert ("trainAt({period: s.train_period_s, sent: s.fix_utc, fitted: false,\n"
-                "                    km: s.distance_km, step: 100, bearings: [s.bearing_deg]})") in entry
-        # Its winds and pressure are the fix's that sent the train, and say so.
-        assert "tag: `winds ${speed(s.vmax_kt)}${s.mslp_mb ? `, ${s.mslp_mb} mb` : \"\"} when sent`" in entry
+                "                    km: s.distance_km, step: 100, bearing: s.bearing_deg,") in entry
+        # Its winds and pressure are the fix's that sent the train: on line 2,
+        # after the day it was sent (owner's rewrite, 2026-10-10).
+        assert "winds: `winds of ${speed(s.vmax_kt)}`" in entry
+        assert '(s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")' in entry
+
+    def test_nhcs_line_links_each_storms_best_track_by_name(self):
+        """Owner's request, 2026-10-10: the storm's name links to NHC's
+        best-track file, the one collector.besttracks archives."""
+
+        from collector.besttracks import BTK
+
+        assert f'const NHC_BTK = "{BTK}";' in SOURCE
+        assert "`${NHC_BTK}b${storm.toLowerCase()}${new Date(iso).getUTCFullYear()}.dat`" in SOURCE
 
     def test_it_states_its_match_with_the_count_behind_it(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert "match to NHC's track.</span>`" in entry
-        assert "${m.beaten} of ${m.trials}" in entry
-        assert "` Timing and direction beat the same track moved earlier ${tested}.`" in entry
+        assert "Timing and direction beat NHC's track moved earlier</span>`" in entry
+        assert "${m.beaten} of ${m.trials} times at ${buoyName(o, id)}" in entry
         # The hours are each gate buoy's own, beside its count (2026-10-10).
         assert '(m.hours == null ? "" : ` over ${m.hours} h`)' in entry
 
@@ -3291,12 +3305,18 @@ class TestHurricane:
         for word in ("probab", "confiden", "likel", "chance"):
             assert word not in _code(entry).lower()
 
-    def test_the_words_are_the_reports(self):
+    def test_the_words_stay_off_the_card(self):
+        """Owner's call, 2026-10-10: the counts alone. strong / partial /
+        weak stay in forecast.stormtrack and on docs.html, which reads them
+        against the control."""
+
         from forecast.stormtrack import MATCH_SHOW, MATCH_WORDS
 
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
+        assert "MATCH_WORD" not in SOURCE
         for lo, word in MATCH_WORDS:
             if lo >= MATCH_SHOW:
-                assert f"{word}: \"{word.title()}\"" in SOURCE
+                assert word not in _code(entry).lower()
 
     def test_it_replaces_origins_reading_of_the_same_train(self):
         assert "!isNamed(c)" in SOURCE
@@ -3356,16 +3376,17 @@ class TestOriginsChart:
 
 
 def test_every_origin_names_its_train_distance_bearing_and_day_in_one_order():
-    """Owner's formula, 2026-10-10: "16.0 s train, sent about Sep 28 from
-    about 700 mi (1,100 km) bearing 161° SSE" -- the day it was SENT, "about"
-    when fitted off the swell; the bearing in degrees and compass, both of a
-    split direction's, and none at all for an unplaced storm."""
+    """Owner's rewrite, 2026-10-10: "The 16.0 s train, sent about Sep 28
+    from about 700 mi (1,100 km) away, bearing 161° SSE" -- the day it was
+    SENT, "about" when fitted off the swell; the bearing in degrees and
+    compass, every one of a split bearing's, and none for a train 46047 does
+    not have; then a hurricane's winds."""
 
     at = SOURCE[SOURCE.index("const trainAt"):SOURCE.index("function hurricaneEntry")]
-    assert at.index("s train, sent ${fitted ? \"about \" : \"\"}${onDay(sent)}") \
-        < at.index(" from ${farAway(km, step)}") < at.index(" bearing ${bearings.map(")
-    assert '.join(" or ")' in at
-    assert "isSplit(a) ? a.bearing_lobes.map(([d]) => d) : []" in SOURCE
+    assert at.index("`The ${period.toFixed(1)}&nbsp;s train, sent ${fitted ? \"about \" : \"\"}${onDay(sent)}`") \
+        < at.index("` from ${farAway(km, step)} away`") < at.index("`, bearing ${bearingText(bearing)}`") \
+        < at.index("`, with a split bearing (${split.map(bearingText).join(\" or \")})`") \
+        < at.index("(winds ? ` with ${winds}` : \"\")")
 
 
 def test_every_train_is_read_off_46232_and_only_readings_backwards():
