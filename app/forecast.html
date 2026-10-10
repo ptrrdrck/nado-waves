@@ -1487,18 +1487,34 @@ const sea = (region) => {
   return r ? r[0].toUpperCase() + r.slice(1) : "";
 };
 const onDay = (iso) => new Date(iso).toLocaleString(undefined, {month: "short", day: "numeric"});
+// "A", "A and B", "A, B and C".
+const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
 // Every origin is the same three lines, whatever kind it is (owner's design,
-// 2026-10-04): WHAT it is (a hurricane with its winds, a sea, or an unplaced
-// storm), WHERE AND WHEN (how far, which way, the day it left, and the train
-// it is on this card), and HOW IT IS KNOWN (the match to NHC's track, or how
-// long the swell itself has been read). One provenance block follows them
-// all, naming only what is on screen, each buoy by its NDBC name and number.
+// 2026-10-04), and each line is a fixed run of slots (owner's formula,
+// 2026-10-10, docs/origin_wording.md): a slot with no value is dropped with
+// its joining words, and nothing is reworded per case.
+//   WHAT:  head (a hurricane, a sea, a split direction or an unplaced storm),
+//          then a grey tag (a hurricane's winds and pressure when it sent the
+//          train, or "last readable arrival").
+//   SENT:  the train, the day it was sent ("about" when it is fitted off the
+//          swell, bare when it is NHC's fix), how far, and its bearing: one,
+//          the two a split direction holds, or none.
+//   KNOWN: the match to NHC's track and the count behind it at each buoy, or
+//          how long the swell itself has been read.
+// One provenance block follows them all, with a line only for what is on
+// screen, each buoy by its NDBC name and number.
 const MATCH_WORD = {strong: "Strong", partial: "Partial", weak: "Weak"};
 const SAME_SOURCE_DEG = 45;
 const ORIGIN_SEP = " &middot; ";
 const buoyName = (o, id) => (o.names && o.names[id] ? `${o.names[id]} (NDBC ${id})` : `NDBC ${id}`);
+// A reading's direction is one of three things, and each is said differently:
+// one bearing at the unshadowed buoy (placed); the buoy has the train from two
+// directions, so its mean would point between them (split, BRIEFING §38); or
+// the buoy does not have the train at all (unseen).
 const isPlaced = (a) => Boolean(a.region) && a.bearing_deg != null;
+const isSplit = (a) => a.bearing_deg == null && (a.bearing_lobes || []).length > 0;
+const isUnseen = (a) => a.bearing_deg == null && !isSplit(a);
 function originEntry({head, tag, where, how, storm}) {
   return `<div class="origin"${storm ? ` data-hurricane="${storm}"` : ""}>
     <span class="val">${head}${tag ? ` <span class="unit">${tag}</span>` : ""}</span>
@@ -1507,63 +1523,82 @@ function originEntry({head, tag, where, how, storm}) {
   </div>`;
 }
 
+// Line 2, for every kind: the train, when it was sent, how far, which way.
+const trainAt = ({period, sent, fitted, km, step, bearings}) =>
+  `${period.toFixed(1)}&nbsp;s train, sent ${fitted ? "about " : ""}${onDay(sent)} from ${farAway(km, step)}`
+  + (bearings.length ? ` bearing ${bearings.map((d) => `${Math.round(d)}&deg; ${point(d)}`).join(" or ")}` : "")
+  + ".";
+
 // A hurricane NHC is tracking, named when its best track run forward matches
 // the directional energy 46047 or 46086 measured, as of now, better than the
 // same track moved back in time does (forecast.stormtrack, BRIEFING §37c-d).
-// The match is the share of those earlier moments beaten on timing AND
-// direction, with its word, never a probability; and it is about where a
-// train came from, never how big it is. Where the storm was, and how strong,
-// are NHC's: the fix that sent the train now arriving. Never Origin's distance.
-const trainAt = (period, km, step, bearing, iso) =>
-  `${period.toFixed(1)}&nbsp;s train, ${farAway(km, step)}`
-  + (bearing == null ? "" : ` bearing ${Math.round(bearing)}&deg; ${point(bearing)}`)
-  + ` on ${onDay(iso)}`;
+// The match is the count of those earlier moments beaten on timing AND
+// direction, with its word, never a probability or a percentage (owner's
+// call, 2026-10-10); and it is about where a train came from, never how big
+// it is. Where the storm was, and how strong, are NHC's: the fix that sent
+// the train now arriving, labelled "when sent" because the storm has moved on
+// since. Never Origin's distance.
 function hurricaneEntry(h, o) {
   const s = h.at;
   const buoys = Object.entries(h.match || {}).sort((x, y) => y[1].score - x[1].score);
-  const hours = buoys.length && buoys[0][1].hours != null ? buoys[0][1].hours : null;
   const tested = buoys.map(([id, m], k) =>
-    `${m.beaten} of ${m.trials}${k ? "" : " times"} at ${buoyName(o, id)}`).join(", and ");
+    `${m.beaten} of ${m.trials}${k ? "" : " times"} at ${buoyName(o, id)}`
+    + (m.hours == null ? "" : ` over ${m.hours} h`)).join(", and ");
   return originEntry({
-    head: `Hurricane ${h.name}`, tag: `winds ${speed(s.vmax_kt)}`, storm: h.storm,
-    where: trainAt(s.train_period_s, s.distance_km, 100, s.bearing_deg, s.fix_utc)
-      + (hours == null ? "." : `, ${hours} h read so far.`),
-    how: `<span data-match="${h.word}">${MATCH_WORD[h.word] || h.word} match to NHC's track, `
-      + `${Math.round(h.best * 100)}%.</span> Timing and direction beat the same track moved `
-      + `earlier ${tested}.`,
+    head: `Hurricane ${h.name}`,
+    tag: `winds ${speed(s.vmax_kt)}${s.mslp_mb ? `, ${s.mslp_mb} mb` : ""} when sent`,
+    storm: h.storm,
+    where: trainAt({period: s.train_period_s, sent: s.fix_utc, fitted: false,
+                    km: s.distance_km, step: 100, bearings: [s.bearing_deg]}),
+    how: `<span data-match="${h.word}">${MATCH_WORD[h.word] || h.word} match to NHC's track.</span>`
+      + ` Timing and direction beat the same track moved earlier ${tested}.`,
   });
 }
 
 // An arrival read backwards off the swell: still arriving, or the last one
 // this tab had. The last is the train it was at its peak hour, when it was
-// matched to this tab's own trains. An unplaced storm has no bearing: neither
-// unshadowed buoy saw its train.
+// matched to this tab's own trains.
 function readingEntry(a, past = false) {
-  const period = past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s;
+  const hours = Math.max(1, Math.round(a.hours_read));
   return originEntry({
-    head: isPlaced(a) ? sea(a.region) : "Unplaced storm", tag: past ? "last readable arrival" : "",
-    where: trainAt(period, a.distance_km, 500, isPlaced(a) ? a.bearing_deg : null,
-                   a.generated_utc) + ".",
-    how: past ? `Arrived ${onDay(a.first_utc)}, no longer arriving.`
-      : `Read off the swell, ${Math.max(1, Math.round(a.hours_read))} h so far.`,
+    head: isSplit(a) ? "Split direction" : isPlaced(a) ? sea(a.region) : "Unplaced storm",
+    tag: past ? "last readable arrival" : "",
+    where: trainAt({period: past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s,
+                    sent: a.generated_utc, fitted: true, km: a.distance_km, step: 500,
+                    bearings: a.bearing_deg != null ? [a.bearing_deg]
+                      : isSplit(a) ? a.bearing_lobes.map(([d]) => d) : []}),
+    how: past ? `Read backwards off the swell over ${hours} h. Arrived ${onDay(a.first_utc)}, no longer arriving.`
+      : `Read backwards off the swell, ${hours} h so far.`,
   });
 }
 
-// The one provenance block, after every entry, for whatever mix is shown.
-// Every origin's train is read off 46232's spectrum, a hurricane's too; only
-// a reading's storm is then read BACKWARDS from it, its direction at an
-// unshadowed buoy. A hurricane's place and winds are NHC's.
+// The one provenance block, after every entry, for whatever mix is shown: a
+// line per claim on screen, and none for a claim that is not. Every origin's
+// train is read off 46232's spectrum, a hurricane's too; only a reading's
+// storm is then read BACKWARDS from it, its direction at an unshadowed buoy.
+// A hurricane's place, winds and pressure are NHC's.
 function originSources(o, hurricanes, readings) {
-  const backwards = readings.length || !hurricanes.length;
-  const from = [...new Set(readings.filter(isPlaced).map((a) => a.bearing_from).filter(Boolean))];
+  const at = (pick) => [...new Set(readings.filter(pick).map((a) => a.bearing_from).filter(Boolean))]
+    .map((id) => buoyName(o, id));
+  const from = at((a) => a.bearing_deg != null);
+  const split = at(isSplit);
   const lines = [`Trains read off the spectrum at ${buoyName(o, o.station)}`
-    + (backwards ? ", and storms read backwards from them" : "")
-    + (from.length ? `; direction at ${from.map((id) => buoyName(o, id)).join(" and ")}` : "")];
-  if (readings.some((a) => !isPlaced(a))) {
-    lines.push(`Unplaced storm: neither ${o.bearingStations.map((id) => buoyName(o, id)).join(" nor ")}`
-      + " has that train");
+    + (readings.length ? ", and storms read backwards from them" : "")
+    + (from.length ? `; direction at ${andList(from)}` : "")];
+  if (split.length) {
+    lines.push(`Split direction: ${andList(split)} ${split.length > 1 ? "each hold" : "holds"}`
+      + " that train from two directions, so no place is given");
   }
-  if (hurricanes.length) lines.push("National Hurricane Center best track, an analysis");
+  if (readings.some(isUnseen)) {
+    const by = o.bearingStations.map((id) => buoyName(o, id));
+    lines.push("Unplaced storm: " + (by.length === 1 ? `${by[0]} does not have`
+      : by.length === 2 ? `neither ${by[0]} nor ${by[1]} has` : `none of ${andList(by)} has`)
+      + " that train");
+  }
+  if (hurricanes.length) {
+    lines.push(`Hurricane ${hurricanes.some((h) => h.at.mslp_mb) ? "position, winds and pressure"
+      : "position and winds"}: National Hurricane Center best track, an analysis`);
+  }
   return srcLines(lines);
 }
 

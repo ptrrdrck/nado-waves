@@ -21,7 +21,7 @@ DAYS = 40
 
 def storm(bearing=150.0, distance=2000.0, at=T0 + timedelta(days=20)):
     lat, lon = destination_point(HOME, bearing, distance)
-    return [Fix("ep17", "TEST", at + timedelta(hours=6 * k), lat, lon, 120) for k in range(8)]
+    return [Fix("ep17", "TEST", at + timedelta(hours=6 * k), lat, lon, 120, 950) for k in range(8)]
 
 
 def spectra(signal_from=150.0, delay=timedelta(0), fixes=None):
@@ -140,6 +140,8 @@ def test_live_names_a_storm_its_buoys_bore_out_and_places_it_from_its_track():
     assert stated["hours"] == round((at - began).total_seconds() / 3600 + S.TOL_H)
     south = got[0]["sites"]["coronado_south"]
     assert south["vmax_kt"] == 120 and 1900 < south["distance_km"] < 2100
+    # The card names the sending fix's pressure beside its winds (2026-10-10).
+    assert south["mslp_mb"] == 950
     assert "coronado_north" not in got[0]["sites"]
 
 
