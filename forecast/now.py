@@ -826,7 +826,7 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
     # NDBC's own names, from the fetched metadata (never typed), so the card
     # can name every buoy it cites as "Name, CA (NDBC id)", as its other lines
     # name the swell buoy: the bearing buoys and each hurricane's gate buoys.
-    # Bearing buoys alone left 46086 bare on a hurricane's line once §38a
+    # Bearing buoys alone left San Clemente Basin bare on a hurricane's line once §38a
     # dropped it from Origin's bearings (2026-10-10).
     cited = {buoy for h in block["hurricanes"] for buoy in h.get("match", {})}
     block["station_names"] = {s: station_name(s, data_dir)
