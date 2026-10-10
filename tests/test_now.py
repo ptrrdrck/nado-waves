@@ -648,3 +648,23 @@ class TestWhenEachSourceIsNextDue:
             f"last run is {marks[-1] - 52} min after KNZY's :52 — the offset is "
             f"the only thing buying that, so it should be tight"
         )
+
+
+def test_every_buoy_the_origin_cites_is_named(monkeypatch, tmp_path):
+    """A hurricane's line names its gate buoys, and 46086 printed bare once
+    §38a dropped it from Origin's bearings (2026-10-10): the names cover the
+    bearing buoys AND every gate buoy a shown hurricane was matched at."""
+
+    from types import SimpleNamespace
+
+    from forecast import now as N
+
+    stamp = SimpleNamespace(time=datetime(2026, 10, 10, tzinfo=timezone.utc))
+    monkeypatch.setattr(N.origin, "load_archives", lambda d: {N.STATION: [stamp]})
+    monkeypatch.setattr(N.origin, "reading", lambda *a, **k: {})
+    monkeypatch.setattr(N, "trains_builder", lambda *a: (lambda t: {}))
+    monkeypatch.setattr(N, "hurricanes_now", lambda *a: [{"match": {"46086": {}, "46047": {}}}])
+    monkeypatch.setattr(N, "station_name", lambda s, d: f"name of {s}")
+    reading = SimpleNamespace(breaks=[], buoy={"trains": []})
+    block = N.origin_reading(tmp_path, stamp, reading, {}, [], {})
+    assert set(block["station_names"]) == {N.STATION, *N.origin.BEARING_STATIONS, "46086", "46047"}
