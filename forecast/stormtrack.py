@@ -689,6 +689,14 @@ SAME_SOURCE_DEG = 45.0
 #: against storms sat 0.78x (Nolo) and 1.8-2.4x (Polo) off (BRIEFING §37b),
 #: and two buoys reading one storm differ by ~20%.
 SAME_SOURCE_RATIO = 3.0
+#: A card train is the storm's only where a gate buoy the storm is matched at
+#: has that train's periods coming from the storm: the energy in them from
+#: within `SECTOR_HALF_DEG` of the bearing to the fix that sent it at least
+#: `DIR_RATIO` times either sector turned 45° -- the match's own direction
+#: count, asked of one train (2026-10-11, BRIEFING §37i: on schedule alone,
+#: 79 of 149 named trains failed it). Read on the gate's newest spectrum no
+#: later than the card's and at most this old.
+GATE_STALE_H = 3.0
 
 #: Spectra loaded for the live match: the reference window behind the
 #: furthest trial, plus the longest band.
@@ -729,6 +737,7 @@ def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
     """
 
     found: dict[str, dict] = {}
+    gates: dict[str, list[tuple[Band, Field]]] = {}
     for band in bands(tracks, positions, min_kt, land):
         if band.station not in GATE_STATIONS or band.station not in fields:
             continue
@@ -741,6 +750,7 @@ def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
         entry = found.setdefault(band.storm, {
             "storm": band.storm, "name": band.name.title(), "peak_kt": band.peak_kt,
             "match": {}})
+        gates.setdefault(band.storm, []).append((band, field_))
         # How long its band has been arriving at this buoy, as of `at`: the
         # hours the match has read so far (from the archive's first spectrum
         # when the band began before it).
@@ -757,7 +767,7 @@ def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
         entry["best"] = best
         entry["word"] = match_word(best)
         entry["sites"] = _sites(tracks[entry["storm"]], entry["storm"], at, positions,
-                                trains_now, land, min_kt, readings)
+                                trains_now, land, min_kt, readings, gates[entry["storm"]])
         out.append(entry)
     return sorted(out, key=lambda e: -e["best"])
 
@@ -768,14 +778,29 @@ def match_word(score: float) -> str:
 
 def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
            trains_now: dict[str, list[dict]], land, min_kt: int,
-           readings: dict[str, list[tuple[float, float]]] | None = None) -> dict:
+           readings: dict[str, list[tuple[float, float]]] | None = None,
+           gates: list[tuple[Band, Field]] | None = None) -> dict:
     """{site: the card train this storm's band at 46232 says is arriving}.
 
-    Of a site's trains that the band holds now, the storm's is the one from
-    its side (`_from_storm`) whose period the track has arriving nearest to
-    now (the same ranking at every site); when none is from its side, the
-    nearest on schedule of the rest; card order only breaks a tie. Never a train Origin is reading from a distance `SAME_SOURCE_RATIO`
-    off the fix that would have sent it (`_contradicted`).
+    Of a site's trains that the band holds now and that come from the storm's
+    side (`_from_storm`), the storm's is the one whose period the track has
+    arriving nearest to now (the same ranking at every site); card order only
+    breaks a tie. None from its side names none: refraction turns a swell at
+    most ~31° here (toward normals of 194-221°), so a train > 45° off the
+    storm at the break is another swell sharing the period (2026-10-11: until
+    then the nearest of the rest was named, and Center's 11.8 s from 260° was
+    Rachel's). Never a
+    train Origin is reading from a distance `SAME_SOURCE_RATIO` off the fix
+    that would have sent it (`_contradicted`); and, given the storm's `gates`
+    (its band and field at each gate buoy it is matched at), never one whose
+    periods a gate buoy does not have coming from the storm (`_gate_has`).
+
+    A site's other trains that pass the same tests AND are one band with the
+    storm's at that gate buoy -- no dip between them in the energy from the
+    storm's side -- are the same swell the site's splitter cut into rows, and
+    are listed as `also_periods_s` (owner's request, 2026-10-11, BRIEFING
+    §37h-i). Two separate trains from one storm are never claimed: nothing
+    measured here or found published shows one storm sending them.
     """
 
     here = next((b for b in bands({storm: fixes}, positions, min_kt, land)
@@ -806,9 +831,16 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
             g, (fix, d) = sent
             if _contradicted((readings or {}).get(site, ()), period, d):
                 continue
+            gate = None
+            if gates is not None:
+                gate = _gate_has(gates, fix, f, at)
+                if gate is None:
+                    continue
             bearing = initial_bearing(positions[RIDGE_STATION], (fix.lat, fix.lon))
+            if not _from_storm(train, round(bearing)):
+                continue
             gap = abs((arrival(fix, g, d) - at).total_seconds())
-            found.append((not _from_storm(train, round(bearing)), gap, order, {
+            found.append((gap, order, {
                 "train_period_s": period,
                 "fix_utc": fix.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "lat": fix.lat, "lon": fix.lon,
@@ -817,14 +849,86 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
                 "vmax_kt": fix.vmax_kt,
                 "mslp_mb": fix.mslp_mb,
                 "strength": strength(fix),
-            }))
+            }, gate, fix))
         # A band from two directions is two trains since BRIEFING §40, often a
         # second apart and both on the storm's schedule: the storm's is the one
         # from its side, and of those the one its track has arriving now, not
         # the biggest -- which differed from break to break (2026-10-11).
-        if found:
-            sites[site] = min(found, key=lambda x: x[:3])[3]
+        if not found:
+            continue
+        best = min(found, key=lambda x: x[:2])
+        hit = dict(best[2])
+        if best[3] is not None:
+            # Twins of one period (two directions, §40) are one period here.
+            also = sorted({x[2]["train_period_s"] for x in found
+                           if x[2]["train_period_s"] != hit["train_period_s"] and _one_band(best[3], best[4],
+                                                          f_hz=1.0 / hit["train_period_s"],
+                                                          g_hz=1.0 / x[2]["train_period_s"], at=at)})
+            if also:
+                hit["also_periods_s"] = also
+        sites[site] = hit
     return sites
+
+
+def _gate_hour(field_: Field, at: datetime) -> int | None:
+    """The gate's newest spectrum no later than `at`, within `GATE_STALE_H`."""
+
+    k = bisect.bisect_right(field_.times, at) - 1
+    if k < 0 or (at - field_.times[k]).total_seconds() > GATE_STALE_H * 3600:
+        return None
+    return k
+
+
+def _gate_bins(field_: Field, f_hz: float) -> list[int]:
+    """The gate's bins a card train at `f_hz` holds: within Origin's train
+    tolerance, or the nearest when none is."""
+
+    inside = [i for i in field_.bins if abs(field_.freqs[i] - f_hz) <= TRAIN_MATCH_HZ]
+    return inside or [min(field_.bins, key=lambda i: abs(field_.freqs[i] - f_hz))]
+
+
+def _gate_has(gates: list[tuple[Band, Field]], fix: Fix, f_hz: float,
+              at: datetime) -> tuple[Band, Field] | None:
+    """The first gate buoy whose energy at this train's periods comes from
+    the fix that sent it: from within `SECTOR_HALF_DEG` of its bearing, at
+    least `DIR_RATIO` times either sector turned 45° (the match's direction
+    count). None when no gate buoy has it."""
+
+    for band, field_ in gates:
+        k = _gate_hour(field_, at)
+        if k is None or not field_.bins or band.station_position is None:
+            continue
+        center = initial_bearing(band.station_position, (fix.lat, fix.lon))
+        spectrum = field_.spectra[k]
+        bins = _gate_bins(field_, f_hz)
+        own = sum(sector_energy(spectrum, i, center) for i in bins)
+        turned = max(sum(sector_energy(spectrum, i, center + t) for i in bins)
+                     for t in TURN_DEG)
+        if own > 0 and own >= DIR_RATIO * turned:
+            return band, field_
+    return None
+
+
+def _one_band(gate: tuple[Band, Field], fix: Fix, f_hz: float, g_hz: float,
+              at: datetime) -> bool:
+    """Are two trains one swell at this gate buoy? The energy from the storm's
+    side over every bin between them never dips below `transform.PROMINENCE`
+    of the smaller end: the splitter's own test for a real gap, asked of the
+    storm's sector at the open-ocean buoy."""
+
+    from .transform import PROMINENCE
+
+    band, field_ = gate
+    k = _gate_hour(field_, at)
+    if k is None:
+        return False
+    center = initial_bearing(band.station_position, (fix.lat, fix.lon))
+    a = min(field_.bins, key=lambda i: abs(field_.freqs[i] - f_hz))
+    b = min(field_.bins, key=lambda i: abs(field_.freqs[i] - g_hz))
+    lo, hi = sorted((a, b))
+    e = [sector_energy(field_.spectra[k], i, center) for i in field_.bins if lo <= i <= hi]
+    ends = min(e[0], e[-1]) if e else 0.0
+    return ends > 0 and min(e) >= PROMINENCE * ends
 
 
 def _contradicted(readings, period: float, distance_km: float) -> bool:

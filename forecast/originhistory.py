@@ -204,7 +204,10 @@ def link(arrivals: list[dict], named: list[dict]) -> None:
             f = ridge_freq_hz(a, t)
             for site in a["sites"]:
                 train = (n.get("sites") or {}).get(site)
-                if not train or abs(1.0 / train["train_period_s"] - f) > origin.TRAIN_MATCH_HZ:
+                # The storm's own train, or one of the rows its band was cut
+                # into at this site (`stormtrack._sites`' also_periods_s).
+                periods = [train["train_period_s"], *train.get("also_periods_s", [])] if train else []
+                if not any(abs(1.0 / p - f) <= origin.TRAIN_MATCH_HZ for p in periods):
                     continue
                 if same_source(a, train["bearing_deg"]):
                     hit.setdefault(site, n["name"])

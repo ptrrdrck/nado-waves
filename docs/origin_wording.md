@@ -240,6 +240,16 @@ Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
 Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
 ```
 
+### T3: one storm's swell cut into two rows at this break
+
+```text
+Tropical Storm Rachel
+The 10.5 and 11.1 s trains, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with winds of 69 mph (60 kt) and 985 mb pressure.
+Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks, CA (NDBC 46047) over 40 h.
+Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
+Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+```
+
 ### T2: a tropical storm and a hurricane
 
 ```text

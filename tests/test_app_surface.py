@@ -3285,7 +3285,8 @@ class TestHurricane:
         assert "tag:" not in own
         assert ": National Hurricane Center best track${names.length > 1 ? \"s\" : \"\"}`" in SOURCE
         # NHC's position, rounded to 100 where Origin's distances round to 500.
-        assert ("trainAt({period: s.train_period_s, sent: s.fix_utc, fitted: false,\n"
+        assert ("trainAt({period: s.train_period_s, also: s.also_periods_s || [],\n"
+                "                    sent: s.fix_utc, fitted: false,\n"
                 "                    km: s.distance_km, step: 100, bearing: s.bearing_deg,") in entry
         # Its winds and pressure are the fix's that sent the train: on line 2,
         # after the day it was sent (owner's rewrite, 2026-10-10).
@@ -3335,7 +3336,9 @@ class TestHurricane:
 
     def test_it_replaces_origins_reading_of_the_same_train(self):
         assert "!isNamed(c)" in SOURCE
-        assert "h.at.train_period_s === c.train_period_s" in SOURCE
+        # Its own train, or a row its band was cut into here (2026-10-11).
+        assert "stormPeriods(h.at).includes(c.train_period_s)" in SOURCE
+        assert "const stormPeriods = (at) => [at.train_period_s, ...(at.also_periods_s || [])];" in SOURCE
 
     def test_a_reading_from_elsewhere_is_not_the_storms(self):
         from forecast.originhistory import SAME_SOURCE_DEG
@@ -3403,7 +3406,7 @@ def test_every_origin_names_its_train_distance_bearing_and_day_in_one_order():
     not have; then a hurricane's winds."""
 
     at = SOURCE[SOURCE.index("const trainAt"):SOURCE.index("function hurricaneEntry")]
-    assert at.index("`The ${period.toFixed(1)}&nbsp;s train, sent ${fitted ? \"about \" : \"\"}${onDay(sent)}`") \
+    assert at.index("`&nbsp;s train${also.length ? \"s\" : \"\"}, sent ${fitted ? \"about \" : \"\"}${onDay(sent)}`") \
         < at.index("` from ${farAway(km, step)} away`") < at.index("`, bearing ${bearingText(bearing)}`") \
         < at.index("`, with a split bearing (${split.map(bearingText).join(\" or \")})`") \
         < at.index("(winds ? ` with ${winds}` : \"\")")

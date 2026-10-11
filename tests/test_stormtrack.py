@@ -158,7 +158,8 @@ def test_live_names_a_storm_its_buoys_bore_out_and_places_it_from_its_track():
     at = fixes[-1].time + timedelta(hours=60)
     arriving = [f for f in FREQS if S.bands({"ep17": fixes}, positions)[0].contains(at, f)]
     assert arriving, "the test hour must be inside the band"
-    trains = {"coronado_south": [{"period_s": 1 / arriving[0]}], "coronado_north": [{"period_s": 7.0}]}
+    trains = {"coronado_south": [{"period_s": 1 / arriving[0], "from_deg": 152}],
+              "coronado_north": [{"period_s": 7.0, "from_deg": 152}]}
     got = S.live({"ep17": fixes}, {"46047": field}, at, positions, trains)
     assert [g["name"] for g in got] == ["Test"]
     assert list(got[0]["match"]) == ["46047"]
@@ -194,9 +195,11 @@ def test_a_storm_names_the_card_train_from_its_side():
     assert not S._from_storm(west, named([west, south])["x"]["bearing_deg"])
     # Either direction of a train that still holds two counts.
     assert S._from_storm(two, 150.0)
-    # No train from its side: the first that fits, as before.
-    assert named([west])["x"]["train_period_s"] == period
-    assert named([{"period_s": period}])["x"]["train_period_s"] == period
+    # No train from its side names none (2026-10-11): refraction cannot turn
+    # the storm's swell that far, so it is another swell sharing the period.
+    assert named([west]) == {}
+    # A train with no heading at all says nothing about its side either.
+    assert named([{"period_s": period}]) == {}
 
 
 def _two_arriving():
@@ -248,6 +251,62 @@ def test_a_train_origin_reads_from_elsewhere_is_never_the_storms():
     close = {"a": [(near, d * 2.4)], "b": [(near, d / 2.4)]}
     picked = S._sites(fixes, "ep17", at, positions, trains, (), S.MIN_KT, close)
     assert picked["a"]["train_period_s"] == picked["b"]["train_period_s"] == near
+
+
+def test_a_train_is_the_storms_only_where_a_gate_buoy_has_it_from_the_storm():
+    """2026-10-11 (BRIEFING §37i): on schedule and from the storm's side at the
+    break is not enough -- 79 of 149 named trains had no energy from the storm
+    at their periods at 46047. A gate buoy must have the train's periods from
+    the bearing to the fix that sent it, DIR_RATIO over either turned side."""
+
+    fixes = storm(bearing=150.0)
+    positions = {"46232": HOME, "46047": HOME}
+    at = fixes[-1].time + timedelta(hours=60)
+    gate = next(b for b in S.bands({"ep17": fixes}, positions) if b.station == "46047")
+    period = round(1 / next(f for f in FREQS if gate.contains(at, f)), 1)
+    trains = {"x": [{"period_s": period, "from_deg": 152, "lobes": []}]}
+    named = lambda sp: S._sites(fixes, "ep17", at, positions, trains, (), S.MIN_KT, None,
+                                [(gate, S.Field(sp, spread="fourier"))])
+    assert named(spectra(fixes=fixes)[0])["x"]["train_period_s"] == period
+    assert named(spectra(fixes=fixes, signal_from=250.0)[0]) == {}
+    # A gate spectrum older than GATE_STALE_H says nothing either way.
+    stale = [x for x in spectra(fixes=fixes)[0] if x.time <= at - timedelta(hours=4)]
+    assert named(stale) == {}
+
+
+def test_one_storms_band_cut_into_two_rows_is_named_as_one():
+    """Two rows are one storm's only when its energy at the gate buoy runs
+    between them without a dip below the splitter's own PROMINENCE: one swell
+    cut in two at the break. A dip is two swells, and only the one on the
+    storm's schedule is named."""
+
+    from forecast.transform import PROMINENCE
+
+    fixes = storm(bearing=150.0)
+    at = fixes[-1].time + timedelta(hours=60)
+    gate = S.bands({"ep17": fixes}, {"46047": HOME})[0]
+
+    def gate_with(middle):
+        c11 = [0.02] * len(FREQS)
+        c11[2], c11[3], c11[4] = 0.5, middle, 0.5
+        sp = Spectrum(time=at, frequencies=FREQS, c11=c11, a1=[150.0] * len(FREQS),
+                      a2=[150.0] * len(FREQS), r1=[0.9] * len(FREQS), r2=[0.7] * len(FREQS))
+        return gate, S.Field([sp], spread="fourier")
+
+    assert S._one_band(gate_with(0.45), fixes[-1], FREQS[2], FREQS[4], at)
+    # Through _sites: two rows of one band are named together, a twin of the
+    # storm's own period (two directions, §40) never as a second period.
+    positions = {"46232": HOME, "46047": HOME}
+    band = S.bands({"ep17": fixes}, positions)[0]
+    arriving = [f for f in FREQS if band.contains(at, f)]
+    rows = [{"period_s": round(1 / f, 1), "from_deg": 152, "lobes": []} for f in arriving[:2]]
+    twin = dict(rows[0], from_deg=160)
+    gates = [(next(b for b in S.bands({"ep17": fixes}, positions) if b.station == "46047"),
+              S.Field(spectra(fixes=fixes)[0], spread="fourier"))]
+    hit = S._sites(fixes, "ep17", at, positions, {"x": rows + [twin]}, (), S.MIN_KT, None, gates)["x"]
+    named = [hit["train_period_s"], *hit.get("also_periods_s", [])]
+    assert sorted(named) == sorted(r["period_s"] for r in rows)
+    assert not S._one_band(gate_with(0.5 * PROMINENCE * 0.9), fixes[-1], FREQS[2], FREQS[4], at)
 
 
 def test_live_names_nothing_its_buoys_did_not_bear_out():

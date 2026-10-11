@@ -132,6 +132,9 @@ CASES = [
      {"arrivals": [], "sites": _site(), "hurricanes": [_hurricane(), _sergio()]}),
     ("T1", "a hurricane since weakened: its tropical storm fix sent the train",
      {"arrivals": [], "sites": _site(), "hurricanes": [_weakened()]}),
+    ("T3", "one storm's swell cut into two rows at this break",
+     {"arrivals": [], "sites": _site(), "hurricanes": [dict(_weakened(), sites={"buoy": dict(
+         _weakened()["sites"]["buoy"], also_periods_s=[11.1])})]}),
     ("T2", "a tropical storm and a hurricane",
      {"arrivals": [], "sites": _site(), "hurricanes": [_weakened(), _sergio()]}),
     ("M1", "hurricane and a placed reading",
