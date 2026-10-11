@@ -69,7 +69,7 @@ from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_se
 from .siting import load_coordinates
 from .stormtrack import GATE_STATIONS
 from .surfzone import load_profiles
-from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, anomaly, coast_height, coast_level, coast_turn,
+from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, SITE_PLACE, anomaly, coast_height, coast_level, coast_turn,
                        msl_above_mllw)
 from .transform import Spectrum, at_buoy, load_spectra, lobes_payload, through
 
@@ -430,6 +430,8 @@ class Now:
     tide_station_name: str = TIDE_STATION_NAME
     #: Where the Tide card's numbers are: the gauge carried to the beach.
     tide_site: str = SITE_NAME
+    #: The same place as a station is named, for the LIVE card's pill.
+    tide_place: str = SITE_PLACE
     #: The gauge's measured departure from its own prediction over the last
     #: three days (`tidesite.anomaly`), which the predicted turns carry. None
     #: when none could be measured, and then the turns are the bare prediction.

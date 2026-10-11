@@ -329,7 +329,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         <div class="row"><span class="pin">2</span><span class="tabs"><span class="on">North</span><span>Center</span><span>South</span><span>Buoy</span></span></div>
         <div class="row"><span class="pin">3</span><span><span class="big">3.5 ft</span> <span class="unit">(1.07 m)</span> breaking height &#9662;</span></div>
         <div class="row"><span class="pin">4</span><span>the window drawing, and the swell trains under it</span></div>
-        <div class="row"><span class="pin">5</span><span class="source">Point Loma South, CA | Spectral wave data · Observed Monday, Sep 28, 12:00 PM | 15 min ago · CDIP 191 via NDBC | <b>Update in 59:12</b></span></div>
+        <div class="row"><span class="pin">5</span><span class="source">Point Loma South, CA · Observed Monday, Sep 28, 12:00 PM | 15 min ago · CDIP 191 via NDBC | <b>Update in 59:12</b></span></div>
         <div class="row"><span class="pin">6</span><span><b>Charts</b> &#9652;</span></div>
         <div class="row"><span class="pin">7</span><span><b>Wind</b> 9 mph (8 kt) from the west, cross-shore at this break · <b>Tide</b> 6.2 ft (1.89 m)</span></div>
       </div>
@@ -850,9 +850,12 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         the Buoys tab always last. It shows the swell at buoy 46232, 29 km offshore, with nothing in
         the way, so it is always the biggest number, and it is the one the breaks are measured
         from.</p>
-      <p>On &ldquo;LIVE&rdquo;, each buoy's provenance is three lines of two joined pills, the
-        second growing out of the first: where the buoy is and that it measures spectral wave
-        data; when the spectrum was observed and how long ago; and its countdown line. On a
+      <p>On &ldquo;LIVE&rdquo;, each buoy's provenance is three lines of pills, the second of a
+        pair growing out of the first: where the buoy is; when the spectrum was observed and how
+        long ago; and its countdown line. The Wind and Tide cards' provenance is the same three
+        lines: &ldquo;NAS North Island&rdquo;, the observation and its age, and
+        &ldquo;METAR KNZY&rdquo; with its countdown; &ldquo;Coronado, CA&rdquo;, the measurement
+        and its age, and &ldquo;NOAA 9410170&rdquo; with its countdown. On a
         narrow phone, where a pair does not fit on one line, the second pill wraps under the
         first and stands on its own. On the countdown line the first pill says
         where its spectra come from, with a dot, and the countdown itself sits in the second. 46232's reads &ldquo;CDIP 191 via NDBC&rdquo;: Scripps'
@@ -1195,8 +1198,9 @@ open coast (MSL) = −0.024 + 0.944 × (bay − MSL)      <span class="c">what b
 <span class="c">worked hour: the gauge read 2.005 m above MLLW; MSL is 0.897 m above MLLW there</span>
 card       0.944 × 2.005 = 1.893 m                   → 6.2 ft (1.89 m)
 breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level</pre>
-      <p>The source line names the gauge the reading was carried from. The countdown keeps the
-        gauge's own time.</p>
+      <p>On &ldquo;LIVE&rdquo; the provenance names the place first, Coronado, and the gauge the
+        reading was carried from, NOAA 9410170, on the countdown line; on Forecast the source line
+        names both. The countdown keeps the gauge's own time.</p>
     </section>
 
     <section id="tide-turn">
