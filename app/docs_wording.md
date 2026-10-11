@@ -561,11 +561,11 @@ Breaking needs it. Without a departure the forecast computes no breaking height 
 
 ### [tide-phase] The tide's phase
 
-Under the card's provenance, a line names where the tide is in its cycles: spring tides, neap tides, building toward springs or easing toward neaps. On “LIVE” it is tagged *predicted*. Opened, it gives three paragraphs: the day, the next spring or neap, and the one after. On “LIVE” the day is the reader's day at Coronado. On Forecast it is the picked hour's day, and a past hour has none.
+Under the card's provenance, a line reads *Phase*. On “LIVE” it is tagged *predicted*. Opened, it gives three paragraphs, each under a heading: the day (*Today*), the next spring or neap (*Around 17 Oct*) and the one after (*Late October*). The first says where the tide is in its cycles: spring tides, neap tides, building toward springs or easing toward neaps. On “LIVE” the day is the reader's day at Coronado. On Forecast it is the picked hour's day, and a past hour has none.
 
 Three cycles shape the tide here. Spring and neap, every 14.8 days, is the moon's and the sun's twice-daily tides falling into and out of step. The Moon's declination, every 13.7 days, makes one tide of the day much bigger than the other when the Moon is far north or south, and evens them out over the equator. Perigee and apogee, every 27.6 days, make a spring bigger or a neap smaller. San Diego's tide is mixed, mainly twice a day: the ratio of its once-daily to its twice-daily constituents is 0.72.
 
-Spring and neap are read off NOAA's harmonic constants for the gauge, fetched from NOAA and never typed, so they carry the station's own timing: springs fall about 3 hours before new or full moon. The Moon's declination is read 14 hours early, because the tide here feels it that late. The summary names the constants wherever it uses them. The Moon's phase, distance and declination are computed from a lunar theory, and agree with an independent ephemeris within minutes. The highs and lows quoted as evidence are the card's own turns.
+Spring and neap are read off NOAA's harmonic constants for the gauge, fetched from NOAA and never typed, so they carry the station's own timing: springs fall about 3 hours before new or full moon. The Moon's declination is read 14 hours early, because the tide here feels it that late. The provenance under the summary names the constants. The Moon's phase, distance and declination are computed from a lunar theory, and agree with an independent ephemeris within minutes. The highs and lows quoted as evidence are the card's own turns.
 
 ```
 form factor  (K1 + O1) / (M2 + S2) = (0.337 + 0.214) / (0.542 + 0.225) = 0.72
