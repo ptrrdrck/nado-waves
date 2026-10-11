@@ -443,14 +443,16 @@ forecaster actually verifies against, Surfline included.
    **The Tide card's phase fold** (owner's request, 2026-10-11;
    `forecast/tidephase.py`, BRIEFING §41), on both tabs, right above its
    Charts line under a rule of its own, its caret like Origin's: the line is
-   the phase (Spring tides / Neap tides / Building toward springs / Easing
-   toward neaps), tagged `predicted` on LIVE as the turn line is; open, a
-   summary in three PARAGRAPHS, never bullets (owner's call) — the day, the
-   next spring or neap with what coincides and the card's own turns as
-   evidence, then "Late October: springs …" (owner's wording kept). Every
-   claim read off the constants SAYS so where it is made ("by NOAA's
-   harmonic constants for San Diego (2017–2021)", then "by the same
-   constants"). Spring and neap come from NOAA's harmonic constants for
+   a fixed title, "Phase" (owner's edit, same day, replacing the phase
+   itself), tagged `predicted` on LIVE as the turn line is; open, three
+   PARAGRAPHS, never bullets (owner's call), each a bold heading over its
+   body — "Today" (the phase: Spring tides / Neap tides / Building toward
+   springs / Easing toward neaps, the Moon, the day's pair), "Around 17 Oct"
+   (the next spring or neap, what coincides, and "The upcoming turns show
+   it: …"), "Late October" (owner's wording kept) — with no title above them.
+   NOAA's constants are named in the PROVENANCE, not the paragraphs (owner's
+   edit, same day: "by NOAA's harmonic constants" and "by the same constants"
+   came out). Spring and neap come from NOAA's harmonic constants for
    9410170 (`collector/harcon.py`, fetched on Actions, never typed — their
    `phase_local` is NOT comparable across speeds: read naively it puts
    springs 11 h before syzygy, `phase_GMT` 3 h), the Moon from
