@@ -259,7 +259,13 @@ forecaster actually verifies against, Surfline included.
    requests, 2026-10-09, moved there 2026-10-11 from beside the combined
    height, whose headline is now the height alone, as a break's is): "CDIP
    191 via NDBC •" for 46232 — CDIP runs it, NDBC serves its spectra — and
-   "NDBC 46047 •", replacing the "(NDBC <id>)" the name line carried. 46232's
+   "NDBC 46047 •", replacing the "(NDBC <id>)" the name line carried. **The
+   whole provenance is pills** (owner's request, 2026-10-11): "Point Loma
+   South, CA | Spectral wave data", then "Observed <when> | <age>", then the
+   feed, each pair joined as below, corners the swell card's tab strip's
+   8 px; a pair too wide for its line wraps its second pill under the first
+   as a pill of its own (`fitPills`), never past the card. 46047's "Open
+   ocean witness" line stays words, after its pills. 46232's
    number is the registry's (`stations.json` `cdip`, `now.json`
    `station_cdip`, never typed on the page; "NDBC 46232" without it). Ink at
    the provenance's 12 px on the picked row's background; 46232's sits under

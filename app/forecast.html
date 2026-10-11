@@ -216,24 +216,34 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A picked row reads as pressed, on the Buoys tab and on a break's alike
    (owner's request, 2026-10-09). */
 .train[data-rose-train][aria-pressed="true"],.train[data-train][aria-pressed="true"]{background:var(--paper);opacity:1}
-/* Each LIVE buoy's pill, at the start of its countdown line, "CDIP <n> via
-   NDBC" or "NDBC <id>": in ink at the provenance's size on the picked row's
-   background, and a dot on that buoy's own countdown -- green while its
+/* Each LIVE buoy's provenance is three lines of joined pills (owner's
+   requests, 2026-10-09 and -11): where the buoy is and what it measures;
+   when it was observed and how long ago; and its feed, "CDIP <n> via NDBC"
+   or "NDBC <id>", with a dot on that buoy's own countdown -- green while its
    spectra arrive, green fading in and out once one is due, red once overdue
-   (owner's requests, 2026-10-09 and -11). */
-.buoy-pill,.due-pill{display:inline-flex;align-items:center;height:18px;box-sizing:border-box;
+   -- and the countdown. In ink at the provenance's size on the picked row's
+   background; each pill's corners are the swell card's tab strip's 8 px. */
+.pill,.pill-tail{display:inline-flex;align-items:center;height:18px;box-sizing:border-box;
   background:var(--paper);color:var(--ink);font-size:12px;font-weight:400;line-height:1;
   font-variant-numeric:tabular-nums;white-space:nowrap}
-.buoy-pill{gap:5px;padding:0 7px;border-radius:9px}
-/* The countdown's pill grows out of the feed's (owner's design, 2026-10-11):
-   it starts under the feed pill's right cap, at the cap's centre, and a
-   circle 2 px wider than the cap is cut from its left, so its left edge is
-   a concave arc hugging that cap with a 2 px seam; its right end is the
-   feed pill's. One unit, so the two never wrap apart. */
-.feed{display:inline-flex;align-items:center;white-space:nowrap;vertical-align:top}
-.due-pill{margin-left:-9px;padding:0 7px 0 16px;border-radius:0 9px 9px 0;
-  -webkit-mask:radial-gradient(circle at 0 50%,transparent 11px,#000 11.5px);
-  mask:radial-gradient(circle at 0 50%,transparent 11px,#000 11.5px)}
+.pill{gap:5px;padding:0 7px;border-radius:8px}
+/* The second pill grows out of the first (owner's design, 2026-10-11): it
+   starts under the first pill's right end, at its corners' centre, and that
+   end grown by 2 px is cut from its left -- two circles of 10 px, the 8 px
+   corners plus the seam, 1 px above and below the middle, where the 18 px
+   pill's 2 px of straight edge sits -- so its left edge hugs the first pill
+   with a 2 px seam; its right end is the first pill's. Kept on one line
+   while they fit; where they do not (a 320 px phone), `fitPills` lets the
+   second wrap under the first as a pill of its own. */
+.pills{display:inline-flex;flex-wrap:wrap;align-items:center;row-gap:2px;vertical-align:top;max-width:100%}
+.pill-tail{margin-left:-8px;padding:0 7px 0 15px;border-radius:0 8px 8px 0;
+  -webkit-mask:radial-gradient(circle at 0 calc(50% - 1px),transparent 10px,#000 10.5px),
+               radial-gradient(circle at 0 calc(50% + 1px),transparent 10px,#000 10.5px);
+  -webkit-mask-composite:source-in;
+  mask:radial-gradient(circle at 0 calc(50% - 1px),transparent 10px,#000 10.5px),
+       radial-gradient(circle at 0 calc(50% + 1px),transparent 10px,#000 10.5px);
+  mask-composite:intersect}
+.pills.split .pill-tail{margin-left:0;padding:0 7px;border-radius:8px;-webkit-mask:none;mask:none}
 .status{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dot-ok)}
 .status.due{animation:status-due 2s ease-in-out infinite} .status.over{background:var(--dot-over)}
 @keyframes status-due{0%,100%{opacity:1}50%{opacity:.2}}
@@ -872,10 +882,12 @@ const period = (s) => (!s ? "" : /[.!?]\s*$/.test(s) ? s : s + ".");
 // and no countdown, and renders as it always has.
 //
 // Wrapped in one block so the lines sit as close together on the swell card
-// as on the others, whose own gap between rows is narrower.
+// as on the others, whose own gap between rows is narrower. A line of pills
+// (`pillLine`) is passed as `{html}` and takes no full stop, as the
+// countdown's pill does not.
 function srcLines(lines, due = "") {
   const body = [].concat(lines || []).filter(Boolean)
-    .map((line) => `<span class="src">${period(line)}</span>`).join("")
+    .map((line) => `<span class="src">${line.html || period(line)}</span>`).join("")
     + (due ? `<span class="src">${due}</span>` : "");
   return body ? `<div class="srcs">${body}</div>` : "";
 }
@@ -903,14 +915,20 @@ function turnClock(iso, fromIso) {
 // Only lines naming a MEASUREMENT get this. A modelled wind or a harmonic tide
 // is a forecast FOR a moment, not a reading taken AT one, and "23 h ago" under
 // a prediction for next Tuesday would be nonsense.
+//
+// The age is wrapped because it is derived from the READER's clock rather
+// than from the payload, which makes it volatile between two renders that
+// straddle a minute. `cardText` strips everything so marked before comparing,
+// so a card is never flashed for a string that was only ever going to change.
+// The buoys' provenance pills (`buoyObserved`) take the same span.
+function ageSpan(iso) {
+  const age = iso ? ago(ageHours(iso)) : "";
+  return age ? `<span class="age">${age}</span>` : "";
+}
 function observedAt(iso) {
   if (!iso) return "";
-  const age = ago(ageHours(iso));
-  // The age is wrapped because it is derived from the READER's clock rather
-  // than from the payload, which makes it volatile between two renders that
-  // straddle a minute. `cardText` strips everything so marked before comparing,
-  // so a card is never flashed for a string that was only ever going to change.
-  return when(iso) + (age ? `, <span class="age">${age}</span>` : "");
+  const age = ageSpan(iso);
+  return when(iso) + (age ? `, ${age}` : "");
 }
 
 // The build's flag is a floor, never a ceiling: an open page can age a reading
@@ -1473,9 +1491,39 @@ function fitTrains(root = document) {
     }
   });
 }
-// Every render rewrites the cards; fit the new rows before they are painted.
+// Two joined pills stay one unit while they fit on the line; where they do
+// not, the second wraps under the first and stands as a pill of its own
+// (`.split`), never a cut edge hugging nothing. Measured joined each time,
+// so the narrower split form cannot talk itself back onto the line. A pair
+// in a hidden pane has no width and is fitted when its pane's lines resize.
+function fitPill(pair) {
+  const tail = pair.querySelector(".pill-tail");
+  pair.classList.remove("split");
+  if (tail && pair.clientWidth && tail.offsetTop > pair.firstElementChild.offsetTop + 1) {
+    pair.classList.add("split");
+  }
+}
+const PILL_WIDTH = new WeakMap();
+const pillResize = typeof ResizeObserver === "undefined" ? null
+  : new ResizeObserver((entries) => entries.forEach(({target, contentRect}) => {
+    const width = Math.round(contentRect.width);
+    if (!width || PILL_WIDTH.get(target) === width) return;
+    PILL_WIDTH.set(target, width);
+    target.querySelectorAll(".pills").forEach(fitPill);
+  }));
+function fitPills(root = document) {
+  root.querySelectorAll(".srcs").forEach((lines) => {
+    if (!lines.querySelector(".pills")) return;
+    if (pillResize) pillResize.observe(lines);
+    if (lines.clientWidth) lines.querySelectorAll(".pills").forEach(fitPill);
+  });
+}
+// Every render rewrites the cards, and every second's tick rewrites the
+// countdowns; fit the new rows and pills before they are painted.
 if (typeof MutationObserver !== "undefined" && document.getElementById("conditions")) {
   new MutationObserver(() => fitTrains($("conditions")))
+    .observe(document.getElementById("conditions"), {childList: true, subtree: true});
+  new MutationObserver(() => fitPills($("conditions")))
     .observe(document.getElementById("conditions"), {childList: true, subtree: true});
 }
 
@@ -2366,6 +2414,25 @@ function buoyReading(buoy, roseFor = null) {
     + trains;
 }
 
+// Two joined pills, the second growing out of the first (`.pill-tail`); no
+// second, no tail -- never an empty pill.
+function pills(head, tail = "") {
+  if (!head) return "";
+  return `<span class="pills"><span class="pill">${head}</span>`
+    + `${tail ? `<span class="pill-tail">${tail}</span>` : ""}</span>`;
+}
+const pillLine = (head, tail = "") => (head ? {html: pills(head, tail)} : "");
+
+// A buoy's provenance in pills (owner's request, 2026-10-11): where it is
+// and what it measures, then when it was observed and how long ago, aged by
+// `ageSpan` as every other measurement line is.
+function buoyWhere(name, station) {
+  return name && name !== station ? pillLine(name, "Spectral wave data") : pillLine("Spectral wave data");
+}
+function buoyObserved(iso) {
+  return iso ? pillLine(`Observed ${when(iso)}`, ageSpan(iso)) : "";
+}
+
 // A buoy's countdown line (owner's calls, 2026-10-11): where the feed comes
 // from -- "CDIP <number> via NDBC" for 46232, which CDIP runs and NDBC
 // serves, its number from the registry; "NDBC <id>" for a buoy NDBC runs --
@@ -2375,9 +2442,7 @@ function buoyReading(buoy, roseFor = null) {
 // the line above it carried. No countdown (no observation), no second pill.
 function buoyFeed(label, iso, lateIso, {forceOver = false} = {}) {
   if (!label) return "";
-  const pill = `<span class="buoy-pill">${label}${statusDot(iso, lateIso, {forceOver})}</span>`;
-  const due = dueSpan(iso, lateIso, {forceOver, bare: true});
-  return `<span class="feed">${pill}${due ? `<span class="due-pill">${due}</span>` : ""}</span>`;
+  return pills(label + statusDot(iso, lateIso, {forceOver}), dueSpan(iso, lateIso, {forceOver, bare: true}));
 }
 const anchorFeed = (now, due, late) => (now && now.station
   ? buoyFeed(now.station_cdip ? `CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`,
@@ -2394,9 +2459,10 @@ function statusDot(iso, lateIso, {forceOver = false} = {}) {
     + (forceOver ? ' data-status-force="1"' : "") + "></i>";
 }
 
-// One context buoy's block: its name, its reading, and its provenance --
-// observed when, from which buoy, carried to no break, and its countdown,
-// red past its measured worst or past the build's three hours.
+// One context buoy's block: its reading, and its provenance -- where it is,
+// observed when, its feed and countdown, red past its measured worst or past
+// the build's three hours, in pills as 46232's; then, in words, that it is
+// carried to no break.
 function contextBuoy(b) {
   const old = b.observed_utc && (b.stale || (ageHours(b.observed_utc) || 0) > (b.stale_hours || 3));
   // Its pills, as 46232's, are its own countdown line.
@@ -2407,11 +2473,11 @@ function contextBuoy(b) {
   return `<hr>${reading}`
     + roseBlock(b.station)
     + srcLines([
-      b.observed_utc ? `Observed ${observedAt(b.observed_utc)}` : "",
-      b.station_name && b.station_name !== b.station ? `Spectral wave data, ${b.station_name}`
-        : "Spectral wave data",
+      buoyWhere(b.station_name, b.station),
+      buoyObserved(b.observed_utc),
+      feed ? {html: feed} : "",
       "Open ocean witness, not carried to any break",
-    ], feed);
+    ]);
 }
 
 // THE ROSES, under each buoy's reading on the LIVE tab's Buoys tab (owner's
@@ -5296,9 +5362,10 @@ function renderConditions(step, cards) {
       others: (BUOYS && BUOYS.buoys) || [],
       buoyRose: roseBlock(NOW && NOW.station),
       cards,
+      // In pills (owner's request, 2026-10-11): where and what, then when.
       source: [
-        NOW && NOW.observed_utc ? `Observed ${observedAt(NOW.observed_utc)}` : "",
-        NOW && NOW.station_name ? `Spectral wave data, ${NOW.station_name}` : "",
+        NOW && NOW.station_name ? buoyWhere(NOW.station_name, NOW.station) : "",
+        NOW && buoyObserved(NOW.observed_utc),
       ],
       // The feed's pill starts the countdown line, under every swell tab:
       // each one's numbers come from this one buoy (owner's call, 2026-10-11).

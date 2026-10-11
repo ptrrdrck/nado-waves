@@ -725,7 +725,7 @@ class TestTheTwoChains:
         card in the same strip rather than a dashed aside, and it carries its
         own provenance instead of leaving it stranded below the breaks."""
 
-        assert "Observed ${observedAt(NOW.observed_utc)}" in SOURCE
+        assert "buoyObserved(NOW.observed_utc)" in SOURCE
         assert 'id="buoy"' not in SOURCE
 
     def test_both_chains_render_through_one_card_shape(self):
@@ -1155,8 +1155,10 @@ class TestTheSwellCardIsOnBothTabs:
         assert SOURCE.count("rows.push(swellCard({") == 2
 
     def test_the_observed_card_names_its_measurement(self):
-        # The NDBC id moved into the feed's pill on the countdown line (2026-10-11).
-        assert "Spectral wave data, ${NOW.station_name}`" in SOURCE
+        # The NDBC id moved into the feed's pill on the countdown line, and the
+        # place and the measurement into pills of their own (2026-10-11).
+        assert "buoyWhere(NOW.station_name, NOW.station)" in SOURCE
+        assert 'pillLine(name, "Spectral wave data")' in SOURCE
 
     def test_the_forecast_card_names_its_model(self):
         assert '"partitions" : "spectrum"}, ${DATA.station_name} (NDBC ${DATA.station})' in SOURCE
@@ -1291,8 +1293,9 @@ class TestTheProvenanceLines:
         assert "`Update in ${hms(due - now)}`) + stop;" in SOURCE
         # Only a countdown inside a buoy's pill drops it (2026-10-11).
         assert 'const stop = el.getAttribute("data-bare") === "1" ? "" : ".";' in SOURCE
+        # A line of pills (2026-10-11) is passed as {html} and takes none.
         bare = [m for m in re.findall(r'<span class="src">\$\{(.{0,40})', SOURCE)
-                if not m.startswith(("period(", "period (", "due}"))]
+                if not m.startswith(("period(", "period (", "due}", "line.html || period(line)}"))]
         assert not bare, f"provenance not routed through period(): {bare}"
 
     def test_the_age_is_derived_from_the_timestamp_not_read_from_the_file(self):
@@ -1808,14 +1811,19 @@ class TestEveryMeasurementSaysHowOldItIs:
     def test_all_five_measurement_lines_go_through_one_helper(self):
         """Three cards on Now, the Buoys tab's context buoy (2026-10-06), and
         the forecast tab's KNZY fallback. Five hand-rolled age expressions is
-        five chances to drift."""
+        five chances to drift. The two buoys' lines are pills since
+        2026-10-11 (`buoyObserved`), and every one is aged by `ageSpan`."""
 
         assert "function observedAt" in SOURCE
-        assert SOURCE.count("observedAt(") == 6      # the definition plus five uses
-        for site in ("Observed ${observedAt(NOW.observed_utc)}",
-                     "Observed ${observedAt(wind.observed_utc)}",
-                     "Measured ${observedAt(tide.observed_utc)}"):
+        assert SOURCE.count("observedAt(") == 4      # the definition plus three uses
+        assert SOURCE.count("buoyObserved(") == 3    # the definition plus two uses
+        for site in ("Observed ${observedAt(wind.observed_utc)}",
+                     "Measured ${observedAt(tide.observed_utc)}",
+                     "buoyObserved(NOW.observed_utc)",
+                     "buoyObserved(b.observed_utc)"):
             assert site in SOURCE, site
+        assert SOURCE.count('<span class="age">') == 1
+        assert SOURCE.count("ageSpan(iso)") == 3      # the definition plus both helpers
 
     def test_the_forecast_tabs_observed_wind_fallback_is_aged_too(self):
         """It only appears when the model has no wind for that hour, which is
