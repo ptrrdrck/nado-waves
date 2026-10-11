@@ -579,8 +579,15 @@ forecaster actually verifies against, Surfline included.
    loosen (misplaced moments named 3.3% → 2.9%), but real matches soften —
    Marie at 46047 falls from strong to partial (80%) and fails the strict
    gate, because her weakened days' swell does not stand out there. On a break only when one of its
-   card trains is the one arriving — of two (one band, two directions, §40),
-   the one within 45° of the storm's bearing. Placed and sized from NHC's fix that sent
+   card trains is the one arriving — of several, one within 45° of the storm's
+   bearing (§40), and of those the one its track has arriving NEAREST NOW,
+   never the card's order (2026-10-11, BRIEFING §37g: the biggest-first pick
+   gave Rachel 16.7 s at two breaks and 11.8 s at the third), so every site
+   ranks them alike and shows the best it has; and NEVER a train Origin reads
+   from > 3× or < ⅓ of the sending fix's distance (`SAME_SOURCE_RATIO`, wide
+   by §37b's 0.78× and 1.8–2.4×; `now.origin_readings` live,
+   `originhistory.readings_at` in the archive, both pairing a ridge with every
+   site's train at its frequency). Placed and sized from NHC's fix that sent
    that train, rounded to 100, never from Origin's distance; it replaces
    Origin's reading of the same train. The b-decks are archived hourly by
    collect-beach-inputs.yml (their one writer). The directional sector is

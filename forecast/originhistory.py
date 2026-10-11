@@ -102,7 +102,29 @@ def moments(since: datetime, until: datetime) -> list[datetime]:
     return out
 
 
-def named_marks(data_dir: Path, asked: list[datetime], trains_at) -> list[dict]:
+def readings_at(arrivals: list[dict], at: datetime, trains: dict) -> dict:
+    """{site: [(train period, distance km)]}: what Origin read each site's
+    trains as at `at`, from the arrivals running then, a train within Origin's
+    tolerance of the ridge's frequency (`link`'s pairing), at EVERY site that
+    has one, as the live card pairs them: a ridge is one train in 46232's
+    spectrum, wherever it peaked. So a past moment refuses a storm the trains
+    the live card would have refused."""
+
+    out: dict[str, list[tuple[float, float]]] = {}
+    for a in arrivals:
+        if not _time(a["first_utc"]) <= at <= _time(a["last_utc"]):
+            continue
+        f = ridge_freq_hz(a, at)
+        for site, site_trains in trains.items():
+            for train in site_trains or []:
+                period = train.get("period_s")
+                if period and abs(1.0 / period - f) <= origin.TRAIN_MATCH_HZ:
+                    out.setdefault(site, []).append((period, a["distance_km"]))
+    return out
+
+
+def named_marks(data_dir: Path, asked: list[datetime], trains_at,
+                arrivals: list[dict] | None = None) -> list[dict]:
     """The hurricanes the card would have named at each moment asked."""
 
     from .landpath import load_land
@@ -136,8 +158,9 @@ def named_marks(data_dir: Path, asked: list[datetime], trains_at) -> list[dict]:
         fields[station] = stormtrack.Field([s for s in spectra if start <= s.time <= max(need)])
     out = []
     for t in need:
+        trains = trains_at(t) or {}
         got = stormtrack.live({k: tracks[k] for k in open_at[t]}, fields, t, positions,
-                              trains_at(t) or {}, land)
+                              trains, land, readings=readings_at(arrivals or [], t, trains))
         out += [named_mark(t, h) for h in got]
     return out
 
@@ -215,7 +238,7 @@ def build_archive(data_dir: Path = DEFAULT_DATA_DIR) -> dict:
                              trains_at)
     until = spectra[-1].time
     named = named_marks(data_dir, moments(spectra[0].time - timedelta(seconds=1), until),
-                        trains_at)
+                        trains_at, arrivals)
     link(arrivals, named)
     return {"station": STATION, "generated_utc": _iso(utcnow()), "until_utc": _iso(until),
             "step_h": STEP_H, "arrivals": arrivals, "named": named}
@@ -253,7 +276,7 @@ def build_live(data_dir: Path = DEFAULT_DATA_DIR) -> dict:
     until = _time(archive["until_utc"]) if archive.get("until_utc") else newest - timedelta(days=TAIL_DAYS)
     since = max(until, newest - timedelta(days=TAIL_DAYS))
     named = [n for n in archive.get("named", []) if _time(n["time_utc"]) <= since]
-    named += named_marks(data_dir, moments(since, newest), trains_at)
+    named += named_marks(data_dir, moments(since, newest), trains_at, arrivals)
     named += current_named(data_dir, newest)
     link(arrivals, named)
     for a in arrivals:

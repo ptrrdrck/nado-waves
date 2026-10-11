@@ -199,6 +199,57 @@ def test_a_storm_names_the_card_train_from_its_side():
     assert named([{"period_s": period}])["x"]["train_period_s"] == period
 
 
+def _two_arriving():
+    """A storm, a moment, and two of its periods arriving then: the one its
+    track has arriving nearest that moment first."""
+
+    fixes = storm(bearing=150.0)
+    positions = {"46232": HOME}
+    at = fixes[-1].time + timedelta(hours=60)
+    band = S.bands({"ep17": fixes}, positions)[0]
+    arriving = [f for f in FREQS if band.contains(at, f)]
+    assert len(arriving) >= 2, "the test hour must have two periods arriving"
+
+    def gap(f):
+        fix, d = S._sent_by(band, f, at)
+        return abs((S.arrival(fix, f, d) - at).total_seconds())
+
+    near, far = sorted(arriving, key=gap)[:2]
+    assert gap(near) < gap(far)
+    return fixes, positions, at, round(1 / near, 1), round(1 / far, 1)
+
+
+def test_the_storms_train_is_the_one_on_its_schedule_not_the_biggest():
+    """2026-10-11: card order (the biggest first) gave Rachel 16.7 s at two
+    breaks and 11.8 s at the third. The storm's train is the one its track
+    has arriving nearest now, at every site, whatever order the card lists."""
+
+    fixes, positions, at, near, far = _two_arriving()
+    side = lambda p: {"period_s": p, "from_deg": 152, "lobes": []}
+    picked = S._sites(fixes, "ep17", at, positions,
+                      {"a": [side(far), side(near)], "b": [side(near), side(far)]}, (), S.MIN_KT)
+    assert picked["a"]["train_period_s"] == picked["b"]["train_period_s"] == near
+
+
+def test_a_train_origin_reads_from_elsewhere_is_never_the_storms():
+    """2026-10-11: Origin read the 16.7 s train at 14,811 km and Rachel's fix
+    sat at 760. Two sources on one period and one side: the train is
+    Origin's, at every site, and the storm takes another or none."""
+
+    fixes, positions, at, near, far = _two_arriving()
+    side = lambda p: {"period_s": p, "from_deg": 152, "lobes": []}
+    trains = {"a": [side(near), side(far)], "b": [side(near)]}
+    d = S._sites(fixes, "ep17", at, positions, trains, (), S.MIN_KT)["a"]["distance_km"]
+    far_away = {"a": [(near, d * 19.5)], "b": [(near, d * 19.5)]}
+    picked = S._sites(fixes, "ep17", at, positions, trains, (), S.MIN_KT, far_away)
+    assert picked["a"]["train_period_s"] == far and "b" not in picked
+    # Within the factor it is the same source, read with Origin's own error
+    # (Polo's ridge sat 1.8-2.4x the storm's, BRIEFING §37b).
+    close = {"a": [(near, d * 2.4)], "b": [(near, d / 2.4)]}
+    picked = S._sites(fixes, "ep17", at, positions, trains, (), S.MIN_KT, close)
+    assert picked["a"]["train_period_s"] == picked["b"]["train_period_s"] == near
+
+
 def test_live_names_nothing_its_buoys_did_not_bear_out():
     fixes = storm(bearing=150.0)
     sp, _ = spectra(fixes=fixes, signal_from=250.0)

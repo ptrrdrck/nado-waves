@@ -679,6 +679,16 @@ TRAIN_MATCH_HZ = 0.0075
 #: somewhere else. Read by `originhistory` for Origin's arrivals, and here for
 #: which card train the storm names.
 SAME_SOURCE_DEG = 45.0
+#: How far apart a storm's distance and Origin's reading of the same train
+#: may be and still be one source. Origin reads a train's distance off its
+#: own dispersion ridge; when that disagrees with the fix that would have sent
+#: it by more than this factor either way, the two are two sources that share
+#: a period and a side, and the train is not the storm's (2026-10-11: Origin's
+#: 16.7 s ridge, read since 8 Oct at 14,811 km, was Rachel's at 760 km on two
+#: breaks and unplaced on the third). Wide on purpose: the readings checked
+#: against storms sat 0.78x (Nolo) and 1.8-2.4x (Polo) off (BRIEFING §37b),
+#: and two buoys reading one storm differ by ~20%.
+SAME_SOURCE_RATIO = 3.0
 
 #: Spectra loaded for the live match: the reference window behind the
 #: furthest trial, plus the longest band.
@@ -702,7 +712,8 @@ def _sent_by(band: Band, freq_hz: float, at: datetime) -> tuple[Fix, float] | No
 
 def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
          positions: dict[str, tuple[float, float]], trains_now: dict[str, list[dict]],
-         land=(), min_kt: int = MIN_KT) -> list[dict]:
+         land=(), min_kt: int = MIN_KT,
+         readings: dict[str, list[tuple[float, float]]] | None = None) -> list[dict]:
     """Every storm the card may name at `at`, as `now.json` carries it.
 
     Named when some of its swell is arriving now at one of the
@@ -712,7 +723,9 @@ def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
     "buoy") shows it when one of its card trains has a period the storm's band
     at 46232 says is arriving now, from fixes with open water to 46232. The
     position quoted is NHC's fix that sent that train, never Origin's
-    dispersion distance.
+    dispersion distance. `readings` is Origin's reading of each site's trains
+    now, {site: [(train period, distance km)]}: a train Origin reads from a
+    distance `SAME_SOURCE_RATIO` off the storm's is not the storm's.
     """
 
     found: dict[str, dict] = {}
@@ -744,7 +757,7 @@ def live(tracks: dict[str, list[Fix]], fields: dict[str, Field], at: datetime,
         entry["best"] = best
         entry["word"] = match_word(best)
         entry["sites"] = _sites(tracks[entry["storm"]], entry["storm"], at, positions,
-                                trains_now, land, min_kt)
+                                trains_now, land, min_kt, readings)
         out.append(entry)
     return sorted(out, key=lambda e: -e["best"])
 
@@ -754,8 +767,16 @@ def match_word(score: float) -> str:
 
 
 def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
-           trains_now: dict[str, list[dict]], land, min_kt: int) -> dict:
-    """{site: the card train this storm's band at 46232 says is arriving}."""
+           trains_now: dict[str, list[dict]], land, min_kt: int,
+           readings: dict[str, list[tuple[float, float]]] | None = None) -> dict:
+    """{site: the card train this storm's band at 46232 says is arriving}.
+
+    Of a site's trains that the band holds now, the storm's is the one from
+    its side (`_from_storm`) whose period the track has arriving nearest to
+    now (the same ranking at every site); when none is from its side, the
+    nearest on schedule of the rest; card order only breaks a tie. Never a train Origin is reading from a distance `SAME_SOURCE_RATIO`
+    off the fix that would have sent it (`_contradicted`).
+    """
 
     here = next((b for b in bands({storm: fixes}, positions, min_kt, land)
                  if b.station == RIDGE_STATION), None)
@@ -764,7 +785,7 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
         return sites
     for site, trains in trains_now.items():
         found = []
-        for train in trains or []:
+        for order, train in enumerate(trains or []):
             period = train.get("period_s")
             if not period or train.get("local") or train.get("wind_sea"):
                 continue
@@ -777,14 +798,17 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
             if not any(abs(g - f) <= TRAIN_MATCH_HZ and here.contains(at, g)
                        for g in MODEL_FREQS + (f,)):
                 continue
-            sent = _sent_by(here, f, at) or next(
-                (_sent_by(here, g, at) for g in MODEL_FREQS
-                 if abs(g - f) <= TRAIN_MATCH_HZ and _sent_by(here, g, at)), None)
+            sent = next(((g, hit) for g in (f,) + tuple(
+                             g for g in MODEL_FREQS if abs(g - f) <= TRAIN_MATCH_HZ)
+                         for hit in [_sent_by(here, g, at)] if hit), None)
             if sent is None:
                 continue
-            fix, d = sent
+            g, (fix, d) = sent
+            if _contradicted((readings or {}).get(site, ()), period, d):
+                continue
             bearing = initial_bearing(positions[RIDGE_STATION], (fix.lat, fix.lon))
-            found.append((train, {
+            gap = abs((arrival(fix, g, d) - at).total_seconds())
+            found.append((not _from_storm(train, round(bearing)), gap, order, {
                 "train_period_s": period,
                 "fix_utc": fix.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "lat": fix.lat, "lon": fix.lon,
@@ -796,11 +820,20 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
             }))
         # A band from two directions is two trains since BRIEFING §40, often a
         # second apart and both on the storm's schedule: the storm's is the one
-        # from its side. Card order (the first that fits) only when none is.
+        # from its side, and of those the one its track has arriving now, not
+        # the biggest -- which differed from break to break (2026-10-11).
         if found:
-            sites[site] = next((hit for train, hit in found
-                                if _from_storm(train, hit["bearing_deg"])), found[0][1])
+            sites[site] = min(found, key=lambda x: x[:3])[3]
     return sites
+
+
+def _contradicted(readings, period: float, distance_km: float) -> bool:
+    """Does Origin read this train from a distance `SAME_SOURCE_RATIO` or more
+    off the storm's? Then they are two sources sharing a period and a side."""
+
+    return any(abs(p - period) < 0.05 and r and distance_km
+               and max(r / distance_km, distance_km / r) > SAME_SOURCE_RATIO
+               for p, r in readings)
 
 
 def _from_storm(train: dict, bearing: float) -> bool:
