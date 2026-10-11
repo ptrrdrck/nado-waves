@@ -65,6 +65,9 @@ class Fix:
     #: Minimum sea-level pressure, hPa; None where the b-deck writes 0 or
     #: nothing (an invest's early fixes).
     mslp_mb: int | None = None
+    #: NHC's classification at the fix ("HU", "TS", "TD", "EX", "LO", ...);
+    #: "" where the b-deck leaves it blank.
+    status: str = ""
 
 
 def _coord(text: str) -> float:
@@ -98,6 +101,7 @@ def parse_bdeck(text: str) -> list[Fix]:
                 lon=_coord(cols[7]),
                 vmax_kt=int(cols[8] or 0),
                 mslp_mb=int(cols[9]) if len(cols) > 9 and cols[9] and int(cols[9]) > 0 else None,
+                status=cols[10].upper() if len(cols) > 10 else "",
             )
         except (ValueError, IndexError):
             continue

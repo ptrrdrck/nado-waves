@@ -7,7 +7,9 @@ is weak: a busy season puts SOME storm near most points, and a pin is one
 number. This asks the converse, with the whole track and the buoy's direction:
 
 **If this storm sent swell, when and from where must it have arrived?** Every
-best-track fix at hurricane strength is a source at a known place and time.
+best-track fix at hurricane strength is a source at a known place and time,
+and so is every tropical storm fix after the storm's first hurricane one
+(`sources`): a hurricane that weakens goes on sending swell.
 From each, a train of frequency f reaches a buoy d / cg(f) later, cg = g/(4πf)
 in deep water. Over all of a storm's fixes that sweeps a BAND across the
 buoy's time-frequency plane: where its swell can be, and nowhere else.
@@ -186,17 +188,46 @@ class Band:
                    for j in (k - 1, k))
 
 
+#: A storm that has been a hurricane stays a source after it weakens, for as
+#: long as NHC still classes it a tropical storm (owner's request, 2026-10-11:
+#: Rachel fell to 60 kt on 8 Oct 06Z and her swell went on arriving, unnamed,
+#: once the last hurricane fix's had passed). Only AFTER its first hurricane
+#: fix: a storm on its way up is not yet one the card would name, and a
+#: depression, a remnant low or an extratropical storm is not a tropical
+#: storm, whatever its winds.
+WEAKENED_KT = 34
+WEAKENED_STATUS = ("TS", "HU")
+
+
+def sources(fixes: list[Fix], min_kt: int = MIN_KT) -> list[Fix]:
+    """The fixes that may have sent a storm's swell: every one at `min_kt`,
+    and every tropical storm fix after the first of them."""
+
+    first = next((f.time for f in fixes if f.vmax_kt >= min_kt), None)
+    if first is None:
+        return []
+    return [f for f in fixes if f.vmax_kt >= min_kt
+            or (f.time > first and f.vmax_kt >= WEAKENED_KT and f.status in WEAKENED_STATUS)]
+
+
+def strength(fix: Fix) -> str:
+    """What the storm was when this fix sent its swell: the card's head word.
+    A hurricane is 64 kt whatever strength a report asks for."""
+
+    return "hurricane" if fix.vmax_kt >= 64 else "tropical storm"
+
+
 def bands(tracks: dict[str, list[Fix]], positions: dict[str, tuple[float, float]],
           min_kt: int = MIN_KT, land=()) -> list[Band]:
-    """One band per storm and buoy, from the fixes at strength with open water
-    to it. A storm with none at a buoy gets a band with no fixes, kept so the
+    """One band per storm and buoy, from its `sources` with open water to
+    it. A storm with none at a buoy gets a band with no fixes, kept so the
     report can say it was blocked rather than leaving it out."""
 
     from .landpath import blocked as crosses
 
     out = []
     for storm, fixes in tracks.items():
-        strong = [f for f in fixes if f.vmax_kt >= min_kt]
+        strong = sources(fixes, min_kt)
         if not strong:
             continue
         # A b-deck is named INVEST or GENESISnnn until the storm is; the last
@@ -631,7 +662,7 @@ def misplaced(band: Band, days: float) -> Band:
     """The same storm, its every fix `days` later: a track whose swell was not there."""
 
     moved = [Fix(f.storm, f.name, f.time + timedelta(days=days), f.lat, f.lon, f.vmax_kt,
-                 f.mslp_mb)
+                 f.mslp_mb, f.status)
              for f in band.fixes]
     return Band(band.storm, band.name, band.station, moved, band.distances, band.bearing,
                 band.peak_kt, band.station_position, band.blocked)
@@ -761,6 +792,7 @@ def _sites(fixes: list[Fix], storm: str, at: datetime, positions: dict,
                 "bearing_deg": round(bearing),
                 "vmax_kt": fix.vmax_kt,
                 "mslp_mb": fix.mslp_mb,
+                "strength": strength(fix),
             }))
         # A band from two directions is two trains since BRIEFING §40, often a
         # second apart and both on the storm's schedule: the storm's is the one
