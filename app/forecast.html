@@ -222,28 +222,33 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    or "NDBC <id>", with a dot on that buoy's own countdown -- green while its
    spectra arrive, green fading in and out once one is due, red once overdue
    -- and the countdown. In ink at the provenance's size on the picked row's
-   background; each pill's corners are the swell card's tab strip's 8 px. */
+   background, with 4 px corners (owner's call, same day). */
 .pill,.pill-tail{display:inline-flex;align-items:center;height:18px;box-sizing:border-box;
   background:var(--paper);color:var(--ink);font-size:12px;font-weight:400;line-height:1;
   font-variant-numeric:tabular-nums;white-space:nowrap}
-.pill{gap:5px;padding:0 7px;border-radius:8px}
+.pill{gap:5px;padding:0 7px;border-radius:4px}
 /* The second pill grows out of the first (owner's design, 2026-10-11): it
-   starts under the first pill's right end, at its corners' centre, and that
-   end grown by 2 px is cut from its left -- two circles of 10 px, the 8 px
-   corners plus the seam, 1 px above and below the middle, where the 18 px
-   pill's 2 px of straight edge sits -- so its left edge hugs the first pill
-   with a 2 px seam; its right end is the first pill's. Kept on one line
-   while they fit; where they do not (a 320 px phone), `fitPills` lets the
-   second wrap under the first as a pill of its own. */
+   starts under the first pill's right end, at its corners' centre, 4 px in,
+   and that end grown by a 2 px seam is cut from its left -- the 10 px of
+   straight edge between the corners as a 6 x 10 px block, each corner as a
+   circle of 6 px, 5 px above and below the middle -- so its left edge hugs
+   the first pill's end with a 2 px seam; its right end is the first pill's.
+   The cut is the whole pill less those three (`subtract` over `add`). Kept
+   on one line while they fit; where they do not (a 320 px phone),
+   `fitPills` lets the second wrap under the first as a pill of its own. */
 .pills{display:inline-flex;flex-wrap:wrap;align-items:center;row-gap:2px;vertical-align:top;max-width:100%}
-.pill-tail{margin-left:-8px;padding:0 7px 0 15px;border-radius:0 8px 8px 0;
-  -webkit-mask:radial-gradient(circle at 0 calc(50% - 1px),transparent 10px,#000 10.5px),
-               radial-gradient(circle at 0 calc(50% + 1px),transparent 10px,#000 10.5px);
-  -webkit-mask-composite:source-in;
-  mask:radial-gradient(circle at 0 calc(50% - 1px),transparent 10px,#000 10.5px),
-       radial-gradient(circle at 0 calc(50% + 1px),transparent 10px,#000 10.5px);
-  mask-composite:intersect}
-.pills.split .pill-tail{margin-left:0;padding:0 7px;border-radius:8px;-webkit-mask:none;mask:none}
+.pill-tail{margin-left:-4px;padding:0 7px 0 13px;border-radius:0 4px 4px 0;
+  -webkit-mask:linear-gradient(#000 0 0),
+    radial-gradient(circle at 0 calc(50% - 5px),#000 6px,transparent 6.5px),
+    radial-gradient(circle at 0 calc(50% + 5px),#000 6px,transparent 6.5px),
+    linear-gradient(#000 0 0) 0 50%/6px 10px no-repeat;
+  -webkit-mask-composite:source-out,source-over,source-over;
+  mask:linear-gradient(#000 0 0),
+    radial-gradient(circle at 0 calc(50% - 5px),#000 6px,transparent 6.5px),
+    radial-gradient(circle at 0 calc(50% + 5px),#000 6px,transparent 6.5px),
+    linear-gradient(#000 0 0) 0 50%/6px 10px no-repeat;
+  mask-composite:subtract,add,add}
+.pills.split .pill-tail{margin-left:0;padding:0 7px;border-radius:4px;-webkit-mask:none;mask:none}
 .status{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dot-ok)}
 .status.due{animation:status-due 2s ease-in-out infinite} .status.over{background:var(--dot-over)}
 @keyframes status-due{0%,100%{opacity:1}50%{opacity:.2}}
@@ -263,6 +268,15 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .val-row,.val-line{display:flex;align-items:center;justify-content:space-between;gap:10px;
                    min-height:24px}
 .val-row:hover .calc-toggle{color:var(--ink)}
+/* A buoy's headline folds out its trains, rose and words (owner's request,
+   2026-10-11), the whole line as on a break's; spaced as the pane is. */
+.fold-row{cursor:pointer;-webkit-user-select:none;user-select:none}
+.fold-row:hover .calc-toggle{color:var(--ink)}
+.buoy-fold{display:flex;flex-direction:column;gap:11px}
+/* 46047's words sit as far under its rose as 46232's provenance does under
+   its own, and the provenance follows them with the pane's space. */
+.buoy-note{margin:0}
+.buoy-fold .rose + .buoy-note{margin-top:3px}
 .calc-toggle{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 0;
              padding:0;border:0;border-radius:6px;background:transparent;color:var(--soft);cursor:pointer}
 .calc-toggle:hover{color:var(--ink)}
@@ -1304,7 +1318,8 @@ const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
               fcChart: "nado-waves.fc-chart", chartOpen: "nado-waves.chart-open",
               windChart: "nado-waves.wind-chart-open", tideChart: "nado-waves.tide-chart-open",
               wtView: "nado-waves.wt-view", originOpen: "nado-waves.origin-open",
-              roseMode: "nado-waves.rose-mode", phaseOpen: "nado-waves.phase-open"};
+              roseMode: "nado-waves.rose-mode", phaseOpen: "nado-waves.phase-open",
+              buoyOpen: "nado-waves.buoy-open"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -2399,19 +2414,51 @@ function buoyPanel(buoy, measured = null, station = null, rose = "") {
   if (!buoy || buoy.hs_m == null) {
     return valLine('<span class="val"><span class="unit">no spectrum</span></span>') + rose + line;
   }
-  return buoyReading(buoy, rose && station ? station.id : null) + rose + line;
+  const id = station && station.id;
+  return buoyReading(buoy, id, {roseFor: rose ? id : null, rose}) + line;
 }
 
 // In a break headline's row, so the buoys' line sits where a break's does;
 // never `.val-row`, whose tap folds a break's calculation.
 const valLine = (val) => `<div class="val-line">${val}</div>`;
 
-function buoyReading(buoy, roseFor = null) {
+// A buoy's headline folds out like a break's (owner's request, 2026-10-11),
+// but what it folds is everything between it and the provenance: the
+// trains, the rose and the words under them. Closed until opened, each buoy
+// its own, kept across a refresh. Nothing to fold, no caret. Under a past
+// Forecast hour the observed line stays outside it, as on a break's tab.
+function buoyReading(buoy, id, {roseFor = null, rose = "", note = ""} = {}) {
   const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor})
     : buoy.period_s ? `<div class="quiet">peak <b>${buoy.period_s.toFixed(1)} s</b>`
       + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
-  return valLine(`<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`)
-    + trains;
+  const value = `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`;
+  const body = trains + rose + note;
+  if (!id || !body) return valLine(value) + body;
+  const open = !!BUOY_OPEN[id];
+  return `<div class="val-line fold-row" data-buoy-head="${id}">${value}${buoyToggle(id, open)}</div>`
+    + `<div class="buoy-fold" id="buoy-fold-${id}"${open ? "" : " hidden"}>${body}</div>`;
+}
+
+// Which buoys' headlines are open, by station. Both are on screen at once,
+// so each has its own caret and its own state.
+let BUOY_OPEN = {};
+function buoyToggle(id, open) {
+  return `<button type="button" class="calc-toggle" data-buoy-toggle="${id}"
+    aria-controls="buoy-fold-${id}" aria-expanded="${open}"
+    aria-label="This buoy's trains and rose"><svg viewBox="0 0 16 16" aria-hidden="true">`
+    + `<path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`;
+}
+// Flipped in place, as the calculation is. Opening one shows its rose, so
+// the roses are paused on the newest spectrum (`roseShown`).
+function setBuoyOpen(id, open) {
+  BUOY_OPEN[id] = open;
+  remember(KEEP.buoyOpen, Object.keys(BUOY_OPEN).filter((k) => BUOY_OPEN[k]).join(","));
+  document.querySelectorAll(`[data-buoy-toggle="${id}"]`).forEach((btn) => {
+    btn.setAttribute("aria-expanded", String(open));
+    const fold = $(btn.getAttribute("aria-controls"));
+    if (fold) fold.hidden = !open;
+  });
+  if (open) roseShown();
 }
 
 // Two joined pills, the second growing out of the first (`.pill-tail`); no
@@ -2459,24 +2506,25 @@ function statusDot(iso, lateIso, {forceOver = false} = {}) {
     + (forceOver ? ' data-status-force="1"' : "") + "></i>";
 }
 
-// One context buoy's block: its reading, and its provenance -- where it is,
-// observed when, its feed and countdown, red past its measured worst or past
-// the build's three hours, in pills as 46232's; then, in words, that it is
-// carried to no break.
+// One context buoy's block: its reading, its trains and rose and, in words,
+// that it is carried to no break, all folded under its headline; then its
+// provenance -- where it is, observed when, its feed and countdown, red past
+// its measured worst or past the build's three hours, in pills as 46232's.
 function contextBuoy(b) {
   const old = b.observed_utc && (b.stale || (ageHours(b.observed_utc) || 0) > (b.stale_hours || 3));
   // Its pills, as 46232's, are its own countdown line.
   const feed = buoyFeed(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after,
                         {forceOver: !!old || !b.observed_utc});
-  const reading = b.hs_m != null ? buoyReading(b, b.station)
-    : valLine('<span class="val"><span class="unit">no spectrum</span></span>');
+  // What it is, said under its rose and above its provenance with space
+  // between (owner's call, 2026-10-11): a description, not a provenance line.
+  const note = '<p class="quiet buoy-note">Open ocean witness, not carried to any break.</p>';
+  const reading = b.hs_m != null ? buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note})
+    : valLine('<span class="val"><span class="unit">no spectrum</span></span>') + roseBlock(b.station) + note;
   return `<hr>${reading}`
-    + roseBlock(b.station)
     + srcLines([
       buoyWhere(b.station_name, b.station),
       buoyObserved(b.observed_utc),
       feed ? {html: feed} : "",
-      "Open ocean witness, not carried to any break",
     ]);
 }
 
@@ -2499,8 +2547,10 @@ function contextBuoy(b) {
 // buoy has its own scale per view (owner's request, 2026-10-06): its
 // outermost ring is the largest petal in its own loop rounded up to a whole
 // foot (or percent), so the petals are as large as they can be and none
-// passes the last ring; the rings say what each scale is. A
-// reader who asks for less motion gets the newest frame, paused.
+// passes the last ring; the rings say what each scale is. Every time a rose
+// comes into view -- the page opening, the LIVE tab, the Buoys tab, a buoy's
+// headline unfolding -- it is paused on the newest spectrum, the one the
+// headline reads (owner's request, 2026-10-11); play runs the loop.
 // Height and Period, switched by their units at the right end of the
 // timeline row (owner's request, 2026-10-08: a row of its own cost 28 px a
 // rose): "ft" and "s", the units the line under the rose reads in. The
@@ -2509,9 +2559,8 @@ const ROSE_MODES = [{id: "height", label: "Height", symbol: "ft"}, {id: "period"
 let ROSE_MODE = recall(KEEP.roseMode) === "period" ? "period" : "height";
 const ROSE_PLAY_MS = 9000;
 const ROSE_HOLD_MS = 2500;
-const ROSE_STILL = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
-let ROSE_PLAYING = !ROSE_STILL;
-let ROSE_PHASE = ROSE_PLAYING ? 0 : ROSE_PLAY_MS;
+let ROSE_PLAYING = false;
+let ROSE_PHASE = ROSE_PLAY_MS;
 let ROSE_LAST = performance.now();
 const ROSE_POINTS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
 // forecast.rose.PERIOD_EDGES_S, as the legend names them.
@@ -2828,6 +2877,13 @@ function setRosePlaying(on) {
     b.setAttribute("aria-label", on ? "Pause" : "Play");
     b.innerHTML = on ? ROSE_ICON.pause : ROSE_ICON.play;
   });
+}
+
+// A rose coming into view: paused on the newest spectrum.
+function roseShown() {
+  ROSE_PHASE = ROSE_PLAY_MS;
+  setRosePlaying(false);
+  document.querySelectorAll("[data-rose]").forEach(roseUpdate);
 }
 
 // A tap or an arrow key on the six hours goes to that moment and pauses.
@@ -5246,6 +5302,7 @@ function windAtBreaks(cards) {
 // Switching tabs flips attributes rather than re-rendering, so focus stays on
 // the tab the reader is on and the countdowns keep their place.
 function selectSwellTab(id, {focus = false} = {}) {
+  if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) roseShown();
   SWELL_TAB = id;
   remember(KEEP.swell, id);
   const shore = $("chart-fold-wind");
@@ -5281,6 +5338,12 @@ function wireSwellTabs() {
     if (btn) selectSwellTab(btn.getAttribute("data-swell-tab"));
     // The caret, or anywhere else on the headline's line.
     if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row")) setCalcOpen(!CALC_OPEN);
+    // A buoy's, likewise.
+    const buoyHead = e.target.closest("[data-buoy-head]");
+    if (buoyHead) {
+      const id = buoyHead.getAttribute("data-buoy-head");
+      setBuoyOpen(id, !BUOY_OPEN[id]);
+    }
     // Origin's caret, or anywhere else on its line.
     if (e.target.closest("[data-origin-head]")) setOriginOpen(!ORIGIN_OPEN);
     // The tide phase's caret, or anywhere else on its line.
@@ -5576,6 +5639,7 @@ function show() {
 }
 
 function setMode(mode) {
+  if (mode === "now" && MODE !== "now") roseShown();
   MODE = mode;
   if (mode === "forecast") advancePastDefault();
   remember(KEEP.mode, mode);
@@ -5948,6 +6012,9 @@ function boot(data, observed, measured, series, windtide) {
   SWELL_TAB = recall(KEEP.swell);
   // The calculation table opens as the reader left it; anything else, closed.
   CALC_OPEN = recall(KEEP.calc) === "open";
+  // Each buoy's headline likewise, by station.
+  BUOY_OPEN = Object.fromEntries((recall(KEEP.buoyOpen) || "").split(",").filter(Boolean)
+    .map((id) => [id, true]));
   // The chart's view likewise; anything unrecognised is the heights.
   const view = recall(KEEP.chart);
   CHART_MODE = CHART_MODES.some((m) => m.id === view) ? view : "height";

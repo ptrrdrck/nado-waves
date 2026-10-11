@@ -197,7 +197,7 @@ class TestOnThePage:
     def test_its_block_says_it_feeds_no_break_and_has_its_own_clock(self):
         block = PAGE[PAGE.index("function contextBuoy("):]
         block = block[:block.index("\n}\n")]
-        assert '"Open ocean witness, not carried to any break"' in block
+        assert "Open ocean witness, not carried to any break." in block
         assert "buoyObserved(b.observed_utc)" in block
         assert "buoyFeed(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after" in block
         assert "NOW." not in block
@@ -312,19 +312,20 @@ class TestThePills:
         """Owner's design, 2026-10-11: the second pill's left edge is cut
         around the first pill's right end, grown by a 2 px seam, and its
         right end is the first pill's. Since the same day the corners are
-        the swell card's tab strip's 8 px, so the 18 px pill keeps 2 px of
-        straight edge: two circles of 10 px, 1 px either side of the
-        middle, centred where the second pill starts, 8 px under the
-        first."""
+        4 px (owner's call), so the 18 px pill keeps 10 px of straight edge:
+        the cut is the whole pill less a 6 x 10 px block and two circles of
+        6 px, 5 px either side of the middle, centred where the second pill
+        starts, 4 px under the first."""
 
         css = PAGE[PAGE.index(".pill,.pill-tail{"):PAGE.index(".status{")]
-        assert ".pill{gap:5px;padding:0 7px;border-radius:8px}" in css
-        assert ".subtabs{display:flex;gap:3px;background:var(--paper);border:1px solid var(--line);\n         border-radius:8px;" in PAGE
-        assert "margin-left:-8px" in css and "border-radius:0 8px 8px 0" in css
-        for cut in ("radial-gradient(circle at 0 calc(50% - 1px),transparent 10px,#000 10.5px)",
-                    "radial-gradient(circle at 0 calc(50% + 1px),transparent 10px,#000 10.5px)"):
+        assert ".pill{gap:5px;padding:0 7px;border-radius:4px}" in css
+        assert "margin-left:-4px" in css and "border-radius:0 4px 4px 0" in css
+        for cut in ("radial-gradient(circle at 0 calc(50% - 5px),#000 6px,transparent 6.5px)",
+                    "radial-gradient(circle at 0 calc(50% + 5px),#000 6px,transparent 6.5px)",
+                    "linear-gradient(#000 0 0) 0 50%/6px 10px no-repeat"):
             assert css.count(cut) == 2, cut       # -webkit- and standard
-        assert "-webkit-mask-composite:source-in" in css and "mask-composite:intersect" in css
+        assert "-webkit-mask-composite:source-out,source-over,source-over" in css
+        assert "mask-composite:subtract,add,add" in css
         # No second, no tail: never an empty pill.
         assert '${tail ? `<span class="pill-tail">${tail}</span>` : ""}' in _fn("pills")
 
@@ -335,7 +336,7 @@ class TestThePills:
 
         css = PAGE[PAGE.index(".pill,.pill-tail{"):PAGE.index(".status{")]
         assert "flex-wrap:wrap" in css[css.index(".pills{"):]
-        assert ".pills.split .pill-tail{margin-left:0;padding:0 7px;border-radius:8px;-webkit-mask:none;mask:none}" in css
+        assert ".pills.split .pill-tail{margin-left:0;padding:0 7px;border-radius:4px;-webkit-mask:none;mask:none}" in css
         fit = _fn("fitPill")
         assert fit.index('classList.remove("split")') < fit.index("offsetTop")
         assert "fitPills($(\"conditions\"))" in PAGE
@@ -352,12 +353,52 @@ class TestTheProvenancePills:
                 < live.index("buoyObserved(NOW.observed_utc)")
                 < live.index("due: anchorFeed(NOW, due.swell, late.swell),"))
 
-    def test_46047s_lines_in_the_same_order_then_its_words(self):
+    def test_46047s_lines_in_the_same_order_its_words_above_them(self):
+        """Owner's call, 2026-10-11: "Open ocean witness" is a description
+        under the rose, above the provenance with space between, and no
+        longer one of its lines."""
+
         block = _fn("contextBuoy")
-        assert (block.index("buoyWhere(b.station_name, b.station)")
+        assert (block.index("Open ocean witness, not carried to any break.")
+                < block.index("srcLines(")
+                < block.index("buoyWhere(b.station_name, b.station)")
                 < block.index("buoyObserved(b.observed_utc)")
-                < block.index("feed ? {html: feed}")
-                < block.index('"Open ocean witness, not carried to any break"'))
+                < block.index("feed ? {html: feed}"))
+        assert '<p class="quiet buoy-note">' in block
+        assert ".buoy-fold .rose + .buoy-note{margin-top:3px}" in PAGE
+
+
+class TestTheBuoyHeadlineFolds:
+    """Owner's request, 2026-10-11: a buoy's headline folds out like a
+    break's, but what it folds is everything between it and the
+    provenance -- trains, rose and words."""
+
+    def test_the_fold_holds_trains_rose_and_words(self):
+        read = _fn("buoyReading")
+        assert "const body = trains + rose + note;" in read
+        assert 'data-buoy-head="${id}">${value}${buoyToggle(id, open)}</div>' in read
+        assert '<div class="buoy-fold" id="buoy-fold-${id}"${open ? "" : " hidden"}>${body}</div>' in read
+        # Nothing to fold, no caret.
+        assert "if (!id || !body) return valLine(value) + body;" in read
+        # The rose is in the fold on both buoys, and the provenance is not.
+        assert "buoyReading(buoy, id, {roseFor: rose ? id : null, rose}) + line" in _fn("buoyPanel")
+        block = _fn("contextBuoy")
+        assert "buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note})" in block
+
+    def test_each_buoy_its_own_state_kept_across_a_refresh(self):
+        assert 'buoyOpen: "nado-waves.buoy-open"' in PAGE
+        assert "BUOY_OPEN = Object.fromEntries((recall(KEEP.buoyOpen)" in PAGE
+        setter = _fn("setBuoyOpen")
+        assert "BUOY_OPEN[id] = open;" in setter and "remember(KEEP.buoyOpen" in setter
+        assert "setBuoyOpen(id, !BUOY_OPEN[id]);" in PAGE
+
+    def test_the_caret_is_a_breaks(self):
+        toggle = _fn("buoyToggle")
+        assert 'class="calc-toggle" data-buoy-toggle="${id}"' in toggle
+        assert 'aria-controls="buoy-fold-${id}" aria-expanded="${open}"' in toggle
+        assert '<path d="M3.5 10 8 5.5 12.5 10"/>' in toggle
+        # Its row never folds a break's calculation.
+        assert 'class="val-row"' not in _fn("buoyReading")
 
     def test_the_place_then_what_it_measures(self):
         where = _fn("buoyWhere")

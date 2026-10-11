@@ -128,7 +128,22 @@ class TestOnThePage:
         assert ('const ROSE_MODES = [{id: "height", label: "Height", symbol: "ft"},'
                 ' {id: "period", label: "Period", symbol: "s"}];') in PAGE
         assert "KEEP.roseMode" in PAGE
-        assert "prefers-reduced-motion" in PAGE.split("// THE ROSES")[1]
+
+    def test_a_rose_comes_into_view_paused_on_the_newest_spectrum(self):
+        """Owner's request, 2026-10-11: on load, on the LIVE tab, on the
+        Buoys tab and on a buoy's headline unfolding, the roses are paused on
+        the newest spectrum -- the one the headline reads -- for every
+        reader, not only one who asked for less motion."""
+
+        assert "let ROSE_PLAYING = false;\nlet ROSE_PHASE = ROSE_PLAY_MS;" in PAGE
+        assert "ROSE_STILL" not in PAGE
+        shown = PAGE[PAGE.index("function roseShown("):]
+        shown = shown[:shown.index("\n}\n")]
+        assert "ROSE_PHASE = ROSE_PLAY_MS;" in shown and "setRosePlaying(false);" in shown
+        assert "ROSE_PHASE >= ROSE_PLAY_MS ? span.t1" in PAGE     # that phase is the newest
+        assert 'if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) roseShown();' in PAGE
+        assert 'if (mode === "now" && MODE !== "now") roseShown();' in PAGE
+        assert "if (open) roseShown();" in PAGE
 
     def test_each_buoys_scale_is_its_own_largest_petal_rounded_up(self):
         """Each buoy's own loop sets its scale (shared across both, 46232's
