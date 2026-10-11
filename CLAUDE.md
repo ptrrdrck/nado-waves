@@ -435,6 +435,32 @@ forecaster actually verifies against, Surfline included.
    "variable" at the break, never "not collected". The Tide view is shaded by night on both tabs
    (`forecast/daylight.py`: NOAA's solar equations at the center break from
    spots.json, within a minute of `astral`; `nights` in both payloads).
+   **The Tide card's phase fold** (owner's request, 2026-10-11;
+   `forecast/tidephase.py`, BRIEFING §41), on both tabs, right above its
+   Charts line under a rule of its own, its caret like Origin's: the line is
+   the phase (Spring tides / Neap tides / Building toward springs / Easing
+   toward neaps), tagged `predicted` on LIVE as the turn line is; open, a
+   summary in three PARAGRAPHS, never bullets (owner's call) — the day, the
+   next spring or neap with what coincides and the card's own turns as
+   evidence, then "Late October: springs …" (owner's wording kept). Every
+   claim read off the constants SAYS so where it is made ("by NOAA's
+   harmonic constants for San Diego (2017–2021)", then "by the same
+   constants"). Spring and neap come from NOAA's harmonic constants for
+   9410170 (`collector/harcon.py`, fetched on Actions, never typed — their
+   `phase_local` is NOT comparable across speeds: read naively it puts
+   springs 11 h before syzygy, `phase_GMT` 3 h), the Moon from
+   `forecast/moon.py` (Meeus ch. 47, pure Python; mean elements had the
+   October new moon a day late and perigee two days late). **Every threshold
+   is measured** (owner's request) over 19 years of the station's tide
+   rebuilt from the constants (`forecast/tidephasereport.py`, ~10 s, re-run
+   by a test): a slot is said only where it is right ≥ 85% of the times it
+   fires. **"The day's two tides", never "the two highs"**: the declination
+   shows in the lows here (r 0.82 against 0.66). The constants reproduce
+   CO-OPS's hourly prediction to 1.1 cm, and are read for the CYCLES only —
+   the card's turns stay CO-OPS's hilo, with no fallback to a computed one.
+   Wording generated from the page's code into `docs/tide_phase_wording.md`
+   (`forecast/tidephasewording.py`). LIVE: the reader's day at Coronado;
+   Forecast: the picked hour's day, none under a past hour.
    **Right above each LIVE swell tab's Charts line, an Origin line** (owner's
    request, 2026-10-02; `forecast/origin.py`, BRIEFING §37) that folds out
    like the charts — its own caret, closed until opened, one open state for
@@ -764,6 +790,8 @@ forecaster actually verifies against, Surfline included.
                         wavespec.py (WW3's own spectrum + wind, not archived),
                         tide.py (9410170 — measured, hourly predicted, and
                         CO-OPS's own hilo TURNS in a third file),
+                        harcon.py (NOAA's harmonic constants for 9410170,
+                        as served, monthly; the phase fold's — §41),
                         tidestations.py (every CO-OPS station near the breaks,
                         their offsets and datums, and a 30-day comparison
                         window — run on Actions; BRIEFING §32),
@@ -843,6 +871,16 @@ forecaster actually verifies against, Surfline included.
       windtide.py       the measured wind and tide each hour, and the
                         next day's predicted tide, for the Wind and Tide
                         cards' charts; read from the archives   [built]
+      tidephase.py      the Tide card's phase fold: spring / neap and the
+                        declination from NOAA's constants, the Moon's
+                        events, the card's turns as evidence; pure Python;
+                        never a turn or a height for the card     [built]
+      tidephasereport.py its thresholds measured over 19 years; reports,
+                        never edits (BRIEFING §41)                 [built]
+      tidephasewording.py its wording, run from the page's own code into
+                        docs/tide_phase_wording.md; --check         [built]
+      moon.py           the Moon's phases, distance and declination
+                        (Meeus ch. 47), pure Python                 [built]
       daylight.py       sunrise and sunset at the center break, for the
                         Tide charts' night shading; computed, not fetched [built]
       modelbias.py      GFS-Wave's bias at 46232 through each break's
@@ -929,7 +967,9 @@ forecaster actually verifies against, Surfline included.
     data/spectra/       NDBC directional spectra, five components per station
     data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
                         _observed (measured), _predicted (hourly harmonic),
-                        _turns (the harmonic model's own highs and lows)
+                        _turns (the harmonic model's own highs and lows),
+                        and _harcon.json (NOAA's harmonic constants, as
+                        served: the phase fold reads them)
     data/shoreline/     NOAA ENC coastline, one file per chart band AND
                         region. `_coronado` (harbour 904 pts, approach 689,
                         coastal 312) and `_baja` (harbour 2428, approach 3691,

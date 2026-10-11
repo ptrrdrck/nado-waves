@@ -668,3 +668,31 @@ def test_every_buoy_the_origin_cites_is_named(monkeypatch, tmp_path):
     reading = SimpleNamespace(breaks=[], buoy={"trains": []})
     block = N.origin_reading(tmp_path, stamp, reading, {}, [], {})
     assert set(block["station_names"]) == {N.STATION, *N.origin.BEARING_STATIONS, "46086", "46047"}
+
+
+class TestTheTidePhase:
+    """The Tide card's phase fold (`forecast.tidephase`): today's and
+    tomorrow's at Coronado, none without the constants, none on a rebuilt
+    past hour."""
+
+    def test_no_constants_no_phase(self, tmp_path):
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        assert got.tide_phase is None
+
+    def test_today_and_tomorrow_at_coronado(self, tmp_path):
+        import shutil
+
+        (tmp_path / "tide").mkdir()
+        shutil.copy(now_mod.DEFAULT_DATA_DIR / "tide" / "9410170_harcon.json", tmp_path / "tide")
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT))
+        # 00:30 UTC on 19 Sep is the evening of the 18th in Pacific time.
+        assert list(got.tide_phase["days"]) == ["2026-09-18", "2026-09-19"]
+        assert got.tide_phase["analysis"] == "2017–2021"
+
+    def test_a_rebuilt_past_hour_carries_none(self, tmp_path):
+        import shutil
+
+        (tmp_path / "tide").mkdir()
+        shutil.copy(now_mod.DEFAULT_DATA_DIR / "tide" / "9410170_harcon.json", tmp_path / "tide")
+        got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT), as_of=True)
+        assert got.tide_phase is None

@@ -9,6 +9,11 @@ name: Tide stations
 
 on:
   workflow_dispatch:
+    inputs:
+      constants_only:
+        description: "Fetch only the harmonic constants (leaves the survey and comparison window as stored)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -28,7 +33,13 @@ jobs:
           python-version: "3.12"
 
       - name: Survey the stations and fetch the comparison window
+        if: ${{ !inputs.constants_only }}
         run: python -m collector.tidestations
+
+      # NOAA's harmonic constants for 9410170 (forecast.tidephase), fetched
+      # fresh whatever their age; the hourly collection refreshes them monthly.
+      - name: Fetch the harmonic constants
+        run: python -m collector.harcon
 
       - name: Commit and push
         env:
@@ -37,7 +48,7 @@ jobs:
           set -euo pipefail
           git config user.name "nado-waves collector"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/tide/stations.json data/tide/comparison
+          git add data/tide/stations.json data/tide/comparison data/tide/9410170_harcon.json
           if git diff --cached --quiet; then
             echo "No change to commit."
             exit 0

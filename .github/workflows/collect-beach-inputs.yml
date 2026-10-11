@@ -159,6 +159,14 @@ jobs:
           set -euo pipefail
           python -m collector.tide
 
+      # NOAA's harmonic constants for 9410170, which the Tide card's phase line
+      # reads (forecast.tidephase). They change only when NOAA re-analyses the
+      # station, so the file is re-fetched once it is a month old; a failed
+      # fetch leaves the stored one.
+      - name: Tide constants (9410170)
+        continue-on-error: true
+        run: python -m collector.harcon --max-age-days 30
+
       # "Now" is only as fresh as the job that publishes it. The forecast job
       # runs four times a day, which would make an hourly observation up to six
       # hours old before anyone saw it -- so the observed reading is rebuilt and
