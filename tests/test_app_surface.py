@@ -1288,7 +1288,9 @@ class TestTheProvenanceLines:
         with its full stop already on it."""
 
         assert "const period = (s) =>" in SOURCE
-        assert "Update in ${hms(due - now)}.`" in SOURCE
+        assert "`Update in ${hms(due - now)}`) + stop;" in SOURCE
+        # Only a countdown inside a buoy's pill drops it (2026-10-11).
+        assert 'const stop = el.getAttribute("data-bare") === "1" ? "" : ".";' in SOURCE
         bare = [m for m in re.findall(r'<span class="src">\$\{(.{0,40})', SOURCE)
                 if not m.startswith(("period(", "period (", "due}"))]
         assert not bare, f"provenance not routed through period(): {bare}"
@@ -1515,7 +1517,7 @@ class TestTheUpdateCountdown:
         A card that is red whenever a source runs at the slow end of its own
         measured range is the card nobody reads on the day collection dies."""
 
-        assert 'now >= due ? "Update due."' in SOURCE
+        assert ': now >= due ? "Update due"' in SOURCE
         # And the red class keys off `late`, never `due`.
         assert 'toggle("over", now >= due' not in SOURCE
 
@@ -1544,7 +1546,7 @@ class TestTheUpdateCountdown:
         not its age. "Overdue by -0:04:11" would be worse than saying nothing,
         so only a genuinely elapsed deadline gets a number."""
 
-        assert 'forced ? "Overdue."' in SOURCE
+        assert ': forced ? "Overdue"' in SOURCE
 
     def test_each_card_counts_down_its_own_source(self):
         """The point of three countdowns rather than one banner: when a single

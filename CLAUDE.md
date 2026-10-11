@@ -264,7 +264,12 @@ forecaster actually verifies against, Surfline included.
    `station_cdip`, never typed on the page; "NDBC 46232" without it). Ink at
    the provenance's 12 px on the picked row's background; 46232's sits under
    every swell tab, the break tabs too, because every break's numbers are
-   that one spectrum. The dot runs on that
+   that one spectrum. The countdown is its own pill growing out of the
+   feed's (owner's design, same day; `buoyFeed`): it starts under the feed
+   pill's right cap, its left edge a concave arc cut 2 px outside that cap
+   (a CSS mask), its right end the feed pill's, the two one unit that never
+   wraps apart, and its words without the full stop the card's other
+   countdowns keep (`dueSpan`'s `bare`). The dot runs on that
    buoy's own countdown instants (`dueInstants`), so it turns exactly when
    "Update due." and "Overdue by …" do: green, green fading in and out
    while due (held at half strength under reduced motion), red overdue --

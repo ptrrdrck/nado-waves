@@ -221,9 +221,19 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    background, and a dot on that buoy's own countdown -- green while its
    spectra arrive, green fading in and out once one is due, red once overdue
    (owner's requests, 2026-10-09 and -11). */
-.buoy-pill{display:inline-flex;align-items:center;gap:5px;padding:0 7px;border-radius:999px;
-  background:var(--paper);color:var(--ink);font-size:12px;font-weight:400;line-height:1.5;
-  font-variant-numeric:tabular-nums;white-space:nowrap;vertical-align:baseline}
+.buoy-pill,.due-pill{display:inline-flex;align-items:center;height:18px;box-sizing:border-box;
+  background:var(--paper);color:var(--ink);font-size:12px;font-weight:400;line-height:1;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.buoy-pill{gap:5px;padding:0 7px;border-radius:9px}
+/* The countdown's pill grows out of the feed's (owner's design, 2026-10-11):
+   it starts under the feed pill's right cap, at the cap's centre, and a
+   circle 2 px wider than the cap is cut from its left, so its left edge is
+   a concave arc hugging that cap with a 2 px seam; its right end is the
+   feed pill's. One unit, so the two never wrap apart. */
+.feed{display:inline-flex;align-items:center;white-space:nowrap;vertical-align:top}
+.due-pill{margin-left:-9px;padding:0 7px 0 16px;border-radius:0 9px 9px 0;
+  -webkit-mask:radial-gradient(circle at 0 50%,transparent 11px,#000 11.5px);
+  mask:radial-gradient(circle at 0 50%,transparent 11px,#000 11.5px)}
 .status{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dot-ok)}
 .status.due{animation:status-due 2s ease-in-out infinite} .status.over{background:var(--dot-over)}
 @keyframes status-due{0%,100%{opacity:1}50%{opacity:.2}}
@@ -1004,11 +1014,12 @@ function dueInstants(iso, lateIso) {
   return {due: plusRefresh(at), late: plusRefresh(Number.isFinite(lateAt) ? Math.max(lateAt, at) : at)};
 }
 
-function dueSpan(iso, lateIso, {forceOver = false} = {}) {
+// `bare`: inside a pill, with no leading space and no closing full stop.
+function dueSpan(iso, lateIso, {forceOver = false, bare = false} = {}) {
   const when = dueInstants(iso, lateIso);
   if (!when) return "";
-  return ` <span class="due" data-due="${when.due}" data-late="${when.late}"`
-    + (forceOver ? ' data-force-over="1"' : "") + "></span>";
+  return `${bare ? "" : " "}<span class="due" data-due="${when.due}" data-late="${when.late}"`
+    + (forceOver ? ' data-force-over="1"' : "") + (bare ? ' data-bare="1"' : "") + "></span>";
 }
 
 function tickDue() {
@@ -1027,10 +1038,11 @@ function tickDue() {
     // Only a genuinely elapsed deadline gets a figure. `forceOver` without one
     // means the build refused the reading for a reason that is not its age,
     // and "overdue by -0:04:11" would be worse than saying nothing.
-    el.textContent = now >= late ? `Overdue by ${hms(now - late)}.`
-      : forced ? "Overdue."
-      : now >= due ? "Update due."
-      : `Update in ${hms(due - now)}.`;
+    const stop = el.getAttribute("data-bare") === "1" ? "" : ".";
+    el.textContent = (now >= late ? `Overdue by ${hms(now - late)}`
+      : forced ? "Overdue"
+      : now >= due ? "Update due"
+      : `Update in ${hms(due - now)}`) + stop;
   });
   document.querySelectorAll("[data-status-due]").forEach((el) => {
     const due = new Date(el.getAttribute("data-status-due")).getTime();
@@ -2354,18 +2366,21 @@ function buoyReading(buoy, roseFor = null) {
     + trains;
 }
 
-// A buoy's pill, at the start of its countdown line (owner's call,
-// 2026-10-11): where the feed comes from -- "CDIP <number> via NDBC" for
-// 46232, which CDIP runs and NDBC serves, its number from the registry;
-// "NDBC <id>" for a buoy NDBC runs -- and a status dot on that buoy's own
-// two instants, so it changes exactly when "Update due." and "Overdue by …"
-// beside it do. It replaces the "(NDBC <id>)" the line above it carried.
-function buoyPill(label, iso, lateIso, {forceOver = false} = {}) {
+// A buoy's countdown line (owner's calls, 2026-10-11): where the feed comes
+// from -- "CDIP <number> via NDBC" for 46232, which CDIP runs and NDBC
+// serves, its number from the registry; "NDBC <id>" for a buoy NDBC runs --
+// in a pill with a status dot on that buoy's own two instants, and the
+// countdown itself in a second pill growing out of the first, so the dot
+// and the words beside it change together. It replaces the "(NDBC <id>)"
+// the line above it carried. No countdown (no observation), no second pill.
+function buoyFeed(label, iso, lateIso, {forceOver = false} = {}) {
   if (!label) return "";
-  return `<span class="buoy-pill">${label}${statusDot(iso, lateIso, {forceOver})}</span>`;
+  const pill = `<span class="buoy-pill">${label}${statusDot(iso, lateIso, {forceOver})}</span>`;
+  const due = dueSpan(iso, lateIso, {forceOver, bare: true});
+  return `<span class="feed">${pill}${due ? `<span class="due-pill">${due}</span>` : ""}</span>`;
 }
-const anchorPill = (now, due, late) => (now && now.station
-  ? buoyPill(now.station_cdip ? `CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`,
+const anchorFeed = (now, due, late) => (now && now.station
+  ? buoyFeed(now.station_cdip ? `CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`,
              due, late, {forceOver: nowIsStale()}) : "");
 
 // The dot is filled by `tickDue` with the countdown it sits beside: the same
@@ -2384,8 +2399,8 @@ function statusDot(iso, lateIso, {forceOver = false} = {}) {
 // red past its measured worst or past the build's three hours.
 function contextBuoy(b) {
   const old = b.observed_utc && (b.stale || (ageHours(b.observed_utc) || 0) > (b.stale_hours || 3));
-  // Its pill, as 46232's, starts its own countdown line.
-  const pill = buoyPill(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after,
+  // Its pills, as 46232's, are its own countdown line.
+  const feed = buoyFeed(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after,
                         {forceOver: !!old || !b.observed_utc});
   const reading = b.hs_m != null ? buoyReading(b, b.station)
     : valLine('<span class="val"><span class="unit">no spectrum</span></span>');
@@ -2396,7 +2411,7 @@ function contextBuoy(b) {
       b.station_name && b.station_name !== b.station ? `Spectral wave data, ${b.station_name}`
         : "Spectral wave data",
       "Open ocean witness, not carried to any break",
-    ], pill + (b.observed_utc ? dueSpan(b.next_expected, b.overdue_after, {forceOver: !!old}) : ""));
+    ], feed);
 }
 
 // THE ROSES, under each buoy's reading on the LIVE tab's Buoys tab (owner's
@@ -5287,7 +5302,7 @@ function renderConditions(step, cards) {
       ],
       // The feed's pill starts the countdown line, under every swell tab:
       // each one's numbers come from this one buoy (owner's call, 2026-10-11).
-      due: anchorPill(NOW, due.swell, late.swell) + dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),
+      due: anchorFeed(NOW, due.swell, late.swell),
       chart: true,
       origin: originFor("buoy"),
     }));

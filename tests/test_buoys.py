@@ -199,7 +199,7 @@ class TestOnThePage:
         block = block[:block.index("\n}\n")]
         assert '"Open ocean witness, not carried to any break"' in block
         assert "observedAt(b.observed_utc)" in block
-        assert "dueSpan(b.next_expected, b.overdue_after" in block
+        assert "buoyFeed(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after" in block
         assert "NOW." not in block
 
     def test_each_buoys_provenance_follows_its_own_measurements(self):
@@ -241,10 +241,14 @@ class TestThePills:
         assert "CDIP 191" not in PAGE and "CDIP ${now.station_cdip}" in PAGE
 
     def test_the_dot_runs_on_the_swell_countdowns_instants(self):
-        assert ("due: anchorPill(NOW, due.swell, late.swell)"
-                " + dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),") in PAGE
-        assert "{forceOver: nowIsStale()}" in PAGE[PAGE.index("const anchorPill"):][:300]
-        assert "dueSpan(due.swell, late.swell, {forceOver: nowIsStale()})" in PAGE
+        assert "due: anchorFeed(NOW, due.swell, late.swell)," in PAGE
+        # The dot and the countdown pill read the same instants and force.
+        feed = _fn("buoyFeed")
+        assert "statusDot(iso, lateIso, {forceOver})" in feed
+        assert "dueSpan(iso, lateIso, {forceOver, bare: true})" in feed
+        assert "{forceOver: nowIsStale()}" in PAGE[PAGE.index("const anchorFeed"):][:300]
+        # The swell card's countdown is the feed's second pill, forced as its dot is.
+        assert "dueSpan(due.swell" not in PAGE
         # One computation of the two instants for the countdown and the dot.
         assert "dueInstants(iso, lateIso)" in _fn("dueSpan")
         assert "dueInstants(iso, lateIso)" in _fn("statusDot")
@@ -266,7 +270,7 @@ class TestThePills:
 
     def test_46047_wears_one_on_its_own_countdown(self):
         block = _fn("contextBuoy")
-        assert 'buoyPill(`NDBC ${b.station}`' in block
+        assert 'buoyFeed(`NDBC ${b.station}`' in block
         assert "b.next_expected" in block and "b.overdue_after" in block
         assert "sublbl" not in block
 
@@ -277,7 +281,7 @@ class TestThePills:
         assert "Spectral wave data, ${NOW.station_name}`" in PAGE
         block = _fn("contextBuoy")
         assert "(NDBC ${b.station})" not in block
-        assert "], pill + (b.observed_utc ? dueSpan(" in block
+        assert "], feed);" in block
         assert "`CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`" in PAGE
 
     def test_the_combined_height_sits_in_a_break_headlines_row(self):
@@ -296,12 +300,27 @@ class TestThePills:
         for name in ("buoyReading", "buoyPanel", "contextBuoy"):
             assert 'class="val-row"' not in _fn(name)
         # The Forecast chain's buoy is a model at 46232: no feed, no dot.
-        assert PAGE.count("anchorPill(NOW") == 1
+        assert PAGE.count("anchorFeed(NOW") == 1
 
     def test_the_pill_is_ink_at_the_provenances_size_on_the_picked_rows_background(self):
-        css = PAGE[PAGE.index(".buoy-pill{"):PAGE.index(".status{")]
+        css = PAGE[PAGE.index(".buoy-pill,.due-pill{"):PAGE.index(".status{")]
         assert "background:var(--paper)" in css and "color:var(--ink)" in css
         assert "font-size:12px" in css and ".cond .src{font-size:12px" in PAGE
+        assert "height:18px" in css
+
+    def test_the_countdown_pill_grows_out_of_the_feed_pill(self):
+        """Owner's design, 2026-10-11: the countdown in its own pill, its left
+        edge a concave arc around the feed pill's right cap (radius 9 px, a
+        2 px seam, so the cut is 11 px from the cap's centre, where the
+        countdown pill starts), its right end the feed pill's; one unit."""
+
+        css = PAGE[PAGE.index(".buoy-pill,.due-pill{"):PAGE.index(".status{")]
+        assert ".buoy-pill{gap:5px;padding:0 7px;border-radius:9px}" in css
+        assert "margin-left:-9px" in css and "border-radius:0 9px 9px 0" in css
+        assert "mask:radial-gradient(circle at 0 50%,transparent 11px,#000 11.5px)" in css
+        assert ".feed{display:inline-flex;align-items:center;white-space:nowrap;vertical-align:top}" in css
+        # No countdown, no second pill: never an empty one.
+        assert '${due ? `<span class="due-pill">${due}</span>` : ""}' in _fn("buoyFeed")
 
 
 class TestTheSpacing:
