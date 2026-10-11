@@ -1701,7 +1701,7 @@ function originFor(site) {
   const sameSource = (a, deg) => a.bearing_deg != null ? near(a.bearing_deg, deg)
     : (a.bearing_lobes || []).length ? a.bearing_lobes.some(([h]) => near(h, deg))
     : true;
-  const isNamed = (c) => hurricanes.some((h) => h.at.train_period_s === c.train_period_s
+  const isNamed = (c) => hurricanes.some((h) => stormPeriods(h.at).includes(c.train_period_s)
     && sameSource(A[c.arrival], h.at.bearing_deg));
   return {
     hurricanes,
@@ -1778,8 +1778,13 @@ function originEntry({head, tag, where, how, storm}) {
 // Line 2, for every kind: the train, when it was sent, how far, which way,
 // and a hurricane's strength when it sent it.
 const bearingText = (d) => `${Math.round(d)}&deg; ${point(d)}`;
-const trainAt = ({period, sent, fitted, km, step, bearing, split = [], winds = ""}) =>
-  `The ${period.toFixed(1)}&nbsp;s train, sent ${fitted ? "about " : ""}${onDay(sent)}`
+// A storm's swell the break's splitter cut into adjacent rows is one band at
+// the open-ocean buoy, and is named as one: "The 10.5 and 11.1 s trains"
+// (owner's request, 2026-10-11; forecast.stormtrack `also_periods_s`).
+const stormPeriods = (at) => [at.train_period_s, ...(at.also_periods_s || [])];
+const trainAt = ({period, also = [], sent, fitted, km, step, bearing, split = [], winds = ""}) =>
+  `The ${andList([period, ...also].sort((x, y) => x - y).map((p) => p.toFixed(1)))}`
+  + `&nbsp;s train${also.length ? "s" : ""}, sent ${fitted ? "about " : ""}${onDay(sent)}`
   + ` from ${farAway(km, step)} away`
   + (bearing != null ? `, bearing ${bearingText(bearing)}`
     : split.length ? `, with a split bearing (${split.map(bearingText).join(" or ")})` : "")
@@ -1802,7 +1807,8 @@ function hurricaneEntry(h, o) {
   return originEntry({
     head: stormHead(h.name, s),
     storm: h.storm,
-    where: trainAt({period: s.train_period_s, sent: s.fix_utc, fitted: false,
+    where: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
+                    sent: s.fix_utc, fitted: false,
                     km: s.distance_km, step: 100, bearing: s.bearing_deg,
                     winds: `winds of ${speed(s.vmax_kt)}`
                       + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")}),

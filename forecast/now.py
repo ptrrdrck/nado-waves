@@ -843,7 +843,8 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
     trains_at = trains_builder(spectra, by_id, blockers, tables)
     block = origin.reading(spectra, archives, load_coordinates().get(STATION),
                            newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
-    block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now)
+    block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now,
+                                         origin_readings(block))
     # NDBC's own names, from the fetched metadata (never typed), so the card
     # can name every buoy it cites as "Name, CA (NDBC id)", as its other lines
     # name the swell buoy: the bearing buoys and each hurricane's gate buoys.
@@ -855,7 +856,20 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
     return block
 
 
-def hurricanes_now(data_dir: Path, at: datetime, trains_now: dict) -> list[dict]:
+def origin_readings(block: dict) -> dict[str, list[tuple[float, float]]]:
+    """{site: [(train period, distance km)]}: Origin's reading of each train it
+    has running at a site now, the one the card would show for that train.
+    A storm may not take a train Origin reads from somewhere else
+    (`stormtrack.SAME_SOURCE_RATIO`)."""
+
+    arrivals = block.get("arrivals") or []
+    return {site: [(c["train_period_s"], arrivals[c["arrival"]]["distance_km"])
+                   for c in v.get("current", [])]
+            for site, v in (block.get("sites") or {}).items()}
+
+
+def hurricanes_now(data_dir: Path, at: datetime, trains_now: dict,
+                   readings: dict | None = None) -> list[dict]:
     """The hurricanes whose swell `forecast.stormtrack` finds arriving at `at`.
 
     Each is named, with its match, when NHC's best track run forward matches
@@ -889,7 +903,7 @@ def hurricanes_now(data_dir: Path, at: datetime, trains_now: dict) -> list[dict]
         fields[station] = stormtrack.Field([s for s in spectra if at - window <= s.time <= at])
     storms = {b.storm for b in open_now}
     return stormtrack.live({k: recent[k] for k in storms}, fields, at, positions,
-                           trains_now, land)
+                           trains_now, land, readings=readings)
 
 
 def write(reading: Now, path: Path) -> None:

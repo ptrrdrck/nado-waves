@@ -583,8 +583,27 @@ forecaster actually verifies against, Surfline included.
    loosen (misplaced moments named 3.3% → 2.9%), but real matches soften —
    Marie at 46047 falls from strong to partial (80%) and fails the strict
    gate, because her weakened days' swell does not stand out there. On a break only when one of its
-   card trains is the one arriving — of two (one band, two directions, §40),
-   the one within 45° of the storm's bearing. Placed and sized from NHC's fix that sent
+   card trains is the storm's, and a train is only when ALL hold (2026-10-11,
+   BRIEFING §37g–i): on the band's schedule; within 45° of the storm's
+   bearing at the break, REQUIRED (refraction turns a swell ≤ ~31° toward
+   normals of 194–221°, so a train further round is another swell — the old
+   "nearest of the rest" fallback named Center's 11.8 s from 260° as
+   Rachel's); a gate buoy it is matched at has that train's periods from the
+   bearing to the sending fix at ≥ `DIR_RATIO` × either side turned 45°
+   (`_gate_has`, the match's own direction count per train; its newest
+   spectrum ≤ the card's, ≤ `GATE_STALE_H` old — before it, 79 of 149 named
+   trains failed it at 46047); and Origin does not read it from > 3× or < ⅓
+   of the sending fix's distance (`SAME_SOURCE_RATIO`, wide by §37b's 0.78×
+   and 1.8–2.4×; `now.origin_readings` live, `originhistory.readings_at` in
+   the archive, each ridge paired with every site's train at its frequency).
+   Of those, the one its track has arriving NEAREST NOW, never card order (the
+   biggest-first pick gave Rachel 16.7 s at two breaks and 11.8 s at the
+   third). Other passing rows that are ONE band at that gate buoy (no dip
+   below `transform.PROMINENCE` in the storm's sector between them; `_one_band`)
+   are one swell the break's splitter cut, listed as `also_periods_s` — "The
+   10.5 and 11.1 s trains" — and a twin of the same period never twice. TWO
+   SEPARATE trains from one storm are never claimed (§37h: unconfirmed in the
+   literature found and in the archive). Placed and sized from NHC's fix that sent
    that train, rounded to 100, never from Origin's distance; it replaces
    Origin's reading of the same train. The b-decks are archived hourly by
    collect-beach-inputs.yml (their one writer). The directional sector is

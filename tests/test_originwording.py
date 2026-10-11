@@ -100,6 +100,13 @@ def test_a_weakened_storm_reads_as_the_fix_that_sent_its_train(cases):
     assert cases["T2"][-1].startswith("Storm position, winds and pressure: ")
 
 
+def test_one_storms_swell_cut_into_two_rows_is_named_as_one(cases):
+    """Owner's request, 2026-10-11 (BRIEFING §37h-i): rows that are one band
+    at the open-ocean buoy are one storm's swell, listed together."""
+
+    assert cases["T3"][1].startswith("The 10.5 and 11.1 s trains, sent Oct 8 ")
+
+
 def test_the_match_is_counts_beaten_never_a_word_or_a_percentage(cases):
     """Owner's calls, 2026-10-10: no percentage, no strong / partial / weak.
     The verb is "beat": the count is copies of the track moved earlier that

@@ -105,3 +105,22 @@ def test_nows_hurricanes_count_only_at_the_newest_spectrum(tmp_path):
 
 def test_the_archive_is_in_series_and_the_page_file_is_live():
     assert str(H.ARCHIVE).startswith("series/") and str(H.LIVE) == "live/origins.json"
+
+
+def test_a_past_moment_reads_origin_as_the_card_did():
+    """What Origin read each site's trains as at a past moment: the arrivals
+    running then, paired to a train as `link` pairs them, so the archive
+    refuses a storm the trains the live card would have refused."""
+
+    a = arrival("2026-10-08T02:00:00Z", "2026-10-11T18:00:00Z", 14811, None,
+                ["coronado_north"], "2026-09-29T07:30:45Z")
+    at = datetime(2026, 10, 11, 18, tzinfo=UTC)
+    period = round(1 / H.ridge_freq_hz(a, at), 1)
+    trains = {"coronado_north": [{"period_s": period}],
+              "coronado_south": [{"period_s": 11.8}, {"period_s": period}],
+              "coronado_center": [{"period_s": period}]}
+    got = H.readings_at([a], at, trains)
+    # At every site with a train at the ridge's frequency, wherever it peaked
+    # (the live card pairs it so), and only that train.
+    assert got == {site: [(period, 14811)] for site in trains}
+    assert H.readings_at([a], datetime(2026, 10, 12, tzinfo=UTC), trains) == {}

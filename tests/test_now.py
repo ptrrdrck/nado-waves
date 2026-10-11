@@ -697,3 +697,14 @@ class TestTheTidePhase:
         shutil.copy(now_mod.DEFAULT_DATA_DIR / "tide" / "9410170_harcon.json", tmp_path / "tide")
         got = now_mod.build(data_dir=tmp_path, now=MOMENT, spectrum=spectrum(MOMENT), as_of=True)
         assert got.tide_phase is None
+
+
+def test_origins_reading_of_each_train_is_handed_to_the_storm_gate():
+    """now.json's Origin block as the storm gate reads it: per site, each
+    running arrival's train period and distance (2026-10-11)."""
+
+    block = {"arrivals": [{"distance_km": 2755}, {"distance_km": 14811}],
+             "sites": {"coronado_north": {"current": [{"arrival": 1, "train_period_s": 16.7}]},
+                       "buoy": {"current": [], "last": 0}}}
+    assert now_mod.origin_readings(block) == {"coronado_north": [(16.7, 14811)], "buoy": []}
+    assert now_mod.origin_readings({}) == {}
