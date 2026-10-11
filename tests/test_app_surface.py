@@ -802,7 +802,7 @@ class TestTheSourceLine:
 
     def test_it_names_the_buoy_rather_than_only_its_number(self):
         assert "DATA.station_name" in INFO and "NDBC ${DATA.station}" in INFO
-        assert "NOW.station_name" in SOURCE and "NDBC ${NOW.station}" in SOURCE
+        assert "NOW.station_name" in SOURCE and "NDBC ${now.station}" in SOURCE
 
 
 class TestItDegradesVisibly:
@@ -1155,7 +1155,8 @@ class TestTheSwellCardIsOnBothTabs:
         assert SOURCE.count("rows.push(swellCard({") == 2
 
     def test_the_observed_card_names_its_measurement(self):
-        assert "Spectral wave data, ${NOW.station_name} (NDBC ${NOW.station})" in SOURCE
+        # The NDBC id moved into the feed's pill on the countdown line (2026-10-11).
+        assert "Spectral wave data, ${NOW.station_name}`" in SOURCE
 
     def test_the_forecast_card_names_its_model(self):
         assert '"partitions" : "spectrum"}, ${DATA.station_name} (NDBC ${DATA.station})' in SOURCE

@@ -255,11 +255,16 @@ forecaster actually verifies against, Surfline included.
    collection). **Each buoy's provenance follows its own measurements**
    (owner's call, same day): 46232's reading, then the card's provenance
    (46232's), then 46047's block with its provenance in the same style.
-   Each buoy is named by a pill, not a name line (owner's requests,
-   2026-10-09): "CDIP 191 •" and "NDBC 46047 •" at the right of the combined
-   height, 46232's number from the registry (`stations.json` `cdip`,
-   `now.json` `station_cdip`, never typed on the page), in the lead train's
-   heading style on the picked row's background. The dot runs on that
+   Each buoy's feed is a pill at the START of its countdown line (owner's
+   requests, 2026-10-09, moved there 2026-10-11 from beside the combined
+   height, whose headline is now the height alone, as a break's is): "CDIP
+   191 via NDBC •" for 46232 — CDIP runs it, NDBC serves its spectra — and
+   "NDBC 46047 •", replacing the "(NDBC <id>)" the name line carried. 46232's
+   number is the registry's (`stations.json` `cdip`, `now.json`
+   `station_cdip`, never typed on the page; "NDBC 46232" without it). Ink at
+   the provenance's 12 px on the picked row's background; 46232's sits under
+   every swell tab, the break tabs too, because every break's numbers are
+   that one spectrum. The dot runs on that
    buoy's own countdown instants (`dueInstants`), so it turns exactly when
    "Update due." and "Overdue by …" do: green, green fading in and out
    while due (held at half strength under reduced motion), red overdue --
