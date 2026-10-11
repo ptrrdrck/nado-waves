@@ -559,6 +559,28 @@ worked hour: +0.255 m over 73 hourly pairs
 
 Breaking needs it. Without a departure the forecast computes no breaking height at all, rather than breaking the waves in water about 0.2 m too shallow.
 
+### [tide-phase] The tide's phase
+
+Under the card's provenance, a line names where the tide is in its cycles: spring tides, neap tides, building toward springs or easing toward neaps. On “LIVE” it is tagged *predicted*. Opened, it gives three paragraphs: the day, the next spring or neap, and the one after. On “LIVE” the day is the reader's day at Coronado. On Forecast it is the picked hour's day, and a past hour has none.
+
+Three cycles shape the tide here. Spring and neap, every 14.8 days, is the moon's and the sun's twice-daily tides falling into and out of step. The Moon's declination, every 13.7 days, makes one tide of the day much bigger than the other when the Moon is far north or south, and evens them out over the equator. Perigee and apogee, every 27.6 days, make a spring bigger or a neap smaller. San Diego's tide is mixed, mainly twice a day: the ratio of its once-daily to its twice-daily constituents is 0.72.
+
+Spring and neap are read off NOAA's harmonic constants for the gauge, fetched from NOAA and never typed, so they carry the station's own timing: springs fall about 3 hours before new or full moon. The Moon's declination is read 14 hours early, because the tide here feels it that late. The summary names the constants wherever it uses them. The Moon's phase, distance and declination are computed from a lunar theory, and agree with an independent ephemeris within minutes. The highs and lows quoted as evidence are the card's own turns.
+
+```
+form factor  (K1 + O1) / (M2 + S2) = (0.337 + 0.214) / (0.542 + 0.225) = 0.72
+spring lag   (S2 − M2 Greenwich phase) / (S2 − M2 speed) = −2.9 h
+declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h
+```
+
+> **Model choice · every threshold measured**
+> Each threshold was measured over 19 years of the station's own tide (2017–2035, a whole 18.6-year cycle of the Moon's orbit), rebuilt from the same constants. A part of the summary is shown only where it was right at least 85% of the times it would have been said. The Moon counts as near the equator within 4°, and as far north or south past 26°, which happens only in years like these, near a major lunar standstill. The phase line itself always says something, so it uses the window that agrees best with which days have the fortnight's biggest and smallest swings: 72 hours either side of a spring or neap.
+
+> **Model choice · the two tides, not the two highs**
+> Here the Moon's declination shows more in the day's two lows than in its two highs, so the summary speaks of the day's two tides and quotes whichever pair differs more.
+
+None of this is a statement about waves. On these beach profiles the whole tide range moves where the waves break by tens of metres and their height by under 2%.
+
 ## [time] Moving through time
 
 ### [time-picker] The hour picker
@@ -658,13 +680,14 @@ The Shore direction “how often” bars and the Departure view are the “LIVE�
 | NDBC buoy 46232, Point Loma South | Hourly directional spectrum, 64 bands; position from NDBC's metadata | “LIVE” swell and its Origin, every chart's buoy line, the blue line |
 | NDBC buoys 46047 and 46086, Tanner Banks and San Clemente Basin | Hourly directional spectra | Origin's direction (46047), the hurricane match (both) |
 | KNZY, NAS North Island | Hourly airfield report (METAR) | “LIVE” wind, local chop, Shore direction |
-| NOAA tide gauge 9410170, San Diego | 6-minute measured level, hourly prediction, predicted highs and lows | Tide card, breaking depth, departure |
+| NOAA tide gauge 9410170, San Diego | 6-minute measured level, hourly prediction, predicted highs and lows, harmonic constants | Tide card and its phase, breaking depth, departure |
 | GFS-Wave (WAVEWATCH III), NOAA | The model's own directional spectrum and 10 m wind at the buoy, four runs a day | Forecast swell |
 | GEFS-Wave, NOAA | 31-member ensemble at the buoy, height only | Ensemble chart |
 | National Weather Service grid | Hourly forecast wind at the center break, 7 days | Forecast wind, offshore line |
 | USGS CoNED, GMRT | Surveyed seabed and beach profiles (2016) | Refraction, friction, shoaling, breaking |
 | NOAA electronic navigational charts | Coastline of Point Loma's tip, the islands, Baja and the break chords | The aperture |
 | NOAA solar equations | Sunrise and sunset, computed | Night shading |
+| Meeus's lunar theory | The Moon's phase, distance and declination, computed | The tide's phase |
 
 When GFS-Wave's directional spectrum is not available, the forecast is rebuilt from the model's separate swell trains instead, with an assumed directional spread, and the “standing on” block above says which was used and what spread was assumed.
 
@@ -787,6 +810,12 @@ Until that record exists, no figure on the forecast page states how well it does
   The tide worked out from its astronomical constituents.
 - **Departure**
   The gauge's measured level less its prediction.
+- **Spring and neap tides**
+  The days of the biggest and the smallest twice-daily swings, every 14.8 days.
+- **Declination**
+  How far north or south of the equator the Moon is.
+- **Perigee, apogee**
+  The Moon nearest the Earth, and farthest from it.
 - **GFS-Wave, GEFS-Wave**
   NOAA's global wave model, and the same model run as a 31-member ensemble.
 - **ENC**

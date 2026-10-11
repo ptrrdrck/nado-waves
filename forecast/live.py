@@ -54,7 +54,7 @@ from collector import localwind
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
-from . import ensemble, forecastlog
+from . import ensemble, forecastlog, tidephase
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
 from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea,
@@ -251,6 +251,10 @@ class Forecast:
     #: out (measured). One entry past the window, because the last hour still
     #: has a next turn and it lies beyond the window by definition.
     tide_turns: list[dict] = field(default_factory=list)
+    #: Where the tide is in its spring-neap and declination cycles, one
+    #: summary per local day the tab can show (`forecast.tidephase`), from
+    #: the same turns. None when the constants are not stored.
+    tide_phase: dict | None = None
     tide_station: str = TIDE_STATION
     tide_station_name: str = TIDE_STATION_NAME
     #: Where the Tide card's numbers are: the gauge carried to the beach.
@@ -718,6 +722,20 @@ def build(
         forecast.tide_turns = [
             t.as_dict() for t in turns_between(all_turns, start, rows[-1].valid_utc)
         ]
+        # The phase fold: every local day of this run's own hours, read from
+        # all the turns stored (the next neap or spring can lie past the
+        # window). Not the past hours': those are drawn from the build that
+        # showed them, which had no fold. A failure is a warning, never a
+        # lost run.
+        try:
+            first = rows[0].valid_utc.astimezone(tidephase.LOCAL_TZ).date()
+            last = rows[-1].valid_utc.astimezone(tidephase.LOCAL_TZ).date()
+            forecast.tide_phase = tidephase.block(
+                data_dir, [first + timedelta(days=k) for k in range((last - first).days + 1)],
+                [t.as_dict() for t in all_turns],
+                now=datetime.strptime(generated, ISO).replace(tzinfo=timezone.utc))
+        except Exception as exc:  # noqa: BLE001 -- see above
+            forecast.warnings.append(f"no tide phase: {type(exc).__name__}: {exc}")
 
     if rows:
         forecast.hourly = hourly_columns(

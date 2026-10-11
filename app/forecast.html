@@ -169,6 +169,18 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond .turn b{color:var(--ink);font-weight:600}
 .cond .turn .tag{font-size:11px;color:var(--faint);text-transform:uppercase;
                  letter-spacing:.06em;margin-left:5px;white-space:nowrap}
+/* THE TIDE PHASE folds out like Origin, from its own line under a rule of
+   its own, right above "Charts" (owner's request, 2026-10-11): the line is
+   the phase, the fold a summary in paragraphs, never bullets. */
+.cond > .phase-fold{display:flex;flex-direction:column;gap:6px;
+                    border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
+.phase-fold .chart-head .tag{font-size:11px;color:var(--faint);text-transform:uppercase;font-weight:400;
+                            letter-spacing:.06em;margin-left:6px;white-space:nowrap}
+.phase-fold .chart-head:hover .calc-toggle{color:var(--ink)}
+.phase-fold .fold-body{display:flex;flex-direction:column;gap:8px}
+.phase-fold .fold-body p{margin:0;font-size:14px;line-height:1.45;color:var(--ink)}
+.phase-fold .fold-body .phase-title{font-weight:600}
+.phase-fold .fold-body .srcs{margin-top:2px}
 
 /* Wave trains. A spectrum is two or three swells plus a wind sea, and which
    one leads at a break need not be the one leading at the buoy — so they are
@@ -1080,6 +1092,151 @@ function turnLine(turns, afterIso, {tagged = false} = {}) {
     + `</span>`;
 }
 
+// THE TIDE PHASE (owner's request, 2026-10-11; forecast.tidephase, BRIEFING
+// §41): where the tide is in its spring-neap and declination cycles, as a
+// fold on the Tide card on both tabs. Its line is the phase; open, a summary
+// in three paragraphs -- the day, the next spring or neap, the one after --
+// each a fixed run of slots (docs/tide_phase_wording.md): a slot with no
+// value drops with its joining words. Every claim read off NOAA's harmonic
+// constants says so where it is made (owner's request, same day). The build
+// decides every slot; this only words them. Days are Coronado's own, in
+// Pacific time, whatever the reader's clock: the summary is about the beach.
+const COAST_TZ = "America/Los_Angeles";
+const coastDay = (ms) => new Intl.DateTimeFormat("en-CA",
+  {timeZone: COAST_TZ, year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date(ms));
+const dayParts = (key) => { const [y, m, d] = key.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d, 12)); };
+// "15 Oct", as the owner wrote it.
+const dayText = (key) => `${dayParts(key).getUTCDate()} ${dayParts(key).toLocaleString("en-US", {month: "short", timeZone: "UTC"})}`;
+const dayOfUtc = (iso) => dayText(coastDay(Date.parse(iso)));
+// "16–17 Oct", or "31 Oct–1 Nov" across a month.
+function daySpan(a, b) {
+  if (a === b) return dayText(a);
+  const x = dayParts(a), y = dayParts(b);
+  return x.getUTCMonth() === y.getUTCMonth() ? `${x.getUTCDate()}\u2013${dayText(b)}` : `${dayText(a)}\u2013${dayText(b)}`;
+}
+// "Late October": the After paragraph's when (owner's call, 2026-10-11).
+function monthPart(iso) {
+  const d = dayParts(coastDay(Date.parse(iso)));
+  const part = d.getUTCDate() <= 10 ? "Early" : d.getUTCDate() <= 20 ? "Mid" : "Late";
+  return `${part} ${d.toLocaleString("en-US", {month: "long", timeZone: "UTC"})}`;
+}
+const listJoin = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+const PHASE_TITLE = {spring: "Spring tides", neap: "Neap tides",
+                     building: "Building toward springs", easing: "Easing toward neaps"};
+const moonName = (n) => (/quarter/.test(n) ? `${n} moon` : n);
+const capFirst = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+// What the Moon's declination does to the day's two tides: measured over 19
+// years, it shows in the lows more than the highs, so it is said of the tides.
+const PHASE_TODAY_SO = {
+  equator: "so the day's two tides are alike",
+  far: "so one tide of the day is much bigger than the other",
+  away: "so the day's two tides are growing unequal",
+  toward: "so the day's two tides are evening out",
+};
+function phaseNextSo(kind, state) {
+  if (kind === "neap") {
+    return state === "far" ? "the twice-daily pattern nearly vanishes"
+      : state === "equator" ? "small swings, the day's two tides alike" : "small swings";
+  }
+  return state === "far" ? "the biggest swings, one tide of the day much bigger than the other"
+    : state === "equator" ? "big swings, the day's two tides alike" : "big swings";
+}
+function phaseWhere(d) {
+  return d.state === "equator" ? "near the equator" : d.state === "far" ? `far ${d.side}`
+    : d.state === "away" ? `heading ${d.side}` : "heading for the equator";
+}
+function phaseEvidence(e) {
+  if (e.kind === "small") return `${dayText(e.day)} has a high and low only ${height(e.apart_m)} apart`;
+  if (e.kind === "single") {
+    return e.day === e.last_day ? `${dayText(e.day)} has a single high and low`
+      : `${daySpan(e.day, e.last_day)} have a single high and low each day`;
+  }
+  return `${dayText(e.day)} has a ${height(e.swing_m)} swing from `
+    + `${e.from === "high" ? "high to low" : "low to high"}, the largest the turns hold`;
+}
+// The three paragraphs for one day of the payload's `tide_phase`.
+function tidePhaseText(block, s, isToday) {
+  const out = [];
+  const consts = `NOAA's harmonic constants for San Diego${block.analysis ? ` (${block.analysis})` : ""}`;
+  const td = s.today || {};
+  let p = `${isToday ? "Today" : dayText(s.day)}: ${PHASE_TITLE[s.phase].toLowerCase()} by ${consts}.`;
+  if (td.declination) {
+    const felt = `as the tide feels it ${Math.round(block.diurnal_age_h)} h late by the same constants`;
+    const moonSaid = td.moon
+      ? `${capFirst(moonName(td.moon.name))} ${coastDay(Date.parse(td.moon.utc)) < s.day ? "was" : "is"} ${dayOfUtc(td.moon.utc)} and the Moon`
+      : "The Moon";
+    p += ` ${moonSaid}, ${felt}, is ${phaseWhere(td.declination)}, ${PHASE_TODAY_SO[td.declination.state]}`;
+    if (td.pair) {
+      p += `: ${td.pair.event}s of ${height(td.pair.heights_m[0])} and ${height(td.pair.heights_m[1])} `
+        + (isToday ? "today" : "that day");
+    }
+    p += ".";
+  }
+  out.push(p);
+  const n = s.next;
+  if (n) {
+    let q = `Around ${dayOfUtc(n.utc)}: ${n.kind} tide by the same constants`
+      + (n.coincide && n.coincide.length ? `, coinciding with ${listJoin(n.coincide)}` : "")
+      + `, so ${phaseNextSo(n.kind, n.declination)}.`;
+    if (n.evidence && n.evidence.length) {
+      q += ` The CO-OPS turns already show it: ${n.evidence.map(phaseEvidence).join("; ")}.`;
+    }
+    out.push(q);
+  }
+  const a = s.after;
+  if (a) {
+    const parts = [];
+    if (a.moon) parts.push(`at ${a.moon.name} (${dayOfUtc(a.moon.utc)})`);
+    if (a.distance) parts.push(`near ${a.distance.name} (${dayOfUtc(a.distance.utc)})`);
+    parts.push(`with declination ${a.declination}`);
+    const week = isToday ? "this week" : "that week";
+    out.push(`${monthPart(a.utc)}: ${a.kind === "spring" ? "springs" : "neaps"} by the same constants, `
+      + `${listJoin(parts)}, so ${a.compare === "similar" ? `extremes similar to ${week}` : `${a.compare} extremes than ${week}`}.`);
+  }
+  return out;
+}
+// Whether the phase fold is open: one state for both tabs, kept across a
+// refresh like Origin's.
+let PHASE_OPEN = false;
+function setPhaseOpen(open) {
+  PHASE_OPEN = open;
+  remember(KEEP.phaseOpen, open ? "open" : "closed");
+  document.querySelectorAll("[data-phase-toggle]").forEach((btn) => {
+    btn.setAttribute("aria-expanded", String(open));
+    const fold = $(btn.getAttribute("aria-controls"));
+    if (fold) fold.hidden = !open;
+  });
+}
+// The fold for the coast day `key`, or nothing when the payload has none.
+// `tagged` marks the line as a prediction on LIVE, as the turn line is.
+function phaseFold(payload, key, {tagged = false} = {}) {
+  const block = payload && payload.tide_phase;
+  const s = block && block.days && block.days[key];
+  if (!s || !PHASE_TITLE[s.phase]) return "";
+  const isToday = key === coastDay(Date.now());
+  const title = PHASE_TITLE[s.phase];
+  const id = tagged ? "now" : "fc";
+  const week = isToday ? "this week" : "that week";
+  const sources = srcLines([
+    `Spring and neap, the ${Math.round(block.diurnal_age_h)} h lag and the size against ${week}: `
+      + `NOAA's harmonic constants for ${payload.tide_station_name || "San Diego"} (${block.station})`
+      + (block.analysis ? `, ${block.analysis} analysis` : ""),
+    "Moon's phase, distance and declination: computed",
+    `Highs and lows: CO-OPS high and low water, ${tideSource(payload)}`,
+  ]);
+  return `<div class="phase-fold">
+    <div class="chart-head" data-phase-head><span>${title}${tagged ? ' <span class="tag">predicted</span>' : ""}</span><button
+      type="button" class="calc-toggle" data-phase-toggle aria-controls="phase-fold-${id}"
+      aria-expanded="${PHASE_OPEN}" aria-label="${title}, the tide's phase"><svg viewBox="0 0 16 16"
+      aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
+    <div class="fold-body" id="phase-fold-${id}"${PHASE_OPEN ? "" : " hidden"}>
+      <p class="phase-title">Where Coronado is ${isToday ? `now (${dayText(key)})` : `on ${dayText(key)}`}</p>
+      ${tidePhaseText(block, s, isToday).map((x) => `<p>${x}</p>`).join("")}
+      ${sources}
+    </div>
+  </div>`;
+}
+
 let DATA = null;      // forecast.json — the modelled chain
 let NOW = null;       // now.json     — the observed chain
 let MODE = "now";     // which chain is on screen
@@ -1113,7 +1270,7 @@ const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
               fcChart: "nado-waves.fc-chart", chartOpen: "nado-waves.chart-open",
               windChart: "nado-waves.wind-chart-open", tideChart: "nado-waves.tide-chart-open",
               wtView: "nado-waves.wt-view", originOpen: "nado-waves.origin-open",
-              roseMode: "nado-waves.rose-mode"};
+              roseMode: "nado-waves.rose-mode", phaseOpen: "nado-waves.phase-open"};
 function recall(key) {
   try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
@@ -5034,6 +5191,8 @@ function wireSwellTabs() {
     if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row")) setCalcOpen(!CALC_OPEN);
     // Origin's caret, or anywhere else on its line.
     if (e.target.closest("[data-origin-head]")) setOriginOpen(!ORIGIN_OPEN);
+    // The tide phase's caret, or anywhere else on its line.
+    if (e.target.closest("[data-phase-head]")) setPhaseOpen(!PHASE_OPEN);
   });
   strip.addEventListener("keydown", (e) => {
     const btn = e.target.closest("[data-swell-tab]");
@@ -5148,6 +5307,7 @@ function renderConditions(step, cards) {
         ? srcLines([`Measured ${observedAt(tide.observed_utc)}`, tideSource(NOW)],
                    dueSpan(due.tide, late.tide))
         : srcLines(tide.note)}
+      ${phaseFold(NOW, coastDay(Date.now()), {tagged: true})}
       ${cardChart("tide")}
     </div>`);
   } else {
@@ -5251,6 +5411,7 @@ function renderConditions(step, cards) {
         : ""}
       ${seenTide}
       ${srcLines([`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)])}
+      ${past ? "" : phaseFold(DATA, coastDay(Date.parse(step.valid_utc)))}
       ${cardChart("tide")}
     </div>`);
   }
@@ -5702,6 +5863,7 @@ function boot(data, observed, measured, series, windtide) {
   // Folded away until the reader opens it, as the calculation is.
   CHART_OPEN = recall(KEEP.chartOpen) === "open";
   ORIGIN_OPEN = recall(KEEP.originOpen) === "open";
+  PHASE_OPEN = recall(KEEP.phaseOpen) === "open";
   CARD_CHART_OPEN.wind = recall(KEEP.windChart) === "open";
   CARD_CHART_OPEN.tide = recall(KEEP.tideChart) === "open";
   for (const chain of ["now", "fc"]) {

@@ -3398,3 +3398,25 @@ def test_every_train_is_read_off_46232_and_only_readings_backwards():
     sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
     assert "Trains read off the spectrum at ${buoyName(o, o.station)}" in sources
     assert 'readings.length ? ", and storms read backwards from them" : ""' in sources
+
+
+class TestTheTidePhaseFold:
+    """The Tide card's phase fold (owner's request, 2026-10-11; BRIEFING §41):
+    on both tabs, its line the phase, its body paragraphs and never bullets,
+    tagged predicted on LIVE as the turn line is, and absent under a past
+    hour, whose build had none."""
+
+    def test_it_is_on_both_tabs(self):
+        assert "phaseFold(NOW, coastDay(Date.now()), {tagged: true})" in SOURCE
+        assert 'past ? "" : phaseFold(DATA, coastDay(Date.parse(step.valid_utc)))' in SOURCE
+
+    def test_its_body_is_paragraphs_never_a_list(self):
+        fold = SOURCE[SOURCE.index("function phaseFold("):SOURCE.index("let DATA = null;")]
+        assert "<p>" in fold and "<li" not in fold and "<ul" not in fold
+
+    def test_it_reads_the_days_at_coronado(self):
+        assert 'const COAST_TZ = "America/Los_Angeles";' in SOURCE
+
+    def test_its_open_state_is_kept(self):
+        assert 'phaseOpen: "nado-waves.phase-open"' in SOURCE
+        assert 'PHASE_OPEN = recall(KEEP.phaseOpen) === "open";' in SOURCE

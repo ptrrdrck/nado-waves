@@ -63,6 +63,7 @@ from .live import (
 )
 from .tideturns import read_turns, turns_between
 from . import origin
+from . import tidephase
 from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea, summarise,
                         train_dicts)
 from .siting import load_coordinates
@@ -398,6 +399,12 @@ class Now:
     #: Predicted turning points of the tide. A MODEL, on a tab that is
     #: otherwise measurements only, and named as one everywhere it shows.
     tide_turns: list = field(default_factory=list)
+    #: Where the tide is in its spring-neap and declination cycles, for the
+    #: Tide card's phase fold (`forecast.tidephase`): one summary per local
+    #: day, today's and tomorrow's, so the page can follow its reader's clock
+    #: past midnight. Predicted, from NOAA's harmonic constants and the
+    #: Moon's computed position; None when the constants are not stored.
+    tide_phase: dict | None = None
     #: The limit `stale` was decided against, carried so a surface can re-apply
     #: it to the reader's own clock instead of keeping a second copy of it.
     stale_hours: float = STALE_HOURS
@@ -637,6 +644,18 @@ def build(
         moment, moment + timedelta(hours=TURN_WINDOW_HOURS),
     )
     reading.tide_turns = [t.as_dict() for t in turns]
+    # The phase fold reads the same turns over its own span: today from its
+    # start, and the next neap or spring a week or more out.
+    # A failure is a warning, never a lost reading.
+    if not as_of:
+        try:
+            local_today = moment.astimezone(tidephase.LOCAL_TZ).date()
+            reading.tide_phase = tidephase.block(
+                data_dir, [local_today, local_today + timedelta(days=1)],
+                [coast_turn(t, departure).as_dict() for t in read_turns(data_dir, TIDE_STATION)],
+                now=moment)
+        except Exception as exc:  # noqa: BLE001 -- see above
+            reading.warnings.append(f"no tide phase: {type(exc).__name__}: {exc}")
     if not turns:
         reading.warnings.append(
             f"{TIDE_STATION} predicted high/low turns not collected yet."
