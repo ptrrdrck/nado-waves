@@ -259,7 +259,17 @@ forecaster actually verifies against, Surfline included.
    requests, 2026-10-09, moved there 2026-10-11 from beside the combined
    height, whose headline is now the height alone, as a break's is): "CDIP
    191 via NDBC •" for 46232 — CDIP runs it, NDBC serves its spectra — and
-   "NDBC 46047 •", replacing the "(NDBC <id>)" the name line carried. 46232's
+   "NDBC 46047 •", replacing the "(NDBC <id>)" the name line carried. **The
+   whole provenance is pills** (owner's request, 2026-10-11): "Point Loma
+   South, CA | Spectral wave data", then "Observed <when> | <age>", then the
+   feed, each pair joined as below, corners 4 px; a pair too wide for its
+   line wraps its second pill under the first as a pill of its own
+   (`fitPills`), never past the card. 46047's "Open ocean witness" line is
+   no longer provenance: words under its rose, above its pills with space
+   between. **Each buoy's headline folds like a break's** (owner's request,
+   same day; `buoyReading`): its caret and whole line fold out everything
+   between it and the provenance -- trains, rose, those words -- closed
+   until opened, each buoy its own state, kept across a refresh. 46232's
    number is the registry's (`stations.json` `cdip`, `now.json`
    `station_cdip`, never typed on the page; "NDBC 46232" without it). Ink at
    the provenance's 12 px on the picked row's background; 46232's sits under
@@ -334,7 +344,9 @@ forecaster actually verifies against, Surfline included.
    that lower space, closer to the provenance, so the switch never moves the
    page. And the drawing is greys and ink only, as the rose is (same day):
    no site blue on the chord, the break, the swell or a picked window.
-   Reduced motion opens paused on the newest. LIVE
+   Every rose opens paused on the newest spectrum, the one its headline
+   reads, whenever it comes into view (owner's request, 2026-10-11: load,
+   LIVE, the Buoys tab, a headline unfolding; `roseShown`). LIVE
    only; carried to no break. The
    Forecast tab's Buoys tab holds 46232 alone. **46047 is on the LIVE Buoys
    tab's Height chart** (owner's request, 2026-10-09), a lighter line under
