@@ -223,10 +223,11 @@ def _fn(name: str) -> str:
 
 
 class TestThePills:
-    """Owner's requests, 2026-10-09: each buoy's name line gives way to a
-    pill at the right of its combined height -- "CDIP 191 •" and "NDBC
+    """Owner's requests, 2026-10-09 and -11: each buoy's feed is a pill at
+    the start of its countdown line -- "CDIP 191 via NDBC •" and "NDBC
     46047 •" -- the dot green, green fading while an update is due, and red
-    once overdue, on that buoy's own countdown."""
+    once overdue, on that buoy's own countdown; the headline is the height
+    alone."""
 
     def test_the_number_is_the_registrys_not_the_pages(self):
         from collector.stations import load_stations
@@ -240,7 +241,8 @@ class TestThePills:
         assert "CDIP 191" not in PAGE and "CDIP ${now.station_cdip}" in PAGE
 
     def test_the_dot_runs_on_the_swell_countdowns_instants(self):
-        assert "buoyPill: anchorPill(NOW, due.swell, late.swell)," in PAGE
+        assert ("due: anchorPill(NOW, due.swell, late.swell)"
+                " + dueSpan(due.swell, late.swell, {forceOver: nowIsStale()}),") in PAGE
         assert "{forceOver: nowIsStale()}" in PAGE[PAGE.index("const anchorPill"):][:300]
         assert "dueSpan(due.swell, late.swell, {forceOver: nowIsStale()})" in PAGE
         # One computation of the two instants for the countdown and the dot.
@@ -268,10 +270,15 @@ class TestThePills:
         assert "b.next_expected" in block and "b.overdue_after" in block
         assert "sublbl" not in block
 
-    def test_the_pill_replaces_the_name_line_on_the_live_tab_only(self):
-        panel = _fn("buoyPanel")
-        assert "named && station && !pill" in panel
-        assert "valWithPill(" in _fn("buoyReading")
+    def test_the_pill_starts_the_countdown_line_and_the_headline_is_bare(self):
+        assert "sublbl" not in _fn("buoyPanel") and "pill" not in _fn("buoyReading")
+        assert "buoyLabel" not in PAGE
+        # It replaces the "(NDBC <id>)" the name line carried, on both buoys.
+        assert "Spectral wave data, ${NOW.station_name}`" in PAGE
+        block = _fn("contextBuoy")
+        assert "(NDBC ${b.station})" not in block
+        assert "], pill + (b.observed_utc ? dueSpan(" in block
+        assert "`CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`" in PAGE
 
     def test_the_combined_height_sits_in_a_break_headlines_row(self):
         """Owner's request, 2026-10-09: the buoys' combined height sat about
@@ -285,16 +292,16 @@ class TestThePills:
         rule = rule[:rule.index("}")]
         assert "display:flex;align-items:center" in rule and "min-height:24px" in rule
         assert "width:32px;height:32px;margin:-4px -6px -4px 0;" in css   # 32 - 4 - 4 = 24
-        assert 'const valWithPill = (val, pill = "") => `<div class="val-line">${val}${pill}</div>`;' in PAGE
+        assert 'const valLine = (val) => `<div class="val-line">${val}</div>`;' in PAGE
         for name in ("buoyReading", "buoyPanel", "contextBuoy"):
             assert 'class="val-row"' not in _fn(name)
         # The Forecast chain's buoy is a model at 46232: no feed, no dot.
-        assert PAGE.count("buoyPill: anchorPill(") == 1
+        assert PAGE.count("anchorPill(NOW") == 1
 
-    def test_the_pill_wears_the_lead_trains_heading_and_the_picked_rows_background(self):
+    def test_the_pill_is_ink_at_the_provenances_size_on_the_picked_rows_background(self):
         css = PAGE[PAGE.index(".buoy-pill{"):PAGE.index(".status{")]
         assert "background:var(--paper)" in css and "color:var(--ink)" in css
-        assert "font-size:14px" in css
+        assert "font-size:12px" in css and ".cond .src{font-size:12px" in PAGE
 
 
 class TestTheSpacing:
