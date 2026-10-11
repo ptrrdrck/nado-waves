@@ -261,8 +261,12 @@ forecaster actually verifies against, Surfline included.
    191 via NDBC •" for 46232 — CDIP runs it, NDBC serves its spectra — and
    "NDBC 46047 •", replacing the "(NDBC <id>)" the name line carried. **The
    whole provenance is pills** (owner's request, 2026-10-11): "Point Loma
-   South, CA | Spectral wave data", then "Observed <when> | <age>", then the
-   feed, each pair joined as below, corners 4 px; a pair too wide for its
+   South, CA" (the place alone, "Spectral wave data" dropped the same day),
+   then "Observed <when> | <age>", then the feed, each pair joined as below,
+   corners 4 px; the LIVE Wind and Tide cards' too — "NAS North Island",
+   "Observed …", "METAR KNZY •" and "Coronado, CA" (`tidesite.SITE_PLACE`,
+   now.json `tide_place`), "Measured …", "NOAA 9410170 •", the dot on each
+   card's own countdown (`feedPills`); a pair too wide for its
    line wraps its second pill under the first as a pill of its own
    (`fitPills`), never past the card. 46047's "Open ocean witness" line is
    no longer provenance: words under its rose, above its pills with space
@@ -275,7 +279,7 @@ forecaster actually verifies against, Surfline included.
    the provenance's 12 px on the picked row's background; 46232's sits under
    every swell tab, the break tabs too, because every break's numbers are
    that one spectrum. The countdown is its own pill growing out of the
-   feed's (owner's design, same day; `buoyFeed`): it starts under the feed
+   feed's (owner's design, same day; `feedPills`): it starts under the feed
    pill's right cap, its left edge a concave arc cut 2 px outside that cap
    (a CSS mask), its right end the feed pill's, the two one unit that never
    wraps apart, and its words without the full stop the card's other
@@ -1285,8 +1289,9 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   Imperial Beach and Point Loma offsets agree). **The Tide card shows the open
   coast** on both tabs (owner's decision, 2026-09-26): heights ×0.944 on MLLW,
   CO-OPS's own subordinate-station convention, and predicted times 3 min
-  earlier; the source line names the gauge it was carried from, the measured
-  reading keeps the gauge's stamp for its countdown, and `gauge_height_m`
+  earlier; the source line (on LIVE the countdown pill) names the gauge it
+  was carried from, the measured reading keeps the gauge's stamp for its
+  countdown, and `gauge_height_m`
   keeps the raw value. Breaking uses the MSL form (`tidesite.coast_level`)
   from the gauge's raw reading — never from the card's, or the transfer runs
   twice. And the harmonic prediction is on the 1983–2001

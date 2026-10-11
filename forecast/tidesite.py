@@ -180,6 +180,9 @@ if __name__ == "__main__":
 
 #: What the Tide card is about, now that it is not the gauge's own reading.
 SITE_NAME = "Coronado open coast"
+#: The same place as the LIVE Tide card's first provenance pill names it,
+#: in the style NDBC and CO-OPS name a station (owner's request, 2026-10-11).
+SITE_PLACE = "Coronado, CA"
 
 
 def coast_height(bay_mllw_m: float) -> float:
