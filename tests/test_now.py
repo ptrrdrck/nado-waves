@@ -103,6 +103,7 @@ class TestTheTideCardIsTheOpenCoast:
         assert got.tide.height_m == round(RATIO * 1.2, 3)
         assert got.tide.observed_utc == "2026-09-19T00:18:00Z"
         assert got.tide_site == "Coronado open coast"
+        assert got.tide_place == "Coronado, CA"     # the LIVE card's first pill
 
     def test_the_turns_are_the_coast_turns(self, tmp_path):
         from forecast.tidesite import LEAD_MIN, RATIO

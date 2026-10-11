@@ -934,7 +934,7 @@ function turnClock(iso, fromIso) {
 // than from the payload, which makes it volatile between two renders that
 // straddle a minute. `cardText` strips everything so marked before comparing,
 // so a card is never flashed for a string that was only ever going to change.
-// The buoys' provenance pills (`buoyObserved`) take the same span.
+// The buoys' provenance pills (`observedPills`) take the same span.
 function ageSpan(iso) {
   const age = iso ? ago(ageHours(iso)) : "";
   return age ? `<span class="age">${age}</span>` : "";
@@ -2476,29 +2476,31 @@ function pills(head, tail = "") {
 }
 const pillLine = (head, tail = "") => (head ? {html: pills(head, tail)} : "");
 
-// A buoy's provenance in pills (owner's request, 2026-10-11): where it is
-// and what it measures, then when it was observed and how long ago, aged by
-// `ageSpan` as every other measurement line is.
+// A LIVE card's provenance in pills (owner's requests, 2026-10-11): where
+// the measurement was made, then when and how long ago -- aged by `ageSpan`
+// as every other measurement line is -- then its feed and countdown
+// (`feedPills`). A buoy's place is its name alone, never its id, which the
+// feed pill carries.
 function buoyWhere(name, station) {
-  return name && name !== station ? pillLine(name, "Spectral wave data") : pillLine("Spectral wave data");
+  return name && name !== station ? pillLine(name) : "";
 }
-function buoyObserved(iso) {
-  return iso ? pillLine(`Observed ${when(iso)}`, ageSpan(iso)) : "";
+function observedPills(iso, verb = "Observed") {
+  return iso ? pillLine(`${verb} ${when(iso)}`, ageSpan(iso)) : "";
 }
 
-// A buoy's countdown line (owner's calls, 2026-10-11): where the feed comes
-// from -- "CDIP <number> via NDBC" for 46232, which CDIP runs and NDBC
-// serves, its number from the registry; "NDBC <id>" for a buoy NDBC runs --
-// in a pill with a status dot on that buoy's own two instants, and the
-// countdown itself in a second pill growing out of the first, so the dot
-// and the words beside it change together. It replaces the "(NDBC <id>)"
-// the line above it carried. No countdown (no observation), no second pill.
-function buoyFeed(label, iso, lateIso, {forceOver = false} = {}) {
+// A LIVE card's countdown line (owner's calls, 2026-10-11): where the feed
+// comes from -- "CDIP <number> via NDBC" for 46232, which CDIP runs and NDBC
+// serves, its number from the registry; "NDBC <id>" for a buoy NDBC runs;
+// "METAR KNZY" for the wind and "NOAA 9410170" for the tide -- in a pill
+// with a status dot on that source's own two instants, and the countdown
+// itself in a second pill growing out of the first, so the dot and the
+// words beside it change together. No countdown, no second pill.
+function feedPills(label, iso, lateIso, {forceOver = false} = {}) {
   if (!label) return "";
   return pills(label + statusDot(iso, lateIso, {forceOver}), dueSpan(iso, lateIso, {forceOver, bare: true}));
 }
 const anchorFeed = (now, due, late) => (now && now.station
-  ? buoyFeed(now.station_cdip ? `CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`,
+  ? feedPills(now.station_cdip ? `CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`,
              due, late, {forceOver: nowIsStale()}) : "");
 
 // The dot is filled by `tickDue` with the countdown it sits beside: the same
@@ -2519,7 +2521,7 @@ function statusDot(iso, lateIso, {forceOver = false} = {}) {
 function contextBuoy(b) {
   const old = b.observed_utc && (b.stale || (ageHours(b.observed_utc) || 0) > (b.stale_hours || 3));
   // Its pills, as 46232's, are its own countdown line.
-  const feed = buoyFeed(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after,
+  const feed = feedPills(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after,
                         {forceOver: !!old || !b.observed_utc});
   // What it is, said under its rose and above its provenance with space
   // between (owner's call, 2026-10-11): a description, not a provenance line.
@@ -2529,7 +2531,7 @@ function contextBuoy(b) {
   return `<hr>${reading}`
     + srcLines([
       buoyWhere(b.station_name, b.station),
-      buoyObserved(b.observed_utc),
+      observedPills(b.observed_utc),
       feed ? {html: feed} : "",
     ]);
 }
@@ -5434,7 +5436,7 @@ function renderConditions(step, cards) {
       // In pills (owner's request, 2026-10-11): where and what, then when.
       source: [
         NOW && NOW.station_name ? buoyWhere(NOW.station_name, NOW.station) : "",
-        NOW && buoyObserved(NOW.observed_utc),
+        NOW && observedPills(NOW.observed_utc),
       ],
       // The feed's pill starts the countdown line, under every swell tab:
       // each one's numbers come from this one buoy (owner's call, 2026-10-11).
@@ -5451,9 +5453,9 @@ function renderConditions(step, cards) {
         : '<span class="unit">not collected</span>'}</span>
       ${windHeard(wind) ? windAtBreaks(cards) : ""}
       ${windHeard(wind)
-        ? srcLines([`Observed ${observedAt(wind.observed_utc)}`,
-                    `METAR, ${wind.station_name} (${wind.station})`],
-                   dueSpan(due.wind, late.wind))
+        // In pills, as the swell card's (owner's request, 2026-10-11).
+        ? srcLines([pillLine(wind.station_name || ""), observedPills(wind.observed_utc)],
+                   feedPills(`METAR ${wind.station}`, due.wind, late.wind))
         : srcLines(wind.note)}
       ${cardChart("wind")}
     </div>`);
@@ -5466,8 +5468,11 @@ function renderConditions(step, cards) {
         : '<span class="unit">not collected</span>'}</span>
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
       ${tide.height_m != null
-        ? srcLines([`Measured ${observedAt(tide.observed_utc)}`, tideSource(NOW)],
-                   dueSpan(due.tide, late.tide))
+        // In pills, as the swell card's (owner's request, 2026-10-11): the
+        // place the numbers are carried to, then the gauge in the feed pill.
+        ? srcLines([pillLine(NOW.tide_place || NOW.tide_site || ""),
+                    observedPills(tide.observed_utc, "Measured")],
+                   feedPills(`NOAA ${NOW.tide_station}`, due.tide, late.tide))
         : srcLines(tide.note)}
       ${phaseFold(NOW, coastDay(Date.now()), {tagged: true})}
       ${cardChart("tide")}

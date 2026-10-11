@@ -198,8 +198,8 @@ class TestOnThePage:
         block = PAGE[PAGE.index("function contextBuoy("):]
         block = block[:block.index("\n}\n")]
         assert "Open ocean witness, not carried to any break." in block
-        assert "buoyObserved(b.observed_utc)" in block
-        assert "buoyFeed(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after" in block
+        assert "observedPills(b.observed_utc)" in block
+        assert "feedPills(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after" in block
         assert "NOW." not in block
 
     def test_each_buoys_provenance_follows_its_own_measurements(self):
@@ -243,7 +243,7 @@ class TestThePills:
     def test_the_dot_runs_on_the_swell_countdowns_instants(self):
         assert "due: anchorFeed(NOW, due.swell, late.swell)," in PAGE
         # The dot and the countdown pill read the same instants and force.
-        feed = _fn("buoyFeed")
+        feed = _fn("feedPills")
         assert "statusDot(iso, lateIso, {forceOver})" in feed
         assert "dueSpan(iso, lateIso, {forceOver, bare: true})" in feed
         assert "{forceOver: nowIsStale()}" in PAGE[PAGE.index("const anchorFeed"):][:300]
@@ -270,7 +270,7 @@ class TestThePills:
 
     def test_46047_wears_one_on_its_own_countdown(self):
         block = _fn("contextBuoy")
-        assert 'buoyFeed(`NDBC ${b.station}`' in block
+        assert 'feedPills(`NDBC ${b.station}`' in block
         assert "b.next_expected" in block and "b.overdue_after" in block
         assert "sublbl" not in block
 
@@ -350,7 +350,7 @@ class TestTheProvenancePills:
     def test_46232s_lines_in_order(self):
         live = PAGE.split("rows.push(swellCard(")[1].split("}));")[0]
         assert (live.index("buoyWhere(NOW.station_name, NOW.station)")
-                < live.index("buoyObserved(NOW.observed_utc)")
+                < live.index("observedPills(NOW.observed_utc)")
                 < live.index("due: anchorFeed(NOW, due.swell, late.swell),"))
 
     def test_46047s_lines_in_the_same_order_its_words_above_them(self):
@@ -362,7 +362,7 @@ class TestTheProvenancePills:
         assert (block.index("Open ocean witness, not carried to any break.")
                 < block.index("srcLines(")
                 < block.index("buoyWhere(b.station_name, b.station)")
-                < block.index("buoyObserved(b.observed_utc)")
+                < block.index("observedPills(b.observed_utc)")
                 < block.index("feed ? {html: feed}"))
         assert '<p class="quiet buoy-note">' in block
         assert ".buoy-fold .rose + .buoy-note{margin-top:3px}" in PAGE
@@ -400,15 +400,17 @@ class TestTheBuoyHeadlineFolds:
         # Its row never folds a break's calculation.
         assert 'class="val-row"' not in _fn("buoyReading")
 
-    def test_the_place_then_what_it_measures(self):
+    def test_the_place_alone(self):
+        """Owner's call, 2026-10-11: "Spectral wave data" came off the first
+        line; the place alone, never the id the feed pill carries."""
         where = _fn("buoyWhere")
-        assert 'pillLine(name, "Spectral wave data")' in where
-        assert 'pillLine("Spectral wave data")' in where
+        assert 'return name && name !== station ? pillLine(name) : "";' in where
+        assert "Spectral wave data" not in where
 
     def test_the_age_stays_volatile(self):
         """The age is the reader's clock, so `cardText` must still strip it."""
-        obs = _fn("buoyObserved")
-        assert "pillLine(`Observed ${when(iso)}`, ageSpan(iso))" in obs
+        obs = _fn("observedPills")
+        assert "pillLine(`${verb} ${when(iso)}`, ageSpan(iso))" in obs
 
     def test_a_pill_line_takes_no_full_stop(self):
         assert '${line.html || period(line)}' in _fn("srcLines")
