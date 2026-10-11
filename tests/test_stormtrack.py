@@ -86,6 +86,36 @@ def test_only_hurricane_strength_fixes_make_a_band():
     assert len(S.bands({"ep17": storm()}, {"46047": HOME})) == 1
 
 
+def test_a_hurricane_that_weakens_stays_a_source_while_a_tropical_storm():
+    """Owner's request, 2026-10-11 (Rachel): a storm keeps its tropical storm
+    fixes AFTER its first hurricane one, never before it, and never once NHC
+    no longer classes it a tropical storm, whatever its winds."""
+
+    base = storm()
+    kt = [50, 70, 100, 80, 60, 40, 45, 30]
+    status = ["TS", "HU", "HU", "HU", "TS", "TS", "EX", "TD"]
+    fixes = [Fix(f.storm, f.name, f.time, f.lat, f.lon, k, None, c)
+             for f, k, c in zip(base, kt, status)]
+    assert [f.vmax_kt for f in S.sources(fixes)] == [70, 100, 80, 60, 40]
+    band = S.bands({"ep17": fixes}, {"46047": HOME})[0]
+    assert [f.vmax_kt for f in band.fixes] == [70, 100, 80, 60, 40] and band.peak_kt == 100
+    # It names the train for what it was when that fix sent it.
+    assert [S.strength(f) for f in band.fixes] == ["hurricane"] * 3 + ["tropical storm"] * 2
+    # A storm that never reached hurricane strength is still no source.
+    never = [Fix(f.storm, f.name, f.time, f.lat, f.lon, 60, None, "TS") for f in base]
+    assert S.sources(never) == [] and S.bands({"ep17": never}, {"46047": HOME}) == []
+
+
+def test_the_b_deck_carries_nhcs_classification():
+    from forecast.origintracks import parse_bdeck
+
+    line = ("EP, 18, 2026100806,   , BEST,   0, 216N, 1233W,  60,  985, TS,  34, NEQ,"
+            "  100,   90,   70,   80, 1009,  200,  25,  75,   0,   L,   0,    ,   0,   0,"
+            "     RACHEL,")
+    fix = parse_bdeck(line)[0]
+    assert (fix.vmax_kt, fix.status, fix.name) == (60, "TS", "RACHEL")
+
+
 def ridge_through(band, bearing, hours=14, delay=timedelta(0)):
     """An Origin-style ridge whose points sit exactly on the band's first fix."""
 
