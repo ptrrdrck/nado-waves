@@ -176,3 +176,60 @@ Origin's ridges at 46232 against each storm-DAY's band there. Timing alone match
 | 2026-10-01 19Z | 3,329 km, bearing withheld (46047 split: 316° 29%, 182° 20%) | Nolo 09-27 100% at 256° | no |
 
 Chance: 1 ridge(s) agree in bearing with a timing match; with the ridges' bearings shuffled among themselves (2000 times), as many or more agree in 20% of shuffles.
+
+## Addendum, 2026-10-11: a hurricane's tropical storm fixes after it weakens
+
+Owner's request (BRIEFING §37f): Rachel fell below 64 kt on 8 Oct 06Z, the
+swell her last hurricane fix sent had finished arriving at 46047 and 46086 by
+10 Oct 06–09Z, and the card stopped naming her while her tropical storm swell
+was still arriving. Since then a storm's sources (`stormtrack.sources`) are
+every fix at 64 kt or more AND every fix after its first one that NHC classes
+TS or HU at 34 kt or more. Never one before: a storm on its way up is not yet
+one the card names; and never a depression, remnant low or extratropical
+storm, whatever its winds.
+
+Both runs below are `python -m forecast.stormtrack` on the same data: b-decks
+as archived 2026-10-11 00:07Z, spectra to 2026-10-10 23:20Z. Only the rule
+differs. Everything above this addendum is still the earlier runs.
+
+The backtest, at the gate buoys (moments arriving / with a match / named;
+strong / partial / weak; highest; first and last named):
+
+| storm | buoy | hurricane fixes only | with tropical storm fixes after |
+|---|---|---|---|
+| Marie | 46047 | 20 / 17 / 15; 7 / 5 / 3; 100%; 09-04 07Z – 09-08 13Z | 26 / 11 / 9; 0 / 5 / 4; 80%; 09-04 07Z – 09-10 01Z |
+| Marie | 46086 | 20 / 17 / 17; 13 / 3 / 1; 100%; 09-04 12Z – 09-08 12Z | 27 / 21 / 18; 15 / 2 / 1; 100%; 09-06 00Z – 09-10 06Z |
+| Odalys | 46047 | 20 / 11 / 11; 0 / 10 / 1; 82%; 09-26 18Z – 09-29 06Z | 22 / 13 / 13; 0 / 9 / 4; 82%; 09-26 18Z – 09-29 18Z |
+| Polo | 46047 | unchanged: 18 / 14 / 13; 0 / 8 / 5; 78%; 09-27 18Z – 09-30 18Z | (no tropical storm fix with open water) |
+| Rachel | 46047 | 35 / 22 / 22; 0 / 22 / 0; 84%; 10-04 18Z – 10-10 00Z | 38 / 24 / 21; 0 / 13 / 8; 79%; 10-05 12Z – 10-10 18Z |
+| Rachel | 46086 | 28 / 9 / 9; 8 / 1 / 0; 100%; 10-08 05Z – 10-10 05Z | 31 / 12 / 12; 6 / 6 / 0; 100%; 10-08 05Z – 10-10 23Z |
+
+Lala, Karina, Lowell and Nolo are never named either way.
+
+The control (every gated track moved 8–24 days later):
+
+| rule | | tracks | moments arriving | with a match | named, of those | strong | partial | weak | tracks ever named | ever strong | ever partial | ever weak |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| hurricane fixes only | real | 16 | 553 | 90 | 97% | 31% | 54% | 11% | 38% | 19% | 38% | 38% |
+| | misplaced | 71 | 2125 | 156 | 45% | 14% | 17% | 14% | 27% | 10% | 20% | 27% |
+| with tropical storm fixes after | real | 16 | 656 | 95 | 91% | 22% | 45% | 23% | 38% | 12% | 38% | 38% |
+| | misplaced | 74 | 2801 | 172 | 47% | 12% | 22% | 12% | 23% | 9% | 20% | 23% |
+
+What it does:
+
+- **Rachel stays named** to the end of the archive at both buoys, and is named
+  as a tropical storm on any train a tropical storm fix sent.
+- **The control does not loosen.** Misplaced moments named: 3.3% of 2,125 before,
+  2.9% of 2,801 after (from the table's rounded shares); misplaced tracks ever named 27% → 23%,
+  ever strong 10% → 9%.
+- **The real tracks' matches soften.** Real moments named: 15.7% → 13.1%.
+  Marie at 46047 drops from strong (100%) to partial at best (80%), and fails
+  the strict "explains" gate it passed (rank 0.79 → 0.73, own sector ×3.1 →
+  ×1.5): her 7–8 Sep tropical storm days score rank 0.65 and 0.53 with her own
+  sector ×1.5 and ×0.6, so weakened Marie's swell does not stand out at 46047.
+  At 46086 she still explains, and is named longer. Rachel at 46047 is partial
+  (13) and weak (8) where it was partial throughout (22).
+- **Ridges**: tropical storm days widen the bands, so more ridges match some
+  storm-day on timing (Genevieve 2 Aug, Lala 17 and 25 Aug, Odalys 27 Sep). The
+  one bearing attribution (Polo, 29 Sep 03Z) stands; as many or more agree in
+  63% of bearing shuffles, against 20% with hurricane fixes only.

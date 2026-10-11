@@ -542,8 +542,19 @@ forecaster actually verifies against, Surfline included.
    read against the control in `docs/origin_best_tracks.md`: every track moved
    8–24 days LATER was named at some moment 12 of 55 times, partial 9, strong
    2 (both onto another swell from the same bearing: the test cannot tell two
-   sources on one bearing apart). Backtest: Marie strong at both buoys, Polo
-   partial (78% at best), Odalys partial (82%). On a break only when one of its
+   sources on one bearing apart) — on 3 Oct; to 10 Oct, 17 of 74, partial 15,
+   strong 7, the seven not yet examined. Backtest: Marie strong at both buoys, Polo
+   partial (78% at best), Odalys partial (82%). **A hurricane that weakens
+   stays named** (owner's request, 2026-10-11, after Rachel dropped off the
+   card while her swell still arrived; BRIEFING §37f): a storm's sources
+   (`stormtrack.sources`) are its ≥ 64 kt fixes and every fix AFTER its
+   first one that NHC classes TS or HU at ≥ 34 kt — never before it, never
+   a depression, remnant low or extratropical storm. A train a tropical storm
+   fix sent reads "Tropical Storm X" (`strength`, as its winds are the
+   fix's). Measured on one archive with and without: the control does not
+   loosen (misplaced moments named 3.3% → 2.9%), but real matches soften —
+   Marie at 46047 falls from strong to partial (80%) and fails the strict
+   gate, because her weakened days' swell does not stand out there. On a break only when one of its
    card trains is the one arriving — of two (one band, two directions, §40),
    the one within 45° of the storm's bearing. Placed and sized from NHC's fix that sent
    that train, rounded to 100, never from Origin's distance; it replaces

@@ -88,6 +88,18 @@ def test_a_hurricanes_strength_is_the_fix_that_sent_its_train(cases):
     assert "position and winds:" in cases["H3"][-1]
 
 
+def test_a_weakened_storm_reads_as_the_fix_that_sent_its_train(cases):
+    """Owner's request, 2026-10-11: a hurricane that has weakened stays named
+    for the swell its tropical storm fixes sent, and is a tropical storm on
+    that train, as a weakened hurricane's winds are the fix's, not today's."""
+
+    assert cases["T1"][0] == "Tropical Storm Rachel"
+    assert cases["T1"][1].endswith("with winds of 69 mph (60 kt) and 985 mb pressure.")
+    assert cases["T1"][-1].startswith("Tropical storm position, winds and pressure: ")
+    assert [cases["T2"][0], cases["T2"][3]] == ["Tropical Storm Rachel", "Hurricane Sergio"]
+    assert cases["T2"][-1].startswith("Storm position, winds and pressure: ")
+
+
 def test_the_match_is_counts_beaten_never_a_word_or_a_percentage(cases):
     """Owner's calls, 2026-10-10: no percentage, no strong / partial / weak.
     The verb is "beat": the count is copies of the track moved earlier that

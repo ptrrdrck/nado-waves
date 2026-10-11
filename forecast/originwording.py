@@ -59,7 +59,8 @@ def _hurricane(**over) -> dict:
          "match": {"46047": {"score": 0.92, "beaten": 46, "trials": 50, "hours": 30}},
          "sites": {"buoy": {"train_period_s": 14.3, "fix_utc": "2026-10-02T00:00:00Z",
                             "lat": 19.4, "lon": -109.6, "distance_km": 1680,
-                            "bearing_deg": 196, "vmax_kt": 105, "mslp_mb": 950}}}
+                            "bearing_deg": 196, "vmax_kt": 105, "mslp_mb": 950,
+                            "strength": "hurricane"}}}
     h.update(over)
     return h
 
@@ -76,6 +77,18 @@ def _sergio() -> dict:
     h["sites"] = {"buoy": dict(h["sites"]["buoy"], train_period_s=12.5,
                                fix_utc="2026-10-08T12:00:00Z", distance_km=2150,
                                bearing_deg=178, vmax_kt=95, mslp_mb=964)}
+    return h
+
+
+def _weakened() -> dict:
+    """A hurricane since weakened, its train sent by a tropical storm fix."""
+
+    h = _hurricane(best=0.84, word="partial",
+                   match={"46047": {"score": 0.84, "beaten": 36, "trials": 43, "hours": 40}})
+    h["sites"] = {"buoy": dict(h["sites"]["buoy"], train_period_s=10.5,
+                               fix_utc="2026-10-08T12:00:00Z", distance_km=1250,
+                               bearing_deg=200, vmax_kt=60, mslp_mb=985,
+                               strength="tropical storm")}
     return h
 
 
@@ -117,6 +130,10 @@ CASES = [
          match={"46047": {"score": 0.55, "beaten": 11, "trials": 20, "hours": None}})]}),
     ("H4", "two hurricanes",
      {"arrivals": [], "sites": _site(), "hurricanes": [_hurricane(), _sergio()]}),
+    ("T1", "a hurricane since weakened: its tropical storm fix sent the train",
+     {"arrivals": [], "sites": _site(), "hurricanes": [_weakened()]}),
+    ("T2", "a tropical storm and a hurricane",
+     {"arrivals": [], "sites": _site(), "hurricanes": [_weakened(), _sergio()]}),
     ("M1", "hurricane and a placed reading",
      {"arrivals": [_arrival(**PLACED)], "sites": _site(current=[(0, 15.1)]),
       "hurricanes": [_hurricane()]}),

@@ -3265,7 +3265,11 @@ class TestHurricane:
 
     def test_it_is_named_from_nhc_and_says_so(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert "head: `Hurricane ${h.name}`," in entry
+        # Named for what it was when the fix that sent this train was made:
+        # a hurricane, or since 2026-10-11 a tropical storm it weakened to.
+        assert "head: stormHead(h.name, s)," in entry
+        assert ('const stormKind = (at) => (at && at.strength === "tropical storm" '
+                '? "Tropical Storm" : "Hurricane");') in SOURCE
         own = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
         assert "tag:" not in own
         assert ": National Hurricane Center best track${names.length > 1 ? \"s\" : \"\"}`" in SOURCE

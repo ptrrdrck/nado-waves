@@ -1651,7 +1651,8 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 // 2026-10-04), and each line is a fixed run of slots (owner's formula,
 // 2026-10-10, docs/origin_wording.md): a slot with no value is dropped with
 // its joining words, and nothing is reworded per case.
-//   WHAT:  the head alone (a hurricane by name, a sea, or an unplaced storm),
+//   WHAT:  the head alone (a hurricane or tropical storm by name, a sea, or an
+//          unplaced storm),
 //          and "last readable arrival" in grey on a past reading.
 //   SENT:  "The {T} s train, sent [about] {date} from about {far} away", then
 //          its direction (", bearing {deg}" or ", with a split bearing
@@ -1680,6 +1681,13 @@ const buoyName = (o, id) => (o.names && o.names[id] ? `${o.names[id]} (NDBC ${id
 const isPlaced = (a) => Boolean(a.region) && a.bearing_deg != null;
 const isSplit = (a) => a.bearing_deg == null && (a.bearing_lobes || []).length > 0;
 const isUnseen = (a) => a.bearing_deg == null && !isSplit(a);
+// What a named storm was when the fix that sent this train was made
+// (forecast.stormtrack.strength): a hurricane that has weakened stays named,
+// as a tropical storm, for the swell its tropical storm fixes sent (owner's
+// request, 2026-10-11), and reads as a hurricane for the swell it sent as one.
+// A mark from before then carries no strength, and was a hurricane's.
+const stormKind = (at) => (at && at.strength === "tropical storm" ? "Tropical Storm" : "Hurricane");
+const stormHead = (name, at) => `${stormKind(at)} ${name}`;
 function originEntry({head, tag, where, how, storm}) {
   return `<div class="origin"${storm ? ` data-hurricane="${storm}"` : ""}>
     <span class="val">${head}${tag ? ` <span class="unit">${tag}</span>` : ""}</span>
@@ -1713,7 +1721,7 @@ function hurricaneEntry(h, o) {
   const tested = buoys.map(([id, m]) => `${m.beaten} of ${m.trials} times at ${buoyName(o, id)}`
     + (m.hours == null ? "" : ` over ${m.hours} h`)).join(", and ");
   return originEntry({
-    head: `Hurricane ${h.name}`,
+    head: stormHead(h.name, s),
     storm: h.storm,
     where: trainAt({period: s.train_period_s, sent: s.fix_utc, fitted: false,
                     km: s.distance_km, step: 100, bearing: s.bearing_deg,
@@ -1759,7 +1767,9 @@ function originSources(o, hurricanes, readings) {
   if (hurricanes.length) {
     const names = hurricanes.map((h) => `<a href="${bestTrackUrl(h.storm, h.at.fix_utc)}"`
       + ` rel="noopener">${h.name}</a>`);
-    lines.push(`Hurricane ${hurricanes.some((h) => h.at.mslp_mb) ? "position, winds and pressure"
+    const kinds = new Set(hurricanes.map((h) => stormKind(h.at)));
+    const kind = kinds.size > 1 ? "Storm" : kinds.has("Hurricane") ? "Hurricane" : "Tropical storm";
+    lines.push(`${kind} ${hurricanes.some((h) => h.at.mslp_mb) ? "position, winds and pressure"
       : "position and winds"}: National Hurricane Center best track${names.length > 1 ? "s" : ""}`
       + ` for ${andList(names)}, an analysis`);
   }
@@ -3137,7 +3147,8 @@ function chartSpec(id, mode, steps = chartSteps(id)) {
 
 // ORIGINS (owner's request, 2026-10-03): where the swell arriving at this tab
 // came from, over time, from origins.json (forecast.originhistory). Two marks:
-//   - a hurricane the card would have NAMED at that moment, a dot every six
+//   - a storm the card would have NAMED at that moment (a hurricane, or one
+//     since weakened to a tropical storm), a dot every six
 //     hours at the distance of NHC's position that sent this tab's train, in
 //     ink, with its name once in view;
 //   - an arrival read off 46232's spectrum that no storm is named for, a grey
@@ -3150,7 +3161,7 @@ function chartSpec(id, mode, steps = chartSteps(id)) {
 const ORIGIN_KM = [480, 24000];
 const logMi = (km) => Math.log10(km * MI_PER_KM);
 function originsSpec(id, steps) {
-  const legend = [{cls: "dot", label: "Hurricane named, at NHC's position"},
+  const legend = [{cls: "dot", label: "Storm named, at NHC's position"},
                   {cls: "og", label: "Read off the swell, no storm named"}];
   const t0 = Date.parse(steps[0].valid_utc), per = stepMs(steps);
   const idx = (iso) => (Date.parse(iso) - t0) / per;
@@ -3196,16 +3207,17 @@ function originsSpec(id, steps) {
     scale: "distance", lines: [], segs, dots, labels, legend,
     lane: {points, arcs: []},
     says: `Where the swell arriving ${id === BUOY_TAB ? "at the buoy" : `at ${SHORT[id] || id}`} `
-      + "came from, over time: a dot every six hours for a hurricane named from NHC's track at "
-      + "the position that sent the train, and a grey bar over the hours an arrival read off "
-      + "the swell itself was arriving, at its distance, with no storm named. Distance on a "
-      + "log scale; under it, the bearing each came from, as seen from the buoy",
+      + "came from, over time: a dot every six hours for a hurricane or tropical storm named "
+      + "from NHC's track at the position that sent the train, and a grey bar over the hours "
+      + "an arrival read off the swell itself was arriving, at its distance, with no storm "
+      + "named. Distance on a log scale; under it, the bearing each came from, as seen from "
+      + "the buoy",
     read: (i) => {
       const t = Date.parse(steps[i].valid_utc);
       // Named as the Origin fold names them (owner's call, 2026-10-10): a
-      // hurricane by name with no match word or figure, a sea, or "Unplaced
+      // storm by name with no match word or figure, a sea, or "Unplaced
       // storm".
-      const parts = near(i).map((n) => value(`Hurricane ${n.name}`)
+      const parts = near(i).map((n) => value(stormHead(n.name, n.at))
         + `, ${farAway(n.at.distance_km, 100)} ${point(n.at.bearing_deg)}`);
       arrivals.filter((a) => Date.parse(a.first_utc) <= t && t <= Date.parse(a.last_utc))
         .forEach((a) => parts.push(a.region
