@@ -255,8 +255,8 @@ class TestOnThePage:
         # Each buoy's own words, from buoys.json: never one line typed for all.
         assert '<p class="quiet buoy-note">${b.note}</p>' in block
         assert "Open ocean witness" not in block
-        assert "observedPills(b.observed_utc)" in block
-        assert "feedPills(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after" in block
+        assert "placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)" in block
+        assert "feedPills(`NDBC ${b.station}`, b.observed_utc, b.observed_utc ? b.next_expected : null," in block
         assert "NOW." not in block
 
     def test_each_buoys_provenance_follows_its_own_measurements(self):
@@ -335,11 +335,13 @@ class TestThePills:
         assert "sublbl" not in _fn("buoyPanel") and "pill" not in _fn("buoyReading")
         assert "buoyLabel" not in PAGE
         # It replaces the "(NDBC <id>)" the name line carried, on both buoys.
-        assert "buoyWhere(NOW.station_name, NOW.station)" in PAGE
+        assert "placeWhen(buoyPlace(NOW.station_name, NOW.station), NOW.observed_utc)" in PAGE
         block = _fn("contextBuoy")
         assert "(NDBC ${b.station})" not in block
-        assert "feed ? {html: feed} : \"\"," in block
-        assert "`CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`" in PAGE
+        assert "srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)], feed);" in block
+        # "CDIP <n>" alone since 2026-10-12, never "via NDBC".
+        assert "`CDIP ${now.station_cdip}` : `NDBC ${now.station}`" in PAGE
+        assert "via NDBC`" not in PAGE
 
     def test_the_combined_height_sits_in_a_break_headlines_row(self):
         """Owner's request, 2026-10-09: the buoys' combined height sat about
@@ -383,45 +385,56 @@ class TestThePills:
             assert css.count(cut) == 2, cut       # -webkit- and standard
         assert "-webkit-mask-composite:source-out,source-over,source-over" in css
         assert "mask-composite:subtract,add,add" in css
-        # No second, no tail: never an empty pill.
-        assert '${tail ? `<span class="pill-tail">${tail}</span>` : ""}' in _fn("pills")
+        # An empty part is left out: never an empty pill.
+        fn = _fn("pills")
+        assert "parts.filter(Boolean)" in fn
+        assert 'tails.map((tail) => `<span class="pill-tail">${tail}</span>`)' in fn
 
-    def test_a_pair_that_does_not_fit_splits_rather_than_overflows(self):
-        """At 320 px "Observed Sunday, Oct 11, 6:00 AM" and its age do not
-        fit on one line: the second pill wraps and stands on its own,
-        measured joined each time so it cannot oscillate."""
+    def test_a_line_that_does_not_fit_wraps_rather_than_overflows(self):
+        """At 320 px a line's pills do not all fit: a pill that wraps to start
+        a row stands on its own, in the joined pill's footprint (-4 + 13 + 7
+        = 8 + 8), so marking it never moves the next and nothing oscillates."""
 
         css = PAGE[PAGE.index(".pill,.pill-tail{"):PAGE.index(".status{")]
         assert "flex-wrap:wrap" in css[css.index(".pills{"):]
-        assert ".pills.split .pill-tail{margin-left:0;padding:0 7px;border-radius:4px;-webkit-mask:none;mask:none}" in css
+        assert "margin-left:-4px;padding:0 7px 0 13px" in css
+        assert ".pill-tail.wrapped{margin-left:0;padding:0 8px;border-radius:4px;-webkit-mask:none;mask:none}" in css
         fit = _fn("fitPill")
-        assert fit.index('classList.remove("split")') < fit.index("offsetTop")
+        assert fit.index('classList.remove("wrapped")') < fit.index("offsetTop") < fit.index('classList.toggle("wrapped"')
         assert "fitPills($(\"conditions\"))" in PAGE
 
 
 class TestTheProvenancePills:
-    """Owner's request, 2026-10-11: each LIVE buoy's provenance in the feed
-    pill's style -- "Point Loma South, CA | Spectral wave data", then
-    "Observed <when> | <age>", then the feed and its countdown."""
+    """Owner's requests, 2026-10-11 and -12: each LIVE card's provenance is
+    two lines of pills -- "Point Loma South, CA | <when>", then "CDIP 191 •
+    | <age> | <countdown>"."""
 
     def test_46232s_lines_in_order(self):
         live = PAGE.split("rows.push(swellCard(")[1].split("}));")[0]
-        assert (live.index("buoyWhere(NOW.station_name, NOW.station)")
-                < live.index("observedPills(NOW.observed_utc)")
+        assert (live.index("placeWhen(buoyPlace(NOW.station_name, NOW.station), NOW.observed_utc)")
                 < live.index("due: anchorFeed(NOW, due.swell, late.swell),"))
 
+    def test_the_second_line_is_station_age_countdown(self):
+        feed = _fn("feedPills")
+        assert ("pills(label + statusDot(iso, lateIso, {forceOver}), ageSpan(observedIso),\n"
+                "               dueSpan(iso, lateIso, {forceOver, bare: true}))") in feed
+        assert "now.observed_utc,\n             due, late, {forceOver: nowIsStale()}" in PAGE
+
+    def test_the_first_line_is_place_and_time_with_no_verb(self):
+        """Owner's call, 2026-10-12: the time alone, no "Observed" or
+        "Measured"."""
+        assert 'const placeWhen = (place, iso) => pillLine(place || "", iso ? when(iso) : "");' in PAGE
+        assert "`Observed ${when(" not in PAGE and "`Measured ${when(" not in PAGE
+
     def test_46047s_lines_in_the_same_order_its_words_above_them(self):
-        """Owner's call, 2026-10-11: "Open ocean witness" is a description
-        under the rose, above the provenance with space between, and no
-        longer one of its lines."""
+        """Owner's call, 2026-10-11: the buoy's words are a description under
+        the rose, above the provenance with space between, and no longer one
+        of its lines."""
 
         block = _fn("contextBuoy")
         assert (block.index('<p class="quiet buoy-note">${b.note}</p>')
                 < block.index("srcLines(")
-                < block.index("buoyWhere(b.station_name, b.station)")
-                < block.index("observedPills(b.observed_utc)")
-                < block.index("feed ? {html: feed}"))
-        assert '<p class="quiet buoy-note">' in block
+                < block.index("placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)"))
         assert ".buoy-fold .rose + .buoy-note{margin-top:3px}" in PAGE
 
 
@@ -459,15 +472,14 @@ class TestTheBuoyHeadlineFolds:
 
     def test_the_place_alone(self):
         """Owner's call, 2026-10-11: "Spectral wave data" came off the first
-        line; the place alone, never the id the feed pill carries."""
-        where = _fn("buoyWhere")
-        assert 'return name && name !== station ? pillLine(name) : "";' in where
-        assert "Spectral wave data" not in where
+        line; the place alone, never the id the station pill carries."""
+        assert 'const buoyPlace = (name, station) => (name && name !== station ? name : "");' in PAGE
+        assert "Spectral wave data" not in PAGE[PAGE.index("const buoyPlace"):][:300]
 
     def test_the_age_stays_volatile(self):
         """The age is the reader's clock, so `cardText` must still strip it."""
-        obs = _fn("observedPills")
-        assert "pillLine(`${verb} ${when(iso)}`, ageSpan(iso))" in obs
+        assert "ageSpan(observedIso)" in _fn("feedPills")
+        assert '<span class="age">${age}</span>' in _fn("ageSpan")
 
     def test_a_pill_line_takes_no_full_stop(self):
         assert '${line.html || period(line)}' in _fn("srcLines")

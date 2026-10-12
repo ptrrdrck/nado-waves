@@ -49,7 +49,7 @@ From the top of the forecast page down. The figures are a real hour, noon on Mon
 - North / Center / South / Buoy
 - 3.5 ft (1.07 m) breaking height ▾
 - the window drawing, and the swell trains under it
-- Point Loma South, CA · Observed Monday, Sep 28, 12:00 PM | 15 min ago · CDIP 191 via NDBC | **Update in 59:12**
+- Point Loma South, CA | Monday, Sep 28, 12:00 PM · CDIP 191 | 15 min ago | **Update in 59:12**
 - **Charts** ▴
 - **Wind** 9 mph (8 kt) from the west, cross-shore at this break · **Tide** 6.2 ft (1.89 m)
 
@@ -402,7 +402,7 @@ The Local chop row names the chop's period, its kind (behind land, or open water
 
 One tab per break, ranked by how much of the buoy's energy its windows let through, with the Buoys tab always last. It shows the swell at buoy 46232, 29 km offshore, with nothing in the way, so it is always the biggest number, and it is the one the breaks are measured from.
 
-On “LIVE”, each buoy's provenance is three lines of pills, the second of a pair growing out of the first: where the buoy is; when the spectrum was observed and how long ago; and its countdown line. The Wind and Tide cards' provenance is the same three lines: “NAS North Island”, the observation and its age, and “METAR KNZY” with its countdown; “Coronado, CA”, the measurement and its age, and “NOAA 9410170” with its countdown. On a narrow phone, where a pair does not fit on one line, the second pill wraps under the first and stands on its own. On the countdown line the first pill says where its spectra come from, with a dot, and the countdown itself sits in the second. 46232's reads “CDIP 191 via NDBC”: Scripps' Coastal Data Information Program runs the buoy, and its spectra reach this page through NDBC. Tanner Banks' reads “NDBC 46047” and San Clemente Basin's “NDBC 46086”, as NDBC runs those buoys itself. 46232's line sits under every swell tab, the break tabs included, because every break's numbers come from its spectrum. The dot is green while that buoy's spectra arrive on time, fades in and out once the next one is due, and turns red once it is overdue. It changes exactly when the [countdown](#swell-countdown) beside it says “Update due” and “Overdue”, from the same two instants. With reduced motion on, a due dot holds at half strength instead of fading.
+On “LIVE”, each buoy's provenance is two lines of joined pills, each growing out of the one before it. The first says where the buoy is and when its spectrum was taken. The second names the station, with a dot, then how long ago the spectrum was taken, then the countdown to the next. The Wind and Tide cards' provenance is the same two lines: “NAS North Island” and the time, then “METAR KNZY”, the age and the countdown; “Coronado, CA” and the time, then “NOAA 9410170”, the age and the countdown. On a narrow phone, where a line's pills do not all fit, a pill wraps to start the next row and stands on its own. 46232's station reads “CDIP 191”: Scripps' Coastal Data Information Program runs the buoy, and its spectra reach this page through NDBC. Tanner Banks' reads “NDBC 46047” and San Clemente Basin's “NDBC 46086”, as NDBC runs those buoys itself. 46232's line sits under every swell tab, the break tabs included, because every break's numbers come from its spectrum. The dot is green while that buoy's spectra arrive on time, fades in and out once the next one is due, and turns red once it is overdue. It changes exactly when the [countdown](#swell-countdown) beside it says “Update due” and “Overdue”, from the same two instants. With reduced motion on, a due dot holds at half strength instead of fading.
 
 On “LIVE” the Buoys tab also shows buoy 46047 at Tanner Banks, 222 km west, the buoy in the array that the islands shadow least. It is read the same way as 46232: the combined height of its directional spectrum, and its [swell trains](#swell-trains), with a train fed from two directions naming both. It is open ocean outside every break's windows, so it is carried to no break, and no number on any other tab comes from it. It is there so the swell before the Channel Islands and the Bight can be read beside the swell at 46232. Its spectra are stamped every half hour, at :20 and :50, so it has its own observed time and its own [countdown](#swell-countdown).
 
@@ -543,7 +543,7 @@ card       0.944 × 2.005 = 1.893 m                   → 6.2 ft (1.89 m)
 breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level
 ```
 
-On “LIVE” the provenance names the place first, Coronado, and the gauge the reading was carried from, NOAA 9410170, on the countdown line; on Forecast the source line names both. The countdown keeps the gauge's own time.
+On “LIVE” the provenance names the place first, Coronado, and the gauge the reading was carried from, NOAA 9410170, at the start of its second line; on Forecast the source line names both. The countdown keeps the gauge's own time.
 
 ### [tide-turn] The next high or low
 

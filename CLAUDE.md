@@ -258,17 +258,19 @@ forecaster actually verifies against, Surfline included.
    Each buoy's feed is a pill at the START of its countdown line (owner's
    requests, 2026-10-09, moved there 2026-10-11 from beside the combined
    height, whose headline is now the height alone, as a break's is): "CDIP
-   191 via NDBC •" for 46232 — CDIP runs it, NDBC serves its spectra — and
-   "NDBC 46047 •", replacing the "(NDBC <id>)" the name line carried. **The
-   whole provenance is pills** (owner's request, 2026-10-11): "Point Loma
-   South, CA" (the place alone, "Spectral wave data" dropped the same day),
-   then "Observed <when> | <age>", then the feed, each pair joined as below,
-   corners 4 px; the LIVE Wind and Tide cards' too — "NAS North Island",
-   "Observed …", "METAR KNZY •" and "Coronado, CA" (`tidesite.SITE_PLACE`,
-   now.json `tide_place`), "Measured …", "NOAA 9410170 •", the dot on each
-   card's own countdown (`feedPills`); a pair too wide for its
-   line wraps its second pill under the first as a pill of its own
-   (`fitPills`), never past the card. 46047's "Open ocean witness" line is
+   191 •" for 46232 (owner's call, 2026-10-12, shortened from "CDIP 191 via
+   NDBC") — CDIP runs it, NDBC serves its spectra — and "NDBC 46047 •",
+   replacing the "(NDBC <id>)" the name line carried. **The whole
+   provenance is two lines of joined pills** (owner's requests, 2026-10-11
+   and -12): "Point Loma South, CA | <when>" (the place alone, the time with
+   no "Observed" or "Measured"; `placeWhen`), then "CDIP 191 • | <age> |
+   <countdown>" (`feedPills`), each pill after the first growing out of the
+   one before, corners 4 px; the LIVE Wind and Tide cards' too — "NAS North
+   Island | <when>", "METAR KNZY • | <age> | <countdown>" and "Coronado, CA"
+   (`tidesite.SITE_PLACE`, now.json `tide_place`), "NOAA 9410170 • | …", the
+   dot on each card's own countdown; a line too wide for the card wraps a
+   pill to start the next row as a pill of its own, in the joined one's
+   footprint (`fitPills`), never past the card. 46047's "Open ocean witness" line is
    no longer provenance: words under its rose, above its pills with space
    between. **Each buoy's headline folds like a break's** (owner's request,
    same day; `buoyReading`): its caret and whole line fold out everything
@@ -278,11 +280,10 @@ forecaster actually verifies against, Surfline included.
    `station_cdip`, never typed on the page; "NDBC 46232" without it). Ink at
    the provenance's 12 px on the picked row's background; 46232's sits under
    every swell tab, the break tabs too, because every break's numbers are
-   that one spectrum. The countdown is its own pill growing out of the
-   feed's (owner's design, same day; `feedPills`): it starts under the feed
-   pill's right cap, its left edge a concave arc cut 2 px outside that cap
-   (a CSS mask), its right end the feed pill's, the two one unit that never
-   wraps apart, and its words without the full stop the card's other
+   that one spectrum. Each pill after the first grows out of the one before
+   (owner's design, 2026-10-11; `feedPills`): it starts under that pill's
+   right end, its left edge cut 2 px outside it (a CSS mask), and the
+   countdown's words without the full stop the card's other
    countdowns keep (`dueSpan`'s `bare`). The dot runs on that
    buoy's own countdown instants (`dueInstants`), so it turns exactly when
    "Update due." and "Overdue by …" do: green, green fading in and out
