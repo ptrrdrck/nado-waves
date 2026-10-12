@@ -34,7 +34,7 @@ in this order:
 | # | Present when | Text |
 |---|---|---|
 | S1 | always | `Trains read off the spectrum at {46232}` + `, and storms read backwards from them` if any reading is shown + `; direction at {46047}` if any reading has a bearing |
-| S2 | a hurricane is shown | `Hurricane position, winds and pressure: National Hurricane Center best track for {Name}, an analysis.` The name links to NHC's best-track file for that storm (`https://ftp.nhc.noaa.gov/atcf/btk/b{basin}{nn}{year}.dat`). Two storms: `best tracks for {Name} and {Name}`, each linked. `position and winds` when no fix shown has a pressure |
+| S2 | a hurricane is shown | `Hurricane position, winds and pressure: National Hurricane Center best track for {Name}, an analysis.` The name links to NHC's page for that storm, with its advisories, track and cone map (`https://www.nhc.noaa.gov/archive/{year}/{NAME}_graphics.php`), not the best-track file the card reads. Two storms: `best tracks for {Name} and {Name}`, each linked. `position and winds` when no fix shown has a pressure |
 | S3 | a reading has a split bearing | `Unplaced storm: {46047} holds that train from multiple directions, so no place is given.` |
 | S4 | a reading is not at 46047 | one buoy: `Unplaced storm: {46047} does not have that train.` two: `Unplaced storm: neither {A} nor {B} has that train.` |
 
@@ -194,7 +194,7 @@ Hurricane Rachel
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
 Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
-Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
 ### H2: hurricane, two gate buoys
@@ -204,7 +204,7 @@ Hurricane Rachel
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
 Timing and direction beat NHC's track moved earlier 39 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h, and 28 of 40 times at San Clemente Basin, CA (NDBC 46086) over 26 h.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
-Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
 ### H3: hurricane, no hours, no pressure
@@ -214,7 +214,7 @@ Hurricane Rachel
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt).
 Timing and direction beat NHC's track moved earlier 11 of 20 times at Tanner Banks, CA (NDBC 46047).
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
-Hurricane position and winds: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+Hurricane position and winds: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
 ### H4: two hurricanes
@@ -227,7 +227,7 @@ Hurricane Sergio
 The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away, bearing 178° S with winds of 109 mph (95 kt) and 964 mb pressure.
 Timing and direction beat NHC's track moved earlier 37 of 50 times at Tanner Banks, CA (NDBC 46047) over 22 h.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
-Hurricane position, winds and pressure: National Hurricane Center best tracks for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat) and [Sergio](https://ftp.nhc.noaa.gov/atcf/btk/bep202026.dat), an analysis.
+Hurricane position, winds and pressure: National Hurricane Center best tracks for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) and [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php), an analysis.
 ```
 
 ### T1: a hurricane since weakened: its tropical storm fix sent the train
@@ -237,7 +237,7 @@ Tropical Storm Rachel
 The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with winds of 69 mph (60 kt) and 985 mb pressure.
 Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks, CA (NDBC 46047) over 40 h.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
-Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
 ### T3: one storm's swell cut into two rows at this break
@@ -247,7 +247,7 @@ Tropical Storm Rachel
 The 10.5 and 11.1 s trains, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with winds of 69 mph (60 kt) and 985 mb pressure.
 Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks, CA (NDBC 46047) over 40 h.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
-Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
 ### T2: a tropical storm and a hurricane
@@ -260,7 +260,7 @@ Hurricane Sergio
 The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away, bearing 178° S with winds of 109 mph (95 kt) and 964 mb pressure.
 Timing and direction beat NHC's track moved earlier 37 of 50 times at Tanner Banks, CA (NDBC 46047) over 22 h.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
-Storm position, winds and pressure: National Hurricane Center best tracks for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat) and [Sergio](https://ftp.nhc.noaa.gov/atcf/btk/bep202026.dat), an analysis.
+Storm position, winds and pressure: National Hurricane Center best tracks for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) and [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php), an analysis.
 ```
 
 ### M1: hurricane and a placed reading
@@ -273,7 +273,7 @@ South Pacific
 The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away, bearing 212° SSW.
 Read backwards off the swell, 18 h so far.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them; direction at Tanner Banks, CA (NDBC 46047).
-Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
 ### M3: hurricane and a split bearing, as live on 2026-10-10
@@ -286,7 +286,7 @@ Unplaced storm
 The 20.0 s train, sent about Oct 1 from about 9,500 mi (15,000 km) away, with a split bearing (140° SE or 196° SSW or 254° WSW).
 Read backwards off the swell, 18 h so far.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them.
-Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple directions, so no place is given.
 ```
 
@@ -297,5 +297,5 @@ Hurricane Rachel
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
 Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
-Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://ftp.nhc.noaa.gov/atcf/btk/bep182026.dat), an analysis.
+Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```

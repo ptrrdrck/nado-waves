@@ -533,8 +533,9 @@ forecaster actually verifies against, Surfline included.
    arriving"). Then ONE provenance block, a line per claim on screen, in this
    order: every train read off 46232's spectrum, "and storms read backwards
    from them" only with a reading; NHC's best track for a hurricane's
-   position, winds and pressure, the storm's NAME linked to NHC's b-deck
-   (`atcf/btk/`); why each unplaced reading has no place — each buoy as NDBC
+   position, winds and pressure, the storm's NAME linked to NHC's own page
+   for it (`archive/{year}/{NAME}_graphics.php`, track and cone map; owner's
+   call 2026-10-12), never the b-deck the card reads; why each unplaced reading has no place — each buoy as NDBC
    names it, the bearing buoys and every gate buoy a shown hurricane was
    matched at (46086 printed bare until 2026-10-10),
    "Tanner Banks, CA (NDBC 46047)", from `origin.station_names` in
