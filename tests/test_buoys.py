@@ -12,6 +12,9 @@ import ast
 import csv
 import json
 import math
+import re
+import shutil
+import subprocess
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -106,14 +109,16 @@ class TestTheReading:
         shown = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"]
         # Owner's call, 2026-10-12: 46086 first, then 46047.
         assert [b["station"] for b in shown] == ["46086", "46047"]
-        assert [b["note"] for b in shown] == [
-            "Inside South's window, not carried to any break.",
-            "Open ocean witness, not carried to any break.",
-        ]
-        # A missing spectrum still says what the buoy is.
+        # Each buoy's own sentence, 46232's included (owner's wording,
+        # 2026-10-12), and still there when its spectrum is missing.
         (tmp_path / "spectra" / "46086" / "c11.csv").unlink()
-        gone = block(buoys.build(data_dir=tmp_path, now=MOMENT), "46086")
-        assert "hs_m" not in gone and gone["note"] == buoys.WITNESS["46086"]["note"]
+        payload = buoys.build(data_dir=tmp_path, now=MOMENT)
+        assert "hs_m" not in block(payload, "46086")
+        assert list(payload["about"]) == ["46232", "46086", "46047"]
+        assert {s: a["says"] for s, a in payload["about"].items()} == buoys.ABOUT
+        # No metadata in this archive: no place, so no distance -- never a guess.
+        assert payload["about"]["46086"]["range_km"] is None
+        assert payload["about"]["46086"]["place"] == "46086"
 
     def test_json_round_trips(self, tmp_path):
         write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(minutes=40)))
@@ -153,9 +158,12 @@ class TestItFeedsNoBreak:
             got = by_id[station].in_window_of
             assert got in words, (station, got)
             assert buoys.WITNESS[station]["windows"] == words[got], station
-            note = buoys.WITNESS[station]["note"]
-            assert note.endswith("not carried to any break.")
-            assert ("window" in note) == bool(got), station
+            says = buoys.ABOUT[station]
+            assert says.endswith("not carried to any break.")
+            assert ("window" in says) == bool(got), station
+        # The anchor's sentence claims all three windows: siting must agree.
+        assert len(by_id[buoys.ANCHOR].in_window_of) == 3
+        assert "all three breaks' windows" in buoys.ABOUT[buoys.ANCHOR]
 
     def test_the_only_buoy_shown_is_a_context_buoy(self):
         from collector.spectra import CONTEXT_STATIONS, DEFAULT_STATION
@@ -259,8 +267,8 @@ class TestOnThePage:
     def test_its_block_says_it_feeds_no_break_and_has_its_own_clock(self):
         block = PAGE[PAGE.index("function contextBuoy("):]
         block = block[:block.index("\n}\n")]
-        # Each buoy's own words, from buoys.json: never one line typed for all.
-        assert '<p class="quiet buoy-note">${b.note}</p>' in block
+        # Each buoy's own sentence, from buoys.json: never one typed for all.
+        assert "const note = buoyAbout(b.station);" in block
         assert "Open ocean witness" not in block
         assert "placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)" in block
         assert "feedPills(`NDBC ${b.station}`, b.observed_utc, b.observed_utc ? b.next_expected : null," in block
@@ -284,6 +292,56 @@ class TestOnThePage:
 def _fn(name: str) -> str:
     body = PAGE[PAGE.index(f"function {name}("):]
     return body[:body.index("\n}\n")]
+
+
+class TestTheSentenceUnderEachRose:
+    """Owner's wording, 2026-10-12: one sentence under each buoy's rose --
+    the station linked to its public page, its distance offshore and bearing
+    from Center break, what is read from it and its role here."""
+
+    def _render(self, about):
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        script = (
+            "const MI_PER_KM = 0.621371;\n"
+            + _fn("point") + "\n}\n" + _fn("buoyAbout") + "\n}\n"
+            + f"const BUOYS = {{about: {json.dumps(about)}}};\n"
+            + "for (const s of ['46232', '46086', '46047']) console.log(buoyAbout(s));\n"
+        )
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        return out.stdout.strip().split("\n")
+
+    def test_the_approved_sentences(self):
+        got = self._render(buoys.about(ROOT / "data"))
+        plain = [re.sub(r"<[^>]+>", "", line).replace("&deg;", "°") for line in got]
+        assert plain == [
+            "Point Loma South (CDIP 191), 18 mi (29 km) offshore at 231° SW from Center "
+            "break: its hourly directional spectrum is what every break's numbers are "
+            "carried from, as the only buoy inside all three breaks' windows.",
+            "San Clemente Basin (NDBC 46086), 51 mi (81 km) offshore at 256° WSW from "
+            "Center break: its half-hourly directional spectrum is shown here and checked "
+            "against hurricane tracks, and though it sits inside South's window it is not "
+            "carried to any break.",
+            "Tanner Banks (NDBC 46047), 138 mi (222 km) offshore at 263° W from Center "
+            "break: its half-hourly directional spectrum reads the open ocean before the "
+            "Channel Islands, gives Origin its storm bearings and is checked against "
+            "hurricane tracks, but is not carried to any break.",
+        ]
+        assert '<a href="https://cdip.ucsd.edu/m/products/?stn=191p1" rel="noopener">' in got[0]
+        assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46086"' in got[1]
+        assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46047"' in got[2]
+
+    def test_measured_from_center_and_never_typed(self):
+        from forecast import siting
+
+        assert siting.REFERENCE_BREAK == "coronado_center"
+        source = (ROOT / "forecast" / "buoys.py").read_text()
+        for figure in ("29.0", "81.5", "222.2", "230.8", "256.2", "263.0"):
+            assert figure not in source, figure
+
+    def test_live_only_as_the_rose_is(self):
+        assert 'const note = rose ? buoyAbout(id) : "";' in _fn("buoyPanel")
 
 
 class TestThePills:
@@ -448,7 +506,7 @@ class TestTheProvenancePills:
         of its lines."""
 
         block = _fn("contextBuoy")
-        assert (block.index('<p class="quiet buoy-note">${b.note}</p>')
+        assert (block.index("const note = buoyAbout(b.station);")
                 < block.index("srcLines(")
                 < block.index("placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)"))
         assert ".buoy-fold .rose + .buoy-note{margin-top:3px}" in PAGE
@@ -467,7 +525,7 @@ class TestTheBuoyHeadlineFolds:
         # Nothing to fold, no caret.
         assert "if (!id || !body) return valLine(value) + body;" in read
         # The rose is in the fold on both buoys, and the provenance is not.
-        assert "buoyReading(buoy, id, {roseFor: rose ? id : null, rose}) + line" in _fn("buoyPanel")
+        assert "buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note}) + line" in _fn("buoyPanel")
         block = _fn("contextBuoy")
         assert "buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note})" in block
 
