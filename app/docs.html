@@ -390,9 +390,9 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         always some minutes old, and each card's countdown says exactly how old.</p>
       <p>It carries exactly one modelled number, the tide's next high or low, and that is labelled
         <em>predicted</em> wherever it appears. <a href="#tide-turn">Why that one</a>.</p>
-      <p>Its Buoys tab also shows a second buoy, 46047 at Tanner Banks, measured the same way,
-        and a <a href="#swell-roses">rose</a> under each buoy. Nothing on any other tab is computed
-        from 46047. <a href="#swell-tabs">Why it is there</a>.</p>
+      <p>Its Buoys tab also shows two more buoys, 46047 at Tanner Banks and 46086 at San Clemente
+        Basin, measured the same way, and a <a href="#swell-roses">rose</a> under each buoy. Nothing
+        on any other tab is computed from either. <a href="#swell-tabs">Why they are there</a>.</p>
     </section>
 
     <section id="chains-forecast">
@@ -860,7 +860,8 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         first and stands on its own. On the countdown line the first pill says
         where its spectra come from, with a dot, and the countdown itself sits in the second. 46232's reads &ldquo;CDIP 191 via NDBC&rdquo;: Scripps'
         Coastal Data Information Program runs the buoy, and its spectra reach this page through
-        NDBC. Tanner Banks' reads &ldquo;NDBC 46047&rdquo;, as NDBC runs that buoy itself. 46232's
+        NDBC. Tanner Banks' reads &ldquo;NDBC 46047&rdquo; and San Clemente Basin's
+        &ldquo;NDBC 46086&rdquo;, as NDBC runs those buoys itself. 46232's
         line sits under every swell tab, the break tabs included, because every break's numbers
         come from its spectrum. The dot is green while that buoy's spectra arrive on time, fades
         in and out once the next one is due, and turns red once it is overdue. It changes exactly
@@ -875,12 +876,18 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         number on any other tab comes from it. It is there so the swell before the Channel
         Islands and the Bight can be read beside the swell at 46232. Its spectra are stamped
         every half hour, at :20 and :50, so it has its own observed time and its own
-        <a href="#swell-countdown">countdown</a>. The Forecast tab's Buoys tab shows 46232 only,
-        because the model run is read at 46232 alone.</p>
+        <a href="#swell-countdown">countdown</a>.</p>
+      <p>Under it is buoy 46086 at San Clemente Basin, 81 km west-south-west, read the same way.
+        It is not open ocean: it sits inside the south break's window, the only buoy besides 46232
+        that does, and outside North's and Center's. It is still carried to no break, because a
+        buoy 81 km out is not the sea at the beach and 46232 has no stand-in, and its block says
+        so. It too stamps at :20 and :50, with its own observed time and its own countdown,
+        measured on its own readings. The Forecast tab's Buoys tab shows 46232 only, because the
+        model run is read at 46232 alone.</p>
       <p>Each buoy's headline folds out, as a break's does: tap it, or the caret at its end, and
         what sits between it and the buoy's provenance opens beneath it &mdash; its swell trains,
-        its rose on &ldquo;LIVE&rdquo;, and under 46047's rose the line saying it is an open
-        ocean witness, carried to no break. It is closed until opened. Each buoy opens on its
+        its rose on &ldquo;LIVE&rdquo;, and under 46047's and 46086's roses the line saying
+        what each is and that it is carried to no break. It is closed until opened. Each buoy opens on its
         own, and the page keeps them as the reader left them across a refresh. On the Forecast
         tab it folds 46232's trains; the observed line under a past hour stays out of it, as it
         does on a break's tab.</p>
@@ -945,9 +952,9 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
       <p>On &ldquo;LIVE&rdquo;, under each buoy's reading on the Buoys tab, a rose drawn from
         that buoy's spectrum. Each petal points where its energy comes from, one petal for each of
         the sixteen compass points, 22.5&deg; wide. A new rose is drawn for every spectrum: hourly
-        at 46232, every half hour at 46047. Each rose opens paused on the newest, the spectrum
+        at 46232, every half hour at 46047 and 46086. Each rose opens paused on the newest, the spectrum
         its headline reads, whenever it comes into view; the play button runs the last six hours
-        of them in a loop, then the newest holds. One clock drives both roses, so both always show the same moment. The line
+        of them in a loop, then the newest holds. One clock drives every rose, so all of them always show the same moment. The line
         under each rose is those six hours, with a tick for every spectrum that buoy sent; a
         missing spectrum is a missing tick, and while the loop passes it the rose says so rather
         than showing the one before. Tap the line to go to a moment, or step it with the arrow
@@ -964,7 +971,7 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         rounded up to the next ring (the next whole foot, until the petals pass 5 ft and the rings
         go every 2 ft), so no petal passes it. That ring is the drawing's edge, with N, E, S and W
         just inside it. The scale holds through the loop, so a petal that
-        grows from one frame to the next really grew. The two buoys' scales differ, so compare them
+        grows from one frame to the next really grew. The buoys' scales differ, so compare them
         by their rings, not by the size of the petals.</p>
       <p>Tap a swell train above a rose to light its period range on it: the frequencies that
         train holds in the newest spectrum, in ink, over the whole rose dimmed. Where one band of
@@ -1132,6 +1139,7 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         <tbody>
           <tr><th scope="row">Swell, buoy 46232</th><td>hourly, stamped :00</td><td class="num">15 min</td><td class="num">36 min</td><td>1:15 PM, red after 1:45 PM</td></tr>
           <tr><th scope="row">Swell, buoy 46047 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">85 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:15 PM</td></tr>
+          <tr><th scope="row">Swell, buoy 46086 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">115 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:45 PM</td></tr>
           <tr><th scope="row">Wind, KNZY</th><td>hourly at :52</td><td class="num">3 min</td><td class="num">4 min</td><td>(11:52 AM reading) 12:55 PM, red after 1:05 PM</td></tr>
           <tr><th scope="row">Tide, 9410170</th><td>every 6 min</td><td class="num">5 min</td><td class="num">8 min</td><td>12:15 PM</td></tr>
         </tbody></table></div>
@@ -1370,10 +1378,11 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
         <dt>Height</dt><dd>The break's breaking height, with the other two breaks' in lighter
           lines under it, the more southern of the two dashed, so the three can be compared at a
           glance on one axis. On the buoy's tab, the buoy's own height, and under it in a lighter
-          line buoy 46047's, Tanner Banks, at its own readings: it measures at :20 and :50 past
-          the hour, so each is drawn where it was taken and read out with its own time, never moved
-          onto 46232's hour. A missing reading is a gap in its line. It is the open ocean before
-          the Channel Islands and is carried to no break.</dd>
+          line buoy 46047's, Tanner Banks, and in a lighter dashed one buoy 46086's, San Clemente
+          Basin, each at its own readings: they measure at :20 and :50 past the hour, so each is
+          drawn where it was taken and read out with its own time, never moved onto 46232's hour.
+          A missing reading is a gap in its line. 46047 is the open ocean before the Channel
+          Islands, 46086 sits in the south break's window, and neither is carried to a break.</dd>
         <dt>Window</dt><dd>A break's height through its windows as a share of the buoy's,
           before the seabed: the <a href="#calc-windows">Windows row</a>. Under it, a dot for each
           hour marks where the buoy's peak came from, over the break's open windows shaded. The

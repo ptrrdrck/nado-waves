@@ -2241,6 +2241,32 @@ class TestTheWeekChart:
         assert got[2] == "2 3"                                     # 60 to 150 min is a gap
         assert got[3] == '<span class="v">Buoy 1.20 m</span>'      # without it, as before
 
+    def test_the_buoys_tab_draws_46086_dashed_under_46047(self):
+        """Owner's request, 2026-10-12: 46086 beside 46047 on the Height
+        chart, both lighter, the second dashed as a break tab's second other
+        break is -- greys and a dash, never a colour -- each at its own
+        stamps and read out with its own time."""
+
+        got = self._run(
+            "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 6)};\n"
+            "const clock = (iso) => iso.slice(11, 16);\n"
+            "BUOYS = {generated_utc: 'b', heights: {"
+            "'46047': {start_utc: '2026-09-19T23:50:00Z', t_min: [0, 30, 60], hs_m: [1.5, 1.6, 1.7]},"
+            "'46086': {start_utc: '2026-09-20T00:20:00Z', t_min: [0, 30, 150], hs_m: [1.1, 1.2, 1.4]}}};\n"
+            "const spec = chartSpec('buoy', 'height');\n"
+            "console.log(spec.tracks.map((tr) => tr.cls + '|' + tr.label).join(','));\n"
+            "console.log(spec.read(3));\n"
+            "console.log(spec.says);\n"
+            "const svg = chartPlot('buoy', spec, 1);\n"
+            "console.log((svg.match(/<path class=\"ln other alt\"/g) || []).length,"
+            " (svg.match(/<path class=\"ln other\"/g) || []).length);\n"
+        )
+        assert got[0] == "other|Buoy 46047,other alt|Buoy 46086"
+        assert got[1].endswith("Buoy 46047 — &middot; Buoy 46086 1.40 m at 02:50")
+        assert got[2].endswith("with Buoy 46047 and Buoy 46086's in lighter lines, "
+                               "the second dashed, each at its own stamps.")
+        assert got[3] == "1 1"
+
     def test_height_draws_the_other_two_breaks_lighter(self):
         """Owner's request, 2026-10-05: on a break's tab the Height chart draws
         the other two breaks under its own line, lighter, north to south, the

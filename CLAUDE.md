@@ -298,6 +298,19 @@ forecaster actually verifies against, Surfline included.
    Its opposed lobes (≥ 150° apart, 168 over the archive; 46232 has none) are
    real — 46232 saw the southern one on 163 of 163 — and since §40 each is
    its own train.
+   **46086, San Clemente Basin, under 46047** (owner's request, 2026-10-12),
+   built and guarded the same way (`buoys.STATIONS`), "NDBC 46086 •" its
+   feed pill. **It is not open ocean**: `forecast.siting` puts it inside
+   South's window alone (§3a: "the nearest thing to a stand-in, and
+   partial"), so the words under each rose are the buoy's own
+   (`buoys.WITNESS`, in buoys.json as `note`) — "Inside South's window, not
+   carried to any break." — and the standing-on line names each buoy's
+   windows; a test holds both to siting's verdict. Its countdown is its
+   own: :20 and :50, 25 typical and **115** worst on 188 stamps since its
+   sensor returned 2026-10-08. The three past H+85 were NDBC's, shared with
+   46047 (10-10 07:50 reached H+125 there, past 46047's shipped 85; not
+   changed, the owner's call). On the Height chart 46086 is the second
+   lighter line, dashed, as a break tab's second other break is.
    **Under each buoy's reading, a rose** (owner's request, 2026-10-06;
    `forecast/rose.py`, in `buoys.json` as `roses`): one per spectrum, the
    energy in sixteen 22.5° sectors, petals pointing FROM, integrated as
@@ -985,8 +998,9 @@ forecaster actually verifies against, Surfline included.
                         dominant period (historical files only)
       forensics.py      a past swell's origin off the historical record;
                         "seen upstream" tests no distance (BRIEFING §37)
-      buoys.py          the LIVE tab's Buoys tab below 46232: 46047 at the
-                        buoy, carried to no break, its own countdown  [built]
+      buoys.py          the LIVE tab's Buoys tab below 46232: 46047 and
+                        46086 at the buoy, carried to no break, each its
+                        own countdown and words                    [built]
       rose.py           one spectrum's height and period rose by compass
                         sector, for the Buoys tab's six-hour loop   [built]
       origin.py         the LIVE tab's Origin: each train's dispersion

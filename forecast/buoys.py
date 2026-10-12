@@ -4,19 +4,25 @@ Run: ``python -m forecast.buoys``  (writes ``data/live/buoys.json``)
 
 The Buoys tab (owner's request, 2026-10-06) shows 46232 -- the anchor every
 break's card is derived from, read by `forecast.now` -- and under it 46047,
-Tanner Banks, the least shadowed buoy in the array. 46047 is shown the way
-46232 is at the buoy: the combined height of its directional spectrum read by
-maximum entropy, and its wave trains (`transform.at_buoy`, the same peak split
-and the same two-direction rule, BRIEFING §38a).
+Tanner Banks, the least shadowed buoy in the array, and (owner's request,
+2026-10-12) 46086, San Clemente Basin. Each is shown the way 46232 is at the
+buoy: the combined height of its directional spectrum read by maximum
+entropy, and its wave trains (`transform.at_buoy`, the same peak split and the
+same two-direction rule, BRIEFING §38a).
 
-**It is carried to no break, and this module is why that stays true.** 46047
-sits 20.7 / 12.8 / 3.4° outside North / Center / South's windows (BRIEFING
-§3a); it is the open ocean before the Channel Islands and the Bight, not the
-sea at Coronado, and §3a forbids it as a stand-in for 46232. So it is read here
-and nowhere on the chain: `forecast.now` and the rest of the forecast path may
-not even name it (`tests/test_spectra_collector.py`), this module calls
-`at_buoy` and never `through`, `carry` or the surf zone (`tests/test_buoys.py`),
-and its file is its own, not a key inside now.json.
+**They are carried to no break, and this module is why that stays true.**
+46047 sits 21.0 / 12.8 / 3.2° outside North / Center / South's windows
+(`forecast.siting`, BRIEFING §3a); it is the open ocean before the Channel
+Islands and the Bight, not the sea at Coronado. 46086 is inside South's
+window alone, 5.9° outside Center's -- "the nearest thing to a stand-in, and
+partial" (§3a) -- and an NDBC hull whose north-west lobe pins near 279°
+whatever 46047 reads (§38). §3a forbids either as a stand-in for 46232. So
+they are read here and nowhere on the chain: `forecast.now` and the rest of
+the forecast path may not even name them (`tests/test_spectra_collector.py`),
+this module calls `at_buoy` and never `through`, `carry` or the surf zone
+(`tests/test_buoys.py`), and their file is their own, not a key inside
+now.json. What each one's block says about the windows (`WITNESS`) is pinned
+to `forecast.siting` by a test, so it cannot outlive the geometry.
 
 **Each buoy's roses ride in the same file** (`roses`, `forecast.rose`): the
 last six hours of spectra at 46232 and at 46047, one rose each, for the loop
@@ -50,6 +56,30 @@ Both stamps behave alike (median 26.7 and 30.9 min by commit time). n = 148
 over three and a half days; revisit as the archive fills. Before 10-02 the
 lag was the collector's, not NDBC's: 46047 was fetched by collect.yml and
 first seen a median ~100 min after its stamp.
+
+**46086's, bracketed 2026-10-12 the same way**, from 2026-10-08 03:20Z, when
+its wave sensor came back after twelve days dark (2026-09-25 19:20Z, BRIEFING
+§38a), to 10-12 02:20Z. It has been in the hourly collection since 10-02, so
+every stamp it sent was fetched every ten minutes. 188 stamps (94 at :20, 88
+at :50, four :40, two :10):
+
+    in the run at   share of stamps   cumulative
+        H+15             13%             13%
+        H+25             58%             71%
+        H+35             18%             88%
+        H+45              7%             95%
+        H+55              2%             97%
+        H+75              2%             98%
+        H+85              1%             99%
+       H+105              1%             99%      (10-08 09:50)
+       H+115              1%            100%      (10-10 07:50)
+
+Typical 25, worst seen 115. Both stamps alike (median 27.0 and 27.1 min by
+commit time). The three past H+85 are NDBC's, not the collector's: every
+collection in those hours committed, and 46047's same stamps were as late
+(10-10 07:50 at H+125 there) -- which is past 46047's own shipped 85, left
+for the owner, as §39 left 46232's 36. n = 188 over four days; revisit as
+the archive fills.
 """
 
 from __future__ import annotations
@@ -70,19 +100,33 @@ from .now import STALE_HOURS, as_trains, deadline
 from .transform import at_buoy, combined_hs, load_spectra
 from .units import height as fmt_height
 
-#: The buoys shown under 46232 on the Buoys tab, in order. 46086 is not here:
-#: its wave sensor has been dark since 2026-09-25 (BRIEFING §38a).
-STATIONS = ("46047",)
+#: The buoys shown under 46232 on the Buoys tab, in order. 46086 joined
+#: 2026-10-12 (owner's request), its wave sensor back since 10-08 after
+#: twelve days dark (BRIEFING §38a).
+STATIONS = ("46047", "46086")
 
-#: When 46047 stamps a spectrum, minutes past the hour: 2,542 archived stamps
-#: (13 Aug - 6 Oct), all on :20 or :50 but for a stray :40 (3 in the newest
-#: 200). Half-hourly, where 46232 is hourly on :00.
-PUBLISH_MINUTES = {"46047": (20, 50)}
+#: When each stamps a spectrum, minutes past the hour. 46047: 2,542 archived
+#: stamps (13 Aug - 6 Oct), all on :20 or :50 but for a stray :40 (3 in the
+#: newest 200). 46086: 2,335 (11 Aug - 12 Oct), 98.8% on :20 or :50, the rest
+#: :40 and :10. Half-hourly, where 46232 is hourly on :00.
+PUBLISH_MINUTES = {"46047": (20, 50), "46086": (20, 50)}
 
 #: Minutes from a stamp until the collection that typically has it, and the
-#: worst seen -- bracketed in the module docstring.
-PUBLISH_LAG_MIN = {"46047": 25}
-PUBLISH_LAG_LATE_MIN = {"46047": 85}
+#: worst seen -- bracketed in the module docstring, each buoy on its own.
+PUBLISH_LAG_MIN = {"46047": 25, "46086": 25}
+PUBLISH_LAG_LATE_MIN = {"46047": 85, "46086": 115}
+
+#: What each buoy is, said under its rose (`note`) and in the standing-on
+#: line (`windows`). 46047's note is the owner's wording (2026-10-06). The
+#: window claims are `forecast.siting`'s verdicts, pinned to it by a test:
+#: 46086 is inside South's window and no other, which is why its block may
+#: not say "outside every break's windows" as 46047's line does.
+WITNESS = {
+    "46047": {"note": "Open ocean witness, not carried to any break.",
+              "windows": "outside every break's windows"},
+    "46086": {"note": "Inside South's window, not carried to any break.",
+              "windows": "inside South's window alone"},
+}
 
 #: The anchor, whose reading is `forecast.now`'s. Named here only for its
 #: rose: a picture of 46232's spectrum at the buoy, carried to no break.
@@ -159,6 +203,7 @@ def reading(station: str, data_dir: Path, moment: datetime) -> dict:
     out: dict = {
         "station": station,
         "station_name": station_name(station, data_dir),
+        "note": WITNESS.get(station, {}).get("note"),
         "observed_utc": None,
         "age_hours": None,
         "stale": True,
@@ -217,9 +262,9 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
             "context buoys": "; ".join(
                 f"OBSERVED — NDBC directional spectrum at {b['station']}"
                 + (f", {b['station_name']}" if b["station_name"] != b["station"] else "")
+                + f" ({WITNESS[b['station']]['windows']})"
                 for b in shown
-            ) + ", shown at the buoy on the Buoys tab; outside every break's windows, "
-                "so carried to no break",
+            ) + "; shown at the buoy on the Buoys tab and carried to no break",
         },
         "buoys": shown,
         "roses": roses(data_dir, moment),
