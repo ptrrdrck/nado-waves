@@ -812,6 +812,15 @@ forecaster actually verifies against, Surfline included.
   still integrated to exactly the right Hs. Only a *located* quantity — the
   spectral peak, against the bulletin's dominant partition — caught it.
   BRIEFING §15.
+- **A test that measures the archive grows with it, so it must never be
+  quadratic in it.** Measured 2026-10-12: the suite took 347 s, 285 s of it in
+  30 tests, and the two worst scanned a whole series once per sample — the
+  tide-direction pin (85 s → 0.09 s by bisection) and `tidesite.measure`
+  (20 s → 0.5 s, `interpolate` rebuilt its stamps every call). Both gave
+  identical results after the fix. `tests/conftest.py` reads the ensemble
+  archive once a session rather than once per `live.build`, and `tests.yml`
+  runs on every core (`-n auto`): 49 s on four. Check `--durations` before
+  adding a test that reads `data/`.
 - Before writing an "archive it now, history is unrecoverable" job, **check
   whether the history is actually unrecoverable.** It was for Open-Meteo. It was
   not for GFS-Wave, whose every cycle since 2021-03 sits in the NOAA Open Data

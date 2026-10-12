@@ -8,6 +8,7 @@ and they disagree worst at the turn, which is when someone is looking.
 
 from __future__ import annotations
 
+import bisect
 import csv
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -183,13 +184,20 @@ class TestWhyTheDirectionIsNotDifferenced:
         if len(rows) < 300:
             pytest.skip("archive too short to measure a trend against")
         by = dict(rows)
+        times = [s for s, _ in rows]
+
+        def window(lo, hi):
+            # The samples in [lo, hi], oldest first: rows are sorted, so a
+            # bisection finds them without scanning the archive per reading.
+            return [v for _, v in rows[bisect.bisect_left(times, lo):bisect.bisect_right(times, hi)]]
+
         wrong = total = 0
         days: dict = {}
         for t, h in rows:
             day = days.setdefault(t.date(), {"w": 0, "n": 0, "lo": h, "hi": h})
             day["lo"], day["hi"] = min(day["lo"], h), max(day["hi"], h)
-            before = [v for s, v in rows if timedelta(minutes=-66) <= s - t <= timedelta(minutes=-54)]
-            after = [v for s, v in rows if timedelta(minutes=54) <= s - t <= timedelta(minutes=66)]
+            before = window(t - timedelta(minutes=66), t - timedelta(minutes=54))
+            after = window(t + timedelta(minutes=54), t + timedelta(minutes=66))
             if not before or not after:
                 continue
             truth = after[0] - before[0]

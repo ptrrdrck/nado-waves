@@ -88,10 +88,14 @@ def _read(path: Path) -> list[tuple[datetime, float]]:
 
 
 def interpolate(series: list[tuple[datetime, float]], when: datetime,
-                max_gap: timedelta = timedelta(hours=1, minutes=1)) -> float | None:
-    """Linear between the two samples either side; None across a gap."""
+                max_gap: timedelta = timedelta(hours=1, minutes=1),
+                times: list[datetime] | None = None) -> float | None:
+    """Linear between the two samples either side; None across a gap.
+    `times` is the series' own stamps, passed by a caller that interpolates
+    one series many times so it is not rebuilt on every call."""
 
-    times = [t for t, _ in series]
+    if times is None:
+        times = [t for t, _ in series]
     i = bisect.bisect_left(times, when)
     if i < len(times) and times[i] == when:
         return series[i][1]
@@ -143,11 +147,13 @@ def measure(data_dir: Path = DEFAULT_DATA_DIR) -> dict:
         raise FileNotFoundError("no comparison series; run collector.tidestations on Actions")
     msl_bay = msl_above_mllw(data_dir, BAY)
     msl_coast = msl_above_mllw(data_dir, OPEN_COAST)
+    bay_times = [t for t, _ in bay]
     best = None
     for lead in range(-9, 10):
         xs, ys = [], []
         for t, v in coast:
-            b = interpolate(bay, t + timedelta(minutes=lead), max_gap=timedelta(minutes=6))
+            b = interpolate(bay, t + timedelta(minutes=lead), max_gap=timedelta(minutes=6),
+                            times=bay_times)
             if b is not None:
                 xs.append(b - msl_bay)
                 ys.append(v - msl_coast)
