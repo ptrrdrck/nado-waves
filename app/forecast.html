@@ -1745,11 +1745,13 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 // screen, each buoy by its NDBC name and number.
 const SAME_SOURCE_DEG = 45;
 const ORIGIN_SEP = " &middot; ";
-// NHC's working best tracks (ATCF b-decks), the files collector.besttracks
-// archives and the card reads: "EP18" sent in 2026 is bep182026.dat.
-const NHC_BTK = "https://ftp.nhc.noaa.gov/atcf/btk/";
-const bestTrackUrl = (storm, iso) =>
-  `${NHC_BTK}b${storm.toLowerCase()}${new Date(iso).getUTCFullYear()}.dat`;
+// NHC's own page for the storm, with its advisories, track and cone map
+// (owner's call, 2026-10-12): the readable page rather than the best-track
+// file collector.besttracks archives and the card reads. Rachel in 2026 is
+// archive/2026/RACHEL_graphics.php.
+const NHC_ARCHIVE = "https://www.nhc.noaa.gov/archive/";
+const stormPageUrl = (name, iso) =>
+  `${NHC_ARCHIVE}${new Date(iso).getUTCFullYear()}/${name.toUpperCase()}_graphics.php`;
 const buoyName = (o, id) => (o.names && o.names[id] ? `${o.names[id]} (NDBC ${id})` : `NDBC ${id}`);
 // A reading's direction is one of three things, and each is said differently:
 // one bearing at the unshadowed buoy (placed); the buoy has the train from
@@ -1839,8 +1841,8 @@ function readingEntry(a, past = false) {
 // order (2026-10-10): the spectrum, NHC, then why a storm is unplaced. Every
 // origin's train is read off 46232's spectrum, a hurricane's too; only a
 // reading's storm is then read BACKWARDS from it, its direction at an
-// unshadowed buoy. A hurricane's place, winds and pressure are NHC's, each
-// storm's name linked to the best track that says so.
+// unshadowed buoy. A hurricane's place, winds and pressure are NHC's best
+// track, each storm's name linked to NHC's page for it.
 function originSources(o, hurricanes, readings) {
   const at = (pick) => [...new Set(readings.filter(pick).map((a) => a.bearing_from).filter(Boolean))]
     .map((id) => buoyName(o, id));
@@ -1850,7 +1852,7 @@ function originSources(o, hurricanes, readings) {
     + (readings.length ? ", and storms read backwards from them" : "")
     + (from.length ? `; direction at ${andList(from)}` : "")];
   if (hurricanes.length) {
-    const names = hurricanes.map((h) => `<a href="${bestTrackUrl(h.storm, h.at.fix_utc)}"`
+    const names = hurricanes.map((h) => `<a href="${stormPageUrl(h.name, h.at.fix_utc)}"`
       + ` rel="noopener">${h.name}</a>`);
     const kinds = new Set(hurricanes.map((h) => stormKind(h.at)));
     const kind = kinds.size > 1 ? "Storm" : kinds.has("Hurricane") ? "Hurricane" : "Tropical storm";

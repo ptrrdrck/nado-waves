@@ -121,12 +121,12 @@ def test_the_match_is_counts_beaten_never_a_word_or_a_percentage(cases):
         "over 26 h.")
 
 
-def test_nhcs_line_links_each_storm_by_name(cases):
-    btk = "https://ftp.nhc.noaa.gov/atcf/btk/"
+def test_nhcs_line_links_each_storm_to_its_page_by_name(cases):
+    nhc = "https://www.nhc.noaa.gov/archive/2026/"
     assert cases["H1"][-1] == ("Hurricane position, winds and pressure: National Hurricane "
-                               f"Center best track for [Rachel]({btk}bep182026.dat), an analysis.")
-    assert cases["H4"][-1].endswith(f"best tracks for [Rachel]({btk}bep182026.dat) and "
-                                    f"[Sergio]({btk}bep202026.dat), an analysis.")
+                               f"Center best track for [Rachel]({nhc}RACHEL_graphics.php), an analysis.")
+    assert cases["H4"][-1].endswith(f"best tracks for [Rachel]({nhc}RACHEL_graphics.php) and "
+                                    f"[Sergio]({nhc}SERGIO_graphics.php), an analysis.")
 
 
 def test_sources_run_spectrum_then_nhc_then_unplaced(cases):

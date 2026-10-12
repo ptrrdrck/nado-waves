@@ -3303,14 +3303,15 @@ class TestHurricane:
         assert "winds: `winds of ${speed(s.vmax_kt)}`" in entry
         assert '(s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")' in entry
 
-    def test_nhcs_line_links_each_storms_best_track_by_name(self):
-        """Owner's request, 2026-10-10: the storm's name links to NHC's
-        best-track file, the one collector.besttracks archives."""
+    def test_nhcs_line_links_each_storm_to_its_page_by_name(self):
+        """Owner's requests, 2026-10-10 and -12: the storm's name links to
+        NHC's own page for it, with the track and cone map, not to the
+        best-track file the card reads."""
 
-        from collector.besttracks import BTK
-
-        assert f'const NHC_BTK = "{BTK}";' in SOURCE
-        assert "`${NHC_BTK}b${storm.toLowerCase()}${new Date(iso).getUTCFullYear()}.dat`" in SOURCE
+        assert 'const NHC_ARCHIVE = "https://www.nhc.noaa.gov/archive/";' in SOURCE
+        assert ("`${NHC_ARCHIVE}${new Date(iso).getUTCFullYear()}/${name.toUpperCase()}"
+                "_graphics.php`") in SOURCE
+        assert "atcf/btk" not in SOURCE
 
     def test_it_states_its_match_with_the_count_behind_it(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
