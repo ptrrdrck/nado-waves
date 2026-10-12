@@ -371,7 +371,7 @@ forecaster actually verifies against, Surfline included.
    Every rose opens paused on the newest spectrum, the one its headline
    reads, whenever it comes into view (owner's request, 2026-10-11: load,
    LIVE, the Buoys tab, a headline unfolding; `roseShown`). LIVE
-   only; carried to no break. The
+   only; not carried to any break. The
    Forecast tab's Buoys tab holds 46232 alone. **46047 is on the LIVE Buoys
    tab's Height chart** (owner's request, 2026-10-09), a lighter line under
    46232's at its OWN :20 / :50 stamps — never moved onto 46232's hour, a
@@ -1014,7 +1014,7 @@ forecaster actually verifies against, Surfline included.
       forensics.py      a past swell's origin off the historical record;
                         "seen upstream" tests no distance (BRIEFING §37)
       buoys.py          the LIVE tab's Buoys tab below 46232: 46047 and
-                        46086 at the buoy, carried to no break, each its
+                        46086 at the buoy, not carried to any break, each its
                         own countdown and words                    [built]
       rose.py           one spectrum's height and period rose by compass
                         sector, for the Buoys tab's six-hour loop   [built]

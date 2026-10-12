@@ -10,7 +10,7 @@ buoy: the combined height of its directional spectrum read by maximum
 entropy, and its wave trains (`transform.at_buoy`, the same peak split and the
 same two-direction rule, BRIEFING §38a).
 
-**They are carried to no break, and this module is why that stays true.**
+**They are not carried to any break, and this module is why that stays true.**
 46047 sits 21.0 / 12.8 / 3.2° outside North / Center / South's windows
 (`forecast.siting`, BRIEFING §3a); it is the open ocean before the Channel
 Islands and the Bight, not the sea at Coronado. 46086 is inside South's
@@ -131,7 +131,7 @@ WITNESS = {
 }
 
 #: The anchor, whose reading is `forecast.now`'s. Named here only for its
-#: rose: a picture of 46232's spectrum at the buoy, carried to no break.
+#: rose: a picture of 46232's spectrum at the buoy, not carried to any break.
 ANCHOR = "46232"
 
 #: How far back buoys.json's heights reach: the LIVE tab's week
@@ -266,7 +266,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
                 + (f", {b['station_name']}" if b["station_name"] != b["station"] else "")
                 + f" ({WITNESS[b['station']]['windows']})"
                 for b in shown
-            ) + "; shown at the buoy on the Buoys tab and carried to no break",
+            ) + "; shown at the buoy on the Buoys tab and not carried to any break",
         },
         "buoys": shown,
         "roses": roses(data_dir, moment),
@@ -278,7 +278,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
 
 
 def format_table(payload: dict) -> str:
-    lines = [f"Context buoys, built {payload['generated_utc']} (carried to no break)"]
+    lines = [f"Context buoys, built {payload['generated_utc']} (not carried to any break)"]
     for b in payload["buoys"]:
         head = f"{b['station_name']} ({b['station']})"
         if b.get("hs_m") is None:

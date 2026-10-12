@@ -738,7 +738,7 @@ const WINDTIDE_SOURCE = PARAM.get("windtide") || "../data/live/windtide.json";
 // the archive (forecast.originhistory), for the Origins chart on the LIVE tab.
 const ORIGINS_SOURCE = PARAM.get("origins") || "../data/live/origins.json";
 // The context buoys shown under 46232 on the LIVE tab's Buoys tab
-// (forecast.buoys): what each measured at the buoy, carried to no break.
+// (forecast.buoys): what each measured at the buoy, not carried to any break.
 const BUOYS_SOURCE = PARAM.get("buoys") || "../data/live/buoys.json";
 // Their heights at every archived stamp, for the Buoys tab's Height chart past
 // the week (forecast.buoys); fetched with series_all.json, only when asked for.
@@ -2479,7 +2479,7 @@ function wireDrawings() {
 // way -- combined height and maximum-entropy trains -- under its own name,
 // its own observed time and its own countdown, because their spectra are
 // stamped at :20 and :50 and land on their own measured lags
-// (forecast.buoys). Each is carried to no break (BRIEFING §3a), and its
+// (forecast.buoys). Each is not carried to any break (BRIEFING §3a), and its
 // block says so in its own words (`note`): 46047 is outside every break's
 // windows, 46086 inside South's. Each block is named in its
 // provenance, never over its height: the headline is the height alone, as a
@@ -2595,7 +2595,7 @@ function statusDot(iso, lateIso, {forceOver = false} = {}) {
 }
 
 // One context buoy's block: its reading, its trains and rose and, in its
-// own words from buoys.json, what it is and that it is carried to no break,
+// own words from buoys.json, what it is and that it is not carried to any break,
 // all folded under its headline; then its
 // provenance -- where it is and when, then its station, age and countdown,
 // red past its measured worst or past the build's three hours, in pills as

@@ -95,7 +95,7 @@ class TestTheReading:
         assert list(standing) == ["context buoys"]
         line = standing["context buoys"]
         assert line.startswith("OBSERVED — NDBC directional spectrum at 46086")
-        assert "carried to no break" in line
+        assert "not carried to any break" in line
         # Each buoy with its own window claim: 46086 is not outside them all.
         assert "at 46047 (outside every break's windows)" in line
         assert "at 46086 (inside South's window alone)" in line
