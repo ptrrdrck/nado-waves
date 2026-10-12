@@ -250,8 +250,8 @@ forecaster actually verifies against, Surfline included.
    §39), on both chains, its id still `buoy`. On LIVE it holds 46232 and under
    it **46047, Tanner Banks**, built the same way — combined height, maximum-
    entropy trains split by period then direction (§40) — with its own name,
-   observed time, countdown and "Open ocean witness, not carried to any
-   break." line (`forecast/buoys.py` → `buoys.json`, its own step in the
+   observed time, countdown and words under its rose (since 2026-10-12 the
+   one sentence below) (`forecast/buoys.py` → `buoys.json`, its own step in the
    collection). **Each buoy's provenance follows its own measurements**
    (owner's call, same day): 46232's reading, then the card's provenance
    (46232's), then each context buoy's block with its provenance in the
@@ -307,10 +307,17 @@ forecaster actually verifies against, Surfline included.
    built and guarded the same way (`buoys.STATIONS`), "NDBC 46086 •" its
    feed pill. **It is not open ocean**: `forecast.siting` puts it inside
    South's window alone (§3a: "the nearest thing to a stand-in, and
-   partial"), so the words under each rose are the buoy's own
-   (`buoys.WITNESS`, in buoys.json as `note`) — "Inside South's window, not
-   carried to any break." — and the standing-on line names each buoy's
-   windows; a test holds both to siting's verdict. Its countdown is its
+   partial"), so the standing-on line names each buoy's windows
+   (`buoys.WITNESS`), held to siting's verdict by a test.
+   **Under every buoy's rose, 46232's too, ONE sentence** (owner's wording,
+   2026-10-12; `buoys.ABOUT`, in buoys.json as `about`, joined by the
+   page's `buoyAbout`): the station linked to its public page (CDIP's for
+   a buoy with a registry `cdip` number, NDBC's otherwise), its distance
+   offshore and bearing from Center break — `forecast.siting`'s, never
+   typed, none for a buoy siting cannot place — then what is read from it
+   and its role. It replaced the "Open ocean witness" / "Inside South's
+   window" notes; its mention of a window is held to siting's verdict too.
+   LIVE only, as the rose is. Its countdown is its
    own: :20 and :50, 25 typical and **115** worst on 188 stamps since its
    sensor returned 2026-10-08. The three past H+85 were NDBC's, shared with
    46047 (10-10 07:50 reached H+125 there, past 46047's shipped 85; not

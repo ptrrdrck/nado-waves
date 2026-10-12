@@ -288,8 +288,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .fold-row{cursor:pointer;-webkit-user-select:none;user-select:none}
 .fold-row:hover .calc-toggle{color:var(--ink)}
 .buoy-fold{display:flex;flex-direction:column;gap:11px}
-/* 46047's words sit as far under its rose as 46232's provenance does under
-   its own, and the provenance follows them with the pane's space. */
+/* Each buoy's sentence sits 3 px further under its rose than the pane's
+   gap, and the provenance follows it with the pane's space. */
 .buoy-note{margin:0}
 .buoy-fold .rose + .buoy-note{margin-top:3px}
 .calc-toggle{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 0;
@@ -2491,11 +2491,31 @@ function wireDrawings() {
 // them (`swellCard`'s `after`), its provenance in the same style.
 function buoyPanel(buoy, measured = null, station = null, rose = "") {
   const line = measuredLine(measured, (m) => m.buoy);
-  if (!buoy || buoy.hs_m == null) {
-    return valLine('<span class="val"><span class="unit">no spectrum</span></span>') + rose + line;
-  }
   const id = station && station.id;
-  return buoyReading(buoy, id, {roseFor: rose ? id : null, rose}) + line;
+  // The sentence under the rose, LIVE only as the rose is: on Forecast the
+  // buoy's numbers are a model run, not its spectrum.
+  const note = rose ? buoyAbout(id) : "";
+  if (!buoy || buoy.hs_m == null) {
+    return valLine('<span class="val"><span class="unit">no spectrum</span></span>') + rose + note + line;
+  }
+  return buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note}) + line;
+}
+
+// One sentence under each buoy's rose (owner's wording, 2026-10-12): the
+// station, linked to its public page, how far offshore it is and its bearing
+// from Center break, then what is read from it and its role here
+// (forecast.buoys.ABOUT). The distance and bearing are forecast.siting's,
+// in km and degrees, converted here as every number is; a buoy siting cannot
+// place says neither. No buoys.json, no sentence.
+function buoyAbout(station) {
+  const a = BUOYS && BUOYS.about && BUOYS.about[station];
+  if (!a || !a.says) return "";
+  const where = a.range_km != null && a.bearing_deg != null
+    ? `, ${Math.round(a.range_km * MI_PER_KM)} mi <span class="unit">(${Math.round(a.range_km)} km)</span>`
+      + ` offshore at ${Math.round(a.bearing_deg)}&deg; ${point(a.bearing_deg)} from Center break`
+    : "";
+  return `<p class="quiet buoy-note"><a href="${a.url}" rel="noopener">${a.place} (${a.feed})</a>`
+    + `${where}: ${a.says}</p>`;
 }
 
 // In a break headline's row, so the buoys' line sits where a break's does;
@@ -2594,9 +2614,8 @@ function statusDot(iso, lateIso, {forceOver = false} = {}) {
     + (forceOver ? ' data-status-force="1"' : "") + "></i>";
 }
 
-// One context buoy's block: its reading, its trains and rose and, in its
-// own words from buoys.json, what it is and that it is not carried to any break,
-// all folded under its headline; then its
+// One context buoy's block: its reading, its trains and rose and the
+// sentence under it (`buoyAbout`), all folded under its headline; then its
 // provenance -- where it is and when, then its station, age and countdown,
 // red past its measured worst or past the build's three hours, in pills as
 // 46232's.
@@ -2607,8 +2626,7 @@ function contextBuoy(b) {
                          b.overdue_after, {forceOver: !!old || !b.observed_utc});
   // What it is, said under its rose and above its provenance with space
   // between (owner's call, 2026-10-11): a description, not a provenance line.
-  // Each buoy's own (forecast.buoys.WITNESS), since 46086 is not open ocean.
-  const note = b.note ? `<p class="quiet buoy-note">${b.note}</p>` : "";
+  const note = buoyAbout(b.station);
   const reading = b.hs_m != null ? buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note})
     : valLine('<span class="val"><span class="unit">no spectrum</span></span>') + roseBlock(b.station) + note;
   return `<hr>${reading}`

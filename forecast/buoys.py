@@ -93,8 +93,8 @@ from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
 
-from . import rose
-from .live import station_name
+from . import rose, siting
+from .live import cdip_id, station_name
 from .now import PUBLISH_MINUTES as ANCHOR_MINUTES
 from .now import STALE_HOURS, as_trains, deadline
 from .transform import at_buoy, combined_hs, load_spectra
@@ -118,21 +118,42 @@ PUBLISH_MINUTES = {"46047": (20, 50), "46086": (20, 50)}
 PUBLISH_LAG_MIN = {"46047": 25, "46086": 25}
 PUBLISH_LAG_LATE_MIN = {"46047": 85, "46086": 115}
 
-#: What each buoy is, said under its rose (`note`) and in the standing-on
-#: line (`windows`). 46047's note is the owner's wording (2026-10-06). The
-#: window claims are `forecast.siting`'s verdicts, pinned to it by a test:
-#: 46086 is inside South's window and no other, which is why its block may
-#: not say "outside every break's windows" as 46047's line does.
+#: What each context buoy's windows are, said in the standing-on line.
+#: `forecast.siting`'s verdicts, pinned to it by a test: 46086 is inside
+#: South's window and no other, which is why its line may not say "outside
+#: every break's windows" as 46047's does.
 WITNESS = {
-    "46047": {"note": "Open ocean witness, not carried to any break.",
-              "windows": "outside every break's windows"},
-    "46086": {"note": "Inside South's window, not carried to any break.",
-              "windows": "inside South's window alone"},
+    "46047": {"windows": "outside every break's windows"},
+    "46086": {"windows": "inside South's window alone"},
 }
 
-#: The anchor, whose reading is `forecast.now`'s. Named here only for its
-#: rose: a picture of 46232's spectrum at the buoy, not carried to any break.
+#: The anchor, whose reading is `forecast.now`'s. Named here for its rose (a
+#: picture of 46232's spectrum at the buoy, not carried to any break) and
+#: for the sentence under it.
 ANCHOR = "46232"
+
+#: One sentence under each buoy's rose (owner's wording, 2026-10-12): the
+#: station, linked to its public page, how far offshore it is and its bearing
+#: from Center break, then these words -- what is read from it and its role
+#: here. The page joins the parts; the distance and bearing are DERIVED
+#: (`about`, from `forecast.siting`), never typed, so they cannot outlive
+#: the coordinates. A test holds each one's mention of a window to siting's
+#: verdict, as the standing-on line's is.
+ABOUT = {
+    "46232": "its hourly directional spectrum is what every break's numbers are "
+             "carried from, as the only buoy inside all three breaks' windows.",
+    "46086": "its half-hourly directional spectrum is shown here and checked against "
+             "hurricane tracks, and though it sits inside South's window it is not "
+             "carried to any break.",
+    "46047": "its half-hourly directional spectrum reads the open ocean before the "
+             "Channel Islands, gives Origin its storm bearings and is checked against "
+             "hurricane tracks, but is not carried to any break.",
+}
+
+#: Each buoy's public page: CDIP's for a buoy CDIP runs (its number from the
+#: registry, `stations.json` `cdip`, never typed), NDBC's otherwise.
+CDIP_PAGE = "https://cdip.ucsd.edu/m/products/?stn={}p1"
+NDBC_PAGE = "https://www.ndbc.noaa.gov/station_page.php?station={}"
 
 #: How far back buoys.json's heights reach: the LIVE tab's week
 #: (`forecast.series`), and a day over so its first hour always has a stamp
@@ -192,6 +213,36 @@ def roses(data_dir: Path, moment: datetime) -> dict:
     return out
 
 
+def about(data_dir: Path) -> dict:
+    """The sentence under each buoy's rose, as parts the page joins.
+
+    The place is the station's name from the fetched metadata without its
+    state ("Point Loma South"); the range and bearing are `forecast.siting`'s
+    from Center break, in kilometres and degrees -- the page converts, as it
+    does every number. A buoy siting cannot place has no distance, and says
+    none.
+    """
+
+    metadata = Path(data_dir) / "station_metadata.csv"
+    try:
+        placed = {s.station.id: s for s in siting.survey(metadata_path=metadata)}
+    except (FileNotFoundError, ValueError):
+        placed = {}
+    out = {}
+    for station in (ANCHOR, *STATIONS):
+        cdip = cdip_id(station)
+        sited = placed.get(station)
+        out[station] = {
+            "place": station_name(station, data_dir).split(",")[0].strip(),
+            "feed": f"CDIP {cdip}" if cdip else f"NDBC {station}",
+            "url": CDIP_PAGE.format(cdip) if cdip else NDBC_PAGE.format(station),
+            "range_km": None if sited is None or sited.range_km is None else round(sited.range_km, 2),
+            "bearing_deg": None if sited is None or sited.bearing is None else round(sited.bearing, 2),
+            "says": ABOUT[station],
+        }
+    return out
+
+
 def _spectra(data_dir: Path, station: str) -> list:
     try:
         return load_spectra(Path(data_dir) / "spectra" / station)
@@ -205,7 +256,6 @@ def reading(station: str, data_dir: Path, moment: datetime) -> dict:
     out: dict = {
         "station": station,
         "station_name": station_name(station, data_dir),
-        "note": WITNESS.get(station, {}).get("note"),
         "observed_utc": None,
         "age_hours": None,
         "stale": True,
@@ -269,6 +319,9 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
             ) + "; shown at the buoy on the Buoys tab and not carried to any break",
         },
         "buoys": shown,
+        # The sentence under each rose, 46232's included (owner's wording,
+        # 2026-10-12).
+        "about": about(data_dir),
         "roses": roses(data_dir, moment),
         # The context buoys' own heights over the week, for the Height chart.
         "heights": {station: heights(_spectra(data_dir, station),
