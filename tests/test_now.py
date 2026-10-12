@@ -664,11 +664,16 @@ def test_every_buoy_the_origin_cites_is_named(monkeypatch, tmp_path):
     monkeypatch.setattr(N.origin, "load_archives", lambda d: {N.STATION: [stamp]})
     monkeypatch.setattr(N.origin, "reading", lambda *a, **k: {})
     monkeypatch.setattr(N, "trains_builder", lambda *a: (lambda t: {}))
-    monkeypatch.setattr(N, "hurricanes_now", lambda *a: [{"match": {"46086": {}, "46047": {}}}])
+    monkeypatch.setattr(N, "hurricanes_now", lambda *a: [])
     monkeypatch.setattr(N, "station_name", lambda s, d: f"name of {s}")
     reading = SimpleNamespace(breaks=[], buoy={"trains": []})
     block = N.origin_reading(tmp_path, stamp, reading, {}, [], {})
-    assert set(block["station_names"]) == {N.STATION, *N.origin.BEARING_STATIONS, "46086", "46047"}
+    from forecast.stormtrack import GATE_STATIONS
+
+    # Every gate buoy, even with no storm matched now: a past storm shown as
+    # a tab's last readable arrival still names its own (2026-10-12).
+    assert set(block["station_names"]) == {N.STATION, *N.origin.BEARING_STATIONS, *GATE_STATIONS}
+    assert {"46086", "46047"} <= set(block["station_names"])
 
 
 class TestTheTidePhase:

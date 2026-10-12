@@ -44,7 +44,10 @@ matched at.
 
 Fold-level rules (unchanged): hurricanes first, then current readings; a
 reading of the same train as a shown hurricane is dropped; the last readable
-arrival appears only when nothing is arriving; with nothing at all, `No
+arrival appears only when nothing is arriving, and is whichever ended later:
+Origin's last reading at the tab, or the last storm named there (from
+`origins.json`; owner's report, 2026-10-12), a storm's in the hurricane's
+form with its tag and "Arrived {date}, no longer arriving."; with nothing at all, `No
 readable arrival in the last {21} days` and S1 alone.
 
 ### Decided 2026-10-10
@@ -139,6 +142,25 @@ The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away.
 Read backwards off the swell over 18 h. Arrived Oct 6, no longer arriving.
 Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them.
 Unplaced storm: Tanner Banks, CA (NDBC 46047) does not have that train.
+```
+
+### L4: last readable arrival, a storm named here after Origin's last reading
+
+```text
+Tropical Storm Rachel  last readable arrival
+The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with winds of 69 mph (60 kt) and 985 mb pressure.
+Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks, CA (NDBC 46047) over 40 h. Arrived Oct 7, no longer arriving.
+Trains read off the spectrum at Point Loma South, CA (NDBC 46232).
+Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
+```
+
+### L5: last readable arrival, Origin's reading ended after the last storm named here
+
+```text
+Aleutian storm track  last readable arrival
+The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away, bearing 212° SSW.
+Read backwards off the swell over 18 h. Arrived Sep 30, no longer arriving.
+Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them; direction at Tanner Banks, CA (NDBC 46047).
 ```
 
 ### C1: arriving, placed

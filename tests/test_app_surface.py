@@ -3318,7 +3318,9 @@ class TestHurricane:
         assert ('const stormKind = (at) => (at && at.strength === "tropical storm" '
                 '? "Tropical Storm" : "Hurricane");') in SOURCE
         own = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
-        assert "tag:" not in own
+        # Tagged only as a tab's last readable arrival (2026-10-12).
+        assert 'tag: past ? "last readable arrival" : "",' in own
+        assert own.count("tag:") == 1
         assert ": National Hurricane Center best track${names.length > 1 ? \"s\" : \"\"}`" in SOURCE
         # NHC's position, rounded to 100 where Origin's distances round to 500.
         assert ("trainAt({period: s.train_period_s, also: s.also_periods_s || [],\n"

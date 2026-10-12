@@ -1708,9 +1708,38 @@ function originFor(site) {
     current: (s.current || []).filter((c) => A[c.arrival] && !isNamed(c))
       .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
     last: s.last != null && A[s.last] ? A[s.last] : null,
-    station: O.station, lookback: O.lookback_days, names: O.station_names || {},
+    lastStorm: lastStormAt(site, O),
+    site, station: O.station, lookback: O.lookback_days, names: O.station_names || {},
     bearingStations: O.bearing_stations || [],
   };
+}
+
+// The last storm the card named at this tab, from origins.json's named moments
+// (forecast.originhistory): its newest within the lookback, as of now.json's
+// spectrum, and the storm's first there, for the day it began arriving. The
+// "last readable arrival" is whichever of it and Origin's own last reading
+// ended later (owner's report, 2026-10-12: South read "Aleutian storm track",
+// ended 2 Oct, when Tropical Storm Rachel was named there to 11 Oct). A
+// reading origins.json credits to a storm at this tab is that storm's, so it
+// never stands in for it. Without origins.json, Origin's reading alone.
+function lastStormAt(site, O) {
+  const end = Date.parse((NOW && NOW.observed_utc) || "");
+  if (!ORIGINS || !ORIGINS.named || !Number.isFinite(end)) return null;
+  const from = end - (O.lookback_days || 21) * 24 * HOUR_MS;
+  const here = ORIGINS.named.filter((n) => n.sites && n.sites[site])
+    .map((n) => ({...n, t: Date.parse(n.time_utc)})).filter((n) => n.t <= end && n.t >= from);
+  if (!here.length) return null;
+  const last = here.reduce((a, b) => (b.t > a.t ? b : a));
+  const first = here.filter((n) => n.storm === last.storm).reduce((a, b) => (b.t < a.t ? b : a));
+  return {...last, at: last.sites[site], since: first.time_utc};
+}
+const namedHere = (a, site) => Boolean(a && ORIGINS && (ORIGINS.arrivals || []).some(
+  (b) => b.first_utc === a.first_utc && (b.named || {})[site]));
+function lastArrival(o) {
+  const reading = o.last && !namedHere(o.last, o.site) ? o.last : null;
+  const storm = o.lastStorm;
+  if (storm && (!reading || storm.t >= Date.parse(reading.last_utc))) return {storm};
+  return reading ? {reading} : o.last ? {reading: o.last} : {};
 }
 
 // Rounded in each unit to `step`: 500 for Origin's dispersion distances, which
@@ -1801,13 +1830,16 @@ const trainAt = ({period, also = [], sent, fitted, km, step, bearing, split = []
 // from, never how big it is. Where the storm was, and how strong, are NHC's:
 // the fix that sent the train now arriving, on line 2 beside the day it was
 // sent, because the storm has moved on since. Never Origin's distance.
-function hurricaneEntry(h, o) {
+// Past, as a tab's last readable arrival: tagged so, its counts as of the last
+// moment it was named there, and line 3 ending as a past reading's does.
+function hurricaneEntry(h, o, past = false) {
   const s = h.at;
   const buoys = Object.entries(h.match || {}).sort((x, y) => y[1].score - x[1].score);
   const tested = buoys.map(([id, m]) => `${m.beaten} of ${m.trials} times at ${buoyName(o, id)}`
     + (m.hours == null ? "" : ` over ${m.hours} h`)).join(", and ");
   return originEntry({
     head: stormHead(h.name, s),
+    tag: past ? "last readable arrival" : "",
     storm: h.storm,
     where: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
                     sent: s.fix_utc, fitted: false,
@@ -1815,7 +1847,7 @@ function hurricaneEntry(h, o) {
                     winds: `winds of ${speed(s.vmax_kt)}`
                       + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")}),
     how: `<span data-match="${h.word}">Timing and direction beat NHC's track moved earlier</span>`
-      + ` ${tested}.`,
+      + ` ${tested}.` + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.` : ""),
   });
 }
 
@@ -1876,13 +1908,15 @@ function originSources(o, hurricanes, readings) {
 // What folds out under the "Origin" line: the entries, then the provenance.
 function originBody(o) {
   const now = o.hurricanes.length || o.current.length;
-  const readings = now ? o.current : o.last ? [o.last] : [];
+  const {storm, reading} = now ? {} : lastArrival(o);
   const entries = now
     ? o.hurricanes.map((h) => hurricaneEntry(h, o)).join("")
       + o.current.map((a) => readingEntry(a)).join("")
-    : o.last ? readingEntry(o.last, true)
-      : `<span class="val"><span class="unit">No readable arrival in the last ${o.lookback} days</span></span>`;
-  return entries + originSources(o, now ? o.hurricanes : [], readings);
+    : storm ? hurricaneEntry(storm, o, true)
+      : reading ? readingEntry(reading, true)
+        : `<span class="val"><span class="unit">No readable arrival in the last ${o.lookback} days</span></span>`;
+  return entries + originSources(o, now ? o.hurricanes : storm ? [storm] : [],
+                                 now ? o.current : reading ? [reading] : []);
 }
 
 // Whether Origin is folded out. One state for every tab, like the charts',

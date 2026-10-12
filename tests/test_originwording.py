@@ -142,3 +142,16 @@ def test_nothing_read_backwards_is_not_said_to_be(cases):
                            "Trains read off the spectrum at Point Loma South, CA (NDBC 46232)."]
     for cid in ("H1", "H2", "H3", "H4", "M2"):
         assert "backwards" not in "\n".join(cases[cid]), cid
+
+
+def test_the_last_readable_arrival_is_the_later_of_a_reading_and_a_named_storm(cases):
+    """Owner's report, 2026-10-12: South read "Aleutian storm track", a
+    reading ended 2 Oct, while Tropical Storm Rachel was named there to
+    11 Oct. Whichever ended later is the tab's last readable arrival."""
+
+    assert cases["L4"][0] == "Tropical Storm Rachel  last readable arrival"
+    assert cases["L4"][2].endswith("no longer arriving.")
+    assert "Timing and direction beat NHC's track moved earlier" in cases["L4"][2]
+    assert any("best track for [Rachel]" in line for line in cases["L4"])
+    assert cases["L5"][0] == "Aleutian storm track  last readable arrival"
+    assert not any("Rachel" in line for line in cases["L5"])
