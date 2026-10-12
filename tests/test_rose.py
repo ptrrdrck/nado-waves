@@ -17,6 +17,7 @@ from forecast import buoys, rose
 from forecast.transform import at_buoy
 
 from test_buoys import MOMENT, PAGE, write_spectrum
+from test_buoys import block as by_station
 from test_now import spectrum
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -91,7 +92,7 @@ class TestTheLoop:
     def test_each_buoy_has_its_own_and_none_is_borrowed(self, tmp_path):
         write_spectrum(tmp_path, "46232", spectrum(MOMENT - timedelta(minutes=30)))
         got = buoys.build(data_dir=tmp_path, now=MOMENT)["roses"]
-        assert list(got) == ["46232", "46047", "46086"]
+        assert list(got) == ["46232", "46086", "46047"]
         assert len(got["46232"]["frames"]) == 1 and got["46232"]["interval_min"] == 60.0
         assert got["46047"]["frames"] == [] and got["46086"]["frames"] == []
         assert got["46086"]["interval_min"] == 30.0
@@ -101,7 +102,7 @@ class TestTheLoop:
         write_spectrum(tmp_path, "46047", sp)
         payload = buoys.build(data_dir=tmp_path, now=MOMENT)
         frame = payload["roses"]["46047"]["frames"][-1]
-        assert frame["hs_m"] == pytest.approx(payload["buoys"][0]["hs_m"], abs=2e-3)
+        assert frame["hs_m"] == pytest.approx(by_station(payload, "46047")["hs_m"], abs=2e-3)
         assert {k: v for k, v in frame.items() if k != "train_share"} == rose.frame(sp.with_spread("mem"))
 
     def test_it_carries_nothing_to_a_break(self):
@@ -309,7 +310,7 @@ class TestATrainsPetals:
         write_many(tmp_path, "46047", [self.two_trains(MOMENT - timedelta(minutes=m))
                                        for m in (70, 40, 10)])
         payload = buoys.build(data_dir=tmp_path, now=MOMENT)
-        reading = payload["buoys"][0]
+        reading = by_station(payload, "46047")
         r = payload["roses"]["46047"]
         assert r["trains_from_utc"] == reading["observed_utc"]
         assert len(r["trains"]) == len(reading["trains"]) >= 2
@@ -379,7 +380,7 @@ class TestADividedTrainsPetals:
         write_many(tmp_path, "46047", [self.two_directions(MOMENT - timedelta(minutes=m))
                                        for m in (70, 40, 10)])
         payload = buoys.build(data_dir=tmp_path, now=MOMENT)
-        reading = payload["buoys"][0]
+        reading = by_station(payload, "46047")
         r = payload["roses"]["46047"]
         divided = [k for k, t in enumerate(r["trains"]) if "from_lo_deg" in t]
         assert len(divided) == 2, r["trains"]

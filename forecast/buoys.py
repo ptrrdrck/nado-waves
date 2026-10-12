@@ -3,9 +3,9 @@
 Run: ``python -m forecast.buoys``  (writes ``data/live/buoys.json``)
 
 The Buoys tab (owner's request, 2026-10-06) shows 46232 -- the anchor every
-break's card is derived from, read by `forecast.now` -- and under it 46047,
-Tanner Banks, the least shadowed buoy in the array, and (owner's request,
-2026-10-12) 46086, San Clemente Basin. Each is shown the way 46232 is at the
+break's card is derived from, read by `forecast.now` -- and under it 46086,
+San Clemente Basin (owner's request, 2026-10-12), then 46047, Tanner Banks,
+the least shadowed buoy in the array (`STATIONS`). Each is shown the way 46232 is at the
 buoy: the combined height of its directional spectrum read by maximum
 entropy, and its wave trains (`transform.at_buoy`, the same peak split and the
 same two-direction rule, BRIEFING §38a).
@@ -100,10 +100,12 @@ from .now import STALE_HOURS, as_trains, deadline
 from .transform import at_buoy, combined_hs, load_spectra
 from .units import height as fmt_height
 
-#: The buoys shown under 46232 on the Buoys tab, in order. 46086 joined
-#: 2026-10-12 (owner's request), its wave sensor back since 10-08 after
-#: twelve days dark (BRIEFING §38a).
-STATIONS = ("46047", "46086")
+#: The buoys shown under 46232 on the Buoys tab, in order (owner's call).
+#: 46086 joined 2026-10-12 (owner's request), its wave sensor back since 10-08
+#: after twelve days dark (BRIEFING §38a), under 46047; the owner swapped the
+#: two the same day. The Height chart does not follow it: the page reads
+#: `heights` by key, and JavaScript orders numeric keys ascending.
+STATIONS = ("46086", "46047")
 
 #: When each stamps a spectrum, minutes past the hour. 46047: 2,542 archived
 #: stamps (13 Aug - 6 Oct), all on :20 or :50 but for a stray :40 (3 in the

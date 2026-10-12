@@ -254,7 +254,8 @@ forecaster actually verifies against, Surfline included.
    break." line (`forecast/buoys.py` → `buoys.json`, its own step in the
    collection). **Each buoy's provenance follows its own measurements**
    (owner's call, same day): 46232's reading, then the card's provenance
-   (46232's), then 46047's block with its provenance in the same style.
+   (46232's), then each context buoy's block with its provenance in the
+   same style.
    Each buoy's feed is a pill at the START of its countdown line (owner's
    requests, 2026-10-09, moved there 2026-10-11 from beside the combined
    height, whose headline is now the height alone, as a break's is): "CDIP
@@ -301,7 +302,8 @@ forecaster actually verifies against, Surfline included.
    Its opposed lobes (≥ 150° apart, 168 over the archive; 46232 has none) are
    real — 46232 saw the southern one on 163 of 163 — and since §40 each is
    its own train.
-   **46086, San Clemente Basin, under 46047** (owner's request, 2026-10-12),
+   **46086, San Clemente Basin, between 46232 and 46047** (owner's request,
+   2026-10-12, first under 46047; the owner swapped the two the same day),
    built and guarded the same way (`buoys.STATIONS`), "NDBC 46086 •" its
    feed pill. **It is not open ocean**: `forecast.siting` puts it inside
    South's window alone (§3a: "the nearest thing to a stand-in, and
@@ -313,7 +315,9 @@ forecaster actually verifies against, Surfline included.
    sensor returned 2026-10-08. The three past H+85 were NDBC's, shared with
    46047 (10-10 07:50 reached H+125 there, past 46047's shipped 85; not
    changed, the owner's call). On the Height chart 46086 is the second
-   lighter line, dashed, as a break tab's second other break is.
+   lighter line, dashed, as a break tab's second other break is — whatever
+   the tab's order: the page reads `heights` by key, and JavaScript orders
+   numeric keys ascending.
    **Under each buoy's reading, a rose** (owner's request, 2026-10-06;
    `forecast/rose.py`, in `buoys.json` as `roses`): one per spectrum, the
    energy in sixteen 22.5° sectors, petals pointing FROM, integrated as

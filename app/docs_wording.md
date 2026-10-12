@@ -79,7 +79,7 @@ Built from what was measured: buoy 46232's directional spectrum, the wind report
 
 It carries exactly one modelled number, the tide's next high or low, and that is labelled *predicted* wherever it appears. [Why that one](#tide-turn).
 
-Its Buoys tab also shows two more buoys, 46047 at Tanner Banks and 46086 at San Clemente Basin, measured the same way, and a [rose](#swell-roses) under each buoy. Nothing on any other tab is computed from either. [Why they are there](#swell-tabs).
+Its Buoys tab also shows two more buoys, 46086 at San Clemente Basin and 46047 at Tanner Banks, measured the same way, and a [rose](#swell-roses) under each buoy. Nothing on any other tab is computed from either. [Why they are there](#swell-tabs).
 
 ### [chains-forecast] Forecast: the model only
 
@@ -404,11 +404,11 @@ One tab per break, ranked by how much of the buoy's energy its windows let throu
 
 On “LIVE”, each buoy's provenance is one line of joined pills, each growing out of the one before it: the station, with a dot, then how long ago its spectrum was taken, then the countdown to the next. The Wind and Tide cards' provenance is the same line: “METAR KNZY”, the age and the countdown; “NOAA 9410170”, the age and the countdown. On a narrow phone, where the pills do not all fit, one wraps to start the next row and stands on its own. 46232's station reads “CDIP 191”: Scripps' Coastal Data Information Program runs the buoy, and its spectra reach this page through NDBC. Tanner Banks' reads “NDBC 46047” and San Clemente Basin's “NDBC 46086”, as NDBC runs those buoys itself. 46232's line sits under every swell tab, the break tabs included, because every break's numbers come from its spectrum. The dot is green while that buoy's spectra arrive on time, fades in and out once the next one is due, and turns red once it is overdue. It changes exactly when the [countdown](#swell-countdown) beside it says “Update due” and “Overdue”, from the same two instants. With reduced motion on, a due dot holds at half strength instead of fading.
 
-On “LIVE” the Buoys tab also shows buoy 46047 at Tanner Banks, 222 km west, the buoy in the array that the islands shadow least. It is read the same way as 46232: the combined height of its directional spectrum, and its [swell trains](#swell-trains), with a train fed from two directions naming both. It is open ocean outside every break's windows, so it is carried to no break, and no number on any other tab comes from it. It is there so the swell before the Channel Islands and the Bight can be read beside the swell at 46232. Its spectra are stamped every half hour, at :20 and :50, so it has its own observed time and its own [countdown](#swell-countdown).
+On “LIVE” the Buoys tab also shows buoy 46086 at San Clemente Basin, 81 km west-south-west. It is read the same way as 46232: the combined height of its directional spectrum, and its [swell trains](#swell-trains), with a train fed from two directions naming both. It is not open ocean: it sits inside the south break's window, the only buoy besides 46232 that does, and outside North's and Center's. It is still carried to no break, because a buoy 81 km out is not the sea at the beach and 46232 has no stand-in, and no number on any other tab comes from it. Its spectra are stamped every half hour, at :20 and :50, so it has its own observed time and its own [countdown](#swell-countdown), measured on its own readings.
 
-Under it is buoy 46086 at San Clemente Basin, 81 km west-south-west, read the same way. It is not open ocean: it sits inside the south break's window, the only buoy besides 46232 that does, and outside North's and Center's. It is still carried to no break, because a buoy 81 km out is not the sea at the beach and 46232 has no stand-in, and its block says so. It too stamps at :20 and :50, with its own observed time and its own countdown, measured on its own readings. The Forecast tab's Buoys tab shows 46232 only, because the model run is read at 46232 alone.
+Under it is buoy 46047 at Tanner Banks, 222 km west, the buoy in the array that the islands shadow least, read the same way. It is open ocean outside every break's windows, so it too is carried to no break. It is there so the swell before the Channel Islands and the Bight can be read beside the swell at 46232. It too stamps at :20 and :50, with its own observed time and its own countdown. The Forecast tab's Buoys tab shows 46232 only, because the model run is read at 46232 alone.
 
-Each buoy's headline folds out, as a break's does: tap it, or the caret at its end, and what sits between it and the buoy's provenance opens beneath it — its swell trains, its rose on “LIVE”, and under 46047's and 46086's roses the line saying what each is and that it is carried to no break. It is closed until opened. Each buoy opens on its own, and the page keeps them as the reader left them across a refresh. On the Forecast tab it folds 46232's trains; the observed line under a past hour stays out of it, as it does on a break's tab.
+Each buoy's headline folds out, as a break's does: tap it, or the caret at its end, and what sits between it and the buoy's provenance opens beneath it — its swell trains, its rose on “LIVE”, and under 46086's and 46047's roses the line saying what each is and that it is carried to no break. It is closed until opened. Each buoy opens on its own, and the page keeps them as the reader left them across a refresh. On the Forecast tab it folds 46232's trains; the observed line under a past hour stays out of it, as it does on a break's tab.
 
 ### [swell-headline] The headline
 
@@ -487,8 +487,8 @@ then the page adds its own refresh, every 5 minutes.
 | Source | Publishes | Typical lag | Late after | Reading at 12:00 PM, next due |
 |---|---|---|---|---|
 | Swell, buoy 46232 | hourly, stamped :00 |  |  | 1:15 PM, red after 1:45 PM |
-| Swell, buoy 46047 (Buoys tab) | half-hourly, stamped :20 and :50 |  |  | (12:20 PM reading) 1:15 PM, red after 2:15 PM |
 | Swell, buoy 46086 (Buoys tab) | half-hourly, stamped :20 and :50 |  |  | (12:20 PM reading) 1:15 PM, red after 2:45 PM |
+| Swell, buoy 46047 (Buoys tab) | half-hourly, stamped :20 and :50 |  |  | (12:20 PM reading) 1:15 PM, red after 2:15 PM |
 | Wind, KNZY | hourly at :52 |  |  | (11:52 AM reading) 12:55 PM, red after 1:05 PM |
 | Tide, 9410170 | every 6 min |  |  | 12:15 PM |
 

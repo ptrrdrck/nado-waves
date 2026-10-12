@@ -390,8 +390,8 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         always some minutes old, and each card's countdown says exactly how old.</p>
       <p>It carries exactly one modelled number, the tide's next high or low, and that is labelled
         <em>predicted</em> wherever it appears. <a href="#tide-turn">Why that one</a>.</p>
-      <p>Its Buoys tab also shows two more buoys, 46047 at Tanner Banks and 46086 at San Clemente
-        Basin, measured the same way, and a <a href="#swell-roses">rose</a> under each buoy. Nothing
+      <p>Its Buoys tab also shows two more buoys, 46086 at San Clemente Basin and 46047 at Tanner
+        Banks, measured the same way, and a <a href="#swell-roses">rose</a> under each buoy. Nothing
         on any other tab is computed from either. <a href="#swell-tabs">Why they are there</a>.</p>
     </section>
 
@@ -865,25 +865,24 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         when the <a href="#swell-countdown">countdown</a> beside it says &ldquo;Update due&rdquo;
         and &ldquo;Overdue&rdquo;, from the same two instants. With reduced motion on, a due dot
         holds at half strength instead of fading.</p>
-      <p>On &ldquo;LIVE&rdquo; the Buoys tab also shows buoy 46047 at Tanner Banks, 222 km
-        west, the buoy in the array that the islands shadow least. It is read the same way as
-        46232: the combined height of its directional spectrum, and its
-        <a href="#swell-trains">swell trains</a>, with a train fed from two directions naming both.
-        It is open ocean outside every break's windows, so it is carried to no break, and no
-        number on any other tab comes from it. It is there so the swell before the Channel
-        Islands and the Bight can be read beside the swell at 46232. Its spectra are stamped
-        every half hour, at :20 and :50, so it has its own observed time and its own
-        <a href="#swell-countdown">countdown</a>.</p>
-      <p>Under it is buoy 46086 at San Clemente Basin, 81 km west-south-west, read the same way.
-        It is not open ocean: it sits inside the south break's window, the only buoy besides 46232
-        that does, and outside North's and Center's. It is still carried to no break, because a
-        buoy 81 km out is not the sea at the beach and 46232 has no stand-in, and its block says
-        so. It too stamps at :20 and :50, with its own observed time and its own countdown,
-        measured on its own readings. The Forecast tab's Buoys tab shows 46232 only, because the
-        model run is read at 46232 alone.</p>
+      <p>On &ldquo;LIVE&rdquo; the Buoys tab also shows buoy 46086 at San Clemente Basin, 81 km
+        west-south-west. It is read the same way as 46232: the combined height of its directional
+        spectrum, and its <a href="#swell-trains">swell trains</a>, with a train fed from two
+        directions naming both. It is not open ocean: it sits inside the south break's window, the
+        only buoy besides 46232 that does, and outside North's and Center's. It is still carried
+        to no break, because a buoy 81 km out is not the sea at the beach and 46232 has no
+        stand-in, and no number on any other tab comes from it. Its spectra are stamped every half
+        hour, at :20 and :50, so it has its own observed time and its own
+        <a href="#swell-countdown">countdown</a>, measured on its own readings.</p>
+      <p>Under it is buoy 46047 at Tanner Banks, 222 km west, the buoy in the array that the
+        islands shadow least, read the same way. It is open ocean outside every break's windows,
+        so it too is carried to no break. It is there so the swell before the Channel Islands and
+        the Bight can be read beside the swell at 46232. It too stamps at :20 and :50, with its
+        own observed time and its own countdown. The Forecast tab's Buoys tab shows 46232 only,
+        because the model run is read at 46232 alone.</p>
       <p>Each buoy's headline folds out, as a break's does: tap it, or the caret at its end, and
         what sits between it and the buoy's provenance opens beneath it &mdash; its swell trains,
-        its rose on &ldquo;LIVE&rdquo;, and under 46047's and 46086's roses the line saying
+        its rose on &ldquo;LIVE&rdquo;, and under 46086's and 46047's roses the line saying
         what each is and that it is carried to no break. It is closed until opened. Each buoy opens on its
         own, and the page keeps them as the reader left them across a refresh. On the Forecast
         tab it folds 46232's trains; the observed line under a past hour stays out of it, as it
@@ -1137,8 +1136,8 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         <thead><tr><th>Source</th><th>Publishes</th><th>Typical lag</th><th>Late after</th><th>Reading at 12:00 PM, next due</th></tr></thead>
         <tbody>
           <tr><th scope="row">Swell, buoy 46232</th><td>hourly, stamped :00</td><td class="num">15 min</td><td class="num">36 min</td><td>1:15 PM, red after 1:45 PM</td></tr>
-          <tr><th scope="row">Swell, buoy 46047 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">85 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:15 PM</td></tr>
           <tr><th scope="row">Swell, buoy 46086 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">115 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:45 PM</td></tr>
+          <tr><th scope="row">Swell, buoy 46047 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">85 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:15 PM</td></tr>
           <tr><th scope="row">Wind, KNZY</th><td>hourly at :52</td><td class="num">3 min</td><td class="num">4 min</td><td>(11:52 AM reading) 12:55 PM, red after 1:05 PM</td></tr>
           <tr><th scope="row">Tide, 9410170</th><td>every 6 min</td><td class="num">5 min</td><td class="num">8 min</td><td>12:15 PM</td></tr>
         </tbody></table></div>
