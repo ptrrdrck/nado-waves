@@ -261,14 +261,16 @@ forecaster actually verifies against, Surfline included.
    191 •" for 46232 (owner's call, 2026-10-12, shortened from "CDIP 191 via
    NDBC") — CDIP runs it, NDBC serves its spectra — and "NDBC 46047 •",
    replacing the "(NDBC <id>)" the name line carried. **The whole
-   provenance is two lines of joined pills** (owner's requests, 2026-10-11
-   and -12): "Point Loma South, CA | <when>" (the place alone, the time with
-   no "Observed" or "Measured"; `placeWhen`), then "CDIP 191 • | <age> |
-   <countdown>" (`feedPills`), each pill after the first growing out of the
-   one before, corners 4 px; the LIVE Wind and Tide cards' too — "NAS North
-   Island | <when>", "METAR KNZY • | <age> | <countdown>" and "Coronado, CA"
-   (`tidesite.SITE_PLACE`, now.json `tide_place`), "NOAA 9410170 • | …", the
-   dot on each card's own countdown; a line too wide for the card wraps a
+   provenance is ONE line of joined pills** (owner's requests, 2026-10-11
+   and -12): "CDIP 191 • | <age> | <countdown>" (`feedPills`). A first line
+   above it, "Point Loma South, CA | <when>" (the place alone, the time with
+   no "Observed" or "Measured"; `placeWhen`), is built but switched off by
+   `SHOW_PLACE_WHEN` (owner's call, same day: kept so it can come back).
+   Each pill after the first grows out of the one before, corners 4 px; the
+   LIVE Wind and Tide cards' too — "METAR KNZY • | <age> | <countdown>" and
+   "NOAA 9410170 • | …" (their hidden first lines "NAS North Island" and
+   "Coronado, CA", `tidesite.SITE_PLACE`, now.json `tide_place`), the dot
+   on each card's own countdown; a line too wide for the card wraps a
    pill to start the next row as a pill of its own, in the joined one's
    footprint (`fitPills`), never past the card. 46047's "Open ocean witness" line is
    no longer provenance: words under its rose, above its pills with space

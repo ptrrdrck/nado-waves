@@ -406,8 +406,8 @@ class TestThePills:
 
 class TestTheProvenancePills:
     """Owner's requests, 2026-10-11 and -12: each LIVE card's provenance is
-    two lines of pills -- "Point Loma South, CA | <when>", then "CDIP 191 •
-    | <age> | <countdown>"."""
+    "CDIP 191 • | <age> | <countdown>", with "Point Loma South, CA | <when>"
+    above it built but switched off (`SHOW_PLACE_WHEN`)."""
 
     def test_46232s_lines_in_order(self):
         live = PAGE.split("rows.push(swellCard(")[1].split("}));")[0]
@@ -423,8 +423,17 @@ class TestTheProvenancePills:
     def test_the_first_line_is_place_and_time_with_no_verb(self):
         """Owner's call, 2026-10-12: the time alone, no "Observed" or
         "Measured"."""
-        assert 'const placeWhen = (place, iso) => pillLine(place || "", iso ? when(iso) : "");' in PAGE
+        assert 'pillLine(place || "", iso ? when(iso) : "")' in PAGE
         assert "`Observed ${when(" not in PAGE and "`Measured ${when(" not in PAGE
+
+    def test_the_first_line_is_kept_but_not_shown(self):
+        """Owner's call, later on 2026-10-12: one line, the station's; the
+        place-and-time line stays in the code behind one switch, so it can
+        come back on every LIVE card at once."""
+        assert "const SHOW_PLACE_WHEN = false;" in PAGE
+        assert ('const placeWhen = (place, iso) => (SHOW_PLACE_WHEN ? pillLine(place || "", '
+                'iso ? when(iso) : "") : "");') in PAGE
+        assert PAGE.count("SHOW_PLACE_WHEN") == 3      # its note, the switch, its one reader
 
     def test_46047s_lines_in_the_same_order_its_words_above_them(self):
         """Owner's call, 2026-10-11: the buoy's words are a description under

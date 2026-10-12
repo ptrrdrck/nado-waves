@@ -2554,14 +2554,18 @@ const pillLine = (...parts) => {
 };
 
 // A LIVE card's provenance is two lines of pills (owner's request,
-// 2026-10-12, from three the day before). The first: where the measurement
+// 2026-10-12, from three the day before), and one since later that day. The first: where the measurement
 // was made, then when, the time alone with no "Observed" or "Measured".
 // The second (`feedPills`): the station that sent it with a dot on its own
 // countdown, how long ago -- aged by `ageSpan` as every other measurement
 // line is -- and the countdown. A buoy's place is its name alone, never its
 // id, which the station pill carries.
+//
+// The first line is built but not shown (owner's call, 2026-10-12: one line
+// is enough). `SHOW_PLACE_WHEN` brings it back on every LIVE card at once.
+const SHOW_PLACE_WHEN = false;
 const buoyPlace = (name, station) => (name && name !== station ? name : "");
-const placeWhen = (place, iso) => pillLine(place || "", iso ? when(iso) : "");
+const placeWhen = (place, iso) => (SHOW_PLACE_WHEN ? pillLine(place || "", iso ? when(iso) : "") : "");
 
 // The station: "CDIP <n>" for 46232, which CDIP runs, its number from the
 // registry (owner's call, 2026-10-12, shortened from "CDIP <n> via NDBC");
