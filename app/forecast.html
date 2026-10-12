@@ -2405,11 +2405,13 @@ function wireDrawings() {
 //
 // On the LIVE tab it also carries the context buoys from buoys.json (owner's
 // request, 2026-10-06): 46047, Tanner Banks, the least shadowed buoy in the
-// array, built the same way -- combined height and maximum-entropy trains --
-// under its own name, its own observed time and its own countdown, because
-// its spectra are stamped at :20 and :50 and land on their own measured lag
-// (forecast.buoys). It is outside every break's windows and carried to no
-// break (BRIEFING §3a), and its block says so. Each block is named in its
+// array, and since 2026-10-12 46086, San Clemente Basin, each built the same
+// way -- combined height and maximum-entropy trains -- under its own name,
+// its own observed time and its own countdown, because their spectra are
+// stamped at :20 and :50 and land on their own measured lags
+// (forecast.buoys). Each is carried to no break (BRIEFING §3a), and its
+// block says so in its own words (`note`): 46047 is outside every break's
+// windows, 46086 inside South's. Each block is named in its
 // provenance, never over its height: the headline is the height alone, as a
 // break's is (owner's call, 2026-10-11).
 //
@@ -2516,8 +2518,9 @@ function statusDot(iso, lateIso, {forceOver = false} = {}) {
     + (forceOver ? ' data-status-force="1"' : "") + "></i>";
 }
 
-// One context buoy's block: its reading, its trains and rose and, in words,
-// that it is carried to no break, all folded under its headline; then its
+// One context buoy's block: its reading, its trains and rose and, in its
+// own words from buoys.json, what it is and that it is carried to no break,
+// all folded under its headline; then its
 // provenance -- where it is, observed when, its feed and countdown, red past
 // its measured worst or past the build's three hours, in pills as 46232's.
 function contextBuoy(b) {
@@ -2527,7 +2530,8 @@ function contextBuoy(b) {
                         {forceOver: !!old || !b.observed_utc});
   // What it is, said under its rose and above its provenance with space
   // between (owner's call, 2026-10-11): a description, not a provenance line.
-  const note = '<p class="quiet buoy-note">Open ocean witness, not carried to any break.</p>';
+  // Each buoy's own (forecast.buoys.WITNESS), since 46086 is not open ocean.
+  const note = b.note ? `<p class="quiet buoy-note">${b.note}</p>` : "";
   const reading = b.hs_m != null ? buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note})
     : valLine('<span class="val"><span class="unit">no spectrum</span></span>') + roseBlock(b.station) + note;
   return `<hr>${reading}`
@@ -2954,7 +2958,7 @@ function wireRoses() {
     if (!e.target.closest("[data-rose-scrub]")) return;
     const span = roseSpan();
     if (!span || span.t1 <= span.t0) return;
-    // Half an hour a key: 46047's stamp spacing, the finer of the two.
+    // Half an hour a key: the context buoys' stamp spacing, the finest.
     const half = ROSE_PLAY_MS * 1800000 / (span.t1 - span.t0);
     const step = e.key === "ArrowRight" ? half : e.key === "ArrowLeft" ? -half : null;
     if (step == null) return;
@@ -3378,12 +3382,15 @@ function originsSpec(id, steps) {
 // The context buoys' heights (buoys.json's week, and buoys_all.json once
 // asked for), placed on the chart's hours by their own stamps: a fractional
 // step, so a :20 reading sits a third of the way past its hour. A stamp more
-// than 45 min from the one before (46047 stamps every 30) is a gap in the
-// line, never joined across. Only the stamps within the chart's hours.
+// than 45 min from the one before (46047 and 46086 stamp every 30) is a gap
+// in the line, never joined across. Only the stamps within the chart's hours.
+// Both lighter; the second dashed, as the Height chart's second other break
+// is, so the two read apart in greys alone. Each keeps its style by its place
+// in the file, whether or not the other has a point in view.
 function contextTracks(steps) {
   if (!steps.length || !BUOYS || !BUOYS.heights) return [];
   const t0 = Date.parse(steps[0].valid_utc), tn = Date.parse(steps[steps.length - 1].valid_utc);
-  return Object.keys(BUOYS.heights).map((station) => {
+  return Object.keys(BUOYS.heights).map((station, k) => {
     const byMs = new Map();
     [BUOYS_ALL && BUOYS_ALL.heights && BUOYS_ALL.heights[station], BUOYS.heights[station]]
       .forEach((h) => {
@@ -3394,7 +3401,7 @@ function contextTracks(steps) {
     const points = [...byMs.keys()].sort((p, q) => p - q)
       .filter((ms) => ms >= t0 - HOUR_MS && ms <= tn + HOUR_MS)
       .map((ms) => ({i: (ms - t0) / HOUR_MS, v: byMs.get(ms), t: new Date(ms).toISOString()}));
-    return {cls: "other", label: `Buoy ${station}`, points, join: 0.75};
+    return {cls: k ? "other alt" : "other", label: `Buoy ${station}`, points, join: 0.75};
   }).filter((tr) => tr.points.length);
 }
 
@@ -3452,8 +3459,8 @@ function buildSpec(id, mode, steps) {
     const values = steps.map((s) => num(buoyOf(s).hs_m));
     const main = `Buoy ${station}`;
     // The context buoys under it, lighter, at their own stamps (owner's
-    // request, 2026-10-09): 46047 measures at :20 and :50, never on 46232's
-    // hour, so each reading is drawn where it was taken and read out with
+    // request, 2026-10-09): 46047 and 46086 measure at :20 and :50, never on
+    // 46232's hour, so each reading is drawn where it was taken and read out with
     // its own time, never moved onto the hour beside it.
     const tracks = contextTracks(steps);
     const near = (tr, i) => {
@@ -3468,7 +3475,8 @@ function buildSpec(id, mode, steps) {
       near,
       legend: tracks.length ? [{cls: "main", label: main}, ...tracks] : undefined,
       says: `The buoy's height at ${station} each hour`
-        + (tracks.length ? `, with ${tracks.map((tr) => tr.label).join(" and ")}'s in a lighter line, at its own stamps.` : "."),
+        + (tracks.length ? `, with ${tracks.map((tr) => tr.label).join(" and ")}'s in `
+          + (tracks.length > 1 ? "lighter lines, the second dashed, each at its own stamps." : "a lighter line, at its own stamps.") : "."),
       // "Buoy" alone when it is the only line, as it always read.
       read: (i) => [value(`${tracks.length ? main : "Buoy"} ${height(values[i])}`), ...tracks.map((tr) => {
         const p = near(tr, i);

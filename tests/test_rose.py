@@ -91,9 +91,10 @@ class TestTheLoop:
     def test_each_buoy_has_its_own_and_none_is_borrowed(self, tmp_path):
         write_spectrum(tmp_path, "46232", spectrum(MOMENT - timedelta(minutes=30)))
         got = buoys.build(data_dir=tmp_path, now=MOMENT)["roses"]
-        assert list(got) == ["46232", "46047"]
+        assert list(got) == ["46232", "46047", "46086"]
         assert len(got["46232"]["frames"]) == 1 and got["46232"]["interval_min"] == 60.0
-        assert got["46047"]["frames"] == []
+        assert got["46047"]["frames"] == [] and got["46086"]["frames"] == []
+        assert got["46086"]["interval_min"] == 30.0
 
     def test_read_by_maximum_entropy_like_the_reading_above_it(self, tmp_path):
         sp = spectrum(MOMENT - timedelta(minutes=40), peak_dir=290.0)

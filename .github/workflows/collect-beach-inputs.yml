@@ -124,8 +124,9 @@ jobs:
       # and the hurricane gate reads both 46047 and 46086 (forecast.stormtrack).
       # Hourly, so a new arrival's bearing lands with its distance rather than a
       # collect.yml run later; collect.yml no longer fetches them, so each file
-      # has one writer. 46086 stays here while its wave sensor is dark: the
-      # day it returns is archived the same hour.
+      # has one writer. 46086 stayed here while its wave sensor was dark
+      # (2026-09-25 to 10-08), so the day it returned was archived the same
+      # hour. Both are also on the LIVE Buoys tab (forecast.buoys, below).
       - name: Directional spectra (46047, 46086, hourly)
         id: bearing
         continue-on-error: true
@@ -194,12 +195,13 @@ jobs:
           # while a hurricane's band is arriving at 46047 or 46086.
           python -m forecast.originhistory --live
 
-      # The context buoys on the LIVE tab's Buoys tab (46047, Tanner Banks):
-      # the newest spectrum at the buoy, carried to no break, with its own
-      # measured countdown. Its own file and its own step: nothing on the chain
-      # may read a context buoy (BRIEFING §3a), and `forecast.now` exits 1 when
-      # 46232 is dark, which must not take 46047's reading with it. Also each
-      # buoy's last six hours of roses (forecast.rose). ~2 s.
+      # The context buoys on the LIVE tab's Buoys tab (46047, Tanner Banks, and
+      # 46086, San Clemente Basin): each one's newest spectrum at the buoy,
+      # carried to no break, with its own measured countdown. Their own file
+      # and their own step: nothing on the chain may read a context buoy
+      # (BRIEFING §3a), and `forecast.now` exits 1 when 46232 is dark, which
+      # must not take their readings with it. Also each buoy's last six hours
+      # of roses (forecast.rose).
       - name: Context buoys
         id: buoys
         continue-on-error: true

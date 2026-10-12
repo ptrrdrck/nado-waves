@@ -87,8 +87,26 @@ class TestTheReading:
         write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(minutes=40)))
         standing = buoys.build(data_dir=tmp_path, now=MOMENT)["standing_on"]
         assert list(standing) == ["context buoys"]
-        assert standing["context buoys"].startswith("OBSERVED — NDBC directional spectrum at 46047")
-        assert "carried to no break" in standing["context buoys"]
+        line = standing["context buoys"]
+        assert line.startswith("OBSERVED — NDBC directional spectrum at 46047")
+        assert "carried to no break" in line
+        # Each buoy with its own window claim: 46086 is not outside them all.
+        assert "at 46047 (outside every break's windows)" in line
+        assert "at 46086 (inside South's window alone)" in line
+
+    def test_each_buoy_carries_its_own_words(self, tmp_path):
+        for station in buoys.STATIONS:
+            write_spectrum(tmp_path, station, spectrum(MOMENT - timedelta(minutes=40)))
+        shown = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"]
+        assert [b["station"] for b in shown] == ["46047", "46086"]
+        assert [b["note"] for b in shown] == [
+            "Open ocean witness, not carried to any break.",
+            "Inside South's window, not carried to any break.",
+        ]
+        # A missing spectrum still says what the buoy is.
+        (tmp_path / "spectra" / "46086" / "c11.csv").unlink()
+        gone = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"][1]
+        assert "hs_m" not in gone and gone["note"] == buoys.WITNESS["46086"]["note"]
 
     def test_json_round_trips(self, tmp_path):
         write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(minutes=40)))
@@ -112,6 +130,26 @@ class TestItFeedsNoBreak:
             assert carrier not in names, carrier
         assert not modules & {"nearshore", "surfzone", "raytrace"}
 
+    def test_what_each_says_about_the_windows_is_sitings(self):
+        """BRIEFING §3a: which windows a buoy sits in is DERIVED, never
+        stored. The words are typed, so they are held to the derivation: a
+        buoy said to be outside every window is in none, and one said to be
+        inside South's alone is in exactly that one."""
+
+        from forecast import siting
+        from collector.stations import load_stations
+
+        by_id = {s.station.id: s for s in siting.survey(load_stations())}
+        words = {(): "outside every break's windows",
+                 ("coronado_south",): "inside South's window alone"}
+        for station in buoys.STATIONS:
+            got = by_id[station].in_window_of
+            assert got in words, (station, got)
+            assert buoys.WITNESS[station]["windows"] == words[got], station
+            note = buoys.WITNESS[station]["note"]
+            assert note.endswith("not carried to any break.")
+            assert ("window" in note) == bool(got), station
+
     def test_the_only_buoy_shown_is_a_context_buoy(self):
         from collector.spectra import CONTEXT_STATIONS, DEFAULT_STATION
 
@@ -132,21 +170,24 @@ class TestItFeedsNoBreak:
 
 
 class TestItsOwnCountdown:
-    """46047 stamps at :20 and :50 and lands on its own lag, bracketed
-    2026-10-06 against the collection log (module docstring)."""
+    """46047 and 46086 stamp at :20 and :50 and land on their own lags,
+    bracketed 2026-10-06 and 2026-10-12 against the collection log (module
+    docstring)."""
 
     def test_every_buoy_shown_has_measured_lags(self):
         for station in buoys.STATIONS:
             assert buoys.PUBLISH_MINUTES[station]
             assert buoys.PUBLISH_LAG_LATE_MIN[station] >= buoys.PUBLISH_LAG_MIN[station] > 0
 
-    def test_the_archive_stamps_where_it_is_modelled_to(self):
-        """At least 98% of archived stamps on the modelled minutes: the newest
-        200 had 3 on :40, and a countdown on the wrong minutes would run to
-        a stamp that never comes."""
+    @pytest.mark.parametrize("station", buoys.STATIONS)
+    def test_the_archive_stamps_where_it_is_modelled_to(self, station):
+        """At least 98% of archived stamps on the modelled minutes: 46047's
+        newest 200 had 3 on :40, 46086's 4 on :40 and 2 on :10, and a
+        countdown on the wrong minutes would run to a stamp that never
+        comes."""
 
-        stamps = [s.time.minute for s in load_spectra(ROOT / "data" / "spectra" / "46047")]
-        on = sum(Counter(stamps)[m] for m in buoys.PUBLISH_MINUTES["46047"])
+        stamps = [s.time.minute for s in load_spectra(ROOT / "data" / "spectra" / station)]
+        on = sum(Counter(stamps)[m] for m in buoys.PUBLISH_MINUTES[station])
         assert on / len(stamps) >= 0.98
 
     @pytest.mark.parametrize("observed, expected, late", [
@@ -162,10 +203,24 @@ class TestItsOwnCountdown:
         got = buoys.build(data_dir=tmp_path, now=at + timedelta(minutes=30))["buoys"][0]
         assert (got["next_expected"], got["overdue_after"]) == (expected, late)
 
+    def test_46086_lands_on_its_own_worst(self, tmp_path):
+        """Bracketed on its own 188 stamps: 25 typical, as 46047's, but 115
+        worst, not 46047's 85 -- measured, not borrowed."""
+
+        assert (buoys.PUBLISH_LAG_MIN["46086"], buoys.PUBLISH_LAG_LATE_MIN["46086"]) == (25, 115)
+        at = datetime(2026, 10, 6, 0, 20, tzinfo=timezone.utc)
+        write_spectrum(tmp_path, "46086", spectrum(at))
+        got = buoys.build(data_dir=tmp_path, now=at + timedelta(minutes=30))["buoys"][1]
+        # :20 -> next stamp :50, +25 = 01:15; +115 = 02:45, the :45 collection.
+        assert got["station"] == "46086"
+        assert (got["next_expected"], got["overdue_after"]) == (
+            "2026-10-06T01:15:00Z", "2026-10-06T02:45:00Z")
+
     def test_it_is_not_46232s_countdown(self):
         from forecast import now as now_mod
 
-        assert buoys.PUBLISH_MINUTES["46047"] != now_mod.PUBLISH_MINUTES["swell"]
+        for station in buoys.STATIONS:
+            assert buoys.PUBLISH_MINUTES[station] != now_mod.PUBLISH_MINUTES["swell"]
 
     def test_the_arithmetic_is_shared_not_copied(self):
         source = (ROOT / "forecast" / "buoys.py").read_text()
@@ -197,7 +252,9 @@ class TestOnThePage:
     def test_its_block_says_it_feeds_no_break_and_has_its_own_clock(self):
         block = PAGE[PAGE.index("function contextBuoy("):]
         block = block[:block.index("\n}\n")]
-        assert "Open ocean witness, not carried to any break." in block
+        # Each buoy's own words, from buoys.json: never one line typed for all.
+        assert '<p class="quiet buoy-note">${b.note}</p>' in block
+        assert "Open ocean witness" not in block
         assert "observedPills(b.observed_utc)" in block
         assert "feedPills(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after" in block
         assert "NOW." not in block
@@ -359,7 +416,7 @@ class TestTheProvenancePills:
         longer one of its lines."""
 
         block = _fn("contextBuoy")
-        assert (block.index("Open ocean witness, not carried to any break.")
+        assert (block.index('<p class="quiet buoy-note">${b.note}</p>')
                 < block.index("srcLines(")
                 < block.index("buoyWhere(b.station_name, b.station)")
                 < block.index("observedPills(b.observed_utc)")
