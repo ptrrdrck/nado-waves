@@ -514,7 +514,12 @@ forecaster actually verifies against, Surfline included.
    to 500 mi and 500 km and said "about", and the place is a sea. Shown only
    once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "Read backwards
    off the swell, N h so far" while it runs; otherwise the last readable arrival at that
-   break in the last 21 days. **Every origin is the same three lines** (owner's
+   break in the last 21 days — whichever ended later of Origin's last reading
+   there and the last storm named there (origins.json's named moments, as of
+   now.json's spectrum, a reading credited to a storm being that storm's;
+   owner's report 2026-10-12, when South read a ridge ended 2 Oct while
+   Tropical Storm Rachel was named there to 11 Oct). now.json names every
+   gate buoy so a past storm's line can name its own. **Every origin is the same three lines** (owner's
    design, 2026-10-04), **each a fixed run of slots** (owner's formula,
    2026-10-10, `docs/origin_wording.md`): a slot with no value drops with its
    joining words, nothing is reworded per case. What it is, the head alone
