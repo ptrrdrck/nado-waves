@@ -849,8 +849,12 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
     # can name every buoy it cites as "Name, CA (NDBC id)", as its other lines
     # name the swell buoy: the bearing buoys and each hurricane's gate buoys.
     # Bearing buoys alone left San Clemente Basin bare on a hurricane's line once §38a
-    # dropped it from Origin's bearings (2026-10-10).
-    cited = {buoy for h in block["hurricanes"] for buoy in h.get("match", {})}
+    # dropped it from Origin's bearings (2026-10-10). Every gate buoy, not
+    # only those a storm is matched at now: a storm shown as a tab's last
+    # readable arrival (from origins.json) names its own (2026-10-12).
+    from .stormtrack import GATE_STATIONS
+
+    cited = set(GATE_STATIONS) | {buoy for h in block["hurricanes"] for buoy in h.get("match", {})}
     block["station_names"] = {s: station_name(s, data_dir)
                               for s in (STATION, *origin.BEARING_STATIONS, *sorted(cited))}
     return block

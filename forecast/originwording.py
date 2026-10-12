@@ -97,6 +97,30 @@ def _site(current=(), last=None) -> dict:
                      "last": last}}
 
 
+#: When now.json's spectrum was read, for the cases that ask origins.json
+#: for the last storm named at a tab within the lookback.
+OBSERVED = "2026-10-12T02:00:00Z"
+
+
+def _named(time_utc: str, h: dict) -> dict:
+    """One of origins.json's named moments: the storm as the card named it."""
+
+    return {"time_utc": time_utc, **{k: h[k] for k in ("storm", "name", "best", "word",
+                                                       "match", "sites")}}
+
+
+def _last_storm(reading_last: str) -> dict:
+    """South on 2026-10-12: nothing arriving, Origin's last reading ended on
+    `reading_last`, and Tropical Storm Rachel named at the tab 8-11 Oct."""
+
+    return {"arrivals": [_arrival(**{**PLACED, "region": "the Aleutian storm track"},
+                                  first_utc="2026-09-30T11:00:00Z", last_utc=reading_last)],
+            "sites": _site(last=0), "_observed": OBSERVED,
+            "_origins": {"arrivals": [], "named": [
+                _named("2026-10-08T06:00:00Z", _hurricane()),
+                _named("2026-10-11T18:00:00Z", _weakened())]}}
+
+
 #: (id, what it is, the Origin block). One per branch the page can take.
 CASES = [
     ("E0", "nothing in 21 days", {"arrivals": [], "sites": _site()}),
@@ -106,6 +130,10 @@ CASES = [
      {"arrivals": [_arrival(**SPLIT)], "sites": _site(last=0)}),
     ("L3", "last readable arrival, unplaced: 46047 does not have it",
      {"arrivals": [_arrival(**UNSEEN)], "sites": _site(last=0)}),
+    ("L4", "last readable arrival, a storm named here after Origin's last reading",
+     _last_storm("2026-10-02T18:00:00Z")),
+    ("L5", "last readable arrival, Origin's reading ended after the last storm named here",
+     _last_storm("2026-10-11T23:00:00Z")),
     ("C1", "arriving, placed",
      {"arrivals": [_arrival(**PLACED)], "sites": _site(current=[(0, 15.1)])}),
     ("C2", "arriving, unplaced: split three ways",
@@ -158,7 +186,8 @@ def script(source: str) -> str:
     """The page's Origin code and its helpers, and a loop printing each case."""
 
     code = "\n".join([
-        "let NOW = null;",
+        "let NOW = null, ORIGINS = null;",
+        _lift(source, "const HOUR_MS = ", ";"),
         _lift(source, "const MPH_PER_KT = ", ";"),
         _lift(source, "const MI_PER_KM = ", ";"),
         _lift(source, "const speed = ", "</span>`);"),
@@ -177,7 +206,8 @@ const text = (html) => html
   .split("\\n").map((s) => s.trim()).filter(Boolean);
 const out = {{}};
 for (const [id, origin] of {cases}) {{
-  NOW = {{origin}};
+  NOW = {{origin, observed_utc: origin._observed}};
+  ORIGINS = origin._origins || null;
   out[id] = text(originBody(originFor("buoy")));
 }}
 console.log(JSON.stringify(out));
