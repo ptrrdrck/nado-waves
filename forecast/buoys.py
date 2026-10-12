@@ -3,14 +3,14 @@
 Run: ``python -m forecast.buoys``  (writes ``data/live/buoys.json``)
 
 The Buoys tab (owner's request, 2026-10-06) shows 46232 -- the anchor every
-break's card is derived from, read by `forecast.now` -- and under it 46047,
-Tanner Banks, the least shadowed buoy in the array, and (owner's request,
-2026-10-12) 46086, San Clemente Basin. Each is shown the way 46232 is at the
+break's card is derived from, read by `forecast.now` -- and under it 46086,
+San Clemente Basin (owner's request, 2026-10-12), then 46047, Tanner Banks,
+the least shadowed buoy in the array (`STATIONS`). Each is shown the way 46232 is at the
 buoy: the combined height of its directional spectrum read by maximum
 entropy, and its wave trains (`transform.at_buoy`, the same peak split and the
 same two-direction rule, BRIEFING §38a).
 
-**They are carried to no break, and this module is why that stays true.**
+**They are not carried to any break, and this module is why that stays true.**
 46047 sits 21.0 / 12.8 / 3.2° outside North / Center / South's windows
 (`forecast.siting`, BRIEFING §3a); it is the open ocean before the Channel
 Islands and the Bight, not the sea at Coronado. 46086 is inside South's
@@ -100,10 +100,12 @@ from .now import STALE_HOURS, as_trains, deadline
 from .transform import at_buoy, combined_hs, load_spectra
 from .units import height as fmt_height
 
-#: The buoys shown under 46232 on the Buoys tab, in order. 46086 joined
-#: 2026-10-12 (owner's request), its wave sensor back since 10-08 after
-#: twelve days dark (BRIEFING §38a).
-STATIONS = ("46047", "46086")
+#: The buoys shown under 46232 on the Buoys tab, in order (owner's call).
+#: 46086 joined 2026-10-12 (owner's request), its wave sensor back since 10-08
+#: after twelve days dark (BRIEFING §38a), under 46047; the owner swapped the
+#: two the same day. The Height chart does not follow it: the page reads
+#: `heights` by key, and JavaScript orders numeric keys ascending.
+STATIONS = ("46086", "46047")
 
 #: When each stamps a spectrum, minutes past the hour. 46047: 2,542 archived
 #: stamps (13 Aug - 6 Oct), all on :20 or :50 but for a stray :40 (3 in the
@@ -129,7 +131,7 @@ WITNESS = {
 }
 
 #: The anchor, whose reading is `forecast.now`'s. Named here only for its
-#: rose: a picture of 46232's spectrum at the buoy, carried to no break.
+#: rose: a picture of 46232's spectrum at the buoy, not carried to any break.
 ANCHOR = "46232"
 
 #: How far back buoys.json's heights reach: the LIVE tab's week
@@ -264,7 +266,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
                 + (f", {b['station_name']}" if b["station_name"] != b["station"] else "")
                 + f" ({WITNESS[b['station']]['windows']})"
                 for b in shown
-            ) + "; shown at the buoy on the Buoys tab and carried to no break",
+            ) + "; shown at the buoy on the Buoys tab and not carried to any break",
         },
         "buoys": shown,
         "roses": roses(data_dir, moment),
@@ -276,7 +278,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
 
 
 def format_table(payload: dict) -> str:
-    lines = [f"Context buoys, built {payload['generated_utc']} (carried to no break)"]
+    lines = [f"Context buoys, built {payload['generated_utc']} (not carried to any break)"]
     for b in payload["buoys"]:
         head = f"{b['station_name']} ({b['station']})"
         if b.get("hs_m") is None:

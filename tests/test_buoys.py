@@ -39,11 +39,17 @@ def write_spectrum(data_dir: Path, station: str, sp: Spectrum) -> None:
             w.writerow([stamp, *getattr(sp, kind)])
 
 
+def block(payload: dict, station: str) -> dict:
+    """One buoy's block, by station rather than by its place on the tab."""
+
+    return next(b for b in payload["buoys"] if b["station"] == station)
+
+
 class TestTheReading:
     def test_it_is_the_buoy_with_nothing_in_the_way(self, tmp_path):
         sp = spectrum(MOMENT - timedelta(minutes=40), peak_dir=300.0)
         write_spectrum(tmp_path, "46047", sp)
-        got = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"][0]
+        got = block(buoys.build(data_dir=tmp_path, now=MOMENT), "46047")
         want = at_buoy(load_spectra(tmp_path / "spectra" / "46047")[0].with_spread("mem"))
         assert got["station"] == "46047"
         assert got["hs_m"] == pytest.approx(want.hs_m, abs=1e-3)
@@ -51,7 +57,7 @@ class TestTheReading:
 
     def test_the_trains_sum_to_the_headline(self, tmp_path):
         write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(minutes=40)))
-        got = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"][0]
+        got = block(buoys.build(data_dir=tmp_path, now=MOMENT), "46047")
         from_trains = math.sqrt(sum((t["hs_m"] / 4.0) ** 2 for t in got["trains"]))
         assert 4.0 * from_trains == pytest.approx(got["hs_m"], rel=0.08)
 
@@ -72,24 +78,24 @@ class TestTheReading:
         """A missing 46047 is a gap. Nothing falls back to 46232's reading."""
 
         write_spectrum(tmp_path, "46232", spectrum(MOMENT))
-        got = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"][0]
+        got = block(buoys.build(data_dir=tmp_path, now=MOMENT), "46047")
         assert got["observed_utc"] is None and "hs_m" not in got
         assert got["stale"] and got["warnings"]
 
     def test_an_old_spectrum_is_marked_stale(self, tmp_path):
         write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(hours=5)))
-        got = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"][0]
+        got = block(buoys.build(data_dir=tmp_path, now=MOMENT), "46047")
         assert got["stale"] and got["hs_m"] > 0
         write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(hours=1)))
-        assert not buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"][0]["stale"]
+        assert not block(buoys.build(data_dir=tmp_path, now=MOMENT), "46047")["stale"]
 
     def test_it_says_what_it_is_standing_on(self, tmp_path):
         write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(minutes=40)))
         standing = buoys.build(data_dir=tmp_path, now=MOMENT)["standing_on"]
         assert list(standing) == ["context buoys"]
         line = standing["context buoys"]
-        assert line.startswith("OBSERVED — NDBC directional spectrum at 46047")
-        assert "carried to no break" in line
+        assert line.startswith("OBSERVED — NDBC directional spectrum at 46086")
+        assert "not carried to any break" in line
         # Each buoy with its own window claim: 46086 is not outside them all.
         assert "at 46047 (outside every break's windows)" in line
         assert "at 46086 (inside South's window alone)" in line
@@ -98,21 +104,22 @@ class TestTheReading:
         for station in buoys.STATIONS:
             write_spectrum(tmp_path, station, spectrum(MOMENT - timedelta(minutes=40)))
         shown = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"]
-        assert [b["station"] for b in shown] == ["46047", "46086"]
+        # Owner's call, 2026-10-12: 46086 first, then 46047.
+        assert [b["station"] for b in shown] == ["46086", "46047"]
         assert [b["note"] for b in shown] == [
-            "Open ocean witness, not carried to any break.",
             "Inside South's window, not carried to any break.",
+            "Open ocean witness, not carried to any break.",
         ]
         # A missing spectrum still says what the buoy is.
         (tmp_path / "spectra" / "46086" / "c11.csv").unlink()
-        gone = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"][1]
+        gone = block(buoys.build(data_dir=tmp_path, now=MOMENT), "46086")
         assert "hs_m" not in gone and gone["note"] == buoys.WITNESS["46086"]["note"]
 
     def test_json_round_trips(self, tmp_path):
         write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(minutes=40)))
         assert buoys.main(["--data-dir", str(tmp_path)]) == 0
         got = json.loads((tmp_path / "live" / "buoys.json").read_text())
-        assert got["spread"] == "mem" and got["buoys"][0]["station"] == "46047"
+        assert got["spread"] == "mem" and block(got, "46047")
 
 
 class TestItFeedsNoBreak:
@@ -200,7 +207,7 @@ class TestItsOwnCountdown:
                                                                expected, late):
         at = datetime.strptime(observed, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
         write_spectrum(tmp_path, "46047", spectrum(at))
-        got = buoys.build(data_dir=tmp_path, now=at + timedelta(minutes=30))["buoys"][0]
+        got = block(buoys.build(data_dir=tmp_path, now=at + timedelta(minutes=30)), "46047")
         assert (got["next_expected"], got["overdue_after"]) == (expected, late)
 
     def test_46086_lands_on_its_own_worst(self, tmp_path):
@@ -210,7 +217,7 @@ class TestItsOwnCountdown:
         assert (buoys.PUBLISH_LAG_MIN["46086"], buoys.PUBLISH_LAG_LATE_MIN["46086"]) == (25, 115)
         at = datetime(2026, 10, 6, 0, 20, tzinfo=timezone.utc)
         write_spectrum(tmp_path, "46086", spectrum(at))
-        got = buoys.build(data_dir=tmp_path, now=at + timedelta(minutes=30))["buoys"][1]
+        got = block(buoys.build(data_dir=tmp_path, now=at + timedelta(minutes=30)), "46086")
         # :20 -> next stamp :50, +25 = 01:15; +115 = 02:45, the :45 collection.
         assert got["station"] == "46086"
         assert (got["next_expected"], got["overdue_after"]) == (

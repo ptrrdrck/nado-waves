@@ -197,7 +197,7 @@ jobs:
 
       # The context buoys on the LIVE tab's Buoys tab (46047, Tanner Banks, and
       # 46086, San Clemente Basin): each one's newest spectrum at the buoy,
-      # carried to no break, with its own measured countdown. Their own file
+      # not carried to any break, with its own measured countdown. Their own file
       # and their own step: nothing on the chain may read a context buoy
       # (BRIEFING §3a), and `forecast.now` exits 1 when 46232 is dark, which
       # must not take their readings with it. Also each buoy's last six hours
