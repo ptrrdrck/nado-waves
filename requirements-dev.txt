@@ -4,6 +4,8 @@
 #
 # These are for the test suite only.
 pytest>=8.0
+# Runs the suite on every core; tests.yml passes -n auto.
+pytest-xdist>=3.6
 
 # numpy only so the suite can check the precompute (forecast.raytrace and the
 # stored bathymetry) against its textbook controls. Nothing on the forecast
