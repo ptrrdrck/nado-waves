@@ -188,6 +188,7 @@ def script(source: str) -> str:
     code = "\n".join([
         "let NOW = null, ORIGINS = null;",
         _lift(source, "const HOUR_MS = ", ";"),
+        _lift(source, "const SHORT = ", "};"),
         _lift(source, "const MPH_PER_KT = ", ";"),
         _lift(source, "const MI_PER_KM = ", ";"),
         _lift(source, "const speed = ", "</span>`);"),
@@ -202,6 +203,7 @@ const text = (html) => html
   .replace(/<span class="(turn|src)">/g, "\\n").replace(/<div class="origin"[^>]*>/g, "\\n")
   .replace(/ <span class="unit">(?!\\()/g, "  ")
   .replace(/<a href="([^"]+)"[^>]*>([^<]+)<\\/a>/g, "[$2]($1)")
+  .replace(/<svg class="storm-sym" data-kind="([a-z-]+)"[^]*?<\\/svg>/g, (_, k) => ` {{${{k.replace("-", " ")}} symbol}}`)
   .replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&deg;/g, "°")
   .split("\\n").map((s) => s.trim()).filter(Boolean);
 const out = {{}};
