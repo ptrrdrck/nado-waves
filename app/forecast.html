@@ -227,13 +227,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A picked row reads as pressed, on the Buoys tab and on a break's alike
    (owner's request, 2026-10-09). */
 .train[data-rose-train][aria-pressed="true"],.train[data-train][aria-pressed="true"]{background:var(--paper);opacity:1}
-/* Each LIVE buoy's provenance is three lines of joined pills (owner's
-   requests, 2026-10-09 and -11): where the buoy is and what it measures;
-   when it was observed and how long ago; and its feed, "CDIP <n> via NDBC"
-   or "NDBC <id>", with a dot on that buoy's own countdown -- green while its
-   spectra arrive, green fading in and out once one is due, red once overdue
-   -- and the countdown. In ink at the provenance's size on the picked row's
-   background, with 4 px corners (owner's call, same day). */
+/* Each LIVE card's provenance is two lines of joined pills (owner's
+   requests, 2026-10-09 to -12): where and when; then the station, "CDIP
+   <n>", "NDBC <id>", "METAR KNZY" or "NOAA 9410170", with a dot on that
+   source's own countdown -- green while it arrives, green fading in and out
+   once one is due, red once overdue -- how long ago, and the countdown.
+   In ink at the provenance's size on the picked row's background, with
+   4 px corners (owner's call, 2026-10-11). */
 .pill,.pill-tail{display:inline-flex;align-items:center;height:18px;box-sizing:border-box;
   background:var(--paper);color:var(--ink);font-size:12px;font-weight:400;line-height:1;
   font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -244,9 +244,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    straight edge between the corners as a 6 x 10 px block, each corner as a
    circle of 6 px, 5 px above and below the middle -- so its left edge hugs
    the first pill's end with a 2 px seam; its right end is the first pill's.
-   The cut is the whole pill less those three (`subtract` over `add`). Kept
-   on one line while they fit; where they do not (a 320 px phone),
-   `fitPills` lets the second wrap under the first as a pill of its own. */
+   The cut is the whole pill less those three (`subtract` over `add`). A
+   third grows out of the second the same way (owner's request, 2026-10-12:
+   station, age, countdown). Kept on one line while they fit; where they do
+   not (a 320 px phone), `fitPills` lets a pill wrap to start the next row
+   as a pill of its own. */
 .pills{display:inline-flex;flex-wrap:wrap;align-items:center;row-gap:2px;vertical-align:top;max-width:100%}
 .pill-tail{margin-left:-4px;padding:0 7px 0 13px;border-radius:0 4px 4px 0;
   -webkit-mask:linear-gradient(#000 0 0),
@@ -259,7 +261,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
     radial-gradient(circle at 0 calc(50% + 5px),#000 6px,transparent 6.5px),
     linear-gradient(#000 0 0) 0 50%/6px 10px no-repeat;
   mask-composite:subtract,add,add}
-.pills.split .pill-tail{margin-left:0;padding:0 7px;border-radius:4px;-webkit-mask:none;mask:none}
+/* A pill that wraps to start a row stands on its own, in the joined one's
+   footprint (-4 + 13 + 7 = 8 + 8), so marking it never moves the next. */
+.pill-tail.wrapped{margin-left:0;padding:0 8px;border-radius:4px;-webkit-mask:none;mask:none}
 .status{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dot-ok)}
 .status.due{animation:status-due 2s ease-in-out infinite} .status.over{background:var(--dot-over)}
 @keyframes status-due{0%,100%{opacity:1}50%{opacity:.2}}
@@ -945,7 +949,7 @@ function turnClock(iso, fromIso) {
 // than from the payload, which makes it volatile between two renders that
 // straddle a minute. `cardText` strips everything so marked before comparing,
 // so a card is never flashed for a string that was only ever going to change.
-// The buoys' provenance pills (`observedPills`) take the same span.
+// The LIVE cards' provenance pills (`feedPills`) take the same span.
 function ageSpan(iso) {
   const age = iso ? ago(ageHours(iso)) : "";
   return age ? `<span class="age">${age}</span>` : "";
@@ -1517,17 +1521,18 @@ function fitTrains(root = document) {
     }
   });
 }
-// Two joined pills stay one unit while they fit on the line; where they do
-// not, the second wraps under the first and stands as a pill of its own
-// (`.split`), never a cut edge hugging nothing. Measured joined each time,
-// so the narrower split form cannot talk itself back onto the line. A pair
-// in a hidden pane has no width and is fitted when its pane's lines resize.
+// Joined pills stay one unit while they fit on the line; where they do
+// not, a pill that wraps to start a row stands as a pill of its own
+// (`.wrapped`), never a cut edge hugging nothing. A line in a hidden pane
+// has no width and is fitted when its pane's lines resize.
 function fitPill(pair) {
-  const tail = pair.querySelector(".pill-tail");
-  pair.classList.remove("split");
-  if (tail && pair.clientWidth && tail.offsetTop > pair.firstElementChild.offsetTop + 1) {
-    pair.classList.add("split");
-  }
+  if (!pair.clientWidth) return;
+  const tails = [...pair.querySelectorAll(".pill-tail")];
+  tails.forEach((tail) => tail.classList.remove("wrapped"));
+  // Read every row before writing any: a wrapped pill takes the joined one's
+  // footprint, so marking one never moves the next.
+  const starts = tails.map((tail) => tail.offsetTop > tail.previousElementSibling.offsetTop + 1);
+  tails.forEach((tail, i) => tail.classList.toggle("wrapped", starts[i]));
 }
 const PILL_WIDTH = new WeakMap();
 const pillResize = typeof ResizeObserver === "undefined" ? null
@@ -2535,40 +2540,46 @@ function setBuoyOpen(id, open) {
   if (open) roseShown();
 }
 
-// Two joined pills, the second growing out of the first (`.pill-tail`); no
-// second, no tail -- never an empty pill.
-function pills(head, tail = "") {
+// Joined pills, each after the first growing out of the one before it
+// (`.pill-tail`). An empty part is left out -- never an empty pill.
+function pills(...parts) {
+  const [head, ...tails] = parts.filter(Boolean);
   if (!head) return "";
   return `<span class="pills"><span class="pill">${head}</span>`
-    + `${tail ? `<span class="pill-tail">${tail}</span>` : ""}</span>`;
+    + tails.map((tail) => `<span class="pill-tail">${tail}</span>`).join("") + "</span>";
 }
-const pillLine = (head, tail = "") => (head ? {html: pills(head, tail)} : "");
+const pillLine = (...parts) => {
+  const html = pills(...parts);
+  return html ? {html} : "";
+};
 
-// A LIVE card's provenance in pills (owner's requests, 2026-10-11): where
-// the measurement was made, then when and how long ago -- aged by `ageSpan`
-// as every other measurement line is -- then its feed and countdown
-// (`feedPills`). A buoy's place is its name alone, never its id, which the
-// feed pill carries.
-function buoyWhere(name, station) {
-  return name && name !== station ? pillLine(name) : "";
-}
-function observedPills(iso, verb = "Observed") {
-  return iso ? pillLine(`${verb} ${when(iso)}`, ageSpan(iso)) : "";
-}
+// A LIVE card's provenance is two lines of pills (owner's request,
+// 2026-10-12, from three the day before), and one since later that day. The first: where the measurement
+// was made, then when, the time alone with no "Observed" or "Measured".
+// The second (`feedPills`): the station that sent it with a dot on its own
+// countdown, how long ago -- aged by `ageSpan` as every other measurement
+// line is -- and the countdown. A buoy's place is its name alone, never its
+// id, which the station pill carries.
+//
+// The first line is built but not shown (owner's call, 2026-10-12: one line
+// is enough). `SHOW_PLACE_WHEN` brings it back on every LIVE card at once.
+const SHOW_PLACE_WHEN = false;
+const buoyPlace = (name, station) => (name && name !== station ? name : "");
+const placeWhen = (place, iso) => (SHOW_PLACE_WHEN ? pillLine(place || "", iso ? when(iso) : "") : "");
 
-// A LIVE card's countdown line (owner's calls, 2026-10-11): where the feed
-// comes from -- "CDIP <number> via NDBC" for 46232, which CDIP runs and NDBC
-// serves, its number from the registry; "NDBC <id>" for a buoy NDBC runs;
-// "METAR KNZY" for the wind and "NOAA 9410170" for the tide -- in a pill
-// with a status dot on that source's own two instants, and the countdown
-// itself in a second pill growing out of the first, so the dot and the
-// words beside it change together. No countdown, no second pill.
-function feedPills(label, iso, lateIso, {forceOver = false} = {}) {
+// The station: "CDIP <n>" for 46232, which CDIP runs, its number from the
+// registry (owner's call, 2026-10-12, shortened from "CDIP <n> via NDBC");
+// "NDBC <id>" for a buoy NDBC runs; "METAR KNZY" for the wind and "NOAA
+// 9410170" for the tide. Its dot runs on that source's own two instants,
+// the countdown beside it on the same two, so the two change together. No
+// observation, no age; no countdown, no last pill.
+function feedPills(label, observedIso, iso, lateIso, {forceOver = false} = {}) {
   if (!label) return "";
-  return pills(label + statusDot(iso, lateIso, {forceOver}), dueSpan(iso, lateIso, {forceOver, bare: true}));
+  return pills(label + statusDot(iso, lateIso, {forceOver}), ageSpan(observedIso),
+               dueSpan(iso, lateIso, {forceOver, bare: true}));
 }
 const anchorFeed = (now, due, late) => (now && now.station
-  ? feedPills(now.station_cdip ? `CDIP ${now.station_cdip} via NDBC` : `NDBC ${now.station}`,
+  ? feedPills(now.station_cdip ? `CDIP ${now.station_cdip}` : `NDBC ${now.station}`, now.observed_utc,
              due, late, {forceOver: nowIsStale()}) : "");
 
 // The dot is filled by `tickDue` with the countdown it sits beside: the same
@@ -2585,13 +2596,14 @@ function statusDot(iso, lateIso, {forceOver = false} = {}) {
 // One context buoy's block: its reading, its trains and rose and, in its
 // own words from buoys.json, what it is and that it is carried to no break,
 // all folded under its headline; then its
-// provenance -- where it is, observed when, its feed and countdown, red past
-// its measured worst or past the build's three hours, in pills as 46232's.
+// provenance -- where it is and when, then its station, age and countdown,
+// red past its measured worst or past the build's three hours, in pills as
+// 46232's.
 function contextBuoy(b) {
   const old = b.observed_utc && (b.stale || (ageHours(b.observed_utc) || 0) > (b.stale_hours || 3));
   // Its pills, as 46232's, are its own countdown line.
-  const feed = feedPills(`NDBC ${b.station}`, b.observed_utc ? b.next_expected : null, b.overdue_after,
-                        {forceOver: !!old || !b.observed_utc});
+  const feed = feedPills(`NDBC ${b.station}`, b.observed_utc, b.observed_utc ? b.next_expected : null,
+                         b.overdue_after, {forceOver: !!old || !b.observed_utc});
   // What it is, said under its rose and above its provenance with space
   // between (owner's call, 2026-10-11): a description, not a provenance line.
   // Each buoy's own (forecast.buoys.WITNESS), since 46086 is not open ocean.
@@ -2599,11 +2611,7 @@ function contextBuoy(b) {
   const reading = b.hs_m != null ? buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note})
     : valLine('<span class="val"><span class="unit">no spectrum</span></span>') + roseBlock(b.station) + note;
   return `<hr>${reading}`
-    + srcLines([
-      buoyWhere(b.station_name, b.station),
-      observedPills(b.observed_utc),
-      feed ? {html: feed} : "",
-    ]);
+    + srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)], feed);
 }
 
 // THE ROSES, under each buoy's reading on the LIVE tab's Buoys tab (owner's
@@ -5509,8 +5517,7 @@ function renderConditions(step, cards) {
       cards,
       // In pills (owner's request, 2026-10-11): where and what, then when.
       source: [
-        NOW && NOW.station_name ? buoyWhere(NOW.station_name, NOW.station) : "",
-        NOW && observedPills(NOW.observed_utc),
+        NOW && placeWhen(buoyPlace(NOW.station_name, NOW.station), NOW.observed_utc),
       ],
       // The feed's pill starts the countdown line, under every swell tab:
       // each one's numbers come from this one buoy (owner's call, 2026-10-11).
@@ -5528,8 +5535,8 @@ function renderConditions(step, cards) {
       ${windHeard(wind) ? windAtBreaks(cards) : ""}
       ${windHeard(wind)
         // In pills, as the swell card's (owner's request, 2026-10-11).
-        ? srcLines([pillLine(wind.station_name || ""), observedPills(wind.observed_utc)],
-                   feedPills(`METAR ${wind.station}`, due.wind, late.wind))
+        ? srcLines([placeWhen(wind.station_name, wind.observed_utc)],
+                   feedPills(`METAR ${wind.station}`, wind.observed_utc, due.wind, late.wind))
         : srcLines(wind.note)}
       ${cardChart("wind")}
     </div>`);
@@ -5544,9 +5551,8 @@ function renderConditions(step, cards) {
       ${tide.height_m != null
         // In pills, as the swell card's (owner's request, 2026-10-11): the
         // place the numbers are carried to, then the gauge in the feed pill.
-        ? srcLines([pillLine(NOW.tide_place || NOW.tide_site || ""),
-                    observedPills(tide.observed_utc, "Measured")],
-                   feedPills(`NOAA ${NOW.tide_station}`, due.tide, late.tide))
+        ? srcLines([placeWhen(NOW.tide_place || NOW.tide_site, tide.observed_utc)],
+                   feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide))
         : srcLines(tide.note)}
       ${phaseFold(NOW, coastDay(Date.now()), {tagged: true})}
       ${cardChart("tide")}

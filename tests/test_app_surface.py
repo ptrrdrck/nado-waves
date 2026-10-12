@@ -102,8 +102,8 @@ class TestTheTideCardSaysWhereItIs:
         # On LIVE the place and the gauge are pills of their own since
         # 2026-10-11: "Coronado, CA", then "NOAA 9410170" on the countdown.
         assert SOURCE.count("tideSource(NOW)") == 0
-        assert "pillLine(NOW.tide_place || NOW.tide_site" in SOURCE
-        assert "feedPills(`NOAA ${NOW.tide_station}`, due.tide, late.tide)" in SOURCE
+        assert "placeWhen(NOW.tide_place || NOW.tide_site, tide.observed_utc)" in SOURCE
+        assert "feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide)" in SOURCE
         assert SOURCE.count("tideSource(DATA)") == 1
         fn = SOURCE[SOURCE.index("function tideSource"):]
         fn = fn[:fn.index("\n}\n")]
@@ -597,8 +597,8 @@ class TestWindAndTideAreHoisted:
         assert "METAR, ${fallback.station_name} (${fallback.station})" in SOURCE
         # LIVE's in pills since 2026-10-11: the station's name, then "METAR
         # KNZY" on its countdown line.
-        assert "pillLine(wind.station_name" in SOURCE
-        assert "feedPills(`METAR ${wind.station}`, due.wind, late.wind)" in SOURCE
+        assert "placeWhen(wind.station_name, wind.observed_utc)" in SOURCE
+        assert "feedPills(`METAR ${wind.station}`, wind.observed_utc, due.wind, late.wind)" in SOURCE
         assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
@@ -692,9 +692,12 @@ class TestTheTwoChains:
         are measurements has to be in the provenance line, where the reader
         looks for where a number came from."""
 
-        assert "observedPills(wind.observed_utc)" in SOURCE
-        assert 'observedPills(tide.observed_utc, "Measured")' in SOURCE
-        assert "pillLine(`${verb} ${when(iso)}`, ageSpan(iso))" in SOURCE
+        # Since 2026-10-12 (owner's call) the pills drop the verb: the time
+        # beside the place, and the age beside the station that measured it,
+        # whose countdown is the measurement's next one.
+        assert "placeWhen(wind.station_name, wind.observed_utc)" in SOURCE
+        assert "placeWhen(NOW.tide_place || NOW.tide_site, tide.observed_utc)" in SOURCE
+        assert "ageSpan(observedIso)" in SOURCE
 
     def test_forecast_labels_its_inputs_as_a_model(self):
         """The verb that opens each line says which chain it is: "Forecast"
@@ -733,7 +736,7 @@ class TestTheTwoChains:
         card in the same strip rather than a dashed aside, and it carries its
         own provenance instead of leaving it stranded below the breaks."""
 
-        assert "observedPills(NOW.observed_utc)" in SOURCE
+        assert "placeWhen(buoyPlace(NOW.station_name, NOW.station), NOW.observed_utc)" in SOURCE
         assert 'id="buoy"' not in SOURCE
 
     def test_both_chains_render_through_one_card_shape(self):
@@ -1166,8 +1169,8 @@ class TestTheSwellCardIsOnBothTabs:
         # The NDBC id moved into the feed's pill on the countdown line, and the
         # place and the measurement into pills of their own (2026-10-11).
         # Since the owner's call later that day, the place alone.
-        assert "buoyWhere(NOW.station_name, NOW.station)" in SOURCE
-        assert "Spectral wave data" not in SOURCE[SOURCE.index("function buoyWhere("):][:200]
+        assert "placeWhen(buoyPlace(NOW.station_name, NOW.station), NOW.observed_utc)" in SOURCE
+        assert "Spectral wave data" not in SOURCE[SOURCE.index("const buoyPlace"):][:200]
 
     def test_the_forecast_card_names_its_model(self):
         assert '"partitions" : "spectrum"}, ${DATA.station_name} (NDBC ${DATA.station})' in SOURCE
@@ -1623,8 +1626,8 @@ class TestTheUpdateCountdown:
         """Counting down to the next wind observation under "not collected"
         would promise a replacement for something that was never there."""
 
-        assert "feedPills(`METAR ${wind.station}`, due.wind, late.wind))\n        : srcLines(wind.note)}" in SOURCE
-        assert "feedPills(`NOAA ${NOW.tide_station}`, due.tide, late.tide))\n        : srcLines(tide.note)}" in SOURCE
+        assert "feedPills(`METAR ${wind.station}`, wind.observed_utc, due.wind, late.wind))\n        : srcLines(wind.note)}" in SOURCE
+        assert "feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide))\n        : srcLines(tide.note)}" in SOURCE
 
 
 class TestTheCdnCannotServeAStalePayload:
@@ -1820,20 +1823,21 @@ class TestEveryMeasurementSaysHowOldItIs:
     def test_all_five_measurement_lines_go_through_one_helper(self):
         """Three cards on Now, the Buoys tab's context buoy (2026-10-06), and
         the forecast tab's KNZY fallback. Five hand-rolled age expressions is
-        five chances to drift. Every LIVE card's line is pills since
-        2026-10-11 (`observedPills`), and every one is aged by `ageSpan`."""
+        five chances to drift. Every LIVE card's age is a pill since
+        2026-10-11, beside its station since -12 (`feedPills`), and every
+        one is aged by `ageSpan`."""
 
         assert "function observedAt" in SOURCE
         assert SOURCE.count("observedAt(") == 2      # the definition plus the fallback
-        assert SOURCE.count("observedPills(") == 5    # the definition plus four uses
-        for site in ("observedPills(wind.observed_utc)",
-                     'observedPills(tide.observed_utc, "Measured")',
-                     "observedPills(NOW.observed_utc)",
-                     "observedPills(b.observed_utc)",
+        assert SOURCE.count("feedPills(") == 5       # the definition plus four uses
+        for site in ("feedPills(`METAR ${wind.station}`, wind.observed_utc,",
+                     "feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc,",
+                     "now.observed_utc,\n             due, late",
+                     "feedPills(`NDBC ${b.station}`, b.observed_utc,",
                      "Observed ${observedAt(fallback.observed_utc)}"):
             assert site in SOURCE, site
         assert SOURCE.count('<span class="age">') == 1
-        assert SOURCE.count("ageSpan(iso)") == 3      # the definition plus both helpers
+        assert SOURCE.count("ageSpan(") == 3      # the definition, observedAt and feedPills
 
     def test_the_forecast_tabs_observed_wind_fallback_is_aged_too(self):
         """It only appears when the model has no wind for that hour, which is
