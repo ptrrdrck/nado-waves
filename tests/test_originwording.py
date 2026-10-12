@@ -32,6 +32,11 @@ def test_every_entry_is_three_lines(cases):
     for cid, lines in cases.items():
         for k, line in enumerate(lines):
             if line.startswith("The ") and " s train, sent " in line:
+                # A named storm as a tab's last readable arrival is two lines:
+                # "Arrived" ends line 2 and no count follows (2026-10-12).
+                if line.endswith(", no longer arriving.") and " with winds of " in line:
+                    assert lines[k + 1].startswith("Trains: "), cid
+                    continue
                 assert lines[k + 1].startswith(("Read backwards off the swell",
                                                 "Timing and direction beat")), cid
 
@@ -50,17 +55,18 @@ def test_a_split_bearing_is_unplaced_and_says_why(cases):
     """46047 HAS a split train, from several directions: the source may not
     say it does not, and every direction is named."""
 
-    assert "away, with a split bearing (205° SSW or 285° WNW)." in cases["L2"][1]
+    assert "away, with a split bearing (205° SSW or 285° WNW)." in cases["L2"][2]
     assert "away, with a split bearing (140° SE or 196° SSW or 254° WSW)." in cases["C2"][1]
     for cid in ("L2", "C2"):
         text = "\n".join(cases[cid])
-        assert cases[cid][0].startswith("Unplaced storm")
+        assert cases[cid][1 if cid[0] == "L" else 0].startswith("Unplaced storm")
         assert "does not have" not in text
         assert ("Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple "
                 "directions, so no place is given.") in text
     for cid in ("L3", "C3"):
         text = "\n".join(cases[cid])
-        assert cases[cid][0].startswith("Unplaced storm") and " bearing" not in text
+        assert cases[cid][1 if cid[0] == "L" else 0].startswith("Unplaced storm")
+        assert " bearing" not in text
         assert "Unplaced storm: Tanner Banks, CA (NDBC 46047) does not have that train." in text
 
 
@@ -79,7 +85,7 @@ def test_a_hurricanes_strength_is_the_fix_that_sent_its_train(cases):
     """Line 1 is the name alone; the winds and pressure follow the day the
     train was sent, so they never read as the storm now."""
 
-    assert cases["H1"][0] == "Hurricane Rachel"
+    assert cases["H1"][0] == "Hurricane Rachel {hurricane symbol}"
     assert cases["H1"][1].endswith(
         "sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW "
         "with winds of 121 mph (105 kt) and 950 mb pressure.")
@@ -93,10 +99,11 @@ def test_a_weakened_storm_reads_as_the_fix_that_sent_its_train(cases):
     for the swell its tropical storm fixes sent, and is a tropical storm on
     that train, as a weakened hurricane's winds are the fix's, not today's."""
 
-    assert cases["T1"][0] == "Tropical Storm Rachel"
+    assert cases["T1"][0] == "Tropical Storm Rachel {tropical storm symbol}"
     assert cases["T1"][1].endswith("with winds of 69 mph (60 kt) and 985 mb pressure.")
     assert cases["T1"][-1].startswith("Tropical storm position, winds and pressure: ")
-    assert [cases["T2"][0], cases["T2"][3]] == ["Tropical Storm Rachel", "Hurricane Sergio"]
+    assert [cases["T2"][0], cases["T2"][3]] == ["Tropical Storm Rachel {tropical storm symbol}",
+                                                "Hurricane Sergio {hurricane symbol}"]
     assert cases["T2"][-1].startswith("Storm position, winds and pressure: ")
 
 
@@ -139,7 +146,7 @@ def test_sources_run_spectrum_then_nhc_then_unplaced(cases):
 
 def test_nothing_read_backwards_is_not_said_to_be(cases):
     assert cases["E0"] == ["No readable arrival in the last 21 days",
-                           "Trains read off the spectrum at Point Loma South, CA (NDBC 46232)."]
+                           "Trains: Point Loma South, CA (NDBC 46232)."]
     for cid in ("H1", "H2", "H3", "H4", "M2"):
         assert "backwards" not in "\n".join(cases[cid]), cid
 
@@ -149,9 +156,35 @@ def test_the_last_readable_arrival_is_the_later_of_a_reading_and_a_named_storm(c
     reading ended 2 Oct, while Tropical Storm Rachel was named there to
     11 Oct. Whichever ended later is the tab's last readable arrival."""
 
-    assert cases["L4"][0] == "Tropical Storm Rachel  last readable arrival"
-    assert cases["L4"][2].endswith("no longer arriving.")
-    assert "Timing and direction beat NHC's track moved earlier" in cases["L4"][2]
+    assert cases["L4"][1] == "Tropical Storm Rachel {tropical storm symbol}"
     assert any("best track for [Rachel]" in line for line in cases["L4"])
-    assert cases["L5"][0] == "Aleutian storm track  last readable arrival"
+    assert cases["L5"][1] == "Aleutian storm track"
     assert not any("Rachel" in line for line in cases["L5"])
+
+
+def test_a_last_readable_arrival_reads_as_the_owner_wrote_it(cases):
+    """Owner's request, 2026-10-12, on South's Tropical Storm Rachel: a line
+    naming the tab, the storm and its symbol, one sentence ending with the
+    day the train SHOWN arrived (not the storm's first train at the tab), no
+    counts, and the trains' source as "Trains: {buoy}"."""
+
+    intro = "No readable trains arriving here now (Point Loma South). The last one read was:"
+    for cid in ("L1", "L2", "L3", "L4", "L5"):
+        assert cases[cid][0] == intro, cid
+        assert "last readable arrival" not in "\n".join(cases[cid]), cid
+    assert cases["L4"] == [
+        intro,
+        "Tropical Storm Rachel {tropical storm symbol}",
+        "The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with "
+        "winds of 69 mph (60 kt) and 985 mb pressure. Arrived Oct 11, no longer arriving.",
+        "Trains: Point Loma South, CA (NDBC 46232).",
+        "Tropical storm position, winds and pressure: National Hurricane Center best track for "
+        "[Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis."]
+
+
+def test_a_storm_arrival_is_never_before_its_train_was_sent(cases):
+    """"Arrived" is the first moment the storm was named at the tab with the
+    fix that sent the train shown: the storm's first train there (Oct 8, a
+    hurricane fix of Oct 2 in L4) read "sent Oct 8 ... Arrived Oct 7"."""
+
+    assert "Arrived Oct 11," in cases["L4"][2] and "Arrived Oct 7" not in cases["L4"][2]

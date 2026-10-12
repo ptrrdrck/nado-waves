@@ -531,7 +531,15 @@ forecaster actually verifies against, Surfline included.
    there and the last storm named there (origins.json's named moments, as of
    now.json's spectrum, a reading credited to a storm being that storm's;
    owner's report 2026-10-12, when South read a ridge ended 2 Oct while
-   Tropical Storm Rachel was named there to 11 Oct). now.json names every
+   Tropical Storm Rachel was named there to 11 Oct). That last arrival opens
+   with "No readable trains arriving here now (<tab>). The last one read
+   was:" instead of a grey tag, its lines at the tag's 15 px (owner's
+   request, same day); a storm's is two lines, no counts, "Arrived" being
+   the first moment the storm was named there with the fix that sent the
+   train shown, never its first train there. A named storm's head carries
+   the tropical cyclone symbol, eye open for a tropical storm and filled for
+   a hurricane, in ink; and "Trains: <46232>" heads the provenance where
+   nothing is read backwards. now.json names every
    gate buoy so a past storm's line can name its own. **Every origin is the same three lines** (owner's
    design, 2026-10-04), **each a fixed run of slots** (owner's formula,
    2026-10-10, `docs/origin_wording.md`): a slot with no value drops with its

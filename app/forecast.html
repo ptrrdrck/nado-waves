@@ -132,6 +132,17 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond .origin{display:flex;flex-direction:column;gap:2px}
 .cond .origin + .origin{margin-top:10px}
 .cond .origin > .val > .unit{white-space:nowrap}
+/* A tab's last readable arrival (owner's request, 2026-10-12): a line saying
+   nothing readable is arriving at the tab, then the entry, its lines at the
+   size the grey "last readable arrival" tag had beside the head. */
+.cond .origin.last > .turn{font-size:15px}
+/* A named storm's symbol after its name: the meteorological tropical cyclone
+   symbol, two arms around the eye as a Northern Hemisphere storm turns, the
+   eye open for a tropical storm and filled for a hurricane. */
+.cond .origin .storm-sym{width:1em;height:1em;margin-left:.3em;vertical-align:-.14em;
+                         fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.cond .origin .storm-sym .eye{fill:var(--card)}
+.cond .origin .storm-sym[data-kind="hurricane"] .eye{fill:currentColor}
 /* ORIGIN folds out like the charts, from its own line with the same caret,
    right above "Charts" and under a rule of its own (owner's call,
    2026-10-02): the swell card's one other rule. Closed until opened. */
@@ -1711,12 +1722,17 @@ function originFor(site) {
     lastStorm: lastStormAt(site, O),
     site, station: O.station, lookback: O.lookback_days, names: O.station_names || {},
     bearingStations: O.bearing_stations || [],
+    tab: SHORT[site] || (O.station_names && O.station_names[O.station] || `NDBC ${O.station}`)
+      .replace(/, [A-Z]{2}$/, ""),
   };
 }
 
 // The last storm the card named at this tab, from origins.json's named moments
 // (forecast.originhistory): its newest within the lookback, as of now.json's
-// spectrum, and the storm's first there, for the day it began arriving. The
+// spectrum, and the first moment it was named there with the fix that sent
+// that same train, for the day the train shown arrived (owner's request,
+// 2026-10-12: "Arrived Oct 5" under a train sent Oct 10 was the storm's first
+// train at South, not this one). The
 // "last readable arrival" is whichever of it and Origin's own last reading
 // ended later (owner's report, 2026-10-12: South read "Aleutian storm track",
 // ended 2 Oct, when Tropical Storm Rachel was named there to 11 Oct). A
@@ -1730,7 +1746,9 @@ function lastStormAt(site, O) {
     .map((n) => ({...n, t: Date.parse(n.time_utc)})).filter((n) => n.t <= end && n.t >= from);
   if (!here.length) return null;
   const last = here.reduce((a, b) => (b.t > a.t ? b : a));
-  const first = here.filter((n) => n.storm === last.storm).reduce((a, b) => (b.t < a.t ? b : a));
+  const sent = last.sites[site].fix_utc;
+  const first = here.filter((n) => n.storm === last.storm && n.sites[site].fix_utc === sent)
+    .reduce((a, b) => (b.t < a.t ? b : a));
   return {...last, at: last.sites[site], since: first.time_utc};
 }
 const namedHere = (a, site) => Boolean(a && ORIGINS && (ORIGINS.arrivals || []).some(
@@ -1759,9 +1777,9 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 // 2026-10-04), and each line is a fixed run of slots (owner's formula,
 // 2026-10-10, docs/origin_wording.md): a slot with no value is dropped with
 // its joining words, and nothing is reworded per case.
-//   WHAT:  the head alone (a hurricane or tropical storm by name, a sea, or an
-//          unplaced storm),
-//          and "last readable arrival" in grey on a past reading.
+//   WHAT:  the head alone (a hurricane or tropical storm by name and its
+//          symbol, a sea, or an unplaced storm); a tab's last readable arrival
+//          opens with a line saying nothing readable is arriving there now.
 //   SENT:  "The {T} s train, sent [about] {date} from about {far} away", then
 //          its direction (", bearing {deg}" or ", with a split bearing
 //          ({deg} or {deg} ...)", or none), then a hurricane's "with winds of
@@ -1797,12 +1815,20 @@ const isUnseen = (a) => a.bearing_deg == null && !isSplit(a);
 // request, 2026-10-11), and reads as a hurricane for the swell it sent as one.
 // A mark from before then carries no strength, and was a hurricane's.
 const stormKind = (at) => (at && at.strength === "tropical storm" ? "Tropical Storm" : "Hurricane");
-const stormHead = (name, at) => `${stormKind(at)} ${name}`;
-function originEntry({head, tag, where, how, storm}) {
-  return `<div class="origin"${storm ? ` data-hurricane="${storm}"` : ""}>
-    <span class="val">${head}${tag ? ` <span class="unit">${tag}</span>` : ""}</span>
+const stormSymbol = (kind) => `<svg class="storm-sym" data-kind="${kind.toLowerCase().replace(" ", "-")}"`
+  + ` viewBox="0 0 20 20" role="img" aria-label="${kind.toLowerCase()} symbol">`
+  + `<path d="M6.6 10C6.6 4.2 12 1.6 17.6 3M13.4 10c0 5.8-5.4 8.4-11 7"/>`
+  + `<circle class="eye" cx="10" cy="10" r="3.2"/></svg>`;
+const stormHead = (name, at) => `${stormKind(at)} ${name}${stormSymbol(stormKind(at))}`;
+// A tab's last readable arrival opens with a line of its own, and carries no
+// tag (owner's request, 2026-10-12).
+const lastIntro = (o) => `No readable trains arriving here now (${o.tab}). The last one read was:`;
+function originEntry({head, intro, where, how, storm}) {
+  return `<div class="origin${intro ? " last" : ""}"${storm ? ` data-hurricane="${storm}"` : ""}>
+    ${intro ? `<span class="turn">${intro}</span>` : ""}
+    <span class="val">${head}</span>
     <span class="turn">${where}</span>
-    <span class="turn">${how}</span>
+    ${how ? `<span class="turn">${how}</span>` : ""}
   </div>`;
 }
 
@@ -1830,8 +1856,9 @@ const trainAt = ({period, also = [], sent, fitted, km, step, bearing, split = []
 // from, never how big it is. Where the storm was, and how strong, are NHC's:
 // the fix that sent the train now arriving, on line 2 beside the day it was
 // sent, because the storm has moved on since. Never Origin's distance.
-// Past, as a tab's last readable arrival: tagged so, its counts as of the last
-// moment it was named there, and line 3 ending as a past reading's does.
+// Past, as a tab's last readable arrival (owner's request, 2026-10-12): after
+// the line saying so, the head and line 2 alone, which ends "Arrived {date},
+// no longer arriving." on the day the train shown first arrived; no counts.
 function hurricaneEntry(h, o, past = false) {
   const s = h.at;
   const buoys = Object.entries(h.match || {}).sort((x, y) => y[1].score - x[1].score);
@@ -1839,26 +1866,27 @@ function hurricaneEntry(h, o, past = false) {
     + (m.hours == null ? "" : ` over ${m.hours} h`)).join(", and ");
   return originEntry({
     head: stormHead(h.name, s),
-    tag: past ? "last readable arrival" : "",
+    intro: past ? lastIntro(o) : "",
     storm: h.storm,
     where: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
                     sent: s.fix_utc, fitted: false,
                     km: s.distance_km, step: 100, bearing: s.bearing_deg,
                     winds: `winds of ${speed(s.vmax_kt)}`
-                      + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")}),
-    how: `<span data-match="${h.word}">Timing and direction beat NHC's track moved earlier</span>`
-      + ` ${tested}.` + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.` : ""),
+                      + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")})
+      + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.` : ""),
+    how: past ? "" : `<span data-match="${h.word}">Timing and direction beat NHC's track moved earlier</span>`
+      + ` ${tested}.`,
   });
 }
 
 // An arrival read backwards off the swell: still arriving, or the last one
 // this tab had. The last is the train it was at its peak hour, when it was
 // matched to this tab's own trains.
-function readingEntry(a, past = false) {
+function readingEntry(a, o, past = false) {
   const hours = Math.max(1, Math.round(a.hours_read));
   return originEntry({
     head: isPlaced(a) ? sea(a.region) : "Unplaced storm",
-    tag: past ? "last readable arrival" : "",
+    intro: past ? lastIntro(o) : "",
     where: trainAt({period: past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s,
                     sent: a.generated_utc, fitted: true, km: a.distance_km, step: 500,
                     bearing: a.bearing_deg,
@@ -1880,9 +1908,11 @@ function originSources(o, hurricanes, readings) {
     .map((id) => buoyName(o, id));
   const from = at((a) => a.bearing_deg != null);
   const split = at(isSplit);
-  const lines = [`Trains read off the spectrum at ${buoyName(o, o.station)}`
-    + (readings.length ? ", and storms read backwards from them" : "")
-    + (from.length ? `; direction at ${andList(from)}` : "")];
+  // "Trains: {the station}" where no storm is read backwards (owner's wording,
+  // 2026-10-12); with a reading, the spectrum is named as what it is read off.
+  const lines = [readings.length ? `Trains read off the spectrum at ${buoyName(o, o.station)}`
+    + ", and storms read backwards from them" + (from.length ? `; direction at ${andList(from)}` : "")
+    : `Trains: ${buoyName(o, o.station)}`];
   if (hurricanes.length) {
     const names = hurricanes.map((h) => `<a href="${stormPageUrl(h.name, h.at.fix_utc)}"`
       + ` rel="noopener">${h.name}</a>`);
@@ -1911,9 +1941,9 @@ function originBody(o) {
   const {storm, reading} = now ? {} : lastArrival(o);
   const entries = now
     ? o.hurricanes.map((h) => hurricaneEntry(h, o)).join("")
-      + o.current.map((a) => readingEntry(a)).join("")
+      + o.current.map((a) => readingEntry(a, o)).join("")
     : storm ? hurricaneEntry(storm, o, true)
-      : reading ? readingEntry(reading, true)
+      : reading ? readingEntry(reading, o, true)
         : `<span class="val"><span class="unit">No readable arrival in the last ${o.lookback} days</span></span>`;
   return entries + originSources(o, now ? o.hurricanes : storm ? [storm] : [],
                                  now ? o.current : reading ? [reading] : []);
