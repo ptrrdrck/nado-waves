@@ -30,7 +30,8 @@ joining words. Nothing is reworded per case.
 
 `{tab}` is the tab's name: North, Center, South, or 46232's place without its
 state, Point Loma South. A past entry's lines are at 15 px, the size its old
-grey tag was; the head stays at the storm name's size. A storm's symbol is the
+grey tag was, with a blank line between its opening line and the head (owner's
+request, 2026-10-13); the head stays at the storm name's size. A storm's symbol is the
 meteorological tropical cyclone symbol, two arms around the eye as a Northern
 Hemisphere storm turns: the eye open for a tropical storm, filled for a
 hurricane, in ink. A storm's past `{date}` is the first moment it was named at
@@ -47,9 +48,11 @@ in this order:
 | S3 | a reading has a split bearing | `Unplaced storm: {46047} holds that train from multiple directions, so no place is given.` |
 | S4 | a reading is not at 46047 | one buoy: `Unplaced storm: {46047} does not have that train.` two: `Unplaced storm: neither {A} nor {B} has that train.` |
 
-Every buoy is named as NDBC names it, from `now.json`'s `station_names`,
-which covers the bearing buoys and every gate buoy a shown hurricane was
-matched at.
+Every buoy is named as NDBC names it without its state, from `now.json`'s
+`station_names`, which covers the bearing buoys and every gate buoy a shown
+hurricane was matched at, and by the number of whoever runs it: CDIP's for a
+buoy with one (`station_cdips`), so 46232 is "Point Loma South (CDIP 191)",
+NDBC's otherwise, "Tanner Banks (NDBC 46047)" (owner's request, 2026-10-13).
 
 Fold-level rules (unchanged): hurricanes first, then current readings; a
 reading of the same train as a shown hurricane is dropped; the last readable
@@ -136,7 +139,7 @@ is shown as `[text](url)`.
 
 ```text
 No readable arrival in the last 21 days
-Trains: Point Loma South, CA (NDBC 46232).
+Trains: Point Loma South (CDIP 191).
 ```
 
 ### L1: last readable arrival, placed
@@ -146,7 +149,7 @@ No readable trains arriving here now (Point Loma South). The last one read was:
 South Pacific
 The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away, bearing 212° SSW.
 Read backwards off the swell over 18 h. Arrived Oct 6, no longer arriving.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them; direction at Tanner Banks, CA (NDBC 46047).
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them; direction at Tanner Banks (NDBC 46047).
 ```
 
 ### L2: last readable arrival, unplaced: split bearing
@@ -156,8 +159,8 @@ No readable trains arriving here now (Point Loma South). The last one read was:
 Unplaced storm
 The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away, with a split bearing (205° SSW or 285° WNW).
 Read backwards off the swell over 18 h. Arrived Oct 6, no longer arriving.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them.
-Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple directions, so no place is given.
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them.
+Unplaced storm: Tanner Banks (NDBC 46047) holds that train from multiple directions, so no place is given.
 ```
 
 ### L3: last readable arrival, unplaced: 46047 does not have it
@@ -167,8 +170,8 @@ No readable trains arriving here now (Point Loma South). The last one read was:
 Unplaced storm
 The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away.
 Read backwards off the swell over 18 h. Arrived Oct 6, no longer arriving.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them.
-Unplaced storm: Tanner Banks, CA (NDBC 46047) does not have that train.
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them.
+Unplaced storm: Tanner Banks (NDBC 46047) does not have that train.
 ```
 
 ### L4: last readable arrival, a storm named here after Origin's last reading
@@ -177,7 +180,7 @@ Unplaced storm: Tanner Banks, CA (NDBC 46047) does not have that train.
 No readable trains arriving here now (Point Loma South). The last one read was:
 Tropical Storm Rachel {tropical storm symbol}
 The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with winds of 69 mph (60 kt) and 985 mb pressure. Arrived Oct 11, no longer arriving.
-Trains: Point Loma South, CA (NDBC 46232).
+Trains: Point Loma South (CDIP 191).
 Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
@@ -188,7 +191,7 @@ No readable trains arriving here now (Point Loma South). The last one read was:
 Aleutian storm track
 The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away, bearing 212° SSW.
 Read backwards off the swell over 18 h. Arrived Sep 30, no longer arriving.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them; direction at Tanner Banks, CA (NDBC 46047).
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them; direction at Tanner Banks (NDBC 46047).
 ```
 
 ### C1: arriving, placed
@@ -197,7 +200,7 @@ Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms re
 South Pacific
 The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away, bearing 212° SSW.
 Read backwards off the swell, 18 h so far.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them; direction at Tanner Banks, CA (NDBC 46047).
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them; direction at Tanner Banks (NDBC 46047).
 ```
 
 ### C2: arriving, unplaced: split three ways
@@ -206,8 +209,8 @@ Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms re
 Unplaced storm
 The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away, with a split bearing (140° SE or 196° SSW or 254° WSW).
 Read backwards off the swell, 18 h so far.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them.
-Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple directions, so no place is given.
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them.
+Unplaced storm: Tanner Banks (NDBC 46047) holds that train from multiple directions, so no place is given.
 ```
 
 ### C3: arriving, unplaced: 46047 does not have it
@@ -216,8 +219,8 @@ Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple dir
 Unplaced storm
 The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away.
 Read backwards off the swell, 18 h so far.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them.
-Unplaced storm: Tanner Banks, CA (NDBC 46047) does not have that train.
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them.
+Unplaced storm: Tanner Banks (NDBC 46047) does not have that train.
 ```
 
 ### C4: arriving, one of each
@@ -232,9 +235,9 @@ Read backwards off the swell, 18 h so far.
 Unplaced storm
 The 11.8 s train, sent about Oct 4 from about 2,000 mi (3,000 km) away.
 Read backwards off the swell, 18 h so far.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them; direction at Tanner Banks, CA (NDBC 46047).
-Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple directions, so no place is given.
-Unplaced storm: Tanner Banks, CA (NDBC 46047) does not have that train.
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them; direction at Tanner Banks (NDBC 46047).
+Unplaced storm: Tanner Banks (NDBC 46047) holds that train from multiple directions, so no place is given.
+Unplaced storm: Tanner Banks (NDBC 46047) does not have that train.
 ```
 
 ### H1: hurricane, one gate buoy
@@ -242,8 +245,8 @@ Unplaced storm: Tanner Banks, CA (NDBC 46047) does not have that train.
 ```text
 Hurricane Rachel {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
-Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h.
-Trains: Point Loma South, CA (NDBC 46232).
+Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks (NDBC 46047) over 30 h.
+Trains: Point Loma South (CDIP 191).
 Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
@@ -252,8 +255,8 @@ Hurricane position, winds and pressure: National Hurricane Center best track for
 ```text
 Hurricane Rachel {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
-Timing and direction beat NHC's track moved earlier 39 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h, and 28 of 40 times at San Clemente Basin, CA (NDBC 46086) over 26 h.
-Trains: Point Loma South, CA (NDBC 46232).
+Timing and direction beat NHC's track moved earlier 39 of 50 times at Tanner Banks (NDBC 46047) over 30 h, and 28 of 40 times at San Clemente Basin (NDBC 46086) over 26 h.
+Trains: Point Loma South (CDIP 191).
 Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
@@ -262,8 +265,8 @@ Hurricane position, winds and pressure: National Hurricane Center best track for
 ```text
 Hurricane Rachel {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt).
-Timing and direction beat NHC's track moved earlier 11 of 20 times at Tanner Banks, CA (NDBC 46047).
-Trains: Point Loma South, CA (NDBC 46232).
+Timing and direction beat NHC's track moved earlier 11 of 20 times at Tanner Banks (NDBC 46047).
+Trains: Point Loma South (CDIP 191).
 Hurricane position and winds: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
@@ -272,11 +275,11 @@ Hurricane position and winds: National Hurricane Center best track for [Rachel](
 ```text
 Hurricane Rachel {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
-Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h.
+Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks (NDBC 46047) over 30 h.
 Hurricane Sergio {hurricane symbol}
 The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away, bearing 178° S with winds of 109 mph (95 kt) and 964 mb pressure.
-Timing and direction beat NHC's track moved earlier 37 of 50 times at Tanner Banks, CA (NDBC 46047) over 22 h.
-Trains: Point Loma South, CA (NDBC 46232).
+Timing and direction beat NHC's track moved earlier 37 of 50 times at Tanner Banks (NDBC 46047) over 22 h.
+Trains: Point Loma South (CDIP 191).
 Hurricane position, winds and pressure: National Hurricane Center best tracks for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) and [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php), an analysis.
 ```
 
@@ -285,8 +288,8 @@ Hurricane position, winds and pressure: National Hurricane Center best tracks fo
 ```text
 Tropical Storm Rachel {tropical storm symbol}
 The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with winds of 69 mph (60 kt) and 985 mb pressure.
-Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks, CA (NDBC 46047) over 40 h.
-Trains: Point Loma South, CA (NDBC 46232).
+Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks (NDBC 46047) over 40 h.
+Trains: Point Loma South (CDIP 191).
 Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
@@ -295,8 +298,8 @@ Tropical storm position, winds and pressure: National Hurricane Center best trac
 ```text
 Tropical Storm Rachel {tropical storm symbol}
 The 10.5 and 11.1 s trains, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with winds of 69 mph (60 kt) and 985 mb pressure.
-Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks, CA (NDBC 46047) over 40 h.
-Trains: Point Loma South, CA (NDBC 46232).
+Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks (NDBC 46047) over 40 h.
+Trains: Point Loma South (CDIP 191).
 Tropical storm position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
@@ -305,11 +308,11 @@ Tropical storm position, winds and pressure: National Hurricane Center best trac
 ```text
 Tropical Storm Rachel {tropical storm symbol}
 The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with winds of 69 mph (60 kt) and 985 mb pressure.
-Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks, CA (NDBC 46047) over 40 h.
+Timing and direction beat NHC's track moved earlier 36 of 43 times at Tanner Banks (NDBC 46047) over 40 h.
 Hurricane Sergio {hurricane symbol}
 The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away, bearing 178° S with winds of 109 mph (95 kt) and 964 mb pressure.
-Timing and direction beat NHC's track moved earlier 37 of 50 times at Tanner Banks, CA (NDBC 46047) over 22 h.
-Trains: Point Loma South, CA (NDBC 46232).
+Timing and direction beat NHC's track moved earlier 37 of 50 times at Tanner Banks (NDBC 46047) over 22 h.
+Trains: Point Loma South (CDIP 191).
 Storm position, winds and pressure: National Hurricane Center best tracks for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) and [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php), an analysis.
 ```
 
@@ -318,11 +321,11 @@ Storm position, winds and pressure: National Hurricane Center best tracks for [R
 ```text
 Hurricane Rachel {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
-Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h.
+Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks (NDBC 46047) over 30 h.
 South Pacific
 The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away, bearing 212° SSW.
 Read backwards off the swell, 18 h so far.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them; direction at Tanner Banks, CA (NDBC 46047).
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them; direction at Tanner Banks (NDBC 46047).
 Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```
 
@@ -331,13 +334,13 @@ Hurricane position, winds and pressure: National Hurricane Center best track for
 ```text
 Hurricane Rachel {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
-Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h.
+Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks (NDBC 46047) over 30 h.
 Unplaced storm
 The 20.0 s train, sent about Oct 1 from about 9,500 mi (15,000 km) away, with a split bearing (140° SE or 196° SSW or 254° WSW).
 Read backwards off the swell, 18 h so far.
-Trains read off the spectrum at Point Loma South, CA (NDBC 46232), and storms read backwards from them.
+Trains read off the spectrum at Point Loma South (CDIP 191), and storms read backwards from them.
 Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
-Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple directions, so no place is given.
+Unplaced storm: Tanner Banks (NDBC 46047) holds that train from multiple directions, so no place is given.
 ```
 
 ### M2: hurricane and a last readable arrival (the last is not shown)
@@ -345,7 +348,7 @@ Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple dir
 ```text
 Hurricane Rachel {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW with winds of 121 mph (105 kt) and 950 mb pressure.
-Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks, CA (NDBC 46047) over 30 h.
-Trains: Point Loma South, CA (NDBC 46232).
+Timing and direction beat NHC's track moved earlier 46 of 50 times at Tanner Banks (NDBC 46047) over 30 h.
+Trains: Point Loma South (CDIP 191).
 Hurricane position, winds and pressure: National Hurricane Center best track for [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis.
 ```

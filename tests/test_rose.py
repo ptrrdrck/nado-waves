@@ -143,7 +143,7 @@ class TestOnThePage:
         shown = shown[:shown.index("\n}\n")]
         assert "ROSE_PHASE = ROSE_PLAY_MS;" in shown and "setRosePlaying(false);" in shown
         assert "ROSE_PHASE >= ROSE_PLAY_MS ? span.t1" in PAGE     # that phase is the newest
-        assert 'if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) roseShown();' in PAGE
+        assert 'if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) {\n    roseShown();' in PAGE
         assert 'if (mode === "now" && MODE !== "now") roseShown();' in PAGE
         assert "if (open) roseShown();" in PAGE
 

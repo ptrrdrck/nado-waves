@@ -55,12 +55,12 @@ class TestItSaysWhatItIsStandingOn:
         assert "not an accurate forecast" in INFO_TEXT
 
     def test_the_main_page_links_to_where_that_is_said(self):
-        """Moved one tap away, so the tap has to be there: Documentation,
+        """Moved one tap away, so the tap has to be there: Docs,
         beneath the cards, outside anything a render rewrites."""
 
         links = SOURCE[SOURCE.index('<nav class="links"'):]
         links = links[:links.index("</nav>")]
-        assert '<a href="docs.html">Documentation</a>' in links
+        assert '<a href="docs.html">Docs</a>' in links
         assert SOURCE.index('id="conditions"') < SOURCE.index('<nav class="links"')
 
     def test_info_links_back(self):
@@ -355,6 +355,13 @@ class TestTheBreakDrawing:
         assert ".aperture .shadow{fill:var(--faint)" in SOURCE
         assert ".aperture .chord{stroke:var(--ink)" in SOURCE
         assert ".aperture .spot{fill:var(--ink)" in SOURCE
+        # The shoreline at the leading train's shaft weight, and the break's
+        # dot twice that across (owner's request, 2026-10-13).
+        lead = re.search(r"\.aperture \.swell\.lead line\{stroke-width:([\d.]+)\}", SOURCE)
+        chord = re.search(r"\.aperture \.chord\{[^}]*stroke-width:([\d.]+)", SOURCE)
+        spot = re.search(r'<circle class="spot" cx="\$\{cx\}" cy="\$\{cy\}" r="([\d.]+)"/>', SOURCE)
+        assert lead and chord and spot
+        assert float(chord.group(1)) == float(lead.group(1)) == float(spot.group(1))
         assert ".aperture .win{fill:var(--soft)" in SOURCE
         css = SOURCE[SOURCE.index(".aperture{"):SOURCE.index("/* The week under each Now card")]
         assert "--surf" not in css
@@ -593,7 +600,7 @@ class TestWindAndTideAreHoisted:
         file carries — and since the titles are bare quantities now, the
         provenance line is the only thing telling them apart."""
 
-        assert "GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})" in SOURCE
+        assert "GFS-Wave wind, ${anchorName(DATA)}" in SOURCE
         assert "METAR, ${fallback.station_name} (${fallback.station})" in SOURCE
         # LIVE's in pills since 2026-10-11: the station's name, then "METAR
         # KNZY" on its countdown line.
@@ -602,7 +609,7 @@ class TestWindAndTideAreHoisted:
         assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
-        wind = SOURCE[SOURCE.index("GFS-Wave wind, ${DATA") - 200:]
+        wind = SOURCE[SOURCE.index("GFS-Wave wind, ${anchorName(DATA)") - 200:]
         assert "`Forecast for ${stampWhen}`" in wind[:200]
 
     def test_it_prefers_the_model_wind_and_falls_back(self):
@@ -812,7 +819,10 @@ class TestTheSourceLine:
         assert "model run of" in INFO_TEXT and "offshore buoy" in INFO_TEXT
 
     def test_it_names_the_buoy_rather_than_only_its_number(self):
-        assert "DATA.station_name" in INFO and "NDBC ${DATA.station}" in INFO
+        assert "anchorName(DATA.station_name, DATA.station, DATA.station_cdip)" in INFO
+        # By CDIP's number where CDIP runs it (owner's request, 2026-10-13).
+        assert "(CDIP ${cdip})" in INFO and "(NDBC ${id})" in INFO
+        assert "(CDIP ${d.station_cdip})" in SOURCE and "(NDBC ${d.station})" in SOURCE
         assert "NOW.station_name" in SOURCE and "NDBC ${now.station}" in SOURCE
 
 
@@ -1173,7 +1183,7 @@ class TestTheSwellCardIsOnBothTabs:
         assert "Spectral wave data" not in SOURCE[SOURCE.index("const buoyPlace"):][:200]
 
     def test_the_forecast_card_names_its_model(self):
-        assert '"partitions" : "spectrum"}, ${DATA.station_name} (NDBC ${DATA.station})' in SOURCE
+        assert '"partitions" : "spectrum"}, ${anchorName(DATA)}' in SOURCE
         assert "? `GFS-Wave ${" in SOURCE
 
     def test_every_forecast_hour_names_its_run_past_or_future(self):
@@ -1843,7 +1853,7 @@ class TestEveryMeasurementSaysHowOldItIs:
         """It only appears when the model has no wind for that hour, which is
         exactly when how old the substitute is matters."""
 
-        wind_block = SOURCE[SOURCE.index("GFS-Wave wind, ${DATA"):]
+        wind_block = SOURCE[SOURCE.index("GFS-Wave wind, ${anchorName(DATA)"):]
         assert "Observed ${observedAt(fallback.observed_utc)}" in wind_block[:400]
 
     def test_a_prediction_is_never_given_an_age(self):
@@ -3243,7 +3253,9 @@ class TestOrigin:
         assert '"last readable arrival"' not in fold and "tag:" not in fold
         assert ".cond .origin.last > .turn{font-size:15px}" in SOURCE
         assert ".cond .val .unit{font-size:15px}" in SOURCE
-        assert 'tab: SHORT[site] || (O.station_names && O.station_names[O.station]' in SOURCE
+        assert 'tab: SHORT[site] || bareName(O.station_names && O.station_names[O.station]' in SOURCE
+        # A blank line between the opening line and the entry (2026-10-13).
+        assert ".cond .origin.last > .turn:first-child{margin-bottom:1.2em}" in SOURCE
         assert "Arrived ${onDay(a.first_utc)}, no longer arriving" in SOURCE
         assert "past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s" in SOURCE
         assert "No readable arrival in the last ${o.lookback} days" in SOURCE
@@ -3298,11 +3310,13 @@ class TestOrigin:
         assert "`${by[0]} does not have`" in SOURCE
 
     def test_buoys_are_named_as_ndbc_names_them(self):
-        """"Tanner Banks, CA (NDBC 46047)", as the card's other provenance
-        lines name 46232, and never typed: now.json carries them from the
-        fetched metadata."""
+        """"Tanner Banks (NDBC 46047)" and "Point Loma South (CDIP 191)" --
+        the name without its state, the number of whoever runs the buoy
+        (owner's request, 2026-10-13) -- and never typed: now.json carries
+        them from the fetched metadata and the registry."""
 
-        assert "`${o.names[id]} (NDBC ${id})`" in SOURCE
+        assert "`${bareName(o.names[id])} (${feed})`" in SOURCE
+        assert "`CDIP ${o.cdips[id]}` : `NDBC ${id}`" in SOURCE
         sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
         assert "46047" not in sources and "46086" not in sources and "46232" not in sources
 

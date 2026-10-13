@@ -238,6 +238,9 @@ class Forecast:
     #: and structured rather than a sentence so the card can print a
     #: provenance line without the page hardcoding a claim of its own.
     geometry: dict = field(default_factory=dict)
+    #: The buoy's CDIP number (the registry's, `cdip_id`), which the page
+    #: names it by, as the LIVE tab does; "" when it has none.
+    station_cdip: str = ""
     #: What the model says the buoy will see, per hour, before any aperture.
     #: Station-level like the wind and tide: one buoy, not three.
     buoy: list[dict] = field(default_factory=list)
@@ -561,6 +564,7 @@ def build(
         cycle_utc=bulletin.cycle_utc.strftime(ISO) if bulletin else None,
         station=STATION,
         station_name=station_name(STATION, data_dir),
+        station_cdip=cdip_id(STATION),
         geometry=geometry_provenance(blockers, [by_id[b] for b in BREAKS]),
         standing_on={
             "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),

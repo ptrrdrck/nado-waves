@@ -65,7 +65,7 @@ class TestItIsReachable:
     def test_the_main_page_links_to_it_below_the_cards(self):
         links = PAGE[PAGE.index('<nav class="links"'):]
         links = links[:links.index("</nav>")]
-        assert '<a href="docs.html">Documentation</a>' in links
+        assert '<a href="docs.html">Docs</a>' in links
         assert PAGE.index('id="conditions"') < PAGE.index('<nav class="links"')
 
     def test_it_links_back(self):

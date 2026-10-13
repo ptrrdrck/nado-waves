@@ -61,13 +61,13 @@ def test_a_split_bearing_is_unplaced_and_says_why(cases):
         text = "\n".join(cases[cid])
         assert cases[cid][1 if cid[0] == "L" else 0].startswith("Unplaced storm")
         assert "does not have" not in text
-        assert ("Unplaced storm: Tanner Banks, CA (NDBC 46047) holds that train from multiple "
+        assert ("Unplaced storm: Tanner Banks (NDBC 46047) holds that train from multiple "
                 "directions, so no place is given.") in text
     for cid in ("L3", "C3"):
         text = "\n".join(cases[cid])
         assert cases[cid][1 if cid[0] == "L" else 0].startswith("Unplaced storm")
         assert " bearing" not in text
-        assert "Unplaced storm: Tanner Banks, CA (NDBC 46047) does not have that train." in text
+        assert "Unplaced storm: Tanner Banks (NDBC 46047) does not have that train." in text
 
 
 def test_no_neither_without_a_nor(cases):
@@ -123,8 +123,8 @@ def test_the_match_is_counts_beaten_never_a_word_or_a_percentage(cases):
         text = "\n".join(cases[cid])
         assert "%" not in text and "match" not in text.lower(), cid
     assert cases["H2"][2] == (
-        "Timing and direction beat NHC's track moved earlier 39 of 50 times at Tanner Banks, "
-        "CA (NDBC 46047) over 30 h, and 28 of 40 times at San Clemente Basin, CA (NDBC 46086) "
+        "Timing and direction beat NHC's track moved earlier 39 of 50 times at Tanner Banks "
+        "(NDBC 46047) over 30 h, and 28 of 40 times at San Clemente Basin (NDBC 46086) "
         "over 26 h.")
 
 
@@ -146,7 +146,7 @@ def test_sources_run_spectrum_then_nhc_then_unplaced(cases):
 
 def test_nothing_read_backwards_is_not_said_to_be(cases):
     assert cases["E0"] == ["No readable arrival in the last 21 days",
-                           "Trains: Point Loma South, CA (NDBC 46232)."]
+                           "Trains: Point Loma South (CDIP 191)."]
     for cid in ("H1", "H2", "H3", "H4", "M2"):
         assert "backwards" not in "\n".join(cases[cid]), cid
 
@@ -177,7 +177,7 @@ def test_a_last_readable_arrival_reads_as_the_owner_wrote_it(cases):
         "Tropical Storm Rachel {tropical storm symbol}",
         "The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with "
         "winds of 69 mph (60 kt) and 985 mb pressure. Arrived Oct 11, no longer arriving.",
-        "Trains: Point Loma South, CA (NDBC 46232).",
+        "Trains: Point Loma South (CDIP 191).",
         "Tropical storm position, winds and pressure: National Hurricane Center best track for "
         "[Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php), an analysis."]
 
