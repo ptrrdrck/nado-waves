@@ -846,7 +846,7 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
     block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now,
                                          origin_readings(block))
     # NDBC's own names, from the fetched metadata (never typed), so the card
-    # can name every buoy it cites as "Name, CA (NDBC id)", as its other lines
+    # can name every buoy it cites as "Name (NDBC id)", as its other lines
     # name the swell buoy: the bearing buoys and each hurricane's gate buoys.
     # Bearing buoys alone left San Clemente Basin bare on a hurricane's line once §38a
     # dropped it from Origin's bearings (2026-10-10). Every gate buoy, not
@@ -857,6 +857,9 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
     cited = set(GATE_STATIONS) | {buoy for h in block["hurricanes"] for buoy in h.get("match", {})}
     block["station_names"] = {s: station_name(s, data_dir)
                               for s in (STATION, *origin.BEARING_STATIONS, *sorted(cited))}
+    # And CDIP's numbers, for a buoy CDIP runs: 46232 is "Point Loma South
+    # (CDIP 191)" on Origin as on its feed pill (owner's request, 2026-10-13).
+    block["station_cdips"] = {s: n for s in block["station_names"] if (n := cdip_id(s))}
     return block
 
 

@@ -278,7 +278,8 @@ forecaster actually verifies against, Surfline included.
    between. **Each buoy's headline folds like a break's** (owner's request,
    same day; `buoyReading`): its caret and whole line fold out everything
    between it and the provenance -- trains, rose, those words -- closed
-   until opened, each buoy its own state, kept across a refresh. 46232's
+   until opened, each buoy its own state, kept across a refresh; selecting
+   the Buoys tab opens 46232's (owner's request, 2026-10-13). 46232's
    number is the registry's (`stations.json` `cdip`, `now.json`
    `station_cdip`, never typed on the page; "NDBC 46232" without it). Ink at
    the provenance's 12 px on the picked row's background; 46232's sits under
@@ -578,8 +579,11 @@ forecaster actually verifies against, Surfline included.
    call 2026-10-12), never the b-deck the card reads; why each unplaced reading has no place — each buoy as NDBC
    names it, the bearing buoys and every gate buoy a shown hurricane was
    matched at (46086 printed bare until 2026-10-10),
-   "Tanner Banks, CA (NDBC 46047)", from `origin.station_names` in
-   now.json (fetched metadata, never typed). **No upstream sighting is shown, ever**: measured, the predecessor's
+   "Tanner Banks (NDBC 46047)" — the state dropped, and a buoy CDIP runs
+   by CDIP's number, "Point Loma South (CDIP 191)", here and on the Forecast
+   tab's and docs.html's provenance (owner's request, 2026-10-13) — from
+   `origin.station_names` and `station_cdips` in now.json (fetched metadata
+   and the registry, never typed). **No upstream sighting is shown, ever**: measured, the predecessor's
    "confirmed in transit" check is blind to the distance (scaling every distance
    by 0.7 or 1.3 moved its hit rate by a point). LIVE only: the Forecast tab
    has no Origin. **Checked against NHC's best tracks** (b-decks archived

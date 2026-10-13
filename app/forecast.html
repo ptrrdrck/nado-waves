@@ -136,6 +136,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    nothing readable is arriving at the tab, then the entry, its lines at the
    size the grey "last readable arrival" tag had beside the head. */
 .cond .origin.last > .turn{font-size:15px}
+/* A blank line between that opening line and the entry it introduces
+   (owner's request, 2026-10-13): one line of its own 15 px text. */
+.cond .origin.last > .turn:first-child{margin-bottom:1.2em}
 /* A named storm's symbol after its name: the meteorological tropical cyclone
    symbol, two arms around the eye as a Northern Hemisphere storm turns, the
    eye open for a tropical storm and filled for a hurricane. */
@@ -416,7 +419,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .aperture .ray{stroke:var(--soft);stroke-width:1}
 .aperture .deg{font-size:11px;font-weight:600;fill:var(--ink);
                font-variant-numeric:tabular-nums;dominant-baseline:middle}
-.aperture .chord{stroke:var(--ink);stroke-width:4;stroke-linecap:round}
+/* The shoreline at the weight of the leading train's shaft, and the break's
+   dot scaled with it, twice its width across (owner's request, 2026-10-13:
+   4 and r 4 before). */
+.aperture .chord{stroke:var(--ink);stroke-width:3;stroke-linecap:round}
 .aperture .spot{fill:var(--ink)}
 .aperture .faces{font-size:11px;font-weight:600;fill:var(--ink);text-anchor:middle}
 /* Opacity on the group, so the leg and head fade as one shape rather than
@@ -713,7 +719,7 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
        beside this page in the bundle. It replaced info.html and
        geometry.html on 2026-10-02 (owner's decision). -->
   <nav class="links" aria-label="More">
-    <a href="docs.html">Documentation</a>
+    <a href="docs.html">Docs</a>
   </nav>
 </div>
 
@@ -749,6 +755,13 @@ const BUOYS_ALL_SOURCE = PARAM.get("buoys_all") || "../data/live/buoys_all.json"
 // tie-break; the swell card's tabs are ranked by window energy (`rankByEnergy`).
 const ORDER = ["coronado_north", "coronado_center", "coronado_south"];
 const SHORT = {coronado_north: "North", coronado_center: "Center", coronado_south: "South"};
+// A buoy's NDBC name without its state: "Tanner Banks, CA" is "Tanner Banks".
+const bareName = (name) => name.replace(/, [A-Z]{2}$/, "");
+// The anchor buoy as the Forecast tab's provenance names it: by CDIP's number
+// where CDIP runs it, "Point Loma South (CDIP <n>)", the registry's n
+// (owner's request, 2026-10-13).
+const anchorName = (d) => d.station_cdip ? `${bareName(d.station_name)} (CDIP ${d.station_cdip})`
+  : `${d.station_name} (NDBC ${d.station})`;
 
 // Matches forecast.transform.SEAWARD_CLIP. Not a blocker: this is the share of
 // the swell travelling towards a part of the compass the beach does not face,
@@ -1726,9 +1739,9 @@ function originFor(site) {
     last: s.last != null && A[s.last] ? A[s.last] : null,
     lastStorm: lastStormAt(site, O),
     site, station: O.station, lookback: O.lookback_days, names: O.station_names || {},
+    cdips: O.station_cdips || {},
     bearingStations: O.bearing_stations || [],
-    tab: SHORT[site] || (O.station_names && O.station_names[O.station] || `NDBC ${O.station}`)
-      .replace(/, [A-Z]{2}$/, ""),
+    tab: SHORT[site] || bareName(O.station_names && O.station_names[O.station] || `NDBC ${O.station}`),
   };
 }
 
@@ -1804,7 +1817,13 @@ const ORIGIN_SEP = " &middot; ";
 const NHC_ARCHIVE = "https://www.nhc.noaa.gov/archive/";
 const stormPageUrl = (name, iso) =>
   `${NHC_ARCHIVE}${new Date(iso).getUTCFullYear()}/${name.toUpperCase()}_graphics.php`;
-const buoyName = (o, id) => (o.names && o.names[id] ? `${o.names[id]} (NDBC ${id})` : `NDBC ${id}`);
+// Each buoy by its name without the state, and by the number of whoever runs
+// it: "Point Loma South (CDIP <n>)", "Tanner Banks (NDBC 46047)" (owner's
+// request, 2026-10-13, replacing "Point Loma South, CA (NDBC 46232)").
+const buoyName = (o, id) => {
+  const feed = o.cdips && o.cdips[id] ? `CDIP ${o.cdips[id]}` : `NDBC ${id}`;
+  return o.names && o.names[id] ? `${bareName(o.names[id])} (${feed})` : feed;
+};
 // A reading's direction is one of three things, and each is said differently:
 // one bearing at the unshadowed buoy (placed); the buoy has the train from
 // several directions, so its mean would point between them (split, BRIEFING
@@ -2321,7 +2340,7 @@ function windowDrawing(c) {
     <path class="sea" d="${wedge(-90, 90)}"/>
     ${windowPaths}${shading}${rays}${labels.join("")}${arrows}
     <line class="chord" x1="${cx - r}" y1="${cy}" x2="${cx + r}" y2="${cy}"/>
-    <circle class="spot" cx="${cx}" cy="${cy}" r="4"/>
+    <circle class="spot" cx="${cx}" cy="${cy}" r="3"/>
     ${captions.join("")}
   </svg>`;
 }
@@ -5411,7 +5430,14 @@ function windAtBreaks(cards) {
 // Switching tabs flips attributes rather than re-rendering, so focus stays on
 // the tab the reader is on and the countdowns keep their place.
 function selectSwellTab(id, {focus = false} = {}) {
-  if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) roseShown();
+  if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) {
+    roseShown();
+    // Selecting the Buoys tab opens the anchor buoy's headline, 46232's, the
+    // one every break's numbers are read from (owner's request, 2026-10-13);
+    // the context buoys below it stay as the reader left them.
+    const anchor = CHAIN === "fc" ? DATA && DATA.station : NOW && NOW.station;
+    if (anchor && !BUOY_OPEN[anchor]) setBuoyOpen(anchor, true);
+  }
   SWELL_TAB = id;
   remember(KEEP.swell, id);
   const shore = $("chart-fold-wind");
@@ -5607,7 +5633,7 @@ function renderConditions(step, cards) {
         `Forecast for ${stampWhen}`,
         buoy
           ? `GFS-Wave ${(past ? step.entry.wave_source : DATA.wave_source) === "partitions"
-              ? "partitions" : "spectrum"}, ${DATA.station_name} (NDBC ${DATA.station})`
+              ? "partitions" : "spectrum"}, ${anchorName(DATA)}`
           : `The spectral product was unavailable for this cycle, so there are no trains`,
         run,
       ],
@@ -5658,7 +5684,7 @@ function renderConditions(step, cards) {
       ${underLocal ? "" : seenWind}
       ${modelled
         ? srcLines([`Forecast for ${stampWhen}`,
-                    `GFS-Wave wind, ${DATA.station_name} (NDBC ${DATA.station})`,
+                    `GFS-Wave wind, ${anchorName(DATA)}`,
                     run])
         : windHeard(fallback)
           ? srcLines([`Observed ${observedAt(fallback.observed_utc)}`,

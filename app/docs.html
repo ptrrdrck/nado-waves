@@ -885,7 +885,8 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         and on &ldquo;LIVE&rdquo; its rose and one sentence under it: the station, linked to its
         public page (CDIP's for 46232, which CDIP runs, and NDBC's for the other two), how far
         offshore it is and its bearing from Center break, both worked out from NDBC's position for
-        the buoy, then what is read from it and what it is for here. It is closed until opened. Each buoy opens on its
+        the buoy, then what is read from it and what it is for here. It is closed until opened, except 46232's, which opens
+        whenever the Buoys tab is selected. Each buoy opens on its
         own, and the page keeps them as the reader left them across a refresh. On the Forecast
         tab it folds 46232's trains; the observed line under a past hour stays out of it, as it
         does on a break's tab.</p>
@@ -2018,16 +2019,20 @@ function renderNow(NOW) {
   renderStanding($("standing-now"), NOW.standing_on || {});
   // A model's build time and spread under a measurement would attribute the
   // model's properties to the observation, so this note names the buoy only.
-  $("foot-now").innerHTML = `Observed at ${NOW.station_name} (NDBC ${NOW.station}),
+  $("foot-now").innerHTML = `Observed at ${anchorName(NOW.station_name, NOW.station, NOW.station_cdip)},
     a buoy 29 km offshore, and carried over the seabed to where it breaks off
     each break; nothing here is measured at the sand.`;
 }
+// The anchor buoy by CDIP's number where CDIP runs it, its name without the
+// state: "Point Loma South (CDIP 191)" (owner's request, 2026-10-13).
+const anchorName = (name, id, cdip) => cdip
+  ? `${name.replace(/, [A-Z]{2}$/, "")} (CDIP ${cdip})` : `${name} (NDBC ${id})`;
 function renderForecast(DATA) {
   renderStanding($("standing-forecast"), DATA.standing_on || {});
   $("cycle").innerHTML = DATA.cycle_utc
     ? `Latest data from the GFS-Wave model run of `
       + `<b>${when(DATA.cycle_utc)}</b>, for the offshore buoy `
-      + `<b>${DATA.station_name}</b> (NDBC ${DATA.station}).`
+      + `<b>${anchorName(DATA.station_name, DATA.station, DATA.station_cdip)}</b>.`
     : "No GFS-Wave cycle was available, so there is nothing to show.";
   const spread = DATA.spread_assumption || {};
   const assumed = spread.swell_deg != null

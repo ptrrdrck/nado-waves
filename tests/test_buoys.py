@@ -536,6 +536,16 @@ class TestTheBuoyHeadlineFolds:
         assert "BUOY_OPEN[id] = open;" in setter and "remember(KEEP.buoyOpen" in setter
         assert "setBuoyOpen(id, !BUOY_OPEN[id]);" in PAGE
 
+    def test_selecting_the_buoys_tab_opens_46232(self):
+        """Owner's request, 2026-10-13: the anchor buoy's headline opens when
+        the Buoys tab is selected, on either chain; the others are left as
+        the reader left them."""
+
+        select = _fn("selectSwellTab")
+        assert 'const anchor = CHAIN === "fc" ? DATA && DATA.station : NOW && NOW.station;' in select
+        assert "if (anchor && !BUOY_OPEN[anchor]) setBuoyOpen(anchor, true);" in select
+        assert select.count("setBuoyOpen(") == 1
+
     def test_the_caret_is_a_breaks(self):
         toggle = _fn("buoyToggle")
         assert 'class="calc-toggle" data-buoy-toggle="${id}"' in toggle
