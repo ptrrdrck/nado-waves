@@ -130,7 +130,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
 /* Each arrival under ORIGIN: its sea, the line under it, its provenance. */
 .cond .origin{display:flex;flex-direction:column;gap:2px}
-.cond .origin + .origin{margin-top:10px}
+.cond .origin + .origin{margin-top:10px;padding-top:12px;position:relative}
+/* Entries inside Origin are set apart by a centred dot, never a rule: a
+   full-width rule is what opens a section on this card (owner's call,
+   2026-10-14). */
+.cond .origin + .origin::before{content:"";position:absolute;top:-2px;left:calc(50% - 2px);
+                                width:4px;height:4px;border-radius:50%;background:var(--line-strong)}
 .cond .origin > .val > .unit{white-space:nowrap}
 /* A tab's last readable arrival (owner's request, 2026-10-12): a line saying
    nothing readable is arriving at the tab, then the entry, its lines at the
@@ -152,7 +157,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond > .origin-fold{display:flex;flex-direction:column;gap:6px;
                      border-top:1px solid var(--line);padding-top:9px;margin-top:2px}
 .origin-fold .fold-body{display:flex;flex-direction:column;gap:2px}
-.origin-fold .fold-body .srcs{margin-top:6px}
 .cond .sublbl{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
               letter-spacing:.06em;font-size:11.5px;color:var(--soft)}
 /* A number inside a provenance line ("of 3.8 ft (1.15 m) at the buoy") stays
@@ -1738,10 +1742,9 @@ function originFor(site) {
       .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
     last: s.last != null && A[s.last] ? A[s.last] : null,
     lastStorm: lastStormAt(site, O),
-    site, station: O.station, lookback: O.lookback_days, names: O.station_names || {},
+    site, lookback: O.lookback_days, names: O.station_names || {},
     cdips: O.station_cdips || {},
     bearingStations: O.bearing_stations || [],
-    tab: SHORT[site] || bareName(O.station_names && O.station_names[O.station] || `NDBC ${O.station}`),
   };
 }
 
@@ -1791,23 +1794,31 @@ const onDay = (iso) => new Date(iso).toLocaleString(undefined, {month: "short", 
 // "A", "A and B", "A, B and C".
 const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
-// Every origin is the same three lines, whatever kind it is (owner's design,
-// 2026-10-04), and each line is a fixed run of slots (owner's formula,
-// 2026-10-10, docs/origin_wording.md): a slot with no value is dropped with
-// its joining words, and nothing is reworded per case.
-//   WHAT:  the head alone (a hurricane or tropical storm by name and its
-//          symbol, a sea, or an unplaced storm); a tab's last readable arrival
-//          opens with a line saying nothing readable is arriving there now.
-//   SENT:  "The {T} s train, sent [about] {date} from about {far} away", then
-//          its direction (", bearing {deg}" or ", with a split bearing
-//          ({deg} or {deg} ...)", or none), then a hurricane's "with winds of
-//          {speed} and {mb} mb pressure" from the fix that sent it. "about"
-//          when the day is fitted off the swell, bare when it is NHC's fix.
-//   KNOWN: how the timing and direction compare with NHC's track moved
-//          earlier, the count at each gate buoy; or how long the swell
-//          itself has been read.
-// One provenance block follows them all, with a line only for what is on
-// screen, each buoy by its NDBC name and number.
+// Every origin is a head and one paragraph, whatever kind it is (owner's
+// design, 2026-10-04; one paragraph since the owner's rewrite of 2026-10-14),
+// and each part is a fixed run of slots (owner's formula, 2026-10-10,
+// docs/origin_wording.md): a slot with no value is dropped with its joining
+// words, and nothing is reworded per case.
+//   WHAT:  the head alone (a hurricane or tropical storm by name, the name
+//          linked to NHC's page, and its symbol; a sea; or an unplaced
+//          storm); a tab's last readable arrival opens with a line saying no
+//          readable swell is arriving there now.
+//   SENT:  "The {T} s train, sent [about] {date} from about {far} away."
+//          "about" when the day is fitted off the swell, bare when it is
+//          NHC's fix.
+//   HELD:  where its direction comes from, in a sentence of its own: a named
+//          storm's "NHC had it at {deg}, with winds of {speed} and {mb} mb
+//          pressure at that time", the fix that sent the train; a reading's,
+//          naming the
+//          buoy it is read at: the bearing it holds the train from; every
+//          direction it holds it from, "so no place is given"; or that it
+//          does not have it.
+//   KNOWN: how long it has been arriving, "Arriving for {h} h so far." on
+//          every kind (owner's call, 2026-10-14): a named storm's by its
+//          track, a reading's as read off the swell; past, the day it
+//          arrived, "no longer arriving", and no hours, on every kind.
+// No provenance block follows them (owner's call, 2026-10-14): how a storm is
+// read and matched is on docs.html, and each buoy is named where it is used.
 const SAME_SOURCE_DEG = 45;
 const ORIGIN_SEP = " &middot; ";
 // NHC's own page for the storm, with its advisories, track and cone map
@@ -1828,11 +1839,10 @@ const buoyName = (o, id) => {
 // one bearing at the unshadowed buoy (placed); the buoy has the train from
 // several directions, so its mean would point between them (split, BRIEFING
 // §38); or the buoy does not have the train at all (unseen). Split and unseen
-// are both an unplaced storm (owner's call, 2026-10-10); line 2 and the
-// source line say which.
+// are both an unplaced storm (owner's call, 2026-10-10); the sentence naming
+// the buoy says which (`heldAt`).
 const isPlaced = (a) => Boolean(a.region) && a.bearing_deg != null;
 const isSplit = (a) => a.bearing_deg == null && (a.bearing_lobes || []).length > 0;
-const isUnseen = (a) => a.bearing_deg == null && !isSplit(a);
 // What a named storm was when the fix that sent this train was made
 // (forecast.stormtrack.strength): a hurricane that has weakened stays named,
 // as a tropical storm, for the swell its tropical storm fixes sent (owner's
@@ -1843,63 +1853,79 @@ const stormSymbol = (kind) => `<svg class="storm-sym" data-kind="${kind.toLowerC
   + ` viewBox="0 0 20 20" role="img" aria-label="${kind.toLowerCase()} symbol">`
   + `<path d="M6.6 10C6.6 4.2 12 1.6 17.6 3M13.4 10c0 5.8-5.4 8.4-11 7"/>`
   + `<circle class="eye" cx="10" cy="10" r="3.2"/></svg>`;
-const stormHead = (name, at) => `${stormKind(at)} ${name}${stormSymbol(stormKind(at))}`;
+// On the fold the storm's name alone links to NHC's page for it (owner's
+// call, 2026-10-14, when the provenance line that carried the link went);
+// never in the Origins chart's readout, which a finger scrubs.
+const stormHead = (name, at, link = false) => `${stormKind(at)} `
+  + (link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>` : name)
+  + stormSymbol(stormKind(at));
 // A tab's last readable arrival opens with a line of its own, and carries no
-// tag (owner's request, 2026-10-12).
-const lastIntro = (o) => `No readable trains arriving here now (${o.tab}). The last one read was:`;
-function originEntry({head, intro, where, how, storm}) {
+// tag (owner's request, 2026-10-12; reworded 2026-10-14, without the tab).
+const LAST_INTRO = "No readable swell arriving here now. The last one was:";
+function originEntry({head, intro, body, storm}) {
   return `<div class="origin${intro ? " last" : ""}"${storm ? ` data-hurricane="${storm}"` : ""}>
     ${intro ? `<span class="turn">${intro}</span>` : ""}
     <span class="val">${head}</span>
-    <span class="turn">${where}</span>
-    ${how ? `<span class="turn">${how}</span>` : ""}
+    <span class="turn">${body}</span>
   </div>`;
 }
 
-// Line 2, for every kind: the train, when it was sent, how far, which way,
-// and a hurricane's strength when it sent it.
+// The paragraph's first sentence, for every kind: the train, when it was
+// sent, and how far.
 const bearingText = (d) => `${Math.round(d)}&deg; ${point(d)}`;
 // A storm's swell the break's splitter cut into adjacent rows is one band at
 // the open-ocean buoy, and is named as one: "The 10.5 and 11.1 s trains"
 // (owner's request, 2026-10-11; forecast.stormtrack `also_periods_s`).
 const stormPeriods = (at) => [at.train_period_s, ...(at.also_periods_s || [])];
-const trainAt = ({period, also = [], sent, fitted, km, step, bearing, split = [], winds = ""}) =>
+const trainAt = ({period, also = [], sent, fitted, km, step}) =>
   `The ${andList([period, ...also].sort((x, y) => x - y).map((p) => p.toFixed(1)))}`
   + `&nbsp;s train${also.length ? "s" : ""}, sent ${fitted ? "about " : ""}${onDay(sent)}`
-  + ` from ${farAway(km, step)} away`
-  + (bearing != null ? `, bearing ${bearingText(bearing)}`
-    : split.length ? `, with a split bearing (${split.map(bearingText).join(" or ")})` : "")
-  + (winds ? ` with ${winds}` : "") + ".";
+  + ` from ${farAway(km, step)} away.`;
+
+// A reading's direction, in a sentence naming the buoy it is read at (owner's
+// rewrite, 2026-10-14): the bearing it holds the train from; every direction
+// a split train is held from, and so no place; or that the buoy does not have
+// the train, and so no place.
+function heldAt(a, o) {
+  const at = buoyName(o, a.bearing_from || o.bearingStations[0]);
+  if (a.bearing_deg != null) return `${at} holds this train from ${bearingText(a.bearing_deg)}.`;
+  if (isSplit(a)) {
+    return `${at} holds this train from ${andList(a.bearing_lobes.map(([d]) => bearingText(d)))}`
+      + ", so no place is given.";
+  }
+  const by = o.bearingStations.map((id) => buoyName(o, id));
+  return (by.length === 1 ? `${by[0]} does not have`
+    : by.length === 2 ? `Neither ${by[0]} nor ${by[1]} has` : `None of ${andList(by)} has`)
+    + " this train, so no place is given.";
+}
 
 // A hurricane NHC is tracking, named when its best track run forward matches
 // the directional energy 46047 or 46086 measured, as of now, better than the
 // same track moved back in time does (forecast.stormtrack, BRIEFING §37c-d).
-// Line 3 is the count of those earlier copies the real timing and direction
-// beat, at each gate buoy: never a probability or a percentage, and since
-// 2026-10-10 no word either (owner's call). It is about where a train came
-// from, never how big it is. Where the storm was, and how strong, are NHC's:
-// the fix that sent the train now arriving, on line 2 beside the day it was
-// sent, because the storm has moved on since. Never Origin's distance.
+// The match itself is not on the card (owner's call, 2026-10-14: it is
+// explained on docs.html); the last sentence is how long the storm's swell
+// has been arriving by its track, the longest at any gate buoy it was matched
+// at (`stormtrack.live`'s `hours`), and none when no buoy has a count. Never
+// a probability, a percentage or a match word. It is about where a train came
+// from, never how big it is. Where the storm was, and how strong, are NHC's: the fix that
+// sent the train now arriving, in the sentence after the day it was sent,
+// because the storm has moved on since. Never Origin's distance.
 // Past, as a tab's last readable arrival (owner's request, 2026-10-12): after
-// the line saying so, the head and line 2 alone, which ends "Arrived {date},
+// the line saying so, the head and the train's sentence, then "Arrived {date},
 // no longer arriving." on the day the train shown first arrived; no counts.
 function hurricaneEntry(h, o, past = false) {
   const s = h.at;
-  const buoys = Object.entries(h.match || {}).sort((x, y) => y[1].score - x[1].score);
-  const tested = buoys.map(([id, m]) => `${m.beaten} of ${m.trials} times at ${buoyName(o, id)}`
-    + (m.hours == null ? "" : ` over ${m.hours} h`)).join(", and ");
+  const hours = Object.values(h.match || {}).map((m) => m.hours).filter((v) => v != null);
   return originEntry({
-    head: stormHead(h.name, s),
-    intro: past ? lastIntro(o) : "",
+    head: stormHead(h.name, s, true),
+    intro: past ? LAST_INTRO : "",
     storm: h.storm,
-    where: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
-                    sent: s.fix_utc, fitted: false,
-                    km: s.distance_km, step: 100, bearing: s.bearing_deg,
-                    winds: `winds of ${speed(s.vmax_kt)}`
-                      + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")})
-      + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.` : ""),
-    how: past ? "" : `<span data-match="${h.word}">Timing and direction beat NHC's track moved earlier</span>`
-      + ` ${tested}.`,
+    body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
+                   sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})
+      + ` NHC had it at ${bearingText(s.bearing_deg)}, with winds of ${speed(s.vmax_kt)}`
+      + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + " at that time."
+      + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`
+        : hours.length ? ` Arriving for ${Math.max(...hours)} h so far.` : ""),
   });
 }
 
@@ -1910,67 +1936,25 @@ function readingEntry(a, o, past = false) {
   const hours = Math.max(1, Math.round(a.hours_read));
   return originEntry({
     head: isPlaced(a) ? sea(a.region) : "Unplaced storm",
-    intro: past ? lastIntro(o) : "",
-    where: trainAt({period: past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s,
-                    sent: a.generated_utc, fitted: true, km: a.distance_km, step: 500,
-                    bearing: a.bearing_deg,
-                    split: isSplit(a) ? a.bearing_lobes.map(([d]) => d) : []}),
-    how: past ? `Read backwards off the swell over ${hours} h. Arrived ${onDay(a.first_utc)}, no longer arriving.`
-      : `Read backwards off the swell, ${hours} h so far.`,
+    intro: past ? LAST_INTRO : "",
+    body: trainAt({period: past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s,
+                   sent: a.generated_utc, fitted: true, km: a.distance_km, step: 500})
+      + ` ${heldAt(a, o)} `
+      + (past ? `Arrived ${onDay(a.first_utc)}, no longer arriving.`
+        : `Arriving for ${hours} h so far.`),
   });
 }
 
-// The one provenance block, after every entry, for whatever mix is shown: a
-// line per claim on screen, and none for a claim that is not, in the owner's
-// order (2026-10-10): the spectrum, NHC, then why a storm is unplaced. Every
-// origin's train is read off 46232's spectrum, a hurricane's too; only a
-// reading's storm is then read BACKWARDS from it, its direction at an
-// unshadowed buoy. A hurricane's place, winds and pressure are NHC's best
-// track, each storm's name linked to NHC's page for it.
-function originSources(o, hurricanes, readings) {
-  const at = (pick) => [...new Set(readings.filter(pick).map((a) => a.bearing_from).filter(Boolean))]
-    .map((id) => buoyName(o, id));
-  const from = at((a) => a.bearing_deg != null);
-  const split = at(isSplit);
-  // "Trains: {the station}" where no storm is read backwards (owner's wording,
-  // 2026-10-12); with a reading, the spectrum is named as what it is read off.
-  const lines = [readings.length ? `Trains read off the spectrum at ${buoyName(o, o.station)}`
-    + ", and storms read backwards from them" + (from.length ? `; direction at ${andList(from)}` : "")
-    : `Trains: ${buoyName(o, o.station)}`];
-  if (hurricanes.length) {
-    const names = hurricanes.map((h) => `<a href="${stormPageUrl(h.name, h.at.fix_utc)}"`
-      + ` rel="noopener">${h.name}</a>`);
-    const kinds = new Set(hurricanes.map((h) => stormKind(h.at)));
-    const kind = kinds.size > 1 ? "Storm" : kinds.has("Hurricane") ? "Hurricane" : "Tropical storm";
-    lines.push(`${kind} ${hurricanes.some((h) => h.at.mslp_mb) ? "position, winds and pressure"
-      : "position and winds"}: National Hurricane Center best track${names.length > 1 ? "s" : ""}`
-      + ` for ${andList(names)}, an analysis`);
-  }
-  if (split.length) {
-    lines.push(`Unplaced storm: ${andList(split)} ${split.length > 1 ? "each hold" : "holds"}`
-      + " that train from multiple directions, so no place is given");
-  }
-  if (readings.some(isUnseen)) {
-    const by = o.bearingStations.map((id) => buoyName(o, id));
-    lines.push("Unplaced storm: " + (by.length === 1 ? `${by[0]} does not have`
-      : by.length === 2 ? `neither ${by[0]} nor ${by[1]} has` : `none of ${andList(by)} has`)
-      + " that train");
-  }
-  return srcLines(lines);
-}
-
-// What folds out under the "Origin" line: the entries, then the provenance.
+// What folds out under the "Origin" line: the entries, and nothing under them.
 function originBody(o) {
   const now = o.hurricanes.length || o.current.length;
   const {storm, reading} = now ? {} : lastArrival(o);
-  const entries = now
+  return now
     ? o.hurricanes.map((h) => hurricaneEntry(h, o)).join("")
       + o.current.map((a) => readingEntry(a, o)).join("")
     : storm ? hurricaneEntry(storm, o, true)
       : reading ? readingEntry(reading, o, true)
-        : `<span class="val"><span class="unit">No readable arrival in the last ${o.lookback} days</span></span>`;
-  return entries + originSources(o, now ? o.hurricanes : storm ? [storm] : [],
-                                 now ? o.current : reading ? [reading] : []);
+        : `<span class="val"><span class="unit">No readable swell in the last ${o.lookback} days.</span></span>`;
 }
 
 // Whether Origin is folded out. One state for every tab, like the charts',

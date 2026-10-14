@@ -3243,29 +3243,35 @@ class TestOrigin:
     def test_the_empty_state_names_the_last_readable_arrival(self):
         """In the same lines as any other origin (owner's design,
         2026-10-04), on the train it was at its peak hour, and since
-        2026-10-12 (owner's request) opened by a line naming the tab, with no
-        tag beside the head and its lines at the tag's old size."""
+        2026-10-12 (owner's request) opened by a line of its own, with no
+        tag beside the head and its lines at the tag's old size; since
+        2026-10-14 without the tab's name."""
 
-        assert ("const lastIntro = (o) => `No readable trains arriving here now (${o.tab}). "
-                "The last one read was:`;") in SOURCE
-        assert "intro: past ? lastIntro(o) : \"\"," in SOURCE
+        assert ('const LAST_INTRO = "No readable swell arriving here now. '
+                'The last one was:";') in SOURCE
+        assert "intro: past ? LAST_INTRO : \"\"," in SOURCE
         fold = _code(SOURCE[SOURCE.index("function originFor"):SOURCE.index("let ORIGIN_OPEN")])
         assert '"last readable arrival"' not in fold and "tag:" not in fold
         assert ".cond .origin.last > .turn{font-size:15px}" in SOURCE
         assert ".cond .val .unit{font-size:15px}" in SOURCE
-        assert 'tab: SHORT[site] || bareName(O.station_names && O.station_names[O.station]' in SOURCE
         # A blank line between the opening line and the entry (2026-10-13).
         assert ".cond .origin.last > .turn:first-child{margin-bottom:1.2em}" in SOURCE
-        assert "Arrived ${onDay(a.first_utc)}, no longer arriving" in SOURCE
+        assert "past ? `Arrived ${onDay(a.first_utc)}, no longer arriving.`" in SOURCE
         assert "past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s" in SOURCE
-        assert "No readable arrival in the last ${o.lookback} days" in SOURCE
+        assert "No readable swell in the last ${o.lookback} days." in SOURCE
 
     def test_a_named_storm_carries_its_symbol(self):
         """Owner's request, 2026-10-12: the storm's official symbol after its
         name, the eye open for a tropical storm and filled for a hurricane,
-        in ink, as the rest of the card's drawings are."""
+        in ink, as the rest of the card's drawings are. On the fold the name
+        alone links to NHC's page (owner's call, 2026-10-14); the Origins
+        chart's readout, which a finger scrubs, is never a link."""
 
-        assert "const stormHead = (name, at) => `${stormKind(at)} ${name}${stormSymbol(stormKind(at))}`;" in SOURCE
+        assert "const stormHead = (name, at, link = false) => `${stormKind(at)} `" in SOURCE
+        assert ('(link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>`'
+                " : name)\n  + stormSymbol(stormKind(at));") in SOURCE
+        assert "head: stormHead(h.name, s, true)," in SOURCE
+        assert "value(stormHead(n.name, n.at))" in SOURCE
         assert '.cond .origin .storm-sym[data-kind="hurricane"] .eye{fill:currentColor}' in SOURCE
         assert ".cond .origin .storm-sym .eye{fill:var(--card)}" in SOURCE
 
@@ -3279,35 +3285,42 @@ class TestOrigin:
 
     def test_a_running_arrival_says_so(self):
         assert "const hours = Math.max(1, Math.round(a.hours_read));" in SOURCE
-        assert "`Read backwards off the swell, ${hours} h so far.`" in SOURCE
+        assert ": `Arriving for ${hours} h so far.`)," in SOURCE
 
-    def test_every_origin_is_the_same_three_lines(self):
-        """What it is; where and when, with its train; how it is known."""
+    def test_every_origin_is_a_head_and_one_paragraph(self):
+        """What it is; then where and when, with its train, and how it is
+        known, run on (owner's rewrite, 2026-10-14)."""
 
         entry = SOURCE[SOURCE.index("function originEntry"):SOURCE.index("function hurricaneEntry")]
-        # The past entry's opening line, then what, sent, known.
-        assert entry.count('<span class="turn">') == 3 and entry.count('<span class="val">') == 1
+        # The past entry's opening line, then the head, then the paragraph.
+        assert entry.count('<span class="turn">') == 2 and entry.count('<span class="val">') == 1
         assert '${intro ? `<span class="turn">${intro}</span>` : ""}' in entry
         for kind in ("function hurricaneEntry", "function readingEntry"):
             body = SOURCE[SOURCE.index(kind):].split("\n}\n")[0]
             assert "originEntry({" in body and "srcLines" not in body
             assert "trainAt(" in body
 
-    def test_one_provenance_follows_every_mix(self):
-        body = SOURCE[SOURCE.index("function originBody"):SOURCE.index("let ORIGIN_OPEN")]
-        assert body.count("originSources(") == 1 and "srcLines" not in body
+    def test_no_provenance_follows_the_entries(self):
+        """Owner's call, 2026-10-14: storm matching is explained on docs.html."""
+
+        fold = SOURCE[SOURCE.index("function originFor"):SOURCE.index("let ORIGIN_OPEN")]
+        assert "originSources" not in SOURCE and "srcLines" not in fold
+        assert "best track" not in _code(fold) and "Trains:" not in fold
 
     def test_a_split_bearing_and_a_missing_train_say_which(self):
         """Owner's calls, 2026-10-10: a train 46047 holds from several
         directions and a train 46047 does not have are both an unplaced
-        storm, and line 2 and the source line say which (BRIEFING §38).
-        Rendered per case by tests/test_originwording.py."""
+        storm, and since 2026-10-14 a sentence naming the buoy says which
+        (BRIEFING §38). Rendered per case by tests/test_originwording.py."""
 
         assert 'head: isPlaced(a) ? sea(a.region) : "Unplaced storm"' in SOURCE
         assert "const isSplit = (a) => a.bearing_deg == null && (a.bearing_lobes || []).length > 0;" in SOURCE
-        assert "split: isSplit(a) ? a.bearing_lobes.map(([d]) => d) : []" in SOURCE
-        assert '" that train from multiple directions, so no place is given"' in SOURCE
-        assert "`${by[0]} does not have`" in SOURCE
+        held = SOURCE[SOURCE.index("function heldAt"):].split("\n}\n")[0]
+        assert "`${at} holds this train from ${bearingText(a.bearing_deg)}.`" in held
+        assert "`${at} holds this train from ${andList(a.bearing_lobes.map(([d]) => bearingText(d)))}`" in held
+        assert '+ ", so no place is given."' in held
+        assert "`${by[0]} does not have`" in held and '" this train, so no place is given."' in held
+        assert "+ ` ${heldAt(a, o)} `" in SOURCE
 
     def test_buoys_are_named_as_ndbc_names_them(self):
         """"Tanner Banks (NDBC 46047)" and "Point Loma South (CDIP 191)" --
@@ -3317,8 +3330,8 @@ class TestOrigin:
 
         assert "`${bareName(o.names[id])} (${feed})`" in SOURCE
         assert "`CDIP ${o.cdips[id]}` : `NDBC ${id}`" in SOURCE
-        sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
-        assert "46047" not in sources and "46086" not in sources and "46232" not in sources
+        fold = SOURCE[SOURCE.index("function originFor"):SOURCE.index("let ORIGIN_OPEN")]
+        assert "46047" not in _code(fold) and "46086" not in _code(fold) and "46232" not in _code(fold)
 
     def test_nothing_upstream_is_called_a_confirmation(self):
         """Measured, the upstream check never tested the distance."""
@@ -3360,24 +3373,24 @@ class TestHurricane:
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
         # Named for what it was when the fix that sent this train was made:
         # a hurricane, or since 2026-10-11 a tropical storm it weakened to.
-        assert "head: stormHead(h.name, s)," in entry
+        assert "head: stormHead(h.name, s, true)," in entry
         assert ('const stormKind = (at) => (at && at.strength === "tropical storm" '
                 '? "Tropical Storm" : "Hurricane");') in SOURCE
         own = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
         # Opened as a tab's last readable arrival, and then with no counts
         # line: "Arrived" ends line 2 (owner's request, 2026-10-12).
-        assert "intro: past ? lastIntro(o) : \"\"," in own
-        assert "+ (past ? ` Arrived ${onDay(h.since)}, no longer arriving.` : \"\")," in own
-        assert "how: past ? \"\" : `<span data-match" in own
-        assert ": National Hurricane Center best track${names.length > 1 ? \"s\" : \"\"}`" in SOURCE
+        assert "intro: past ? LAST_INTRO : \"\"," in own
+        assert "+ (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`" in own
+        assert ': hours.length ? ` Arriving for ${Math.max(...hours)} h so far.` : ""),' in own
         # NHC's position, rounded to 100 where Origin's distances round to 500.
-        assert ("trainAt({period: s.train_period_s, also: s.also_periods_s || [],\n"
-                "                    sent: s.fix_utc, fitted: false,\n"
-                "                    km: s.distance_km, step: 100, bearing: s.bearing_deg,") in entry
-        # Its winds and pressure are the fix's that sent the train: on line 2,
-        # after the day it was sent (owner's rewrite, 2026-10-10).
-        assert "winds: `winds of ${speed(s.vmax_kt)}`" in entry
-        assert '(s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")' in entry
+        assert ("body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],\n"
+                "                   sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})") in entry
+        # Its bearing, winds and pressure are the fix's that sent the train,
+        # after the day it was sent (owner's rewrite, 2026-10-10), in a
+        # sentence naming NHC (owner's calls, 2026-10-14).
+        assert ("+ ` NHC had it at ${bearingText(s.bearing_deg)}, with winds of "
+                "${speed(s.vmax_kt)}`") in entry
+        assert '+ (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + " at that time."' in entry
 
     def test_nhcs_line_links_each_storm_to_its_page_by_name(self):
         """Owner's requests, 2026-10-10 and -12: the storm's name links to
@@ -3389,12 +3402,25 @@ class TestHurricane:
                 "_graphics.php`") in SOURCE
         assert "atcf/btk" not in SOURCE
 
-    def test_it_states_its_match_with_the_count_behind_it(self):
-        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert "Timing and direction beat NHC's track moved earlier</span>`" in entry
-        assert "${m.beaten} of ${m.trials} times at ${buoyName(o, id)}" in entry
-        # The hours are each gate buoy's own, beside its count (2026-10-10).
-        assert '(m.hours == null ? "" : ` over ${m.hours} h`)' in entry
+    def test_it_says_how_long_its_swell_has_arrived_never_the_match(self):
+        """Owner's call, 2026-10-14: the counts came off the card (storm
+        matching is on docs.html); the hours stay, the longest at any gate
+        buoy, as "Arriving for N h so far."."""
+
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
+        assert ("const hours = Object.values(h.match || {}).map((m) => m.hours)"
+                ".filter((v) => v != null);") in entry
+        for gone in ("m.beaten", "m.trials", "data-match", "h.word"):
+            assert gone not in _code(entry), gone
+
+    def test_entries_are_set_apart_by_a_dot_never_a_rule(self):
+        """Owner's call, 2026-10-14: a full-width rule opens a section on
+        this card, so entries inside Origin take a centred dot."""
+
+        assert ".cond .origin + .origin{margin-top:10px;padding-top:12px;position:relative}" in SOURCE
+        dot = SOURCE[SOURCE.index(".cond .origin + .origin::before{"):].split("}")[0]
+        assert "border-radius:50%" in dot and "left:calc(50% - 2px)" in dot
+        assert "border-top" not in dot
 
     def test_the_match_is_a_count_never_a_percentage(self):
         """Owner's call, 2026-10-10: "92%" restated the first count as a bare
@@ -3487,24 +3513,18 @@ class TestOriginsChart:
 
 def test_every_origin_names_its_train_distance_bearing_and_day_in_one_order():
     """Owner's rewrite, 2026-10-10: "The 16.0 s train, sent about Sep 28
-    from about 700 mi (1,100 km) away, bearing 161° SSE" -- the day it was
-    SENT, "about" when fitted off the swell; the bearing in degrees and
-    compass, every one of a split bearing's, and none for a train 46047 does
-    not have; then a hurricane's winds."""
+    from about 700 mi (1,100 km) away" -- the day it was SENT, "about" when
+    fitted off the swell. Every direction is a sentence of its own since
+    2026-10-14: a reading's naming its buoy (`heldAt`), a named storm's
+    naming NHC."""
 
-    at = SOURCE[SOURCE.index("const trainAt"):SOURCE.index("function hurricaneEntry")]
+    at = SOURCE[SOURCE.index("const trainAt"):SOURCE.index("function heldAt")]
     assert at.index("`&nbsp;s train${also.length ? \"s\" : \"\"}, sent ${fitted ? \"about \" : \"\"}${onDay(sent)}`") \
-        < at.index("` from ${farAway(km, step)} away`") < at.index("`, bearing ${bearingText(bearing)}`") \
-        < at.index("`, with a split bearing (${split.map(bearingText).join(\" or \")})`") \
-        < at.index("(winds ? ` with ${winds}` : \"\")")
-
-
-def test_every_train_is_read_off_46232_and_only_readings_backwards():
-    sources = SOURCE[SOURCE.index("function originSources"):SOURCE.index("function originBody")]
-    assert "readings.length ? `Trains read off the spectrum at ${buoyName(o, o.station)}`" in sources
-    assert '+ ", and storms read backwards from them"' in sources
-    # Owner's wording, 2026-10-12, where nothing is read backwards.
-    assert ": `Trains: ${buoyName(o, o.station)}`];" in sources
+        < at.index("` from ${farAway(km, step)} away.`;")
+    for gone in ("split", "bearing", "winds"):
+        assert gone not in _code(at)
+    reading = SOURCE[SOURCE.index("function readingEntry"):].split("\n}\n")[0]
+    assert "bearing:" not in reading
 
 
 class TestTheTidePhaseFold:
