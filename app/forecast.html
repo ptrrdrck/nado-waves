@@ -1802,14 +1802,15 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 //          "about" when the day is fitted off the swell, bare when it is
 //          NHC's fix.
 //   HELD:  where its direction comes from, in a sentence of its own: a named
-//          storm's "NHC places it at {deg}, with winds of {speed} and {mb} mb
-//          pressure", the fix that sent the train; a reading's, naming the
+//          storm's "NHC had it at {deg}, with winds of {speed} and {mb} mb
+//          pressure at that time", the fix that sent the train; a reading's,
+//          naming the
 //          buoy it is read at: the bearing it holds the train from; every
 //          direction it holds it from, "so no place is given"; or that it
 //          does not have it.
-//   KNOWN: how the named storm's track compares with copies of it moved
-//          earlier, the count at each gate buoy; or how long the swell
-//          itself has been read.
+//   KNOWN: how the storm's track compares with copies of itself moved
+//          earlier, the count at each gate buoy over the hours of its swell
+//          there; or how long the swell itself has been read.
 // No provenance block follows them (owner's call, 2026-10-14): how a storm is
 // read and matched is on docs.html, and each buoy is named where it is used.
 const SAME_SOURCE_DEG = 45;
@@ -1895,9 +1896,10 @@ function heldAt(a, o) {
 // A hurricane NHC is tracking, named when its best track run forward matches
 // the directional energy 46047 or 46086 measured, as of now, better than the
 // same track moved back in time does (forecast.stormtrack, BRIEFING §37c-d).
-// The last sentence is the count of those earlier copies its track beat on
-// timing and direction, at each gate buoy (shortened 2026-10-14, owner's
-// request): never a probability or a percentage, and since 2026-10-10 no
+// The last sentence is the count of those earlier copies the storm's track
+// beat on timing and direction at each gate buoy, over the hours its swell
+// has been arriving there by that track (`stormtrack.live`'s `hours`;
+// reworded 2026-10-14, owner's request): never a probability or a percentage, and since 2026-10-10 no
 // word either (owner's call). It is about where a train came from, never how
 // big it is. Where the storm was, and how strong, are NHC's: the fix that
 // sent the train now arriving, in the sentence after the day it was sent,
@@ -1908,18 +1910,19 @@ function heldAt(a, o) {
 function hurricaneEntry(h, o, past = false) {
   const s = h.at;
   const buoys = Object.entries(h.match || {}).sort((x, y) => y[1].score - x[1].score);
-  const tested = buoys.map(([id, m], k) => `${m.beaten} of ${m.trials}${k ? "" : " earlier copies"}`
-    + ` at ${buoyName(o, id)}` + (m.hours == null ? "" : ` over ${m.hours} h`)).join(", and ");
+  const tested = buoys.map(([id, m], k) => `${m.beaten} of ${m.trials}${k ? "" : " earlier copies of itself"}`
+    + ` at ${buoyName(o, id)}` + (m.hours == null ? "" : ` over ${m.hours} h${k ? "" : " of its swell"}`))
+    .join(", and ");
   return originEntry({
     head: stormHead(h.name, s, true),
     intro: past ? LAST_INTRO : "",
     storm: h.storm,
     body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
                    sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})
-      + ` NHC places it at ${bearingText(s.bearing_deg)}, with winds of ${speed(s.vmax_kt)}`
-      + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + "."
+      + ` NHC had it at ${bearingText(s.bearing_deg)}, with winds of ${speed(s.vmax_kt)}`
+      + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + " at that time."
       + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`
-        : ` <span data-match="${h.word}">Its track beat</span> ${tested}.`),
+        : ` <span data-match="${h.word}">The storm's track beat</span> ${tested}.`),
   });
 }
 

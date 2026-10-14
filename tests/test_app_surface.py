@@ -3381,16 +3381,16 @@ class TestHurricane:
         # line: "Arrived" ends line 2 (owner's request, 2026-10-12).
         assert "intro: past ? LAST_INTRO : \"\"," in own
         assert "+ (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`" in own
-        assert ': ` <span data-match="${h.word}">Its track beat</span> ${tested}.`' in own
+        assert ': ` <span data-match="${h.word}">The storm\'s track beat</span> ${tested}.`' in own
         # NHC's position, rounded to 100 where Origin's distances round to 500.
         assert ("body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],\n"
                 "                   sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})") in entry
         # Its bearing, winds and pressure are the fix's that sent the train,
         # after the day it was sent (owner's rewrite, 2026-10-10), in a
-        # sentence naming NHC (owner's call, 2026-10-14).
-        assert ("+ ` NHC places it at ${bearingText(s.bearing_deg)}, with winds of "
+        # sentence naming NHC (owner's calls, 2026-10-14).
+        assert ("+ ` NHC had it at ${bearingText(s.bearing_deg)}, with winds of "
                 "${speed(s.vmax_kt)}`") in entry
-        assert '+ (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + "."' in entry
+        assert '+ (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + " at that time."' in entry
 
     def test_nhcs_line_links_each_storm_to_its_page_by_name(self):
         """Owner's requests, 2026-10-10 and -12: the storm's name links to
@@ -3404,11 +3404,12 @@ class TestHurricane:
 
     def test_it_states_its_match_with_the_count_behind_it(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert ">Its track beat</span> ${tested}.`" in entry
-        assert '`${m.beaten} of ${m.trials}${k ? "" : " earlier copies"}`' in entry
+        assert ">The storm's track beat</span> ${tested}.`" in entry
+        assert '`${m.beaten} of ${m.trials}${k ? "" : " earlier copies of itself"}`' in entry
+        assert '` over ${m.hours} h${k ? "" : " of its swell"}`' in entry
         assert "+ ` at ${buoyName(o, id)}`" in entry
         # The hours are each gate buoy's own, beside its count (2026-10-10).
-        assert '(m.hours == null ? "" : ` over ${m.hours} h`)' in entry
+        assert '(m.hours == null ? "" : ` over ${m.hours} h${k ? "" : " of its swell"}`)' in entry
 
     def test_the_match_is_a_count_never_a_percentage(self):
         """Owner's call, 2026-10-10: "92%" restated the first count as a bare

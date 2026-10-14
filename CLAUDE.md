@@ -567,15 +567,16 @@ forecaster actually verifies against, Surfline included.
    16.0 s train, sent about Sep 28 from about 700 mi (1,100 km) away" ("about"
    on a reading's fitted day, bare on NHC's; the last arrival's train is its
    peak hour's, `peak_period_s`); where its direction comes from, a sentence
-   of its own: a hurricane's "NHC places it at 161° SSE, with winds of
-   121 mph (105 kt) and 950 mb pressure.", NHC's fix that SENT the train, so
+   of its own: a hurricane's "NHC had it at 161° SSE, with winds of
+   121 mph (105 kt) and 950 mb pressure at that time.", NHC's fix that SENT the train, so
    a storm that has weakened since still reads as it was then; a reading's
    naming the buoy (`heldAt`): "Tanner Banks (NDBC 46047) holds this train
    from 212° SSW.", "… from 190° S and 276° W, so no place is given." for a
    split, "… does not have this train, so no place is given."; and how it is
-   known ("Its track beat N of M earlier copies at" each gate buoy, with its
-   hours, ", and N of M at" the next — the count of copies moved earlier
-   that it beat on timing and direction, **never a percentage and, since the
+   known ("The storm's track beat N of M earlier copies of itself at" each
+   gate buoy "over H h of its swell" — the hours its swell has arrived there
+   by that track — ", and N of M at" the next: the count of copies of the
+   STORM's track moved earlier that it beat on timing and direction, **never a percentage and, since the
    owner's second pass of 2026-10-10, no strong/partial/weak word**; or "Read
    over N h of swell", and "Arrived …, no longer arriving"). **No
    provenance follows the entries** (owner's call, 2026-10-14): storm
