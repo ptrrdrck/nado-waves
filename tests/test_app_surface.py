@@ -3256,7 +3256,7 @@ class TestOrigin:
         assert ".cond .val .unit{font-size:15px}" in SOURCE
         # A blank line between the opening line and the entry (2026-10-13).
         assert ".cond .origin.last > .turn:first-child{margin-bottom:1.2em}" in SOURCE
-        assert "Arrived ${onDay(a.first_utc)}, no longer arriving" in SOURCE
+        assert "`Read over ${hours} h of swell. Arrived ${onDay(a.first_utc)}, no longer arriving.`" in SOURCE
         assert "past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s" in SOURCE
         assert "No readable swell in the last ${o.lookback} days." in SOURCE
 
@@ -3285,7 +3285,7 @@ class TestOrigin:
 
     def test_a_running_arrival_says_so(self):
         assert "const hours = Math.max(1, Math.round(a.hours_read));" in SOURCE
-        assert "`Read backwards off the swell, ${hours} h so far.`" in SOURCE
+        assert "`Read over ${hours} h of swell so far.`" in SOURCE
 
     def test_every_origin_is_a_head_and_one_paragraph(self):
         """What it is; then where and when, with its train, and how it is
@@ -3381,16 +3381,16 @@ class TestHurricane:
         # line: "Arrived" ends line 2 (owner's request, 2026-10-12).
         assert "intro: past ? LAST_INTRO : \"\"," in own
         assert "+ (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`" in own
-        assert ": ` <span data-match" in own
+        assert ': ` <span data-match="${h.word}">Its track beat</span> ${tested}.`' in own
         # NHC's position, rounded to 100 where Origin's distances round to 500.
-        assert ("trainAt({period: s.train_period_s, also: s.also_periods_s || [],\n"
-                "                    sent: s.fix_utc, fitted: false,\n"
-                "                    km: s.distance_km, step: 100, bearing: s.bearing_deg,") in entry
-        assert "body: trainAt({period: s.train_period_s" in entry
-        # Its winds and pressure are the fix's that sent the train: on line 2,
-        # after the day it was sent (owner's rewrite, 2026-10-10).
-        assert "winds: `winds of ${speed(s.vmax_kt)}`" in entry
-        assert '(s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")' in entry
+        assert ("body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],\n"
+                "                   sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})") in entry
+        # Its bearing, winds and pressure are the fix's that sent the train,
+        # after the day it was sent (owner's rewrite, 2026-10-10), in a
+        # sentence naming NHC (owner's call, 2026-10-14).
+        assert ("+ ` NHC places it at ${bearingText(s.bearing_deg)}, with winds of "
+                "${speed(s.vmax_kt)}`") in entry
+        assert '+ (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + "."' in entry
 
     def test_nhcs_line_links_each_storm_to_its_page_by_name(self):
         """Owner's requests, 2026-10-10 and -12: the storm's name links to
@@ -3404,8 +3404,9 @@ class TestHurricane:
 
     def test_it_states_its_match_with_the_count_behind_it(self):
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert "Timing and direction beat NHC's track moved earlier</span>`" in entry
-        assert "${m.beaten} of ${m.trials} times at ${buoyName(o, id)}" in entry
+        assert ">Its track beat</span> ${tested}.`" in entry
+        assert '`${m.beaten} of ${m.trials}${k ? "" : " earlier copies"}`' in entry
+        assert "+ ` at ${buoyName(o, id)}`" in entry
         # The hours are each gate buoy's own, beside its count (2026-10-10).
         assert '(m.hours == null ? "" : ` over ${m.hours} h`)' in entry
 
@@ -3500,16 +3501,16 @@ class TestOriginsChart:
 
 def test_every_origin_names_its_train_distance_bearing_and_day_in_one_order():
     """Owner's rewrite, 2026-10-10: "The 16.0 s train, sent about Sep 28
-    from about 700 mi (1,100 km) away, bearing 161° SSE" -- the day it was
-    SENT, "about" when fitted off the swell; a named storm's bearing in
-    degrees and compass, then its winds. A reading's direction is its own
-    sentence since 2026-10-14 (`heldAt`)."""
+    from about 700 mi (1,100 km) away" -- the day it was SENT, "about" when
+    fitted off the swell. Every direction is a sentence of its own since
+    2026-10-14: a reading's naming its buoy (`heldAt`), a named storm's
+    naming NHC."""
 
     at = SOURCE[SOURCE.index("const trainAt"):SOURCE.index("function heldAt")]
     assert at.index("`&nbsp;s train${also.length ? \"s\" : \"\"}, sent ${fitted ? \"about \" : \"\"}${onDay(sent)}`") \
-        < at.index("` from ${farAway(km, step)} away`") < at.index("`, bearing ${bearingText(bearing)}`") \
-        < at.index("(winds ? ` with ${winds}` : \"\")")
-    assert "split" not in _code(at)
+        < at.index("` from ${farAway(km, step)} away.`;")
+    for gone in ("split", "bearing", "winds"):
+        assert gone not in _code(at)
     reading = SOURCE[SOURCE.index("function readingEntry"):].split("\n}\n")[0]
     assert "bearing:" not in reading
 

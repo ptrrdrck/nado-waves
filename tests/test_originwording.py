@@ -42,7 +42,7 @@ def test_every_entry_is_a_head_and_one_paragraph(cases):
             if line.startswith("The ") and " s train" in line:
                 assert k >= 1 and not lines[k - 1].startswith("The "), cid
                 assert k + 1 == len(lines) or not lines[k + 1].startswith((
-                    "Read backwards", "Timing and direction", "Tanner Banks", "Trains")), cid
+                    "Read over", "Its track", "NHC places", "Tanner Banks", "Trains")), cid
                 assert line.endswith((" so far.", " h.", ", no longer arriving.", ")."))
 
 
@@ -73,15 +73,15 @@ def test_a_readings_direction_names_the_buoy_it_is_read_at(cases):
     assert cases["L2"][2] == (
         "The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks "
         "(NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Read "
-        "backwards off the swell over 18 h. Arrived Oct 6, no longer arriving.")
+        "over 18 h of swell. Arrived Oct 6, no longer arriving.")
     assert ("away. Tanner Banks (NDBC 46047) holds this train from 140° SE, 196° SSW and "
-            "254° WSW, so no place is given. Read backwards") in cases["C2"][1]
-    assert "away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read backwards" \
+            "254° WSW, so no place is given. Read over 18 h of swell so far.") in cases["C2"][1]
+    assert "away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read over" \
         in cases["C1"][1]
     for cid in ("L3", "C3"):
         line = cases[cid][2 if cid[0] == "L" else 1]
         assert ("away. Tanner Banks (NDBC 46047) does not have this train, so no place is "
-                "given. Read backwards") in line
+                "given. Read over 18 h of swell") in line
         assert " bearing" not in line and " holds " not in line
     for cid in ("L2", "L3", "C2", "C3"):
         assert cases[cid][1 if cid[0] == "L" else 0] == "Unplaced storm", cid
@@ -100,15 +100,19 @@ def test_a_fitted_date_is_about_and_nhcs_is_not(cases):
     assert all(" sent Oct " in line for line in cases["H1"] if " s train, " in line)
 
 
-def test_a_hurricanes_strength_is_the_fix_that_sent_its_train(cases):
-    """Line 1 is the name alone; the winds and pressure follow the day the
-    train was sent, so they never read as the storm now."""
+def test_a_hurricanes_place_and_strength_are_nhcs_in_a_sentence_of_their_own(cases):
+    """Line 1 is the name alone; the bearing, winds and pressure follow the
+    day the train was sent, so they never read as the storm now, in a
+    sentence naming NHC as a reading's names its buoy (owner's call,
+    2026-10-14)."""
 
     assert cases["H1"][0] == f"Hurricane {RACHEL} {{hurricane symbol}}"
-    assert ("sent Oct 1 from about 1,000 mi (1,700 km) away, bearing 196° SSW "
-            "with winds of 121 mph (105 kt) and 950 mb pressure. Timing and direction beat ") \
-        in cases["H1"][1]
-    assert "with winds of 121 mph (105 kt). Timing and direction beat " in cases["H3"][1]
+    assert cases["H1"][1] == (
+        "The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC places it at "
+        "196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure. Its track beat 46 of 50 "
+        "earlier copies at Tanner Banks (NDBC 46047) over 30 h.")
+    assert "NHC places it at 196° SSW, with winds of 121 mph (105 kt). Its track beat " \
+        in cases["H3"][1]
 
 
 def test_a_weakened_storm_reads_as_the_fix_that_sent_its_train(cases):
@@ -117,7 +121,7 @@ def test_a_weakened_storm_reads_as_the_fix_that_sent_its_train(cases):
     that train, as a weakened hurricane's winds are the fix's, not today's."""
 
     assert cases["T1"][0] == f"Tropical Storm {RACHEL} {{tropical storm symbol}}"
-    assert "with winds of 69 mph (60 kt) and 985 mb pressure. Timing" in cases["T1"][1]
+    assert "with winds of 69 mph (60 kt) and 985 mb pressure. Its track beat" in cases["T1"][1]
     assert [cases["T2"][0], cases["T2"][2]] == [f"Tropical Storm {RACHEL} {{tropical storm symbol}}",
                                                 f"Hurricane {SERGIO} {{hurricane symbol}}"]
 
@@ -132,15 +136,15 @@ def test_one_storms_swell_cut_into_two_rows_is_named_as_one(cases):
 def test_the_match_is_counts_beaten_never_a_word_or_a_percentage(cases):
     """Owner's calls, 2026-10-10: no percentage, no strong / partial / weak.
     The verb is "beat": the count is copies of the track moved earlier that
-    the real timing and direction did better than, not matches."""
+    the real timing and direction did better than, not matches. Shortened
+    2026-10-14 (owner's request); "earlier copies" said once."""
 
     for cid in ("H1", "H2", "H3", "H4", "M1", "M2"):
         text = "\n".join(cases[cid])
         assert "%" not in text and "match" not in text.lower(), cid
     assert cases["H2"][1].endswith(
-        "pressure. Timing and direction beat NHC's track moved earlier 39 of 50 times at Tanner "
-        "Banks (NDBC 46047) over 30 h, and 28 of 40 times at San Clemente Basin (NDBC 46086) "
-        "over 26 h.")
+        "pressure. Its track beat 39 of 50 earlier copies at Tanner Banks (NDBC 46047) over "
+        "30 h, and 28 of 40 at San Clemente Basin (NDBC 46086) over 26 h.")
 
 
 def test_the_storms_name_alone_links_to_its_nhc_page(cases):
@@ -180,8 +184,9 @@ def test_a_last_readable_arrival_reads_as_the_owner_wrote_it(cases):
     assert cases["L4"] == [
         INTRO,
         f"Tropical Storm {RACHEL} {{tropical storm symbol}}",
-        "The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away, bearing 200° SSW with "
-        "winds of 69 mph (60 kt) and 985 mb pressure. Arrived Oct 11, no longer arriving."]
+        "The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC places it at "
+        "200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure. Arrived Oct 11, no longer "
+        "arriving."]
 
 
 def test_a_storm_arrival_is_never_before_its_train_was_sent(cases):

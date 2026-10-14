@@ -1798,14 +1798,16 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 //          linked to NHC's page, and its symbol; a sea; or an unplaced
 //          storm); a tab's last readable arrival opens with a line saying no
 //          readable swell is arriving there now.
-//   SENT:  "The {T} s train, sent [about] {date} from about {far} away", then
-//          a named storm's ", bearing {deg}" and "with winds of {speed} and
-//          {mb} mb pressure" from the fix that sent it. "about" when the day
-//          is fitted off the swell, bare when it is NHC's fix.
-//   HELD:  a reading's direction, in a sentence naming the buoy it is read
-//          at: the bearing it holds the train from; every direction it holds
-//          it from, "so no place is given"; or that it does not have it.
-//   KNOWN: how the timing and direction compare with NHC's track moved
+//   SENT:  "The {T} s train, sent [about] {date} from about {far} away."
+//          "about" when the day is fitted off the swell, bare when it is
+//          NHC's fix.
+//   HELD:  where its direction comes from, in a sentence of its own: a named
+//          storm's "NHC places it at {deg}, with winds of {speed} and {mb} mb
+//          pressure", the fix that sent the train; a reading's, naming the
+//          buoy it is read at: the bearing it holds the train from; every
+//          direction it holds it from, "so no place is given"; or that it
+//          does not have it.
+//   KNOWN: how the named storm's track compares with copies of it moved
 //          earlier, the count at each gate buoy; or how long the swell
 //          itself has been read.
 // No provenance block follows them (owner's call, 2026-10-14): how a storm is
@@ -1862,18 +1864,16 @@ function originEntry({head, intro, body, storm}) {
 }
 
 // The paragraph's first sentence, for every kind: the train, when it was
-// sent, how far, and a named storm's bearing and strength when it sent it.
+// sent, and how far.
 const bearingText = (d) => `${Math.round(d)}&deg; ${point(d)}`;
 // A storm's swell the break's splitter cut into adjacent rows is one band at
 // the open-ocean buoy, and is named as one: "The 10.5 and 11.1 s trains"
 // (owner's request, 2026-10-11; forecast.stormtrack `also_periods_s`).
 const stormPeriods = (at) => [at.train_period_s, ...(at.also_periods_s || [])];
-const trainAt = ({period, also = [], sent, fitted, km, step, bearing, winds = ""}) =>
+const trainAt = ({period, also = [], sent, fitted, km, step}) =>
   `The ${andList([period, ...also].sort((x, y) => x - y).map((p) => p.toFixed(1)))}`
   + `&nbsp;s train${also.length ? "s" : ""}, sent ${fitted ? "about " : ""}${onDay(sent)}`
-  + ` from ${farAway(km, step)} away`
-  + (bearing != null ? `, bearing ${bearingText(bearing)}` : "")
-  + (winds ? ` with ${winds}` : "") + ".";
+  + ` from ${farAway(km, step)} away.`;
 
 // A reading's direction, in a sentence naming the buoy it is read at (owner's
 // rewrite, 2026-10-14): the bearing it holds the train from; every direction
@@ -1895,32 +1895,31 @@ function heldAt(a, o) {
 // A hurricane NHC is tracking, named when its best track run forward matches
 // the directional energy 46047 or 46086 measured, as of now, better than the
 // same track moved back in time does (forecast.stormtrack, BRIEFING §37c-d).
-// Line 3 is the count of those earlier copies the real timing and direction
-// beat, at each gate buoy: never a probability or a percentage, and since
-// 2026-10-10 no word either (owner's call). It is about where a train came
-// from, never how big it is. Where the storm was, and how strong, are NHC's:
-// the fix that sent the train now arriving, on line 2 beside the day it was
-// sent, because the storm has moved on since. Never Origin's distance.
+// The last sentence is the count of those earlier copies its track beat on
+// timing and direction, at each gate buoy (shortened 2026-10-14, owner's
+// request): never a probability or a percentage, and since 2026-10-10 no
+// word either (owner's call). It is about where a train came from, never how
+// big it is. Where the storm was, and how strong, are NHC's: the fix that
+// sent the train now arriving, in the sentence after the day it was sent,
+// because the storm has moved on since. Never Origin's distance.
 // Past, as a tab's last readable arrival (owner's request, 2026-10-12): after
 // the line saying so, the head and the train's sentence, then "Arrived {date},
 // no longer arriving." on the day the train shown first arrived; no counts.
 function hurricaneEntry(h, o, past = false) {
   const s = h.at;
   const buoys = Object.entries(h.match || {}).sort((x, y) => y[1].score - x[1].score);
-  const tested = buoys.map(([id, m]) => `${m.beaten} of ${m.trials} times at ${buoyName(o, id)}`
-    + (m.hours == null ? "" : ` over ${m.hours} h`)).join(", and ");
+  const tested = buoys.map(([id, m], k) => `${m.beaten} of ${m.trials}${k ? "" : " earlier copies"}`
+    + ` at ${buoyName(o, id)}` + (m.hours == null ? "" : ` over ${m.hours} h`)).join(", and ");
   return originEntry({
     head: stormHead(h.name, s, true),
     intro: past ? LAST_INTRO : "",
     storm: h.storm,
     body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
-                    sent: s.fix_utc, fitted: false,
-                    km: s.distance_km, step: 100, bearing: s.bearing_deg,
-                    winds: `winds of ${speed(s.vmax_kt)}`
-                      + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "")})
+                   sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})
+      + ` NHC places it at ${bearingText(s.bearing_deg)}, with winds of ${speed(s.vmax_kt)}`
+      + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + "."
       + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`
-        : ` <span data-match="${h.word}">Timing and direction beat NHC's track moved earlier</span>`
-          + ` ${tested}.`),
+        : ` <span data-match="${h.word}">Its track beat</span> ${tested}.`),
   });
 }
 
@@ -1935,8 +1934,8 @@ function readingEntry(a, o, past = false) {
     body: trainAt({period: past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s,
                    sent: a.generated_utc, fitted: true, km: a.distance_km, step: 500})
       + ` ${heldAt(a, o)} `
-      + (past ? `Read backwards off the swell over ${hours} h. Arrived ${onDay(a.first_utc)}, no longer arriving.`
-        : `Read backwards off the swell, ${hours} h so far.`),
+      + (past ? `Read over ${hours} h of swell. Arrived ${onDay(a.first_utc)}, no longer arriving.`
+        : `Read over ${hours} h of swell so far.`),
   });
 }
 

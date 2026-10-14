@@ -540,8 +540,8 @@ forecaster actually verifies against, Surfline included.
    of them — withholding a place never makes a name easier. Two buoys
    reading one storm differ by ~18–25% at the median, so distances are rounded
    to 500 mi and 500 km and said "about", and the place is a sea. Shown only
-   once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "Read backwards
-   off the swell, N h so far" while it runs; otherwise the last readable arrival at that
+   once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "Read over N h
+   of swell so far" while it runs; otherwise the last readable arrival at that
    break in the last 21 days — whichever ended later of Origin's last reading
    there and the last storm named there (origins.json's named moments, as of
    now.json's spectrum, a reading credited to a storm being that storm's;
@@ -565,18 +565,19 @@ forecaster actually verifies against, Surfline included.
    alone ("Hurricane Polo", a sea, or "Unplaced storm" — 46047 holds the
    train from several directions, or does not have it); then, run on, "The
    16.0 s train, sent about Sep 28 from about 700 mi (1,100 km) away" ("about"
-   on a reading's fitted day, bare on NHC's; a hurricane adds ", bearing
-   161° SSE with winds of 121 mph (105 kt) and 950 mb pressure", NHC's fix
-   that SENT the train, so a storm that has weakened since still reads as it
-   was then; the last arrival's train is its peak hour's, `peak_period_s`);
-   for a reading, where its direction was read, naming the buoy (`heldAt`):
-   "Tanner Banks (NDBC 46047) holds this train from 212° SSW.", "… from 190° S
-   and 276° W, so no place is given." for a split, "… does not have this
-   train, so no place is given."; and how it is known ("Timing and direction
-   beat NHC's track moved earlier N of M times at" each gate buoy, with its
-   hours — the count of earlier copies beaten, **never a percentage and,
-   since the owner's second pass of 2026-10-10, no strong/partial/weak
-   word**; or the hours read, and "Arrived …, no longer arriving"). **No
+   on a reading's fitted day, bare on NHC's; the last arrival's train is its
+   peak hour's, `peak_period_s`); where its direction comes from, a sentence
+   of its own: a hurricane's "NHC places it at 161° SSE, with winds of
+   121 mph (105 kt) and 950 mb pressure.", NHC's fix that SENT the train, so
+   a storm that has weakened since still reads as it was then; a reading's
+   naming the buoy (`heldAt`): "Tanner Banks (NDBC 46047) holds this train
+   from 212° SSW.", "… from 190° S and 276° W, so no place is given." for a
+   split, "… does not have this train, so no place is given."; and how it is
+   known ("Its track beat N of M earlier copies at" each gate buoy, with its
+   hours, ", and N of M at" the next — the count of copies moved earlier
+   that it beat on timing and direction, **never a percentage and, since the
+   owner's second pass of 2026-10-10, no strong/partial/weak word**; or "Read
+   over N h of swell", and "Arrived …, no longer arriving"). **No
    provenance follows the entries** (owner's call, 2026-10-14): storm
    matching is explained on docs.html. Each buoy is named as NDBC names it,
    "Tanner Banks (NDBC 46047)" — the state dropped, and a buoy CDIP runs by
