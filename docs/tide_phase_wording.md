@@ -22,9 +22,13 @@ carries the `predicted` tag, as the turn line does. On Forecast it carries no
 tag, because the whole card is a model there.
 
 The fold body is up to three paragraphs, **never bullets** (owner's request,
-2026-10-11), each a **bold heading on its own line** over its body. Then
-comes one provenance line per claim. There is no title above the paragraphs
-(the owner removed "Where Coronado is now …").
+2026-10-11), each a heading on its own line over its body, **set as Origin's
+entries are** (owner's request, 2026-10-14): the heading at the card's value
+size, the body in the supporting line's grey, and a centred 4 px dot between
+paragraphs, never a rule. **No provenance follows them** (owner's call,
+2026-10-14): what they stand on is said on `docs.html`, under "The tide's
+phase", as Origin's is. There is no title above the paragraphs (the owner
+removed "Where Coronado is now …").
 
 - **On LIVE** the fold is for the reader's day at Coronado.
 - **On Forecast** it is for the picked hour's day. Each of the run's own days
@@ -34,11 +38,11 @@ comes one provenance line per claim. There is no title above the paragraphs
 ## The formula
 
 Each paragraph is a heading and a fixed run of slots. A slot with no value
-is dropped together with its joining words. **NOAA's constants are named in
-the provenance, not in the paragraphs** (owner's edit, 2026-10-11, which took
-out "by NOAA's harmonic constants" and "by the same constants"). The
-provenance's first line names everything read off them: spring and neap, the
-14 h lag, and the size comparison.
+is dropped together with its joining words. **NOAA's constants are not named
+in the paragraphs** (owner's edit, 2026-10-11, which took out "by NOAA's
+harmonic constants" and "by the same constants"). They were named in a
+provenance under the fold until 2026-10-14; `docs.html` now names everything
+read off them: spring and neap, the 14 h lag, and the size comparison.
 
 | Para | Slot | Text |
 |---|---|---|
@@ -81,12 +85,14 @@ are looked for within 2 days of paragraph 2's date:
 | neap | `{d Mon} has a single high and low` / `{d}–{d Mon} have a single high and low each day` | exactly two turns on a day the turns cover whole (never the first or last day they reach) |
 | spring | `{d Mon} has a {h} swing from {high to low \| low to high}, the largest the turns hold` | the biggest consecutive swing |
 
-Provenance, one line per claim:
+What the fold stands on, on `docs.html` since the fold's provenance came out
+(2026-10-14), one claim each:
 
-- `Spring and neap, the 14 h lag and the size against this week: NOAA's
-  harmonic constants for San Diego, CA (9410170), 2017–2021 analysis.`
-- `Moon's phase, distance and declination: computed.`
-- `Highs and lows: CO-OPS high and low water, {site}, carried from {gauge}.`
+- Spring and neap, the 14 h lag and the size against this week: NOAA's
+  harmonic constants for San Diego, CA (9410170), 2017–2021 analysis.
+- The Moon's phase, distance and declination: computed (Meeus ch. 47).
+- Highs and lows: CO-OPS high and low water, carried from the gauge to the
+  open coast with the measured departure.
 
 ## What decides each slot
 

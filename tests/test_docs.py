@@ -278,3 +278,23 @@ class TestTheWorkedHour:
                       k["hs_m"], k["depth_m"], k["gamma"], k["fraction_breaking"]):
             assert f"{value:.3f}".rstrip("0").rstrip(".") in TEXT, value
         assert f"{WORKED['buoy']['hs_m']:.3f}" in TEXT
+
+
+class TestTheTidePhase:
+    """The phase fold carries no provenance (owner's call, 2026-10-14), so
+    what it stands on is said here, and the analysis period is NOAA's own."""
+
+    def test_it_names_what_the_fold_stands_on(self):
+        section = re.sub(r"\s+", " ", DOCS[DOCS.index('<section id="tide-phase">'):
+                                          DOCS.index("</section>", DOCS.index('<section id="tide-phase">'))])
+        assert "NOAA's harmonic constants for San Diego (9410170)" in section
+        assert "computed, not fetched, from Meeus's lunar theory" in section
+        assert "CO-OPS's high and low water" in section
+        assert "No provenance follows the paragraphs" in section
+
+    def test_its_analysis_period_is_the_archived_constants(self):
+        from forecast import tidephase
+        c = tidephase.load()
+        if c is None or not c.analysis:
+            pytest.skip("no archived harmonic constants")
+        assert f"NOAA's {c.analysis.replace('–', '&ndash;')} analysis" in DOCS
