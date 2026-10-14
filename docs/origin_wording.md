@@ -25,8 +25,8 @@ value is dropped together with its joining words. Nothing is reworded per case.
 | 2 | distance | ` from about {mi} ({km}) away`, to 100 | ` from about {mi} ({km}) away`, to 500 | same | same |
 | 2 | end | `.` | `.` | `.` | `.` |
 | 3 held | source | ` NHC had it at {deg}° {pt}, with winds of {mph} ({kt})` + ` and {mb} mb pressure` if the fix has one, then ` at that time.`; past: + ` Arrived {date}, no longer arriving.` | ` {46047} holds this train from {deg}° {pt}.` | ` {46047} holds this train from {d1}° {pt} and {d2}° {pt}, so no place is given.` (three: `{d1}, {d2} and {d3}`) | ` {46047} does not have this train, so no place is given.` |
-| 4 known | method | ` The storm's track beat`; none if past | ` Read over {h} h of swell` | same | same |
-| 4 | evidence | ` {b} of {n} earlier copies of itself at {buoy}` + ` over {h} h of its swell` if known, then `, and {b} of {n} at {buoy}` + ` over {h} h` per further gate buoy, then `.`; none if past | arriving: ` so far.` past: `. Arrived {date}, no longer arriving.` | same | same |
+| 4 known | hours | ` Arriving for {h} h so far.`, the longest at any gate buoy; none if no buoy has hours, or if past | ` Read over {h} h of swell` | same | same |
+| 4 | end | none | arriving: ` so far.` past: `. Arrived {date}, no longer arriving.` | same | same |
 
 A past entry's lines are at 15 px, the size its old grey tag was, with a blank
 line between its opening line and the head (owner's request, 2026-10-13); the
@@ -104,6 +104,17 @@ Third pass, the same day:
   of the buoy's spectra the comparison has read: "The storm's track beat 46
   of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 30 h of
   its swell, and 28 of 40 at San Clemente Basin (NDBC 46086) over 26 h."
+
+Fourth pass, the same day:
+
+- **No counts on the card.** Storm matching is explained on `docs.html`; the
+  card keeps only how long the storm's swell has been arriving by its track:
+  "Arriving for 30 h so far.", the longest at any gate buoy it was matched
+  at, and nothing when no buoy has hours. The match still decides whether a
+  storm is named; it is just not shown.
+- **Entries are set apart by a centred dot**, 4 px in `--line-strong`, never
+  a rule: a full-width rule opens a section on this card, and inside an open
+  Origin a second one made Charts harder to find.
 
 ### Decided 2026-10-12
 
@@ -260,60 +271,60 @@ The 11.8 s train, sent about Oct 4 from about 2,000 mi (3,000 km) away. Tanner B
 
 ```text
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. The storm's track beat 46 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 30 h of its swell.
+The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 ```
 
 ### H2: hurricane, two gate buoys
 
 ```text
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. The storm's track beat 39 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 30 h of its swell, and 28 of 40 at San Clemente Basin (NDBC 46086) over 26 h.
+The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 ```
 
 ### H3: hurricane, no hours, no pressure
 
 ```text
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) at that time. The storm's track beat 11 of 20 earlier copies of itself at Tanner Banks (NDBC 46047).
+The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) at that time.
 ```
 
 ### H4: two hurricanes
 
 ```text
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. The storm's track beat 46 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 30 h of its swell.
+The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 Hurricane [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php) {hurricane symbol}
-The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 178° S, with winds of 109 mph (95 kt) and 964 mb pressure at that time. The storm's track beat 37 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 22 h of its swell.
+The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 178° S, with winds of 109 mph (95 kt) and 964 mb pressure at that time. Arriving for 22 h so far.
 ```
 
 ### T1: a hurricane since weakened: its tropical storm fix sent the train
 
 ```text
 Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {tropical storm symbol}
-The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. The storm's track beat 36 of 43 earlier copies of itself at Tanner Banks (NDBC 46047) over 40 h of its swell.
+The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
 ```
 
 ### T3: one storm's swell cut into two rows at this break
 
 ```text
 Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {tropical storm symbol}
-The 10.5 and 11.1 s trains, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. The storm's track beat 36 of 43 earlier copies of itself at Tanner Banks (NDBC 46047) over 40 h of its swell.
+The 10.5 and 11.1 s trains, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
 ```
 
 ### T2: a tropical storm and a hurricane
 
 ```text
 Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {tropical storm symbol}
-The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. The storm's track beat 36 of 43 earlier copies of itself at Tanner Banks (NDBC 46047) over 40 h of its swell.
+The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
 Hurricane [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php) {hurricane symbol}
-The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 178° S, with winds of 109 mph (95 kt) and 964 mb pressure at that time. The storm's track beat 37 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 22 h of its swell.
+The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 178° S, with winds of 109 mph (95 kt) and 964 mb pressure at that time. Arriving for 22 h so far.
 ```
 
 ### M1: hurricane and a placed reading
 
 ```text
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. The storm's track beat 46 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 30 h of its swell.
+The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 South Pacific
 The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read over 18 h of swell so far.
 ```
@@ -322,7 +333,7 @@ The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner B
 
 ```text
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. The storm's track beat 46 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 30 h of its swell.
+The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 Unplaced storm
 The 20.0 s train, sent about Oct 1 from about 9,500 mi (15,000 km) away. Tanner Banks (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Read over 18 h of swell so far.
 ```
@@ -331,5 +342,5 @@ The 20.0 s train, sent about Oct 1 from about 9,500 mi (15,000 km) away. Tanner 
 
 ```text
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. The storm's track beat 46 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) over 30 h of its swell.
+The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 ```

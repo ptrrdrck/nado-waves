@@ -42,9 +42,8 @@ def test_every_entry_is_a_head_and_one_paragraph(cases):
             if line.startswith("The ") and " s train" in line:
                 assert k >= 1 and not lines[k - 1].startswith("The "), cid
                 assert k + 1 == len(lines) or not lines[k + 1].startswith((
-                    "Read over", "The storm's track", "NHC had", "Tanner Banks", "Trains")), cid
-                assert line.endswith((" so far.", " h.", " of its swell.", ", no longer arriving.",
-                                      ")."))
+                    "Read over", "Arriving for", "NHC had", "Tanner Banks", "Trains")), cid
+                assert line.endswith((" so far.", " h.", ", no longer arriving.", " at that time."))
 
 
 def test_no_provenance_follows_the_entries(cases):
@@ -110,12 +109,11 @@ def test_a_hurricanes_place_and_strength_are_nhcs_in_a_sentence_of_their_own(cas
     assert cases["H1"][0] == f"Hurricane {RACHEL} {{hurricane symbol}}"
     assert cases["H1"][1] == (
         "The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at "
-        "196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. The "
-        "storm's track beat 46 of 50 earlier copies of itself at Tanner Banks (NDBC 46047) "
-        "over 30 h of its swell.")
-    assert ("NHC had it at 196° SSW, with winds of 121 mph (105 kt) at that time. The storm's "
-            "track beat 11 of 20 earlier copies of itself at Tanner Banks (NDBC 46047).") \
-        in cases["H3"][1]
+        "196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving "
+        "for 30 h so far.")
+    # No hours at any gate buoy: the sentence drops (H3).
+    assert cases["H3"][1].endswith("NHC had it at 196° SSW, with winds of 121 mph (105 kt) at "
+                                   "that time.")
 
 
 def test_a_weakened_storm_reads_as_the_fix_that_sent_its_train(cases):
@@ -124,7 +122,7 @@ def test_a_weakened_storm_reads_as_the_fix_that_sent_its_train(cases):
     that train, as a weakened hurricane's winds are the fix's, not today's."""
 
     assert cases["T1"][0] == f"Tropical Storm {RACHEL} {{tropical storm symbol}}"
-    assert "with winds of 69 mph (60 kt) and 985 mb pressure at that time. The storm's track beat" \
+    assert "with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h" \
         in cases["T1"][1]
     assert [cases["T2"][0], cases["T2"][2]] == [f"Tropical Storm {RACHEL} {{tropical storm symbol}}",
                                                 f"Hurricane {SERGIO} {{hurricane symbol}}"]
@@ -137,21 +135,19 @@ def test_one_storms_swell_cut_into_two_rows_is_named_as_one(cases):
     assert cases["T3"][1].startswith("The 10.5 and 11.1 s trains, sent Oct 8 ")
 
 
-def test_the_match_is_counts_beaten_never_a_word_or_a_percentage(cases):
-    """Owner's calls, 2026-10-10: no percentage, no strong / partial / weak.
-    The verb is "beat": the count is copies of the track moved earlier that
-    the real timing and direction did better than, not matches. Shortened
-    2026-10-14 (owner's request): the STORM's track, and the hours of its
-    swell at each buoy, "earlier copies of itself" and "of its swell" said
-    once."""
+def test_the_match_stays_off_the_card_and_its_hours_say_how_long(cases):
+    """Owner's calls: no percentage or match word (2026-10-10), and since
+    2026-10-14 no counts either, storm matching being explained on
+    docs.html. What stays is how long the storm's swell has been arriving
+    by its track, the longest at any gate buoy (H2: 30 h at 46047, 26 h at
+    46086), and no buoy is named for it."""
 
     for cid in ("H1", "H2", "H3", "H4", "M1", "M2"):
         text = "\n".join(cases[cid])
         assert "%" not in text and "match" not in text.lower(), cid
-    assert cases["H2"][1].endswith(
-        "pressure at that time. The storm's track beat 39 of 50 earlier copies of itself at "
-        "Tanner Banks (NDBC 46047) over 30 h of its swell, and 28 of 40 at San Clemente Basin "
-        "(NDBC 46086) over 26 h.")
+        assert " of 50 " not in text and "copies" not in text and "beat" not in text, cid
+    assert cases["H2"][1].endswith("pressure at that time. Arriving for 30 h so far.")
+    assert "NDBC" not in cases["H2"][1]
 
 
 def test_the_storms_name_alone_links_to_its_nhc_page(cases):

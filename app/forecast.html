@@ -130,7 +130,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
 /* Each arrival under ORIGIN: its sea, the line under it, its provenance. */
 .cond .origin{display:flex;flex-direction:column;gap:2px}
-.cond .origin + .origin{margin-top:10px}
+.cond .origin + .origin{margin-top:10px;padding-top:12px;position:relative}
+/* Entries inside Origin are set apart by a centred dot, never a rule: a
+   full-width rule is what opens a section on this card (owner's call,
+   2026-10-14). */
+.cond .origin + .origin::before{content:"";position:absolute;top:-2px;left:calc(50% - 2px);
+                                width:4px;height:4px;border-radius:50%;background:var(--line-strong)}
 .cond .origin > .val > .unit{white-space:nowrap}
 /* A tab's last readable arrival (owner's request, 2026-10-12): a line saying
    nothing readable is arriving at the tab, then the entry, its lines at the
@@ -1808,9 +1813,8 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 //          buoy it is read at: the bearing it holds the train from; every
 //          direction it holds it from, "so no place is given"; or that it
 //          does not have it.
-//   KNOWN: how the storm's track compares with copies of itself moved
-//          earlier, the count at each gate buoy over the hours of its swell
-//          there; or how long the swell itself has been read.
+//   KNOWN: how long a named storm's swell has been arriving by its track;
+//          or how long the swell itself has been read.
 // No provenance block follows them (owner's call, 2026-10-14): how a storm is
 // read and matched is on docs.html, and each buoy is named where it is used.
 const SAME_SOURCE_DEG = 45;
@@ -1896,12 +1900,12 @@ function heldAt(a, o) {
 // A hurricane NHC is tracking, named when its best track run forward matches
 // the directional energy 46047 or 46086 measured, as of now, better than the
 // same track moved back in time does (forecast.stormtrack, BRIEFING §37c-d).
-// The last sentence is the count of those earlier copies the storm's track
-// beat on timing and direction at each gate buoy, over the hours its swell
-// has been arriving there by that track (`stormtrack.live`'s `hours`;
-// reworded 2026-10-14, owner's request): never a probability or a percentage, and since 2026-10-10 no
-// word either (owner's call). It is about where a train came from, never how
-// big it is. Where the storm was, and how strong, are NHC's: the fix that
+// The match itself is not on the card (owner's call, 2026-10-14: it is
+// explained on docs.html); the last sentence is how long the storm's swell
+// has been arriving by its track, the longest at any gate buoy it was matched
+// at (`stormtrack.live`'s `hours`), and none when no buoy has a count. Never
+// a probability, a percentage or a match word. It is about where a train came
+// from, never how big it is. Where the storm was, and how strong, are NHC's: the fix that
 // sent the train now arriving, in the sentence after the day it was sent,
 // because the storm has moved on since. Never Origin's distance.
 // Past, as a tab's last readable arrival (owner's request, 2026-10-12): after
@@ -1909,10 +1913,7 @@ function heldAt(a, o) {
 // no longer arriving." on the day the train shown first arrived; no counts.
 function hurricaneEntry(h, o, past = false) {
   const s = h.at;
-  const buoys = Object.entries(h.match || {}).sort((x, y) => y[1].score - x[1].score);
-  const tested = buoys.map(([id, m], k) => `${m.beaten} of ${m.trials}${k ? "" : " earlier copies of itself"}`
-    + ` at ${buoyName(o, id)}` + (m.hours == null ? "" : ` over ${m.hours} h${k ? "" : " of its swell"}`))
-    .join(", and ");
+  const hours = Object.values(h.match || {}).map((m) => m.hours).filter((v) => v != null);
   return originEntry({
     head: stormHead(h.name, s, true),
     intro: past ? LAST_INTRO : "",
@@ -1922,7 +1923,7 @@ function hurricaneEntry(h, o, past = false) {
       + ` NHC had it at ${bearingText(s.bearing_deg)}, with winds of ${speed(s.vmax_kt)}`
       + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + " at that time."
       + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`
-        : ` <span data-match="${h.word}">The storm's track beat</span> ${tested}.`),
+        : hours.length ? ` Arriving for ${Math.max(...hours)} h so far.` : ""),
   });
 }
 

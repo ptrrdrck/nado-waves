@@ -572,15 +572,17 @@ forecaster actually verifies against, Surfline included.
    a storm that has weakened since still reads as it was then; a reading's
    naming the buoy (`heldAt`): "Tanner Banks (NDBC 46047) holds this train
    from 212° SSW.", "… from 190° S and 276° W, so no place is given." for a
-   split, "… does not have this train, so no place is given."; and how it is
-   known ("The storm's track beat N of M earlier copies of itself at" each
-   gate buoy "over H h of its swell" — the hours its swell has arrived there
-   by that track — ", and N of M at" the next: the count of copies of the
-   STORM's track moved earlier that it beat on timing and direction, **never a percentage and, since the
-   owner's second pass of 2026-10-10, no strong/partial/weak word**; or "Read
-   over N h of swell", and "Arrived …, no longer arriving"). **No
-   provenance follows the entries** (owner's call, 2026-10-14): storm
-   matching is explained on docs.html. Each buoy is named as NDBC names it,
+   split, "… does not have this train, so no place is given."; and how long:
+   a storm's "Arriving for N h so far." — the longest any gate buoy has had
+   its swell by its track, none when no buoy has hours; **the match counts
+   are NOT on the card** (owner's call, 2026-10-14: they still decide
+   whether a storm is named, and docs.html explains them; never a
+   percentage or a strong/partial/weak word on the card either); a
+   reading's "Read over N h of swell", and "Arrived …, no longer
+   arriving". **No provenance follows the entries** (owner's call,
+   2026-10-14): storm matching is explained on docs.html. Entries are set
+   apart by a centred 4 px dot, never a rule: a full-width rule opens a
+   section on this card. Each buoy is named as NDBC names it,
    "Tanner Banks (NDBC 46047)" — the state dropped, and a buoy CDIP runs by
    CDIP's number, "Point Loma South (CDIP 191)", here and on the Forecast
    tab's and docs.html's provenance (owner's request, 2026-10-13) — from

@@ -3381,7 +3381,7 @@ class TestHurricane:
         # line: "Arrived" ends line 2 (owner's request, 2026-10-12).
         assert "intro: past ? LAST_INTRO : \"\"," in own
         assert "+ (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`" in own
-        assert ': ` <span data-match="${h.word}">The storm\'s track beat</span> ${tested}.`' in own
+        assert ': hours.length ? ` Arriving for ${Math.max(...hours)} h so far.` : ""),' in own
         # NHC's position, rounded to 100 where Origin's distances round to 500.
         assert ("body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],\n"
                 "                   sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})") in entry
@@ -3402,14 +3402,25 @@ class TestHurricane:
                 "_graphics.php`") in SOURCE
         assert "atcf/btk" not in SOURCE
 
-    def test_it_states_its_match_with_the_count_behind_it(self):
-        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
-        assert ">The storm's track beat</span> ${tested}.`" in entry
-        assert '`${m.beaten} of ${m.trials}${k ? "" : " earlier copies of itself"}`' in entry
-        assert '` over ${m.hours} h${k ? "" : " of its swell"}`' in entry
-        assert "+ ` at ${buoyName(o, id)}`" in entry
-        # The hours are each gate buoy's own, beside its count (2026-10-10).
-        assert '(m.hours == null ? "" : ` over ${m.hours} h${k ? "" : " of its swell"}`)' in entry
+    def test_it_says_how_long_its_swell_has_arrived_never_the_match(self):
+        """Owner's call, 2026-10-14: the counts came off the card (storm
+        matching is on docs.html); the hours stay, the longest at any gate
+        buoy, as "Arriving for N h so far."."""
+
+        entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
+        assert ("const hours = Object.values(h.match || {}).map((m) => m.hours)"
+                ".filter((v) => v != null);") in entry
+        for gone in ("m.beaten", "m.trials", "data-match", "h.word"):
+            assert gone not in _code(entry), gone
+
+    def test_entries_are_set_apart_by_a_dot_never_a_rule(self):
+        """Owner's call, 2026-10-14: a full-width rule opens a section on
+        this card, so entries inside Origin take a centred dot."""
+
+        assert ".cond .origin + .origin{margin-top:10px;padding-top:12px;position:relative}" in SOURCE
+        dot = SOURCE[SOURCE.index(".cond .origin + .origin::before{"):].split("}")[0]
+        assert "border-radius:50%" in dot and "left:calc(50% - 2px)" in dot
+        assert "border-top" not in dot
 
     def test_the_match_is_a_count_never_a_percentage(self):
         """Owner's call, 2026-10-10: "92%" restated the first count as a bare
