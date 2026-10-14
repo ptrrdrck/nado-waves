@@ -139,8 +139,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    this card (owner's call, 2026-10-14). */
 .cond .origin + .origin::before,.cond .phase-entry + .phase-entry::before{content:"";position:absolute;
                                 top:-2px;left:calc(50% - 2px);
-                                width:4px;height:4px;border-radius:50%;background:var(--line-strong)}
+                                width:4px;height:4px;border-radius:50%;background:var(--soft)}
 .cond .origin > .val > .unit{white-space:nowrap}
+/* Origin's and the phase's paragraphs read at 15 px in the supporting grey,
+   as each buoy's sentence does -- the size of "combined" beside a height --
+   and the dot between them takes that grey too, a step more contrast than
+   the rule colour it had (owner's request, 2026-10-14). */
+.cond .origin > .turn,.cond .phase-entry > .turn{font-size:15px}
 /* A tab's last readable arrival (owner's request, 2026-10-12): a line saying
    nothing readable is arriving at the tab, then the entry, its lines at the
    size the grey "last readable arrival" tag had beside the head. */

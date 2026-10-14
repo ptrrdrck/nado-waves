@@ -318,7 +318,10 @@ forecaster actually verifies against, Surfline included.
    typed, none for a buoy siting cannot place — then what is read from it
    and its role. It replaced the "Open ocean witness" / "Inside South's
    window" notes; its mention of a window is held to siting's verdict too.
-   LIVE only, as the rose is. Its countdown is its
+   LIVE only, as the rose is. At 15 px, the size of "combined" beside the
+   height (owner's request, 2026-10-14), and a buoy with no rose says "No
+   spectrum from … in the last six hours." at that size and grey, evenly
+   spaced between its trains and its sentence. Its countdown is its
    own: :20 and :50, 25 typical and **115** worst on 188 stamps since its
    sensor returned 2026-10-08. The three past H+85 were NDBC's, shared with
    46047 (10-10 07:50 reached H+125 there, past 46047's shipped 85; not
@@ -502,8 +505,9 @@ forecaster actually verifies against, Surfline included.
    NOAA's constants are not named in the paragraphs (owner's edit, same
    day: "by NOAA's harmonic constants" and "by the same constants" came
    out). **Set as Origin's entries are, and no provenance** (owner's
-   request, 2026-10-14): each heading at the value size over a grey body, a
-   centred 4 px dot between paragraphs; the constants and their 2017–2021
+   request, 2026-10-14): each heading at the value size over a grey body at
+   15 px, a centred 4 px dot in that body's grey between paragraphs (Origin's
+   entries alike; owner's request, same day); the constants and their 2017–2021
    analysis, the computed Moon and CO-OPS's turns are named on docs.html
    instead, the analysis held to the archived constants by a test. Spring and neap come from NOAA's harmonic constants for
    9410170 (`collector/harcon.py`, fetched on Actions, never typed — their
