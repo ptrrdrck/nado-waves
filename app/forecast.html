@@ -1864,11 +1864,13 @@ const stormSymbol = (kind) => `<svg class="storm-sym" data-kind="${kind.toLowerC
   + `<path d="M6.6 10C6.6 4.2 12 1.6 17.6 3M13.4 10c0 5.8-5.4 8.4-11 7"/>`
   + `<circle class="eye" cx="10" cy="10" r="3.2"/></svg>`;
 // On the fold the storm's name alone links to NHC's page for it (owner's
-// call, 2026-10-14, when the provenance line that carried the link went);
-// never in the Origins chart's readout, which a finger scrubs.
-const stormHead = (name, at, link = false) => `${stormKind(at)} `
-  + (link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>` : name)
-  + stormSymbol(stormKind(at));
+// call, 2026-10-14, when the provenance line that carried the link went),
+// and its symbol follows the name. The Origins chart's readout, which a
+// finger scrubs, names the storm with neither (owner's call, same day): the
+// symbol is drawn by the fold's styles alone, and the dot is the chart's mark.
+const stormName = (name, at, link = false) => `${stormKind(at)} `
+  + (link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>` : name);
+const stormHead = (name, at) => stormName(name, at, true) + stormSymbol(stormKind(at));
 // A tab's last readable arrival opens with a line of its own, and carries no
 // tag (owner's request, 2026-10-12; reworded 2026-10-14, without the tab).
 const LAST_INTRO = "No readable swell arriving here now. The last one was:";
@@ -1927,7 +1929,7 @@ function hurricaneEntry(h, o, past = false) {
   const s = h.at;
   const hours = Object.values(h.match || {}).map((m) => m.hours).filter((v) => v != null);
   return originEntry({
-    head: stormHead(h.name, s, true),
+    head: stormHead(h.name, s),
     intro: past ? LAST_INTRO : "",
     storm: h.storm,
     body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
@@ -3473,7 +3475,7 @@ function originsSpec(id, steps) {
       // Named as the Origin fold names them (owner's call, 2026-10-10): a
       // storm by name with no match word or figure, a sea, or "Unplaced
       // storm".
-      const parts = near(i).map((n) => value(stormHead(n.name, n.at))
+      const parts = near(i).map((n) => value(stormName(n.name, n.at))
         + `, ${farAway(n.at.distance_km, 100)} ${point(n.at.bearing_deg)}`);
       arrivals.filter((a) => Date.parse(a.first_utc) <= t && t <= Date.parse(a.last_utc))
         .forEach((a) => parts.push(a.region

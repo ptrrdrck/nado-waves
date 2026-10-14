@@ -3265,13 +3265,21 @@ class TestOrigin:
         name, the eye open for a tropical storm and filled for a hurricane,
         in ink, as the rest of the card's drawings are. On the fold the name
         alone links to NHC's page (owner's call, 2026-10-14); the Origins
-        chart's readout, which a finger scrubs, is never a link."""
+        chart's readout, which a finger scrubs, is never a link and carries
+        no symbol (owner's call, same day: outside the fold's styles it drew
+        page-wide, every part filled, so a tropical storm read as a
+        hurricane)."""
 
-        assert "const stormHead = (name, at, link = false) => `${stormKind(at)} `" in SOURCE
+        assert "const stormName = (name, at, link = false) => `${stormKind(at)} `" in SOURCE
         assert ('(link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>`'
-                " : name)\n  + stormSymbol(stormKind(at));") in SOURCE
-        assert "head: stormHead(h.name, s, true)," in SOURCE
-        assert "value(stormHead(n.name, n.at))" in SOURCE
+                " : name);") in SOURCE
+        assert ("const stormHead = (name, at) => stormName(name, at, true)"
+                " + stormSymbol(stormKind(at));") in SOURCE
+        assert "head: stormHead(h.name, s)," in SOURCE
+        assert "value(stormName(n.name, n.at))" in SOURCE
+        chart = SOURCE[SOURCE.index("function originsSpec("):]
+        chart = chart[:chart.index("no readable arrival this hour")]
+        assert "stormHead" not in chart and "stormSymbol" not in chart
         assert '.cond .origin .storm-sym[data-kind="hurricane"] .eye{fill:currentColor}' in SOURCE
         assert ".cond .origin .storm-sym .eye{fill:var(--card)}" in SOURCE
 
@@ -3373,7 +3381,7 @@ class TestHurricane:
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
         # Named for what it was when the fix that sent this train was made:
         # a hurricane, or since 2026-10-11 a tropical storm it weakened to.
-        assert "head: stormHead(h.name, s, true)," in entry
+        assert "head: stormHead(h.name, s)," in entry
         assert ('const stormKind = (at) => (at && at.strength === "tropical storm" '
                 '? "Tropical Storm" : "Hurricane");') in SOURCE
         own = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]

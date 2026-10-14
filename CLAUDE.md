@@ -564,7 +564,8 @@ forecaster actually verifies against, Surfline included.
    storm and filled for a hurricane, in ink, and its NAME alone links to
    NHC's own page for it (`archive/{year}/{NAME}_graphics.php`, track and
    cone map; owner's calls 2026-10-12 and -14), never the b-deck the card
-   reads, and never in the Origins chart's readout. now.json names every
+   reads; the Origins chart's readout names it with neither link nor
+   symbol (owner's call, 2026-10-14). now.json names every
    gate buoy so a past storm's line can name its own. **Every origin is a
    head and one paragraph** (owner's design 2026-10-04, one paragraph since
    the owner's rewrite of 2026-10-14), **each a fixed run of slots** (owner's
