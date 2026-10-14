@@ -511,6 +511,19 @@ class TestTheProvenancePills:
                 < block.index("placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)"))
         assert ".buoy-fold .rose + .buoy-note{margin-top:3px}" in PAGE
 
+    def test_the_sentence_reads_at_the_size_of_combined(self):
+        """Owner's request, 2026-10-14: each buoy's sentence at the size of
+        "combined" beside its height, and a buoy with no rose saying so in
+        the same size and colour, evenly spaced between the trains above and
+        the sentence below (measured in Chromium at 390 px: 22 and 21.5 px)."""
+
+        assert ".cond .val .unit{font-size:15px}" in PAGE
+        assert ".cond .buoy-note{font-size:15px}" in PAGE
+        assert ".buoy-note .unit{white-space:nowrap}" in PAGE
+        assert ".buoy-fold .rose-none{margin:8px 0 4px}" in PAGE
+        assert ('return `<p class="quiet buoy-note rose-none">No spectrum from ${station}'
+                ' in the last six hours.</p>`;') in _fn("roseBlock")
+
 
 class TestTheBuoyHeadlineFolds:
     """Owner's request, 2026-10-11: a buoy's headline folds out like a

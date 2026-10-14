@@ -3423,6 +3423,17 @@ class TestHurricane:
         assert "border-radius:50%" in dot and "left:calc(50% - 2px)" in dot
         assert "border-top" not in dot
 
+    def test_paragraphs_at_15px_and_the_dot_in_their_grey(self):
+        """Owner's request, 2026-10-14: Origin's and the phase's paragraphs
+        at the size and grey of each buoy's sentence, and the dot between
+        them the text's grey rather than the rule's."""
+
+        assert ".cond .origin > .turn,.cond .phase-entry > .turn{font-size:15px}" in SOURCE
+        assert ".cond .turn{font-size:13.5px;color:var(--soft)}" in SOURCE
+        assert ".cond .buoy-note{font-size:15px}" in SOURCE
+        dot = SOURCE[SOURCE.index(".cond .origin + .origin::before,"):].split("}")[0]
+        assert "background:var(--soft)" in dot and "line-strong" not in dot
+
     def test_the_match_is_a_count_never_a_percentage(self):
         """Owner's call, 2026-10-10: "92%" restated the first count as a bare
         figure beside "match", where it read as a probability."""
