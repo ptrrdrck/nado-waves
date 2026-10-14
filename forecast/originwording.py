@@ -3,9 +3,9 @@
     python -m forecast.originwording            # rewrite the permutations
     python -m forecast.originwording --check    # exit 1 if they are out of date
 
-`docs/origin_wording.md` states the owner's formula (2026-10-10): each of an
-origin's three lines is a fixed run of slots, and a slot with no value is
-dropped with its joining words. Its last section shows every permutation, and
+`docs/origin_wording.md` states the owner's formula (2026-10-10, rewritten
+2026-10-14): an origin is a head and one paragraph, each a fixed run of slots,
+and a slot with no value is dropped with its joining words. Its last section shows every permutation, and
 this writes it: the Origin functions are lifted out of `app/forecast.html`
 and run in Node on one made-up Origin block per branch, so the examples are
 what the page prints, never typed. `tests/test_originwording.py` pins that
@@ -188,14 +188,11 @@ def script(source: str) -> str:
     code = "\n".join([
         "let NOW = null, ORIGINS = null;",
         _lift(source, "const HOUR_MS = ", ";"),
-        _lift(source, "const SHORT = ", "};"),
         _lift(source, "const bareName = ", ";"),
         _lift(source, "const MPH_PER_KT = ", ";"),
         _lift(source, "const MI_PER_KM = ", ";"),
         _lift(source, "const speed = ", "</span>`);"),
         _lift(source, "function point(", "\n}\n"),
-        _lift(source, "const period = ", ");"),
-        _lift(source, "function srcLines(", "\n}\n"),
         source[source.index("function originFor("):source.index("// Whether Origin is folded out")],
     ])
     cases = json.dumps([[cid, {**BASE, "hurricanes": [], **block}] for cid, _, block in CASES])

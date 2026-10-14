@@ -547,40 +547,40 @@ forecaster actually verifies against, Surfline included.
    now.json's spectrum, a reading credited to a storm being that storm's;
    owner's report 2026-10-12, when South read a ridge ended 2 Oct while
    Tropical Storm Rachel was named there to 11 Oct). That last arrival opens
-   with "No readable trains arriving here now (<tab>). The last one read
-   was:" instead of a grey tag, its lines at the tag's 15 px (owner's
-   request, same day); a storm's is two lines, no counts, "Arrived" being
-   the first moment the storm was named there with the fix that sent the
-   train shown, never its first train there. A named storm's head carries
-   the tropical cyclone symbol, eye open for a tropical storm and filled for
-   a hurricane, in ink; and "Trains: <46232>" heads the provenance where
-   nothing is read backwards. now.json names every
-   gate buoy so a past storm's line can name its own. **Every origin is the same three lines** (owner's
-   design, 2026-10-04), **each a fixed run of slots** (owner's formula,
-   2026-10-10, `docs/origin_wording.md`): a slot with no value drops with its
-   joining words, nothing is reworded per case. What it is, the head alone
-   ("Hurricane Polo", a sea, or "Unplaced storm" — 46047 holds the train from
-   several directions, or does not have it); "The 16.0 s train, sent about
-   Sep 28 from about 700 mi (1,100 km) away, bearing 161° SSE" ("about" on a
-   reading's fitted day, bare on NHC's; ", with a split bearing (… or …)" for
-   a split, nothing when 46047 lacks it; a hurricane ends "with winds of
-   121 mph (105 kt) and 950 mb pressure", NHC's fix that SENT the train, so a
-   storm that has weakened since still reads as it was then; the last
-   arrival's train is its peak hour's, `peak_period_s`); and how it is known
-   ("Timing and direction beat NHC's track moved earlier N of M times at" each
-   gate buoy, with its hours — the count of earlier copies beaten, **never a
-   percentage and, since the owner's second pass that day, no
-   strong/partial/weak word**; or the hours read, and "Arrived …, no longer
-   arriving"). Then ONE provenance block, a line per claim on screen, in this
-   order: every train read off 46232's spectrum, "and storms read backwards
-   from them" only with a reading; NHC's best track for a hurricane's
-   position, winds and pressure, the storm's NAME linked to NHC's own page
-   for it (`archive/{year}/{NAME}_graphics.php`, track and cone map; owner's
-   call 2026-10-12), never the b-deck the card reads; why each unplaced reading has no place — each buoy as NDBC
-   names it, the bearing buoys and every gate buoy a shown hurricane was
-   matched at (46086 printed bare until 2026-10-10),
-   "Tanner Banks (NDBC 46047)" — the state dropped, and a buoy CDIP runs
-   by CDIP's number, "Point Loma South (CDIP 191)", here and on the Forecast
+   with "No readable swell arriving here now. The last one was:" (owner's
+   rewrite, 2026-10-14; the tab's name dropped) instead of a grey tag, its
+   lines at the tag's 15 px (owner's request, 2026-10-12); a storm's has no
+   counts, "Arrived" being the first moment the storm was named there with
+   the fix that sent the train shown, never its first train there. A named
+   storm's head carries the tropical cyclone symbol, eye open for a tropical
+   storm and filled for a hurricane, in ink, and its NAME alone links to
+   NHC's own page for it (`archive/{year}/{NAME}_graphics.php`, track and
+   cone map; owner's calls 2026-10-12 and -14), never the b-deck the card
+   reads, and never in the Origins chart's readout. now.json names every
+   gate buoy so a past storm's line can name its own. **Every origin is a
+   head and one paragraph** (owner's design 2026-10-04, one paragraph since
+   the owner's rewrite of 2026-10-14), **each a fixed run of slots** (owner's
+   formula, 2026-10-10, `docs/origin_wording.md`): a slot with no value drops
+   with its joining words, nothing is reworded per case. What it is, the head
+   alone ("Hurricane Polo", a sea, or "Unplaced storm" — 46047 holds the
+   train from several directions, or does not have it); then, run on, "The
+   16.0 s train, sent about Sep 28 from about 700 mi (1,100 km) away" ("about"
+   on a reading's fitted day, bare on NHC's; a hurricane adds ", bearing
+   161° SSE with winds of 121 mph (105 kt) and 950 mb pressure", NHC's fix
+   that SENT the train, so a storm that has weakened since still reads as it
+   was then; the last arrival's train is its peak hour's, `peak_period_s`);
+   for a reading, where its direction was read, naming the buoy (`heldAt`):
+   "Tanner Banks (NDBC 46047) holds this train from 212° SSW.", "… from 190° S
+   and 276° W, so no place is given." for a split, "… does not have this
+   train, so no place is given."; and how it is known ("Timing and direction
+   beat NHC's track moved earlier N of M times at" each gate buoy, with its
+   hours — the count of earlier copies beaten, **never a percentage and,
+   since the owner's second pass of 2026-10-10, no strong/partial/weak
+   word**; or the hours read, and "Arrived …, no longer arriving"). **No
+   provenance follows the entries** (owner's call, 2026-10-14): storm
+   matching is explained on docs.html. Each buoy is named as NDBC names it,
+   "Tanner Banks (NDBC 46047)" — the state dropped, and a buoy CDIP runs by
+   CDIP's number, "Point Loma South (CDIP 191)", here and on the Forecast
    tab's and docs.html's provenance (owner's request, 2026-10-13) — from
    `origin.station_names` and `station_cdips` in now.json (fetched metadata
    and the registry, never typed). **No upstream sighting is shown, ever**: measured, the predecessor's
