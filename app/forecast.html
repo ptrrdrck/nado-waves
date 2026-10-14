@@ -303,6 +303,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    gap, and the provenance follows it with the pane's space. */
 .buoy-note{margin:0}
 .buoy-fold .rose + .buoy-note{margin-top:3px}
+/* Each buoy's sentence at the size of "combined" in the headline above it
+   (`.cond .val .unit`; owner's request, 2026-10-14), and a buoy with no
+   rose says so in the same words' size and colour, as far from the trains
+   above it as from the sentence below. */
+.cond .buoy-note{font-size:15px}
+.buoy-note .unit{white-space:nowrap}
+.buoy-fold .rose-none{margin:8px 0 4px}
 .calc-toggle{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 0;
              padding:0;border:0;border-radius:6px;background:transparent;color:var(--soft);cursor:pointer}
 .calc-toggle:hover{color:var(--ink)}
@@ -2924,7 +2931,7 @@ function roseBlock(station) {
   if (!rose) return "";
   const v = roseView(station);
   if (!v || !(rose.frames || []).length) {
-    return `<div class="rose"><span class="src">No spectrum from ${station} in the last six hours.</span></div>`;
+    return `<p class="quiet buoy-note rose-none">No spectrum from ${station} in the last six hours.</p>`;
   }
   const modes = ROSE_MODES.map((m) => `<button type="button" data-rose-mode="${m.id}"`
     + ` aria-pressed="${m.id === ROSE_MODE}" aria-label="${m.label}" title="${m.label}">${m.symbol}</button>`).join("");
