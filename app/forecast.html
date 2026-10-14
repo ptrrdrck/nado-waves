@@ -128,13 +128,17 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A second reading inside a card, under its own small label: the Forecast
    tab's "Local" wind under the model's wind at the buoy. */
 .cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
-/* Each arrival under ORIGIN: its sea, the line under it, its provenance. */
-.cond .origin{display:flex;flex-direction:column;gap:2px}
-.cond .origin + .origin{margin-top:10px;padding-top:12px;position:relative}
-/* Entries inside Origin are set apart by a centred dot, never a rule: a
-   full-width rule is what opens a section on this card (owner's call,
-   2026-10-14). */
-.cond .origin + .origin::before{content:"";position:absolute;top:-2px;left:calc(50% - 2px);
+/* Each arrival under ORIGIN: its sea, the line under it, its provenance.
+   The tide's phase paragraphs are set the same way (owner's request,
+   2026-10-14): a heading at the card's value size over a body in the
+   supporting line's grey. */
+.cond .origin,.cond .phase-entry{display:flex;flex-direction:column;gap:2px}
+.cond .origin + .origin,.cond .phase-entry + .phase-entry{margin-top:10px;padding-top:12px;position:relative}
+/* Entries inside Origin, and the phase's paragraphs, are set apart by a
+   centred dot, never a rule: a full-width rule is what opens a section on
+   this card (owner's call, 2026-10-14). */
+.cond .origin + .origin::before,.cond .phase-entry + .phase-entry::before{content:"";position:absolute;
+                                top:-2px;left:calc(50% - 2px);
                                 width:4px;height:4px;border-radius:50%;background:var(--line-strong)}
 .cond .origin > .val > .unit{white-space:nowrap}
 /* A tab's last readable arrival (owner's request, 2026-10-12): a line saying
@@ -189,16 +193,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                  letter-spacing:.06em;margin-left:5px;white-space:nowrap}
 /* THE TIDE PHASE folds out like Origin, from its own line under a rule of
    its own, right above "Charts" (owner's request, 2026-10-11): the line is
-   the phase, the fold a summary in paragraphs, never bullets. */
+   a fixed title, the fold paragraphs set as Origin's entries are, never
+   bullets, and no provenance under them (owner's call, 2026-10-14: it is on
+   docs.html). */
 .cond > .phase-fold{display:flex;flex-direction:column;gap:6px;
                     border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .phase-fold .chart-head .tag{font-size:11px;color:var(--faint);text-transform:uppercase;font-weight:400;
                             letter-spacing:.06em;margin-left:6px;white-space:nowrap}
 .phase-fold .chart-head:hover .calc-toggle{color:var(--ink)}
-.phase-fold .fold-body{display:flex;flex-direction:column;gap:8px}
-.phase-fold .fold-body p{margin:0;font-size:14px;line-height:1.45;color:var(--ink)}
-.phase-fold .fold-body .phase-head{display:block;font-weight:600}
-.phase-fold .fold-body .srcs{margin-top:2px}
+.phase-fold .fold-body{display:flex;flex-direction:column;gap:2px}
+.phase-fold .phase-entry{margin:0}
 
 /* Wave trains. A spectrum is two or three swells plus a wind sea, and which
    one leads at a break need not be the one leading at the buoy — so they are
@@ -1175,8 +1179,11 @@ function turnLine(turns, afterIso, {tagged = false} = {}) {
 // paragraphs -- the day, the next spring or neap, the one after -- each a
 // bold heading ("Today", "Around 17 Oct", "Late October") over a body that
 // is a fixed run of slots (docs/tide_phase_wording.md): a slot with no value
-// drops with its joining words. NOAA's constants are named once, in the
-// provenance, not in the text (owner's edit, same day). The build decides
+// drops with its joining words. Each paragraph is set as an Origin entry is,
+// its heading at the value size over a grey body, the paragraphs apart by a
+// centred dot; nothing under them (owner's call, 2026-10-14: what they stand
+// on -- NOAA's constants, the computed Moon, CO-OPS's turns -- is said on
+// docs.html, as Origin's is). The build decides
 // every slot; this only words them. Days are Coronado's own, in Pacific time,
 // whatever the reader's clock: the summary is about the beach.
 const COAST_TZ = "America/Los_Angeles";
@@ -1296,14 +1303,6 @@ function phaseFold(payload, key, {tagged = false} = {}) {
   const isToday = key === coastDay(Date.now());
   const title = PHASE_FOLD_TITLE;
   const id = tagged ? "now" : "fc";
-  const week = isToday ? "this week" : "that week";
-  const sources = srcLines([
-    `Spring and neap, the ${Math.round(block.diurnal_age_h)} h lag and the size against ${week}: `
-      + `NOAA's harmonic constants for ${payload.tide_station_name || "San Diego"} (${block.station})`
-      + (block.analysis ? `, ${block.analysis} analysis` : ""),
-    "Moon's phase, distance and declination: computed",
-    `Highs and lows: CO-OPS high and low water, ${tideSource(payload)}`,
-  ]);
   return `<div class="phase-fold">
     <div class="chart-head" data-phase-head><span>${title}${tagged ? ' <span class="tag">predicted</span>' : ""}</span><button
       type="button" class="calc-toggle" data-phase-toggle aria-controls="phase-fold-${id}"
@@ -1311,8 +1310,7 @@ function phaseFold(payload, key, {tagged = false} = {}) {
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="phase-fold-${id}"${PHASE_OPEN ? "" : " hidden"}>
       ${tidePhaseText(block, s, isToday).map(([head, body]) =>
-        `<p><span class="phase-head">${head}</span>${body}</p>`).join("")}
-      ${sources}
+        `<p class="phase-entry"><span class="val">${head}</span><span class="turn">${body}</span></p>`).join("")}
     </div>
   </div>`;
 }

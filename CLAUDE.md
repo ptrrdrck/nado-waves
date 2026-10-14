@@ -494,14 +494,18 @@ forecaster actually verifies against, Surfline included.
    Charts line under a rule of its own, its caret like Origin's: the line is
    a fixed title, "Phase" (owner's edit, same day, replacing the phase
    itself), tagged `predicted` on LIVE as the turn line is; open, three
-   PARAGRAPHS, never bullets (owner's call), each a bold heading over its
+   PARAGRAPHS, never bullets (owner's call), each a heading over its
    body — "Today" (the phase: Spring tides / Neap tides / Building toward
    springs / Easing toward neaps, the Moon, the day's pair), "Around 17 Oct"
    (the next spring or neap, what coincides, and "The upcoming turns show
    it: …"), "Late October" (owner's wording kept) — with no title above them.
-   NOAA's constants are named in the PROVENANCE, not the paragraphs (owner's
-   edit, same day: "by NOAA's harmonic constants" and "by the same constants"
-   came out). Spring and neap come from NOAA's harmonic constants for
+   NOAA's constants are not named in the paragraphs (owner's edit, same
+   day: "by NOAA's harmonic constants" and "by the same constants" came
+   out). **Set as Origin's entries are, and no provenance** (owner's
+   request, 2026-10-14): each heading at the value size over a grey body, a
+   centred 4 px dot between paragraphs; the constants and their 2017–2021
+   analysis, the computed Moon and CO-OPS's turns are named on docs.html
+   instead, the analysis held to the archived constants by a test. Spring and neap come from NOAA's harmonic constants for
    9410170 (`collector/harcon.py`, fetched on Actions, never typed — their
    `phase_local` is NOT comparable across speeds: read naively it puts
    springs 11 h before syzygy, `phase_GMT` 3 h), the Moon from

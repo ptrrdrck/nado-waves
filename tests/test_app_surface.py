@@ -3417,8 +3417,9 @@ class TestHurricane:
         """Owner's call, 2026-10-14: a full-width rule opens a section on
         this card, so entries inside Origin take a centred dot."""
 
-        assert ".cond .origin + .origin{margin-top:10px;padding-top:12px;position:relative}" in SOURCE
-        dot = SOURCE[SOURCE.index(".cond .origin + .origin::before{"):].split("}")[0]
+        assert (".cond .origin + .origin,.cond .phase-entry + .phase-entry"
+                "{margin-top:10px;padding-top:12px;position:relative}") in SOURCE
+        dot = SOURCE[SOURCE.index(".cond .origin + .origin::before,"):].split("}")[0]
         assert "border-radius:50%" in dot and "left:calc(50% - 2px)" in dot
         assert "border-top" not in dot
 
@@ -3539,7 +3540,20 @@ class TestTheTidePhaseFold:
 
     def test_its_body_is_paragraphs_never_a_list(self):
         fold = SOURCE[SOURCE.index("function phaseFold("):SOURCE.index("let DATA = null;")]
-        assert "<p>" in fold and "<li" not in fold and "<ul" not in fold
+        assert '<p class="phase-entry">' in fold and "<li" not in fold and "<ul" not in fold
+
+    def test_its_paragraphs_are_set_as_origins_entries_are(self):
+        """Owner's request, 2026-10-14: each paragraph an Origin entry's head
+        and body, apart by Origin's centred dot."""
+        fold = SOURCE[SOURCE.index("function phaseFold("):SOURCE.index("let DATA = null;")]
+        assert '<span class="val">${head}</span><span class="turn">${body}</span>' in fold
+        assert ".cond .phase-entry + .phase-entry::before" in SOURCE
+
+    def test_it_carries_no_provenance(self):
+        """Owner's call, 2026-10-14: what the fold stands on is said on
+        docs.html, not under it."""
+        fold = SOURCE[SOURCE.index("function phaseFold("):SOURCE.index("let DATA = null;")]
+        assert "srcLines" not in fold and "srcs" not in fold
 
     def test_it_reads_the_days_at_coronado(self):
         assert 'const COAST_TZ = "America/Los_Angeles";' in SOURCE
