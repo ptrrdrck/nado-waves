@@ -42,7 +42,7 @@ def test_every_entry_is_a_head_and_one_paragraph(cases):
             if line.startswith("The ") and " s train" in line:
                 assert k >= 1 and not lines[k - 1].startswith("The "), cid
                 assert k + 1 == len(lines) or not lines[k + 1].startswith((
-                    "Read over", "Arriving for", "NHC had", "Tanner Banks", "Trains")), cid
+                    "Arriving for", "NHC had", "Tanner Banks", "Trains")), cid
                 assert line.endswith((" so far.", " h.", ", no longer arriving.", " at that time."))
 
 
@@ -72,16 +72,16 @@ def test_a_readings_direction_names_the_buoy_it_is_read_at(cases):
 
     assert cases["L2"][2] == (
         "The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks "
-        "(NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Read "
-        "over 18 h of swell. Arrived Oct 6, no longer arriving.")
+        "(NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. "
+        "Arrived Oct 6, no longer arriving.")
     assert ("away. Tanner Banks (NDBC 46047) holds this train from 140° SE, 196° SSW and "
-            "254° WSW, so no place is given. Read over 18 h of swell so far.") in cases["C2"][1]
-    assert "away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read over" \
-        in cases["C1"][1]
+            "254° WSW, so no place is given. Arriving for 18 h so far.") in cases["C2"][1]
+    assert ("away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h "
+            "so far.") in cases["C1"][1]
     for cid in ("L3", "C3"):
         line = cases[cid][2 if cid[0] == "L" else 1]
         assert ("away. Tanner Banks (NDBC 46047) does not have this train, so no place is "
-                "given. Read over 18 h of swell") in line
+                "given. ") in line
         assert " bearing" not in line and " holds " not in line
     for cid in ("L2", "L3", "C2", "C3"):
         assert cases[cid][1 if cid[0] == "L" else 0] == "Unplaced storm", cid

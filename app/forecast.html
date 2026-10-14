@@ -1813,8 +1813,10 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 //          buoy it is read at: the bearing it holds the train from; every
 //          direction it holds it from, "so no place is given"; or that it
 //          does not have it.
-//   KNOWN: how long a named storm's swell has been arriving by its track;
-//          or how long the swell itself has been read.
+//   KNOWN: how long it has been arriving, "Arriving for {h} h so far." on
+//          every kind (owner's call, 2026-10-14): a named storm's by its
+//          track, a reading's as read off the swell; past, the day it
+//          arrived, "no longer arriving", and no hours, on every kind.
 // No provenance block follows them (owner's call, 2026-10-14): how a storm is
 // read and matched is on docs.html, and each buoy is named where it is used.
 const SAME_SOURCE_DEG = 45;
@@ -1938,8 +1940,8 @@ function readingEntry(a, o, past = false) {
     body: trainAt({period: past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s,
                    sent: a.generated_utc, fitted: true, km: a.distance_km, step: 500})
       + ` ${heldAt(a, o)} `
-      + (past ? `Read over ${hours} h of swell. Arrived ${onDay(a.first_utc)}, no longer arriving.`
-        : `Read over ${hours} h of swell so far.`),
+      + (past ? `Arrived ${onDay(a.first_utc)}, no longer arriving.`
+        : `Arriving for ${hours} h so far.`),
   });
 }
 

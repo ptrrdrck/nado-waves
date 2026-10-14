@@ -25,8 +25,7 @@ value is dropped together with its joining words. Nothing is reworded per case.
 | 2 | distance | ` from about {mi} ({km}) away`, to 100 | ` from about {mi} ({km}) away`, to 500 | same | same |
 | 2 | end | `.` | `.` | `.` | `.` |
 | 3 held | source | ` NHC had it at {deg}° {pt}, with winds of {mph} ({kt})` + ` and {mb} mb pressure` if the fix has one, then ` at that time.`; past: + ` Arrived {date}, no longer arriving.` | ` {46047} holds this train from {deg}° {pt}.` | ` {46047} holds this train from {d1}° {pt} and {d2}° {pt}, so no place is given.` (three: `{d1}, {d2} and {d3}`) | ` {46047} does not have this train, so no place is given.` |
-| 4 known | hours | ` Arriving for {h} h so far.`, the longest at any gate buoy; none if no buoy has hours, or if past | ` Read over {h} h of swell` | same | same |
-| 4 | end | none | arriving: ` so far.` past: `. Arrived {date}, no longer arriving.` | same | same |
+| 4 known | hours | ` Arriving for {h} h so far.`, the longest at any gate buoy; none if no buoy has hours, or if past | ` Arriving for {h} h so far.`, as read off the swell; past: ` Arrived {date}, no longer arriving.` | same | same |
 
 A past entry's lines are at 15 px, the size its old grey tag was, with a blank
 line between its opening line and the head (owner's request, 2026-10-13); the
@@ -115,6 +114,9 @@ Fourth pass, the same day:
 - **Entries are set apart by a centred dot**, 4 px in `--line-strong`, never
   a rule: a full-width rule opens a section on this card, and inside an open
   Origin a second one made Charts harder to find.
+- **Readings say "Arriving for 18 h so far." too**, their hours as read off
+  the swell, for "Read over 18 h of swell so far.". A past reading ends as a
+  past storm does, "Arrived Oct 6, no longer arriving.", with no hours.
 
 ### Decided 2026-10-12
 
@@ -200,7 +202,7 @@ No readable swell in the last 21 days.
 ```text
 No readable swell arriving here now. The last one was:
 South Pacific
-The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read over 18 h of swell. Arrived Oct 6, no longer arriving.
+The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Arrived Oct 6, no longer arriving.
 ```
 
 ### L2: last readable arrival, unplaced: split bearing
@@ -208,7 +210,7 @@ The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner B
 ```text
 No readable swell arriving here now. The last one was:
 Unplaced storm
-The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Read over 18 h of swell. Arrived Oct 6, no longer arriving.
+The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Arrived Oct 6, no longer arriving.
 ```
 
 ### L3: last readable arrival, unplaced: 46047 does not have it
@@ -216,7 +218,7 @@ The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner B
 ```text
 No readable swell arriving here now. The last one was:
 Unplaced storm
-The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) does not have this train, so no place is given. Read over 18 h of swell. Arrived Oct 6, no longer arriving.
+The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) does not have this train, so no place is given. Arrived Oct 6, no longer arriving.
 ```
 
 ### L4: last readable arrival, a storm named here after Origin's last reading
@@ -232,39 +234,39 @@ The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 20
 ```text
 No readable swell arriving here now. The last one was:
 Aleutian storm track
-The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read over 18 h of swell. Arrived Sep 30, no longer arriving.
+The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Arrived Sep 30, no longer arriving.
 ```
 
 ### C1: arriving, placed
 
 ```text
 South Pacific
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read over 18 h of swell so far.
+The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
 ```
 
 ### C2: arriving, unplaced: split three ways
 
 ```text
 Unplaced storm
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Read over 18 h of swell so far.
+The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Arriving for 18 h so far.
 ```
 
 ### C3: arriving, unplaced: 46047 does not have it
 
 ```text
 Unplaced storm
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) does not have this train, so no place is given. Read over 18 h of swell so far.
+The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) does not have this train, so no place is given. Arriving for 18 h so far.
 ```
 
 ### C4: arriving, one of each
 
 ```text
 South Pacific
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read over 18 h of swell so far.
+The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
 Unplaced storm
-The 13.2 s train, sent about Oct 2 from about 3,000 mi (5,000 km) away. Tanner Banks (NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Read over 18 h of swell so far.
+The 13.2 s train, sent about Oct 2 from about 3,000 mi (5,000 km) away. Tanner Banks (NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Arriving for 18 h so far.
 Unplaced storm
-The 11.8 s train, sent about Oct 4 from about 2,000 mi (3,000 km) away. Tanner Banks (NDBC 46047) does not have this train, so no place is given. Read over 18 h of swell so far.
+The 11.8 s train, sent about Oct 4 from about 2,000 mi (3,000 km) away. Tanner Banks (NDBC 46047) does not have this train, so no place is given. Arriving for 18 h so far.
 ```
 
 ### H1: hurricane, one gate buoy
@@ -326,7 +328,7 @@ The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 South Pacific
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Read over 18 h of swell so far.
+The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Banks (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
 ```
 
 ### M3: hurricane and a split bearing, as live on 2026-10-10
@@ -335,7 +337,7 @@ The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner B
 Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
 The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 Unplaced storm
-The 20.0 s train, sent about Oct 1 from about 9,500 mi (15,000 km) away. Tanner Banks (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Read over 18 h of swell so far.
+The 20.0 s train, sent about Oct 1 from about 9,500 mi (15,000 km) away. Tanner Banks (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Arriving for 18 h so far.
 ```
 
 ### M2: hurricane and a last readable arrival (the last is not shown)

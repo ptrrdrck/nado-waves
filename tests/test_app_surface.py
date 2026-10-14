@@ -3256,7 +3256,7 @@ class TestOrigin:
         assert ".cond .val .unit{font-size:15px}" in SOURCE
         # A blank line between the opening line and the entry (2026-10-13).
         assert ".cond .origin.last > .turn:first-child{margin-bottom:1.2em}" in SOURCE
-        assert "`Read over ${hours} h of swell. Arrived ${onDay(a.first_utc)}, no longer arriving.`" in SOURCE
+        assert "past ? `Arrived ${onDay(a.first_utc)}, no longer arriving.`" in SOURCE
         assert "past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s" in SOURCE
         assert "No readable swell in the last ${o.lookback} days." in SOURCE
 
@@ -3285,7 +3285,7 @@ class TestOrigin:
 
     def test_a_running_arrival_says_so(self):
         assert "const hours = Math.max(1, Math.round(a.hours_read));" in SOURCE
-        assert "`Read over ${hours} h of swell so far.`" in SOURCE
+        assert ": `Arriving for ${hours} h so far.`)," in SOURCE
 
     def test_every_origin_is_a_head_and_one_paragraph(self):
         """What it is; then where and when, with its train, and how it is

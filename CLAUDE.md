@@ -540,8 +540,8 @@ forecaster actually verifies against, Surfline included.
    of them — withholding a place never makes a name easier. Two buoys
    reading one storm differ by ~18–25% at the median, so distances are rounded
    to 500 mi and 500 km and said "about", and the place is a sea. Shown only
-   once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "Read over N h
-   of swell so far" while it runs; otherwise the last readable arrival at that
+   once a ridge passes the reading gate (≥ 12 h, R² ≥ 0.8), "Arriving for
+   N h so far." while it runs; otherwise the last readable arrival at that
    break in the last 21 days — whichever ended later of Origin's last reading
    there and the last storm named there (origins.json's named moments, as of
    now.json's spectrum, a reading credited to a storm being that storm's;
@@ -578,8 +578,9 @@ forecaster actually verifies against, Surfline included.
    are NOT on the card** (owner's call, 2026-10-14: they still decide
    whether a storm is named, and docs.html explains them; never a
    percentage or a strong/partial/weak word on the card either); a
-   reading's "Read over N h of swell", and "Arrived …, no longer
-   arriving". **No provenance follows the entries** (owner's call,
+   reading's "Arriving for N h so far." too (owner's call, same day), its
+   hours as read off the swell; past, every kind ends "Arrived …, no longer
+   arriving." with no hours. **No provenance follows the entries** (owner's call,
    2026-10-14): storm matching is explained on docs.html. Entries are set
    apart by a centred 4 px dot, never a rule: a full-width rule opens a
    section on this card. Each buoy is named as NDBC names it,
