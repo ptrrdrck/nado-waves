@@ -1253,7 +1253,8 @@ class TestTheBreaksAreTabsOfTheSwellCard:
         assert card.index("rankByEnergy(cards") < card.index("tabs.push({id: BUOY_TAB")
 
     def test_the_buoy_tab_is_titled_from_the_file_not_typed(self):
-        assert "`Buoy ${station}`" in SOURCE
+        assert "const main = feedName(station, NOW && NOW.station === station ? NOW.station_cdip : \"\");" in SOURCE
+        assert "`Buoy ${station}`" not in SOURCE
         assert "station: NOW && NOW.station" in SOURCE
         assert "station: DATA.station" in SOURCE
         assert "Buoy 46232" not in SOURCE
@@ -2239,6 +2240,7 @@ class TestTheWeekChart:
 
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 6)};\n"
+            "NOW = {station: '46232', station_cdip: '191'};\n"
             "const clock = (iso) => iso.slice(11, 16);\n"
             "BUOYS = {generated_utc: 'b', heights: {'46047': {start_utc: '2026-09-19T23:50:00Z',"
             " t_min: [0, 30, 60, 150, 180], hs_m: [1.5, 1.6, 1.7, 2.0, 2.1]}}};\n"
@@ -2250,8 +2252,8 @@ class TestTheWeekChart:
             "BUOYS = null; console.log(chartSpec('buoy', 'height').read(3));"
         )
         assert got[0] == "-0.167,0.333,0.833,2.333,2.833"         # :50 and :20, not on the hour
-        assert got[1].endswith("Buoy 46047 2.10 m at 02:50")
-        assert got[1].startswith('<span class="v">Buoy 46232 1.20 m</span>')
+        assert got[1].endswith("NDBC 46047 2.10 m at 02:50")
+        assert got[1].startswith('<span class="v">CDIP 191 1.20 m</span>')
         assert got[2] == "2 3"                                     # 60 to 150 min is a gap
         assert got[3] == '<span class="v">Buoy 1.20 m</span>'      # without it, as before
 
@@ -2275,9 +2277,10 @@ class TestTheWeekChart:
             "console.log((svg.match(/<path class=\"ln other alt\"/g) || []).length,"
             " (svg.match(/<path class=\"ln other\"/g) || []).length);\n"
         )
-        assert got[0] == "other|Buoy 46047,other alt|Buoy 46086"
-        assert got[1].endswith("Buoy 46047 — &middot; Buoy 46086 1.40 m at 02:50")
-        assert got[2].endswith("with Buoy 46047 and Buoy 46086's in lighter lines, "
+        assert got[0] == "other|NDBC 46047,other alt|NDBC 46086"
+        assert got[1].endswith("NDBC 46047 — &middot; NDBC 46086 1.40 m at 02:50")
+        assert got[1].startswith('<span class="v">NDBC 46232 1.20 m</span>')  # no CDIP number known
+        assert got[2] == ("NDBC 46232's height each hour, with NDBC 46047 and NDBC 46086's in lighter lines, "
                                "the second dashed, each at its own stamps.")
         assert got[3] == "1 1"
 
@@ -2307,7 +2310,7 @@ class TestTheWeekChart:
         assert got[:4] == ["other:Center,other alt:South,main:North",
                            "other:North,other alt:South,main:Center",
                            "other:North,other alt:Center,main:South",
-                           "main:Buoy 46232"]
+                           "main:NDBC 46232"]
         assert got[4] == ('<span class="v">Center 1.80 m</span> &middot; North 1.30 m'
                           ' &middot; South 0.50 m')
         assert got[5] == "South,North,Center"

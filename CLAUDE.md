@@ -388,7 +388,10 @@ forecaster actually verifies against, Surfline included.
    46232's at its OWN :20 / :50 stamps — never moved onto 46232's hour, a
    stamp > 45 min from the last a gap, the readout naming its own time —
    from `buoys.json`'s `heights` (the week) and `buoys_all.json` (every
-   archived stamp, fetched with series_all.json). Its height is
+   archived stamp, fetched with series_all.json). Each line, in its key
+   and readout, is named as its pill names it — "CDIP 191", "NDBC 46047",
+   "NDBC 46086" (`feedName`; owner's request, 2026-10-14), never
+   "Buoy 46232". Its height is
    `transform.combined_hs`: `at_buoy`'s m0 to rounding (a test pins it)
    without the trains, MEM's bins summing to one by its pole test alone
    (`spreadmethod.realisable`) — 0.7 s for two months, where `at_buoy` took

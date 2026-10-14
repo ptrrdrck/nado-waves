@@ -3485,6 +3485,11 @@ function originsSpec(id, steps) {
     },
   };
 }
+// A buoy by whoever runs it, as its pill names it: "CDIP <n>" for a buoy with
+// a registry `cdip` number (46232's, now.json `station_cdip`), "NDBC 46047"
+// otherwise. The Buoys tab's Height chart names its lines so (owner's
+// request, 2026-10-14, replacing "Buoy" and the station number).
+const feedName = (station, cdip) => (cdip ? `CDIP ${cdip}` : `NDBC ${station}`);
 // The context buoys' heights (buoys.json's week, and buoys_all.json once
 // asked for), placed on the chart's hours by their own stamps: a fractional
 // step, so a :20 reading sits a third of the way past its hour. A stamp more
@@ -3507,7 +3512,7 @@ function contextTracks(steps) {
     const points = [...byMs.keys()].sort((p, q) => p - q)
       .filter((ms) => ms >= t0 - HOUR_MS && ms <= tn + HOUR_MS)
       .map((ms) => ({i: (ms - t0) / HOUR_MS, v: byMs.get(ms), t: new Date(ms).toISOString()}));
-    return {cls: k ? "other alt" : "other", label: `Buoy ${station}`, points, join: 0.75};
+    return {cls: k ? "other alt" : "other", label: feedName(station), points, join: 0.75};
   }).filter((tr) => tr.points.length);
 }
 
@@ -3563,7 +3568,7 @@ function buildSpec(id, mode, steps) {
   if (mode === "origins") return originsSpec(id, steps);
   if (id === BUOY_TAB) {
     const values = steps.map((s) => num(buoyOf(s).hs_m));
-    const main = `Buoy ${station}`;
+    const main = feedName(station, NOW && NOW.station === station ? NOW.station_cdip : "");
     // The context buoys under it, lighter, at their own stamps (owner's
     // request, 2026-10-09): 46047 and 46086 measure at :20 and :50, never on
     // 46232's hour, so each reading is drawn where it was taken and read out with
@@ -3580,7 +3585,7 @@ function buildSpec(id, mode, steps) {
       tracks,
       near,
       legend: tracks.length ? [{cls: "main", label: main}, ...tracks] : undefined,
-      says: `The buoy's height at ${station} each hour`
+      says: `${main}'s height each hour`
         + (tracks.length ? `, with ${tracks.map((tr) => tr.label).join(" and ")}'s in `
           + (tracks.length > 1 ? "lighter lines, the second dashed, each at its own stamps." : "a lighter line, at its own stamps.") : "."),
       // "Buoy" alone when it is the only line, as it always read.
