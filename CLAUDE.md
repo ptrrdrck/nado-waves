@@ -306,7 +306,8 @@ forecaster actually verifies against, Surfline included.
    phone; "Departure" 321). The hour is the seek bar's, no longer a
    "Forecast for" line. **KNZY never stands in on the Forecast tab** (owner's
    call, same day): it is not a forecast. A missing model wind reads "not
-   collected yet", a missing NWS hour "no local forecast" and why.
+   collected yet" (under a past hour "no model wind for this hour", owner's
+   wording), a missing NWS hour "no local forecast" and why.
    **It feeds nothing**: its own module and file, never a key in now.json, so
    the context-station guard still keeps "46047" out of now.py and the chain,
    and `tests/test_buoys.py` keeps `through`/`carry`/the surf zone out of it.

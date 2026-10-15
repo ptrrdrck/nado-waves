@@ -5690,7 +5690,7 @@ function renderConditions(step, cards) {
       <span class="lbl">Wind</span>
       <span class="val">${modelled
         ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
-        : `<span class="unit">${past ? "not kept for earlier runs" : "not collected yet"}</span>`}</span>
+        : `<span class="unit">${past ? "no model wind for this hour" : "not collected yet"}</span>`}</span>
       ${underLocal ? "" : seenWind}
       ${modelled ? srcLines([], pills(anchor, "GFS-Wave", run)) : ""}
       ${local}

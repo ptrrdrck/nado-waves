@@ -620,6 +620,9 @@ class TestWindAndTideAreHoisted:
         render = render[:render.index("${local}")]
         assert "pills(anchor, \"GFS-Wave\", run)" in render
         assert "METAR" not in render and "observed_utc" not in render
+        # A past hour whose run had no model wind says so, rather than that it
+        # was not kept (owner's wording, 2026-10-15).
+        assert '${past ? "no model wind for this hour" : "not collected yet"}' in render
 
     def test_it_prefers_the_model_wind_and_falls_back(self):
         assert "hour.wind_from_deg != null" in SOURCE
