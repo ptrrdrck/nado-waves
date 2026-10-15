@@ -589,10 +589,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* 260 px across: the circle 21% wider than when the compass points sat
    outside it, the block 20 px shorter (owner's choice C, 2026-10-08). */
 .rose-svg{display:block;width:100%;max-width:260px;height:auto;margin:0 auto;overflow:visible}
-.rose-svg .ring{fill:none;stroke:var(--line);stroke-width:1}
+/* Rings and axes in the break drawing's semicircle grey (.aperture .sea), and
+   N / E / S / W in its headings' ink and weight (owner's request, 2026-10-15). */
+.rose-svg .ring{fill:none;stroke:var(--line-strong);stroke-width:1}
 /* A halo in the card's colour, so a ring, an axis or a petal under a point
    never hides it. */
-.rose-svg .pt{font-size:10px;fill:var(--faint);paint-order:stroke;stroke:var(--card);stroke-width:3px;
+.rose-svg .pt{font-size:10px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--card);stroke-width:3px;
   stroke-linejoin:round}
 .rose-svg .rp{fill:var(--ink);opacity:.85;stroke:var(--card);stroke-width:.75}
 .rose-svg .rb{stroke:var(--card);stroke-width:.75}
