@@ -515,8 +515,8 @@ offshore component = −cos(wind from − shore normal)     +1 straight off the 
   < −0.3   onshore           within 72.5° of straight off the sea
   between  cross-shore
   ≤ 3 kt   light offshore, light cross-shore or light onshore
-  0 kt     calm
-  VRB      variable, or light and variable at 3 kt or less   a reported wind with no direction
+  0 kt     no wind, so no side set        the headline reads Calm
+  VRB      no direction, so no side set   a reported wind with no direction; the headline reads Variable
 
 worked hour: 8 kt from 270°
 North   normal 194.1°   −cos(75.9°) = −0.24   cross-shore
@@ -526,7 +526,7 @@ South   normal 220.9°   −cos(49.1°) = −0.66   onshore
 
 [drawing: near] Caption: Each break's chord, with its shore normal drawn out to sea from the midpoint. One wind, three answers.
 
-A wind of 3 kt or less, the Beaufort scale's light air, is “light”: the card still names its side, “light offshore” and so on, but the Shore direction charts count it as light or variable, because a direction that faint barely matters and a forecast gives it one anyway. A wind of 0 kt is “calm”: the airfield reports a calm as 0° at 0 kt, which is no wind, not a north wind. The rule lives in one place on the page, so the card and both Shore direction charts change together.
+A wind of 3 kt or less, the Beaufort scale's light air, is “light”: the card still names its side, “light offshore” and so on, but the Shore direction charts count it as light or variable, because a direction that faint barely matters and a forecast gives it one anyway. A wind of 0 kt is “Calm”: the airfield reports a calm as 0° at 0 kt, which is no wind, not a north wind. A calm or a variable wind has no side at any break, so the break's line says why, “no wind” or “no direction”, rather than repeating the headline. The rule lives in one place on the page, so the card and both Shore direction charts change together.
 
 ## [tide] The Tide card
 

@@ -492,9 +492,12 @@ forecaster actually verifies against, Surfline included.
    side** ("light offshore", "light cross-shore", "light onshore"; owner's
    request, 2026-10-07) while the charts count it as light or variable, and
    **0 kt is "calm"**: KNZY's `00000KT` is archived as 0° at 0 kt, and the
-   card says calm rather than "N 0°"; a METAR's `VRB` (a speed, no
-   direction) reads "variable at …" and "light and variable" or
-   "variable" at the break, never "not collected". The Tide view is shaded by night on both tabs
+   card says Calm rather than "N 0°"; a METAR's `VRB` (a speed, no
+   direction) reads "Variable at …", never "not collected" — both
+   capitalised in the headline (owner's request, 2026-10-15). Neither has a
+   side, so the break's line says why instead of repeating the headline:
+   "**no wind**, so no side set" and "**no direction**, so no side set"
+   (owner's wording, same day). The Tide view is shaded by night on both tabs
    (`forecast/daylight.py`: NOAA's solar equations at the center break from
    spots.json, within a minute of `astral`; `nights` in both payloads).
    **The Tide card's phase fold** (owner's request, 2026-10-11;

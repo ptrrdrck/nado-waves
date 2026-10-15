@@ -3162,20 +3162,23 @@ class TestTheLocalWindOnTheForecastTab:
         assert "NWS forecast grid SGX 55,12 at Coronado, updated 2026-09-30T04:00:00Z" in got
 
     def test_a_calm_hour_reads_calm_not_north(self):
-        """A calm is archived as 0° at 0 kt; the card says calm, never "N 0°",
-        and each break's line says calm too (owner's request, 2026-10-07)."""
+        """A calm is archived as 0° at 0 kt; the card says Calm, never "N 0°"
+        (owner's request, 2026-10-07), and each break's line says why it has
+        no side rather than repeating it (owner's wording, 2026-10-15)."""
         got = self._run(
             "const hour = {local_wind_from_deg: 0, local_wind_kt: 0};\n"
             "const cards = [{id: 'coronado_north', windOffshore: 0.97, windKt: 0}];\n"
             "console.log(localWindBlock(hour, cards, 'Tue 3 PM', false).replace(/\\s+/g, ' '));"
         )
-        assert '<span class="val">calm</span>' in got and "N 0°" not in got
-        assert "<b>calm</b> at this break" in got
+        assert '<span class="val">Calm</span>' in got and "N 0°" not in got
+        assert "<b>no wind</b>, so no side set" in got
+        assert "calm</b>" not in got and "at this break" not in got
 
     def test_a_variable_wind_reads_variable_not_not_collected(self):
         """KNZY's VRB03KT has a speed and no direction: the card shows it as
-        "variable at", and each break's line says light and variable, never
-        "not collected" (owner's request, 2026-10-07)."""
+        "Variable at", never "not collected" (owner's request, 2026-10-07),
+        and each break's line says why it has no side, at any speed, rather
+        than repeating it (owner's wording, 2026-10-15)."""
         got = self._run(
             "console.log(windVal(null, 3).replace(/<[^>]+>/g, ''), '|', windHeard({from_deg: null, speed_kt: 3}),"
             " windHeard({from_deg: null, speed_kt: null}), windHeard(null));\n"
@@ -3183,9 +3186,9 @@ class TestTheLocalWindOnTheForecastTab:
             " {id: 'coronado_south', windOffshore: null, windKt: 6, windVariable: true}]));"
         )
         first, second = got.splitlines()
-        assert first == "variable at 3 mph (3 kt) | true false false"
-        assert "<b>light and variable</b> at this break" in second
-        assert "<b>variable</b> at this break" in second
+        assert first == "Variable at 3 mph (3 kt) | true false false"
+        assert second.count("<b>no direction</b>, so no side set") == 2
+        assert "variable" not in second.lower() and "at this break" not in second
 
     def test_an_hour_without_it_says_so_and_a_past_hour_borrows_nothing(self):
         got = self._run(
