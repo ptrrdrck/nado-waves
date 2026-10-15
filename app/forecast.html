@@ -589,10 +589,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* 260 px across: the circle 21% wider than when the compass points sat
    outside it, the block 20 px shorter (owner's choice C, 2026-10-08). */
 .rose-svg{display:block;width:100%;max-width:260px;height:auto;margin:0 auto;overflow:visible}
-.rose-svg .ring{fill:none;stroke:var(--line);stroke-width:1}
+/* Rings and axes in the break drawing's semicircle grey (.aperture .sea), and
+   N / E / S / W in its headings' ink and weight (owner's request, 2026-10-15). */
+.rose-svg .ring{fill:none;stroke:var(--line-strong);stroke-width:1}
 /* A halo in the card's colour, so a ring, an axis or a petal under a point
    never hides it. */
-.rose-svg .pt{font-size:10px;fill:var(--faint);paint-order:stroke;stroke:var(--card);stroke-width:3px;
+.rose-svg .pt{font-size:10px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--card);stroke-width:3px;
   stroke-linejoin:round}
 .rose-svg .rp{fill:var(--ink);opacity:.85;stroke:var(--card);stroke-width:.75}
 .rose-svg .rb{stroke:var(--card);stroke-width:.75}
@@ -2038,6 +2040,12 @@ function pct(to, from) {
   return `${p > 0 ? "+" : p < 0 ? "\u2212" : ""}${v.replace("-", "")}%`;
 }
 
+// A fetch, miles first: tenths below 10, whole past it.
+const fetchText = (km) => {
+  const f = (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v)));
+  return `${f(km * MI_PER_KM)} mi (${f(km)} km)`;
+};
+
 // How the headline was made from the buoy's reading, one effect per row:
 // what it changes the height by, that change as a share of the step before,
 // and the height it leaves. Folds out under the headline from the caret at
@@ -2088,13 +2096,12 @@ function calculationTable(c) {
   // takes, but without its row the column would not arrive at the headline.
   const withChop = e.with_chop_hs_m != null ? e.with_chop_hs_m : n.hs_m;
   if (e.local && withChop != null) {
-    // What kind of chop, and whose wind made it: fresh behind land, or grown
-    // on over the open water between the buoy and the break; KNZY's wind on
-    // the observed chain, the local forecast's (or, without one, the model's
-    // at the buoy) on the forecast. Absent from a payload built before.
-    const kind = e.local.fetch === "open" ? "open water" : e.local.fetch === "closed" ? "behind land" : "";
-    const note = [`${e.local.tp_s.toFixed(1)} s`, kind, e.local.wind ? `${e.local.wind} wind` : ""]
-      .filter(Boolean).join(", ");
+    // The chop's period and the fetch it grew over (owner's call, 2026-10-15:
+    // its kind and whose wind are on docs.html, not in the row). Behind land
+    // that is the water to the land upwind; over open water, the reach
+    // between the buoy and the break it was grown on by.
+    const fetch = e.local.fetch_km != null ? `${fetchText(e.local.fetch_km)} of fetch` : "";
+    const note = [`${e.local.tp_s.toFixed(1)} s`, fetch].filter(Boolean).join(", ");
     row("Local chop", withChop, e.shoaled_hs_m, {note});
   }
   // Then in to where it breaks, at this tide (forecast.surfzone). Already
@@ -2111,7 +2118,7 @@ function calculationTable(c) {
     }
   }
   return `<table class="calc-table">
-      <thead><tr><th scope="col">Calc</th><th scope="col">Change</th>`
+      <thead><tr><th scope="col">Step</th><th scope="col">Change</th>`
     + `<th scope="col">%</th><th scope="col">Hs</th></tr></thead>
       <tbody>${rows.join("")}</tbody>
     </table>${foot}`;

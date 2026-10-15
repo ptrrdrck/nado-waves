@@ -355,7 +355,7 @@ chop and swell add in energy:
 > **Model choice · two kinds of fetch**
 > The growth law is the Coastal Engineering Manual's (US Army Corps of Engineers, 2002). Only a wind blowing from the sea toward the break makes chop that reaches it. When the upwind line ends on land (Point Loma's lee, the islands, Baja), the chop is grown fresh over that short stretch. When it runs out to open sea, the buoy's spectrum already holds the wind sea made upwind of it, so only the extra growth over the water *between* the buoy and the break is added. Adding a whole fresh sea there would count it twice.
 
-On the Forecast tab the wind is the National Weather Service's forecast at Coronado, and the calculation row says whose wind it used.
+On the “LIVE” tab the wind is KNZY's; on the Forecast tab it is the National Weather Service's forecast at Coronado. An hour with neither has no local chop: the model's wind at the buoy is out at sea, too strong for Point Loma's lee and blind to the wind near the shore.
 
 ### [calc-break] Wave break
 
@@ -388,7 +388,7 @@ If the waves are already breaking at the start point, the true break is further 
 
 The caret at the end of a card's headline folds out the table. Each row is one step above. **Change** is what that step added or took away, **%** is that change as a share of the row before, and **Hs** is the height after it. Read down, the last row is the headline. A step whose row is missing was not in the build that made that hour.
 
-The Local chop row names the chop's period, its kind (behind land, or open water) and whose wind made it. The last row is the breaking height at the tide of that hour.
+The Local chop row names the chop's period and the fetch it grew over: behind land, the water to the land upwind; over open water, the reach between the buoy and the break. The last row is the breaking height at the tide of that hour.
 
 ### [calc-not] What the number is not
 

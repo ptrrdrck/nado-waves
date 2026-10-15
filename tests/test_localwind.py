@@ -71,3 +71,42 @@ def test_a_denied_host_is_an_error_not_an_empty_forecast():
 
     with pytest.raises(LocalWindError, match="403"):
         localwind.fetch(32.68, -117.18, opener=opener)
+
+
+def test_a_server_error_is_tried_again_and_a_denial_is_not():
+    """api.weather.gov's 5xx is retried, twice at most; a proxy's refused
+    tunnel is a denial and is not (BRIEFING §8)."""
+
+    calls, waits = [], []
+
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) <= 2:
+            raise urllib.error.HTTPError(request.full_url, 503, "busy", {}, None)
+        body = ({"properties": {"gridId": "SGX", "gridX": 55, "gridY": 12,
+                                "forecastGridData": "https://api.weather.gov/gridpoints/SGX/55,12"}}
+                if "/points/" in request.full_url else GRID)
+        return io.BytesIO(json.dumps(body).encode())
+
+    got = localwind.fetch(32.6822, -117.1853, opener=opener, sleep=waits.append)
+    assert len(got["hours"]) == 3 and waits == [5.0, 10.0] and len(calls) == 4
+
+    calls.clear()
+
+    def always(request, timeout):
+        calls.append(request.full_url)
+        raise urllib.error.HTTPError(request.full_url, 503, "busy", {}, None)
+
+    with pytest.raises(LocalWindError, match="HTTP 503"):
+        localwind.fetch(32.68, -117.18, opener=always, sleep=lambda s: None)
+    assert len(calls) == 3
+
+    calls.clear()
+
+    def denied(request, timeout):
+        calls.append(request.full_url)
+        raise urllib.error.URLError("Tunnel connection failed: 403 Forbidden")
+
+    with pytest.raises(LocalWindError, match="403"):
+        localwind.fetch(32.68, -117.18, opener=denied, sleep=lambda s: None)
+    assert len(calls) == 1

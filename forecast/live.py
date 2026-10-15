@@ -571,8 +571,8 @@ def build(
             "model": "GFS-Wave, unassimilated; 0.9–1.0 ft (0.26–0.31 m) low bias at the buoy, not corrected here",
             "seabed": SEABED_LINE,
             "local chop": "MODELLED — fetch-limited growth from the local forecast wind (the "
-                          "NWS grid at Coronado; the model's wind at the buoy only for an hour "
-                          "the grid did not give): fresh over water closed by land, and grown "
+                          "NWS grid at Coronado; none for an hour the grid did not give): fresh "
+                          "over water closed by land, and grown "
                           "on from the carried wind sea over the open water between the buoy "
                           "and the break",
             "tide": f"PREDICTED — the harmonic prediction at {TIDE_STATION}, inside San "
@@ -864,21 +864,20 @@ def build(
             ]
             near: dict = {}
             if row.valid_utc in carried_input:
-                sp, grids, (wind_kt, wind_from) = carried_input[row.valid_utc]
+                sp, grids, _ = carried_input[row.valid_utc]
                 table = tables[break_id]
                 # Local chop grows on the water off the break, so it takes the
                 # LOCAL forecast wind (the NWS grid at Coronado), as the observed
-                # chain takes KNZY's; the model's wind at the buoy stands in
-                # only for an hour the grid did not give, and says so.
+                # chain takes KNZY's. An hour the grid did not give has no
+                # local chop at all (owner's call, 2026-10-15): the model's
+                # wind is 29 km offshore, too strong for Point Loma's lee and
+                # blind to the near-shore wind the open-water growth is for.
                 here = local_hours.get(row.valid_utc.strftime(ISO))
-                if here:
-                    chop_kt, chop_from, chop_wind = here["speed_kt"], here["from_deg"], "NWS forecast"
-                else:
-                    chop_kt, chop_from, chop_wind = wind_kt, wind_from, "GFS-Wave at the buoy"
                 carried = carry(sp, table, grids)
-                chop = local_sea(table, spot.normal, chop_kt, chop_from,
-                                 carried_short_hs=carried.hs_short,
-                                 buoy=buoy_offsets.get(break_id), wind=chop_wind)
+                chop = (local_sea(table, spot.normal, here["speed_kt"], here["from_deg"],
+                                  carried_short_hs=carried.hs_short,
+                                  buoy=buoy_offsets.get(break_id), wind="NWS forecast")
+                        if here else None)
                 level = (forecast_level(tide_series, row.valid_utc, departure, msl)
                          if profiles else None)
                 near = summarise(carried, chop, buoy_hs_m=hs_offshore,

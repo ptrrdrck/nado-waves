@@ -151,9 +151,12 @@ forecaster actually verifies against, Surfline included.
    fetches closed by land, and — since 2026-09-30 (owner's point, BRIEFING
    §36) — grown on by equivalent fetch over the OPEN water between the buoy
    and the break, which the buoy's spectrum never saw. Its wind is the local
-   one on both chains: KNZY on Now, the NWS grid on Forecast (GFS-Wave's
-   buoy wind only for an hour the grid lacks, and the calculation row says
-   whose).
+   one on both chains: KNZY on Now, the NWS grid on Forecast, and an hour
+   the grid lacks has NO local chop (owner's call, 2026-10-15: GFS-Wave's
+   wind at the buoy, 29 km out, overstated Point Loma's lee and could not see
+   the near-shore wind the open growth is for). The calculation's Local chop
+   row reads "<period> s, <fetch> of fetch" (owner's call, 2026-10-15): its
+   kind and whose wind are on docs.html, not in the row.
    **Then the surf zone, SHIPPED 2026-09-26** (BRIEFING §32):
    `forecast/surfzone.py` carries that sea from 5 m in over each break's
    surveyed profile (`<break>_profile.csv`, the 2016 CoNED beach, not this
@@ -168,7 +171,7 @@ forecaster actually verifies against, Surfline included.
    the card's calculation table, which folds out under the headline from a
    caret at its end (up closed, down open; owner's design 2026-09-26) and
    gives each effect one row — buoy, windows, refraction, diffraction, bottom
-   friction, shoaling, local chop, wave break — as Calc / Change / % / Hs, the
+   friction, shoaling, local chop, wave break — as Step / Change / % / Hs, the
    percentage against the row before. Refraction is measured with every edge still a hard
    shadow, as the window treats them, and diffraction is only what softening
    the edges changes (`nearshore.summarise`). **Diffraction is computed on the
@@ -862,6 +865,18 @@ forecaster actually verifies against, Surfline included.
   lands ~5 h 25 min after the nominal time, the directory filling over an
   hour — so `live.fetch_latest` says the run is not published yet and which
   run it is showing, rather than printing the URL.
+- **Retry what a build loses for its whole life, not what the next
+  collection fetches again.** `common.retrying` (owner's request,
+  2026-10-15) tries the NWS grid three times and GFS-Wave's spectral tar
+  twice on a 5xx, 408/429, reset or cut stream: a failed fetch cost a whole
+  build its local chop (2026-10-12 02Z) or put it on partitions (2 of 158
+  builds). Never a 404, never a proxy's refused tunnel (BRIEFING §8,
+  `common.is_transient`), and never the tar's timeout, which at 600 s would
+  run a second try past forecast.yml's 15 minutes. KNZY, CO-OPS, NDBC's
+  spectra and the b-decks are NOT retried: each collection re-reads a
+  trailing window (6 h, 24 h, 45 days, the whole file), so a miss is filled
+  ten minutes later; NDBC's standard met and the GFS/GEFS bulletins keep
+  their own older retries.
 - **A rejected push of an append-only log re-appends; it never rebases.**
   Measured 2026-09-26: the forecast build and the shown-hours seed both
   appended to one JSONL, the rebase conflicted, and the old retry loop

@@ -29,7 +29,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
-from .common import ISO
+from .common import ISO, retrying
 from .wind import USER_AGENT
 
 BASE_URL = "https://api.weather.gov"
@@ -44,12 +44,20 @@ class LocalWindError(RuntimeError):
     pass
 
 
-def _get(url: str, *, timeout: float, opener) -> dict:
+def _get(url: str, *, timeout: float, opener, sleep=None) -> dict:
+    """One request, tried three times while it fails transiently (a 5xx, a
+    reset, a timeout): a failed fetch costs a whole build its local wind, and
+    with it every hour's local chop (2026-10-12 02Z, cause not recorded)."""
+
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
                                                    "Accept": "application/geo+json"})
-    try:
+
+    def once() -> dict:
         with opener(request, timeout=timeout) as response:
             return json.loads(response.read().decode("utf-8"))
+
+    try:
+        return retrying(once, attempts=3, backoff=5.0, sleep=sleep)
     except urllib.error.HTTPError as error:
         raise LocalWindError(f"{url}: HTTP {error.code}") from error
     except (urllib.error.URLError, OSError, ValueError) as error:
@@ -119,16 +127,17 @@ def _stamp(value: str | None) -> str | None:
 
 
 def fetch(lat: float, lon: float, *, timeout: float = 30.0,
-          opener=urllib.request.urlopen) -> dict:
+          opener=urllib.request.urlopen, sleep=None) -> dict:
     """The NWS forecast grid's hourly wind at a point: two requests, the
     point's grid cell and then the cell's forecast."""
 
-    point = _get(f"{BASE_URL}/points/{lat:.4f},{lon:.4f}", timeout=timeout, opener=opener)
+    point = _get(f"{BASE_URL}/points/{lat:.4f},{lon:.4f}", timeout=timeout, opener=opener,
+                 sleep=sleep)
     props = point.get("properties") or {}
     url = props.get("forecastGridData")
     if not url:
         raise LocalWindError("the point has no forecast grid")
-    got = parse_grid(_get(url, timeout=timeout, opener=opener))
+    got = parse_grid(_get(url, timeout=timeout, opener=opener, sleep=sleep))
     got.update({
         "provider": "NWS",
         "office": props.get("gridId"),

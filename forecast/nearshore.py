@@ -245,8 +245,8 @@ class LocalSea:
     #: offshore could have seen. "open": grown ON from the wind sea the buoy
     #: already carried in, over the water between the buoy and the break.
     kind: str = "closed"
-    #: Whose wind: "KNZY" on the observed chain; "NWS forecast" or, without
-    #: one, "GFS-Wave at the buoy" on the forecast.
+    #: Whose wind: "KNZY" on the observed chain, "NWS forecast" on the
+    #: forecast (no other wind grows it).
     wind: str = ""
     #: For "open": the carried wind sea it grew on from, at the start depth.
     carried_hs_m: float | None = None

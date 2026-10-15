@@ -48,6 +48,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from .common import is_transient, retrying
 from .ndbc import USER_AGENT
 
 BASE_URL = "https://noaa-gfs-bdp-pds.s3.amazonaws.com"
@@ -112,6 +113,7 @@ def fetch_station_spec(
     *,
     timeout: float = 600.0,
     opener=urllib.request.urlopen,
+    sleep=None,
 ) -> tuple[str, int]:
     """Pull one station's spectral file out of the cycle tar, stopping there.
 
@@ -124,7 +126,7 @@ def fetch_station_spec(
     target = f"gfswave.{station}.spec"
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
 
-    try:
+    def once() -> tuple[str, int] | None:
         with opener(request, timeout=timeout) as response:
             counter = _Counting(response)
             stream = gzip.GzipFile(fileobj=io.BufferedReader(counter, 1 << 20))
@@ -136,6 +138,24 @@ def fetch_station_spec(
                     if handle is None:
                         break
                     return handle.read().decode("utf-8", errors="replace"), counter.count
+        return None
+
+    # Tried twice while it fails transiently (a 5xx, a reset, a stream cut
+    # short): a failed fetch puts the whole build on partitions, as 2 of 158
+    # published builds were (2026-09-26 and -30, cause not recorded). A 404
+    # (the run not out yet) and a missing member are answers, not failures,
+    # and are not retried. Nor is a timeout: at 600 s a second one would run
+    # past forecast.yml's 15 minutes and cost the build itself, not just its
+    # spectrum.
+    def transient(error: BaseException) -> bool:
+        if isinstance(error, TimeoutError) or "timed out" in str(error):
+            return False
+        return is_transient(error) or isinstance(error, (tarfile.TarError, EOFError))
+
+    try:
+        got = retrying(once, attempts=2, backoff=10.0, transient=transient, sleep=sleep)
+        if got is not None:
+            return got
     except urllib.error.HTTPError as error:
         raise WaveSpecError(f"{url}: HTTP {error.code}") from error
     except (urllib.error.URLError, OSError, tarfile.TarError, EOFError) as error:
