@@ -1634,7 +1634,7 @@ function measuredLine(m, pick) {
       ${v.period_s ? `<span class="mpeak">peak ${v.period_s.toFixed(1)} s from ${compass(v.from_deg)}</span>` : ""}
     </div>`;
   }
-  const why = m.state === "gap" ? `No ${station} spectrum for this hour &mdash; left as a gap, not filled`
+  const why = m.state === "gap" ? `No ${buoyFeed(station)} spectrum for this hour &mdash; left as a gap, not filled`
     : m.state === "pending" ? `${label}: not in yet`
     : `${label}: no reading loaded for this hour`;
   return `<div class="measured none">${why}</div>`;
@@ -1864,11 +1864,13 @@ const stormSymbol = (kind) => `<svg class="storm-sym" data-kind="${kind.toLowerC
   + `<path d="M6.6 10C6.6 4.2 12 1.6 17.6 3M13.4 10c0 5.8-5.4 8.4-11 7"/>`
   + `<circle class="eye" cx="10" cy="10" r="3.2"/></svg>`;
 // On the fold the storm's name alone links to NHC's page for it (owner's
-// call, 2026-10-14, when the provenance line that carried the link went);
-// never in the Origins chart's readout, which a finger scrubs.
-const stormHead = (name, at, link = false) => `${stormKind(at)} `
-  + (link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>` : name)
-  + stormSymbol(stormKind(at));
+// call, 2026-10-14, when the provenance line that carried the link went),
+// and its symbol follows the name. The Origins chart's readout, which a
+// finger scrubs, names the storm with neither (owner's call, same day): the
+// symbol is drawn by the fold's styles alone, and the dot is the chart's mark.
+const stormName = (name, at, link = false) => `${stormKind(at)} `
+  + (link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>` : name);
+const stormHead = (name, at) => stormName(name, at, true) + stormSymbol(stormKind(at));
 // A tab's last readable arrival opens with a line of its own, and carries no
 // tag (owner's request, 2026-10-12; reworded 2026-10-14, without the tab).
 const LAST_INTRO = "No readable swell arriving here now. The last one was:";
@@ -1927,7 +1929,7 @@ function hurricaneEntry(h, o, past = false) {
   const s = h.at;
   const hours = Object.values(h.match || {}).map((m) => m.hours).filter((v) => v != null);
   return originEntry({
-    head: stormHead(h.name, s, true),
+    head: stormHead(h.name, s),
     intro: past ? LAST_INTRO : "",
     storm: h.storm,
     body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
@@ -2936,7 +2938,7 @@ function roseBlock(station) {
   if (!rose) return "";
   const v = roseView(station);
   if (!v || !(rose.frames || []).length) {
-    return `<p class="quiet buoy-note rose-none">No spectrum from ${station} in the last six hours.</p>`;
+    return `<p class="quiet buoy-note rose-none">No spectrum from ${buoyFeed(station)} in the last six hours.</p>`;
   }
   const modes = ROSE_MODES.map((m) => `<button type="button" data-rose-mode="${m.id}"`
     + ` aria-pressed="${m.id === ROSE_MODE}" aria-label="${m.label}" title="${m.label}">${m.symbol}</button>`).join("");
@@ -3473,7 +3475,7 @@ function originsSpec(id, steps) {
       // Named as the Origin fold names them (owner's call, 2026-10-10): a
       // storm by name with no match word or figure, a sea, or "Unplaced
       // storm".
-      const parts = near(i).map((n) => value(stormHead(n.name, n.at))
+      const parts = near(i).map((n) => value(stormName(n.name, n.at))
         + `, ${farAway(n.at.distance_km, 100)} ${point(n.at.bearing_deg)}`);
       arrivals.filter((a) => Date.parse(a.first_utc) <= t && t <= Date.parse(a.last_utc))
         .forEach((a) => parts.push(a.region
@@ -3482,6 +3484,20 @@ function originsSpec(id, steps) {
       return parts.length ? parts.join(" &middot; ") : "no readable arrival this hour";
     },
   };
+}
+// A buoy by whoever runs it, as its pill names it: "CDIP <n>" for a buoy with
+// a registry `cdip` number (46232's, now.json `station_cdip`), "NDBC 46047"
+// otherwise. The Buoys tab's Height chart names its lines so (owner's
+// request, 2026-10-14, replacing "Buoy" and the station number).
+const feedName = (station, cdip) => (cdip ? `CDIP ${cdip}` : `NDBC ${station}`);
+// And so everywhere the page names a buoy in words (owner's request, same
+// day): the CDIP number from whichever file carries this station's, now.json
+// or forecast.json, NDBC's id otherwise. A fallback ("the buoy") passes as is.
+function buoyFeed(station) {
+  if (!/^\d+$/.test(String(station || ""))) return station;
+  const files = [typeof NOW === "undefined" ? null : NOW, typeof DATA === "undefined" ? null : DATA];
+  const got = files.find((f) => f && f.station === station && f.station_cdip);
+  return feedName(station, got ? got.station_cdip : "");
 }
 // The context buoys' heights (buoys.json's week, and buoys_all.json once
 // asked for), placed on the chart's hours by their own stamps: a fractional
@@ -3505,7 +3521,7 @@ function contextTracks(steps) {
     const points = [...byMs.keys()].sort((p, q) => p - q)
       .filter((ms) => ms >= t0 - HOUR_MS && ms <= tn + HOUR_MS)
       .map((ms) => ({i: (ms - t0) / HOUR_MS, v: byMs.get(ms), t: new Date(ms).toISOString()}));
-    return {cls: k ? "other alt" : "other", label: `Buoy ${station}`, points, join: 0.75};
+    return {cls: k ? "other alt" : "other", label: feedName(station), points, join: 0.75};
   }).filter((tr) => tr.points.length);
 }
 
@@ -3561,7 +3577,7 @@ function buildSpec(id, mode, steps) {
   if (mode === "origins") return originsSpec(id, steps);
   if (id === BUOY_TAB) {
     const values = steps.map((s) => num(buoyOf(s).hs_m));
-    const main = `Buoy ${station}`;
+    const main = buoyFeed(station);
     // The context buoys under it, lighter, at their own stamps (owner's
     // request, 2026-10-09): 46047 and 46086 measure at :20 and :50, never on
     // 46232's hour, so each reading is drawn where it was taken and read out with
@@ -3578,7 +3594,7 @@ function buildSpec(id, mode, steps) {
       tracks,
       near,
       legend: tracks.length ? [{cls: "main", label: main}, ...tracks] : undefined,
-      says: `The buoy's height at ${station} each hour`
+      says: `${main}'s height each hour`
         + (tracks.length ? `, with ${tracks.map((tr) => tr.label).join(" and ")}'s in `
           + (tracks.length > 1 ? "lighter lines, the second dashed, each at its own stamps." : "a lighter line, at its own stamps.") : "."),
       // "Buoy" alone when it is the only line, as it always read.
@@ -3795,7 +3811,7 @@ const heightSpan = (lo, hi) => (Math.abs(hi - lo) < 0.005 ? height(lo)
     + `<span class="unit">(${lo.toFixed(2)}–${hi.toFixed(2)} m)</span>`);
 
 function fcSpec(id, mode, steps) {
-  const station = DATA.station || "the buoy";
+  const station = buoyFeed(DATA.station) || "the buoy";
   const buoy = id === BUOY_TAB;
   const name = buoy ? "The buoy" : SHORT[id] || id;
   const of = (side) => (!side ? null : buoy ? side.buoy : (side.breaks || {})[id]);
@@ -4337,7 +4353,7 @@ function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)
 function chartReadout(spec, i, steps = chartSteps()) {
   const s = steps[i];
   const stamp = `<b>${dayClock(s.valid_utc)}</b>`;
-  if (s.gap) return `${stamp} &middot; no ${SERIES.station || "buoy"} spectrum for this hour, left as a gap`;
+  if (s.gap) return `${stamp} &middot; no ${buoyFeed(SERIES.station) || "buoy"} spectrum for this hour, left as a gap`;
   if (s.pending) return `${stamp} &middot; not in yet`;
   if (s.unbuilt) return `${stamp} &middot; not rebuilt yet`;
   return `${stamp} &middot; ${spec.read(i)}`;

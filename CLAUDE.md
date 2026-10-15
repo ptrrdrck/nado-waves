@@ -388,7 +388,12 @@ forecaster actually verifies against, Surfline included.
    46232's at its OWN :20 / :50 stamps — never moved onto 46232's hour, a
    stamp > 45 min from the last a gap, the readout naming its own time —
    from `buoys.json`'s `heights` (the week) and `buoys_all.json` (every
-   archived stamp, fetched with series_all.json). Its height is
+   archived stamp, fetched with series_all.json). Each line, in its key
+   and readout, is named as its pill names it — "CDIP 191", "NDBC 46047",
+   "NDBC 46086" (owner's request, 2026-10-14), never "Buoy 46232"; and so
+   is every buoy the page or docs.html names in words (`buoyFeed`, the CDIP
+   number from now.json or forecast.json; the geometry drawing's from
+   `geomviz`'s registry lookup). Its height is
    `transform.combined_hs`: `at_buoy`'s m0 to rounding (a test pins it)
    without the trains, MEM's bins summing to one by its pole test alone
    (`spreadmethod.realisable`) — 0.7 s for two months, where `at_buoy` took
@@ -564,7 +569,8 @@ forecaster actually verifies against, Surfline included.
    storm and filled for a hurricane, in ink, and its NAME alone links to
    NHC's own page for it (`archive/{year}/{NAME}_graphics.php`, track and
    cone map; owner's calls 2026-10-12 and -14), never the b-deck the card
-   reads, and never in the Origins chart's readout. now.json names every
+   reads; the Origins chart's readout names it with neither link nor
+   symbol (owner's call, 2026-10-14). now.json names every
    gate buoy so a past storm's line can name its own. **Every origin is a
    head and one paragraph** (owner's design 2026-10-04, one paragraph since
    the owner's rewrite of 2026-10-14), **each a fixed run of slots** (owner's

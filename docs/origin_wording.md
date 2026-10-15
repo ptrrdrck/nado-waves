@@ -35,7 +35,7 @@ turns: the eye open for a tropical storm, filled for a hurricane, in ink. A
 storm's name links to NHC's page for that storm, with its advisories, track and
 cone map (`https://www.nhc.noaa.gov/archive/{year}/{NAME}_graphics.php`), not
 the best-track file the card reads; only the name is the link, and the Origins
-chart's readout names the storm unlinked. A storm's past `{date}` is the first
+chart's readout names the storm unlinked and without its symbol. A storm's past `{date}` is the first
 moment it was named at the tab with the fix that sent the train shown, so a
 train never arrives before it was sent.
 

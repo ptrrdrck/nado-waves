@@ -1253,7 +1253,9 @@ class TestTheBreaksAreTabsOfTheSwellCard:
         assert card.index("rankByEnergy(cards") < card.index("tabs.push({id: BUOY_TAB")
 
     def test_the_buoy_tab_is_titled_from_the_file_not_typed(self):
-        assert "`Buoy ${station}`" in SOURCE
+        assert "const main = buoyFeed(station);" in SOURCE
+        assert "const station = buoyFeed(DATA.station) || \"the buoy\";" in SOURCE
+        assert "`Buoy ${station}`" not in SOURCE
         assert "station: NOW && NOW.station" in SOURCE
         assert "station: DATA.station" in SOURCE
         assert "Buoy 46232" not in SOURCE
@@ -2239,6 +2241,7 @@ class TestTheWeekChart:
 
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 6)};\n"
+            "NOW = {station: '46232', station_cdip: '191'};\n"
             "const clock = (iso) => iso.slice(11, 16);\n"
             "BUOYS = {generated_utc: 'b', heights: {'46047': {start_utc: '2026-09-19T23:50:00Z',"
             " t_min: [0, 30, 60, 150, 180], hs_m: [1.5, 1.6, 1.7, 2.0, 2.1]}}};\n"
@@ -2250,10 +2253,25 @@ class TestTheWeekChart:
             "BUOYS = null; console.log(chartSpec('buoy', 'height').read(3));"
         )
         assert got[0] == "-0.167,0.333,0.833,2.333,2.833"         # :50 and :20, not on the hour
-        assert got[1].endswith("Buoy 46047 2.10 m at 02:50")
-        assert got[1].startswith('<span class="v">Buoy 46232 1.20 m</span>')
+        assert got[1].endswith("NDBC 46047 2.10 m at 02:50")
+        assert got[1].startswith('<span class="v">CDIP 191 1.20 m</span>')
         assert got[2] == "2 3"                                     # 60 to 150 min is a gap
         assert got[3] == '<span class="v">Buoy 1.20 m</span>'      # without it, as before
+
+    def test_a_buoy_is_named_as_its_pill_names_it(self):
+        """Owner's request, 2026-10-14: wherever the page names a buoy in
+        words -- a chart's key, readout or spoken label, a gap, the observed
+        line under a past hour -- it is named as its pill is: CDIP's number
+        from whichever file carries it, NDBC's id otherwise."""
+
+        got = self._run(
+            "console.log(buoyFeed('46232'), '|', buoyFeed('46047'), '|', buoyFeed('the buoy'));\n"
+            "NOW = {station: '46232', station_cdip: '191'};\n"
+            "console.log(buoyFeed('46232'), '|', buoyFeed('46047'));\n"
+            "NOW = null; var DATA = {station: '46232', station_cdip: '191'};\n"
+            "console.log(buoyFeed('46232'));"
+        )
+        assert got == ["NDBC 46232 | NDBC 46047 | the buoy", "CDIP 191 | NDBC 46047", "CDIP 191"]
 
     def test_the_buoys_tab_draws_46086_dashed_under_46047(self):
         """Owner's request, 2026-10-12: 46086 beside 46047 on the Height
@@ -2275,9 +2293,10 @@ class TestTheWeekChart:
             "console.log((svg.match(/<path class=\"ln other alt\"/g) || []).length,"
             " (svg.match(/<path class=\"ln other\"/g) || []).length);\n"
         )
-        assert got[0] == "other|Buoy 46047,other alt|Buoy 46086"
-        assert got[1].endswith("Buoy 46047 — &middot; Buoy 46086 1.40 m at 02:50")
-        assert got[2].endswith("with Buoy 46047 and Buoy 46086's in lighter lines, "
+        assert got[0] == "other|NDBC 46047,other alt|NDBC 46086"
+        assert got[1].endswith("NDBC 46047 — &middot; NDBC 46086 1.40 m at 02:50")
+        assert got[1].startswith('<span class="v">NDBC 46232 1.20 m</span>')  # no CDIP number known
+        assert got[2] == ("NDBC 46232's height each hour, with NDBC 46047 and NDBC 46086's in lighter lines, "
                                "the second dashed, each at its own stamps.")
         assert got[3] == "1 1"
 
@@ -2307,7 +2326,7 @@ class TestTheWeekChart:
         assert got[:4] == ["other:Center,other alt:South,main:North",
                            "other:North,other alt:South,main:Center",
                            "other:North,other alt:Center,main:South",
-                           "main:Buoy 46232"]
+                           "main:NDBC 46232"]
         assert got[4] == ('<span class="v">Center 1.80 m</span> &middot; North 1.30 m'
                           ' &middot; South 0.50 m')
         assert got[5] == "South,North,Center"
@@ -3265,13 +3284,21 @@ class TestOrigin:
         name, the eye open for a tropical storm and filled for a hurricane,
         in ink, as the rest of the card's drawings are. On the fold the name
         alone links to NHC's page (owner's call, 2026-10-14); the Origins
-        chart's readout, which a finger scrubs, is never a link."""
+        chart's readout, which a finger scrubs, is never a link and carries
+        no symbol (owner's call, same day: outside the fold's styles it drew
+        page-wide, every part filled, so a tropical storm read as a
+        hurricane)."""
 
-        assert "const stormHead = (name, at, link = false) => `${stormKind(at)} `" in SOURCE
+        assert "const stormName = (name, at, link = false) => `${stormKind(at)} `" in SOURCE
         assert ('(link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>`'
-                " : name)\n  + stormSymbol(stormKind(at));") in SOURCE
-        assert "head: stormHead(h.name, s, true)," in SOURCE
-        assert "value(stormHead(n.name, n.at))" in SOURCE
+                " : name);") in SOURCE
+        assert ("const stormHead = (name, at) => stormName(name, at, true)"
+                " + stormSymbol(stormKind(at));") in SOURCE
+        assert "head: stormHead(h.name, s)," in SOURCE
+        assert "value(stormName(n.name, n.at))" in SOURCE
+        chart = SOURCE[SOURCE.index("function originsSpec("):]
+        chart = chart[:chart.index("no readable arrival this hour")]
+        assert "stormHead" not in chart and "stormSymbol" not in chart
         assert '.cond .origin .storm-sym[data-kind="hurricane"] .eye{fill:currentColor}' in SOURCE
         assert ".cond .origin .storm-sym .eye{fill:var(--card)}" in SOURCE
 
@@ -3373,7 +3400,7 @@ class TestHurricane:
         entry = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function originBody")]
         # Named for what it was when the fix that sent this train was made:
         # a hurricane, or since 2026-10-11 a tropical storm it weakened to.
-        assert "head: stormHead(h.name, s, true)," in entry
+        assert "head: stormHead(h.name, s)," in entry
         assert ('const stormKind = (at) => (at && at.strength === "tropical storm" '
                 '? "Tropical Storm" : "Hurricane");') in SOURCE
         own = SOURCE[SOURCE.index("function hurricaneEntry"):SOURCE.index("function readingEntry")]
