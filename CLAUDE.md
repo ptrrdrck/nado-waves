@@ -865,6 +865,18 @@ forecaster actually verifies against, Surfline included.
   lands ~5 h 25 min after the nominal time, the directory filling over an
   hour — so `live.fetch_latest` says the run is not published yet and which
   run it is showing, rather than printing the URL.
+- **Retry what a build loses for its whole life, not what the next
+  collection fetches again.** `common.retrying` (owner's request,
+  2026-10-15) tries the NWS grid three times and GFS-Wave's spectral tar
+  twice on a 5xx, 408/429, reset or cut stream: a failed fetch cost a whole
+  build its local chop (2026-10-12 02Z) or put it on partitions (2 of 158
+  builds). Never a 404, never a proxy's refused tunnel (BRIEFING §8,
+  `common.is_transient`), and never the tar's timeout, which at 600 s would
+  run a second try past forecast.yml's 15 minutes. KNZY, CO-OPS, NDBC's
+  spectra and the b-decks are NOT retried: each collection re-reads a
+  trailing window (6 h, 24 h, 45 days, the whole file), so a miss is filled
+  ten minutes later; NDBC's standard met and the GFS/GEFS bulletins keep
+  their own older retries.
 - **A rejected push of an append-only log re-appends; it never rebases.**
   Measured 2026-09-26: the forecast build and the shown-hours seed both
   appended to one JSONL, the rebase conflicted, and the old retry loop

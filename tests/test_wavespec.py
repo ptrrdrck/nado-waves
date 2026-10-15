@@ -173,6 +173,44 @@ class TestFetch:
             wavespec.fetch_station_spec("46232", self.CYCLE, opener=boom)
 
 
+    def _flaky(self, failures: list, payload: bytes):
+        """Raises each of `failures` in turn, then serves the payload."""
+        served = self._opener(payload)
+        calls = []
+
+        def opener(request, timeout=None):
+            calls.append(request.full_url)
+            if len(calls) <= len(failures):
+                raise failures[len(calls) - 1]
+            return served(request, timeout)
+        return opener, calls
+
+    def test_a_server_error_is_tried_again(self):
+        import urllib.error
+
+        payload = self._tar_gz({"gfswave.46232.spec": spec_text()})
+        busy = urllib.error.HTTPError("u", 503, "Service Unavailable", {}, None)
+        opener, calls = self._flaky([busy], payload)
+        waits = []
+        text, _ = wavespec.fetch_station_spec("46232", self.CYCLE, opener=opener,
+                                              sleep=waits.append)
+        assert "WAVEWATCH" in text and len(calls) == 2 and waits == [10.0]
+
+    def test_a_404_a_denial_and_a_timeout_are_not_retried(self):
+        import urllib.error
+
+        payload = self._tar_gz({"gfswave.46232.spec": spec_text()})
+        for failure in (urllib.error.HTTPError("u", 404, "Not Found", {}, None),
+                        urllib.error.URLError("Tunnel connection failed: 403 Forbidden"),
+                        TimeoutError("timed out"),
+                        urllib.error.URLError(TimeoutError("timed out"))):
+            opener, calls = self._flaky([failure], payload)
+            with pytest.raises(wavespec.WaveSpecError):
+                wavespec.fetch_station_spec("46232", self.CYCLE, opener=opener,
+                                            sleep=lambda s: None)
+            assert len(calls) == 1, failure
+
+
 class TestGridSpectrum:
     def grid(self) -> GridSpectrum:
         record = wavespec.parse_spec(spec_text())[0]
