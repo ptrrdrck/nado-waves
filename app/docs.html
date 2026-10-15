@@ -291,7 +291,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
     <section id="start-what">
       <h3>What Nado Waves is</h3>
       <p>A swell forecaster for the three breaks on Coronado Central Beach: North, Center and
-        South. All three read the same offshore buoy, buoy 46232 off Point Loma, and they get
+        South. All three read the same offshore buoy, CDIP 191 off Point Loma, and they get
         three different answers. The reason is geometric. Point Loma, the Coronado Islands and the
         Baja coast block most of the ocean from these beaches, and the gaps they leave open, the
         <em>swell windows</em>, point a different way from each spot on the sand. Walking from
@@ -384,13 +384,13 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
     <section id="chains-live">
       <h3>&ldquo;LIVE&rdquo;: measurements only</h3>
-      <p>Built from what was measured: buoy 46232's directional spectrum, the wind reported at
+      <p>Built from what was measured: CDIP 191's directional spectrum, the wind reported at
         the airfield on North Island (KNZY), and the water level at the San Diego Bay tide gauge
         (NOAA 9410170). The quotation marks are deliberate. The feeds update, but a reading is
         always some minutes old, and each card's countdown says exactly how old.</p>
       <p>It carries exactly one modelled number, the tide's next high or low, and that is labelled
         <em>predicted</em> wherever it appears. <a href="#tide-turn">Why that one</a>.</p>
-      <p>Its Buoys tab also shows two more buoys, 46086 at San Clemente Basin and 46047 at Tanner
+      <p>Its Buoys tab also shows two more buoys, NDBC 46086 at San Clemente Basin and NDBC 46047 at Tanner
         Banks, measured the same way, and a <a href="#swell-roses">rose</a> under each buoy. Nothing
         on any other tab is computed from either. <a href="#swell-tabs">Why they are there</a>.</p>
     </section>
@@ -585,7 +585,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
     <section id="calc-buoy">
       <h3><span class="num">1</span>Buoy</h3>
-      <p>Buoy 46232 publishes its spectrum every hour: for each of 64 frequency bands, the
+      <p>CDIP 191 publishes its spectrum every hour: for each of 64 frequency bands, the
         energy in that band and four numbers that describe which directions it came from. Height
         comes from the total energy:</p>
 <pre class="math">m₀ = Σ E(f)·Δf                      <span class="c">total energy over the 64 bands</span>
@@ -847,7 +847,7 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
     <section id="swell-tabs">
       <h3>Break tabs and the Buoys tab</h3>
       <p>One tab per break, ranked by how much of the buoy's energy its windows let through, with
-        the Buoys tab always last. It shows the swell at buoy 46232, 29 km offshore, with nothing in
+        the Buoys tab always last. It shows the swell at CDIP 191, 29 km offshore, with nothing in
         the way, so it is always the biggest number, and it is the one the breaks are measured
         from.</p>
       <p>On &ldquo;LIVE&rdquo;, each buoy's provenance is one line of joined pills, each
@@ -855,40 +855,41 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         was taken, then the countdown to the next. The Wind and Tide cards' provenance is the
         same line: &ldquo;METAR KNZY&rdquo;, the age and the countdown; &ldquo;NOAA
         9410170&rdquo;, the age and the countdown. On a narrow phone, where the pills do not all
-        fit, one wraps to start the next row and stands on its own. 46232's
+        fit, one wraps to start the next row and stands on its own. Point Loma South's
         station reads &ldquo;CDIP 191&rdquo;: Scripps' Coastal Data Information Program runs the
-        buoy, and its spectra reach this page through NDBC. Tanner Banks' reads &ldquo;NDBC 46047&rdquo; and San Clemente Basin's
-        &ldquo;NDBC 46086&rdquo;, as NDBC runs those buoys itself. 46232's
+        buoy, and its spectra reach this page through NDBC, which lists it as 46232. Tanner Banks' reads &ldquo;NDBC 46047&rdquo; and San Clemente Basin's
+        &ldquo;NDBC 46086&rdquo;, as NDBC runs those buoys itself. This page names every buoy
+        that way, in its charts and here. CDIP 191's
         line sits under every swell tab, the break tabs included, because every break's numbers
         come from its spectrum. The dot is green while that buoy's spectra arrive on time, fades
         in and out once the next one is due, and turns red once it is overdue. It changes exactly
         when the <a href="#swell-countdown">countdown</a> beside it says &ldquo;Update due&rdquo;
         and &ldquo;Overdue&rdquo;, from the same two instants. With reduced motion on, a due dot
         holds at half strength instead of fading.</p>
-      <p>On &ldquo;LIVE&rdquo; the Buoys tab also shows buoy 46086 at San Clemente Basin, 81 km
+      <p>On &ldquo;LIVE&rdquo; the Buoys tab also shows NDBC 46086 at San Clemente Basin, 81 km
         west-south-west. It is read the same way as 46232: the combined height of its directional
         spectrum, and its <a href="#swell-trains">swell trains</a>, with a train fed from two
         directions naming both. It is not open ocean: it sits inside the south break's window, the
-        only buoy besides 46232 that does, and outside North's and Center's. It is still not
-        carried to any break, because a buoy 81 km out is not the sea at the beach and 46232 has no
+        only buoy besides CDIP 191 that does, and outside North's and Center's. It is still not
+        carried to any break, because a buoy 81 km out is not the sea at the beach and CDIP 191 has no
         stand-in, and no number on any other tab comes from it. Its spectra are stamped every half
         hour, at :20 and :50, so it has its own observed time and its own
         <a href="#swell-countdown">countdown</a>, measured on its own readings.</p>
-      <p>Under it is buoy 46047 at Tanner Banks, 222 km west, the buoy in the array that the
+      <p>Under it is NDBC 46047 at Tanner Banks, 222 km west, the buoy in the array that the
         islands shadow least, read the same way. It is open ocean outside every break's windows,
         so it too is not carried to any break. It is there so the swell before the Channel Islands and
-        the Bight can be read beside the swell at 46232. It too stamps at :20 and :50, with its
-        own observed time and its own countdown. The Forecast tab's Buoys tab shows 46232 only,
-        because the model run is read at 46232 alone.</p>
+        the Bight can be read beside the swell at CDIP 191. It too stamps at :20 and :50, with its
+        own observed time and its own countdown. The Forecast tab's Buoys tab shows CDIP 191 only,
+        because the model run is read at CDIP 191 alone.</p>
       <p>Each buoy's headline folds out, as a break's does: tap it, or the caret at its end, and
         what sits between it and the buoy's provenance opens beneath it &mdash; its swell trains,
         and on &ldquo;LIVE&rdquo; its rose and one sentence under it: the station, linked to its
-        public page (CDIP's for 46232, which CDIP runs, and NDBC's for the other two), how far
+        public page (CDIP's for CDIP 191, and NDBC's for the other two), how far
         offshore it is and its bearing from Center break, both worked out from NDBC's position for
-        the buoy, then what is read from it and what it is for here. It is closed until opened, except 46232's, which opens
+        the buoy, then what is read from it and what it is for here. It is closed until opened, except CDIP 191's, which opens
         whenever the Buoys tab is selected. Each buoy opens on its
         own, and the page keeps them as the reader left them across a refresh. On the Forecast
-        tab it folds 46232's trains; the observed line under a past hour stays out of it, as it
+        tab it folds CDIP 191's trains; the observed line under a past hour stays out of it, as it
         does on a break's tab.</p>
     </section>
 
@@ -951,7 +952,7 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
       <p>On &ldquo;LIVE&rdquo;, under each buoy's reading on the Buoys tab, a rose drawn from
         that buoy's spectrum. Each petal points where its energy comes from, one petal for each of
         the sixteen compass points, 22.5&deg; wide. A new rose is drawn for every spectrum: hourly
-        at 46232, every half hour at 46047 and 46086. Each rose opens paused on the newest, the spectrum
+        at CDIP 191, every half hour at NDBC 46047 and NDBC 46086. Each rose opens paused on the newest, the spectrum
         its headline reads, whenever it comes into view; the play button runs the last six hours
         of them in a loop, then the newest holds. One clock drives every rose, so all of them always show the same moment. The line
         under each rose is those six hours, with a tick for every spectrum that buoy sent; a
@@ -981,13 +982,13 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         from one spectrum to the next, so in an older frame the range may hold part of another.
         Tap the row again to clear it; a new spectrum clears it too, since its trains are new.</p>
       <p>A petal is the height of one compass point's energy alone, so a swell spread over
-        several points shows petals well under the combined height: on 7 October 46232 read
+        several points shows petals well under the combined height: on 7 October CDIP 191 read
         3 ft combined, spread over seven to ten points, its largest petal 1.8 ft.</p>
       <p class="see">A rose is the direction-reading method's picture of four numbers per
         frequency, not a measurement at each bearing, and it is the same reading the trains above
-        it come from. 46047's spread reads broader than 46232's, so its petals spread over more
+        it come from. NDBC 46047's spread reads broader than CDIP 191's, so its petals spread over more
         compass points. The two buoys can also point one swell different ways for a real reason:
-        46232 sits behind the Channel Islands, 46047 in the open ocean before them. Neither rose is
+        CDIP 191 sits behind the Channel Islands, NDBC 46047 in the open ocean before them. Neither rose is
         carried to a break.</p>
     </section>
 
@@ -1012,11 +1013,11 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         followed from hour to hour. A peak that moves steadily to shorter periods for at least
         12 hours, starting at 13 seconds or longer, on a line straight enough to read
         (R&sup2; of 0.8 or more), is a readable arrival.</p>
-      <p>The direction is read where the sea is open: at 46047, Tanner Banks. Never at 46232
+      <p>The direction is read where the sea is open: at NDBC 46047, Tanner Banks. Never at CDIP 191
         itself: on a north-west swell it reads two directions at once, a westerly one held near
-        270&deg; and the south's, and their average falls 50 to 74&deg; too far south. Nor at 46086
+        270&deg; and the south's, and their average falls 50 to 74&deg; too far south. Nor at NDBC 46086
         in the San Clemente Basin, which is open to the south but holds a north-west swell near
-        279&deg; whatever its real direction. And not at 46047 either when its energy at that
+        279&deg; whatever its real direction. And not at NDBC 46047 either when its energy at that
         period comes from two directions, each at least 15% of it: which one is the arrival's is not
         known, and their average would point between them. An arrival with no direction read gets a
         distance and a date and no place.</p>
@@ -1026,14 +1027,14 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         and each is the same run of parts in the same order: a part with nothing to say is left
         out, and nothing is reworded. The head says what it is: a hurricane or tropical storm by
         name, the name linking to the National Hurricane Center's page for it, with its track and
-        map; a sea; or an <b>unplaced storm</b>, either because 46047 has the train from several
-        directions at once or because 46047 does not have the train at all. The paragraph opens
+        map; a sea; or an <b>unplaced storm</b>, either because NDBC 46047 has the train from several
+        directions at once or because NDBC 46047 does not have the train at all. The paragraph opens
         with one sentence: the train, the day it was sent, and how far away the storm was. A
         reading's day is &ldquo;about&rdquo;, because it is fitted off the swell like the distance;
         a named storm's is the time of NHC's position. The next sentence says where the direction
         comes from. For a named storm it is NHC: where NHC had it, by bearing in degrees and compass
         point, and its winds and central pressure at that time, when it sent the train, which
-        may not be what they are now. For a reading it names 46047 and says what it holds: the train from one bearing; the
+        may not be what they are now. For a reading it names NDBC 46047 and says what it holds: the train from one bearing; the
         train from every one of several, so no place is given; or not the train at all, so no
         place is given. Then, for a named storm, how long its swell has been arriving, by its track, at
         the buoy where it has been arriving longest. How well that track agrees with the swell is
@@ -1046,13 +1047,13 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         last storm named there, as it was last named, its paragraph ending with the day that train
         arrived, with no hours. A named storm's name is followed by its symbol, the eye open for a
         tropical storm and filled for a hurricane. No sources are listed under the entries: every
-        train is read off 46232's spectrum, a named storm's too; a reading's storm is then read
-        backwards from it, with its direction from 46047; a named storm's position, winds and
+        train is read off CDIP 191's spectrum, a named storm's too; a reading's storm is then read
+        backwards from it, with its direction from NDBC 46047; a named storm's position, winds and
         pressure are NHC's best track, an analysis; and each is described in this section.</p>
       <p class="see">How far the distance can be taken. The same storm read independently at two
         buoys gives distances about a fifth apart at the median: 18% between six Southern
         California buoys and buoys 1,000 to 4,000 km up the swell's path (2023&ndash;2025), and
-        25% between 46232 and 46047, 46086 and 46258 (August to October 2026). So the card rounds
+        25% between CDIP 191 and NDBC 46047, NDBC 46086 and NDBC 46258 (August to October 2026). So the card rounds
         to the nearest 500 miles and 500 km, says &ldquo;about&rdquo;, and names a sea rather than
         a point. A storm is an area that moves, and one running toward the coast while it blows
         reads nearer than it was. The version this grew out of also said which buoys upstream
@@ -1075,7 +1076,7 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         classes the storm a tropical storm, with open water to the buoy, says when each period
         of its swell must arrive: a hurricane that weakens goes on sending swell, and stays
         named for it; a storm that never reached hurricane strength is not. Positions whose
-        path crosses the Baja peninsula or the mainland are dropped. As of the newest spectrum, the energy 46047 or 46086 measured
+        path crosses the Baja peninsula or the mainland are dropped. As of the newest spectrum, the energy NDBC 46047 or NDBC 46086 measured
         from the storm's direction on that schedule is set against the same storm's schedule
         moved back in time, every 12 hours up to 30 days, when its swell was not arriving. The
         <b>match</b> is the share of those earlier moments it beats on both counts: more energy on
@@ -1111,10 +1112,10 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         not a measurement.</p>
       <p class="see">What the words are worth. Asked every six hours from August to 10 October
         2026 as of each moment, counting each storm's tropical storm days after it had been a
-        hurricane, the card would have named Marie (4 to 10 September; strong at 46086 by the
-        6th, partial at best at 46047, 80%), Polo (27 to 30 September, partial at best, 78%),
+        hurricane, the card would have named Marie (4 to 10 September; strong at NDBC 46086 by the
+        6th, partial at best at NDBC 46047, 80%), Polo (27 to 30 September, partial at best, 78%),
         Odalys (26 to 29 September, partial at best, 82%) and Rachel (5 to 10 October; strong at
-        46086, partial at best at 46047, 79%). The same question asked of every track moved 8 to
+        NDBC 46086, partial at best at NDBC 46047, 79%). The same question asked of every track moved 8 to
         24 days later, where its swell was not, named 17 of 74 such tracks at some moment: 15
         reached partial and 7 strong. By moment, 3% of a misplaced track's are named against 13%
         of a real one's. The two strong ones in the first count, on 3 October, sat on another
@@ -1141,9 +1142,9 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
       <div class="tablebox"><table>
         <thead><tr><th>Source</th><th>Publishes</th><th>Typical lag</th><th>Late after</th><th>Reading at 12:00 PM, next due</th></tr></thead>
         <tbody>
-          <tr><th scope="row">Swell, buoy 46232</th><td>hourly, stamped :00</td><td class="num">15 min</td><td class="num">36 min</td><td>1:15 PM, red after 1:45 PM</td></tr>
-          <tr><th scope="row">Swell, buoy 46086 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">115 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:45 PM</td></tr>
-          <tr><th scope="row">Swell, buoy 46047 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">85 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:15 PM</td></tr>
+          <tr><th scope="row">Swell, CDIP 191</th><td>hourly, stamped :00</td><td class="num">15 min</td><td class="num">36 min</td><td>1:15 PM, red after 1:45 PM</td></tr>
+          <tr><th scope="row">Swell, NDBC 46086 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">115 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:45 PM</td></tr>
+          <tr><th scope="row">Swell, NDBC 46047 (Buoys tab)</th><td>half-hourly, stamped :20 and :50</td><td class="num">25 min</td><td class="num">85 min</td><td>(12:20 PM reading) 1:15 PM, red after 2:15 PM</td></tr>
           <tr><th scope="row">Wind, KNZY</th><td>hourly at :52</td><td class="num">3 min</td><td class="num">4 min</td><td>(11:52 AM reading) 12:55 PM, red after 1:05 PM</td></tr>
           <tr><th scope="row">Tide, 9410170</th><td>every 6 min</td><td class="num">5 min</td><td class="num">8 min</td><td>12:15 PM</td></tr>
         </tbody></table></div>
@@ -1327,7 +1328,7 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
 
     <section id="time-observed">
       <h3>The blue &ldquo;Observed at&rdquo; line</h3>
-      <p>The <span class="measured-ink">blue line</span> under it is what buoy 46232 measured at
+      <p>The <span class="measured-ink">blue line</span> under it is what CDIP 191 measured at
         that hour, carried in by the same chain the &ldquo;LIVE&rdquo; tab uses: the same windows,
         seabed and surf zone, with the airfield's wind and the gauge's water level from that hour.
         It is labelled &ldquo;Observed at 8:00 AM&rdquo; with its hour, and the tide's reads
@@ -1368,7 +1369,7 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
 
     <section id="charts-live-swell" data-from="info: the charts under each LIVE card">
       <h3>&ldquo;LIVE&rdquo;: the Swell charts</h3>
-      <p>Buoy 46232's own spectrum at every hour, carried in
+      <p>CDIP 191's own spectrum at every hour, carried in
         by the same chain as the reading above them. They open on the last day;
         zoom and pan them to go back to the start of the buoy's archive
         (4 August 2026). Every hour is rebuilt with today's windows,
@@ -1386,11 +1387,11 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
         <dt>Height</dt><dd>The break's breaking height, with the other two breaks' in lighter
           lines under it, the more southern of the two dashed, so the three can be compared at a
           glance on one axis. On the buoy's tab, the buoy's own height, and under it in a lighter
-          line buoy 46047's, Tanner Banks, and in a lighter dashed one buoy 46086's, San Clemente
+          line NDBC 46047's, Tanner Banks, and in a lighter dashed one NDBC 46086's, San Clemente
           Basin, each at its own readings: they measure at :20 and :50 past the hour, so each is
-          drawn where it was taken and read out with its own time, never moved onto 46232's hour.
-          A missing reading is a gap in its line. 46047 is the open ocean before the Channel
-          Islands, 46086 sits in the south break's window, and neither is carried to a break.</dd>
+          drawn where it was taken and read out with its own time, never moved onto CDIP 191's hour.
+          A missing reading is a gap in its line. NDBC 46047 is the open ocean before the Channel
+          Islands, NDBC 46086 sits in the south break's window, and neither is carried to a break.</dd>
         <dt>Window</dt><dd>A break's height through its windows as a share of the buoy's,
           before the seabed: the <a href="#calc-windows">Windows row</a>. Under it, a dot for each
           hour marks where the buoy's peak came from, over the break's open windows shaded. The
@@ -1409,7 +1410,7 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
           own trains, as on the card; and an arrival is drawn as the storm, not as a bar, where
           the storm's train at that tab is the arrival's own and Origin read it from within
           45&deg; of the storm. Under it, the bearing each came from, as seen from the buoy,
-          never tested against the windows. A moment with no 46232 spectrum, such as the outage
+          never tested against the windows. A moment with no CDIP 191 spectrum, such as the outage
           of 1 to 17 September, places a named storm on no tab, so Marie's swell, which arrived
           then, is not on this chart. Rebuilt with today's chain like the rest: the whole archive
           once a day, the newest hours with every collection.</dd>
@@ -1459,7 +1460,7 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
       <dl class="terms">
         <dt>Forecast + Observed</dt><dd>The newest GFS-Wave run's line over what each of the last
           eight runs said for the same hours, as the page showed them, and beside the hours that
-          have passed, buoy 46232 carried in by the same chain, in blue. Where the run lines bunch,
+          have passed, CDIP 191 carried in by the same chain, in blue. Where the run lines bunch,
           the runs agree; where they fan out, the model has been changing its mind. Runs agreeing
           is not the same as being right, and the spread between them is not a range the swell
           will fall in.</dd>
@@ -1474,7 +1475,7 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
           and the shading one standard deviation either side, beside the newest GFS-Wave run and
           the blue line. It is total height at the buoy with no direction, so it cannot be carried
           through a break's windows and says nothing about the beach. The chart states how often
-          buoy 46232 has fallen inside the shading, per lead time, over which dates and how many
+          CDIP 191 has fallen inside the shading, per lead time, over which dates and how many
           hours. So far that is far less often than a range that size would imply, because the
           members agree with each other more closely than any of them agrees with the sea, and
           their mean runs above the buoy. Nothing has been removed from it or added to it to make
@@ -1521,8 +1522,8 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
       <div class="tablebox"><table>
         <thead><tr><th>Source</th><th>What</th><th>Feeds</th></tr></thead>
         <tbody>
-          <tr><th scope="row">NDBC buoy 46232, Point Loma South</th><td>Hourly directional spectrum, 64 bands; position from NDBC's metadata</td><td>&ldquo;LIVE&rdquo; swell and its Origin, every chart's buoy line, the blue line</td></tr>
-          <tr><th scope="row">NDBC buoys 46047 and 46086, Tanner Banks and San Clemente Basin</th><td>Hourly directional spectra</td><td>Origin's direction (46047), the hurricane match (both)</td></tr>
+          <tr><th scope="row">CDIP 191, Point Loma South (served by NDBC as 46232)</th><td>Hourly directional spectrum, 64 bands; position from NDBC's metadata</td><td>&ldquo;LIVE&rdquo; swell and its Origin, every chart's buoy line, the blue line</td></tr>
+          <tr><th scope="row">NDBC 46047 and NDBC 46086, Tanner Banks and San Clemente Basin</th><td>Hourly directional spectra</td><td>Origin's direction (NDBC 46047), the hurricane match (both)</td></tr>
           <tr><th scope="row">KNZY, NAS North Island</th><td>Hourly airfield report (METAR)</td><td>&ldquo;LIVE&rdquo; wind, local chop, Shore direction</td></tr>
           <tr><th scope="row">NOAA tide gauge 9410170, San Diego</th><td>6-minute measured level, hourly prediction, predicted highs and lows, harmonic constants</td><td>Tide card and its phase, breaking depth, departure</td></tr>
           <tr><th scope="row">GFS-Wave (WAVEWATCH III), NOAA</th><td>The model's own directional spectrum and 10 m wind at the buoy, four runs a day</td><td>Forecast swell</td></tr>
@@ -1549,9 +1550,9 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
 
     <section id="sources-dark">
       <h3>When a source goes dark</h3>
-      <p>Buoy 46232 went silent for 16 days in September 2026 and nobody knows why. When a source
+      <p>CDIP 191 went silent for 16 days in September 2026 and nobody knows why. When a source
         stops, its card's countdown runs out and turns red, its chart lines break, and nothing is
-        filled in. No other buoy can stand in: 46232 is the only one in the array that sits
+        filled in. No other buoy can stand in: CDIP 191 is the only one in the array that sits
         inside Coronado's windows. If there is no current observation at all, the
         &ldquo;LIVE&rdquo; tab says so and points at the Forecast tab.</p>
       <div class="next"><a href="#confidence">Next: Confidence and verification &rarr;</a></div>
@@ -1703,7 +1704,8 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
         aperture.</dd>
       <dt>CoNED</dt><dd>The USGS Coastal National Elevation Database, a seamless survey of land and
         seabed.</dd>
-      <dt>46232, KNZY, 9410170</dt><dd>The buoy, the airfield and the tide gauge.</dd>
+      <dt>CDIP 191, KNZY, 9410170</dt><dd>The buoy, the airfield and the tide gauge. CDIP 191 is
+        the buoy NDBC lists as 46232; NDBC 46047 and NDBC 46086 are the Buoys tab's other two.</dd>
     </dl>
     <p class="foot">This page is built from the same files as the forecast page: the drawings from
       the geometry the forecast reads, and the &ldquo;standing on&rdquo; blocks from each tab's own
@@ -1745,6 +1747,9 @@ const BUOYS_SOURCE = PARAM.get("buoys") || "../data/live/buoys.json";
 // Filled by forecast.geomviz from spots.json at publish time. Null in the
 // unbuilt template, and every drawing then says so instead of drawing.
 const MODEL = /*__MODEL__*/null;
+// The anchor buoy as the live page's pill names it, "CDIP 191" from the
+// registry, NDBC's id without one (owner's request, 2026-10-14).
+const buoyLabel = () => (MODEL.buoy.cdip ? `CDIP ${MODEL.buoy.cdip}` : `NDBC ${MODEL.buoy.id}`);
 
 const $ = (id) => document.getElementById(id);
 // Display units only: imperial leads, metric in parentheses.
@@ -2424,8 +2429,8 @@ function geoMap(box, opts = {}) {
       const [x, y] = S(MODEL.buoy.position);
       el("path", {d: `M${x},${y - 8} L${x + 7},${y + 5} L${x - 7},${y + 5} Z`, fill: cssv("--surf"), stroke: cssv("--sea"), "stroke-width": 1.5}, g.mark);
       const hit = el("circle", {cx: x, cy: y, r: 12, fill: "transparent"}, g.mark);
-      hoverable(hit, `<b>Buoy ${MODEL.buoy.id}</b><br>the anchor spectrum; position from NDBC metadata<br><span class="coord">${fmtLL(MODEL.buoy.position)}</span>`);
-      label(MODEL.buoy.position, `buoy ${MODEL.buoy.id}`, 10, 4, "t-soft");
+      hoverable(hit, `<b>${buoyLabel()}</b><br>the anchor spectrum; position from NDBC metadata<br><span class="coord">${fmtLL(MODEL.buoy.position)}</span>`);
+      label(MODEL.buoy.position, buoyLabel(), 10, 4, "t-soft");
     }
 
     for (const b of MODEL.breaks) {
@@ -2536,7 +2541,7 @@ if (full) {
     `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 4"/></svg>the edge carried on past it</span>`,
     `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--land-edge)"/></svg>charted vertex (NOAA ENC)</span>`,
     `<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="var(--land-edge)" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/></svg>land continues</span>`,
-    `<span><svg width="14" height="14"><path d="M7,1 L13,12 L1,12 Z" fill="var(--surf)"/></svg>buoy ${MODEL.buoy.id}</span>`,
+    `<span><svg width="14" height="14"><path d="M7,1 L13,12 L1,12 Z" fill="var(--surf)"/></svg>${buoyLabel()}</span>`,
     ...(MODEL.breaks.some((b) => b.source === "imagery")
       ? [`<span><svg width="14" height="14"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-dasharray="2 2"/></svg>traced from imagery</span>`] : []),
   ].join("");

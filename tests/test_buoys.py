@@ -521,7 +521,7 @@ class TestTheProvenancePills:
         assert ".cond .buoy-note{font-size:15px}" in PAGE
         assert ".buoy-note .unit{white-space:nowrap}" in PAGE
         assert ".buoy-fold .rose-none{margin:8px 0 4px}" in PAGE
-        assert ('return `<p class="quiet buoy-note rose-none">No spectrum from ${station}'
+        assert ('return `<p class="quiet buoy-note rose-none">No spectrum from ${buoyFeed(station)}'
                 ' in the last six hours.</p>`;') in _fn("roseBlock")
 
 

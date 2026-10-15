@@ -27,6 +27,7 @@ from pathlib import Path
 
 from collector.common import DEFAULT_DATA_DIR
 from .geometry import SEAWARD, Blocker, Spot, load, swell_windows
+from .live import cdip_id
 from .swell import great_circle_km, initial_bearing
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "app" / "docs.html"
@@ -116,7 +117,9 @@ def build(spots_path: Path | None = None, data_dir: Path = DEFAULT_DATA_DIR,
     return {
         "breaks": breaks,
         "blockers": out_blockers,
-        "buoy": {"id": BUOY, "position": buoy_position(data_dir)},
+        # Named as the live page's pill names it, "CDIP 191", by the registry's
+        # number (owner's request, 2026-10-14); NDBC's id when it has none.
+        "buoy": {"id": BUOY, "cdip": cdip_id(BUOY), "position": buoy_position(data_dir)},
         "distances": distances(breaks, by_name, buoy_position(data_dir)),
     }
 

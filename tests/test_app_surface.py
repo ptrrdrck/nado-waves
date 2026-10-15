@@ -1253,7 +1253,8 @@ class TestTheBreaksAreTabsOfTheSwellCard:
         assert card.index("rankByEnergy(cards") < card.index("tabs.push({id: BUOY_TAB")
 
     def test_the_buoy_tab_is_titled_from_the_file_not_typed(self):
-        assert "const main = feedName(station, NOW && NOW.station === station ? NOW.station_cdip : \"\");" in SOURCE
+        assert "const main = buoyFeed(station);" in SOURCE
+        assert "const station = buoyFeed(DATA.station) || \"the buoy\";" in SOURCE
         assert "`Buoy ${station}`" not in SOURCE
         assert "station: NOW && NOW.station" in SOURCE
         assert "station: DATA.station" in SOURCE
@@ -2256,6 +2257,21 @@ class TestTheWeekChart:
         assert got[1].startswith('<span class="v">CDIP 191 1.20 m</span>')
         assert got[2] == "2 3"                                     # 60 to 150 min is a gap
         assert got[3] == '<span class="v">Buoy 1.20 m</span>'      # without it, as before
+
+    def test_a_buoy_is_named_as_its_pill_names_it(self):
+        """Owner's request, 2026-10-14: wherever the page names a buoy in
+        words -- a chart's key, readout or spoken label, a gap, the observed
+        line under a past hour -- it is named as its pill is: CDIP's number
+        from whichever file carries it, NDBC's id otherwise."""
+
+        got = self._run(
+            "console.log(buoyFeed('46232'), '|', buoyFeed('46047'), '|', buoyFeed('the buoy'));\n"
+            "NOW = {station: '46232', station_cdip: '191'};\n"
+            "console.log(buoyFeed('46232'), '|', buoyFeed('46047'));\n"
+            "NOW = null; var DATA = {station: '46232', station_cdip: '191'};\n"
+            "console.log(buoyFeed('46232'));"
+        )
+        assert got == ["NDBC 46232 | NDBC 46047 | the buoy", "CDIP 191 | NDBC 46047", "CDIP 191"]
 
     def test_the_buoys_tab_draws_46086_dashed_under_46047(self):
         """Owner's request, 2026-10-12: 46086 beside 46047 on the Height

@@ -390,8 +390,10 @@ forecaster actually verifies against, Surfline included.
    from `buoys.json`'s `heights` (the week) and `buoys_all.json` (every
    archived stamp, fetched with series_all.json). Each line, in its key
    and readout, is named as its pill names it — "CDIP 191", "NDBC 46047",
-   "NDBC 46086" (`feedName`; owner's request, 2026-10-14), never
-   "Buoy 46232". Its height is
+   "NDBC 46086" (owner's request, 2026-10-14), never "Buoy 46232"; and so
+   is every buoy the page or docs.html names in words (`buoyFeed`, the CDIP
+   number from now.json or forecast.json; the geometry drawing's from
+   `geomviz`'s registry lookup). Its height is
    `transform.combined_hs`: `at_buoy`'s m0 to rounding (a test pins it)
    without the trains, MEM's bins summing to one by its pole test alone
    (`spreadmethod.realisable`) — 0.7 s for two months, where `at_buoy` took
