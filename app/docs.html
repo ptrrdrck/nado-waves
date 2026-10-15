@@ -774,8 +774,8 @@ chop and swell add in energy:
           over that short stretch. When it runs out to open sea, the buoy's spectrum already holds
           the wind sea made upwind of it, so only the extra growth over the water <em>between</em>
           the buoy and the break is added. Adding a whole fresh sea there would count it twice.</p></div>
-      <p>On the Forecast tab the wind is the National Weather Service's forecast at Coronado, and
-        the calculation row says whose wind it used.</p>
+      <p>On the &ldquo;LIVE&rdquo; tab the wind is KNZY's; on the Forecast tab it is the National
+        Weather Service's forecast at Coronado.</p>
     </section>
 
     <section id="calc-break">
@@ -818,8 +818,8 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         above. <b>Change</b> is what that step added or took away, <b>%</b> is that change as a share of
         the row before, and <b>Hs</b> is the height after it. Read down, the last row is the
         headline. A step whose row is missing was not in the build that made that hour.</p>
-      <p>The Local chop row names the chop's period, its kind (behind land, or open water) and
-        whose wind made it. The last row is the breaking height at the tide of that hour.</p>
+      <p>The Local chop row names the chop's period and the fetch it grew over: behind land, the
+        water to the land upwind; over open water, the reach between the buoy and the break. The last row is the breaking height at the tide of that hour.</p>
     </section>
 
     <section id="calc-not">
@@ -2129,8 +2129,10 @@ function workedTable(id) {
   row("Diffraction", e.diffracted_hs_m, e.refracted_hs_m);
   row("Bottom friction", e.friction_hs_m, e.diffracted_hs_m);
   row("Shoaling", e.shoaled_hs_m, e.friction_hs_m, "to 16 ft (5.0 m)");
+  const fetchMi = (km) => (km / KM_PER_MI < 10 ? (km / KM_PER_MI).toFixed(1) : Math.round(km / KM_PER_MI));
+  const fetchKm = (km) => (km < 10 ? km.toFixed(1) : Math.round(km));
   row("Local chop", e.with_chop_hs_m, e.shoaled_hs_m,
-    `${e.local.tp_s.toFixed(1)} s, ${e.local.fetch === "open" ? "open water" : "behind land"}, ${e.local.wind} wind`);
+    `${e.local.tp_s.toFixed(1)} s, ${fetchMi(e.local.fetch_km)} mi (${fetchKm(e.local.fetch_km)} km) of fetch`);
   const depth = `${Math.round(k.depth_m * FT_PER_M)} ft (${k.depth_m.toFixed(1)} m)`;
   row("Wave break", k.hs_m, e.with_chop_hs_m, `at ${depth} depth`);
   $("worked-table").innerHTML = `<table><thead><tr><th scope="col">Step</th><th scope="col">Change</th>`

@@ -2040,6 +2040,12 @@ function pct(to, from) {
   return `${p > 0 ? "+" : p < 0 ? "\u2212" : ""}${v.replace("-", "")}%`;
 }
 
+// A fetch, miles first: tenths below 10, whole past it.
+const fetchText = (km) => {
+  const f = (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v)));
+  return `${f(km * MI_PER_KM)} mi (${f(km)} km)`;
+};
+
 // How the headline was made from the buoy's reading, one effect per row:
 // what it changes the height by, that change as a share of the step before,
 // and the height it leaves. Folds out under the headline from the caret at
@@ -2090,13 +2096,12 @@ function calculationTable(c) {
   // takes, but without its row the column would not arrive at the headline.
   const withChop = e.with_chop_hs_m != null ? e.with_chop_hs_m : n.hs_m;
   if (e.local && withChop != null) {
-    // What kind of chop, and whose wind made it: fresh behind land, or grown
-    // on over the open water between the buoy and the break; KNZY's wind on
-    // the observed chain, the local forecast's (or, without one, the model's
-    // at the buoy) on the forecast. Absent from a payload built before.
-    const kind = e.local.fetch === "open" ? "open water" : e.local.fetch === "closed" ? "behind land" : "";
-    const note = [`${e.local.tp_s.toFixed(1)} s`, kind, e.local.wind ? `${e.local.wind} wind` : ""]
-      .filter(Boolean).join(", ");
+    // The chop's period and the fetch it grew over (owner's call, 2026-10-15:
+    // its kind and whose wind are on docs.html, not in the row). Behind land
+    // that is the water to the land upwind; over open water, the reach
+    // between the buoy and the break it was grown on by.
+    const fetch = e.local.fetch_km != null ? `${fetchText(e.local.fetch_km)} of fetch` : "";
+    const note = [`${e.local.tp_s.toFixed(1)} s`, fetch].filter(Boolean).join(", ");
     row("Local chop", withChop, e.shoaled_hs_m, {note});
   }
   // Then in to where it breaks, at this tide (forecast.surfzone). Already

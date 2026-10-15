@@ -152,8 +152,9 @@ forecaster actually verifies against, Surfline included.
    §36) — grown on by equivalent fetch over the OPEN water between the buoy
    and the break, which the buoy's spectrum never saw. Its wind is the local
    one on both chains: KNZY on Now, the NWS grid on Forecast (GFS-Wave's
-   buoy wind only for an hour the grid lacks, and the calculation row says
-   whose).
+   buoy wind only for an hour the grid lacks). The calculation's Local chop
+   row reads "<period> s, <fetch> of fetch" (owner's call, 2026-10-15): its
+   kind and whose wind are on docs.html, not in the row.
    **Then the surf zone, SHIPPED 2026-09-26** (BRIEFING §32):
    `forecast/surfzone.py` carries that sea from 5 m in over each break's
    surveyed profile (`<break>_profile.csv`, the 2016 CoNED beach, not this
