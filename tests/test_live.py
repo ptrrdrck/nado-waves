@@ -493,3 +493,27 @@ class TestLocalChopTakesTheLocalWind:
         assert local["hs_m"] > 0.05
         # 30° blows off the land: no chop reaches the beach.
         assert (offshore.nearshore.get("effects") or {}).get("local") is None
+
+    def test_an_hour_without_the_nws_wind_has_no_local_chop(self):
+        """The model's wind at the buoy never stands in for the local one
+        (owner's call, 2026-10-15): 29 km out it overstates Point Loma's lee
+        and cannot see the near-shore wind the open-water growth is for."""
+        from collector.wavespec import SpecRecord
+
+        # The model's own spectrum, so the hour carries the model's wind: a
+        # 15 s swell from the south-west and 20 kt from 250°, onshore at every
+        # break (the partitions' path has no wind to tempt it).
+        freqs = [0.04 + 0.005 * i for i in range(30)]
+        dirs = [float(d) for d in range(0, 360, 10)]
+        energy = [[(0.3 if d == 210.0 and abs(f - 1 / 15) < 0.004 else 0.0) for f in freqs]
+                  for d in dirs]
+        spectra = {CYCLE + timedelta(hours=h): SpecRecord(
+            time=CYCLE + timedelta(hours=h), energy=energy, directions=dirs,
+            frequencies=freqs, depth_m=200.0, wind_speed_ms=10.3, wind_from_deg=250.0,
+            current_ms=0.0, current_toward_deg=0.0) for h in range(3)}
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, spectra=spectra,
+                         local_wind={"available": False, "why": "api.weather.gov: HTTP 503"})
+        hours = [h for b in got.breaks for h in b.hours if h.nearshore]
+        if not hours:
+            pytest.skip("no nearshore tables in this checkout")
+        assert all((h.nearshore.get("effects") or {}).get("local") is None for h in hours)

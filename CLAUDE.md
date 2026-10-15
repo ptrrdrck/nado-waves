@@ -151,8 +151,10 @@ forecaster actually verifies against, Surfline included.
    fetches closed by land, and — since 2026-09-30 (owner's point, BRIEFING
    §36) — grown on by equivalent fetch over the OPEN water between the buoy
    and the break, which the buoy's spectrum never saw. Its wind is the local
-   one on both chains: KNZY on Now, the NWS grid on Forecast (GFS-Wave's
-   buoy wind only for an hour the grid lacks). The calculation's Local chop
+   one on both chains: KNZY on Now, the NWS grid on Forecast, and an hour
+   the grid lacks has NO local chop (owner's call, 2026-10-15: GFS-Wave's
+   wind at the buoy, 29 km out, overstated Point Loma's lee and could not see
+   the near-shore wind the open growth is for). The calculation's Local chop
    row reads "<period> s, <fetch> of fetch" (owner's call, 2026-10-15): its
    kind and whose wind are on docs.html, not in the row.
    **Then the surf zone, SHIPPED 2026-09-26** (BRIEFING §32):
