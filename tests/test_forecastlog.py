@@ -166,6 +166,24 @@ class TestTheShownLog:
         assert by["2026-09-26T03:00:00Z"]["detail"]["buoy"]["hs_m"] == 1.0
         assert by["2026-09-26T06:00:00Z"]["detail"] is None
 
+    def test_a_past_hour_keeps_the_nws_update_its_build_read(self, tmp_path):
+        """The Local wind's "Updated" pill under a past hour names the NWS
+        grid update THAT build read (owner's request, 2026-10-15), and a build
+        that kept none gives none -- never today's."""
+
+        early = forecast(CYCLE - timedelta(hours=6), GENERATED - timedelta(hours=6), hours=30)
+        early["local_wind"] = {"office": "SGX", "updated_utc": "2026-09-25T22:15:00Z"}
+        late = forecast(CYCLE, GENERATED, hours=24)
+        for f in (early, late):
+            forecastlog.append(f, tmp_path / "log")
+            forecastlog.append_shown(f, tmp_path / "shown")
+        past = forecastlog.past_hours(
+            forecastlog.read(tmp_path / "log"), stamp(GENERATED + timedelta(hours=9)),
+            shown=forecastlog.read_shown(tmp_path / "shown"))
+        by = {p["valid_utc"]: p for p in past}
+        assert by["2026-09-26T03:00:00Z"]["detail"]["local_wind_updated_utc"] == "2026-09-25T22:15:00Z"
+        assert by["2026-09-26T06:00:00Z"]["detail"]["local_wind_updated_utc"] is None
+
     def test_old_months_are_not_opened(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         (tmp_path / "2026-07.jsonl").write_text("not json\n")

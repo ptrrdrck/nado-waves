@@ -866,6 +866,19 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         when the <a href="#swell-countdown">countdown</a> beside it says &ldquo;Update due&rdquo;
         and &ldquo;Overdue&rdquo;, from the same two instants. With reduced motion on, a due dot
         holds at half strength instead of fading.</p>
+      <p>On Forecast, every card's provenance is the same line of joined pills, with no dot and
+        no countdown, because a model run is not a feed arriving on a clock. The swell, and the
+        model's wind at the buoy: the buoy the model is read at, &ldquo;CDIP 191&rdquo;, then
+        &ldquo;GFS-Wave&rdquo;, then the run and how far ahead of the hour it was made, as in
+        &ldquo;Oct 15 at 5:00 AM, 9 h ahead&rdquo;. When the model's full directional spectrum
+        could not be fetched for a run, the forecast is built from the model's summary of its
+        separate swell trains instead, each given an assumed spread, and the middle pill reads
+        &ldquo;GFS-Wave partitions&rdquo;. The local wind: &ldquo;NWS&rdquo;, the forecast grid
+        cell, then when the National Weather Service last updated that grid, which under a past
+        hour is the update the build that showed it read. The tide: &ldquo;NOAA 9410170&rdquo;,
+        &ldquo;Harmonic&rdquo;, then the gauge's departure correction the hour carries, or
+        &ldquo;No departure correction&rdquo;. The hour itself is the one in the bar above the
+        cards.</p>
       <p>On &ldquo;LIVE&rdquo; the Buoys tab also shows NDBC 46086 at San Clemente Basin, 81 km
         west-south-west. It is read the same way as 46232: the combined height of its directional
         spectrum, and its <a href="#swell-trains">swell trains</a>, with a train fed from two
@@ -1168,7 +1181,10 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
           wind.</dd>
         <dt>Local</dt><dd>The National Weather Service's forecast grid at the center break,
           hourly for 7 days. On the Forecast tab it is the wind on the sand, and the
-          offshore/onshore line comes from it.</dd>
+          offshore/onshore line comes from it. For an upcoming hour the grid does not cover,
+          KNZY's latest report stands in here, named as an observation with its time and age,
+          because it is the wind on the sand too. It never stands in for the model's wind at the
+          buoy, and never under a past hour.</dd>
         <dt>GFS-Wave</dt><dd>The wave model's own wind at the buoy, 29 km offshore. Kept on the
           Forecast card because it is the wind the model grows its wind sea from, never used for
           the offshore/onshore line.</dd>
@@ -1225,9 +1241,9 @@ open coast (MSL) = −0.024 + 0.944 × (bay − MSL)      <span class="c">what b
 <span class="c">worked hour: the gauge read 2.005 m above MLLW; MSL is 0.897 m above MLLW there</span>
 card       0.944 × 2.005 = 1.893 m                   → 6.2 ft (1.89 m)
 breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level</pre>
-      <p>On &ldquo;LIVE&rdquo; the provenance names the gauge the reading was carried from,
-        NOAA 9410170; on Forecast the source line
-        names both. The countdown keeps the gauge's own time.</p>
+      <p>On both tabs the card's numbers are the open coast's, carried from NOAA 9410170, and
+        the provenance names that gauge. On &ldquo;LIVE&rdquo; the countdown keeps the gauge's own
+        time.</p>
     </section>
 
     <section id="tide-turn">
