@@ -404,6 +404,8 @@ One tab per break, ranked by how much of the buoy's energy its windows let throu
 
 On “LIVE”, each buoy's provenance is one line of joined pills, each growing out of the one before it: the station, with a dot, then how long ago its spectrum was taken, then the countdown to the next. The Wind and Tide cards' provenance is the same line: “METAR KNZY”, the age and the countdown; “NOAA 9410170”, the age and the countdown. On a narrow phone, where the pills do not all fit, one wraps to start the next row and stands on its own. Point Loma South's station reads “CDIP 191”: Scripps' Coastal Data Information Program runs the buoy, and its spectra reach this page through NDBC, which lists it as 46232. Tanner Banks' reads “NDBC 46047” and San Clemente Basin's “NDBC 46086”, as NDBC runs those buoys itself. This page names every buoy that way, in its charts and here. CDIP 191's line sits under every swell tab, the break tabs included, because every break's numbers come from its spectrum. The dot is green while that buoy's spectra arrive on time, fades in and out once the next one is due, and turns red once it is overdue. It changes exactly when the [countdown](#swell-countdown) beside it says “Update due” and “Overdue”, from the same two instants. With reduced motion on, a due dot holds at half strength instead of fading.
 
+On Forecast, every card's provenance is the same line of joined pills, with no dot and no countdown, because a model run is not a feed arriving on a clock. The swell, and the model's wind at the buoy: the buoy the model is read at, “CDIP 191”, then “GFS-Wave”, then the run and how far ahead of the hour it was made, as in “Oct 15 at 5:00 AM, 9 h ahead”. The local wind: “NWS”, the forecast grid cell, then when the National Weather Service last updated that grid, which under a past hour is the update the build that showed it read. The tide: “NOAA 9410170”, “Harmonic”, then the gauge's measured departure from the prediction over the last 3 days that the hour carries, or “No departure”. The hour itself is the one in the bar above the cards.
+
 On “LIVE” the Buoys tab also shows NDBC 46086 at San Clemente Basin, 81 km west-south-west. It is read the same way as 46232: the combined height of its directional spectrum, and its [swell trains](#swell-trains), with a train fed from two directions naming both. It is not open ocean: it sits inside the south break's window, the only buoy besides CDIP 191 that does, and outside North's and Center's. It is still not carried to any break, because a buoy 81 km out is not the sea at the beach and CDIP 191 has no stand-in, and no number on any other tab comes from it. Its spectra are stamped every half hour, at :20 and :50, so it has its own observed time and its own [countdown](#swell-countdown), measured on its own readings.
 
 Under it is NDBC 46047 at Tanner Banks, 222 km west, the buoy in the array that the islands shadow least, read the same way. It is open ocean outside every break's windows, so it too is not carried to any break. It is there so the swell before the Channel Islands and the Bight can be read beside the swell at CDIP 191. It too stamps at :20 and :50, with its own observed time and its own countdown. The Forecast tab's Buoys tab shows CDIP 191 only, because the model run is read at CDIP 191 alone.
@@ -501,7 +503,7 @@ It reads “Update in m:ss”, then “Update due” once the typical time has p
 - **KNZY**
   The airfield at Naval Air Station North Island, a few kilometres from the breaks. Its routine report lands at :52 each hour. This is the “LIVE” tab's wind.
 - **Local**
-  The National Weather Service's forecast grid at the center break, hourly for 7 days. On the Forecast tab it is the wind on the sand, and the offshore/onshore line comes from it.
+  The National Weather Service's forecast grid at the center break, hourly for 7 days. On the Forecast tab it is the wind on the sand, and the offshore/onshore line comes from it. An hour the grid does not cover says so: KNZY's report never stands in on the Forecast tab, because it is an observation, not a forecast.
 - **GFS-Wave**
   The wave model's own wind at the buoy, 29 km offshore. Kept on the Forecast card because it is the wind the model grows its wind sea from, never used for the offshore/onshore line.
 
@@ -543,7 +545,7 @@ card       0.944 × 2.005 = 1.893 m                   → 6.2 ft (1.89 m)
 breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level
 ```
 
-On “LIVE” the provenance names the gauge the reading was carried from, NOAA 9410170; on Forecast the source line names both. The countdown keeps the gauge's own time.
+On both tabs the card's numbers are the open coast's, carried from NOAA 9410170, and the provenance names that gauge. On “LIVE” the countdown keeps the gauge's own time.
 
 ### [tide-turn] The next high or low
 

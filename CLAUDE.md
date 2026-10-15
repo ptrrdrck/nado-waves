@@ -295,6 +295,19 @@ forecaster actually verifies against, Surfline included.
    dark mode's green and red on both themes (`--dot-ok`, `--dot-over`), and
    every card's "Overdue by …" in that same red (owner's call, same day).
    LIVE only: the Forecast chain's buoy is a model.
+   **The Forecast tab's provenance is the same joined pills, with no dot and
+   no countdown** (owner's request, 2026-10-15): swell and the model's wind
+   at the buoy "CDIP 191 | GFS-Wave | Oct 15 at 5:00 AM, 9 h ahead" (the run
+   and its lead; one name whatever `wave_source` says), Local "NWS |
+   Grid SGX 56,13 | Updated …" (a past hour's from its own build's
+   `local_wind_updated_utc` in `46232_shown/`, none where that build kept
+   none), Tide "NOAA 9410170 | Harmonic | Departure …" or "No departure"
+   ("Gauge departure" measured 358 px against the card's 330 at a 390 px
+   phone; "Departure" 321). The hour is the seek bar's, no longer a
+   "Forecast for" line. **KNZY never stands in on the Forecast tab** (owner's
+   call, same day): it is not a forecast. A missing model wind reads "not
+   collected yet" (under a past hour "no model wind for this hour", owner's
+   wording), a missing NWS hour "no local forecast" and why.
    **It feeds nothing**: its own module and file, never a key in now.json, so
    the context-station guard still keeps "46047" out of now.py and the chain,
    and `tests/test_buoys.py` keeps `through`/`carry`/the surf zone out of it.
@@ -602,8 +615,9 @@ forecaster actually verifies against, Surfline included.
    apart by a centred 4 px dot, never a rule: a full-width rule opens a
    section on this card. Each buoy is named as NDBC names it,
    "Tanner Banks (NDBC 46047)" — the state dropped, and a buoy CDIP runs by
-   CDIP's number, "Point Loma South (CDIP 191)", here and on the Forecast
-   tab's and docs.html's provenance (owner's request, 2026-10-13) — from
+   CDIP's number, "Point Loma South (CDIP 191)", here and on docs.html's
+   provenance (owner's request, 2026-10-13; the Forecast tab's pill reads
+   "CDIP 191" since 2026-10-15) — from
    `origin.station_names` and `station_cdips` in now.json (fetched metadata
    and the registry, never typed). **No upstream sighting is shown, ever**: measured, the predecessor's
    "confirmed in transit" check is blind to the distance (scaling every distance

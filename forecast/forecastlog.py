@@ -205,6 +205,9 @@ def shown_lines(forecast: dict, *, step: int = HOUR_STEP,
     limit = _parse(generated) + timedelta(hours=ahead)
     buoy = {b.get("valid_utc"): b for b in forecast.get("buoy") or []}
     tide = {t.get("valid_utc"): t for t in forecast.get("tide") or []}
+    # When the NWS grid this build read was last updated, so a past hour's
+    # Local wind can say which update it was (owner's request, 2026-10-15).
+    local_updated = (forecast.get("local_wind") or {}).get("updated_utc")
     out = []
     for n, hour in enumerate(breaks[0].get("hours") or []):
         valid = hour.get("valid_utc", "")
@@ -220,6 +223,7 @@ def shown_lines(forecast: dict, *, step: int = HOUR_STEP,
             "valid_utc": valid, "lead_h": hour.get("lead_h"),
             "wave_source": forecast.get("wave_source", ""),
             "buoy": buoy.get(valid), "tide": tide.get(valid), "breaks": hours,
+            "local_wind_updated_utc": local_updated,
         })
     return out
 
@@ -323,7 +327,9 @@ def past_hours(logged: list[dict], generated_utc: str, *,
         out.append({
             "valid_utc": valid,
             "detail": ({"buoy": detail.get("buoy"), "tide": detail.get("tide"),
-                        "breaks": detail.get("breaks") or {}} if detail else None),
+                        "breaks": detail.get("breaks") or {},
+                        "local_wind_updated_utc": detail.get("local_wind_updated_utc")}
+                       if detail else None),
             "generated_utc": any_row["generated_utc"],
             "cycle_utc": any_row["cycle_utc"],
             "lead_h": int(any_row["lead_h"]),

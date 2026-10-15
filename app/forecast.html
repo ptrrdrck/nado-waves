@@ -249,7 +249,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    source's own countdown -- green while it arrives, green fading in and out
    once one is due, red once overdue -- how long ago, and the countdown.
    In ink at the provenance's size on the picked row's background, with
-   4 px corners (owner's call, 2026-10-11). */
+   4 px corners (owner's call, 2026-10-11). The Forecast tab's cards carry
+   the same line with no dot and no countdown (owner's request, 2026-10-15):
+   the source, the model, then the run or the update. */
 .pill,.pill-tail{display:inline-flex;align-items:center;height:18px;box-sizing:border-box;
   background:var(--paper);color:var(--ink);font-size:12px;font-weight:400;line-height:1;
   font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -777,11 +779,6 @@ const ORDER = ["coronado_north", "coronado_center", "coronado_south"];
 const SHORT = {coronado_north: "North", coronado_center: "Center", coronado_south: "South"};
 // A buoy's NDBC name without its state: "Tanner Banks, CA" is "Tanner Banks".
 const bareName = (name) => name.replace(/, [A-Z]{2}$/, "");
-// The anchor buoy as the Forecast tab's provenance names it: by CDIP's number
-// where CDIP runs it, "Point Loma South (CDIP <n>)", the registry's n
-// (owner's request, 2026-10-13).
-const anchorName = (d) => d.station_cdip ? `${bareName(d.station_name)} (CDIP ${d.station_cdip})`
-  : `${d.station_name} (NDBC ${d.station})`;
 
 // Matches forecast.transform.SEAWARD_CLIP. Not a blocker: this is the share of
 // the swell travelling towards a part of the compass the beach does not face,
@@ -987,11 +984,6 @@ function ageSpan(iso) {
   const age = iso ? ago(ageHours(iso)) : "";
   return age ? `<span class="age">${age}</span>` : "";
 }
-function observedAt(iso) {
-  if (!iso) return "";
-  const age = ageSpan(iso);
-  return when(iso) + (age ? `, ${age}` : "");
-}
 
 // The build's flag is a floor, never a ceiling: an open page can age a reading
 // into staleness, but it cannot un-stale one the build already refused to call
@@ -1138,25 +1130,22 @@ function tickDue() {
   });
 }
 
-// Where the Tide card's numbers are. The gauge is inside San Diego Bay and
-// the card is about the beach, so a payload that carries `tide_site` has
-// already moved the numbers to the open coast (forecast.tidesite) and says
-// both places; an older one is the gauge's own reading and says only that.
-function tideSource(payload) {
-  const gauge = `${payload.tide_station_name} (${payload.tide_station})`;
-  return payload.tide_site ? `${payload.tide_site}, carried from ${gauge}` : gauge;
-}
-
 // The forecast's tide is the harmonic prediction plus the gauge's measured
 // departure from it over the last three days, carried forward -- the level
 // the breaking was computed at. The prediction alone ran ~9 in under the
 // water in Sept 2026 (BRIEFING §32). An hour that carries no departure (none
 // was measured, or it was logged before the card added one) is the bare
-// prediction and gets no line, so the card never claims an offset it lacks.
-function departureLine(tide) {
-  const d = tide && tide.departure_m;
-  if (d == null) return "";
-  return `Gauge departure correction (last 3 days): ${d < 0 ? "\u2212" : "+"}${height(Math.abs(d))}`;
+// prediction and says so (owner's request, 2026-10-15), so the card never
+// claims an offset it lacks; an hour with no tide at all says neither.
+function departurePill(tide) {
+  if (!tide || tide.height_m == null) return "";
+  const d = tide.departure_m;
+  if (d == null) return "No departure";
+  // "Departure", not "Gauge departure": measured, the three pills need 321 px
+  // against 358, and the card has 330 at a 390 px phone. Plain text: a pill
+  // lays its content out as flex items, which would drop the space before
+  // `height`'s metric span.
+  return `Departure ${d < 0 ? "\u2212" : "+"}${heightText(Math.abs(d))}`;
 }
 
 // The tide's next turning point, and which way it is running into it.
@@ -1641,12 +1630,18 @@ function measuredLine(m, pick) {
   return `<div class="measured none">${why}</div>`;
 }
 
-// Which run a past hour's number came from, and how far ahead it was made.
-function runLine(step) {
+// A moment inside a Forecast pill: "Oct 15 at 5:00 AM".
+const pillWhen = (iso) => `${new Date(iso).toLocaleDateString(undefined, {month: "short", day: "numeric"})}`
+  + ` at ${clock(iso)}`;
+
+// Which run a past hour's number came from, and how far ahead it was made:
+// the last pill of the swell's and the model wind's provenance,
+// "Oct 15 at 5:00 AM, 9 h ahead".
+function runPill(step) {
   const run = step.from === "past" ? step.entry.cycle_utc : DATA.cycle_utc;
   if (!run) return "";
   const lead = step.lead_h != null ? `, ${step.lead_h} h ahead` : "";
-  return `From the ${when(run)} model run${lead}`;
+  return `${pillWhen(run)}${lead}`;
 }
 
 function breakPanel(c) {
@@ -5522,18 +5517,26 @@ function wireSwellTabs() {
 // Under a passed hour, KNZY's observed wind sits in this block, under the
 // local forecast it can be read against (owner's call, 2026-10-09): both are
 // the wind on the sand, where GFS-Wave's above is the model's at the buoy.
-function localWindBlock(hour, cards, stampWhen, past, seen = "") {
+// Nothing stands in for an hour without one: KNZY is an observation, not a
+// forecast (owner's call, 2026-10-15).
+//
+// `updated` is when the NWS grid the hour's own build read was last updated:
+// this build's for an upcoming hour, the logged build's for a past one
+// (owner's request, 2026-10-15), and no pill when that build kept none.
+function localWindBlock(hour, cards, past, seen = "", updated = null) {
   const L = (DATA && DATA.local_wind) || {};
   if (hour && hour.local_wind_from_deg != null) {
     const gust = hour.local_gust_kt ? ` <span class="unit">gusting ${Math.round(hour.local_gust_kt * MPH_PER_KT)} mph</span>` : "";
-    const grid = L.office ? `NWS forecast grid ${L.office} ${L.grid_x},${L.grid_y} at Coronado` : "NWS forecast grid at Coronado";
-    const issued = L.updated_utc ? `, updated ${when(L.updated_utc)}` : "";
+    // In pills, as the model's (owner's request, 2026-10-15): the service,
+    // its grid cell at Coronado, and when the grid was last updated.
+    const grid = L.office ? `Grid ${L.office} ${L.grid_x},${L.grid_y}` : "Grid";
+    const issued = updated ? `Updated ${pillWhen(updated)}` : "";
     return `<div class="subcond" data-wind="local">
       <span class="sublbl">Local</span>
       <span class="val">${windVal(hour.local_wind_from_deg, hour.local_wind_kt)}${gust}</span>
       ${windAtBreaks(cards)}
       ${seen}
-      ${srcLines([`Forecast for ${stampWhen}`, `${grid}${past ? "" : issued}`])}
+      ${srcLines([], pills("NWS", grid, issued))}
     </div>`;
   }
   if (past) return "";
@@ -5616,7 +5619,6 @@ function renderConditions(step, cards) {
       ${cardChart("tide")}
     </div>`);
   } else {
-    const wind = DATA.wind || {};
     const past = step.from === "past";
     // An earlier run's hour in full, when its build kept it: the model's wind
     // is on each break's hour, the buoy and the tide beside them.
@@ -5626,8 +5628,11 @@ function renderConditions(step, cards) {
       : ((DATA.breaks[0] || {}).hours || [])[step.index];
     const tide = (detail && detail.tide) || TIDE_BY_TIME[step.valid_utc] || {};
     const hour = stamp || {};
-    const stampWhen = when(step.valid_utc);
-    const run = runLine(step);
+    // The provenance is LIVE's line of joined pills (owner's request,
+    // 2026-10-15) without its dot or countdown: a run is not a feed on a
+    // clock. The buoy the model is read at, the model, then the run.
+    const run = runPill(step);
+    const anchor = feedName(DATA.station, DATA.station_cdip);
     const modelled = hour.wind_from_deg != null;
     const measured = measuredAt(step.valid_utc);
     const got = measured.state === "value" ? measured.entry : null;
@@ -5642,14 +5647,8 @@ function renderConditions(step, cards) {
       station: DATA.station,
       cards,
       measured,
-      source: [
-        `Forecast for ${stampWhen}`,
-        buoy
-          ? `GFS-Wave ${(past ? step.entry.wave_source : DATA.wave_source) === "partitions"
-              ? "partitions" : "spectrum"}, ${anchorName(DATA)}`
-          : `The spectral product was unavailable for this cycle, so there are no trains`,
-        run,
-      ],
+      source: buoy ? [] : [`The spectral product was unavailable for this cycle, so there are no trains`],
+      due: pills(anchor, "GFS-Wave", run),
       chart: true,
     }));
 
@@ -5680,29 +5679,20 @@ function renderConditions(step, cards) {
       return;
     }
 
-    // Today's KNZY reading stands in for a run without model wind -- but never
-    // under a past hour, where it would be a reading from the wrong time.
-    const fallback = past ? {note: "not kept for earlier runs"} : wind;
     // The observed wind goes under the Local forecast when there is one,
     // else it stays under the model's, the only forecast wind the hour has.
+    // Nothing stands in for either forecast wind: KNZY is an observation, and
+    // this is the model's chain (owner's call, 2026-10-15).
     const underLocal = hour.local_wind_from_deg != null;
-    const local = localWindBlock(hour, cards, stampWhen, past, underLocal ? seenWind : "");
+    const updated = past ? detail.local_wind_updated_utc : (DATA.local_wind || {}).updated_utc;
+    const local = localWindBlock(hour, cards, past, underLocal ? seenWind : "", updated);
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
       <span class="val">${modelled
         ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
-        : windHeard(fallback)
-          ? windVal(fallback.from_deg, fallback.speed_kt)
-          : `<span class="unit">${past ? fallback.note : "not collected yet"}</span>`}</span>
+        : `<span class="unit">${past ? "no model wind for this hour" : "not collected yet"}</span>`}</span>
       ${underLocal ? "" : seenWind}
-      ${modelled
-        ? srcLines([`Forecast for ${stampWhen}`,
-                    `GFS-Wave wind, ${anchorName(DATA)}`,
-                    run])
-        : windHeard(fallback)
-          ? srcLines([`Observed ${observedAt(fallback.observed_utc)}`,
-                      `METAR, ${fallback.station_name} (${fallback.station})`])
-          : srcLines(past ? "" : fallback.note)}
+      ${modelled ? srcLines([], pills(anchor, "GFS-Wave", run)) : ""}
       ${local}
       ${cardChart("wind")}
     </div>`);
@@ -5715,7 +5705,7 @@ function renderConditions(step, cards) {
         ? turnLine(DATA.tide_turns || [], step.valid_utc)
         : ""}
       ${seenTide}
-      ${srcLines([`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)])}
+      ${srcLines([], pills(`NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide)))}
       ${past ? "" : phaseFold(DATA, coastDay(Date.parse(step.valid_utc)))}
       ${cardChart("tide")}
     </div>`);

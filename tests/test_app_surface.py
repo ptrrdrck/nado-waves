@@ -95,20 +95,18 @@ class TestItSaysWhatItIsStandingOn:
 
 
 class TestTheTideCardSaysWhereItIs:
-    """The numbers are the open coast's; the source line says so and names
-    the gauge they were carried from, on both tabs."""
+    """The numbers are the open coast's. Both tabs name the gauge they were
+    carried from in a pill, and docs.html says where they were carried to."""
 
-    def test_both_tabs_use_one_source_line(self):
+    def test_both_tabs_name_the_gauge_in_a_pill(self):
         # On LIVE the place and the gauge are pills of their own since
         # 2026-10-11: "Coronado, CA", then "NOAA 9410170" on the countdown.
-        assert SOURCE.count("tideSource(NOW)") == 0
         assert "placeWhen(NOW.tide_place || NOW.tide_site, tide.observed_utc)" in SOURCE
         assert "feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide)" in SOURCE
-        assert SOURCE.count("tideSource(DATA)") == 1
-        fn = SOURCE[SOURCE.index("function tideSource"):]
-        fn = fn[:fn.index("\n}\n")]
-        assert "carried from" in fn
-        assert "payload.tide_site ?" in fn        # an older payload is the gauge's own
+        # Forecast's is the same gauge pill, with no dot (2026-10-15).
+        assert 'pills(`NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide))' in SOURCE
+        assert "tideSource" not in SOURCE
+        assert "carried from NOAA 9410170" in INFO_TEXT
 
 
 class TestScope:
@@ -580,19 +578,21 @@ class TestWindAndTideAreHoisted:
         assert 'class="src"' in SOURCE
 
     def test_the_tide_says_it_is_a_model(self):
-        # The correction sits under the hour it applies to, the place under it.
-        assert ("`Harmonic tide for ${stampWhen}`, departureLine(tide), tideSource(DATA)"
+        # The gauge, "Harmonic", then the correction the hour carries.
+        assert ('srcLines([], pills(`NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide)))'
                 in SOURCE)
 
     def test_the_forecast_tide_says_when_it_carries_the_measured_departure(self):
         """The card's height is the prediction plus the gauge's measured
-        departure, the level the breaking used. An hour without one gets no
-        line, so the card never claims an offset its number does not carry."""
+        departure, the level the breaking used. An hour without one says so
+        (owner's request, 2026-10-15), so the card never claims an offset its
+        number does not carry; an hour with no tide says neither."""
 
-        line = SOURCE[SOURCE.index("function departureLine"):]
+        line = SOURCE[SOURCE.index("function departurePill"):]
         line = line[:line.index("\n}\n")]
-        assert 'if (d == null) return "";' in line
-        assert "`Gauge departure correction (last 3 days): ${d < 0 ?" in line
+        assert 'if (!tide || tide.height_m == null) return "";' in line
+        assert 'if (d == null) return "No departure";' in line
+        assert '`Departure ${d < 0 ? "\\u2212" : "+"}${heightText(Math.abs(d))}`' in line
 
     def test_the_provenance_separates_a_forecast_hour_from_an_observation(self):
         """The model's wind moves with the picker; the KNZY fallback is an
@@ -600,17 +600,29 @@ class TestWindAndTideAreHoisted:
         file carries — and since the titles are bare quantities now, the
         provenance line is the only thing telling them apart."""
 
-        assert "GFS-Wave wind, ${anchorName(DATA)}" in SOURCE
-        assert "METAR, ${fallback.station_name} (${fallback.station})" in SOURCE
+        # Forecast's in pills since 2026-10-15: the buoy, the model, the run.
+        # No observation stands in for a forecast wind there (owner's call,
+        # same day): KNZY is not a forecast.
+        assert 'srcLines([], pills(anchor, "GFS-Wave", run))' in SOURCE
+        fc = SOURCE[SOURCE.index("function localWindBlock"):SOURCE.index("function renderConditions")]
+        fc += SOURCE[SOURCE.index("  } else {\n    const past = step.from"):SOURCE.index("\nfunction renderBreaks(")]
+        assert "METAR" not in fc and "DATA.wind" not in fc
         # LIVE's in pills since 2026-10-11: the station's name, then "METAR
         # KNZY" on its countdown line.
         assert "placeWhen(wind.station_name, wind.observed_utc)" in SOURCE
         assert "feedPills(`METAR ${wind.station}`, wind.observed_utc, due.wind, late.wind)" in SOURCE
-        assert "`Harmonic tide for ${stampWhen}`" in SOURCE
 
     def test_model_wind_is_named_as_a_forecast(self):
-        wind = SOURCE[SOURCE.index("GFS-Wave wind, ${anchorName(DATA)") - 200:]
-        assert "`Forecast for ${stampWhen}`" in wind[:200]
+        """The model's wind at the buoy names the model and its run, and no
+        observation stands in for it (owner's call, 2026-10-15)."""
+        render = SOURCE[SOURCE.index("function renderConditions"):]
+        render = render[render.index("const underLocal"):]
+        render = render[:render.index("${local}")]
+        assert "pills(anchor, \"GFS-Wave\", run)" in render
+        assert "METAR" not in render and "observed_utc" not in render
+        # A past hour whose run had no model wind says so, rather than that it
+        # was not kept (owner's wording, 2026-10-15).
+        assert '${past ? "no model wind for this hour" : "not collected yet"}' in render
 
     def test_it_prefers_the_model_wind_and_falls_back(self):
         assert "hour.wind_from_deg != null" in SOURCE
@@ -707,12 +719,13 @@ class TestTheTwoChains:
         assert "ageSpan(observedIso)" in SOURCE
 
     def test_forecast_labels_its_inputs_as_a_model(self):
-        """The verb that opens each line says which chain it is: "Forecast"
-        and "Harmonic tide" here, where Now says "Observed" and "Measured"."""
+        """Each Forecast card's pills name the model it stands on (owner's
+        request, 2026-10-15): GFS-Wave for the swell and the wind at the
+        buoy, the NWS grid for the local wind, the harmonic tide."""
 
-        # swell, the model's wind at the buoy, and the Local wind forecast
-        assert SOURCE.count("`Forecast for ${stampWhen}`") == 3
-        assert "`Harmonic tide for ${stampWhen}`" in SOURCE
+        assert SOURCE.count('"GFS-Wave", run)') == 2
+        assert 'pills("NWS", grid, issued)' in SOURCE
+        assert '"Harmonic", departurePill(tide)' in SOURCE
 
     def test_a_stale_observation_is_not_rendered_as_current(self):
         """NDBC has served 306-hour-old content behind an HTTP 200.
@@ -822,7 +835,8 @@ class TestTheSourceLine:
         assert "anchorName(DATA.station_name, DATA.station, DATA.station_cdip)" in INFO
         # By CDIP's number where CDIP runs it (owner's request, 2026-10-13).
         assert "(CDIP ${cdip})" in INFO and "(NDBC ${id})" in INFO
-        assert "(CDIP ${d.station_cdip})" in SOURCE and "(NDBC ${d.station})" in SOURCE
+        # The page's Forecast pills name it as LIVE's do, "CDIP 191" (2026-10-15).
+        assert "feedName(DATA.station, DATA.station_cdip)" in SOURCE
         assert "NOW.station_name" in SOURCE and "NDBC ${now.station}" in SOURCE
 
 
@@ -1183,21 +1197,26 @@ class TestTheSwellCardIsOnBothTabs:
         assert "Spectral wave data" not in SOURCE[SOURCE.index("const buoyPlace"):][:200]
 
     def test_the_forecast_card_names_its_model(self):
-        assert '"partitions" : "spectrum"}, ${anchorName(DATA)}' in SOURCE
-        assert "? `GFS-Wave ${" in SOURCE
+        # The buoy, the model and how it was read, then the run (2026-10-15).
+        assert "const anchor = feedName(DATA.station, DATA.station_cdip);" in SOURCE
+        # One model name whichever product the run was read from (owner's
+        # call, 2026-10-15): no "partitions" pill.
+        assert 'due: pills(anchor, "GFS-Wave", run),' in SOURCE
+        assert "GFS-Wave partitions" not in SOURCE
 
     def test_every_forecast_hour_names_its_run_past_or_future(self):
-        """One run line on every hour (owner's decision, 2026-09-27): "from the
-        ... model run" is itself what tells a past hour from the current run,
-        so past and future swell cards carry the same three lines and nothing
-        is appended to a past one."""
+        """One run on every hour (owner's decision, 2026-09-27): the run's
+        time is itself what tells a past hour from the current run, so past
+        and future swell cards carry the same pills and nothing is appended
+        to a past one. A pill since 2026-10-15: "Oct 15 at 5:00 AM, 9 h
+        ahead"."""
 
-        assert "return `From the ${when(run)} model run${lead}`;" in SOURCE
+        assert "return `${pillWhen(run)}${lead}`;" in SOURCE
         assert "const lead = step.lead_h != null ? `, ${step.lead_h} h ahead` : \"\";" in SOURCE
         assert "what this page showed for that hour" not in SOURCE
         assert "fromLine" not in SOURCE
         # Swell and model wind both end on it.
-        assert SOURCE.count("        run,\n") + SOURCE.count("                    run])") == 2
+        assert SOURCE.count('"GFS-Wave", run)') == 2
 
     def test_the_forecast_card_reads_the_per_hour_buoy_series(self):
         assert "(DATA.buoy || []).find" in SOURCE
@@ -1303,9 +1322,10 @@ class TestTheProvenanceLines:
         for label in ('label: "Swell"', '<span class="lbl">Wind</span>',
                       '<span class="lbl">Tide</span>'):
             assert label in SOURCE, label
-        # The hour left the titles, so it has to be in the model's provenance
-        # or the forecast card no longer says which moment it describes.
-        assert "for ${stampWhen}" in SOURCE
+        # The hour left the titles, and since 2026-10-15 the provenance (owner's
+        # request: pills naming the source, the model and the run), so the
+        # hour bar above the cards is what says which moment they describe.
+        assert '$("when-label").textContent = when(step.valid_utc);' in SOURCE
 
     def test_every_provenance_line_ends_in_a_full_stop(self):
         """Including the collector's own notes, which do not all carry one —
@@ -1839,35 +1859,26 @@ class TestEveryMeasurementSaysHowOldItIs:
         2026-10-11, beside its station since -12 (`feedPills`), and every
         one is aged by `ageSpan`."""
 
-        assert "function observedAt" in SOURCE
-        assert SOURCE.count("observedAt(") == 2      # the definition plus the fallback
+        assert "observedAt" not in SOURCE
         assert SOURCE.count("feedPills(") == 5       # the definition plus four uses
         for site in ("feedPills(`METAR ${wind.station}`, wind.observed_utc,",
                      "feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc,",
                      "now.observed_utc,\n             due, late",
-                     "feedPills(`NDBC ${b.station}`, b.observed_utc,",
-                     "Observed ${observedAt(fallback.observed_utc)}"):
+                     "feedPills(`NDBC ${b.station}`, b.observed_utc,"):
             assert site in SOURCE, site
         assert SOURCE.count('<span class="age">') == 1
-        assert SOURCE.count("ageSpan(") == 3      # the definition, observedAt and feedPills
-
-    def test_the_forecast_tabs_observed_wind_fallback_is_aged_too(self):
-        """It only appears when the model has no wind for that hour, which is
-        exactly when how old the substitute is matters."""
-
-        wind_block = SOURCE[SOURCE.index("GFS-Wave wind, ${anchorName(DATA)"):]
-        assert "Observed ${observedAt(fallback.observed_utc)}" in wind_block[:400]
+        assert SOURCE.count("ageSpan(") == 2      # the definition and feedPills
 
     def test_a_prediction_is_never_given_an_age(self):
         """A modelled wind or a harmonic tide is a forecast FOR a moment, not a
         reading taken AT one. "23 h ago" under next Tuesday would be nonsense,
-        so those lines use `stampWhen` and never `observedAt`."""
+        so their pills carry no `ageSpan`."""
 
-        for predicted in ("`Forecast for ${stampWhen}`",
-                          "`Harmonic tide for ${stampWhen}`"):
+        for predicted in ('pills(anchor, "GFS-Wave", run)', 'pills("NWS", grid, issued)',
+                          'pills(`NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide))'):
             assert predicted in SOURCE, predicted
-        assert "observedAt(stamp" not in SOURCE
-        assert "observedAt(t." not in SOURCE
+            line = SOURCE[SOURCE.index(predicted):]
+            assert "ageSpan" not in line[:line.index("\n")], predicted
 
     def test_the_age_is_not_read_from_the_frozen_field(self):
         """now.json carries `tide.age_minutes` computed at build time, and the
@@ -3065,7 +3076,7 @@ class TestTheProvenanceDivider:
         local = local[:local.index("\n}\n")]
         assert local.index("${windAtBreaks(cards)}") < local.index("${seen}") < local.index("srcLines(")
         render = SOURCE[SOURCE.index("function renderConditions"):]
-        assert 'localWindBlock(hour, cards, stampWhen, past, underLocal ? seenWind : "")' in render
+        assert 'localWindBlock(hour, cards, past, underLocal ? seenWind : "", updated)' in render
         assert '${underLocal ? "" : seenWind}' in render
 
     def test_a_measured_box_under_a_value_gets_room_above_it(self):
@@ -3136,11 +3147,13 @@ class TestTheLocalWindOnTheForecastTab:
             "const FT_PER_M = 3.28084; const MPH_PER_KT = 1.15078; let SWELL_TAB = 'coronado_north';\n"
             "const speed = (kt) => `${Math.round(kt * MPH_PER_KT)} mph (${Math.round(kt)} kt)`;\n"
             "const when = (iso) => iso; const period = (t) => t;\n"
-            "const srcLines = (lines) => [].concat(lines || []).filter(Boolean).map((l) => `<src>${l}</src>`).join('');\n"
+            "const srcLines = (lines, due = '') => [].concat(lines || []).filter(Boolean)"
+            ".map((l) => `<src>${l}</src>`).join('') + (due ? `<src>${due}</src>` : '');\n"
+            "const pillWhen = (iso) => `at ${iso}`; const ageSpan = (iso) => `<age>${iso}</age>`;\n"
             "let DATA = {local_wind: {available: true, office: 'SGX', grid_x: 55, grid_y: 12,"
             " updated_utc: '2026-09-30T04:00:00Z'}};\n"
         )
-        body = "".join(fn(n) for n in ("compass", "sense", "windAtBreaks", "localWindBlock"))
+        body = "".join(fn(n) for n in ("compass", "sense", "windAtBreaks", "localWindBlock", "pills"))
         start = SOURCE.index("const windVal")
         body += "const LIGHT_KT = 3;\n" + SOURCE[start:SOURCE.index(";\n", start) + 2]
         start = SOURCE.index("const windHeard")
@@ -3153,13 +3166,29 @@ class TestTheLocalWindOnTheForecastTab:
         got = self._run(
             "const hour = {local_wind_from_deg: 30, local_wind_kt: 8, local_gust_kt: 14};\n"
             "const cards = [{id: 'coronado_north', windOffshore: 0.96}, {id: 'coronado_south', windOffshore: -0.5}];\n"
-            "console.log(localWindBlock(hour, cards, 'Tue 3 PM', false).replace(/\\s+/g, ' '));"
+            "console.log(localWindBlock(hour, cards, false, '', '2026-09-30T04:00:00Z').replace(/\\s+/g, ' '));"
         )
         assert "Local</span>" in got and "NNE 30°" in got and "9 mph (8 kt)" in got
         assert "gusting 16 mph" in got
         assert "<b>offshore</b> at this break" in got and "<b>onshore</b> at this break" in got
-        assert "<src>Forecast for Tue 3 PM</src>" in got
-        assert "NWS forecast grid SGX 55,12 at Coronado, updated 2026-09-30T04:00:00Z" in got
+        # One line of joined pills, as LIVE's, without a dot (owner's request,
+        # 2026-10-15): the service, its grid cell, when it was last updated.
+        assert ('<span class="pill">NWS</span><span class="pill-tail">Grid SGX 55,12</span>'
+                '<span class="pill-tail">Updated at 2026-09-30T04:00:00Z</span>') in got
+        assert "status" not in got
+
+    def test_a_past_hour_names_its_own_builds_update(self):
+        """A past hour's pill names the update the build that showed it read
+        (owner's request, 2026-10-15), and none when that build kept none --
+        never today's."""
+        got = self._run(
+            "const hour = {local_wind_from_deg: 30, local_wind_kt: 8};\n"
+            "console.log(localWindBlock(hour, [], true, '', '2026-09-29T10:00:00Z').replace(/\\s+/g, ' '));\n"
+            "console.log(localWindBlock(hour, [], true, '', undefined).replace(/\\s+/g, ' '));"
+        )
+        first, second = got.splitlines()
+        assert "Updated at 2026-09-29T10:00:00Z" in first
+        assert "Updated" not in second and "Grid SGX 55,12</span></span>" in second
 
     def test_a_calm_hour_reads_calm_not_north(self):
         """A calm is archived as 0° at 0 kt; the card says Calm, never "N 0°"
@@ -3168,7 +3197,7 @@ class TestTheLocalWindOnTheForecastTab:
         got = self._run(
             "const hour = {local_wind_from_deg: 0, local_wind_kt: 0};\n"
             "const cards = [{id: 'coronado_north', windOffshore: 0.97, windKt: 0}];\n"
-            "console.log(localWindBlock(hour, cards, 'Tue 3 PM', false).replace(/\\s+/g, ' '));"
+            "console.log(localWindBlock(hour, cards, false).replace(/\\s+/g, ' '));"
         )
         assert '<span class="val">Calm</span>' in got and "N 0°" not in got
         assert "<b>no wind</b>, so no side set" in got
@@ -3192,13 +3221,17 @@ class TestTheLocalWindOnTheForecastTab:
 
     def test_an_hour_without_it_says_so_and_a_past_hour_borrows_nothing(self):
         got = self._run(
-            "console.log(JSON.stringify(localWindBlock({}, [], 'x', true)));\n"
+            "console.log(JSON.stringify(localWindBlock({}, [], true)));\n"
             "DATA.local_wind = {available: false, why: 'api.weather.gov: HTTP 503'};\n"
-            "console.log(localWindBlock({}, [], 'x', false).replace(/\\s+/g, ' '));"
+            "DATA.wind = {from_deg: 300, speed_kt: 9, station: 'KNZY', observed_utc: '2026-09-30T03:52:00Z'};\n"
+            "console.log(localWindBlock({}, [], false).replace(/\\s+/g, ' '));"
         )
         first, second = got.splitlines()
         assert first == '""'
+        # KNZY's reading never stands in: it is not a forecast (owner's call,
+        # 2026-10-15).
         assert "no local forecast" in second and "api.weather.gov: HTTP 503" in second
+        assert "KNZY" not in second and "300" not in second
 
     def test_the_forecast_cards_read_offshore_from_the_local_wind(self):
         cards = SOURCE[SOURCE.index("function cardsForForecast"):]
