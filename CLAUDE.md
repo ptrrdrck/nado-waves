@@ -168,7 +168,7 @@ forecaster actually verifies against, Surfline included.
    the card's calculation table, which folds out under the headline from a
    caret at its end (up closed, down open; owner's design 2026-09-26) and
    gives each effect one row — buoy, windows, refraction, diffraction, bottom
-   friction, shoaling, local chop, wave break — as Calc / Change / % / Hs, the
+   friction, shoaling, local chop, wave break — as Step / Change / % / Hs, the
    percentage against the row before. Refraction is measured with every edge still a hard
    shadow, as the window treats them, and diffraction is only what softening
    the edges changes (`nearshore.summarise`). **Diffraction is computed on the

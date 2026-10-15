@@ -2133,7 +2133,7 @@ function workedTable(id) {
     `${e.local.tp_s.toFixed(1)} s, ${e.local.fetch === "open" ? "open water" : "behind land"}, ${e.local.wind} wind`);
   const depth = `${Math.round(k.depth_m * FT_PER_M)} ft (${k.depth_m.toFixed(1)} m)`;
   row("Wave break", k.hs_m, e.with_chop_hs_m, `at ${depth} depth`);
-  $("worked-table").innerHTML = `<table><thead><tr><th scope="col">Calc</th><th scope="col">Change</th>`
+  $("worked-table").innerHTML = `<table><thead><tr><th scope="col">Step</th><th scope="col">Change</th>`
     + `<th scope="col">%</th><th scope="col">Hs</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
     + `<p class="source" style="padding:8px 12px">${NAME[id]}: ${height(k.hs_m)} breaking at ${depth} depth, `
     + `${Math.round(k.distance_m * FT_PER_M)} ft (${Math.round(k.distance_m)} m) in from the 5 m start point.</p>`;

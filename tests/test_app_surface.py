@@ -922,7 +922,7 @@ class TestTheCalculationTable:
 
     def test_its_columns_are_the_owners(self):
         heads = re.findall(r'<th scope="col">([^<]+)</th>', self.LINE)
-        assert heads == ["Calc", "Change", "%", "Hs"]
+        assert heads == ["Step", "Change", "%", "Hs"]
 
     def test_each_effect_has_its_row_in_order(self):
         rows = re.findall(r'row\("([^"]+)"', self.LINE)
