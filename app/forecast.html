@@ -1392,10 +1392,11 @@ function sense(offshore, kt) {
   return kt != null && kt <= LIGHT_KT ? `light ${side}` : side;
 }
 
-// A measured or local wind as the card shows it: calm at 0 kt, never "N 0°",
-// and a METAR's VRB, which has a speed and no direction, "variable at".
-const windVal = (from, kt) => (kt === 0 ? "calm"
-  : `${from == null ? "variable" : compass(from)} <span class="unit">at</span> ${speed(kt || 0)}`);
+// A measured or local wind as the card shows it: Calm at 0 kt, never "N 0°",
+// and a METAR's VRB, which has a speed and no direction, "Variable at" --
+// capitalised as a compass point is (owner's request, 2026-10-15).
+const windVal = (from, kt) => (kt === 0 ? "Calm"
+  : `${from == null ? "Variable" : compass(from)} <span class="unit">at</span> ${speed(kt || 0)}`);
 // Was a wind reported at all? A variable one has a speed and no direction.
 const windHeard = (w) => !!w && (w.from_deg != null || w.speed_kt != null);
 
@@ -5425,14 +5426,16 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
 // at the beach, and a verdict against the shore normal needs the local one.
 function windAtBreaks(cards) {
   return (cards || []).map((c) => {
-    // A variable wind has no side at any break; it says so rather than
-    // leaving the line out, as the Shore direction charts count it.
-    const s = c.windVariable ? (c.windKt <= LIGHT_KT ? "light and variable" : "variable")
-      : sense(c.windOffshore, c.windKt);
-    if (!s) return "";
+    // A calm or a variable wind has no side at any break. The line says why
+    // rather than leaving the line out, or repeating the headline's Calm or
+    // Variable under it (owner's wording, 2026-10-15).
+    const why = c.windKt === 0 ? "no wind" : c.windVariable ? "no direction" : null;
+    const s = why ? null : sense(c.windOffshore, c.windKt);
+    if (!why && !s) return "";
     return `<span class="turn" data-wind-for="${c.id}"${c.id === SWELL_TAB ? "" : " hidden"}>`
-      + `<b>${s}</b> at this break`
-      + (c.windNote ? ` <span class="tag">${c.windNote}</span>` : "")
+      + (why ? `<b>${why}</b>, so no side set`
+        : `<b>${s}</b> at this break`
+          + (c.windNote ? ` <span class="tag">${c.windNote}</span>` : ""))
       + `</span>`;
   }).join("");
 }
