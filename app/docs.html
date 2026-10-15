@@ -870,14 +870,11 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         no countdown, because a model run is not a feed arriving on a clock. The swell, and the
         model's wind at the buoy: the buoy the model is read at, &ldquo;CDIP 191&rdquo;, then
         &ldquo;GFS-Wave&rdquo;, then the run and how far ahead of the hour it was made, as in
-        &ldquo;Oct 15 at 5:00 AM, 9 h ahead&rdquo;. When the model's full directional spectrum
-        could not be fetched for a run, the forecast is built from the model's summary of its
-        separate swell trains instead, each given an assumed spread, and the middle pill reads
-        &ldquo;GFS-Wave partitions&rdquo;. The local wind: &ldquo;NWS&rdquo;, the forecast grid
+        &ldquo;Oct 15 at 5:00 AM, 9 h ahead&rdquo;. The local wind: &ldquo;NWS&rdquo;, the forecast grid
         cell, then when the National Weather Service last updated that grid, which under a past
         hour is the update the build that showed it read. The tide: &ldquo;NOAA 9410170&rdquo;,
-        &ldquo;Harmonic&rdquo;, then the gauge's departure correction the hour carries, or
-        &ldquo;No departure correction&rdquo;. The hour itself is the one in the bar above the
+        &ldquo;Harmonic&rdquo;, then the gauge's measured departure from the prediction over the
+        last 3 days that the hour carries, or &ldquo;No departure&rdquo;. The hour itself is the one in the bar above the
         cards.</p>
       <p>On &ldquo;LIVE&rdquo; the Buoys tab also shows NDBC 46086 at San Clemente Basin, 81 km
         west-south-west. It is read the same way as 46232: the combined height of its directional
@@ -1181,10 +1178,9 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
           wind.</dd>
         <dt>Local</dt><dd>The National Weather Service's forecast grid at the center break,
           hourly for 7 days. On the Forecast tab it is the wind on the sand, and the
-          offshore/onshore line comes from it. For an upcoming hour the grid does not cover,
-          KNZY's latest report stands in here, named as an observation with its time and age,
-          because it is the wind on the sand too. It never stands in for the model's wind at the
-          buoy, and never under a past hour.</dd>
+          offshore/onshore line comes from it. An hour the grid does not cover says so: KNZY's
+          report never stands in on the Forecast tab, because it is an observation, not a
+          forecast.</dd>
         <dt>GFS-Wave</dt><dd>The wave model's own wind at the buoy, 29 km offshore. Kept on the
           Forecast card because it is the wind the model grows its wind sea from, never used for
           the offshore/onshore line.</dd>

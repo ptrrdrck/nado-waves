@@ -298,14 +298,15 @@ forecaster actually verifies against, Surfline included.
    **The Forecast tab's provenance is the same joined pills, with no dot and
    no countdown** (owner's request, 2026-10-15): swell and the model's wind
    at the buoy "CDIP 191 | GFS-Wave | Oct 15 at 5:00 AM, 9 h ahead" (the run
-   and its lead; "GFS-Wave partitions" when `wave_source` is), Local "NWS |
+   and its lead; one name whatever `wave_source` says), Local "NWS |
    Grid SGX 56,13 | Updated …" (a past hour's from its own build's
    `local_wind_updated_utc` in `46232_shown/`, none where that build kept
-   none), Tide "NOAA 9410170 | Harmonic | Departure correction …" or "No
-   departure correction". The hour is the seek bar's, no longer a "Forecast
-   for" line. **KNZY stands in only under Local** (owner's call, same day):
-   it is the wind on the sand, never a substitute for the model's at the
-   buoy, and never under a past hour.
+   none), Tide "NOAA 9410170 | Harmonic | Departure …" or "No departure"
+   ("Gauge departure" measured 358 px against the card's 330 at a 390 px
+   phone; "Departure" 321). The hour is the seek bar's, no longer a
+   "Forecast for" line. **KNZY never stands in on the Forecast tab** (owner's
+   call, same day): it is not a forecast. A missing model wind reads "not
+   collected yet", a missing NWS hour "no local forecast" and why.
    **It feeds nothing**: its own module and file, never a key in now.json, so
    the context-station guard still keeps "46047" out of now.py and the chain,
    and `tests/test_buoys.py` keeps `through`/`carry`/the surf zone out of it.

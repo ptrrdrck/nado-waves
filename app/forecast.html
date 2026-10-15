@@ -979,8 +979,7 @@ function turnClock(iso, fromIso) {
 // than from the payload, which makes it volatile between two renders that
 // straddle a minute. `cardText` strips everything so marked before comparing,
 // so a card is never flashed for a string that was only ever going to change.
-// The LIVE cards' provenance pills (`feedPills`) take the same span, and so
-// does the Forecast tab's KNZY fallback.
+// The LIVE cards' provenance pills (`feedPills`) take the same span.
 function ageSpan(iso) {
   const age = iso ? ago(ageHours(iso)) : "";
   return age ? `<span class="age">${age}</span>` : "";
@@ -1141,10 +1140,12 @@ function tickDue() {
 function departurePill(tide) {
   if (!tide || tide.height_m == null) return "";
   const d = tide.departure_m;
-  if (d == null) return "No departure correction";
-  // Plain text: a pill lays its content out as flex items, which would drop
-  // the space before `height`'s metric span.
-  return `Departure correction ${d < 0 ? "\u2212" : "+"}${heightText(Math.abs(d))}`;
+  if (d == null) return "No departure";
+  // "Departure", not "Gauge departure": measured, the three pills need 321 px
+  // against 358, and the card has 330 at a 390 px phone. Plain text: a pill
+  // lays its content out as flex items, which would drop the space before
+  // `height`'s metric span.
+  return `Departure ${d < 0 ? "\u2212" : "+"}${heightText(Math.abs(d))}`;
 }
 
 // The tide's next turning point, and which way it is running into it.
@@ -5516,9 +5517,8 @@ function wireSwellTabs() {
 // Under a passed hour, KNZY's observed wind sits in this block, under the
 // local forecast it can be read against (owner's call, 2026-10-09): both are
 // the wind on the sand, where GFS-Wave's above is the model's at the buoy.
-// For the same reason KNZY's latest reading is what stands in for an
-// upcoming hour with no local forecast, never for the model's wind at the
-// buoy (owner's call, 2026-10-15); a past hour borrows no reading.
+// Nothing stands in for an hour without one: KNZY is an observation, not a
+// forecast (owner's call, 2026-10-15).
 //
 // `updated` is when the NWS grid the hour's own build read was last updated:
 // this build's for an upcoming hour, the logged build's for a past one
@@ -5541,15 +5541,6 @@ function localWindBlock(hour, cards, past, seen = "", updated = null) {
   }
   if (past) return "";
   const why = L.available === false && L.why ? L.why : "no local forecast for this hour";
-  const knzy = DATA && DATA.wind;
-  if (windHeard(knzy)) {
-    return `<div class="subcond" data-wind="local">
-      <span class="sublbl">Local</span>
-      <span class="val">${windVal(knzy.from_deg, knzy.speed_kt)}</span>
-      ${srcLines([why], pills(`METAR ${knzy.station}`, `Observed ${pillWhen(knzy.observed_utc)}`,
-                              ageSpan(knzy.observed_utc)))}
-    </div>`;
-  }
   return `<div class="subcond" data-wind="local">
     <span class="sublbl">Local</span>
     <span class="val"><span class="unit">no local forecast</span></span>
@@ -5657,8 +5648,7 @@ function renderConditions(step, cards) {
       cards,
       measured,
       source: buoy ? [] : [`The spectral product was unavailable for this cycle, so there are no trains`],
-      due: pills(anchor, (past ? step.entry.wave_source : DATA.wave_source) === "partitions"
-        ? "GFS-Wave partitions" : "GFS-Wave", run),
+      due: pills(anchor, "GFS-Wave", run),
       chart: true,
     }));
 
@@ -5691,8 +5681,8 @@ function renderConditions(step, cards) {
 
     // The observed wind goes under the Local forecast when there is one,
     // else it stays under the model's, the only forecast wind the hour has.
-    // KNZY's latest reading stands in under Local, never here: it is the wind
-    // on the sand, as the local forecast is (owner's call, 2026-10-15).
+    // Nothing stands in for either forecast wind: KNZY is an observation, and
+    // this is the model's chain (owner's call, 2026-10-15).
     const underLocal = hour.local_wind_from_deg != null;
     const updated = past ? detail.local_wind_updated_utc : (DATA.local_wind || {}).updated_utc;
     const local = localWindBlock(hour, cards, past, underLocal ? seenWind : "", updated);
