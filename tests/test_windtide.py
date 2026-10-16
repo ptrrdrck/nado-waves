@@ -89,6 +89,27 @@ class TestTheWind:
         assert (got["wind"]["kt"][k], got["wind"]["from_deg"][k]) == (3, None)
 
 
+    def test_the_newest_report_has_its_slot_before_the_clock_reaches_it(self, tmp_path):
+        """16 Oct: the card read 8:52's calm while the chart still ended on
+        7:52's report, because 9:00's slot did not exist until 9:00."""
+
+        write_wind(tmp_path, [(HOUR - timedelta(minutes=8), 300, 5, "", ""),
+                              (HOUR + timedelta(minutes=52), 0, 0, "", "")])
+        write_tide(tmp_path, [(HOUR, 1.0)])
+        got = windtide.build(tmp_path, now=HOUR + timedelta(minutes=56))
+        k = at(got, HOUR + timedelta(hours=1))
+        assert got["hours"] == k + 1 == len(got["wind"]["kt"]) == len(got["tide_m"])
+        assert (got["wind"]["kt"][k], got["wind"]["from_deg"][k], got["wind"]["age_min"][k]) == (0, None, 8)
+        assert got["wind"]["kt"][k - 1] == 5
+        assert got["tide_m"][k] is None and got["departure_m"][k] is None    # no sample yet: a gap
+
+    def test_no_slot_ahead_without_a_report_for_it(self, tmp_path):
+        write_wind(tmp_path, [(HOUR - timedelta(minutes=8), 300, 5, "", "")])
+        write_tide(tmp_path, [])
+        got = windtide.build(tmp_path, now=HOUR + timedelta(minutes=56))
+        assert at(got, HOUR) == got["hours"] - 1
+
+
 class TestTheTide:
     def test_the_sample_at_the_hour_carried_to_the_open_coast(self, tmp_path):
         write_wind(tmp_path, [])

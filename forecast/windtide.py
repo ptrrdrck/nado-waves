@@ -22,7 +22,12 @@ a past hour.
   previous one for up to two hours (`now.WIND_AS_OF_HOURS`), because a line
   drawn through a carried reading looks like a second measurement. How many
   minutes before the slot it was taken is kept, so the page can say when. A
-  calm (0 kt) or variable report has a speed and no direction.
+  calm (0 kt) or variable report has a speed and no direction. The newest
+  report's slot is there as soon as the report is: the :52 METAR stands for
+  the coming hour, and a chart that waited for the clock to pass that hour
+  sat a whole report behind the Wind card for the 10–15 min between (owner's
+  report, 2026-10-16: the card read Calm off 8:52's `00000KT` while the chart
+  still ended on 7:52's WNW 5 kt).
 - ``tide_m``: the gauge's sample stamped exactly at the hour, carried to the
   open coast on its MLLW (`tidesite.coast_height`, the Tide card's own
   number) — never the :06 sample, and never interpolated across a gap.
@@ -188,7 +193,13 @@ def build(data_dir: Path = DEFAULT_DATA_DIR, *, now: datetime | None = None,
           hours: int = REACH_HOURS) -> dict:
     moment = now or datetime.now(timezone.utc)
     marks = slots(moment, hours)
-    wind = wind_slots(read_wind(data_dir), marks)
+    reports = read_wind(data_dir)
+    # A report taken after the top of the hour stands for the next one, which
+    # the clock has not reached: give it that slot now, or the chart is a
+    # report behind the card until it does. Never more than one slot ahead.
+    if reports and marks[-1] < _utc(reports[-1]["observed_utc"]) <= moment:
+        marks.append(marks[-1] + timedelta(hours=1))
+    wind = wind_slots(reports, marks)
     tide = tide_slots(data_dir, marks)
     # Before either archive began there is nothing to show, not a gap: the
     # chart starts at the first hour anything was collected.
