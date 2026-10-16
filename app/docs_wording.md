@@ -592,7 +592,7 @@ None of this is a statement about waves. On these beach profiles the whole tide 
 
 ### [sun-point-loma] The Point Loma sunset
 
-Every published sunset is the moment the top of the sun meets a level sea horizon. From Coronado's sand the Point Loma peninsula stands between the breaks and that horizon for most of the year: its ridge is 4.5–8 km away and 90–130 m high, about 1° above the horizon. The sun goes behind it some 5–8 minutes before the published time. The card's headline is that sunset, at the open break: *behind Point Loma* and how many minutes early, with the sea-horizon time beside sunrise. On the Buoys tab there is no beach, so the headline is the sea-horizon time.
+Every published sunset is the moment the top of the sun meets a level sea horizon. From Coronado's sand the Point Loma peninsula stands between the breaks and that horizon for most of the year: its ridge is 4.5–8 km away and 90–130 m high, about 1° above the horizon. The sun goes behind it some 5–8 minutes before the published time. The card's headline is that sunset, at the open break: *behind Point Loma* and how many minutes before the sea-horizon time. On the Buoys tab there is no beach, so the headline is the sea-horizon time.
 
 Each break has its own skyline, traced from the break over the same USGS CoNED survey the seabed comes from: it is a topographic and bathymetric survey, so Point Loma's land is in it beside the seabed. Along each bearing, the highest angle any land stands above the eye, an eye 3 m above sea level, is the skyline there. The Earth's curvature lowers a distant hill and refraction lifts it back a little. The sunset is the last moment any of the sun's disc stands above whatever is in front of it, land or sea, with each part of the disc refracted at its own height.
 
@@ -603,11 +603,11 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
 16 Oct 2026, center break: sea horizon 6:14 PM, behind Point Loma 6:07 PM
 ```
 
-The sun is computed, not fetched, from Meeus's solar theory. It agrees with an independent ephemeris to within 0.03°, about seven seconds of sunset. Refraction is Bennett's standard formula. Sunrise is the sea-level time only, the same at every break: the city and mountains east of the breaks are not in the survey. On “LIVE” the card is tagged *computed*, and after sunset it moves on to tomorrow.
+The sun is computed, not fetched, from Meeus's solar theory. It agrees with an independent ephemeris to within 0.03°, about seven seconds of sunset. Refraction is Bennett's standard formula. Sunrise is the sea-level time only, the same at every break: the city and mountains east of the breaks are not in the survey. On “LIVE” the card is tagged *computed*, and each time is the next one: once the sunset or the sunrise has passed, it gives tomorrow's and says so. On Forecast both are the picked hour's day.
 
 ### [sun-season] In the sea, left of the point
 
-Through the winter the sun sets far enough south to go down in the sea, left of Point Loma's tip as you look out from the beach. How much of the winter that lasts depends on the break, because the bearing to the tip sweeps 18° along 2.8 km of sand, as the swell window's west edge does. The card says when the break's next run of sea sunsets is, or how long the current one lasts:
+Through the winter the sun sets far enough south to go down in the sea, left of Point Loma's tip as you look out from the beach. How much of the winter that lasts depends on the break, because the bearing to the tip sweeps 18° along 2.8 km of sand, as the swell window's west edge does. The card says when the break's next run of sea sunsets is, or, while the sun is setting in the sea, until when, on the one line:
 
 | Break | The tip, from the break | Sun sets in the sea |
 |---|---|---|

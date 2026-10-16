@@ -3643,7 +3643,7 @@ class TestTheSunCard:
     sunset each break sees -- behind Point Loma or in the sea, left of the
     point -- following the open swell tab as the wind's verdict does."""
 
-    SUN = SOURCE[SOURCE.index("const SUN_TABS = "):SOURCE.index("// LIVE's day:")]
+    SUN = SOURCE[SOURCE.index("const SUN_TABS = "):SOURCE.index("// LIVE: the reader's day at Coronado")]
     DAYS = SOURCE[SOURCE.index("const COAST_TZ = "):SOURCE.index("const listJoin = ")]
 
     def run(self, script: str) -> list[str]:
@@ -3693,6 +3693,25 @@ class TestTheSunCard:
         assert "<b>in the sea</b>, left of the point, until 25 Feb" in card
         assert "at the sea horizon" in card
         assert 'Sunrise 13:54' in card and '<span class="tag">computed</span>' in card
+
+    def test_live_moves_each_time_on_once_it_has_passed(self):
+        """Owner's question, 2026-10-16: after sunset, "Sunrise 6:54 AM ·
+        sea horizon 6:14 PM" read as either day's. Each time is the next one
+        and says "tomorrow" when it is; the sea-horizon clock is gone."""
+
+        day2 = ('P.sun.days["2026-10-17"] = JSON.parse(JSON.stringify(P.sun.days["2026-10-16"]));\n'
+                'const d2 = P.sun.days["2026-10-17"]; d2.sunrise_utc = "2026-10-17T13:55:00Z";\n'
+                'd2.sunset_utc = "2026-10-18T01:13:00Z"; d2.breaks.coronado_center.seen_utc = "2026-10-18T01:06:00Z";\n')
+        at = lambda iso: (f'Date.now = () => Date.parse("{iso}");\n'
+                          'console.log(sunCard(P, "2026-10-16", {live: true}).replace(/\\s+/g, " "));\n')
+        morning, evening, night = self.run(day2 + at("2026-10-16T12:00:00Z")
+                                           + at("2026-10-17T01:10:00Z") + at("2026-10-17T05:00:00Z"))
+        assert "01:07 <span class=\"unit\">sunset</span>" in morning and "Sunrise 13:54</span>" in morning
+        # 6:10 PM: Center's Point Loma sunset has gone, the sea's has not.
+        assert "01:06 <span class=\"unit\">sunset tomorrow</span>" in evening
+        assert "01:14 <span class=\"unit\">sunset</span>" in evening
+        assert "Sunrise 13:55 tomorrow" in evening and "Sunrise 13:55 tomorrow" in night
+        assert "sea horizon 0" not in night
 
     def test_the_minutes_are_the_clocks_own_difference(self):
         """early_min 7.5 rounds to 8, but 01:07 and 01:14 read 7 apart."""

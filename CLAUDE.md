@@ -559,9 +559,15 @@ forecaster actually verifies against, Surfline included.
    (closest ~19–23 Dec, still 1 min early). Headline the break's sunset,
    then "behind Point Loma, 7 min early" (the minutes the two shown clocks'
    own difference) or "in the sea, left of the point, until …", the season
-   line, and "Sunrise … · sea horizon …"; each tab's lines follow the swell
-   tab (`data-sun-for`), the Buoys tab reading the sea horizon. Tagged
-   `computed` on LIVE; after sunset LIVE moves on to tomorrow. The skyline
+   line (one line in all while it sets in the sea), and "Sunrise …"; each
+   tab's lines follow the swell tab (`data-sun-for`), the Buoys tab reading
+   the sea horizon. Tagged `computed` on LIVE, where each time is the NEXT
+   one, per tab, saying "tomorrow" when it is (owner's question, 2026-10-16:
+   "Sunrise … · sea horizon 6:14 PM" after sunset read as either day's, and
+   the sea-horizon clock came off). Refraction is Bennett's standard: KNZY's
+   temperature and pressure move it 3–12 s over 28 sunsets, invisible at a
+   minute; the air–sea difference (−3.5 to +8.3 °C, KNZY against 46232's
+   SST) is the real swing, and nothing here measures what it does. The skyline
    is CoNED's own LAND (it is topobathy) traced from each break by
    `forecast/skyline.py` (precompute, numpy) into
    `data/nearshore/<break>_skyline.csv`; its first land agrees with the

@@ -1348,50 +1348,53 @@ function sunSeason(sun, b, key) {
     : `In the sea, left of the point, ${daySpan(r.from, r.to)}`;
 }
 // The card for the coast day `key`, or nothing when the payload has none.
-function sunCard(payload, key, {tagged = false, tomorrow = false} = {}) {
+// `live`: the reader's clock picks each time instead -- a tab's sunset is
+// today's until it has passed, then tomorrow's, and the sunrise likewise, each
+// saying "tomorrow" when it is (the owner's question, 2026-10-16: a bare time
+// after sunset read as either day's). Per tab, because the Point Loma sunset
+// comes minutes before the sea's.
+function sunCard(payload, key, {tagged = false, live = false} = {}) {
   const sun = payload && payload.sun;
-  const day = sun && sun.days && sun.days[key];
-  if (!day) return "";
-  const when = tomorrow ? " tomorrow" : "";
+  const today = sun && sun.days && sun.days[key];
+  if (!today) return "";
+  const nextKey = Object.keys(sun.days).find((k) => k > key);
+  const tomorrow = nextKey && sun.days[nextKey];
+  // [the day's entry, its key, the words after the time] for an event read by `at`.
+  const pick = (at) => (live && tomorrow && Date.now() > Date.parse(at(today))
+    ? [tomorrow, nextKey, " tomorrow"] : [today, key, ""]);
   const shown = (id) => (id === SWELL_TAB ? "" : " hidden");
-  const heads = [], lines = [], horizon = [];
+  const heads = [], lines = [];
   for (const b of SUN_TABS(payload)) {
+    if (!(today.breaks || {})[b]) continue;
+    const [day, dayKey, when] = pick((d) => ((d.breaks || {})[b] || {}).seen_utc);
     const s = (day.breaks || {})[b];
     if (!s) continue;
     heads.push(`<span class="val" data-sun-for="${b}"${shown(b)}>${clock(s.seen_utc)} <span class="unit">sunset${when}</span></span>`);
-    const season = sunSeason(sun, b, key);
+    const season = sunSeason(sun, b, dayKey);
     if (s.kind === "sea") {
       lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}><b>in the sea</b>, left of the point`
         + (season ? `, ${season}` : "") + `</span>`);
     } else {
       // The minutes are the two clocks' own difference, so they never
-      // disagree with the times on screen.
+      // disagree with the times they compare.
       lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}><b>behind Point Loma</b>, `
         + `${Math.round((Date.parse(day.sunset_utc) - Date.parse(s.seen_utc)) / 60000)} min early</span>`);
       if (season) lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}>${season}</span>`);
-      horizon.push(`<span data-sun-for="${b}"${shown(b)}> · sea horizon ${clock(day.sunset_utc)}</span>`);
     }
   }
-  heads.push(`<span class="val" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>${clock(day.sunset_utc)} <span class="unit">sunset${when}</span></span>`);
+  const [sea, , seaWhen] = pick((d) => d.sunset_utc);
+  heads.push(`<span class="val" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>${clock(sea.sunset_utc)} <span class="unit">sunset${seaWhen}</span></span>`);
   lines.push(`<span class="turn" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>at the sea horizon</span>`);
+  const [rise, , riseWhen] = pick((d) => d.sunrise_utc);
   return `<div class="cond" data-card="sun">
       <span class="lbl">Sun</span>
       ${heads.join("")}
       ${lines.join("")}
-      <span class="turn">Sunrise ${clock(day.sunrise_utc)}${horizon.join("")}${tagged ? ' <span class="tag">computed</span>' : ""}</span>
+      <span class="turn">Sunrise ${clock(rise.sunrise_utc)}${riseWhen}${tagged ? ' <span class="tag">computed</span>' : ""}</span>
     </div>`;
 }
-// LIVE's day: today until the sea-horizon sunset has passed, then tomorrow.
-function sunNow() {
-  const sun = NOW && NOW.sun;
-  const today = coastDay(Date.now());
-  const day = sun && sun.days && sun.days[today];
-  if (day && Date.now() > Date.parse(day.sunset_utc)) {
-    const next = Object.keys(sun.days).find((k) => k > today);
-    if (next) return sunCard(NOW, next, {tagged: true, tomorrow: true});
-  }
-  return sunCard(NOW, today, {tagged: true});
-}
+// LIVE: the reader's day at Coronado, each time moving on once it has passed.
+const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: true});
 
 let DATA = null;      // forecast.json — the modelled chain
 let NOW = null;       // now.json     — the observed chain
