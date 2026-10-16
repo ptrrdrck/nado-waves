@@ -81,6 +81,8 @@ It carries exactly one modelled number, the tide's next high or low, and that is
 
 Its Buoys tab also shows two more buoys, NDBC 46086 at San Clemente Basin and NDBC 46047 at Tanner Banks, measured the same way, and a [rose](#swell-roses) under each buoy. Nothing on any other tab is computed from either. [Why they are there](#swell-tabs).
 
+Above its cards, the [Briefing](#briefing) folds out what has happened since sunset, from the same measurements and NHC's storm positions.
+
 ### [chains-forecast] Forecast: the model only
 
 Built from the GFS-Wave model run by NOAA (WAVEWATCH III), read at the buoy's position and carried in through the same windows, seabed and surf zone. Its wind is the National Weather Service's forecast at Coronado and its tide is the harmonic prediction. It shows every third hour, from 48 hours back to the end of the newest run.
@@ -90,6 +92,49 @@ Built from the GFS-Wave model run by NOAA (WAVEWATCH III), read at the buoy's po
 So that you always know which chain a number belongs to. A forecast hour that has gone by gets a blue line under it that comes from the measured chain, and that line is labelled “Observed at” with its hour, never blended into the forecast figure above it. [The blue line](#time-observed).
 
 A refresh keeps the tab you chose. A new visit always opens on “LIVE”.
+
+## [briefing] The Briefing
+
+Above the “LIVE” cards, a **Briefing** line folds out what has happened since sunset and what is arriving, so the cards need not be put together by hand. Closed, it says only when sunset was; nothing about the conditions shows until it is opened.
+
+### [briefing-stories] What it says, and over how long
+
+One entry per story, always in the same order, each over its own stretch of time:
+
+- **Standing on**: when each feed last reported, any that is overdue on your clock, and any hour since sunset CDIP 191 has no spectrum for. If CDIP 191 is dark it says so first and the break stories wait for it.
+- **Since sunset**: each break's breaking height at sunset and now, which break leads, each break's biggest train then and now, and the biggest step in the leading break's [calculation](#calc-table).
+- **Arriving**: each swell [Origin](#swell-origin) reads at a break, and its period twelve hours on along its own line; each that stopped arriving since sunset; every hurricane NHC is tracking, from when its swell is due until it no longer can be; and any swell that has risen at Tanner Banks overnight, with when it is due here.
+- **Wind**: the night's hours at each break by the card's own reading (offshore, cross-shore, onshore, light, calm), the newest reading, and local chop.
+- **Tide**: the next two turns (predicted), how far the gauge has run from the prediction, and the [phase](#tide-phase).
+- **Buoys and season**: each context buoy's two biggest swell trains, and how the leading break's height ranks in the archive, said only when it was last that big a week or more ago.
+
+It never uses the model. GFS-Wave and its ensemble belong to the Forecast tab; the Briefing is the “LIVE” chain and NHC's own fixes for each storm. Its wording, every case it can take, is in `docs/briefing_wording.md`.
+
+### [briefing-words] When it says rose, dropped or leads
+
+Each judging word is said only where it held at least 85% of the times it would have been said, measured over the archive (`docs/briefing_thresholds.md`), the rule the tide's phase uses. “Right” means the next three hours bore it out.
+
+- **Rose / dropped**: the median of the newest three hours and of the three around sunset differ by 15% or more, and the two readings shown agree. Less is “changed little”. A night under six hours was not measured, so it gives both readings and no word.
+- **Leads**: a break ahead of the next by 5% or more on its three-hour median. The smallest margin that held was 3%; 5% keeps the two heights apart at the tenth of a foot the page shows.
+- **A period twelve hours on**: within a second on every ridge read that long; at 24 hours, on four of five, so it goes no further.
+
+The wind's habit (when it usually turns onshore) is not said. Over the last 14 days it landed within an hour and a half of the day's real turn on under half the days, and a habit read beside this morning's wind would be taken as a forecast.
+
+### [briefing-upstream] Swell seen first at Tanner Banks
+
+NDBC 46047 sits 198 km west of CDIP 191, in open water, so west and north-west swell passes it first. When its energy from the west (250–280°) or north-west (280–330°) has risen threefold since sunset in a period band, the Briefing says when that swell is due at CDIP 191: the distance along its direction of travel at deep-water speed, *gT*/4π, about 3.5 to 6 hours. Then when it is due at the breaks, computed along the refracted rays from CDIP 191 to each break: 25 to 60 minutes.
+
+Checked against two months of both buoys' spectra, three ways. On average the archive agrees: north-west swell reaches CDIP 191 3.5 to 6 hours after Tanner Banks, and south swell much sooner, as the geometry says it should. One swell cannot be timed, though: at the shadowed buoy a single swell's arrival is too mixed with what is already there. So it says *due*, never *arrived*, and never how big, since how much gets past the Channel Islands is for CDIP 191 to show.
+
+### [briefing-storms] When a hurricane's swell is due
+
+Each position NHC has logged for a storm at hurricane strength (and as a tropical storm after its first hurricane fix) sends swell that reaches CDIP 191 after its distance at deep-water speed: 20-second swell first, 12-second last. Positions whose path to CDIP 191 crosses land send nothing here, and a storm whose positions all do is said to be behind land. NHC's own forecast track carries the window on past the newest position, and the Briefing says so whenever an edge of the window comes from it. Due is not arrived: whether the swell came is what the buoys' check behind [Origin](#swell-origin) decides.
+
+What each break takes from the storm's direction comes from its ray tables, to 5 m of water, as a share of the height at the buoy: windows, seabed and friction, physics, not checked against the beach.
+
+### [briefing-gate] I log the beach
+
+At the foot of the page, beside Docs. On a phone where it is ticked, the page opens on a quiet question, “Logging the beach today?”, and shows nothing else until today's log is done or you say you are not logging today. It comes back at midnight. Someone who has seen a forecast is no longer an independent witness, and the log is what will one day check this page, so the log comes first. That question is the one place the page links to the log. Ticking it after you have already looked starts it tomorrow.
 
 ## [aperture] The aperture
 

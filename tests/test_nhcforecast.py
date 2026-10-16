@@ -132,3 +132,15 @@ def test_south_swell_from_the_south_west_reaches_every_break():
     keeps = stormdue.response(205.0)
     assert set(keeps) == {"coronado_north", "coronado_center", "coronado_south"}
     assert all(0.3 < v < 1.5 for v in keeps.values())
+
+
+def test_the_forecast_archive_has_one_writer():
+    """The collectors' push loop rebases; that is only safe with one writer
+    per file (CLAUDE.md, Infrastructure)."""
+
+    from pathlib import Path
+
+    flows = Path(__file__).resolve().parent.parent / ".github" / "workflows"
+    writers = [f.name for f in flows.glob("*.yml")
+               if "git add" in f.read_text() and "data/nhcforecasts" in f.read_text()]
+    assert writers == ["collect-beach-inputs.yml"]

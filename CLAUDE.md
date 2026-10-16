@@ -750,6 +750,35 @@ forecaster actually verifies against, Surfline included.
    coordinates, so nothing trustworthy was dropped.
    `tests/test_app_surface.py` enforces the vocabulary: the page may not use
    the words an accuracy claim would need.
+   **The Briefing** (owner's request, 2026-10-16; `forecast/briefing.py` →
+   `briefing.json`, its own collection step after the context buoys): a
+   lifeguard's morning read in a fold on the BACKDROP above the LIVE cards,
+   not a card, closed until opened, its line naming only "since sunset
+   <time>" so a reader who leaves it shut has read no condition. One entry
+   per story in a fixed order, set as Origin's: Standing on, Since sunset,
+   Arriving (Origin's arrivals and their period 12 h ahead; each live
+   storm's due window from NHC's fixes, `forecast/stormdue.py`; 46047's west
+   or north-west rises, due at 46232 and the breaks), Wind, Tide, Buoys and
+   season. **Every judging word is measured** (`forecast/briefingreport.py`,
+   `docs/briefing_thresholds.md`, the phase fold's 85% rule): rose/dropped
+   at 15% on 3-hour medians (10% failed north over 6 h), a leader at 5%,
+   no word on a night under 6 h. **The wind's onshore habit failed** (under
+   half the days within 1.5 h) and is not carried; a test says when winter
+   lets it in. **Never the model** (owner's call): GFS-Wave and its ensemble
+   are the Forecast tab's; NHC's official forecast IS allowed, and every
+   window edge it sets says so. **Tanner Banks to the coast is DUE, never
+   arrived** (BRIEFING §42, `forecast/upstreamlag.py`): deep-water speed
+   agrees with the archive on average and cannot time one swell; the leg to
+   each break is the rays' (`raytrace --leg-only` → `<break>_leg.csv`).
+   Wording generated from the page into `docs/briefing_wording.md`
+   (`forecast/briefingwording.py`), pinned by a test.
+   **The log-first gate** (owner's call, same day): "I log the beach", a
+   checkbox beside Docs, kept in localStorage (the page's only use of it,
+   pinned). On such a device the page opens on "Logging the beach today?"
+   and nothing else until today's log is done or declined; it returns at
+   Coronado's midnight, and ticking it after looking starts it tomorrow.
+   That question is the ONE place the page links to the log; docs.html
+   still never does.
 
 ## Infrastructure
 
@@ -956,6 +985,9 @@ forecaster actually verifies against, Surfline included.
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log),
+                        nhcforecast.py (NHC's official forecast, the OFCL
+                        lines of each live storm's a-deck, Actions only —
+                        unverified against a live file until its first run),
                         bathymetry.py (USGS CoNED seabed, regional 32 m and
                         nearshore 8 m, NAVD88; the MSL offset is fetched from
                         CO-OPS on Actions — needs requirements-precompute.txt)
@@ -1080,6 +1112,14 @@ forecaster actually verifies against, Surfline included.
                         own countdown and words                    [built]
       rose.py           one spectrum's height and period rose by compass
                         sector, for the Buoys tab's six-hour loop   [built]
+      briefing.py       the LIVE tab's Briefing, data/live/briefing.json [built]
+      briefingreport.py its thresholds, measured; reports, never edits
+      briefingwording.py its wording, run from the page's own code into
+                        docs/briefing_wording.md; --check           [built]
+      stormdue.py       when a storm's swell is due at each break, from NHC's
+                        best track and official forecast             [built]
+      upstreamlag.py    46047 → 46232 → the breaks: deep-water lag, checked
+                        against the archive; reports (BRIEFING §42)  [built]
       origin.py         the LIVE tab's Origin: each train's dispersion
                         ridge in 46232's spectrum, bearing at 46047
                         [built]
@@ -1098,8 +1138,8 @@ forecaster actually verifies against, Surfline included.
       residual.py       is the remaining error recoverable? (it was not, before)
       beachverify.py    does the log agree with the geometry, and the control
     data/live/          forecast.json, now.json, measured.json, series.json,
-                        series_all.json, windtide.json, origins.json and
-                        buoys.json, what the app surface reads (derived,
+                        series_all.json, windtide.json, origins.json,
+                        buoys.json and briefing.json, what the app surface reads (derived,
                         gitignored)
     data/series/        46232/YYYY-MM.csv: the observed chain for every
                         archived hour, and 46232_origins.json, the Origins

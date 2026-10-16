@@ -183,7 +183,10 @@ nothing has observed these beaches.
 `nado-waves-log` serves the observer form, and that form never shows a forecast:
 an observer who has seen one is not an independent witness, and a series
 contaminated that way cannot judge the forecast that shaped it. Keeping the two
-on separate sites keeps the forecast off the path an observer walks.
+on separate sites keeps the forecast off the path an observer walks. The one
+link between them runs the other way and only before anything is shown: on a
+phone set to "I log the beach", this page opens on a question that points at
+the log first.
 
 Note that GitHub Pages project sites share one origin, so this is a separation
 of paths and of links, not a browser security boundary.
