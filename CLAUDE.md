@@ -803,7 +803,7 @@ forecaster actually verifies against, Surfline included.
    each break is the rays' (`raytrace --leg-only` → `<break>_leg.csv`).
    Wording generated from the page into `docs/briefing_wording.md`
    (`forecast/briefingwording.py`), pinned by a test.
-   **The log-first gate** (owner's call, same day): "I log the beach", a
+   **The log-first gate** (owner's call, same day): "Wave observer", a
    checkbox beside Docs, kept in localStorage (the page's only use of it,
    pinned). On such a device the page opens on "Logging the beach today?"
    and nothing else until today's log is done or declined; it returns at

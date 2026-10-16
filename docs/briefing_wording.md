@@ -41,7 +41,7 @@ agrees with deep-water speed on average and cannot time one swell, §43).
 
 ## The log-first gate
 
-On a device set to "I log the beach" (the setting under Docs), the page opens
+On a device set to "Wave observer" (the setting beside Docs, at the right), the page opens
 on "Logging the beach today?", "Log before you look…", with "Open the log",
 "I've logged" and "Not logging today", and nothing else, until today's log is
 done or declined; it returns at Coronado's midnight. It is the one place the

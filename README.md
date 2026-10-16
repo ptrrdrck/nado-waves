@@ -92,8 +92,8 @@ a full kilometre of coordinate error moves an edge by under 2°, against
 **Live: https://ptrrdrck.github.io/nado-waves-forecast/** — this repository is
 private, so the page is published to a public delivery repository, the same way
 `nado-waves-log` serves the observer form. This repository stays the system of
-record; nothing is edited on the far side. On a phone set to "I log the beach"
-(under Docs), the page opens on a question pointing at the log before showing
+record; nothing is edited on the far side. On a phone set to "Wave observer"
+(beside Docs), the page opens on a question pointing at the log before showing
 anything, so an observer logs before they look.
 
 The page states what it is standing on in four levels — geometry, model,
