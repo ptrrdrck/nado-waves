@@ -682,7 +682,7 @@ class TestTheTwoChains:
         assert "remember(KEEP.swell, id)" in SOURCE
         assert "SWELL_TAB = recall(KEEP.swell)" in SOURCE
         # The one exception is the log-first gate (owner's call, 2026-10-16):
-        # "I log the beach" belongs to the device, not the visit, so it and
+        # "Wave observer" belongs to the device, not the visit, so it and
         # the day it was cleared live in localStorage, through its two
         # helpers and nowhere else.
         outside = SOURCE.replace(SOURCE[SOURCE.index("function stored("):SOURCE.index("const gated = ")], "")
@@ -3744,6 +3744,14 @@ class TestTheBriefing:
         assert SOURCE.index('id="briefing"') < SOURCE.index('id="panel"')
         assert 'class="briefing"' in SOURCE and 'class="cond briefing' not in SOURCE
 
+    def test_open_it_is_at_most_half_the_screen_and_scrolls_inside(self):
+        """Owner's call, 2026-10-16: shorter than half the screen it is its
+        own height; longer, it scrolls within itself, cut at the cards."""
+        rule = SOURCE[SOURCE.index(".briefing .fold-body{"):]
+        rule = rule[:rule.index("}")]
+        assert "max-height:50dvh" in rule and "overflow-y:auto" in rule
+        assert "height:" not in rule.replace("max-height:", "")
+
     def test_it_is_live_only(self):
         assert 'const brief = forecasting ? "" : briefingFold(BRIEFING);' in SOURCE
 
@@ -3765,13 +3773,17 @@ class TestTheBriefing:
 
 class TestTheLogFirstGate:
     """Owner's call, 2026-10-16: an observer reaches the log before any
-    forecast. The setting sits under Docs; the gate is the one place the
-    page links to the log."""
+    forecast. The setting, "Wave observer", sits on Docs' line at the
+    right; the gate is the one place the page links to the log."""
 
     def test_the_setting_sits_by_the_docs_link(self):
         links = SOURCE[SOURCE.index('<nav class="links"'):]
         links = links[:links.index("</nav>")]
-        assert 'id="log-gate"' in links and "I log the beach" in links
+        assert 'id="log-gate"' in links and "Wave observer" in links
+        assert links.index("docs.html") < links.index('id="log-gate"')
+        rule = SOURCE[SOURCE.index(".links{"):]
+        rule = rule[:rule.index("}")]
+        assert "flex-direction:row" in rule and "justify-content:space-between" in rule
 
     def test_the_log_is_linked_from_the_gate_alone(self):
         assert SOURCE.count("nado-waves-log/") == 1

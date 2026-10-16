@@ -133,9 +133,9 @@ Each position NHC has logged for a storm at hurricane strength (and as a tropica
 
 What each break takes from the storm's direction comes from its ray tables, to 5 m of water, as a share of the height at the buoy: windows, seabed and friction, physics, not checked against the beach.
 
-### [briefing-gate] I log the beach
+### [briefing-gate] Wave observer
 
-At the foot of the page, beside Docs. On a phone where it is ticked, the page opens on a quiet question, “Logging the beach today?”, and shows nothing else until today's log is done or you say you are not logging today. It comes back at midnight. Someone who has seen a forecast is no longer an independent witness, and the log is what will one day check this page, so the log comes first. That question is the one place the page links to the log. Ticking it after you have already looked starts it tomorrow.
+At the foot of the page, at the right, on Docs' line. On a phone where it is ticked, the page opens on a quiet question, “Logging the beach today?”, and shows nothing else until today's log is done or you say you are not logging today. It comes back at midnight. Someone who has seen a forecast is no longer an independent witness, and the log is what will one day check this page, so the log comes first. That question is the one place the page links to the log. Ticking it after you have already looked starts it tomorrow.
 
 ## [aperture] The aperture
 

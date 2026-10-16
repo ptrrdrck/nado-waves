@@ -147,7 +147,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    are Origin's: a heading at the value size over a 15 px grey paragraph,
    apart by the same centred dot. */
 .briefing{display:flex;flex-direction:column;gap:6px;padding:0 13px}
-.briefing .fold-body{display:flex;flex-direction:column;gap:2px;padding-top:2px}
+/* Open, it is at most half the reader's screen (owner's call, 2026-10-16):
+   shorter, it is its own height; longer, it scrolls inside itself and the
+   rest is cut off at the cards' edge, so the cards never move down past
+   half a screen. dvh where the browser has it, so a phone's collapsing
+   toolbar does not leave it a bar too tall. */
+.briefing .fold-body{display:flex;flex-direction:column;gap:2px;padding-top:2px;
+                     max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior:contain}
 .brief-entry{display:flex;flex-direction:column;gap:2px}
 .brief-entry > .val{font-size:19px;font-weight:600;line-height:1.25}
 .brief-entry > .turn{font-size:15px;color:var(--soft)}
@@ -720,7 +726,10 @@ th{color:var(--soft);font-weight:600;font-size:12px}
 .warn{font-size:13px;color:var(--soft);background:var(--signal-wash);border:1px dashed var(--signal);
       border-radius:var(--r);padding:9px 11px;margin:0}
 a{color:var(--surf)}
-.links{margin:0;font-size:13px;display:flex;flex-direction:column;gap:4px;
+/* Docs at the left and the Wave observer setting at the right, one line
+   (owner's call, 2026-10-16). */
+.links{margin:0;font-size:13px;display:flex;flex-direction:row;justify-content:space-between;
+       align-items:center;flex-wrap:wrap;gap:4px 12px;
        border-top:1px solid var(--line);padding-top:12px}
 select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px solid var(--line-strong);
        background:var(--card);color:var(--ink)}
@@ -763,8 +772,8 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
        break's tab, because one station feeds all three. Only the
        offshore/onshore reading is per-break, and that stays in each break's
        tab: the three shore normals span 27 degrees. -->
-  <!-- The log-first gate: shown only on a device set to "I log the beach"
-       (the setting under Docs), until today's log is done or declined. The
+  <!-- The log-first gate: shown only on a device set to "Wave observer"
+       (the setting beside Docs), until today's log is done or declined. The
        one place this page links to the observation log: nothing on screen
        yet, so the link carries no forecast with it. -->
   <section class="gate" id="gate" aria-label="Log first" hidden>
@@ -792,7 +801,7 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
        geometry.html on 2026-10-02 (owner's decision). -->
   <nav class="links" aria-label="More">
     <a href="docs.html">Docs</a>
-    <label class="logger"><input type="checkbox" id="log-gate"> I log the beach</label>
+    <label class="logger"><input type="checkbox" id="log-gate"> Wave observer</label>
   </nav>
 </div>
 
@@ -1757,7 +1766,7 @@ function briefingFold(B) {
 }
 // End of the briefing.
 
-// The log-first gate (owner's call, 2026-10-16). "I log the beach" is this
+// The log-first gate (owner's call, 2026-10-16). "Wave observer" is this
 // device's, so it lives in localStorage, not the tab's sessionStorage; so
 // does the day it was cleared, Coronado's own day, so the gate returns at
 // local midnight. Every access guarded: blocked storage leaves the page
