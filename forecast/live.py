@@ -54,7 +54,7 @@ from collector import localwind
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
-from . import ensemble, forecastlog, tidephase
+from . import ensemble, forecastlog, sunset, tidephase
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
 from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea,
@@ -258,6 +258,9 @@ class Forecast:
     #: summary per local day the tab can show (`forecast.tidephase`), from
     #: the same turns. None when the constants are not stored.
     tide_phase: dict | None = None
+    #: The Sun card (`forecast.sunset`): every local day the tab can show,
+    #: the past hours' included -- the sun does not depend on the run.
+    sun: dict | None = None
     tide_station: str = TIDE_STATION
     tide_station_name: str = TIDE_STATION_NAME
     #: Where the Tide card's numbers are: the gauge carried to the beach.
@@ -740,6 +743,13 @@ def build(
                 now=datetime.strptime(generated, ISO).replace(tzinfo=timezone.utc))
         except Exception as exc:  # noqa: BLE001 -- see above
             forecast.warnings.append(f"no tide phase: {type(exc).__name__}: {exc}")
+        try:
+            back = (datetime.strptime(generated, ISO).replace(tzinfo=timezone.utc)
+                    - timedelta(hours=forecastlog.PAST_HOURS)).astimezone(tidephase.LOCAL_TZ).date()
+            end = rows[-1].valid_utc.astimezone(tidephase.LOCAL_TZ).date()
+            forecast.sun = sunset.block([back + timedelta(days=k) for k in range((end - back).days + 1)])
+        except Exception as exc:  # noqa: BLE001 -- a warning, never a lost run
+            forecast.warnings.append(f"no sunset: {type(exc).__name__}: {exc}")
 
     if rows:
         forecast.hourly = hourly_columns(

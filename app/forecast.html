@@ -1318,6 +1318,81 @@ function phaseFold(payload, key, {tagged = false} = {}) {
   </div>`;
 }
 
+// THE SUN (owner's request, 2026-10-16; forecast.sunset, BRIEFING §42): the
+// sunset each break sees. For most of the year the sun goes behind
+// the Point Loma peninsula minutes before the sea-horizon time every table
+// gives; through the winter it sets in the sea, left of the point, for as long
+// as the break's own view of the tip allows -- a season that differs by break,
+// as the window does. Each tab its own headline and lines, following the open
+// swell tab as the Wind card's verdict does; the Buoys tab has no beach, so it
+// reads the sea horizon. Computed, never measured: tagged so on LIVE, as the
+// tide's turn is. Sunrise is the sea-level time (no land east of the breaks
+// is modelled), the same at every break.
+const SUN_TABS = (payload) => Object.keys(((payload && payload.sun) || {}).seasons || {});
+function sunSeason(sun, b, key) {
+  const s = (sun.seasons || {})[b];
+  if (!s) return "";
+  if (s.closest) {
+    return `Never clears the point here: closest ${dayText(s.closest.day)}, `
+      + `${s.closest.early_min.toFixed(0)} min early`;
+  }
+  const runs = s.runs || [];
+  const at = runs.findIndex((r) => r.from <= key && key <= r.to);
+  if (at < 0) return "";
+  const open = (i) => i === runs.length - 1;
+  if (runs[at].kind === "sea") return open(at) ? "" : `until ${dayText(runs[at].to)}`;
+  const next = runs.slice(at + 1).findIndex((r) => r.kind === "sea");
+  if (next < 0) return "";
+  const r = runs[at + 1 + next];
+  return open(at + 1 + next) ? `In the sea, left of the point, from ${dayText(r.from)}`
+    : `In the sea, left of the point, ${daySpan(r.from, r.to)}`;
+}
+// The card for the coast day `key`, or nothing when the payload has none.
+function sunCard(payload, key, {tagged = false, tomorrow = false} = {}) {
+  const sun = payload && payload.sun;
+  const day = sun && sun.days && sun.days[key];
+  if (!day) return "";
+  const when = tomorrow ? " tomorrow" : "";
+  const shown = (id) => (id === SWELL_TAB ? "" : " hidden");
+  const heads = [], lines = [], horizon = [];
+  for (const b of SUN_TABS(payload)) {
+    const s = (day.breaks || {})[b];
+    if (!s) continue;
+    heads.push(`<span class="val" data-sun-for="${b}"${shown(b)}>${clock(s.seen_utc)} <span class="unit">sunset${when}</span></span>`);
+    const season = sunSeason(sun, b, key);
+    if (s.kind === "sea") {
+      lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}><b>in the sea</b>, left of the point`
+        + (season ? `, ${season}` : "") + `</span>`);
+    } else {
+      // The minutes are the two clocks' own difference, so they never
+      // disagree with the times on screen.
+      lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}><b>behind Point Loma</b>, `
+        + `${Math.round((Date.parse(day.sunset_utc) - Date.parse(s.seen_utc)) / 60000)} min early</span>`);
+      if (season) lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}>${season}</span>`);
+      horizon.push(`<span data-sun-for="${b}"${shown(b)}> · sea horizon ${clock(day.sunset_utc)}</span>`);
+    }
+  }
+  heads.push(`<span class="val" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>${clock(day.sunset_utc)} <span class="unit">sunset${when}</span></span>`);
+  lines.push(`<span class="turn" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>at the sea horizon</span>`);
+  return `<div class="cond" data-card="sun">
+      <span class="lbl">Sun</span>
+      ${heads.join("")}
+      ${lines.join("")}
+      <span class="turn">Sunrise ${clock(day.sunrise_utc)}${horizon.join("")}${tagged ? ' <span class="tag">computed</span>' : ""}</span>
+    </div>`;
+}
+// LIVE's day: today until the sea-horizon sunset has passed, then tomorrow.
+function sunNow() {
+  const sun = NOW && NOW.sun;
+  const today = coastDay(Date.now());
+  const day = sun && sun.days && sun.days[today];
+  if (day && Date.now() > Date.parse(day.sunset_utc)) {
+    const next = Object.keys(sun.days).find((k) => k > today);
+    if (next) return sunCard(NOW, next, {tagged: true, tomorrow: true});
+  }
+  return sunCard(NOW, today, {tagged: true});
+}
+
 let DATA = null;      // forecast.json — the modelled chain
 let NOW = null;       // now.json     — the observed chain
 let MODE = "now";     // which chain is on screen
@@ -5460,6 +5535,9 @@ function selectSwellTab(id, {focus = false} = {}) {
   document.querySelectorAll("[data-wind-for]").forEach((line) => {
     line.hidden = line.getAttribute("data-wind-for") !== id;
   });
+  document.querySelectorAll("[data-sun-for]").forEach((line) => {
+    line.hidden = line.getAttribute("data-sun-for") !== id;
+  });
   document.querySelectorAll("[data-chart-tab]").forEach((chart) => {
     chart.hidden = chart.getAttribute("data-chart-tab") !== id;
   });
@@ -5625,6 +5703,7 @@ function renderConditions(step, cards) {
       ${phaseFold(NOW, coastDay(Date.now()), {tagged: true})}
       ${cardChart("tide")}
     </div>`);
+    rows.push(sunNow());
   } else {
     const past = step.from === "past";
     // An earlier run's hour in full, when its build kept it: the model's wind
@@ -5680,6 +5759,7 @@ function renderConditions(step, cards) {
         ${seenTide}
         ${cardChart("tide")}
       </div>`);
+      rows.push(sunCard(DATA, coastDay(Date.parse(step.valid_utc))));
       $("conditions").innerHTML = rows.join("");
       restorePicks();
       tickDue();
@@ -5716,6 +5796,7 @@ function renderConditions(step, cards) {
       ${past ? "" : phaseFold(DATA, coastDay(Date.parse(step.valid_utc)))}
       ${cardChart("tide")}
     </div>`);
+    rows.push(sunCard(DATA, coastDay(Date.parse(step.valid_utc))));
   }
 
   $("conditions").innerHTML = rows.join("");
