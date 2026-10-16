@@ -1647,6 +1647,67 @@ function briefTide(B, nowIso) {
   return {head: "Tide", body: parts.join(" ")};
 }
 
+// THE SUN, as the Sun card reads it (forecast.sunset, BRIEFING §42): the
+// sunset each break saw last night and sees next, behind Point Loma or in the
+// sea; sunrise only while it is still to come; and any break whose in-the-sea
+// season starts or ends in the next BRIEF_SUN_AHEAD_DAYS. The minutes early
+// are the clocks' own difference, as on the card.
+const BRIEF_SUN_AHEAD_DAYS = 14;
+function briefSunDay(day) {
+  const behind = {}, sea = [], mins = [];
+  for (const id of ORDER) {
+    const s = (day.breaks || {})[id];
+    if (!s) continue;
+    if (s.kind === "sea") { sea.push(id); continue; }
+    (behind[clock(s.seen_utc)] = behind[clock(s.seen_utc)] || []).push(id);
+    mins.push(Math.round((Date.parse(day.sunset_utc) - Date.parse(s.seen_utc)) / 60000));
+  }
+  const parts = [];
+  const times = Object.entries(behind).map(([t, ids]) => `${t} at ${briefBreaks(ids)}`);
+  if (times.length) {
+    const lo = Math.min(...mins), hi = Math.max(...mins);
+    parts.push(`behind Point Loma at ${andList(times)}, ${lo === hi ? lo : `${lo}–${hi}`} min before the sea horizon`);
+  }
+  if (sea.length) parts.push(`into the sea at ${clock(day.sunset_utc)} at ${briefBreaks(sea)}`);
+  return parts.join(", and ");
+}
+function briefSun(B, nowMs) {
+  const sun = B.sun;
+  if (!sun || !sun.days) return null;
+  const today = coastDay(nowMs);
+  const keys = Object.keys(sun.days).sort();
+  const lastKey = keys.filter((k) => Date.parse(sun.days[k].sunset_utc) <= nowMs).pop();
+  const nextKey = keys.find((k) => Date.parse(sun.days[k].sunset_utc) > nowMs);
+  const parts = [];
+  if (lastKey) {
+    parts.push(`${lastKey < today ? "Last night" : "This evening"} the sun went ${briefSunDay(sun.days[lastKey])}.`);
+  }
+  const riseKey = keys.find((k) => Date.parse(sun.days[k].sunrise_utc) > nowMs);
+  if (riseKey && (!nextKey || riseKey <= nextKey)) parts.push(`Sunrise ${clock(sun.days[riseKey].sunrise_utc)}.`);
+  if (nextKey) {
+    parts.push(`${nextKey === today ? "Tonight" : "Tomorrow evening"} it goes ${briefSunDay(sun.days[nextKey])}.`);
+  }
+  const limit = new Date(dayParts(today).getTime() + BRIEF_SUN_AHEAD_DAYS * 86400000).toISOString().slice(0, 10);
+  for (const id of ORDER) {
+    const s = (sun.seasons || {})[id];
+    if (!s) continue;
+    const runs = s.runs || [];
+    runs.forEach((r, i) => {
+      if (!i || r.from <= today || r.from > limit) return;
+      parts.push(r.kind === "sea"
+        ? `From ${dayText(r.from)} the sun sets in the sea at ${SHORT[id]}.`
+        : `${SHORT[id]}'s last sunset in the sea is ${dayText(runs[i - 1].to)}.`);
+    });
+    if (s.closest && s.closest.day > today && s.closest.day <= limit) {
+      parts.push(`${SHORT[id]} comes closest to clearing the point on ${dayText(s.closest.day)}, `
+        + `still ${s.closest.early_min.toFixed(0)} min early.`);
+    }
+  }
+  if (!parts.length) return null;
+  parts.push("Computed, not observed.");
+  return {head: "Sun", body: parts.join(" ")};
+}
+
 function briefBuoys(B) {
   const parts = [];
   for (const b of B.buoys || []) {
@@ -1668,7 +1729,7 @@ function briefingEntries(B, nowMs = Date.now()) {
   if (!B || !B.available) return [];
   const nowIso = new Date(nowMs).toISOString();
   return [briefStanding(B, nowMs), briefSunset(B), ...briefArrivals(B, nowMs),
-          briefWind(B), briefTide(B, nowIso), briefBuoys(B)]
+          briefWind(B), briefTide(B, nowIso), briefSun(B, nowMs), briefBuoys(B)]
     .filter((e) => e && e.body);
 }
 

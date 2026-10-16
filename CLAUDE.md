@@ -783,8 +783,11 @@ forecaster actually verifies against, Surfline included.
    per story in a fixed order, set as Origin's: Standing on, Since sunset,
    Arriving (Origin's arrivals and their period 12 h ahead; each live
    storm's due window from NHC's fixes, `forecast/stormdue.py`; 46047's west
-   or north-west rises, due at 46232 and the breaks), Wind, Tide, Buoys and
-   season. **Every judging word is measured** (`forecast/briefingreport.py`,
+   or north-west rises, due at 46232 and the breaks), Wind, Tide, Sun (the
+   Sun card's sunsets, last night's and the next, behind Point Loma or in
+   the sea, and any sea season starting or ending within 14 days; its own
+   three days from `forecast.sunset`, since now.json starts at today),
+   Buoys and season. **Every judging word is measured** (`forecast/briefingreport.py`,
    `docs/briefing_thresholds.md`, the phase fold's 85% rule): rose/dropped
    at 15% on 3-hour medians (10% failed north over 6 h), a leader at 5%,
    no word on a night under 6 h. **The wind's onshore habit failed** (under

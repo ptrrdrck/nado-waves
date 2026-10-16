@@ -31,6 +31,7 @@ GFS-Wave and its ensemble are the Forecast tab's.
 | **Arriving**: Tanner Banks | a west (250–280°) or north-west (280–330°) rise there since sunset, its bands earliest first; due at 46232 by deep-water speed and at the breaks after the rays' leg (BRIEFING §43); "Due, not seen" |
 | **Wind** | hours since sunset by the card's verdict, breaks with the same counts together; the newest KNZY reading and its side at each break; local chop |
 | **Tide** | the next two turns, predicted; the gauge's departure; the phase and the next spring or neap; the 2016 survey's tide-and-break sentence |
+| **Sun** | last night's sunset at each break (or this evening's, read after it), behind Point Loma at … with the minutes before the sea horizon, or into the sea; sunrise only while it is still to come before the next sunset; tonight's or tomorrow evening's; any break whose in-the-sea season starts or ends, or whose closest day falls, in the next 14 days; "Computed, not observed." (`forecast.sunset`, BRIEFING §42) |
 | **Buoys and season** | each context buoy's two biggest swell trains, or no recent spectrum; the leading break's height against the archive, said only when it was last that big a week or more ago |
 
 **Not carried, by measurement**: the wind's onshore habit (right 1 of 5 to
@@ -64,6 +65,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
 
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
@@ -99,6 +103,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°. North, at 3.0 ft (0.91 m), is the biggest it has been since Sep 21.
 ```
@@ -118,6 +125,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
 ```
@@ -133,6 +143,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
 
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
@@ -153,6 +166,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
 ```
@@ -171,6 +187,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
 
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
@@ -194,6 +213,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
 ```
@@ -216,6 +238,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
 ```
@@ -234,6 +259,9 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
 
 Buoys and season
 San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°. South, at 4.6 ft (1.40 m), is the biggest it has been since the archive began, Aug 3.
@@ -254,8 +282,55 @@ Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 
 Tide
 Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. Spring tides; neaps around 22 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+
 Buoys and season
 San Clemente Basin (NDBC 46086): no recent spectrum. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+```
+
+### S1: the sun read before dawn: last night, sunrise, tonight, and Center's sea season starting within two weeks
+
+```text
+Standing on
+CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+
+Since sunset
+North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
+
+Wind
+Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+
+Tide
+Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Sun
+Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Sunrise 6:54 AM. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. From 25 Oct the sun sets in the sea at Center. Computed, not observed.
+
+Buoys and season
+San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+```
+
+### S2: the sun read the evening after sunset, a sea season ending and the north break's closest day within two weeks
+
+```text
+Standing on
+CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM. CDIP 191, METAR KNZY, NOAA 9410170, NDBC 46086 and NDBC 46047 overdue.
+
+Since sunset
+North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
+
+Wind
+Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+
+Tide
+The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Sun
+This evening the sun went behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Sunrise 6:55 AM. Tomorrow evening it goes behind Point Loma at 6:06 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:13 PM at South. North comes closest to clearing the point on 28 Oct, still 1 min early. South's last sunset in the sea is 20 Oct. Computed, not observed.
+
+Buoys and season
+San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
 ```
 
 ### X1: no briefing built

@@ -106,6 +106,7 @@ One entry per story, always in the same order, each over its own stretch of time
 - **Arriving**: each swell [Origin](#swell-origin) reads at a break, and its period twelve hours on along its own line; each that stopped arriving since sunset; every hurricane NHC is tracking, from when its swell is due until it no longer can be; and any swell that has risen at Tanner Banks overnight, with when it is due here.
 - **Wind**: the night's hours at each break by the card's own reading (offshore, cross-shore, onshore, light, calm), the newest reading, and local chop.
 - **Tide**: the next two turns (predicted), how far the gauge has run from the prediction, and the [phase](#tide-phase).
+- **Sun**: the sunset each break saw last night and sees tonight, as the [Sun card](#sun) reads it: behind Point Loma, and how many minutes before the sea horizon, or into the sea left of the point. Sunrise while it is still to come, and any break whose sea season starts or ends in the next two weeks. Computed, not observed.
 - **Buoys and season**: each context buoy's two biggest swell trains, and how the leading break's height ranks in the archive, said only when it was last that big a week or more ago.
 
 It never uses the model. GFS-Wave and its ensemble belong to the Forecast tab; the Briefing is the “LIVE” chain and NHC's own fixes for each storm. Its wording, every case it can take, is in `docs/briefing_wording.md`.

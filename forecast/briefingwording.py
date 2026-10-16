@@ -13,7 +13,7 @@ branch, so the examples are what the page prints, never typed.
 
 The numbers in the cases are made up; only the wording is under review.
 Times are Pacific, the reader's zone at these beaches, and the reader's
-clock stands at `READ_AT`.
+clock stands at `READ_AT` unless a case sets its own `_read_at`.
 """
 
 from __future__ import annotations
@@ -86,6 +86,26 @@ QUIET = {
               {"station": "46047", "name": "Tanner Banks, CA", "stale": False,
                "trains": [{"period_s": 14.7, "from_deg": 200}, {"period_s": 10.2, "from_deg": 295}]}],
     "season": None,
+    "sun": {"days": {
+        "2026-10-15": {"sunrise_utc": "2026-10-15T13:53:00Z", "sunset_utc": "2026-10-16T01:16:00Z",
+                       "breaks": {N: {"seen_utc": "2026-10-16T01:08:00Z", "kind": "point_loma"},
+                                  C: {"seen_utc": "2026-10-16T01:09:00Z", "kind": "point_loma"},
+                                  S: {"seen_utc": "2026-10-16T01:16:00Z", "kind": "sea"}}},
+        "2026-10-16": {"sunrise_utc": "2026-10-16T13:54:00Z", "sunset_utc": "2026-10-17T01:14:00Z",
+                       "breaks": {N: {"seen_utc": "2026-10-17T01:07:00Z", "kind": "point_loma"},
+                                  C: {"seen_utc": "2026-10-17T01:07:00Z", "kind": "point_loma"},
+                                  S: {"seen_utc": "2026-10-17T01:14:00Z", "kind": "sea"}}},
+        "2026-10-17": {"sunrise_utc": "2026-10-17T13:55:00Z", "sunset_utc": "2026-10-18T01:13:00Z",
+                       "breaks": {N: {"seen_utc": "2026-10-18T01:06:00Z", "kind": "point_loma"},
+                                  C: {"seen_utc": "2026-10-18T01:06:00Z", "kind": "point_loma"},
+                                  S: {"seen_utc": "2026-10-18T01:13:00Z", "kind": "sea"}}}},
+        "seasons": {N: {"runs": [{"kind": "point_loma", "from": "2026-10-15", "to": "2027-10-15"}],
+                        "closest": {"day": "2026-12-19", "early_min": 1.0}},
+                    C: {"runs": [{"kind": "point_loma", "from": "2026-10-15", "to": "2026-11-08"},
+                                 {"kind": "sea", "from": "2026-11-09", "to": "2027-02-01"},
+                                 {"kind": "point_loma", "from": "2027-02-02", "to": "2027-10-15"}]},
+                    S: {"runs": [{"kind": "sea", "from": "2026-10-15", "to": "2027-02-25"},
+                                 {"kind": "point_loma", "from": "2027-02-26", "to": "2027-10-15"}]}}},
 }
 
 
@@ -175,6 +195,17 @@ CASES = [
     ("T1", "a stale context buoy, no departure, springs",
      _case(buoys=[dict(QUIET["buoys"][0], stale=True), QUIET["buoys"][1]], tide__departure_m=0.0,
            tide__phase={"phase": "spring", "next": {"kind": "neap", "utc": "2026-10-23T05:00:00Z"}})),
+    ("S1", "the sun read before dawn: last night, sunrise, tonight, and Center's sea season "
+           "starting within two weeks",
+     _case(_read_at="2026-10-16T12:30:00Z", sun__seasons__coronado_center__runs=[
+         {"kind": "point_loma", "from": "2026-10-15", "to": "2026-10-24"},
+         {"kind": "sea", "from": "2026-10-25", "to": "2027-02-01"}])),
+    ("S2", "the sun read the evening after sunset, a sea season ending and the north break's "
+           "closest day within two weeks",
+     _case(_read_at="2026-10-17T03:00:00Z", sun__seasons__coronado_south__runs=[
+         {"kind": "sea", "from": "2026-10-15", "to": "2026-10-20"},
+         {"kind": "point_loma", "from": "2026-10-21", "to": "2027-10-15"}],
+           sun__seasons__coronado_north__closest={"day": "2026-10-28", "early_min": 1.0})),
     ("X1", "no briefing built", {"generated_utc": "2026-10-16T14:20:00Z", "available": False,
                                  "why": "no observed reading was built this collection"}),
 ]
@@ -211,6 +242,7 @@ def script(source: str) -> str:
         _lift(source, "const dayParts = ", "};\n"),
         _lift(source, "const dayText = ", ";\n"),
         _lift(source, "const dayOfUtc = ", ";\n"),
+        _lift(source, "function daySpan(", "\n}\n"),
         _lift(source, "const PHASE_TITLE = ", "};"),
         _lift(source, "const LIGHT_KT = ", ";"),
         _lift(source, "function sense(", "\n}\n"),
@@ -237,7 +269,7 @@ const text = (e) => [e.head, e.body].map((html) => html
   .replace(/<[^>]+>/g, "").trim());
 const out = {{}};
 for (const [id, B] of {cases}) {{
-  out[id] = briefingEntries(B, Date.parse("{READ_AT}")).map(text);
+  out[id] = briefingEntries(B, Date.parse(B._read_at || "{READ_AT}")).map(text);
 }}
 console.log(JSON.stringify(out));
 """

@@ -168,3 +168,14 @@ def test_the_briefing_never_reads_the_model():
     code = src.split('"""', 2)[2]
     for word in ("forecast.json", "gfswave", "wavespec", "gefswave", "ensemble", "forecast.live import build"):
         assert word not in code, word
+
+
+def test_the_sun_story_carries_last_night_today_and_tomorrow():
+    """now.json's sun block starts today; a morning read needs last night's."""
+
+    at = datetime(2026, 10, 16, 14, 30, tzinfo=timezone.utc)       # 7:30 AM Pacific
+    got = bf.sun_story(at)
+    assert list(got["days"]) == ["2026-10-15", "2026-10-16", "2026-10-17"]
+    assert set(got["seasons"]) == set(bf.BREAKS)
+    last = got["days"]["2026-10-15"]
+    assert datetime.strptime(last["sunset_utc"], ISO).replace(tzinfo=timezone.utc) < at

@@ -24,6 +24,10 @@ story over its own clock:
 - **Wind**: the KNZY reading each hour since sunset, per break by the card's
   verdict, and the newest; local chop now.
 - **Tide**: the card's next turns (predicted), the departure, the phase.
+- **Sun**: the sunset each break saw last night and sees tonight, behind
+  Point Loma or in the sea (`forecast.sunset`, the Sun card's, BRIEFING
+  §42), sunrise while it is still to come, and any break whose in-the-sea
+  season starts or ends in the next two weeks. Computed, never observed.
 - **Buoys and season**: 46047's and 46086's trains now, two directions at
   once where a buoy holds them, and how the leading break's height ranks in
   the archive.
@@ -468,6 +472,23 @@ def tide_story(now: dict, at: datetime) -> dict:
             "departure_m": now.get("tide_departure_m"), "phase": phase, "day": day}
 
 
+def sun_story(at: datetime) -> dict | None:
+    """The Sun card's block (`forecast.sunset.block`) for Coronado's
+    yesterday, today and tomorrow: now.json carries only today and
+    tomorrow, and a morning read needs last night's."""
+
+    from zoneinfo import ZoneInfo
+
+    from .sunset import block
+
+    day = at.astimezone(ZoneInfo("America/Los_Angeles")).date()
+    try:
+        got = block([day - timedelta(days=1), day, day + timedelta(days=1)])
+    except (FileNotFoundError, ValueError):
+        return None
+    return {"days": got["days"], "seasons": got["seasons"]}
+
+
 def buoys_story(buoys: dict | None) -> list[dict]:
     out = []
     for b in (buoys or {}).get("buoys", []):
@@ -532,6 +553,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None,
         },
         "wind": wind_story(now, windtide, since),
         "tide": tide_story(now, at),
+        "sun": sun_story(at),
         "buoys": buoys_story(buoys),
         "season": season_story(heights_now, (sunset or {}).get("lead_now"), newest, Path(data_dir))
                   if sunset else None,

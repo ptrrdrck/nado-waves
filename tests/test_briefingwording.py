@@ -27,7 +27,7 @@ def _text(entries):
 
 
 def test_stories_come_in_one_order(cases):
-    order = ["Standing on", "Since sunset", "Wind", "Tide", "Buoys and season"]
+    order = ["Standing on", "Since sunset", "Wind", "Tide", "Sun", "Buoys and season"]
     for cid, entries in cases.items():
         heads = [h for h, _ in entries if h in order]
         assert heads == [h for h in order if h in heads], cid
@@ -80,3 +80,29 @@ def test_nothing_is_called_safe_or_dangerous(cases):
 
 def test_no_briefing_draws_no_fold(cases):
     assert cases["X1"] == []
+
+
+def _sun(cases, cid):
+    return next(b for h, b in cases[cid] if h == "Sun")
+
+
+def test_the_sun_says_last_night_and_next_and_is_computed(cases):
+    for cid in ("Q1", "S1", "S2"):
+        body = _sun(cases, cid)
+        assert body.endswith("Computed, not observed.")
+        assert "behind Point Loma" in body and "into the sea" in body
+    assert _sun(cases, "Q1").startswith("Last night") and "Tonight" in _sun(cases, "Q1")
+    assert _sun(cases, "S2").startswith("This evening") and "Tomorrow evening" in _sun(cases, "S2")
+
+
+def test_sunrise_is_said_only_while_it_is_still_to_come_before_the_next_sunset(cases):
+    assert "Sunrise" not in _sun(cases, "Q1")       # read at 7:30 AM, after sunrise
+    assert "Sunrise 6:54 AM." in _sun(cases, "S1")  # read before dawn
+
+
+def test_a_sea_season_edge_is_said_only_within_two_weeks(cases):
+    assert "From 25 Oct the sun sets in the sea at Center." in _sun(cases, "S1")
+    assert "9 Nov" not in _sun(cases, "Q1")          # Center's real start, 24 days out
+    assert "South's last sunset in the sea is 20 Oct." in _sun(cases, "S2")
+    assert "North comes closest to clearing the point on 28 Oct" in _sun(cases, "S2")
+    assert "19 Dec" not in _sun(cases, "Q1")
