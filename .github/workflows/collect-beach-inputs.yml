@@ -146,6 +146,18 @@ jobs:
           set -euo pipefail
           python -m collector.besttracks
 
+      # NHC's official forecast track for each storm whose best track is live
+      # (the a-deck's OFCL lines): where NHC expects it to go, for the LIVE
+      # briefing's "until when" (owner's call, 2026-10-16). Kept so each
+      # forecast fix can be checked against the best-track fix that later
+      # lands on it. This job is its one writer; a quiet hour fetches nothing.
+      - name: NHC official forecasts
+        id: nhcforecast
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.nhcforecast
+
       - name: Wind (KNZY)
         id: wind
         continue-on-error: true
@@ -209,6 +221,17 @@ jobs:
           set -euo pipefail
           python -m forecast.buoys
 
+      # The LIVE tab's Briefing: what has happened since sunset and what is
+      # arriving, from the files the two steps above wrote, 46047's spectra
+      # and NHC's fixes (forecast.briefing). Its own step and file, after the
+      # context buoys, so a briefing that fails takes nothing else with it.
+      - name: Briefing
+        id: briefing
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m forecast.briefing
+
       # The archive is withheld from the page when it no longer says what
       # today's chain says (or does not exist yet). Ask for the rebuild rather
       # than waiting for the daily one; series-archive.yml queues at most one.
@@ -262,13 +285,16 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add data/spectra data/wind data/tide data/besttracks 2>/dev/null || true
+          # Its own line: it does not exist until the first active storm, and
+          # one missing pathspec makes git add stage nothing at all.
+          git add data/nhcforecasts 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No new beach inputs to commit."
             exit 0
           fi
 
-          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks \
+          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts \
             | awk '{sum += $1} END {print sum + 0}')
 
           git commit \

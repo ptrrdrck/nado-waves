@@ -92,7 +92,9 @@ a full kilometre of coordinate error moves an edge by under 2°, against
 **Live: https://ptrrdrck.github.io/nado-waves-forecast/** — this repository is
 private, so the page is published to a public delivery repository, the same way
 `nado-waves-log` serves the observer form. This repository stays the system of
-record; nothing is edited on the far side.
+record; nothing is edited on the far side. On a phone set to "I log the beach"
+(under Docs), the page opens on a question pointing at the log before showing
+anything, so an observer logs before they look.
 
 The page states what it is standing on in four levels — geometry, model,
 calibration, observation — and two of those currently read **none**.
@@ -126,6 +128,9 @@ python -m forecast.beachverify           # does the log agree with the geometry?
 python -m forecast.verify                # how wrong GFS-Wave is at the buoy
 python -m forecast.residual --ceiling    # what an upstream observation could win
 python -m forecast.forensics             # where a past swell was born
+python -m forecast.briefing              # the LIVE briefing -> data/live/briefing.json
+python -m forecast.upstreamlag           # Tanner Banks to Point Loma South to the breaks
+python -m forecast.briefingreport        # the briefing's thresholds, measured
 python -m collector.run                  # fetch and archive (needs NDBC reachable)
 python -m collector.gfswave_backfill     # archive GFS-Wave bulletins
 PYTHONPATH=. python -m pytest -q
@@ -147,6 +152,8 @@ PYTHONPATH=. python -m pytest -q
     data/beach_log/          the verification series                    [EMPTY]
     forecast/forensics.py a past swell's origin off the historical record
     forecast/origin.py    the LIVE tab's Origin: each arriving train's birthplace
+    forecast/briefing.py  the LIVE tab's Briefing: since sunset, and what is arriving
+    forecast/stormdue.py  when a hurricane's swell is due, from NHC's fixes
     data/historical/      3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/  1,095 GFS-Wave cycles/station, with swell partitions
 

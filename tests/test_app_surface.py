@@ -681,7 +681,12 @@ class TestTheTwoChains:
         assert "remember(KEEP.mode, mode)" in SOURCE
         assert "remember(KEEP.swell, id)" in SOURCE
         assert "SWELL_TAB = recall(KEEP.swell)" in SOURCE
-        assert "localStorage." not in SOURCE
+        # The one exception is the log-first gate (owner's call, 2026-10-16):
+        # "I log the beach" belongs to the device, not the visit, so it and
+        # the day it was cleared live in localStorage, through its two
+        # helpers and nowhere else.
+        outside = SOURCE.replace(SOURCE[SOURCE.index("function stored("):SOURCE.index("const gated = ")], "")
+        assert "localStorage." not in outside
 
     def test_storage_that_throws_does_not_break_the_page(self):
         """Private modes and blocked site data throw on the accessor itself."""
@@ -1689,12 +1694,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert SOURCE.count("fetch(fresh(WINDTIDE_SOURCE)") == 2
         assert SOURCE.count("fetch(fresh(ORIGINS_SOURCE)") == 1     # boot and hourly, one function
         assert SOURCE.count("fetch(fresh(BUOYS_ALL_SOURCE)") == 1   # with series_all, once
+        assert SOURCE.count("fetch(fresh(BRIEFING_SOURCE)") == 1    # boot and hourly, one function
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 15
+        assert SOURCE.count('{cache: "no-store"}') == 16
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a
@@ -3726,3 +3732,62 @@ class TestTheSunCard:
         assert '"[data-sun-for]"' in select
         assert SOURCE.count("rows.push(sunNow());") == 1
         assert SOURCE.count("rows.push(sunCard(DATA, coastDay(Date.parse(step.valid_utc))));") == 2
+
+
+class TestTheBriefing:
+    """The LIVE tab's Briefing (owner's request, 2026-10-16): a fold on the
+    backdrop above the cards, LIVE only, and never the model."""
+
+    BLOCK = SOURCE[SOURCE.index("// THE BRIEFING"):SOURCE.index("// End of the briefing.")]
+
+    def test_it_sits_above_the_cards_outside_any_card(self):
+        assert SOURCE.index('id="briefing"') < SOURCE.index('id="panel"')
+        assert 'class="briefing"' in SOURCE and 'class="cond briefing' not in SOURCE
+
+    def test_it_is_live_only(self):
+        assert 'const brief = forecasting ? "" : briefingFold(BRIEFING);' in SOURCE
+
+    def test_it_never_reads_the_model(self):
+        code = "\n".join(line for line in self.BLOCK.splitlines() if not line.strip().startswith("//"))
+        for word in ("DATA", "GFS", "forecast.json", "ensemble"):
+            assert word not in code, word
+
+    def test_its_closed_line_names_no_condition(self):
+        head = self.BLOCK[self.BLOCK.index("function briefingFold"):]
+        head = head[:head.index("</div>")]
+        assert "Briefing <span class=\"count\">since sunset ${clock(B.since_utc)}</span>" in head
+        assert "height(" not in head and "speed(" not in head
+
+    def test_it_is_closed_until_opened_and_kept_across_a_refresh(self):
+        assert "let BRIEF_OPEN = false;" in SOURCE
+        assert 'BRIEF_OPEN = recall(KEEP.briefOpen) === "open";' in SOURCE
+
+
+class TestTheLogFirstGate:
+    """Owner's call, 2026-10-16: an observer reaches the log before any
+    forecast. The setting sits under Docs; the gate is the one place the
+    page links to the log."""
+
+    def test_the_setting_sits_by_the_docs_link(self):
+        links = SOURCE[SOURCE.index('<nav class="links"'):]
+        links = links[:links.index("</nav>")]
+        assert 'id="log-gate"' in links and "I log the beach" in links
+
+    def test_the_log_is_linked_from_the_gate_alone(self):
+        assert SOURCE.count("nado-waves-log/") == 1
+        assert SOURCE.count("LOG_URL") == 2       # declared, and set on the gate's link
+        assert '$("gate-log").href = LOG_URL;' in SOURCE
+
+    def test_a_gated_page_shows_nothing_but_the_gate(self):
+        body = SOURCE[SOURCE.index("function show() {"):]
+        body = body[:body.index("const forecasting")]
+        assert '$("panel").hidden = shut;' in body
+        for hidden in ('"seek"', '"briefing"', '"stale"', '"warnings"'):
+            assert hidden in body
+        assert 'document.querySelector("nav.tabs").hidden = shut;' in body
+
+    def test_it_returns_at_coronados_midnight(self):
+        assert 'stored(GATE.cleared) !== coastDay(Date.now())' in SOURCE
+
+    def test_turning_it_on_after_reading_starts_tomorrow(self):
+        assert "if (box.checked) store(GATE.cleared, coastDay(Date.now()));" in SOURCE
