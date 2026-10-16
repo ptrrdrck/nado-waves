@@ -549,6 +549,31 @@ forecaster actually verifies against, Surfline included.
    Wording generated from the page's code into `docs/tide_phase_wording.md`
    (`forecast/tidephasewording.py`). LIVE: the reader's day at Coronado;
    Forecast: the picked hour's day, none under a past hour.
+   **The Sun card** (owner's request, 2026-10-16; `forecast/sunset.py`,
+   BRIEFING §42), after Tide on both tabs (owner's choice of a card over a
+   Tide fold): the sunset the open break SEES. For most of the year the sun
+   goes behind Point Loma's ridge (4.5–8 km out, 90–130 m, ~1° up) 5–8 min
+   before the sea-horizon time every table gives; through the winter it sets
+   in the sea, LEFT of the point, for a season that differs by break as the
+   window does — South ~15 Oct–25 Feb, Center ~9 Nov–1 Feb, North NEVER
+   (closest ~19–23 Dec, still 1 min early). Headline the break's sunset,
+   then "behind Point Loma, 7 min early" (the minutes the two shown clocks'
+   own difference) or "in the sea, left of the point, until …", the season
+   line (one line in all while it sets in the sea), and "Sunrise …"; each
+   tab's lines follow the swell tab (`data-sun-for`), the Buoys tab reading
+   the sea horizon. Tagged `computed` on LIVE, where each time is the NEXT
+   one, per tab, saying "tomorrow" when it is (owner's question, 2026-10-16:
+   "Sunrise … · sea horizon 6:14 PM" after sunset read as either day's, and
+   the sea-horizon clock came off). Refraction is Bennett's standard: KNZY's
+   temperature and pressure move it 3–12 s over 28 sunsets, invisible at a
+   minute; the air–sea difference (−3.5 to +8.3 °C, KNZY against 46232's
+   SST) is the real swing, and nothing here measures what it does. The skyline
+   is CoNED's own LAND (it is topobathy) traced from each break by
+   `forecast/skyline.py` (precompute, numpy) into
+   `data/nearshore/<break>_skyline.csv`; its first land agrees with the
+   charted Point Loma tangent within 0.1° (a test pins 0.3°). Bare earth:
+   trees and buildings can only make the real sunset EARLIER. Sunrise is
+   the sea-level time; nothing east of the breaks is in the grids.
    **Right above each LIVE swell tab's Charts line, an Origin line** (owner's
    request, 2026-10-02; `forecast/origin.py`, BRIEFING §37) that folds out
    like the charts — its own caret, closed until opened, one open state for
@@ -1035,6 +1060,11 @@ forecaster actually verifies against, Surfline included.
                         (Meeus ch. 47), pure Python                 [built]
       daylight.py       sunrise and sunset at the center break, for the
                         Tide charts' night shading; computed, not fetched [built]
+      skyline.py        PRECOMPUTE (numpy): Point Loma's skyline from each
+                        break off CoNED's land, into data/nearshore/ [built]
+      sunset.py         the Sun card: sunrise, and each break's sunset
+                        behind Point Loma or in the sea, and its season;
+                        pure Python (Meeus ch. 25)                [built]
       modelbias.py      GFS-Wave's bias at 46232 through each break's
                         windows; reports, never edits              [built]
       ensemble.py       GEFS-Wave's mean and spread against 46232: how
@@ -1146,6 +1176,8 @@ forecaster actually verifies against, Surfline included.
                         <break>_fetch.csv (open water upwind, per 1° of wind),
                         <break>_profile.csv (depth below MSL every 2 m from the
                         start point to dry sand, along the normal)
+                        <break>_skyline.csv (the land's angle above the eye
+                        every 0.02° of azimuth, 225–315°; forecast.skyline)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/ensemble_forecasts/ GEFS-Wave's bulletin at 46232, 00Z 2023–2025 (means
