@@ -221,6 +221,17 @@ jobs:
           set -euo pipefail
           python -m forecast.buoys
 
+      # The LIVE tab's Briefing: what has happened since sunset and what is
+      # arriving, from the files the two steps above wrote, 46047's spectra
+      # and NHC's fixes (forecast.briefing). Its own step and file, after the
+      # context buoys, so a briefing that fails takes nothing else with it.
+      - name: Briefing
+        id: briefing
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m forecast.briefing
+
       # The archive is withheld from the page when it no longer says what
       # today's chain says (or does not exist yet). Ask for the rebuild rather
       # than waiting for the daily one; series-archive.yml queues at most one.
