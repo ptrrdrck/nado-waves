@@ -717,7 +717,7 @@ An hour with no buoy spectrum is a gap: a pale band with no line through it, at 
 On the same hours and the same window as the Swell charts. Both are read straight from the collected records rather than rebuilt, so nothing done to the chain can change an earlier hour. They reach back a month, or to where the records begin (18 September 2026 for the wind, 17 September for the tide).
 
 - **Wind**
-  The airfield's report taken in the hour up to each hour: its speed, a dot for any gust, and under it the direction it blows from, which a calm or a variable wind does not have. A report is never carried into the next hour. An hour with no report is a gap.
+  The airfield's report taken in the hour up to each hour: its speed, a dot for any gust, and under it the direction it blows from, which a calm or a variable wind does not have. A report is never carried into the next hour. An hour with no report is a gap. The newest report is on the chart as soon as it is on the card, under the coming hour it stands for.
 - **Shore direction**
   How often the airfield's wind has been offshore, cross-shore, onshore or light at the break whose tab is open, one bar for each hour of the day on your clock. Each bar is that hour on every day counted, one reading a day, by the [same rule](#wind-sense) as the card. The readout says “over N days”, because a bar is many days' readings, not one hour's.
 - **Tide**

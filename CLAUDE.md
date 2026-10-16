@@ -475,7 +475,10 @@ forecaster actually verifies against, Surfline included.
    the tab's window and picked hour. On Now, what was MEASURED each hour:
    KNZY's report taken in the hour up to it — never carried into the next,
    unlike `measured`'s two-hour as-of, because a carried reading draws as a
-   second measurement — and the gauge's sample AT the hour on the open coast;
+   second measurement, and the newest report's slot added as soon as the
+   report lands (2026-10-16: the :52 METAR's hour had no slot until the
+   clock reached it, and the chart sat a report behind the card) — and the
+   gauge's sample AT the hour on the open coast;
    plus the tide's next 24 h of harmonic prediction with the departure,
    dashed, the tab's one modelled line beside its one modelled number. On
    Forecast, `forecast.json`'s `hourly` (the NWS local wind, and the card's
