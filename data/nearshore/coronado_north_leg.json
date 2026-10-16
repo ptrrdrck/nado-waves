@@ -1,0 +1,10 @@
+{
+  "break": "coronado_north",
+  "from_station": "46232",
+  "from_lat": 32.517,
+  "from_lon": -117.425,
+  "periods_s": [
+    8.0,
+    22.0
+  ]
+}

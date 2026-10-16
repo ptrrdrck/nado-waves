@@ -243,3 +243,20 @@ def test_long_swell_loses_more_to_the_bottom_than_short():
 def test_deep_water_has_no_bottom_friction():
     omega = 2 * math.pi / 10.0
     assert float(friction_rate(omega, np.array([2000.0]))[0]) < 1e-12
+
+
+@pytest.mark.parametrize("period", [8.0, 16.0])
+def test_travel_time_along_a_ray_is_the_group_integral(period):
+    """Straight out from a planar beach, the time the tracer stores is
+    ∫ ds / cg, integrated here independently over depth (ds = dh / slope)."""
+
+    bathy = planar()
+    x0, y0 = start(bathy)
+    rays = trace(bathy, x0, y0, np.array([0.0]), period)
+    omega = 2 * math.pi / period
+    h = np.linspace(10.0, G * period ** 2 / (2 * math.pi), 200_001)
+    _, cg, _ = speeds(omega, h)
+    expected = float(np.sum(0.5 * (1 / cg[1:] + 1 / cg[:-1]) * np.diff(h))) / SLOPE
+    assert float(rays.time_s[0]) == pytest.approx(expected, rel=0.01)
+    # Slower than deep water over the same path: the shelf holds it back.
+    assert float(rays.time_s[0]) > float(rays.path_m[0]) / (G * period / (4 * math.pi)) * 0.9

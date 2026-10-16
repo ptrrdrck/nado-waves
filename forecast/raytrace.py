@@ -43,6 +43,12 @@ the depth changes (shoaling). This traces that, the way CDIP's MOP does
    the JONSWAP law), stored as its own factor per ray beside the gain so the
    surface can state it as its own effect.
 
+7. How long a wave group takes from 46232 to each break (`leg_table`, into
+   `<break>_leg.csv`): ∫ ds / cg along each unblocked ray from its exit to the
+   start depth, plus the plane-wave offset from the buoy to that exit along
+   the deep-water heading. Read by the LIVE briefing (`forecast.upstreamlag`);
+   it changes no gain.
+
 WHAT IT IS NOT. Refraction and diffraction are computed separately and
 combined per ray, not solved together as the mild-slope equation would; no
 currents, no wind input. Breaking is inshore of the table's start depth and
@@ -460,6 +466,10 @@ class Rays:
     #: exp(−∫ friction_rate ds) along the traced path: the share of the energy
     #: flux bottom friction leaves. The straight deep-water leg adds nothing.
     friction: np.ndarray | None = None
+    #: ∫ ds / cg along the traced path, in seconds: how long a wave group takes
+    #: from the exit point to the start depth (`forecast.upstreamlag`). The
+    #: tables do not store it.
+    time_s: np.ndarray | None = None
 
 
 def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
@@ -490,6 +500,7 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     edges = edges or {}
     near_edge = {name: [np.full(n, np.inf), np.zeros(n), np.full(n, np.nan)] for name in edges}
     lost = np.zeros(n)
+    elapsed = np.zeros(n)
 
     def ahead(island, xa, ya, ba):
         return np.cos(ba) * (island.centre[0] - xa) + np.sin(ba) * (island.centre[1] - ya)
@@ -540,6 +551,8 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
         wet = covered[go] & np.isfinite(h[go])
         if wet.any():
             lost[idx[wet]] += friction_rate(omega, h[go][wet]) * ds[wet]
+            _, cg_here, _ = speeds(omega, h[go][wet])
+            elapsed[idx[wet]] += ds[wet] / cg_here
 
         # Midpoint (RK2) step along the look-back direction.
         xm = xa + 0.5 * ds * np.cos(ba)
@@ -577,7 +590,7 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     passes = {name: tuple(v) for name, v in abeam.items()} if islands else None
     return Rays(compass_from(beta), status, x, y, exit_depth, path, passes,
                 {name: tuple(v) for name, v in near_edge.items()} if edges else None,
-                np.exp(-lost))
+                np.exp(-lost), elapsed)
 
 
 # ------------------------------------------------------------------ blockers
@@ -885,6 +898,75 @@ def write(rows: list[dict], meta: dict, out_dir: Path = OUT_DIR) -> Path:
     return path
 
 
+LEG_FIELDS = ["period_s", "freq_hz", "off_from_deg", "ray_min", "from_buoy_min"]
+
+#: The swell band the leg is tabled over: 8 to 22 s. Shorter is local sea,
+#: which no upstream buoy carries to the beach; longer has too little energy
+#: in the archive to have been measured (`docs/upstream_lag.md`).
+LEG_PERIODS_S = (8.0, 22.0)
+
+#: The buoy the leg starts from. Its coordinate is fetched metadata
+#: (`forecast.siting.load_coordinates`), never typed.
+LEG_FROM = "46232"
+
+
+def leg_table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
+              freqs: list[float], buoy: tuple[float, float]) -> list[dict]:
+    """Minutes from `buoy` to the start depth, per unblocked ray and period.
+
+    A wave group passing the buoy reaches a ray's deep-water exit after the
+    plane-wave offset (exit − buoy)·û / cg0, û the direction it travels, then
+    the start depth after ∫ ds / cg along the bent ray. Rays that land or whose
+    straight leg runs into a blocker carry nothing to the break and are left
+    out. Negative offsets are kept: an exit up-swell of the buoy is reached
+    first.
+    """
+
+    bx, by = to_utm(*buoy)
+    xs, ys, _ = start_point(bathy, spot)
+    near = (spot.normal - 90.0 + DIR_STEP_DEG / 2.0
+            + DIR_STEP_DEG * np.arange(int(round(180.0 / DIR_STEP_DEG)))) % 360.0
+    rows = []
+    for f in freqs:
+        period = 1.0 / f
+        if not LEG_PERIODS_S[0] <= period <= LEG_PERIODS_S[1]:
+            continue
+        rays = trace(bathy, xs, ys, near, period)
+        cg0 = G * period / (4.0 * math.pi)
+        for i in range(near.size):
+            if rays.status[i] == LAND:
+                continue
+            lat, lon = from_utm(rays.exit_x[i], rays.exit_y[i])
+            heading = float(rays.off_from_deg[i])
+            if straight_line_blocker(blockers, lat, lon, heading):
+                continue
+            toward = math.radians(heading + 180.0)
+            offset_s = ((rays.exit_x[i] - bx) * math.sin(toward)
+                        + (rays.exit_y[i] - by) * math.cos(toward)) / cg0
+            rows.append({
+                "period_s": f"{period:.3f}", "freq_hz": f"{f:.4f}",
+                "off_from_deg": f"{heading:.2f}",
+                "ray_min": f"{rays.time_s[i] / 60.0:.1f}",
+                "from_buoy_min": f"{(offset_s + rays.time_s[i]) / 60.0:.1f}",
+            })
+    return rows
+
+
+def write_leg(rows: list[dict], break_id: str, buoy: tuple[float, float],
+              out_dir: Path = OUT_DIR) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{break_id}_leg.csv"
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=LEG_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+    (out_dir / f"{break_id}_leg.json").write_text(json.dumps(
+        {"break": break_id, "from_station": LEG_FROM,
+         "from_lat": buoy[0], "from_lon": buoy[1],
+         "periods_s": list(LEG_PERIODS_S)}, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def write_fetch(rows: list[dict], break_id: str, out_dir: Path = OUT_DIR) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{break_id}_fetch.csv"
@@ -902,6 +984,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="rebuild the local-sea fetch tables and nothing else")
     parser.add_argument("--profile-only", action="store_true",
                         help="rebuild the surf-zone profiles and nothing else")
+    parser.add_argument("--leg-only", action="store_true",
+                        help=f"rebuild the {LEG_FROM}-to-break travel times and nothing else")
     args = parser.parse_args(argv)
 
     bathy = Bathymetry.load()
@@ -910,6 +994,12 @@ def main(argv: list[str] | None = None) -> int:
     freqs = frequencies()
     for sid in BREAKS:
         if args.only and sid != args.only:
+            continue
+        if args.leg_only:
+            from .siting import load_coordinates
+            buoy = load_coordinates()[LEG_FROM]
+            leg = write_leg(leg_table(bathy, by_id[sid], blockers, freqs, buoy), sid, buoy)
+            print(f"{sid}: leg -> {leg}")
             continue
         prof = write_profile(profile(bathy, by_id[sid]), sid)
         print(f"{sid}: profile -> {prof}")
