@@ -10,7 +10,7 @@ Each source fix (`stormtrack.sources`: hurricane strength, and tropical storm
 after the first hurricane fix) whose great circle to 46232 crosses no land
 (`landpath.blocked`, as the gate tests it) sends a train of frequency f that
 reaches 46232 d / cg(f) later, cg = g/4πf in deep water; then each break
-after the rays' leg (`upstreamlag.leg`, BRIEFING §42). Over `BAND_S` that is
+after the rays' leg (`upstreamlag.leg`, BRIEFING §43). Over `BAND_S` that is
 the due window: its first edge is the fastest swell of the first open fix,
 its last the slowest swell of the last.
 

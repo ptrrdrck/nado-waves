@@ -20,7 +20,7 @@ story over its own clock:
   fixes (best track, then NHC's forecast, each named as such) until their
   last open-water fix's swell has passed; and 46047's west or north-west
   sector risen since sunset, due at 46232 and the breaks by deep-water speed
-  (`forecast.upstreamlag`, BRIEFING §42).
+  (`forecast.upstreamlag`, BRIEFING §43).
 - **Wind**: the KNZY reading each hour since sunset, per break by the card's
   verdict, and the newest; local chop now.
 - **Tide**: the card's next turns (predicted), the departure, the phase.
@@ -360,7 +360,7 @@ def upstream_story(data_dir: Path, buoys: dict | None, since: datetime, at: date
     """46047's west and north-west sectors since sunset: one entry per sector
     that rose, its bands earliest first (a dispersed swell's long periods
     lead), each band when it rose and when deep water puts it at 46232 and
-    the breaks (BRIEFING §42)."""
+    the breaks (BRIEFING §43)."""
 
     from . import upstreamlag as ul
 

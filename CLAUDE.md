@@ -767,7 +767,7 @@ forecaster actually verifies against, Surfline included.
    lets it in. **Never the model** (owner's call): GFS-Wave and its ensemble
    are the Forecast tab's; NHC's official forecast IS allowed, and every
    window edge it sets says so. **Tanner Banks to the coast is DUE, never
-   arrived** (BRIEFING §42, `forecast/upstreamlag.py`): deep-water speed
+   arrived** (BRIEFING §43, `forecast/upstreamlag.py`): deep-water speed
    agrees with the archive on average and cannot time one swell; the leg to
    each break is the rays' (`raytrace --leg-only` → `<break>_leg.csv`).
    Wording generated from the page into `docs/briefing_wording.md`
@@ -1119,7 +1119,7 @@ forecaster actually verifies against, Surfline included.
       stormdue.py       when a storm's swell is due at each break, from NHC's
                         best track and official forecast             [built]
       upstreamlag.py    46047 → 46232 → the breaks: deep-water lag, checked
-                        against the archive; reports (BRIEFING §42)  [built]
+                        against the archive; reports (BRIEFING §43)  [built]
       origin.py         the LIVE tab's Origin: each train's dispersion
                         ridge in 46232's spectrum, bearing at 46047
                         [built]

@@ -28,7 +28,7 @@ GFS-Wave and its ensemble are the Forecast tab's.
 | **Since sunset** | each break: `rose from X to Y` / `dropped from X to Y` (3-hour medians ≥ 15% apart and the readings agree) / `changed little, Y now` / `X at sunset, Y now` (night under 6 h, unmeasured); the leader now and at sunset (5% margin); the leader's biggest train and the three facings; each break whose biggest train differs from sunset's at the page's precision; the leader's biggest calculation step |
 | **Arriving**: Origin | each arrival at a break now, Origin's own form (sent when, how far, held from where, hours so far) and its period `PERIOD_AHEAD_H` (12 h) ahead along its own fitted line, whole seconds; each that stopped reading since sunset |
 | **Arriving**: a storm | `{Hurricane / Tropical Storm / Former hurricane} {Name}` linked to NHC's page; due from / has been due since … about 20 s first, until … near 12 s, on NHC's forecast or from the fixes NHC has logged, sent from about … at …; what each break's ray tables carry from that bearing to 5 m; named by the gate or not yet borne out. Behind land from 46232: says so and nothing else |
-| **Arriving**: Tanner Banks | a west (250–280°) or north-west (280–330°) rise there since sunset, its bands earliest first; due at 46232 by deep-water speed and at the breaks after the rays' leg (BRIEFING §42); "Due, not seen" |
+| **Arriving**: Tanner Banks | a west (250–280°) or north-west (280–330°) rise there since sunset, its bands earliest first; due at 46232 by deep-water speed and at the breaks after the rays' leg (BRIEFING §43); "Due, not seen" |
 | **Wind** | hours since sunset by the card's verdict, breaks with the same counts together; the newest KNZY reading and its side at each break; local chop |
 | **Tide** | the next two turns, predicted; the gauge's departure; the phase and the next spring or neap; the 2016 survey's tide-and-break sentence |
 | **Buoys and season** | each context buoy's two biggest swell trains, or no recent spectrum; the leading break's height against the archive, said only when it was last that big a week or more ago |
@@ -36,7 +36,7 @@ GFS-Wave and its ensemble are the Forecast tab's.
 **Not carried, by measurement**: the wind's onshore habit (right 1 of 5 to
 11 of 21 days, `docs/briefing_thresholds.md`); a ridge's period past 12 h;
 a time for one swell from Tanner Banks to Point Loma South (the archive
-agrees with deep-water speed on average and cannot time one swell, §42).
+agrees with deep-water speed on average and cannot time one swell, §43).
 
 ## The log-first gate
 
