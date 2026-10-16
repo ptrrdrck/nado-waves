@@ -1455,8 +1455,9 @@ class TestAnUpdateAnnouncesItself:
         card can move in the strip without its contents changing."""
 
         # swell, then wind/tide on both tabs, and wind/tide again for an
-        # earlier run's hour, which carries only the measurement
-        assert SOURCE.count('data-card="') == 7
+        # earlier run's hour, which carries only the measurement; and the
+        # Sun card, one function for every tab
+        assert SOURCE.count('data-card="') == 8
         assert 'data-card="swell"' in SOURCE
 
     def test_the_flash_compares_either_side_of_the_same_render(self):
@@ -3641,6 +3642,96 @@ class TestTheTidePhaseFold:
     def test_its_open_state_is_kept(self):
         assert 'phaseOpen: "nado-waves.phase-open"' in SOURCE
         assert 'PHASE_OPEN = recall(KEEP.phaseOpen) === "open";' in SOURCE
+
+
+class TestTheSunCard:
+    """Owner's request, 2026-10-16 (forecast.sunset, BRIEFING §42): the
+    sunset each break sees -- behind Point Loma or in the sea, left of the
+    point -- following the open swell tab as the wind's verdict does."""
+
+    SUN = SOURCE[SOURCE.index("const SUN_TABS = "):SOURCE.index("// LIVE: the reader's day at Coronado")]
+    DAYS = SOURCE[SOURCE.index("const COAST_TZ = "):SOURCE.index("const listJoin = ")]
+
+    def run(self, script: str) -> list[str]:
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        prelude = ('const clock = (iso) => iso.slice(11, 16);\n'
+                   'const BUOY_TAB = "buoy"; let SWELL_TAB = "coronado_center";\n')
+        payload = json.dumps({"sun": {
+            "days": {"2026-10-16": {
+                "sunrise_utc": "2026-10-16T13:54:00Z", "sunset_utc": "2026-10-17T01:14:00Z",
+                "breaks": {
+                    "coronado_north": {"seen_utc": "2026-10-17T01:07:00Z", "kind": "point_loma", "early_min": 7.5},
+                    "coronado_center": {"seen_utc": "2026-10-17T01:07:00Z", "kind": "point_loma", "early_min": 7.1},
+                    "coronado_south": {"seen_utc": "2026-10-17T01:14:00Z", "kind": "sea", "early_min": 0.0}}}},
+            "seasons": {
+                "coronado_north": {"runs": [{"kind": "point_loma", "from": "2026-10-16", "to": "2027-10-16"}],
+                                   "closest": {"day": "2026-12-19", "early_min": 1.0}},
+                "coronado_center": {"runs": [
+                    {"kind": "point_loma", "from": "2026-10-16", "to": "2026-11-08"},
+                    {"kind": "sea", "from": "2026-11-09", "to": "2027-02-01"},
+                    {"kind": "point_loma", "from": "2027-02-02", "to": "2027-10-16"}]},
+                "coronado_south": {"runs": [
+                    {"kind": "sea", "from": "2026-10-16", "to": "2027-02-25"},
+                    {"kind": "point_loma", "from": "2027-02-26", "to": "2027-10-16"}]}}}})
+        out = subprocess.run([node, "-e", prelude + self.DAYS + self.SUN
+                              + f"const P = {payload};\n" + script],
+                             capture_output=True, text=True, check=True)
+        return out.stdout.strip().split("\n")
+
+    def test_each_break_says_where_the_sun_goes(self):
+        got = self.run(
+            'for (const b of ["coronado_north", "coronado_center", "coronado_south"]) {\n'
+            '  console.log(b + ": " + (sunSeason(P.sun, b, "2026-10-16") || "-"));\n'
+            '}\n'
+            'const card = sunCard(P, "2026-10-16", {tagged: true});\n'
+            'console.log(card.replace(/\\s+/g, " "));\n')
+        assert got[0] == "coronado_north: Never clears the point here: closest 19 Dec, 1 min early"
+        assert got[1] == "coronado_center: In the sea, left of the point, 9 Nov–1 Feb"
+        assert got[2] == "coronado_south: until 25 Feb"
+        card = got[3]
+        assert 'data-card="sun"' in card
+        # The open tab's lines show; every other tab's are there but hidden.
+        assert '<span class="val" data-sun-for="coronado_center">01:07 <span class="unit">sunset</span>' in card
+        assert 'data-sun-for="coronado_north" hidden' in card and 'data-sun-for="buoy" hidden' in card
+        assert "<b>behind Point Loma</b>, 7 min early" in card
+        assert "<b>in the sea</b>, left of the point, until 25 Feb" in card
+        assert "at the sea horizon" in card
+        assert 'Sunrise 13:54' in card and '<span class="tag">computed</span>' in card
+
+    def test_live_moves_each_time_on_once_it_has_passed(self):
+        """Owner's question, 2026-10-16: after sunset, "Sunrise 6:54 AM ·
+        sea horizon 6:14 PM" read as either day's. Each time is the next one
+        and says "tomorrow" when it is; the sea-horizon clock is gone."""
+
+        day2 = ('P.sun.days["2026-10-17"] = JSON.parse(JSON.stringify(P.sun.days["2026-10-16"]));\n'
+                'const d2 = P.sun.days["2026-10-17"]; d2.sunrise_utc = "2026-10-17T13:55:00Z";\n'
+                'd2.sunset_utc = "2026-10-18T01:13:00Z"; d2.breaks.coronado_center.seen_utc = "2026-10-18T01:06:00Z";\n')
+        at = lambda iso: (f'Date.now = () => Date.parse("{iso}");\n'
+                          'console.log(sunCard(P, "2026-10-16", {live: true}).replace(/\\s+/g, " "));\n')
+        morning, evening, night = self.run(day2 + at("2026-10-16T12:00:00Z")
+                                           + at("2026-10-17T01:10:00Z") + at("2026-10-17T05:00:00Z"))
+        assert "01:07 <span class=\"unit\">sunset</span>" in morning and "Sunrise 13:54</span>" in morning
+        # 6:10 PM: Center's Point Loma sunset has gone, the sea's has not.
+        assert "01:06 <span class=\"unit\">sunset tomorrow</span>" in evening
+        assert "01:14 <span class=\"unit\">sunset</span>" in evening
+        assert "Sunrise 13:55 tomorrow" in evening and "Sunrise 13:55 tomorrow" in night
+        assert "sea horizon 0" not in night
+
+    def test_the_minutes_are_the_clocks_own_difference(self):
+        """early_min 7.5 rounds to 8, but 01:07 and 01:14 read 7 apart."""
+
+        card = self.run('console.log(sunCard(P, "2026-10-16").replace(/\\s+/g, " "));')[0]
+        assert card.count("7 min early") == 2 and "8 min" not in card
+        assert '<span class="tag">computed</span>' not in card
+
+    def test_it_follows_the_swell_tab_and_sits_on_both_chains(self):
+        select = SOURCE[SOURCE.index("function selectSwellTab("):]
+        select = select[:select.index("\n}\n")]
+        assert '"[data-sun-for]"' in select
+        assert SOURCE.count("rows.push(sunNow());") == 1
+        assert SOURCE.count("rows.push(sunCard(DATA, coastDay(Date.parse(step.valid_utc))));") == 2
 
 
 class TestTheBriefing:

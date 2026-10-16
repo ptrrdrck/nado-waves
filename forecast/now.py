@@ -63,7 +63,7 @@ from .live import (
 )
 from .tideturns import read_turns, turns_between
 from . import origin
-from . import tidephase
+from . import sunset, tidephase
 from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea, summarise,
                         train_dicts)
 from .siting import load_coordinates
@@ -405,6 +405,11 @@ class Now:
     #: past midnight. Predicted, from NOAA's harmonic constants and the
     #: Moon's computed position; None when the constants are not stored.
     tide_phase: dict | None = None
+    #: The Sun card (`forecast.sunset`): today's and tomorrow's sunrise, the
+    #: sea-horizon sunset and each break's own -- behind Point Loma or in the
+    #: sea -- and each break's season a year ahead. Computed, not measured,
+    #: and tagged so on the card. None when the skyline tables are missing.
+    sun: dict | None = None
     #: The limit `stale` was decided against, carried so a surface can re-apply
     #: it to the reader's own clock instead of keeping a second copy of it.
     stale_hours: float = STALE_HOURS
@@ -658,6 +663,10 @@ def build(
                 now=moment)
         except Exception as exc:  # noqa: BLE001 -- see above
             reading.warnings.append(f"no tide phase: {type(exc).__name__}: {exc}")
+        try:
+            reading.sun = sunset.block([local_today, local_today + timedelta(days=1)])
+        except Exception as exc:  # noqa: BLE001 -- a warning, never a lost reading
+            reading.warnings.append(f"no sunset: {type(exc).__name__}: {exc}")
     if not turns:
         reading.warnings.append(
             f"{TIDE_STATION} predicted high/low turns not collected yet."

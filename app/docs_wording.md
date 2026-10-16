@@ -633,6 +633,39 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h
 
 None of this is a statement about waves. On these beach profiles the whole tide range moves where the waves break by tens of metres and their height by under 2%.
 
+## [sun] The Sun card
+
+### [sun-point-loma] The Point Loma sunset
+
+Every published sunset is the moment the top of the sun meets a level sea horizon. From Coronado's sand the Point Loma peninsula stands between the breaks and that horizon for most of the year: its ridge is 4.5–8 km away and 90–130 m high, about 1° above the horizon. The sun goes behind it some 5–8 minutes before the published time. The card's headline is that sunset, at the open break: *behind Point Loma* and how many minutes before the sea-horizon time. On the Buoys tab there is no beach, so the headline is the sea-horizon time.
+
+Each break has its own skyline, traced from the break over the same USGS CoNED survey the seabed comes from: it is a topographic and bathymetric survey, so Point Loma's land is in it beside the seabed. Along each bearing, the highest angle any land stands above the eye, an eye 3 m above sea level, is the skyline there. The Earth's curvature lowers a distant hill and refraction lifts it back a little. The sunset is the last moment any of the sun's disc stands above whatever is in front of it, land or sea, with each part of the disc refracted at its own height.
+
+```
+skyline angle = atan((land − eye) / distance) − distance × (1 − 0.13) / 2R
+sunset        = last moment any of the disc is above max(skyline, sea horizon)
+
+16 Oct 2026, center break: sea horizon 6:14 PM, behind Point Loma 6:07 PM
+```
+
+The sun is computed, not fetched, from Meeus's solar theory. It agrees with an independent ephemeris to within 0.03°, about seven seconds of sunset. Refraction is Bennett's standard formula. Sunrise is the sea-level time only, the same at every break: the city and mountains east of the breaks are not in the survey. On “LIVE” the card is tagged *computed*, and each time is the next one: once the sunset or the sunrise has passed, it gives tomorrow's and says so. On Forecast both are the picked hour's day.
+
+### [sun-season] In the sea, left of the point
+
+Through the winter the sun sets far enough south to go down in the sea, left of Point Loma's tip as you look out from the beach. How much of the winter that lasts depends on the break, because the bearing to the tip sweeps 18° along 2.8 km of sand, as the swell window's west edge does. The card says when the break's next run of sea sunsets is, or, while the sun is setting in the sea, until when, on the one line:
+
+| Break | The tip, from the break | Sun sets in the sea |
+|---|---|---|
+| North | 242.0° | Never. Closest around 19–23 Dec, still 1 min early |
+| Center | 250.3° | About 9 Nov to 1 Feb |
+| South | 260.1° | About 15 Oct to 25 Feb |
+
+Computed for each winter from 2025–26 to 2029–30, the dates move by a day at most. The tip's bearing as the survey sees it agrees with the charted tangent that carries the swell window's west edge to within 0.1°: two independent sources for one edge. On the days either side of a season the sun goes down partly in the sea, its last sliver hidden by the tip's low slope. Those days count as behind Point Loma, by a minute or less.
+
+### [sun-limits] What it cannot see
+
+The survey is bare earth. The trees along the ridge, the lighthouse and the buildings on Point Loma are not in it, so the real skyline can only be higher and the sun can only go behind it earlier. Refraction near the horizon swings with the marine layer, a minute either way on a real evening. Two metres more or less of eye height move the sunset about six seconds.
+
 ## [time] Moving through time
 
 ### [time-picker] The hour picker
@@ -736,9 +769,10 @@ The Shore direction “how often” bars and the Departure view are the “LIVE�
 | GFS-Wave (WAVEWATCH III), NOAA | The model's own directional spectrum and 10 m wind at the buoy, four runs a day | Forecast swell |
 | GEFS-Wave, NOAA | 31-member ensemble at the buoy, height only | Ensemble chart |
 | National Weather Service grid | Hourly forecast wind at the center break, 7 days | Forecast wind, offshore line |
-| USGS CoNED, GMRT | Surveyed seabed and beach profiles (2016) | Refraction, friction, shoaling, breaking |
+| USGS CoNED, GMRT | Surveyed seabed, beach profiles and Point Loma's land (2016) | Refraction, friction, shoaling, breaking, the Sun card's skyline |
 | NOAA electronic navigational charts | Coastline of Point Loma's tip, the islands, Baja and the break chords | The aperture |
 | NOAA solar equations | Sunrise and sunset, computed | Night shading |
+| Meeus's solar theory | The sun's position, computed | The Sun card |
 | Meeus's lunar theory | The Moon's phase, distance and declination, computed | The tide's phase |
 
 When GFS-Wave's directional spectrum is not available, the forecast is rebuilt from the model's separate swell trains instead, with an assumed directional spread, and the “standing on” block above says which was used and what spread was assumed.
