@@ -3761,10 +3761,23 @@ class TestTheBriefing:
             assert word not in code, word
 
     def test_its_closed_line_names_no_condition(self):
+        """Owner's request, 2026-10-17: the line names the issue and when it
+        was issued, the day too when not today's, and nothing else."""
         head = self.BLOCK[self.BLOCK.index("function briefingFold"):]
         head = head[:head.index("</div>")]
-        assert "Briefing <span class=\"count\">since sunset ${clock(B.since_utc)}</span>" in head
-        assert "height(" not in head and "speed(" not in head
+        assert "<span>${briefIssue(B)}</span>" in head
+        line = self.BLOCK[self.BLOCK.index("function briefIssue"):]
+        line = line[:line.index("\n}\n")]
+        assert 'briefing <span class="count">${day}${clock(B.issued_utc)}</span>' in line
+        for text in (head, line):
+            assert "height(" not in text and "speed(" not in text
+
+    def test_it_is_issued_and_only_redrawn_when_a_new_issue_lands(self):
+        """Owner's request, 2026-10-17: live updating defeated its calm
+        purpose. The page swaps it only when the issue's key changes."""
+        refresh = SOURCE[SOURCE.index("function refreshBriefing() {"):]
+        refresh = refresh[:refresh.index("\n}\n")]
+        assert "got.key === BRIEFING.key" in refresh and "generated_utc" not in refresh
 
     def test_it_is_closed_until_opened_and_kept_across_a_refresh(self):
         assert "let BRIEF_OPEN = false;" in SOURCE
