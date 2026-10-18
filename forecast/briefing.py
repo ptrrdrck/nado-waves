@@ -462,10 +462,13 @@ def origin_story(now: dict, since: datetime, newest: datetime) -> dict:
     for site, got in (block.get("sites") or {}).items():
         if site not in BREAKS:
             continue
-        for i in got.get("current") or []:
+        # Each break's `current` is {"arrival": index, "train_period_s": …}
+        # (now.origin_reading); `last` is a bare index.
+        here = [c["arrival"] for c in got.get("current") or []]
+        for i in here:
             current.setdefault(i, []).append(site)
         last = got.get("last")
-        if last is not None and last not in (got.get("current") or []):
+        if last is not None and last not in here:
             a = arrivals[last]
             if not a.get("running") and _utc(a["last_utc"]) >= since:
                 ended.setdefault(last, []).append(site)

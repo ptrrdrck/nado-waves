@@ -182,6 +182,39 @@ def test_the_buoys_trains_then_are_its_own_spectrum_or_none():
     assert bf.trains_at(Path("data"), hour + timedelta(minutes=30)) is None
 
 
+def test_origin_reads_the_sites_as_now_writes_them():
+    """now.json's `current` entries are {"arrival", "train_period_s"}, not bare
+    indexes: read as indexes they crashed the Morning issue of 2026-10-18."""
+    since, newest = T0, T0 + timedelta(hours=12)
+    arrival = {"first_utc": (T0 - timedelta(hours=30)).strftime(ISO), "running": True,
+               "last_utc": newest.strftime(ISO), "distance_km": 10000.0,
+               "generated_utc": (T0 - timedelta(days=8)).strftime(ISO), "latest_period_s": 16.7}
+    ended = dict(arrival, running=False, last_utc=(T0 + timedelta(hours=2)).strftime(ISO))
+    now = {"origin": {"arrivals": [ended, arrival], "hurricanes": [{"name": "TRUDY"}], "sites": {
+        "coronado_north": {"current": [{"arrival": 1, "train_period_s": 16.7}], "last": 0},
+        "coronado_center": {"current": [{"arrival": 1, "train_period_s": 18.2}], "last": 1},
+        "coronado_south": {"current": [], "last": 0},
+        "buoy": {"current": [{"arrival": 1, "train_period_s": 16.7}], "last": 1}}}}
+    got = bf.origin_story(now, since, newest)
+    assert [a["breaks"] for a in got["arriving"]] == [["coronado_north", "coronado_center"]]
+    assert [a["breaks"] for a in got["finished"]] == [["coronado_north", "coronado_south"]]
+    assert got["named"] == ["TRUDY"]
+
+
+def test_an_issue_builds_on_this_collections_own_files():
+    """The whole build, on the payloads forecast.now writes from the archive:
+    every story read from the real shapes, not a fixture's."""
+    from forecast import now as observed
+
+    live = Path("data/live")
+    if not (live / "now.json").exists():
+        pytest.skip("no now.json built in data/live")
+    at = datetime.strptime(json.loads((live / "now.json").read_text())["generated_utc"], ISO) \
+        .replace(tzinfo=timezone.utc)
+    got = bf.build(at=at, issue=bf.latest_slot(at), record={})
+    assert got["available"] and set(got) >= {"overview", "swell", "tide", "wind", "watching"}
+
+
 def test_tanner_banks_north_west_rise_on_the_night_of_8_october():
     """On the archive: 46047's north-west sector rose overnight 8–9 October,
     14–17 s first, due at 46232 by deep-water speed and at every break."""
