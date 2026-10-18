@@ -185,6 +185,21 @@ class TestTheBearing:
         assert ridge_bearing(ridge, {"46047": empty, "46086": empty}) is None
 
 
+class TestAFlatRidgeIsNoFit:
+    """2026-10-17 15Z: three hours at one frequency fitted a slope of ~1e-34,
+    whose send date overflowed and emptied Origin on every tab."""
+
+    def test_a_ridge_past_the_antipode_has_no_fit(self):
+        f = 0.0625
+        ridge = Ridge([Point(START + timedelta(hours=k), f + k * 2e-17, 0.3, 200.0) for k in range(3)])
+        assert ridge.points[2].freq_hz > ridge.points[0].freq_hz     # a slope, barely
+        assert origin.fit_ridge(ridge) is None
+        assert not origin.qualifies(ridge, origin.fit_ridge(ridge))
+
+    def test_the_antipode_bounds_every_plausible_distance(self):
+        assert PLAUSIBLE_KM[1] <= origin.ANTIPODE_KM
+
+
 class TestWhichBreakShowsIt:
     def ridge_at(self, freq: float) -> origin.Arrival:
         ridge = Ridge([Point(START, freq, 0.3, 200.0)])
