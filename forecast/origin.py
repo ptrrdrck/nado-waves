@@ -90,6 +90,7 @@ MIN_PERIOD_DROP_S = 1.5
 MIN_FIT_R2 = 0.8
 #: The antipode is 20,015 km: a longer fit is a bad fit, not a far storm.
 PLAUSIBLE_KM = (500.0, 20000.0)
+ANTIPODE_KM = 20015.0
 #: The line is fitted on the ridge's first hours only: later, trains born
 #: elsewhere drift into the same bins and the ridge stops being one storm's.
 FIT_HOURS = 48.0
@@ -263,8 +264,15 @@ def fit_ridge(ridge: Ridge, hours: float = FIT_HOURS) -> Fit | None:
     intercept, slope, r2 = fitted
     if slope <= 0:
         return None
+    # Past the antipode there is no line, only a flat ridge: on 2026-10-17 15Z
+    # three hours at one frequency fitted a slope of ~1e-34, 7.9e33 km, and
+    # its send date overflowed and took every Origin reading with it. None of
+    # the archive's 126 fits past the antipode qualified, so no reading moves.
+    distance = distance_from_slope(slope)
+    if distance > ANTIPODE_KM:
+        return None
     return Fit(
-        distance_km=distance_from_slope(slope),
+        distance_km=distance,
         generated_utc=start - timedelta(hours=intercept / slope),
         r_squared=r2,
         hours=xs[-1],
