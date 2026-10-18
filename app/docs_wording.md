@@ -81,7 +81,7 @@ It carries exactly one modelled number, the tide's next high or low, and that is
 
 Its Buoys tab also shows two more buoys, NDBC 46086 at San Clemente Basin and NDBC 46047 at Tanner Banks, measured the same way, and a [rose](#swell-roses) under each buoy. Nothing on any other tab is computed from either. [Why they are there](#swell-tabs).
 
-Above its cards, the [Briefing](#briefing) folds out what has happened since sunset, from the same measurements and NHC's storm positions.
+Above its cards, the [Briefing](#briefing) folds out a Morning and a Midday read, from the same measurements, North Island's weather reports and NHC's storm positions.
 
 ### [chains-forecast] Forecast: the model only
 
@@ -95,35 +95,33 @@ A refresh keeps the tab you chose. A new visit always opens on “LIVE”.
 
 ## [briefing] The Briefing
 
-Above the “LIVE” cards, a **Briefing** line folds out what has happened since sunset and what is arriving, so the cards need not be put together by hand. Closed, it says only when sunset was; nothing about the conditions shows until it is opened.
+Above the “LIVE” cards, a **Briefing** line folds out a short read of the beaches, so the cards need not be put together by hand. It is issued twice a day and then left alone: **Morning** at 6:00 AM, over the night since sunset, and **Midday** at 12:00 PM, over the morning since 6:00 AM. Closed, it says only which issue it is and when it was issued; nothing about the conditions shows until it is opened.
 
-### [briefing-stories] What it says, and over how long
+### [briefing-stories] What it says
 
-One entry per story, always in the same order, each over its own stretch of time:
+Five entries, always in the same order:
 
-- **Standing on**: when each feed last reported, any that is overdue on your clock, and any hour since sunset CDIP 191 has no spectrum for. If CDIP 191 is dark it says so first and the break stories wait for it.
-- **Since sunset**: each break's breaking height at sunset and now, which break leads, each break's biggest train then and now, and the biggest step in the leading break's [calculation](#calc-table).
-- **Arriving**: each swell [Origin](#swell-origin) reads at a break, and its period twelve hours on along its own line; each that stopped arriving since sunset; every hurricane NHC is tracking, from when its swell is due until it no longer can be; and any swell that has risen at Tanner Banks overnight, with when it is due here.
-- **Wind**: the night's hours at each break by the card's own reading (offshore, cross-shore, onshore, light, calm), the newest reading, and local chop.
-- **Tide**: the next two turns (predicted), how far the gauge has run from the prediction, and the [phase](#tide-phase).
-- **Sun**: the sunset each break saw last night and sees tonight, as the [Sun card](#sun) reads it: behind Point Loma, and how many minutes before the sea horizon, or into the sea left of the point. Sunrise while it is still to come, and any break whose sea season starts or ends in the next two weeks. Computed, not observed.
-- **Buoys and season**: each context buoy's two biggest swell trains, and how the leading break's height ranks in the archive, said only when it was last that big a week or more ago.
+- **Overview**: sunrise and the day's daylight, at the sea horizon; rain, air temperature and humidity over the night (or the morning) from North Island's weather reports (KNZY); and the water temperature at CDIP 191.
+- **Swell**: the trains at CDIP 191 now and at the previous issue; each break's breaking height now, against the previous issue, filling or fading; which break leads; each swell [Origin](#swell-origin) reads arriving, and its period twelve hours on along its own line; each that finished; and any swell that has risen at Tanner Banks, with when it is due here. If CDIP 191 is dark it says so and nothing else.
+- **Tide**: where the tide is going and the turn after, the turn before, the rest of the day's turns (predicted, with the gauge's departure, as the card's), how far the gauge is running from the prediction, the day's range and the [phase](#tide-phase).
+- **Wind**: the newest reading and its side at each break, and how often each break read the same at this hour on the days before.
+- **Watching**: every storm NHC is tracking, from when its swell is due until it no longer can be, or that its path is behind land.
 
-It never uses the model. GFS-Wave and its ensemble belong to the Forecast tab; the Briefing is the “LIVE” chain and NHC's own fixes for each storm. Its wording, every case it can take, is in `docs/briefing_wording.md`.
+Every word is as of the issue, so it reads the same at 6 AM and at 11, and each issue is kept as it was issued, words and numbers, in the repository's record of briefings. A collection that misses an issue by more than three hours leaves it unissued; it is never written later as though it had been on time. It never uses the model. GFS-Wave and its ensemble belong to the Forecast tab; the Briefing is the “LIVE” chain, North Island's reports and NHC's own fixes and forecast for each storm. Its wording, every case it can take, is in `docs/briefing_wording.md`.
 
-### [briefing-words] When it says rose, dropped or leads
+### [briefing-words] When it says filling, fading or leads
 
 Each judging word is said only where it held at least 85% of the times it would have been said, measured over the archive (`docs/briefing_thresholds.md`), the rule the tide's phase uses. “Right” means the next three hours bore it out.
 
-- **Rose / dropped**: the median of the newest three hours and of the three around sunset differ by 15% or more, and the two readings shown agree. Less is “changed little”. A night under six hours was not measured, so it gives both readings and no word.
+- **Filling / fading**: the median of the newest three hours and of the three around the previous issue's differ by 15% or more, and the two readings shown agree. Less is “little change”. A span under six hours was not measured, so it gives both readings and no word. Morning to Midday is exactly six.
 - **Leads**: a break ahead of the next by 5% or more on its three-hour median. The smallest margin that held was 3%; 5% keeps the two heights apart at the tenth of a foot the page shows.
 - **A period twelve hours on**: within a second on every ridge read that long; at 24 hours, on four of five, so it goes no further.
 
-The wind's habit (when it usually turns onshore) is not said. Over the last 14 days it landed within an hour and a half of the day's real turn on under half the days, and a habit read beside this morning's wind would be taken as a forecast.
+The wind's habit (when it usually turns onshore) is not said. Over the last 14 days it landed within an hour and a half of the day's real turn on under half the days, and a habit read beside this morning's wind would be taken as a forecast. The Wind entry counts the same hour on earlier days instead: what was, not what will be.
 
 ### [briefing-upstream] Swell seen first at Tanner Banks
 
-NDBC 46047 sits 198 km west of CDIP 191, in open water, so west and north-west swell passes it first. When its energy from the west (250–280°) or north-west (280–330°) has risen threefold since sunset in a period band, the Briefing says when that swell is due at CDIP 191: the distance along its direction of travel at deep-water speed, *gT*/4π, about 3.5 to 6 hours. Then when it is due at the breaks, computed along the refracted rays from CDIP 191 to each break: 25 to 60 minutes.
+NDBC 46047 sits 198 km west of CDIP 191, in open water, so west and north-west swell passes it first. When its energy from the west (250–280°) or north-west (280–330°) has risen threefold over the issue's window in a period band, the Briefing says when that swell is due at CDIP 191: the distance along its direction of travel at deep-water speed, *gT*/4π, about 3.5 to 6 hours. Then when it is due at the breaks, computed along the refracted rays from CDIP 191 to each break: 25 to 60 minutes.
 
 Checked against two months of both buoys' spectra, three ways. On average the archive agrees: north-west swell reaches CDIP 191 3.5 to 6 hours after Tanner Banks, and south swell much sooner, as the geometry says it should. One swell cannot be timed, though: at the shadowed buoy a single swell's arrival is too mixed with what is already there. So it says *due*, never *arrived*, and never how big, since how much gets past the Channel Islands is for CDIP 191 to show.
 

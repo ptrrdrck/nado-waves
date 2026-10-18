@@ -1,339 +1,316 @@
 # Briefing wording: the formula, and every permutation
 
-The LIVE tab's Briefing (owner's request, 2026-10-16). It sits above the LIVE
-cards in a fold of its own on the page's backdrop, not a card. Its line reads
-"Briefing since sunset {time}" and nothing else, so a reader who leaves it
-closed has read no condition. The section at the end lists every
-permutation. It is not typed: `python -m forecast.briefingwording` lifts the
-Briefing code out of `app/forecast.html`, runs it in Node on one made-up
-`briefing.json` per branch, and writes what the page prints.
-`tests/test_briefingwording.py` fails if the page and this file disagree.
-Edit the wording above the generated section; the numbers in the cases are
-made up, and times are Pacific with the reader's clock at 7:30 AM.
+The LIVE tab's Briefing (owner's requests, 2026-10-16 and -17). It sits above
+the LIVE cards in a fold of its own on the page's backdrop, not a card. It is
+ISSUED twice a day, Morning (6:00 AM Pacific, over the night since sunset)
+and Midday (12:00 PM, over the morning since 6:00 AM), and then left alone:
+every word is as of the issue, never the reader's clock, and each issue is
+kept in `data/briefings/` as it was. Its line reads "{Morning / Midday}
+briefing {time issued}", with the day when the issue is not today's, and
+nothing else, so a reader who leaves it closed has read no condition.
+
+The section at the end lists every permutation. It is not typed:
+`python -m forecast.briefingwording` lifts the Briefing code out of
+`app/forecast.html`, runs it in Node on one made-up issue per branch, and
+writes what the page prints. `tests/test_briefingwording.py` fails if the
+page and this file disagree. Edit the wording above the generated section;
+the numbers in the cases are made up, and times are Pacific.
 
 ## The formula
 
-One entry per story, always in this order, each a heading over one
-paragraph, set as Origin's entries are and apart by the same centred dot.
-Each paragraph is a fixed run of slots: a slot with no value is dropped with
-its joining words, and a story with nothing to say drops whole. The judging
-words (rose, dropped, changed little, leads) are the build's
-(`forecast.briefing`), each on its measured threshold
-(`docs/briefing_thresholds.md`); the page only words them. Never the model:
-GFS-Wave and its ensemble are the Forecast tab's.
+Five entries, always in this order, each a heading over one paragraph, set
+as Origin's entries are and apart by the same centred dot. Each paragraph is
+a fixed run of slots: a slot with no value is dropped with its joining
+words, and an entry with nothing to say drops whole. The judging words
+(filling, fading, little change, leads) are the build's (`forecast.briefing`),
+each on its measured threshold (`docs/briefing_thresholds.md`); the page only
+words them. Never the model: GFS-Wave and its ensemble are the Forecast
+tab's.
 
-| Story | Slots, in order |
+| Entry | Slots, in order |
 |---|---|
-| **Standing on** | if 46232 is dark, that first and the break stories wait; every feed `{feed} at {time}`; `{feeds} overdue.` on the reader's clock; `No spectrum from {46232} at/from … to ….` for each gap since sunset |
-| **Since sunset** | each break: `rose from X to Y` / `dropped from X to Y` (3-hour medians ≥ 15% apart and the readings agree) / `changed little, Y now` / `X at sunset, Y now` (night under 6 h, unmeasured); the leader now and at sunset (5% margin); the leader's biggest train and the three facings; each break whose biggest train differs from sunset's at the page's precision; the leader's biggest calculation step |
-| **Arriving**: Origin | each arrival at a break now, Origin's own form (sent when, how far, held from where, hours so far) and its period `PERIOD_AHEAD_H` (12 h) ahead along its own fitted line, whole seconds; each that stopped reading since sunset |
-| **Arriving**: a storm | `{Hurricane / Tropical Storm / Former hurricane} {Name}` linked to NHC's page; due from / has been due since … about 20 s first, until … near 12 s, on NHC's forecast or from the fixes NHC has logged, sent from about … at …; what each break's ray tables carry from that bearing to 5 m; named by the gate or not yet borne out. Behind land from 46232: says so and nothing else |
-| **Arriving**: Tanner Banks | a west (250–280°) or north-west (280–330°) rise there since sunset, its bands earliest first; due at 46232 by deep-water speed and at the breaks after the rays' leg (BRIEFING §43); "Due, not seen" |
-| **Wind** | hours since sunset by the card's verdict, breaks with the same counts together; the newest KNZY reading and its side at each break; local chop |
-| **Tide** | the next two turns, predicted; the gauge's departure; the phase and the next spring or neap; the 2016 survey's tide-and-break sentence |
-| **Sun** | last night's sunset at each break (or this evening's, read after it), behind Point Loma at … with the minutes before the sea horizon, or into the sea; sunrise only while it is still to come before the next sunset; tonight's or tomorrow evening's; any break whose in-the-sea season starts or ends, or whose closest day falls, in the next 14 days; "Computed, not observed." (`forecast.sunset`, BRIEFING §42) |
-| **Buoys and season** | each context buoy's two biggest swell trains, or no recent spectrum; the leading break's height against the archive, said only when it was last that big a week or more ago |
+| **Overview** | `Sunrise is/was at {time} with {h} h {m} m of daylight.` (the sea horizon at the center break); `Overnight` / `Since 6:00 AM` `at North Island,` rain with its hours and amount, or `{kind} reported, too little to measure`, or `no rain`; the window's air temperature and humidity ranges; the newest of each and its time (KNZY's reports); `Water {°F} ({°C}) at CDIP 191`, and its range when that spans a whole °F |
+| **Swell** | if 46232 is dark, that alone; `CDIP 191 at {time}:` each train now; `At {the previous issue's hour}:` each train then, or no spectrum then; `Breaking at {time}, against {then}:` each break now, `filling from` / `fading from` (3-hour medians ≥ 15% apart and the readings agree) / `little change` / `{then} then` (span under 6 h, unmeasured); the leader (5% margin), `as it did` when it led then; `Arriving at {breaks}:` each Origin arrival, its sea, when and how far it was sent, its period 12 h on; `Finished at {breaks} at {time}:`; `Coming:` a west or north-west rise at Tanner Banks, due at CDIP 191 by deep-water speed and at the breaks after the rays' leg (BRIEFING §43), `Due, not seen.` |
+| **Tide** | `The tide is pushing / dropping to {height} at {time} then … to {height} at {time}.`; `The previous {AM/PM} {high/low} was …` and `the {AM/PM} {high/low} will be …` for the rest of the day's turns; `The gauge is running {x} over / under the harmonic prediction, over the last 3 days.`; `Today's range is {x}`, the phase, the next spring or neap; the 2016 survey's tide-and-break sentence |
+| **Wind** | KNZY's newest reading, as the card's headline, and its side at each break; `At this hour on the {n} days before:` how many days each break read as it reads now, and the most common reading where that differs (light, calm and variable counted together, as the Shore direction chart does); the median speed |
+| **Watching** | each storm NHC tracks: `{Hurricane / Tropical Storm / Former hurricane} {Name}` linked to NHC's page; its swell due from / has been due since … about 20 s first, until … near 12 s, on NHC's forecast or from the fixes NHC has logged, sent from about … at …; named by Origin or not yet borne out. Behind land from 46232: says so and nothing else |
 
-**Not carried, by measurement**: the wind's onshore habit (right 1 of 5 to
-11 of 21 days, `docs/briefing_thresholds.md`); a ridge's period past 12 h;
-a time for one swell from Tanner Banks to Point Loma South (the archive
-agrees with deep-water speed on average and cannot time one swell, §43).
+**Not carried, by measurement**: the wind's habit, when it turns onshore
+(right 1 of 5 to 11 of 21 days, `docs/briefing_thresholds.md`); the Wind
+entry gives the same hour's count on earlier days instead, which claims
+nothing about today. A ridge's period past 12 h; a time for one swell from
+Tanner Banks to Point Loma South (the archive agrees with deep-water speed on
+average and cannot time one swell, §43).
 
-## The log-first gate
-
-On a device set to "Wave observer" (the setting beside Docs, at the right), the page opens
-on "Logging the beach today?", "Log before you look…", with "Open the log",
-"I've logged" and "Not logging today", and nothing else, until today's log is
-done or declined; it returns at Coronado's midnight. It is the one place the
-page links to the observation log: nothing is on screen yet, so the link
-carries no forecast with it. Turning the setting on with the page already
-read starts the gate tomorrow.
+**Not yet**: confluence events in Watching (the owner's to define).
 
 <!-- Generated by python -m forecast.briefingwording. Edit above this line. -->
 
-### Q1: a quiet morning: little change, no leader, nothing arriving
+### Q1: a quiet morning: little change, no leader, nothing arriving or watched
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Morning briefing 6:05 AM]
 
-Since sunset
-North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
 
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
-
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 ```
 
-### B1: a busy morning: rose, dropped, the lead changed, trains changed, a swell arriving and one ended, a hurricane due, a storm behind Baja, 46047 risen, a season mark
+### B1: a busy morning: rain overnight, filling and fading, the lead changed, a swell arriving and one finished, swell coming from Tanner Banks, a hurricane due and a storm behind Baja
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Morning briefing 6:05 AM]
 
-Since sunset
-North rose from 2.1 ft (0.64 m) to 3.0 ft (0.91 m); Center changed little, 2.6 ft (0.79 m) now; South dropped from 2.0 ft (0.62 m) to 1.6 ft (0.50 m). North leads now; Center led at sunset. Its biggest train is the 17.2 s from SSW 197°; North faces 194°, Center 214° and South 221°. North's biggest train was the 9.1 s from WNW 288° at sunset, the 17.2 s from SSW 197° now. Center's biggest train was the 9.1 s from WNW 288° at sunset, the 17.2 s from SSW 199° now. In North's calculation the biggest step is refraction, +14%.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, rain from 1:52 AM to 3:52 AM, 0.07 in (1.8 mm); air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
 
-South Pacific
-The 17.2 s train, sent about Oct 9 from about 5,500 mi (9,000 km) away, at all three breaks. Tanner Banks (NDBC 46047) holds it from SSW 200°. Arriving for 6 h so far. Read along its own line, its period reaches about 16 s by 7:00 PM.
-
-Unplaced storm
-The 10.7 s train stopped reading at Center and South at 10:00 PM, no longer arriving.
-
-Hurricane [Test](https://www.nhc.noaa.gov/archive/2026/TEST_graphics.php) {hurricane symbol}
-Its swell is due from Oct 17 8:00 PM, about 20 s first, until about Oct 21 2:00 AM, near 12 s, from the fixes NHC has logged, sent from about 1,200 mi (2,000 km) away at S 188°. From that bearing the ray tables carry 81% of the buoy's height to North, 55% to Center and 49% to South, to 5 m of water. No buoy has borne it out yet.
-
-Tropical Storm [Simon](https://www.nhc.noaa.gov/archive/2026/SIMON_graphics.php) {tropical storm symbol}
-From Point Loma South every fix NHC has logged is behind land, so nothing it has sent reaches the breaks.
-
-Tanner Banks (NDBC 46047)
-Swell from the north-west (280–330°) has risen there since 12:20 AM, 14–17 s first, then 12–14 s from 3:15 AM. At deep-water speed it was due at CDIP 191 about 3.6 h after Tanner Banks, around 3:56 AM, and at the breaks 30–40 min after that. Due, not seen: CDIP 191 will show how much gets past the Channel Islands.
-
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). North leads. Arriving at all three breaks: the 17.2 s train from the South Pacific, sent about Oct 9 from about 5,500 mi (9,000 km) away, about 16 s by 5:00 PM. Finished at Center and South at 10:00 PM yesterday: the 10.7 s train from an unplaced storm. Coming: north-west swell (280–330°) rose at Tanner Banks (NDBC 46047) from 12:20 AM, 14–17 s first, then 12–14 s from 3:15 AM; by deep-water speed it was due at CDIP 191 around 3:56 AM, at the breaks 30–40 min after. Due, not seen.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°. North, at 3.0 ft (0.91 m), is the biggest it has been since Sep 21.
+Watching
+Hurricane [Test](https://www.nhc.noaa.gov/archive/2026/TEST_graphics.php) {hurricane symbol}: its swell is due from 8:00 PM tomorrow, about 20 s first, until about Oct 21, 2:00 AM, near 12 s, from the fixes NHC has logged, sent from about 1,200 mi (2,000 km) away at S 188°. No buoy has borne it out yet. Tropical Storm [Simon](https://www.nhc.noaa.gov/archive/2026/SIMON_graphics.php) {tropical storm symbol}: every fix NHC has logged is behind land from Point Loma South, so nothing it has sent reaches the breaks.
 ```
 
-### L1: the same leader as at sunset
+### M1: a Midday issue: since the Morning, sunrise past, wind sea at the buoy, the same leader
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Midday briefing 12:05 PM]
 
-Since sunset
-North rose from 2.1 ft (0.64 m) to 3.0 ft (0.91 m); Center changed little, 2.6 ft (0.79 m) now; South dropped from 2.0 ft (0.62 m) to 1.6 ft (0.50 m). North leads, as at sunset. Its biggest train is the 17.2 s from SSW 197°; North faces 194°, Center 214° and South 221°. North's biggest train was the 9.1 s from WNW 288° at sunset, the 17.2 s from SSW 197° now. Center's biggest train was the 9.1 s from WNW 288° at sunset, the 17.2 s from SSW 199° now. In North's calculation the biggest step is the windows, −39%.
+Overview
+Sunrise was at 6:54 AM with 11 h 20 m of daylight. Since 6:00 AM at North Island, no rain; air 63–70 °F (17–21 °C) and humidity 61–86%, 70 °F (21 °C) and 61% at 11:52 AM. Water 72 °F (22.4 °C) at CDIP 191, 71–72 °F (21.6–22.4 °C) over the morning.
 
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 11:00 AM: 14.3 s from WSW 246°, 3.0 ft (0.90 m); wind sea 4.1 s from W 275°, 1.5 ft (0.45 m). At 5:00 AM: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 11:00 AM, against 5:00 AM: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). North leads, as it did.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is dropping to 1.8 ft (0.55 m) at 3:45 PM then pushing to 6.3 ft (1.92 m) at 10:05 PM. The previous AM high was 5.4 ft (1.65 m) at 9:30 AM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
-
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+Wind
+W 265° at 13 mph (11 kt) at 11:52 AM: onshore at all three breaks. At this hour on the 28 days before: onshore on 14, 22 and 24 days at North, Center and South. Median 10 mph (9 kt).
 ```
 
-### D1: 46232 dark: the break stories wait
+### D1: 46232 dark: the swell waits
 
 ```text
-Standing on
-CDIP 191 has not reported since 7:00 AM, so every break story waits for it. METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Morning briefing 6:05 AM]
 
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+
+Swell
+No spectrum from CDIP 191 since 3:00 PM yesterday, so the swell waits for it.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
-
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 ```
 
-### G1: gaps since sunset and two feeds overdue
+### U1: a span under 6 h, and no spectrum at the previous issue: the readings, no word
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM. METAR KNZY and NDBC 46086 overdue. No spectrum from CDIP 191 from 1:00 AM to 3:00 AM. No spectrum from CDIP 191 at 5:00 AM.
+[Morning briefing 6:05 AM]
 
-Since sunset
-North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
 
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). No spectrum at 11:00 AM yesterday to set beside it. Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), 2.7 ft (0.82 m) then; Center 2.7 ft (0.81 m), 2.6 ft (0.80 m) then; South 2.6 ft (0.80 m), 2.6 ft (0.79 m) then.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
-
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 ```
 
-### U1: a short night: the readings, no word between them
+### N1: no earlier issue's hour to compare, drizzle too little to measure, no water temperature
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Morning briefing 6:05 AM]
 
-Since sunset
-North 2.7 ft (0.82 m) at sunset, 2.8 ft (0.85 m) now; Center 2.6 ft (0.80 m) at sunset, 2.7 ft (0.81 m) now; South 2.6 ft (0.79 m) at sunset, 2.6 ft (0.80 m) now.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, drizzle reported, too little to measure; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM.
 
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). Breaking at 5:00 AM: North 2.8 ft (0.85 m); Center 2.7 ft (0.81 m); South 2.6 ft (0.80 m).
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
-
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 ```
 
-### H1: a hurricane already due, its last edge on NHC's forecast, and named by the gate
+### K1: no KNZY report: none overnight, none fresh at the issue
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Morning briefing 6:05 AM]
 
-Since sunset
-North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. No report from North Island overnight. Water 72 °F (22.0 °C) at CDIP 191.
 
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-Its swell has been due since Oct 14 8:00 PM, about 20 s first, until about Oct 21 2:00 AM, near 12 s, on NHC's forecast, sent from about 1,200 mi (2,000 km) away at S 188°. From that bearing the ray tables carry 81% of the buoy's height to North, 55% to Center and 49% to South, to 5 m of water. Arriving: Origin names it.
-
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+Wind
+No report from North Island in the last hour and a half.
+```
 
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+### W1: a calm and a variable wind, against history counted as light or variable
+
+```text
+[Morning briefing 6:05 AM]
+
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
+
+Tide
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Wind
+Calm at 5:52 AM. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17. Median 5 mph (4 kt).
+```
+
+### W2: a variable wind at a speed, no side at any break
+
+```text
+[Morning briefing 6:05 AM]
+
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
+
+Tide
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Wind
+Variable at 7 mph (6 kt) at 5:52 AM. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17. Median 5 mph (4 kt).
+```
+
+### H1: a hurricane already due, its last edge on NHC's forecast, named by Origin
+
+```text
+[Morning briefing 6:05 AM]
+
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
+
+Tide
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
+
+Watching
+Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}: its swell has been due since Oct 14, 8:00 PM, about 20 s first, until about Oct 21, 2:00 AM, near 12 s, on NHC's forecast, sent from about 1,200 mi (2,000 km) away at S 188°. Origin names it arriving.
 ```
 
 ### H2: a former hurricane with open fixes, none with a path to the breaks
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Morning briefing 6:05 AM]
 
-Since sunset
-North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
 
-Former hurricane [Nolo](https://www.nhc.noaa.gov/archive/2026/NOLO_graphics.php)
-Nothing it has sent has a path to the breaks.
-
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+Watching
+Former hurricane [Nolo](https://www.nhc.noaa.gov/archive/2026/NOLO_graphics.php): nothing it has sent has a path to the breaks.
 ```
 
-### W1: onshore now, local chop at two breaks, the season's biggest
+### T1: springs, no departure, the previous turn yesterday, one turn ahead before the file ends
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Morning briefing 6:05 AM]
 
-Since sunset
-North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now. South leads. Its biggest train is the 14.3 s from WSW 252°; North faces 194°, Center 214° and South 221°.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
 
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, WNW 290° at 10 mph (9 kt): cross-shore at North; onshore at Center and South. Local chop at Center and South.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is dropping to −0.7 ft (−0.21 m) at 6:40 AM. The previous PM high was 6.6 ft (2.01 m) at 10:10 PM yesterday. Today's range is 4.5 ft (1.37 m), spring tides; neaps around Oct 22. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
-
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°. South, at 4.6 ft (1.40 m), is the biggest it has been since the archive began, Aug 3.
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 ```
 
-### T1: a stale context buoy, no departure, springs
+### Y1: yesterday's Midday, read the next morning before the Morning is out
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Midday briefing Oct 15, 12:05 PM]
 
-Since sunset
-North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Since 6:00 AM at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
 
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. Spring tides; neaps around 22 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM tomorrow then dropping to 1.8 ft (0.55 m) at 3:45 PM tomorrow. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM tomorrow and the PM high will be 6.3 ft (1.92 m) at 10:05 PM tomorrow. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Computed, not observed.
-
-Buoys and season
-San Clemente Basin (NDBC 46086): no recent spectrum. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+Wind
+NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 ```
 
-### S1: the sun read before dawn: last night, sunrise, tonight, and Center's sea season starting within two weeks
+### V1: the other branches: a light wind with a different side at each break, a lone shower with thunder, one humidity, a placed swell finished and an unplaced one arriving, a tropical storm due, the tide falling first with the day's other turns ahead, easing toward neaps
 
 ```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM.
+[Morning briefing 6:05 AM]
 
-Since sunset
-North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, thunder, showers and rain at 3:52 AM, 0.11 in (2.8 mm); air 61–64 °F (16–18 °C) and humidity 90%, 62 °F (17 °C) and 90% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
 
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
-
-Tide
-Low 0.4 ft (0.12 m) at 8:12 AM, then high 5.1 ft (1.55 m) at 2:40 PM, predicted. The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Sun
-Last night the sun went behind Point Loma at 6:08 PM at North and 6:09 PM at Center, 7–8 min before the sea horizon, and into the sea at 6:16 PM at South. Sunrise 6:54 AM. Tonight it goes behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. From 25 Oct the sun sets in the sea at Center. Computed, not observed.
-
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
-```
-
-### S2: the sun read the evening after sunset, a sea season ending and the north break's closest day within two weeks
-
-```text
-Standing on
-CDIP 191 at 7:00 AM, METAR KNZY at 6:52 AM, NOAA 9410170 at 7:24 AM, NDBC 46086 at 6:50 AM and NDBC 46047 at 6:50 AM. CDIP 191, METAR KNZY, NOAA 9410170, NDBC 46086 and NDBC 46047 overdue.
-
-Since sunset
-North changed little, 2.8 ft (0.85 m) now; Center changed little, 2.7 ft (0.81 m) now; South changed little, 2.6 ft (0.80 m) now.
-
-Wind
-Since sunset, 13 h read: offshore 9 h, calm 4 h at North and Center; offshore 7 h, cross-shore 2 h, calm 4 h at South. At 6:52 AM, NE 40° at 6 mph (5 kt): offshore at all three breaks. No local chop at any break.
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). South leads. Arriving at South: the 17.2 s train from an unplaced storm, sent about Oct 9 from about 5,500 mi (9,000 km) away. Finished at North at 10:00 PM yesterday: the 10.7 s train from the Gulf of Alaska.
 
 Tide
-The gauge has run 0.3 ft (0.09 m) above the prediction over the last 3 days. Neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is dropping to 1.4 ft (0.42 m) at 8:40 AM then pushing to 4.5 ft (1.38 m) at 2:55 PM. The previous AM high was 5.6 ft (1.71 m) at 2:20 AM; the PM low will be 3.3 ft (1.02 m) at 7:30 PM and the PM high 4.9 ft (1.49 m) at 11:10 PM. The gauge is running 0.2 ft (0.06 m) under the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), easing toward neaps; neaps around Oct 18. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
-Sun
-This evening the sun went behind Point Loma at 6:07 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:14 PM at South. Sunrise 6:55 AM. Tomorrow evening it goes behind Point Loma at 6:06 PM at North and Center, 7 min before the sea horizon, and into the sea at 6:13 PM at South. North comes closest to clearing the point on 28 Oct, still 1 min early. South's last sunset in the sea is 20 Oct. Computed, not observed.
+Wind
+WNW 290° at 3 mph (3 kt) at 5:52 AM: light cross-shore at North; light onshore at Center and South. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17.
 
-Buoys and season
-San Clemente Basin (NDBC 46086) holds the 14.7 s from SSW 192°. Tanner Banks (NDBC 46047) holds the 14.7 s from SSW 200° and the 10.2 s from WNW 295°.
+Watching
+Tropical Storm [Paine](https://www.nhc.noaa.gov/archive/2026/PAINE_graphics.php) {tropical storm symbol}: its swell is due from 8:00 AM tomorrow, about 20 s first, until about Oct 21, 2:00 AM, near 12 s, from the fixes NHC has logged, sent from about 1,200 mi (2,000 km) away at S 188°. No buoy has borne it out yet.
 ```
 
-### X1: no briefing built
+### X1: no issue yet
 
 ```text
 (no Briefing: the fold is not drawn)

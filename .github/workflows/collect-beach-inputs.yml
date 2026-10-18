@@ -221,10 +221,14 @@ jobs:
           set -euo pipefail
           python -m forecast.buoys
 
-      # The LIVE tab's Briefing: what has happened since sunset and what is
-      # arriving, from the files the two steps above wrote, 46047's spectra
-      # and NHC's fixes (forecast.briefing). Its own step and file, after the
-      # context buoys, so a briefing that fails takes nothing else with it.
+      # The LIVE tab's Briefing (forecast.briefing): ISSUED twice a day,
+      # Morning and Midday, from the files the steps above wrote, 46047's
+      # spectra, KNZY's reports and NHC's fixes. A collection at or after a
+      # slot that is not yet in the record writes the issue to
+      # data/live/briefing_issue.json for "Record the briefing" below; every
+      # collection writes the page's briefing.json from the newest KEPT issue,
+      # so nothing is rebuilt between issues. Its own step, after the context
+      # buoys, so a briefing that fails takes nothing else with it.
       - name: Briefing
         id: briefing
         continue-on-error: true
@@ -314,6 +318,50 @@ jobs:
           done
 
           echo "::error title=Beach inputs push failed::Could not push archived inputs"
+          exit 1
+
+      # Keep the issue: data/briefings/YYYY-MM.jsonl, append-only, this step
+      # its one writer. Worked in a worktree of the branch's NEWEST tip, never
+      # the checkout: a queued run checked out before the last run pushed would
+      # not see that run's issue, and would write it twice or show the page an
+      # older one. Sparse, so only data/briefings is written out. A rejected
+      # push re-appends on the new tip and never rebases (CLAUDE.md); the
+      # append is idempotent by the issue's key. Every collection, issue or
+      # not, then rewrites the page's briefing.json from that record.
+      - name: Record the briefing
+        if: ${{ !inputs.skip_commit }}
+        continue-on-error: true
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          rec="${RUNNER_TEMP}/briefings"
+          issue=data/live/briefing_issue.json
+          for attempt in 1 2 3 4; do
+            git fetch --quiet origin "${BRANCH}"
+            git worktree remove --force "${rec}" 2>/dev/null || rm -rf "${rec}"
+            git worktree add --quiet --no-checkout --detach "${rec}" FETCH_HEAD
+            git -C "${rec}" sparse-checkout set --no-cone /data/briefings/
+            git -C "${rec}" reset --quiet --hard
+            python -m forecast.briefing --record "${issue}" --data-dir "${rec}/data" \
+              --out data/live/briefing.json
+            if [ -z "$(git -C "${rec}" status --porcelain -- data/briefings)" ]; then
+              exit 0
+            fi
+            key=$(python -c "import json, sys; print(json.load(open(sys.argv[1]))['key'])" "${issue}")
+            git -C "${rec}" add data/briefings
+            git -C "${rec}" -c user.name="nado-waves collector" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "data: keep the ${key} briefing" \
+              -m "Automated commit from .github/workflows/collect-beach-inputs.yml."
+            if git -C "${rec}" push --quiet origin "HEAD:${BRANCH}"; then
+              echo "Kept ${key} on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}); re-appending on the new tip."
+            sleep $((2 ** attempt))
+          done
+          echo "::error title=Briefing not kept::Could not push the briefing record"
           exit 1
 
       # Republish the bundle so the observed reading reaches the page within
