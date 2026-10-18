@@ -23,6 +23,11 @@ def test_the_doc_is_what_the_page_prints(cases):
         "docs/briefing_wording.md is out of date: run python -m forecast.briefingwording"
 
 
+def test_the_sentence_list_is_what_the_page_prints(cases):
+    assert briefingwording.SENTENCES.read_text(encoding="utf-8") == briefingwording.sentences(cases), \
+        "docs/briefing_sentences.md is out of date: run python -m forecast.briefingwording"
+
+
 def _entries(got):
     return got["entries"]
 

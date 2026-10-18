@@ -289,6 +289,27 @@ Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
 ```
 
+### V1: the other branches: a light wind with a different side at each break, a lone shower with thunder, one humidity, a placed swell finished and an unplaced one arriving, a tropical storm due, the tide falling first with the day's other turns ahead, easing toward neaps
+
+```text
+[Morning briefing 6:05 AM]
+
+Overview
+Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, thunder, showers and rain at 3:52 AM, 0.11 in (2.8 mm); air 61–64 °F (16–18 °C) and humidity 90%, 62 °F (17 °C) and 90% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+
+Swell
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). South leads. Arriving at South: the 17.2 s train from an unplaced storm, sent about Oct 9 from about 5,500 mi (9,000 km) away. Finished at North at 10:00 PM yesterday: the 10.7 s train from the Gulf of Alaska.
+
+Tide
+The tide is dropping to 1.4 ft (0.42 m) at 8:40 AM then pushing to 4.5 ft (1.38 m) at 2:55 PM. The previous AM high was 5.6 ft (1.71 m) at 2:20 AM and the PM low will be 3.3 ft (1.02 m) at 7:30 PM and the PM high will be 4.9 ft (1.49 m) at 11:10 PM. The gauge is running 0.2 ft (0.06 m) under the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), easing toward neaps; neaps around 18 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+
+Wind
+WNW 290° at 3 mph (3 kt) at 5:52 AM: light cross-shore at North; light onshore at Center and South. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17.
+
+Watching
+Tropical Storm [Paine](https://www.nhc.noaa.gov/archive/2026/PAINE_graphics.php) {tropical storm symbol}: its swell is due from 8:00 AM tomorrow, about 20 s first, until about Oct 21, 2:00 AM, near 12 s, from the fixes NHC has logged, sent from about 1,200 mi (2,000 km) away at S 188°. No buoy has borne it out yet.
+```
+
 ### X1: no issue yet
 
 ```text

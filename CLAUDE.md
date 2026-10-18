@@ -825,8 +825,10 @@ forecaster actually verifies against, Surfline included.
    every window edge it sets says so. Units as each source publishes them
    (°C, METAR's inches), converted only on the page (`fahrenheit`,
    `MM_PER_IN` beside the other unit constants). Wording generated from the
-   page into `docs/briefing_wording.md` (`forecast/briefingwording.py`),
-   pinned by a test.
+   page into `docs/briefing_wording.md` (the formula and each case) and
+   `docs/briefing_sentences.md` (every distinct sentence once, numbered by
+   entry, for the owner to edit; edits are carried into the page by hand)
+   by `forecast/briefingwording.py`, both pinned by a test.
    **The log-first gate** (owner's call, same day): "Wave observer", a
    checkbox beside Docs, kept in localStorage (the page's only use of it,
    pinned). On such a device the page opens on "Logging the beach today?"
