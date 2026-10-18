@@ -13,6 +13,17 @@ a finding it already records, and do not assume a rule here is arbitrary
 because its reasoning is not in front of you. Attaching that repository to the
 session is the fix, not guessing.
 
+## Working with the owner
+
+- **Ask before the scope changes.** Do what was asked, where it was asked.
+  When doing it well would mean touching anything beyond that — another
+  card, another tab, the docs page, a page-wide helper, a format used
+  elsewhere — stop and ask first, saying what else would change and why.
+  A word like "everywhere" in a request about one feature means everywhere
+  in that feature until the owner says otherwise (owner's rule, 2026-10-18,
+  after "use 15 Oct format everywhere" in a Briefing request was taken
+  page-wide).
+
 ## What this is
 
 **An expert surf forecaster for three beaches on the Coronado peninsula:**

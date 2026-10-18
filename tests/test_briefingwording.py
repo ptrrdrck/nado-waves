@@ -51,7 +51,7 @@ def test_five_entries_in_one_order(cases):
 def test_the_line_names_the_issue_and_no_condition(cases):
     assert cases["Q1"]["line"] == "Morning briefing 6:05 AM"
     assert cases["M1"]["line"] == "Midday briefing 12:05 PM"
-    assert cases["Y1"]["line"] == "Midday briefing 15 Oct, 12:05 PM"
+    assert cases["Y1"]["line"] == "Midday briefing Oct 15, 12:05 PM"
     for got in cases.values():
         assert not got["line"] or (" ft" not in got["line"] and " mph" not in got["line"])
 

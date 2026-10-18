@@ -1575,7 +1575,8 @@ function briefSwell(B) {
   }
   for (const a of s.finished || []) {
     parts.push(`Finished at ${briefBreaks(a.breaks)} at ${briefWhen(a.last_utc, B)}: the `
-      + `${a.latest_period_s.toFixed(1)} s train${a.region && a.bearing_deg != null ? ` from the ${sea(a.region)}` : ""}.`);
+      + `${a.latest_period_s.toFixed(1)} s train from `
+      + `${a.region && a.bearing_deg != null ? `the ${sea(a.region)}` : "an unplaced storm"}.`);
   }
   for (const u of s.coming || []) {
     const b0 = u.bands[0];
@@ -1598,25 +1599,27 @@ function briefSwell(B) {
 const briefHalf = (iso) => (Number(new Date(iso).toLocaleString("en-US",
   {hour: "numeric", hour12: false, timeZone: COAST_TZ})) % 24 < 12 ? "AM" : "PM");
 const briefTurn = (x) => `${briefHalf(x.valid_utc)} ${x.event}`;
+// A minus tide with a true minus sign, "−0.7 ft (−0.21 m)".
+const briefLevel = (m) => height(m).replace(/-/g, "−");
 function briefTide(B) {
   const tide = B.tide || {};
   const turns = tide.turns || [];
   const before = turns.filter((x) => x.role === "previous");
   const ahead = turns.filter((x) => x.role === "ahead");
   const parts = [];
-  const going = (x) => `${x.event === "high" ? "pushing" : "dropping"} to ${height(x.height_m)} at ${briefWhen(x.valid_utc, B)}`;
+  const going = (x) => `${x.event === "high" ? "pushing" : "dropping"} to ${briefLevel(x.height_m)} at ${briefWhen(x.valid_utc, B)}`;
   if (ahead.length) {
     parts.push(`The tide is ${going(ahead[0])}` + (ahead[1] ? ` then ${going(ahead[1])}` : "") + ".");
   }
-  const said = [];
-  if (before.length) {
-    const p = before[before.length - 1];
-    said.push(`The previous ${briefTurn(p)} was ${height(p.height_m)} at ${briefWhen(p.valid_utc, B)}`);
-  }
-  for (const x of ahead.slice(2)) {
-    said.push(`${said.length ? "the" : "The"} ${briefTurn(x)} will be ${height(x.height_m)} at ${briefWhen(x.valid_utc, B)}`);
-  }
-  if (said.length) parts.push(`${said.join(" and ")}.`);
+  // The previous turn, then the rest of the day's: one later turn joins it
+  // with "and" (the owner's sentence); two or more follow a semicolon as a
+  // list, "will be" said once.
+  const prev = before.length ? before[before.length - 1] : null;
+  const prevSaid = prev ? `The previous ${briefTurn(prev)} was ${briefLevel(prev.height_m)} at ${briefWhen(prev.valid_utc, B)}` : "";
+  const later = andList(ahead.slice(2).map((x, i) => `the ${briefTurn(x)}${i ? "" : " will be"} `
+    + `${briefLevel(x.height_m)} at ${briefWhen(x.valid_utc, B)}`));
+  if (prevSaid && later) parts.push(`${prevSaid}${ahead.length > 3 ? "; " : " and "}${later}.`);
+  else if (prevSaid || later) parts.push(`${prevSaid || later[0].toUpperCase() + later.slice(1)}.`);
   if (tide.departure_m != null && Math.abs(tide.departure_m) >= 0.005) {
     parts.push(`The gauge is running ${heightText(Math.abs(tide.departure_m))} `
       + `${tide.departure_m > 0 ? "over" : "under"} the harmonic prediction, over the last 3 days.`);
@@ -1625,7 +1628,7 @@ function briefTide(B) {
   if (tide.range) {
     parts.push(`Today's range is ${heightText(tide.range.m)}`
       + (p && PHASE_TITLE[p.phase] ? `, ${PHASE_TITLE[p.phase].toLowerCase()}` : "")
-      + (p && p.next && p.next.utc ? `; ${p.next.kind === "spring" ? "springs" : "neaps"} around ${dayOfUtc(p.next.utc)}` : "")
+      + (p && p.next && p.next.utc ? `; ${p.next.kind === "spring" ? "springs" : "neaps"} around ${onDay(p.next.utc)}` : "")
       + ".");
   }
   parts.push("On the 2016 survey the tide moves where the waves break, not how big they are; "
@@ -1713,7 +1716,7 @@ function briefingEntries(B) {
 // The fold's line: the issue and when it was issued, the day too when it is
 // not today's.
 function briefIssue(B, nowMs = Date.now()) {
-  const day = B.day === coastDay(nowMs) ? "" : `${dayText(B.day)}, `;
+  const day = B.day === coastDay(nowMs) ? "" : `${onDay(B.issued_utc)}, `;
   return `${BRIEF_EDITION[B.edition] || "Briefing"} briefing <span class="count">${day}${clock(B.issued_utc)}</span>`;
 }
 

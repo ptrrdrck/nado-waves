@@ -18,7 +18,7 @@ with no value drops with its joining words; the formula is in
 
 - Morning briefing 6:05 AM  (Q1, B1, D1, U1, N1, K1, W1, W2, H1, H2, T1, V1)
 - Midday briefing 12:05 PM  (M1)
-- Midday briefing 15 Oct, 12:05 PM  (Y1)
+- Midday briefing Oct 15, 12:05 PM  (Y1)
 
 ## Overview
 
@@ -57,7 +57,7 @@ SW5. North leads.  (B1)
 
 SW6. Arriving at all three breaks: the 17.2 s train from the South Pacific, sent about Oct 9 from about 5,500 mi (9,000 km) away, about 16 s by 5:00 PM.  (B1)
 
-SW7. Finished at Center and South at 10:00 PM yesterday: the 10.7 s train.  (B1)
+SW7. Finished at Center and South at 10:00 PM yesterday: the 10.7 s train from an unplaced storm.  (B1)
 
 SW8. Coming: north-west swell (280–330°) rose at Tanner Banks (NDBC 46047) from 12:20 AM, 14–17 s first, then 12–14 s from 3:15 AM; by deep-water speed it was due at CDIP 191 around 3:56 AM, at the breaks 30–40 min after.  (B1)
 
@@ -94,7 +94,7 @@ TI2. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 
 
 TI3. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days.  (Q1, B1, M1, D1, U1, N1, K1, W1, W2, H1, H2)
 
-TI4. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct.  (Q1, B1, M1, D1, U1, N1, K1, W1, W2, H1, H2)
+TI4. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25.  (Q1, B1, M1, D1, U1, N1, K1, W1, W2, H1, H2)
 
 TI5. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.  (every case)
 
@@ -102,19 +102,19 @@ TI6. The tide is dropping to 1.8 ft (0.55 m) at 3:45 PM then pushing to 6.3 ft (
 
 TI7. The previous AM high was 5.4 ft (1.65 m) at 9:30 AM.  (M1)
 
-TI8. The tide is dropping to -0.7 ft (-0.21 m) at 6:40 AM.  (T1)
+TI8. The tide is dropping to −0.7 ft (−0.21 m) at 6:40 AM.  (T1)
 
 TI9. The previous PM high was 6.6 ft (2.01 m) at 10:10 PM yesterday.  (T1)
 
-TI10. Today's range is 4.5 ft (1.37 m), spring tides; neaps around 22 Oct.  (T1)
+TI10. Today's range is 4.5 ft (1.37 m), spring tides; neaps around Oct 22.  (T1)
 
 TI11. The tide is dropping to 1.4 ft (0.42 m) at 8:40 AM then pushing to 4.5 ft (1.38 m) at 2:55 PM.  (V1)
 
-TI12. The previous AM high was 5.6 ft (1.71 m) at 2:20 AM and the PM low will be 3.3 ft (1.02 m) at 7:30 PM and the PM high will be 4.9 ft (1.49 m) at 11:10 PM.  (V1)
+TI12. The previous AM high was 5.6 ft (1.71 m) at 2:20 AM; the PM low will be 3.3 ft (1.02 m) at 7:30 PM and the PM high 4.9 ft (1.49 m) at 11:10 PM.  (V1)
 
 TI13. The gauge is running 0.2 ft (0.06 m) under the harmonic prediction, over the last 3 days.  (V1)
 
-TI14. Today's range is 4.5 ft (1.37 m), easing toward neaps; neaps around 18 Oct.  (V1)
+TI14. Today's range is 4.5 ft (1.37 m), easing toward neaps; neaps around Oct 18.  (V1)
 
 
 ## Wind

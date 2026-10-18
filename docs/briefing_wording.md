@@ -58,7 +58,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -73,10 +73,10 @@ Overview
 Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, rain from 1:52 AM to 3:52 AM, 0.07 in (1.8 mm); air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
 
 Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). North leads. Arriving at all three breaks: the 17.2 s train from the South Pacific, sent about Oct 9 from about 5,500 mi (9,000 km) away, about 16 s by 5:00 PM. Finished at Center and South at 10:00 PM yesterday: the 10.7 s train. Coming: north-west swell (280–330°) rose at Tanner Banks (NDBC 46047) from 12:20 AM, 14–17 s first, then 12–14 s from 3:15 AM; by deep-water speed it was due at CDIP 191 around 3:56 AM, at the breaks 30–40 min after. Due, not seen.
+CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). North leads. Arriving at all three breaks: the 17.2 s train from the South Pacific, sent about Oct 9 from about 5,500 mi (9,000 km) away, about 16 s by 5:00 PM. Finished at Center and South at 10:00 PM yesterday: the 10.7 s train from an unplaced storm. Coming: north-west swell (280–330°) rose at Tanner Banks (NDBC 46047) from 12:20 AM, 14–17 s first, then 12–14 s from 3:15 AM; by deep-water speed it was due at CDIP 191 around 3:56 AM, at the breaks 30–40 min after. Due, not seen.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -97,7 +97,7 @@ Swell
 CDIP 191 at 11:00 AM: 14.3 s from WSW 246°, 3.0 ft (0.90 m); wind sea 4.1 s from W 275°, 1.5 ft (0.45 m). At 5:00 AM: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 11:00 AM, against 5:00 AM: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). North leads, as it did.
 
 Tide
-The tide is dropping to 1.8 ft (0.55 m) at 3:45 PM then pushing to 6.3 ft (1.92 m) at 10:05 PM. The previous AM high was 5.4 ft (1.65 m) at 9:30 AM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is dropping to 1.8 ft (0.55 m) at 3:45 PM then pushing to 6.3 ft (1.92 m) at 10:05 PM. The previous AM high was 5.4 ft (1.65 m) at 9:30 AM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 W 265° at 13 mph (11 kt) at 11:52 AM: onshore at all three breaks. At this hour on the 28 days before: onshore on 14, 22 and 24 days at North, Center and South. Median 10 mph (9 kt).
@@ -115,7 +115,7 @@ Swell
 No spectrum from CDIP 191 since 3:00 PM yesterday, so the swell waits for it.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -133,7 +133,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). No spectrum at 11:00 AM yesterday to set beside it. Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), 2.7 ft (0.82 m) then; Center 2.7 ft (0.81 m), 2.6 ft (0.80 m) then; South 2.6 ft (0.80 m), 2.6 ft (0.79 m) then.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -151,7 +151,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). Breaking at 5:00 AM: North 2.8 ft (0.85 m); Center 2.7 ft (0.81 m); South 2.6 ft (0.80 m).
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -169,7 +169,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 No report from North Island in the last hour and a half.
@@ -187,7 +187,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 Calm at 5:52 AM. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17. Median 5 mph (4 kt).
@@ -205,7 +205,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 Variable at 7 mph (6 kt) at 5:52 AM. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17. Median 5 mph (4 kt).
@@ -223,7 +223,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -244,7 +244,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -265,7 +265,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-The tide is dropping to -0.7 ft (-0.21 m) at 6:40 AM. The previous PM high was 6.6 ft (2.01 m) at 10:10 PM yesterday. Today's range is 4.5 ft (1.37 m), spring tides; neaps around 22 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is dropping to −0.7 ft (−0.21 m) at 6:40 AM. The previous PM high was 6.6 ft (2.01 m) at 10:10 PM yesterday. Today's range is 4.5 ft (1.37 m), spring tides; neaps around Oct 22. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -274,7 +274,7 @@ NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour o
 ### Y1: yesterday's Midday, read the next morning before the Morning is out
 
 ```text
-[Midday briefing 15 Oct, 12:05 PM]
+[Midday briefing Oct 15, 12:05 PM]
 
 Overview
 Sunrise is at 6:54 AM with 11 h 20 m of daylight. Since 6:00 AM at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
@@ -283,7 +283,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
 
 Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM tomorrow then dropping to 1.8 ft (0.55 m) at 3:45 PM tomorrow. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM tomorrow and the PM high will be 6.3 ft (1.92 m) at 10:05 PM tomorrow. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around 25 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM tomorrow then dropping to 1.8 ft (0.55 m) at 3:45 PM tomorrow. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM tomorrow and the PM high will be 6.3 ft (1.92 m) at 10:05 PM tomorrow. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
@@ -301,7 +301,7 @@ Swell
 CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). South leads. Arriving at South: the 17.2 s train from an unplaced storm, sent about Oct 9 from about 5,500 mi (9,000 km) away. Finished at North at 10:00 PM yesterday: the 10.7 s train from the Gulf of Alaska.
 
 Tide
-The tide is dropping to 1.4 ft (0.42 m) at 8:40 AM then pushing to 4.5 ft (1.38 m) at 2:55 PM. The previous AM high was 5.6 ft (1.71 m) at 2:20 AM and the PM low will be 3.3 ft (1.02 m) at 7:30 PM and the PM high will be 4.9 ft (1.49 m) at 11:10 PM. The gauge is running 0.2 ft (0.06 m) under the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), easing toward neaps; neaps around 18 Oct. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
+The tide is dropping to 1.4 ft (0.42 m) at 8:40 AM then pushing to 4.5 ft (1.38 m) at 2:55 PM. The previous AM high was 5.6 ft (1.71 m) at 2:20 AM; the PM low will be 3.3 ft (1.02 m) at 7:30 PM and the PM high 4.9 ft (1.49 m) at 11:10 PM. The gauge is running 0.2 ft (0.06 m) under the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), easing toward neaps; neaps around Oct 18. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
 
 Wind
 WNW 290° at 3 mph (3 kt) at 5:52 AM: light cross-shore at North; light onshore at Center and South. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17.
