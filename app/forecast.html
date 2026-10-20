@@ -1458,6 +1458,11 @@ function sunCard(payload, key, {tagged = false, live = false} = {}) {
       <span class="turn">Sunrise ${clock(rise.sunrise_utc)}${riseWhen}${tagged ? ' <span class="tag">computed</span>' : ""}</span>
     </div>`;
 }
+// Off on LIVE for now (owner's request, 2026-10-20): the Tide card's phase
+// fold and the Sun card stay on the Forecast tab only. Each switch brings its
+// own back on LIVE as it was.
+const SHOW_LIVE_PHASE = false;
+const SHOW_LIVE_SUN = false;
 // LIVE: the reader's day at Coronado, each time moving on once it has passed.
 const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: true});
 
@@ -6079,10 +6084,10 @@ function renderConditions(step, cards) {
         ? srcLines([placeWhen(NOW.tide_place || NOW.tide_site, tide.observed_utc)],
                    feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide))
         : srcLines(tide.note)}
-      ${phaseFold(NOW, coastDay(Date.now()), {tagged: true})}
+      ${SHOW_LIVE_PHASE ? phaseFold(NOW, coastDay(Date.now()), {tagged: true}) : ""}
       ${cardChart("tide")}
     </div>`);
-    rows.push(sunNow());
+    if (SHOW_LIVE_SUN) rows.push(sunNow());
   } else {
     const past = step.from === "past";
     // An earlier run's hour in full, when its build kept it: the model's wind

@@ -531,7 +531,9 @@ forecaster actually verifies against, Surfline included.
    (`forecast/daylight.py`: NOAA's solar equations at the center break from
    spots.json, within a minute of `astral`; `nights` in both payloads).
    **The Tide card's phase fold** (owner's request, 2026-10-11;
-   `forecast/tidephase.py`, BRIEFING §41), on both tabs, right above its
+   `forecast/tidephase.py`, BRIEFING §41), on the Forecast tab only since
+   2026-10-20 (owner's request: off LIVE "for now", `SHOW_LIVE_PHASE`
+   brings it back), right above its
    Charts line under a rule of its own, its caret like Origin's: the line is
    a fixed title, "Phase" (owner's edit, same day, replacing the phase
    itself), tagged `predicted` on LIVE as the turn line is; open, three
@@ -564,8 +566,9 @@ forecaster actually verifies against, Surfline included.
    (`forecast/tidephasewording.py`). LIVE: the reader's day at Coronado;
    Forecast: the picked hour's day, none under a past hour.
    **The Sun card** (owner's request, 2026-10-16; `forecast/sunset.py`,
-   BRIEFING §42), after Tide on both tabs (owner's choice of a card over a
-   Tide fold): the sunset the open break SEES. For most of the year the sun
+   BRIEFING §42), after Tide (owner's choice of a card over a Tide fold),
+   on the Forecast tab only since 2026-10-20 (owner's request: off LIVE
+   "for now", `SHOW_LIVE_SUN` brings it back): the sunset the open break SEES. For most of the year the sun
    goes behind Point Loma's ridge (4.5–8 km out, 90–130 m, ~1° up) 5–8 min
    before the sea-horizon time every table gives; through the winter it sets
    in the sea, LEFT of the point, for a season that differs by break as the
