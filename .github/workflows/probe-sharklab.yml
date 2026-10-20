@@ -1,0 +1,48 @@
+# Probe CSULB Shark Lab's ERDDAP -- run on demand.
+#
+# erddap-02.thesharklab.org is denied at CONNECT from a Claude session
+# (BRIEFING section 8), so "what does it serve, and is any of it at Coronado"
+# can only be answered here. The owner's question, 2026-10-20: Coronado's two
+# city-owned shark-buoy hubs, their detections, status and water temperature.
+#
+# Not scheduled, writes nothing back. Exits 2 on a denial, 1 when nothing
+# fresh was found near Coronado, 0 when something was; the report is in the
+# step summary and the log.
+
+name: Probe Shark Lab ERDDAP
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset:
+        description: "Only this datasetID (blank = every dataset)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Probe the server
+        # Dispatch inputs go through the environment, never interpolated into
+        # the shell command.
+        env:
+          DATASET: ${{ inputs.dataset }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -n "${DATASET:-}" ]; then
+            args+=(--dataset "${DATASET}")
+          fi
+          python -m collector.probe_sharklab "${args[@]}"
