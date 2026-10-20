@@ -3631,6 +3631,15 @@ class TestTheTidePhaseFold:
         assert "phaseFold(NOW, coastDay(Date.now()), {tagged: true})" in SOURCE
         assert 'past ? "" : phaseFold(DATA, coastDay(Date.parse(step.valid_utc)))' in SOURCE
 
+    def test_it_is_off_on_live_for_now(self):
+        """Owner's request, 2026-10-20: the phase fold and the Sun card come
+        off LIVE and stay on Forecast; a switch each keeps them returnable."""
+        assert "const SHOW_LIVE_PHASE = false;" in SOURCE
+        assert "const SHOW_LIVE_SUN = false;" in SOURCE
+        assert ("${SHOW_LIVE_PHASE ? phaseFold(NOW, coastDay(Date.now()), {tagged: true}) : \"\"}"
+                in SOURCE)
+        assert "if (SHOW_LIVE_SUN) rows.push(sunNow());" in SOURCE
+
     def test_its_body_is_paragraphs_never_a_list(self):
         fold = SOURCE[SOURCE.index("function phaseFold("):SOURCE.index("let DATA = null;")]
         assert '<p class="phase-entry">' in fold and "<li" not in fold and "<ul" not in fold
