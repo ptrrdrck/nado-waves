@@ -126,7 +126,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond .srcs{display:flex;flex-direction:column;gap:2px;margin-top:12px}
 .cond.swell .srcs{margin-top:6px}
 /* A second reading inside a card, under its own small label: the Forecast
-   tab's "Local" wind under the model's wind at the buoy. */
+   tab's model wind "At the buoy" under the local forecast wind. */
 .cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
 /* Each arrival under ORIGIN: its sea, the line under it, its provenance.
    The tide's phase paragraphs are set the same way (owner's request,
@@ -5978,17 +5978,17 @@ function wireSwellTabs() {
   });
 }
 
-// The Wind card's second reading on the Forecast tab, "Local": the forecast
-// wind on the sand (the NWS forecast grid at Coronado, `collector.localwind`),
-// under the model's wind at the buoy. The buoy's wind says how much wind sea
-// the model is making offshore; this one says whether it is offshore at a
-// break, per break, as the Now tab's measured KNZY wind does. A past hour
-// whose build kept no local wind says nothing rather than borrowing today's.
-// Under a passed hour, KNZY's observed wind sits in this block, under the
-// local forecast it can be read against (owner's call, 2026-10-09): both are
-// the wind on the sand, where GFS-Wave's above is the model's at the buoy.
-// Nothing stands in for an hour without one: KNZY is an observation, not a
-// forecast (owner's call, 2026-10-15).
+// The Wind card's first reading on the Forecast tab: the forecast wind on the
+// sand (the NWS forecast grid at Coronado, `collector.localwind`), above the
+// model's wind under "At the buoy" (owner's request, 2026-10-20, swapping
+// them). This one says whether it is offshore at a break, per break, as the
+// Now tab's measured KNZY wind does; the buoy's says how much wind sea the
+// model is making offshore. A past hour whose build kept no local wind says
+// so, and borrows no reason from today's build.
+// Under a passed hour, KNZY's observed wind follows this reading (owner's
+// call, 2026-10-09): both are the wind on the sand, where GFS-Wave's below is
+// the model's at the buoy. Nothing stands in for an hour without one: KNZY is
+// an observation, not a forecast (owner's call, 2026-10-15).
 //
 // `updated` is when the NWS grid the hour's own build read was last updated:
 // this build's for an upcoming hour, the logged build's for a past one
@@ -6001,21 +6001,15 @@ function localWindBlock(hour, cards, past, seen = "", updated = null) {
     // its grid cell at Coronado, and when the grid was last updated.
     const grid = L.office ? `Grid ${L.office} ${L.grid_x},${L.grid_y}` : "Grid";
     const issued = updated ? `Updated ${pillWhen(updated)}` : "";
-    return `<div class="subcond" data-wind="local">
-      <span class="sublbl">Local</span>
-      <span class="val">${windVal(hour.local_wind_from_deg, hour.local_wind_kt)}${gust}</span>
+    return `<span class="val">${windVal(hour.local_wind_from_deg, hour.local_wind_kt)}${gust}</span>
       ${windAtBreaks(cards)}
       ${seen}
-      ${srcLines([], pills("NWS", grid, issued))}
-    </div>`;
+      ${srcLines([], pills("NWS", grid, issued))}`;
   }
-  if (past) return "";
-  const why = L.available === false && L.why ? L.why : "no local forecast for this hour";
-  return `<div class="subcond" data-wind="local">
-    <span class="sublbl">Local</span>
-    <span class="val"><span class="unit">no local forecast</span></span>
-    ${srcLines(why)}
-  </div>`;
+  const why = past ? "" : L.available === false && L.why ? L.why : "no local forecast for this hour";
+  return `<span class="val"><span class="unit">no local forecast</span></span>
+    ${seen}
+    ${srcLines(why)}`;
 }
 
 function renderConditions(step, cards) {
@@ -6151,21 +6145,22 @@ function renderConditions(step, cards) {
       return;
     }
 
-    // The observed wind goes under the Local forecast when there is one,
-    // else it stays under the model's, the only forecast wind the hour has.
-    // Nothing stands in for either forecast wind: KNZY is an observation, and
-    // this is the model's chain (owner's call, 2026-10-15).
-    const underLocal = hour.local_wind_from_deg != null;
+    // The local forecast first, KNZY's observed wind under it, then the
+    // model's wind at the buoy (owner's request, 2026-10-20). Nothing stands
+    // in for either forecast wind: KNZY is an observation, and this is the
+    // model's chain (owner's call, 2026-10-15).
     const updated = past ? detail.local_wind_updated_utc : (DATA.local_wind || {}).updated_utc;
-    const local = localWindBlock(hour, cards, past, underLocal ? seenWind : "", updated);
+    const local = localWindBlock(hour, cards, past, seenWind, updated);
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
-      <span class="val">${modelled
-        ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
-        : `<span class="unit">${past ? "no model wind for this hour" : "not collected yet"}</span>`}</span>
-      ${underLocal ? "" : seenWind}
-      ${modelled ? srcLines([], pills(anchor, "GFS-Wave", run)) : ""}
       ${local}
+      <div class="subcond" data-wind="buoy">
+        <span class="sublbl">At the buoy</span>
+        <span class="val">${modelled
+          ? `${compass(hour.wind_from_deg)} <span class="unit">at</span> ${speed(hour.wind_kt || 0)}`
+          : `<span class="unit">${past ? "no model wind for this hour" : "not collected yet"}</span>`}</span>
+        ${modelled ? srcLines([], pills(anchor, "GFS-Wave", run)) : ""}
+      </div>
       ${cardChart("wind")}
     </div>`);
     rows.push(`<div class="cond" data-card="tide">
