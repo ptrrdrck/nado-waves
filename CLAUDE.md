@@ -1378,8 +1378,11 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   the verdict comes from the LOCAL forecast wind, never the model's**:
   GFS-Wave's wind is at the buoy, 29 km offshore — kept on the card for the
   wind sea it makes — and a verdict against the shore normal needs the wind
-  on the sand. Since 2026-09-30 the Wind card carries "Local" under
-  it: the NWS forecast grid at Coronado's center break
+  on the sand. Since 2026-09-30 the Wind card carries the local wind,
+  and since 2026-10-20 it LEADS (owner's request): the NWS wind first, with
+  KNZY's observed wind under it on a past hour, then GFS-Wave's under an
+  "At the buoy" heading — "Local" is no longer a heading. The local wind is
+  the NWS forecast grid at Coronado's center break
   (`collector.localwind`, fetched by `forecast.live` on Actions;
   api.weather.gov and aviationweather.gov are both denied at CONNECT from a
   session), hourly, 7 days, per break on each `Hour` as `local_wind_*`.

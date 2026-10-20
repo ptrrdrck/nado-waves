@@ -616,8 +616,8 @@ class TestWindAndTideAreHoisted:
         """The model's wind at the buoy names the model and its run, and no
         observation stands in for it (owner's call, 2026-10-15)."""
         render = SOURCE[SOURCE.index("function renderConditions"):]
-        render = render[render.index("const underLocal"):]
-        render = render[:render.index("${local}")]
+        render = render[render.index('data-wind="buoy"'):]
+        render = render[:render.index('${cardChart("wind")}')]
         assert "pills(anchor, \"GFS-Wave\", run)" in render
         assert "METAR" not in render and "observed_utc" not in render
         # A past hour whose run had no model wind says so, rather than that it
@@ -3083,8 +3083,20 @@ class TestTheProvenanceDivider:
         local = local[:local.index("\n}\n")]
         assert local.index("${windAtBreaks(cards)}") < local.index("${seen}") < local.index("srcLines(")
         render = SOURCE[SOURCE.index("function renderConditions"):]
-        assert 'localWindBlock(hour, cards, past, underLocal ? seenWind : "", updated)' in render
-        assert '${underLocal ? "" : seenWind}' in render
+        assert "localWindBlock(hour, cards, past, seenWind, updated)" in render
+
+    def test_the_local_wind_leads_and_the_buoys_follows(self):
+        """Owner's request, 2026-10-20: on the Forecast tab the NWS wind (and
+        KNZY's observed wind after it under a past hour) comes first, and
+        GFS-Wave's wind follows under "At the buoy"; "Local" is no heading."""
+
+        render = SOURCE[SOURCE.index("function renderConditions"):]
+        card = render[render.index('const local = localWindBlock('):]
+        card = card[:card.index('${cardChart("wind")}')]
+        assert card.index('<span class="lbl">Wind</span>') < card.index("${local}") \
+            < card.index('<span class="sublbl">At the buoy</span>') \
+            < card.index('pills(anchor, "GFS-Wave", run)')
+        assert '<span class="sublbl">Local</span>' not in SOURCE
 
     def test_a_measured_box_under_a_value_gets_room_above_it(self):
         """Owner's design, 2026-09-27: on the wind and tide cards the measured box
@@ -3175,7 +3187,7 @@ class TestTheLocalWindOnTheForecastTab:
             "const cards = [{id: 'coronado_north', windOffshore: 0.96}, {id: 'coronado_south', windOffshore: -0.5}];\n"
             "console.log(localWindBlock(hour, cards, false, '', '2026-09-30T04:00:00Z').replace(/\\s+/g, ' '));"
         )
-        assert "Local</span>" in got and "NNE 30°" in got and "9 mph (8 kt)" in got
+        assert "sublbl" not in got and "NNE 30°" in got and "9 mph (8 kt)" in got
         assert "gusting 16 mph" in got
         assert "<b>offshore</b> at this break" in got and "<b>onshore</b> at this break" in got
         # One line of joined pills, as LIVE's, without a dot (owner's request,
@@ -3234,7 +3246,7 @@ class TestTheLocalWindOnTheForecastTab:
             "console.log(localWindBlock({}, [], false).replace(/\\s+/g, ' '));"
         )
         first, second = got.splitlines()
-        assert first == '""'
+        assert "no local forecast" in first and "srcs" not in first
         # KNZY's reading never stands in: it is not a forecast (owner's call,
         # 2026-10-15).
         assert "no local forecast" in second and "api.weather.gov: HTTP 503" in second
