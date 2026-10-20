@@ -42,3 +42,14 @@ def test_nearest_break_reads_spots_json():
     assert {s.id for s in spots} == set(p.CORONADO)
     centre = next(s for s in spots if s.id == "coronado_center").position
     assert p.nearest_break(*centre, spots) == ("coronado_center", 0.0)
+
+
+def test_a_timeout_is_not_a_denial():
+    import socket
+    import urllib.error
+
+    refused = urllib.error.URLError(OSError("Tunnel connection failed: 403 Forbidden"))
+    timed_out = urllib.error.URLError(socket.timeout("timed out"))
+    assert p.is_denial(refused) and not p.is_timeout(refused)
+    assert p.is_timeout(timed_out) and not p.is_denial(timed_out)
+    assert p.is_timeout(TimeoutError("The read operation timed out"))

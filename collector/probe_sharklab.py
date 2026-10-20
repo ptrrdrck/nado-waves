@@ -29,7 +29,9 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import socket
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -74,6 +76,7 @@ class Fetched:
     ok: bool = False
     denied: bool = False
     empty: bool = False
+    timed_out: bool = False
     status: int | None = None
     bytes_read: int = 0
     header: list[str] = field(default_factory=list)
@@ -103,10 +106,14 @@ def fetch_csv(path: str, query: str = "", *, timeout: float = 120.0) -> Fetched:
         result.empty = exc.code == 404 and "matching results" in body
         result.denied = exc.code == 403
         return result
-    except urllib.error.URLError as exc:
-        # The tunnel was refused before any request was sent. See DENIAL_NOTE.
+    except (urllib.error.URLError, TimeoutError) as exc:
         result.error = f"{exc.__class__.__name__}: {exc}"
-        result.denied = True
+        # Only a proxy's refused tunnel is a denial (see DENIAL_NOTE). A
+        # timeout is the server not answering, which is a different claim:
+        # run 1 on Actions, where there is no proxy, timed out and was
+        # reported as a denial until this was split out.
+        result.denied = is_denial(exc)
+        result.timed_out = is_timeout(exc)
         return result
     except Exception as exc:  # noqa: BLE001 - network layer
         result.error = f"{exc.__class__.__name__}: {exc}"
@@ -118,6 +125,48 @@ def fetch_csv(path: str, query: str = "", *, timeout: float = 120.0) -> Fetched:
     result.raw_head = "\n".join(text.splitlines()[: SHOWN_ROWS + 2])
     result.header, result.units, result.rows = parse_erddap_csv(text)
     return result
+
+
+def is_denial(exc: BaseException) -> bool:
+    text = str(exc)
+    return "Tunnel connection failed" in text and "403" in text
+
+
+def is_timeout(exc: BaseException) -> bool:
+    reason = getattr(exc, "reason", exc)
+    return isinstance(reason, (TimeoutError, socket.timeout)) or "timed out" in str(exc)
+
+
+def reach(timeout: float = 20.0) -> tuple[list[str], bool]:
+    """Where the road stops: DNS, then a TCP connection to 443, then ERDDAP's
+    cheapest page. Each step's answer and time, so "the server did not
+    answer" says at which layer."""
+
+    host = urllib.parse.urlsplit(BASE).hostname or ""
+    lines = [f"### Reachability of {host}", ""]
+    start = time.monotonic()
+    try:
+        addresses = sorted({a[4][0] for a in socket.getaddrinfo(host, 443)})
+    except OSError as exc:
+        return lines + [f"- DNS: failed, {exc}", ""], False
+    lines.append(f"- DNS: {', '.join(addresses)} ({time.monotonic() - start:.1f} s)")
+    start = time.monotonic()
+    try:
+        with socket.create_connection((host, 443), timeout=timeout):
+            pass
+    except OSError as exc:
+        return lines + [f"- TCP 443: failed after {time.monotonic() - start:.1f} s, "
+                        f"{exc.__class__.__name__}: {exc}", ""], False
+    lines.append(f"- TCP 443: connected ({time.monotonic() - start:.1f} s)")
+    start = time.monotonic()
+    version = fetch_csv("version", timeout=timeout * 3)
+    elapsed = time.monotonic() - start
+    if not version.ok:
+        return lines + [f"- GET /erddap/version: failed after {elapsed:.1f} s, "
+                        f"{version.error}", ""], False
+    lines += [f"- GET /erddap/version: HTTP {version.status} ({elapsed:.1f} s), "
+              f"{' '.join(version.header)}", ""]
+    return lines, True
 
 
 def parse_erddap_csv(text: str) -> tuple[list[str], list[str], list[list[str]]]:
@@ -229,6 +278,13 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
     lines = [f"## CSULB Shark Lab ERDDAP probe ({BASE})", "",
              f"Run at {utcnow():%Y-%m-%d %H:%M}Z.", ""]
     spots = breaks()
+
+    reached, ok = reach()
+    lines += reached
+    if not ok:
+        lines.append("Stopped: the server was not reached, so nothing about its "
+                     "datasets can be said.")
+        return lines, 1
 
     listing = fetch_csv("tabledap/allDatasets.csv", ",".join(ALL_DATASETS_COLUMNS))
     if not listing.ok:
