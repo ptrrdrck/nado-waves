@@ -1552,7 +1552,7 @@ class TestTheUpdateCountdown:
         a 404 as "no cycle this hour" for three days: monitoring that only
         shows the failure it expects."""
 
-        assert "Overdue by ${hms(now - late)}" in SOURCE
+        assert "Overdue ${hms(now - late)}" in SOURCE
         assert "Update in ${hms(due - now)}" in SOURCE
         assert 'el.classList.toggle("over", now >= late || forced)' in SOURCE
 
@@ -1596,7 +1596,7 @@ class TestTheUpdateCountdown:
 
     def test_a_forced_overdue_with_no_elapsed_deadline_shows_no_figure(self):
         """`forceOver` says the build refused the reading for a reason that is
-        not its age. "Overdue by -0:04:11" would be worse than saying nothing,
+        not its age. "Overdue -0:04:11" would be worse than saying nothing,
         so only a genuinely elapsed deadline gets a number."""
 
         assert ': forced ? "Overdue"' in SOURCE
@@ -1628,9 +1628,9 @@ class TestTheUpdateCountdown:
         (3_600_000, "1:00:00"),         # the hour appears only once there is one
         (45_296_000, "12:34:56"),
         (86_399_000, "23:59:59"),       # last second before a day exists
-        (86_400_000, "1d 0:00:00"),
-        (360_000_000, "4d 4:00:00"),
-        (1_400_000_000, "16d 4:53:20"),  # 46232's outage, as a reader meets it
+        (86_400_000, "1 d 0:00:00"),
+        (360_000_000, "4 d 4:00:00"),
+        (1_400_000_000, "16 d 4:53:20"),  # 46232's outage, as a reader meets it
         (-5_000, "0:05"),               # sign is carried by the wording, not here
     ]
 
@@ -1644,7 +1644,7 @@ class TestTheUpdateCountdown:
         Hours previously ran on without wrapping, so an outage would read as
         one number. That produced "389:00:00" for 46232's sixteen dark days,
         which is one number and not a legible one; past 24 h it now reads
-        "16d 4:53:20"."""
+        "16 d 4:53:20"."""
 
         node = shutil.which("node")
         if node is None:
@@ -1745,7 +1745,11 @@ class TestTheAgeFormatter:
         (1.0, "1 h ago"),
         (1.02, "1 h 1 min ago"),
         (2.5, "2 h 30 min ago"),
-        (25.0, "25 h ago"),
+        (23.99, "23 h 59 min ago"),  # the last minute before a day
+        (24.0, "1 d ago"),
+        (25.0, "1 d 1 h ago"),
+        (31.52, "1 d 7 h ago"),      # no minutes past a day
+        (24 * 16 + 4.9, "16 d 4 h ago"),
         (-1.0, "just now"),          # a reader's clock behind the buoy's
     ]
 

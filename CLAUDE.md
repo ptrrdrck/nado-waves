@@ -304,10 +304,10 @@ forecaster actually verifies against, Surfline included.
    countdown's words without the full stop the card's other
    countdowns keep (`dueSpan`'s `bare`). The dot runs on that
    buoy's own countdown instants (`dueInstants`), so it turns exactly when
-   "Update due." and "Overdue by …" do: green, green fading in and out
+   "Update due." and "Overdue …" do: green, green fading in and out
    while due (held at half strength under reduced motion), red overdue --
    dark mode's green and red on both themes (`--dot-ok`, `--dot-over`), and
-   every card's "Overdue by …" in that same red (owner's call, same day).
+   every card's "Overdue …" in that same red (owner's call, same day).
    LIVE only: the Forecast chain's buoy is a model.
    **The Forecast tab's provenance is the same joined pills, with no dot and
    no countdown** (owner's request, 2026-10-15): swell and the model's wind

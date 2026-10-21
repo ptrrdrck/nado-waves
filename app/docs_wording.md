@@ -538,7 +538,7 @@ then the page adds its own refresh, every 5 minutes.
 | Wind, KNZY | hourly at :52 |  |  | (11:52 AM reading) 12:55 PM, red after 1:05 PM |
 | Tide, 9410170 | every 6 min |  |  | 12:15 PM |
 
-It reads “Update in m:ss”, then “Update due” once the typical time has passed. Only past the late time does it turn red and say “Overdue by m:ss”. The publishing lag varies from hour to hour, so one deadline would either cry wolf on every slow hour or promise a time that almost never applies. Hence two figures.
+It reads “Update in m:ss”, then “Update due” once the typical time has passed. Only past the late time does it turn red and say “Overdue m:ss”. The publishing lag varies from hour to hour, so one deadline would either cry wolf on every slow hour or promise a time that almost never applies. Hence two figures.
 
 ## [wind] The Wind card
 
@@ -821,7 +821,7 @@ Until that record exists, no figure on the forecast page states how well it does
   The “LIVE” tab has nothing usable, and says why. Switch to Forecast for the modelled view.
 - **“Update due.”**
   The next reading is expected and nothing is wrong yet: the source is at the slow end of its usual lag.
-- **“Overdue by m:ss.” in red**
+- **“Overdue m:ss” in red**
   Past the latest the source normally takes. The reading on screen is still the newest there is.
 - **“not in yet”**
   The buoy's spectrum for that hour has not been collected yet. It usually lands 15–35 minutes after the hour.

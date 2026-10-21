@@ -994,6 +994,13 @@ function ago(hours) {
   if (mins < 1) return "just now";
   const h = Math.floor(mins / 60), m = mins % 60;
   if (!h) return `${m} min ago`;
+  // Past a day, days and hours with no minutes: "31 h 31 min ago" pushed a
+  // long outage's countdown pill onto a row of its own (owner's call,
+  // 2026-10-21), and the countdown beside it carries the seconds.
+  if (h >= 24) {
+    const d = Math.floor(h / 24), hh = h % 24;
+    return hh ? `${d} d ${hh} h ago` : `${d} d ago`;
+  }
   return m ? `${h} h ${m} min ago` : `${h} h ago`;
 }
 
@@ -1072,14 +1079,15 @@ const pad2 = (n) => String(n).padStart(2, "0");
 // Days appear only past 24 h. Hours used to run on without wrapping, so that
 // an outage read as one number -- but the number it produced for 46232's
 // sixteen dark days was "389:00:00", which nobody reads as a fortnight.
-// "16d 5:00:00" says the same thing and says it immediately.
+// "16 d 5:00:00" says the same thing and says it immediately, spaced as the
+// age beside it is ("1 d 7 h ago").
 function hms(ms) {
   const total = Math.floor(Math.abs(ms) / 1000);
   const s = total % 60;
   const m = Math.floor(total / 60) % 60;
   const h = Math.floor(total / 3600) % 24;
   const d = Math.floor(total / 86400);
-  if (d) return `${d}d ${h}:${pad2(m)}:${pad2(s)}`;
+  if (d) return `${d} d ${h}:${pad2(m)}:${pad2(s)}`;
   if (h) return `${h}:${pad2(m)}:${pad2(s)}`;
   return `${m}:${pad2(s)}`;
 }
@@ -1100,7 +1108,8 @@ function hms(ms) {
 const NOW_REFRESH_MS = 5 * 60 * 1000;
 const FORECAST_REFRESH_MS = 60 * 60 * 1000;
 
-// "Update in m:ss", and "Overdue by m:ss" once the update has not come.
+// "Update in m:ss", and "Overdue m:ss" once the update has not come (no
+// "by": owner's call, 2026-10-21, so a long outage's pill stays on its row).
 //
 // The instant comes from now.json's `next_expected`, one per card, and the
 // duration is derived HERE rather than published -- the same reason the ages
@@ -1176,9 +1185,9 @@ function tickDue() {
     el.classList.toggle("over", now >= late || forced);
     // Only a genuinely elapsed deadline gets a figure. `forceOver` without one
     // means the build refused the reading for a reason that is not its age,
-    // and "overdue by -0:04:11" would be worse than saying nothing.
+    // and "overdue -0:04:11" would be worse than saying nothing.
     const stop = el.getAttribute("data-bare") === "1" ? "" : ".";
-    el.textContent = (now >= late ? `Overdue by ${hms(now - late)}`
+    el.textContent = (now >= late ? `Overdue ${hms(now - late)}`
       : forced ? "Overdue"
       : now >= due ? "Update due"
       : `Update in ${hms(due - now)}`) + stop;
