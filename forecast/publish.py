@@ -31,8 +31,8 @@ The bundle:
     buoys_all.json  data/live/buoys_all.json — each context buoy's combined
                     height at every archived stamp, for the Buoys tab's
                     Height chart zoomed out; fetched only when asked for
-    briefing.json   data/live/briefing.json — the LIVE tab's Briefing: the newest
-                    Morning or Midday issue, as kept in data/briefings/ (forecast.briefing)
+    briefing.json   data/live/briefing.json — the LIVE tab's Briefing: this
+                    collection's build, updated as kept in data/briefings/ (forecast.briefing)
     docs.html       app/docs.html: the documentation, with the geometry
                     drawing filled by forecast.geomviz from spots.json, the
                     caveat and both chains' standing-on blocks; linked from
@@ -126,7 +126,7 @@ BUNDLE_BUOYS_PATH = "buoys.json"
 #: the Buoys tab's Height chart past the week. Optional in the same way.
 REPO_BUOYS_ALL_PATH = "../data/live/buoys_all.json"
 BUNDLE_BUOYS_ALL_PATH = "buoys_all.json"
-#: The LIVE tab's Briefing (`forecast.briefing`): the newest kept issue, Morning or Midday.
+#: The LIVE tab's Briefing (`forecast.briefing`): this collection's build, with its newest update's time.
 #: Optional in the same way.
 REPO_BRIEFING_PATH = "../data/live/briefing.json"
 BUNDLE_BRIEFING_PATH = "briefing.json"

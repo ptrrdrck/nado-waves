@@ -141,12 +141,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                                 top:-2px;left:calc(50% - 2px);
                                 width:4px;height:4px;border-radius:50%;background:var(--soft)}
 .cond .origin > .val > .unit{white-space:nowrap}
-/* THE BRIEFING (owner's requests, 2026-10-16 and -17) sits on the page's
-   backdrop above the LIVE cards, in a fold of its own -- not a card: no
-   border, no fill, its line the Charts line's weight with the same caret.
-   Issued Morning and Midday, never rebuilt in between. Its entries
-   are Origin's: a heading at the value size over a 15 px grey paragraph,
-   apart by the same centred dot. */
+/* THE BRIEFING (owner's requests, 2026-10-16, -17 and -22) sits on the
+   page's backdrop above the LIVE cards, in a fold of its own -- not a card:
+   no border, no fill, its line the Charts line's weight with the same caret
+   and, while an update is unread, the provenance pills' green dot. Open,
+   three blocks in a 15 px grey -- the swell as running sentences, the
+   conditions and the tides a line each -- apart by Origin's centred dot. */
 .briefing{display:flex;flex-direction:column;gap:6px;padding:0 13px}
 /* Open, it is at most half the reader's screen (owner's call, 2026-10-16):
    shorter, it is its own height; longer, it scrolls inside itself and the
@@ -155,17 +155,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    toolbar does not leave it a bar too tall. */
 .briefing .fold-body{display:flex;flex-direction:column;gap:2px;padding-top:2px;
                      max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior:contain}
-.brief-entry{display:flex;flex-direction:column;gap:2px}
-.brief-entry > .val{font-size:19px;font-weight:600;line-height:1.25}
-.brief-entry > .turn{font-size:15px;color:var(--soft)}
-.brief-entry .unit{color:inherit}
-.brief-entry + .brief-entry{margin-top:10px;padding-top:12px;position:relative}
-.brief-entry + .brief-entry::before{content:"";position:absolute;top:-2px;left:calc(50% - 2px);
+.brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
+.brief-block .unit{color:inherit}
+.brief-block:first-child{display:block}
+.brief-block + .brief-block{margin-top:10px;padding-top:12px;position:relative}
+.brief-block + .brief-block::before{content:"";position:absolute;top:-2px;left:calc(50% - 2px);
                                     width:4px;height:4px;border-radius:50%;background:var(--soft)}
-.brief-entry .storm-sym{width:1em;height:1em;margin-left:.3em;vertical-align:-.14em;
-                        fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-.brief-entry .storm-sym .eye{fill:var(--paper)}
-.brief-entry .storm-sym[data-kind="hurricane"] .eye{fill:currentColor}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
@@ -1499,267 +1494,109 @@ const SHOW_LIVE_SUN = false;
 // LIVE: the reader's day at Coronado, each time moving on once it has passed.
 const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: true});
 
-// THE BRIEFING (owner's requests, 2026-10-16 and -17; forecast.briefing,
-// docs/briefing_wording.md): a lifeguard's read above the LIVE cards, in a
-// fold of its own on the page's backdrop, not a card. ISSUED twice a day,
-// Morning and Midday, and then left alone: every word is as of the issue,
-// never the reader's clock, so it reads the same at 6 AM and at 11, and the
-// record (data/briefings/) keeps each issue as it was. Closed until opened,
-// its line naming only the issue ("Morning briefing 6:05 AM"), never a
-// condition, so a reader who leaves it shut has read nothing. Open, five
-// entries -- Overview, Swell, Tide, Wind, Watching -- each a heading over one
-// paragraph, set as Origin's entries are and apart by the same centred dot.
-// Every entry is a fixed run of slots: a slot with no value drops with its
-// joining words. The judging words (filling, fading, leads) are the build's,
-// each on its measured threshold (docs/briefing_thresholds.md); this only
-// words them. Never the model: GFS-Wave is the Forecast tab's.
-const BRIEF_EDITION = {morning: "Morning", midday: "Midday"};
-const BRIEF_SECTOR = {west: "west", "north-west": "north-west"};
-const briefPct = (x) => `${Math.round(x * 100)}%`;
-// "North, Center and South" for every break, "all three" when it is all three.
-const briefBreaks = (ids) => (ids.length === 3 ? "all three breaks" : andList(ids.map((id) => SHORT[id])));
-// A time as of the issue: "3:15 AM", "8:53 PM yesterday", "1:14 AM tomorrow",
-// or "Oct 19, 6:00 AM" further out.
-function briefWhen(iso, B) {
-  const day = coastDay(Date.parse(iso));
-  const gap = Math.round((dayParts(day) - dayParts(B.day)) / 86400000);
-  return gap === 0 ? clock(iso) : gap === -1 ? `${clock(iso)} yesterday`
-    : gap === 1 ? `${clock(iso)} tomorrow` : `${onDay(iso)}, ${clock(iso)}`;
-}
-const briefPast = (iso, B) => Date.parse(iso) <= Date.parse(B.issued_utc);
-// Temperatures, Fahrenheit first in whole degrees: "61–64 °F (16–18 °C)";
-// the water's Celsius to the tenth its buoy reports.
-const briefTemp = (lo, hi = lo, tenths = false) => {
-  const f = [lo, hi].map((c) => Math.round(fahrenheit(c)));
-  const c = [lo, hi].map((x) => (tenths ? x.toFixed(1) : String(Math.round(x))));
-  const span = (a, b) => (a === b ? `${a}` : `${a}–${b}`);
-  return `${span(...f)}\u00a0°F <span class="unit">(${span(...c)}\u00a0°C)</span>`;
-};
+// THE BRIEFING (owner's requests, 2026-10-16, -17 and -22; forecast.briefing,
+// docs/briefing_wording.md): a short read above the LIVE cards, in a fold of
+// its own on the page's backdrop, not a card. Its line reads "Briefing" and
+// when it last updated, never a condition, with a green dot (the provenance
+// pills' `.status`) while that update is one this device has not opened; the
+// fold opened, the dot goes. It updates only when its swell or tide words
+// change (the build decides, on the words below); the conditions refresh
+// without an update. Open: the swell in two sentences, the conditions one a
+// line, the day's tides one a line, three blocks apart by Origin's dot.
+// Never the model: GFS-Wave is the Forecast tab's.
+const BRIEF_SECTOR = {west: "West", "north-west": "North-west"};
+const BRIEF_SEEN = "nado-waves.brief-seen";
+// A time as of the build: "7:07 AM", or "Oct 21, 7:07 AM" on another day.
+const briefWhen = (iso, B) => (coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc))
+  ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`);
+// Temperatures, Fahrenheit first in whole degrees; the water's Celsius to
+// the tenth its buoy reports.
+const briefTemp = (c, tenths = false) =>
+  `${Math.round(fahrenheit(c))} °F <span class="unit">(${tenths ? c.toFixed(1) : Math.round(c)} °C)</span>`;
 const briefRain = (inches) => `${inches.toFixed(2)} in <span class="unit">(${(inches * MM_PER_IN).toFixed(1)} mm)</span>`;
-// A train at the buoy: "18.2 s from SSW 206°, 3.4 ft (1.03 m)".
-const briefTrain = (t) => `${t.wind_sea ? "wind sea " : ""}${t.period_s.toFixed(1)} s from ${compass(t.from_deg)}, ${height(t.hs_m)}`;
-
-function briefOverview(B) {
-  const o = B.overview || {};
-  const parts = [];
-  if (o.sunrise_utc) {
-    const h = Math.floor(o.daylight_min / 60), m = o.daylight_min % 60;
-    parts.push(`Sunrise ${briefPast(o.sunrise_utc, B) ? "was" : "is"} at ${clock(o.sunrise_utc)} `
-      + `with ${h} h ${m} m of daylight.`);
-  }
-  const w = o.weather;
-  if (w && w.reports) {
-    const over = B.edition === "morning" ? "Overnight" : `Since ${clock(B.window_from_utc)}`;
-    const kinds = w.precip_kinds || [];
-    const what = kinds.length ? andList(kinds) : "rain";
-    const rain = w.precip_in > 0
-      ? `${what} ${w.wet_from_utc === w.wet_to_utc ? `at ${clock(w.wet_from_utc)}`
-          : `from ${clock(w.wet_from_utc)} to ${clock(w.wet_to_utc)}`}, ${briefRain(w.precip_in)}`
-      : kinds.length ? `${what} reported, too little to measure` : "no rain";
-    const pct = (lo, hi) => (Math.round(lo) === Math.round(hi) ? `${Math.round(lo)}%` : `${Math.round(lo)}–${Math.round(hi)}%`);
-    const ranges = [w.air_c ? `air ${briefTemp(w.air_c.min, w.air_c.max)}` : null,
-                    w.humidity_pct ? `humidity ${pct(w.humidity_pct.min, w.humidity_pct.max)}` : null].filter(Boolean);
-    const nowParts = [w.air_c ? briefTemp(w.air_c.now) : null,
-                      w.humidity_pct ? `${Math.round(w.humidity_pct.now)}%` : null].filter(Boolean);
-    parts.push(`${over} at North Island, ${rain}` + (ranges.length ? `; ${ranges.join(" and ")}` : "")
-      + (nowParts.length ? `, ${nowParts.join(" and ")} at ${clock((w.air_c || w.humidity_pct).now_utc)}` : "") + ".");
-  } else if (w) {
-    parts.push(`No report from North Island ${B.edition === "morning" ? "overnight" : `since ${clock(B.window_from_utc)}`}.`);
-  }
-  const water = o.water;
-  if (water) {
-    // The range only when it spans a whole degree Fahrenheit.
-    const moved = fahrenheit(water.max_c) - fahrenheit(water.min_c) >= 1;
-    parts.push(`Water ${briefTemp(water.now_c, water.now_c, true)} at ${feedName(water.station, B.station_cdip)}`
-      + (moved ? `, ${briefTemp(water.min_c, water.max_c, true)} over the ${B.edition === "morning" ? "night" : "morning"}` : "") + ".");
-  }
-  return {head: "Overview", body: parts.join(" ")};
-}
-
-function briefSwell(B) {
-  const s = B.swell || {};
-  const swell = feedName(B.station, B.station_cdip);
-  if (s.dark) {
-    return {head: "Swell", body: `No spectrum from ${swell}`
-      + (s.newest_utc ? ` since ${briefWhen(s.newest_utc, B)}` : "") + `, so the swell waits for it.`};
-  }
-  const names = {names: B.station_names || {}, cdips: B.station_cdips || {}};
-  const parts = [];
-  if ((s.buoy_now || []).length) {
-    parts.push(`${swell} at ${clock(s.newest_utc)}: ${s.buoy_now.map(briefTrain).join("; ")}.`);
-  }
-  if ((s.buoy_then || []).length) {
-    parts.push(`At ${briefWhen(s.then_utc, B)}: ${s.buoy_then.map(briefTrain).join("; ")}.`);
-  } else if (s.then_utc) {
-    parts.push(`No spectrum at ${briefWhen(s.then_utc, B)} to set beside it.`);
-  }
-  const b = s.breaks;
-  if (b) {
-    const rows = b.breaks || [];
-    const clause = (r) => `${SHORT[r.id]} ${height(r.now_m)}`
-      + (r.change === "filling" || r.change === "fading" ? `, ${r.change} from ${height(r.then_m)}`
-        : r.change === "little" ? `, little change`
-        : r.then_m != null ? `, ${height(r.then_m)} then` : "");
-    parts.push(`Breaking at ${clock(b.now_utc)}${b.then_utc ? `, against ${briefWhen(b.then_utc, B)}` : ""}: `
-      + `${rows.map(clause).join("; ")}.`);
-    if (b.lead_now) parts.push(`${SHORT[b.lead_now]} leads${b.lead_then === b.lead_now ? ", as it did" : ""}.`);
-  }
-  for (const a of s.arriving || []) {
-    const placed = Boolean(a.region) && a.bearing_deg != null;
-    parts.push(`Arriving at ${briefBreaks(a.breaks)}: the ${a.latest_period_s.toFixed(1)} s train `
-      + (placed ? `from the ${sea(a.region)}, ` : "from an unplaced storm, ")
-      + `sent about ${onDay(a.generated_utc)} from ${farAway(a.distance_km)} away`
-      + (a.ahead_period_s != null ? `, about ${a.ahead_period_s} s by ${briefWhen(a.ahead_utc, B)}` : "") + ".");
-  }
-  for (const a of s.finished || []) {
-    parts.push(`Finished at ${briefBreaks(a.breaks)} at ${briefWhen(a.last_utc, B)}: the `
-      + `${a.latest_period_s.toFixed(1)} s train from `
-      + `${a.region && a.bearing_deg != null ? `the ${sea(a.region)}` : "an unplaced storm"}.`);
-  }
-  for (const u of s.coming || []) {
-    const b0 = u.bands[0];
-    const later = u.bands.slice(1).map((x) => `${x.band_s[0]}–${x.band_s[1]} s from ${clock(x.since_utc)}`);
-    const legs = b0.legs || [];
-    const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
-    parts.push(`Coming: ${BRIEF_SECTOR[u.sector] || u.sector} swell (${u.sector_deg[0]}–${u.sector_deg[1]}°) `
-      + `rose at ${buoyName(names, "46047")} from ${briefWhen(b0.since_utc, B)}, ${b0.band_s[0]}–${b0.band_s[1]} s first`
-      + (later.length ? `, then ${andList(later)}` : "") + `; `
-      + `by deep-water speed it ${briefPast(b0.due_buoy_utc, B) ? "was" : "is"} due at ${swell} around `
-      + `${briefWhen(b0.due_buoy_utc, B)}` + (legs.length ? `, at the breaks ${lo}–${hi} min after` : "")
-      + `. Due, not seen.`);
-  }
-  return {head: "Swell", body: parts.join(" ")};
-}
-
-// The tide as a run: where it is going, then the turns around it, the gauge,
-// and the day's range (owner's wording, 2026-10-17). AM / PM name each turn
-// by its own clock.
-const briefHalf = (iso) => (Number(new Date(iso).toLocaleString("en-US",
-  {hour: "numeric", hour12: false, timeZone: COAST_TZ})) % 24 < 12 ? "AM" : "PM");
-const briefTurn = (x) => `${briefHalf(x.valid_utc)} ${x.event}`;
 // A minus tide with a true minus sign, "−0.7 ft (−0.21 m)".
 const briefLevel = (m) => height(m).replace(/-/g, "−");
-function briefTide(B) {
-  const tide = B.tide || {};
-  const turns = tide.turns || [];
-  const before = turns.filter((x) => x.role === "previous");
-  const ahead = turns.filter((x) => x.role === "ahead");
-  const parts = [];
-  const going = (x) => `${x.event === "high" ? "pushing" : "dropping"} to ${briefLevel(x.height_m)} at ${briefWhen(x.valid_utc, B)}`;
-  if (ahead.length) {
-    parts.push(`The tide is ${going(ahead[0])}` + (ahead[1] ? ` then ${going(ahead[1])}` : "") + ".");
+// A buoy by its place alone, "Point Loma South", or its feed without one.
+const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
+  ? bareName(B.station_names[id]) : feedName(id, cdip));
+
+// "an 8.3", "an 11.1", "an 18.2"; "a" before every other period.
+const briefArticle = (n) => (/^(8|11|18)(\.|$)/.test(n) ? "an" : "a");
+// The swell: the breaking heights at the three breaks as one whole-foot
+// range, and the period of the biggest train at the break with the biggest
+// waves; then each 46047 rise, due by deep-water speed (BRIEFING §43).
+function briefSwell(B) {
+  const s = B.swell || {};
+  if (s.dark) {
+    return [`No spectrum from ${feedName(B.station, B.station_cdip)}`
+      + (s.newest_utc ? ` since ${briefWhen(s.newest_utc, B)}` : "") + "."];
   }
-  // The previous turn, then the rest of the day's: one later turn joins it
-  // with "and" (the owner's sentence); two or more follow a semicolon as a
-  // list, "will be" said once.
-  const prev = before.length ? before[before.length - 1] : null;
-  const prevSaid = prev ? `The previous ${briefTurn(prev)} was ${briefLevel(prev.height_m)} at ${briefWhen(prev.valid_utc, B)}` : "";
-  const later = andList(ahead.slice(2).map((x, i) => `the ${briefTurn(x)}${i ? "" : " will be"} `
-    + `${briefLevel(x.height_m)} at ${briefWhen(x.valid_utc, B)}`));
-  if (prevSaid && later) parts.push(`${prevSaid}${ahead.length > 3 ? "; " : " and "}${later}.`);
-  else if (prevSaid || later) parts.push(`${prevSaid || later[0].toUpperCase() + later.slice(1)}.`);
-  if (tide.departure_m != null && Math.abs(tide.departure_m) >= 0.005) {
-    parts.push(`The gauge is running ${heightText(Math.abs(tide.departure_m))} `
-      + `${tide.departure_m > 0 ? "over" : "under"} the harmonic prediction, over the last 3 days.`);
-  }
-  const p = tide.phase;
-  if (tide.range) {
-    parts.push(`Today's range is ${heightText(tide.range.m)}`
-      + (p && PHASE_TITLE[p.phase] ? `, ${PHASE_TITLE[p.phase].toLowerCase()}` : "")
-      + (p && p.next && p.next.utc ? `; ${p.next.kind === "spring" ? "springs" : "neaps"} around ${onDay(p.next.utc)}` : "")
+  const out = [];
+  const rows = (s.breaks || []).filter((r) => r.hs_m != null);
+  if (rows.length) {
+    const ft = rows.map((r) => r.hs_m * FT_PER_M);
+    const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
+    const top = rows.reduce((a, r) => (r.hs_m > a.hs_m ? r : a));
+    out.push(`Significant waves breaking in the ${lo}–${hi}\u00a0ft <span class="unit">`
+      + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span> range`
+      + (top.period_s != null ? ` with ${briefArticle(top.period_s.toFixed(1))} ${top.period_s.toFixed(1)} s period` : "")
       + ".");
   }
-  parts.push("On the 2016 survey the tide moves where the waves break, not how big they are; "
-    + "this season's sandbars are not known.");
-  return {head: "Tide", body: parts.join(" ")};
-}
-
-// The wind now, and the same hour on every earlier archived day: a count,
-// never a habit (the onshore habit failed its test, docs/briefing_thresholds.md).
-// The history counts light, calm and variable together, as the Shore
-// direction chart does.
-const BRIEF_QUIET = new Set(["light", "calm", "variable"]);
-const briefKind = (v) => (BRIEF_QUIET.has(v) ? "light or variable" : v);
-function briefWind(B) {
-  const w = B.wind || {};
-  const now = w.now;
-  if (!now) return {head: "Wind", body: "No report from North Island in the last hour and a half."};
-  const bySide = {};
-  for (const id of ORDER) {
-    const side = now.from_deg == null || !(now.speed_kt > 0) ? null : sense((now.offshore || {})[id], now.speed_kt);
-    if (side) (bySide[side] = bySide[side] || []).push(id);
+  for (const c of s.coming || []) {
+    const legs = c.legs || [];
+    const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
+    out.push(`${BRIEF_SECTOR[c.sector] || c.sector} swell (${c.sector_deg[0]}–${c.sector_deg[1]}°) at `
+      + `${briefBuoy(B, "46047")} (${briefWhen(c.since_utc, B)}), ${c.band_s[0]}–${c.band_s[1]} s first; `
+      + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefWhen(c.due_buoy_utc, B)}`
+      + (legs.length ? `, and at the breaks ${lo}–${hi} min after` : "") + ".");
   }
-  const sides = Object.entries(bySide).map(([side, ids]) => `${side} at ${briefBreaks(ids)}`);
-  const val = windVal(now.from_deg, now.speed_kt);
-  const parts = [`${val} at ${clock(now.observed_utc)}` + (sides.length ? `: ${sides.join("; ")}` : "") + "."];
-  const h = w.history;
-  if (h && h.days) {
-    // Each break: how many days read as it reads now, and the most common
-    // reading when that is another. One verdict at all three, and the most
-    // common everywhere, is said once.
-    const rows = ORDER.map((id) => {
-      const counts = {};
-      for (const [k, n] of Object.entries((h.by_break || {})[id] || {})) counts[briefKind(k)] = (counts[briefKind(k)] || 0) + n;
-      const mine = briefKind(now.by_break[id]);
-      const most = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-      return {id, mine, n: counts[mine] || 0, most: most && most[0] !== mine ? most : null};
-    });
-    const one = rows.every((r) => r.mine === rows[0].mine && !r.most);
-    const said = one
-      ? `${rows[0].mine} on ${andList(rows.map((r) => String(r.n)))} days at ${andList(ORDER.map((id) => SHORT[id]))}`
-      : rows.map((r) => `${SHORT[r.id]} ${r.mine} on ${r.n}` + (r.most ? `, ${r.most[0]} on ${r.most[1]}` : "")).join("; ");
-    parts.push(`At this hour on the ${h.days} days before: ${said}.`
-      + (h.median_kt != null ? ` Median ${speed(h.median_kt)}.` : ""));
+  return out;
+}
+
+// The conditions, one a line; precipitation only when the last hour's or
+// the last 24 hours' is above zero, and then both.
+function briefConditions(B) {
+  const c = B.conditions || {};
+  const water = c.water, w = c.weather || {};
+  const out = [];
+  if (water && water.c != null) out.push(`Water ${briefTemp(water.c, true)}`);
+  if (w.air_c != null) out.push(`Air ${briefTemp(w.air_c)}`);
+  if (w.humidity_pct != null) out.push(`Humidity ${Math.round(w.humidity_pct)}%`);
+  if ((w.precip_hour_in || 0) > 0 || (w.precip_day_in || 0) > 0) {
+    const kinds = (w.precip_kinds || []).length ? ` (${andList(w.precip_kinds)})` : "";
+    out.push(`Precipitation ${briefRain(w.precip_hour_in || 0)} in the last hour${kinds}, `
+      + `${briefRain(w.precip_day_in || 0)} in 24 h`);
   }
-  return {head: "Wind", body: parts.join(" ")};
+  return out;
 }
 
-function briefWatching(B) {
-  const watch = B.watching || {};
-  const named = new Set((watch.named || []).map((n) => String(n).toUpperCase()));
-  const parts = [];
-  for (const st of watch.storms || []) {
-    const kind = st.strength === "tropical storm" ? "Tropical Storm"
-      : st.strength === "hurricane" ? "Hurricane" : "Former hurricane";
-    const nm = st.name.charAt(0) + st.name.slice(1).toLowerCase();
-    const who = `${kind} <a href="${stormPageUrl(st.name, st.newest_fix_utc)}" rel="noopener">${nm}</a>`
-      + (kind === "Former hurricane" ? "" : stormSymbol(kind));
-    const rows = (st.breaks || []).filter((r) => r.first_utc && r.last_utc);
-    if (!st.open_fixes) {
-      parts.push(`${who}: every fix NHC has logged${st.forecast_issued_utc ? " or forecast" : ""} is behind land `
-        + `from Point Loma South, so nothing it has sent reaches the breaks.`);
-    } else if (!rows.length) {
-      parts.push(`${who}: nothing it has sent has a path to the breaks.`);
-    } else {
-      const first = rows.map((r) => r.first_utc).sort()[0];
-      const last = rows.slice().sort((a, b) => (a.last_utc < b.last_utc ? 1 : -1))[0];
-      parts.push(`${who}: its swell ${briefPast(first, B) ? "has been due since" : "is due from"} `
-        + `${briefWhen(first, B)}, about ${Math.round(rows[0].first_period_s)} s first, until about `
-        + `${briefWhen(last.last_utc, B)}, near ${Math.round(last.last_period_s)} s, `
-        + (last.last_source === "NHC forecast" ? "on NHC's forecast" : "from the fixes NHC has logged")
-        + `, sent from ${farAway(st.distance_km, 100)} away at ${compass(st.bearing_deg)}.`
-        + (named.has(st.name.toUpperCase()) ? " Origin names it arriving." : " No buoy has borne it out yet."));
-    }
-  }
-  return parts.length ? {head: "Watching", body: parts.join(" ")} : null;
+// The day's turns, AM / PM by each turn's own clock (predicted, with the
+// gauge's departure, as the card's).
+const briefHalf = (iso) => (Number(new Date(iso).toLocaleString("en-US",
+  {hour: "numeric", hour12: false, timeZone: COAST_TZ})) % 24 < 12 ? "AM" : "PM");
+function briefTides(B) {
+  return ((B.tide || {}).turns || []).map((x) =>
+    `${briefHalf(x.valid_utc)} ${x.event} ${briefLevel(x.height_m)} at ${clock(x.valid_utc)}`);
 }
 
-// Every entry, in the fold's fixed order. Empty entries drop.
-function briefingEntries(B) {
-  if (!B || !B.available) return [];
-  return [briefOverview(B), briefSwell(B), briefTide(B), briefWind(B), briefWatching(B)]
-    .filter((e) => e && e.body);
+// Every block in the fold's order; an empty block drops.
+function briefingParts(B) {
+  if (!B || !B.available) return null;
+  return {swell: briefSwell(B), conditions: briefConditions(B), tides: briefTides(B)};
 }
 
-// The fold's line: the issue and when it was issued, the day too when it is
-// not today's.
-function briefIssue(B, nowMs = Date.now()) {
-  const day = B.day === coastDay(nowMs) ? "" : `${onDay(B.issued_utc)}, `;
-  return `${BRIEF_EDITION[B.edition] || "Briefing"} briefing <span class="count">${day}${clock(B.issued_utc)}</span>`;
+// The fold's line: "Briefing", when it last updated (the day too when not
+// today's), and the dot while that update is unopened on this device.
+function briefLine(B, nowMs = Date.now()) {
+  const day = coastDay(Date.parse(B.updated_utc)) === coastDay(nowMs) ? "" : `${onDay(B.updated_utc)}, `;
+  return `Briefing <span class="count">updated ${day}${clock(B.updated_utc)}</span>`;
 }
+const briefUnseen = (B) => Boolean(B && B.key) && stored(BRIEF_SEEN) !== B.key;
+const briefDot = '<i class="status" style="margin-left:6px;vertical-align:1px" role="img"'
+  + ' aria-label="Not yet read" title="Not yet read"></i>';
 
 // Whether the Briefing is open: one state, kept across a refresh like
-// Origin's.
+// Origin's. Open on an update is that update read.
 let BRIEF_OPEN = false;
 function setBriefOpen(open) {
   BRIEF_OPEN = open;
@@ -1768,16 +1605,27 @@ function setBriefOpen(open) {
   if (btn) btn.setAttribute("aria-expanded", String(open));
   const body = $("brief-body");
   if (body) body.hidden = !open;
+  if (open) briefSeen();
+}
+function briefSeen() {
+  if (!BRIEFING || !BRIEFING.key) return;
+  store(BRIEF_SEEN, BRIEFING.key);
+  const dot = document.querySelector("[data-brief-head] .status");
+  if (dot) dot.remove();
 }
 function briefingFold(B) {
-  const entries = briefingEntries(B);
-  if (!entries.length) return "";
-  return `<div class="chart-head" data-brief-head><span>${briefIssue(B)}</span><button
+  const parts = briefingParts(B);
+  if (!parts) return "";
+  const blocks = [parts.swell, parts.conditions, parts.tides].filter((b) => b.length);
+  if (!blocks.length) return "";
+  const dot = BRIEF_OPEN || !briefUnseen(B) ? "" : briefDot;
+  return `<div class="chart-head" data-brief-head><span>${briefLine(B)}${dot}</span><button
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
-      aria-expanded="${BRIEF_OPEN}" aria-label="${BRIEF_EDITION[B.edition] || ""} briefing"><svg viewBox="0 0 16 16"
+      aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
-      ${entries.map((e) => `<div class="brief-entry"><span class="val">${e.head}</span><span class="turn">${e.body}</span></div>`).join("")}
+      ${blocks.map((b, i) => `<div class="brief-block">${b.map((line) =>
+        `<span class="${i ? "brief-line" : "brief-text"}">${line}</span>`).join(i ? "" : " ")}</div>`).join("")}
     </div>`;
 }
 // End of the briefing.
@@ -6274,6 +6122,8 @@ function show() {
   const brief = forecasting ? "" : briefingFold(BRIEFING);
   $("briefing").hidden = !brief;
   $("briefing").innerHTML = brief;
+  // An update drawn into an open fold has been read.
+  if (brief && BRIEF_OPEN) briefSeen();
   $("tab-now").setAttribute("aria-selected", String(!forecasting));
   $("tab-forecast").setAttribute("aria-selected", String(forecasting));
 
@@ -6504,15 +6354,15 @@ function refreshWindTide() {
     .catch(() => {});
 }
 
-// Issued twice a day (Morning, Midday); the file changes only when a new
-// issue lands, and is redrawn then without the flash, as a fold under
-// nobody's finger.
+// Rebuilt every collection (its conditions refresh); updated only when its
+// swell or tide words change. Redrawn on either without the flash, as a
+// fold under nobody's finger.
 function refreshBriefing() {
   fetch(fresh(BRIEFING_SOURCE), {cache: "no-store"})
     .then((r) => (r.ok ? r.json() : null))
     .then((got) => {
       if (!got || !got.key) return;
-      if (BRIEFING && got.key === BRIEFING.key) return;
+      if (BRIEFING && got.built_utc === BRIEFING.built_utc && got.key === BRIEFING.key) return;
       BRIEFING = got;
       if (MODE === "now") show();
     })

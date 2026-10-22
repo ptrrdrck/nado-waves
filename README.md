@@ -128,7 +128,7 @@ python -m forecast.beachverify           # does the log agree with the geometry?
 python -m forecast.verify                # how wrong GFS-Wave is at the buoy
 python -m forecast.residual --ceiling    # what an upstream observation could win
 python -m forecast.forensics             # where a past swell was born
-python -m forecast.briefing              # issue a briefing if one is due; the newest kept -> data/live/briefing.json
+python -m forecast.briefing              # build the briefing -> data/live/briefing.json
 python -m forecast.upstreamlag           # Tanner Banks to Point Loma South to the breaks
 python -m forecast.briefingreport        # the briefing's thresholds, measured
 python -m collector.run                  # fetch and archive (needs NDBC reachable)
@@ -152,7 +152,7 @@ PYTHONPATH=. python -m pytest -q
     data/beach_log/          the verification series                    [EMPTY]
     forecast/forensics.py a past swell's origin off the historical record
     forecast/origin.py    the LIVE tab's Origin: each arriving train's birthplace
-    forecast/briefing.py  the LIVE tab's Briefing: Morning and Midday issues, kept in data/briefings/
+    forecast/briefing.py  the LIVE tab's Briefing: updated when its swell or tide words change, kept in data/briefings/
     forecast/stormdue.py  when a hurricane's swell is due, from NHC's fixes
     data/historical/      3 years hourly, 15 stations — irreplaceable
     data/wave_forecasts/  1,095 GFS-Wave cycles/station, with swell partitions

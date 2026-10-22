@@ -1,316 +1,139 @@
 # Briefing wording: the formula, and every permutation
 
-The LIVE tab's Briefing (owner's requests, 2026-10-16 and -17). It sits above
-the LIVE cards in a fold of its own on the page's backdrop, not a card. It is
-ISSUED twice a day, Morning (6:00 AM Pacific, over the night since sunset)
-and Midday (12:00 PM, over the morning since 6:00 AM), and then left alone:
-every word is as of the issue, never the reader's clock, and each issue is
-kept in `data/briefings/` as it was. Its line reads "{Morning / Midday}
-briefing {time issued}", with the day when the issue is not today's, and
-nothing else, so a reader who leaves it closed has read no condition.
+The LIVE tab's Briefing (owner's requests, 2026-10-16, -17 and -22). It sits
+above the LIVE cards in a fold of its own on the page's backdrop, not a card.
+It is built every collection and UPDATES only when what it says about the
+swell or the tides changes; the conditions refresh without an update. Its
+line reads "Briefing updated {time}" (the day too when the update is not
+today's) and nothing else, with the provenance pills' green dot while that
+update is unopened on this device. Opening the fold removes the dot.
 
-The section at the end lists every permutation. It is not typed:
-`python -m forecast.briefingwording` lifts the Briefing code out of
-`app/forecast.html`, runs it in Node on one made-up issue per branch, and
+The section at the end lists every permutation, and
+`docs/briefing_sentences.md` every distinct line once, for editing. Neither
+is typed: `python -m forecast.briefingwording` lifts the Briefing code out of
+`app/forecast.html`, runs it in Node on one made-up briefing per branch, and
 writes what the page prints. `tests/test_briefingwording.py` fails if the
-page and this file disagree. Edit the wording above the generated section;
+page and these files disagree. Edit the wording above the generated section;
 the numbers in the cases are made up, and times are Pacific.
 
 ## The formula
 
-Five entries, always in this order, each a heading over one paragraph, set
-as Origin's entries are and apart by the same centred dot. Each paragraph is
-a fixed run of slots: a slot with no value is dropped with its joining
-words, and an entry with nothing to say drops whole. The judging words
-(filling, fading, little change, leads) are the build's (`forecast.briefing`),
-each on its measured threshold (`docs/briefing_thresholds.md`); the page only
-words them. Never the model: GFS-Wave and its ensemble are the Forecast
-tab's.
+Three blocks, always in this order, set apart by Origin's centred dot. Each
+is a fixed run of slots: a slot with no value is dropped with its joining
+words, and a block with nothing to say drops whole. Never the model: GFS-Wave
+and its ensemble are the Forecast tab's.
 
-| Entry | Slots, in order |
+| Block | Slots, in order |
 |---|---|
-| **Overview** | `Sunrise is/was at {time} with {h} h {m} m of daylight.` (the sea horizon at the center break); `Overnight` / `Since 6:00 AM` `at North Island,` rain with its hours and amount, or `{kind} reported, too little to measure`, or `no rain`; the window's air temperature and humidity ranges; the newest of each and its time (KNZY's reports); `Water {°F} ({°C}) at CDIP 191`, and its range when that spans a whole °F |
-| **Swell** | if 46232 is dark, that alone; `CDIP 191 at {time}:` each train now; `At {the previous issue's hour}:` each train then, or no spectrum then; `Breaking at {time}, against {then}:` each break now, `filling from` / `fading from` (3-hour medians ≥ 15% apart and the readings agree) / `little change` / `{then} then` (span under 6 h, unmeasured); the leader (5% margin), `as it did` when it led then; `Arriving at {breaks}:` each Origin arrival, its sea, when and how far it was sent, its period 12 h on; `Finished at {breaks} at {time}:`; `Coming:` a west or north-west rise at Tanner Banks, due at CDIP 191 by deep-water speed and at the breaks after the rays' leg (BRIEFING §43), `Due, not seen.` |
-| **Tide** | `The tide is pushing / dropping to {height} at {time} then … to {height} at {time}.`; `The previous {AM/PM} {high/low} was …` and `the {AM/PM} {high/low} will be …` for the rest of the day's turns; `The gauge is running {x} over / under the harmonic prediction, over the last 3 days.`; `Today's range is {x}`, the phase, the next spring or neap; the 2016 survey's tide-and-break sentence |
-| **Wind** | KNZY's newest reading, as the card's headline, and its side at each break; `At this hour on the {n} days before:` how many days each break read as it reads now, and the most common reading where that differs (light, calm and variable counted together, as the Shore direction chart does); the median speed |
-| **Watching** | each storm NHC tracks: `{Hurricane / Tropical Storm / Former hurricane} {Name}` linked to NHC's page; its swell due from / has been due since … about 20 s first, until … near 12 s, on NHC's forecast or from the fixes NHC has logged, sent from about … at …; named by Origin or not yet borne out. Behind land from 46232: says so and nothing else |
+| **Swell** | `Significant waves breaking in the {lo}–{hi} ft ({m}) range with a/an {T} s period.` — the three breaks' breaking heights (the cards' numbers), lowest rounded down and highest rounded up to whole feet, at least one foot apart; the lead period at the break with the biggest waves. Then, for each west (250–280°) or north-west (280–330°) rise at Tanner Banks in the last 24 hours, kept until 6 h after it was due at the last break: `{West / North-west} swell ({sector}) at Tanner Banks ({when it rose}), {band} s first; due at Point Loma South around {time}, and at the breaks {lo}–{hi} min after.` (deep-water speed, then the rays' leg; BRIEFING §43). If 46232 is dark: `No spectrum from CDIP 191 since {time}.` and nothing else |
+| **Conditions** | `Water {°F} ({°C})` (46232's newest, within 6 h); `Air {°F} ({°C})` and `Humidity {n}%` (KNZY's newest, within 90 min); `Precipitation {in} ({mm}) in the last hour ({kinds}), {in} ({mm}) in 24 h`, only when either amount is above zero, and then both |
+| **Tides** | each of the Pacific day's predicted turns, `{AM / PM} {high / low} {height} at {time}`, with the gauge's departure as the card's turns carry it |
 
-**Not carried, by measurement**: the wind's habit, when it turns onshore
-(right 1 of 5 to 11 of 21 days, `docs/briefing_thresholds.md`); the Wind
-entry gives the same hour's count on earlier days instead, which claims
-nothing about today. A ridge's period past 12 h; a time for one swell from
-Tanner Banks to Point Loma South (the archive agrees with deep-water speed on
-average and cannot time one swell, §43).
-
-**Not yet**: confluence events in Watching (the owner's to define).
+**An update** is a change in the swell or tide words, as printed: a change
+below the page's precision is none. Each update is kept in
+`data/briefings/`, with the conditions of that moment.
 
 <!-- Generated by python -m forecast.briefingwording. Edit above this line. -->
 
-### Q1: a quiet morning: little change, no leader, nothing arriving or watched
+### Q1: a quiet morning: one range, nothing coming, no rain
 
 ```text
-[Morning briefing 6:05 AM]
+[Briefing updated 7:16 AM]
 
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period.
 
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
+Water 67 °F (19.4 °C)
+Air 61 °F (16 °C)
+Humidity 88%
 
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
 ```
 
-### B1: a busy morning: rain overnight, filling and fading, the lead changed, a swell arriving and one finished, swell coming from Tanner Banks, a hurricane due and a storm behind Baja
+### B1: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
 
 ```text
-[Morning briefing 6:05 AM]
+[Briefing updated 7:16 AM]
 
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, rain from 1:52 AM to 3:52 AM, 0.07 in (1.8 mm); air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+Significant waves breaking in the 2–5 ft (0.6–1.5 m) range with an 18.2 s period. West swell (250–280°) at Tanner Banks (7:07 AM), 10–12 s first; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min after.
 
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). North leads. Arriving at all three breaks: the 17.2 s train from the South Pacific, sent about Oct 9 from about 5,500 mi (9,000 km) away, about 16 s by 5:00 PM. Finished at Center and South at 10:00 PM yesterday: the 10.7 s train from an unplaced storm. Coming: north-west swell (280–330°) rose at Tanner Banks (NDBC 46047) from 12:20 AM, 14–17 s first, then 12–14 s from 3:15 AM; by deep-water speed it was due at CDIP 191 around 3:56 AM, at the breaks 30–40 min after. Due, not seen.
+Water 67 °F (19.4 °C)
+Air 61 °F (16 °C)
+Humidity 88%
+Precipitation 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h
 
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
-
-Watching
-Hurricane [Test](https://www.nhc.noaa.gov/archive/2026/TEST_graphics.php) {hurricane symbol}: its swell is due from 8:00 PM tomorrow, about 20 s first, until about Oct 21, 2:00 AM, near 12 s, from the fixes NHC has logged, sent from about 1,200 mi (2,000 km) away at S 188°. No buoy has borne it out yet. Tropical Storm [Simon](https://www.nhc.noaa.gov/archive/2026/SIMON_graphics.php) {tropical storm symbol}: every fix NHC has logged is behind land from Point Loma South, so nothing it has sent reaches the breaks.
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
 ```
 
-### M1: a Midday issue: since the Morning, sunrise past, wind sea at the buoy, the same leader
+### C1: two sectors coming, one risen yesterday; rain earlier in the day only
 
 ```text
-[Midday briefing 12:05 PM]
+[Briefing updated 7:16 AM]
 
-Overview
-Sunrise was at 6:54 AM with 11 h 20 m of daylight. Since 6:00 AM at North Island, no rain; air 63–70 °F (17–21 °C) and humidity 61–86%, 70 °F (21 °C) and 61% at 11:52 AM. Water 72 °F (22.4 °C) at CDIP 191, 71–72 °F (21.6–22.4 °C) over the morning.
+Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period. North-west swell (280–330°) at Tanner Banks (Oct 21, 3:10 PM), 14–17 s first; due at Point Loma South around Oct 21, 6:50 PM, and at the breaks 39–53 min after. West swell (250–280°) at Tanner Banks (7:07 AM), 10–12 s first; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min after.
 
-Swell
-CDIP 191 at 11:00 AM: 14.3 s from WSW 246°, 3.0 ft (0.90 m); wind sea 4.1 s from W 275°, 1.5 ft (0.45 m). At 5:00 AM: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 11:00 AM, against 5:00 AM: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). North leads, as it did.
+Water 67 °F (19.4 °C)
+Air 61 °F (16 °C)
+Humidity 88%
+Precipitation 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h
 
-Tide
-The tide is dropping to 1.8 ft (0.55 m) at 3:45 PM then pushing to 6.3 ft (1.92 m) at 10:05 PM. The previous AM high was 5.4 ft (1.65 m) at 9:30 AM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-W 265° at 13 mph (11 kt) at 11:52 AM: onshore at all three breaks. At this hour on the 28 days before: onshore on 14, 22 and 24 days at North, Center and South. Median 10 mph (9 kt).
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
 ```
 
-### D1: 46232 dark: the swell waits
+### D1: 46232 dark: the swell says so and nothing else
 
 ```text
-[Morning briefing 6:05 AM]
+[Briefing updated 7:16 AM]
 
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+No spectrum from CDIP 191 since Oct 21, 3:00 PM.
 
-Swell
-No spectrum from CDIP 191 since 3:00 PM yesterday, so the swell waits for it.
+Water 67 °F (19.4 °C)
+Air 61 °F (16 °C)
+Humidity 88%
 
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
 ```
 
-### U1: a span under 6 h, and no spectrum at the previous issue: the readings, no word
+### K1: no water temperature, no KNZY report, a minus tide
 
 ```text
-[Morning briefing 6:05 AM]
+[Briefing updated 7:16 AM]
 
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
+Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period.
 
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). No spectrum at 11:00 AM yesterday to set beside it. Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), 2.7 ft (0.82 m) then; Center 2.7 ft (0.81 m), 2.6 ft (0.80 m) then; South 2.6 ft (0.80 m), 2.6 ft (0.79 m) then.
-
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
+AM low −0.7 ft (−0.21 m) at 6:40 AM
+PM high 5.6 ft (1.71 m) at 1:05 PM
 ```
 
-### N1: no earlier issue's hour to compare, drizzle too little to measure, no water temperature
+### Y1: yesterday's update, read this morning
 
 ```text
-[Morning briefing 6:05 AM]
+[Briefing updated Oct 21, 12:06 PM]
 
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, drizzle reported, too little to measure; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM.
+Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period.
 
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). Breaking at 5:00 AM: North 2.8 ft (0.85 m); Center 2.7 ft (0.81 m); South 2.6 ft (0.80 m).
+Water 67 °F (19.4 °C)
+Air 61 °F (16 °C)
+Humidity 88%
 
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
 ```
 
-### K1: no KNZY report: none overnight, none fresh at the issue
-
-```text
-[Morning briefing 6:05 AM]
-
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. No report from North Island overnight. Water 72 °F (22.0 °C) at CDIP 191.
-
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
-
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-No report from North Island in the last hour and a half.
-```
-
-### W1: a calm and a variable wind, against history counted as light or variable
-
-```text
-[Morning briefing 6:05 AM]
-
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
-
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
-
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-Calm at 5:52 AM. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17. Median 5 mph (4 kt).
-```
-
-### W2: a variable wind at a speed, no side at any break
-
-```text
-[Morning briefing 6:05 AM]
-
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
-
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
-
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-Variable at 7 mph (6 kt) at 5:52 AM. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17. Median 5 mph (4 kt).
-```
-
-### H1: a hurricane already due, its last edge on NHC's forecast, named by Origin
-
-```text
-[Morning briefing 6:05 AM]
-
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
-
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
-
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
-
-Watching
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}: its swell has been due since Oct 14, 8:00 PM, about 20 s first, until about Oct 21, 2:00 AM, near 12 s, on NHC's forecast, sent from about 1,200 mi (2,000 km) away at S 188°. Origin names it arriving.
-```
-
-### H2: a former hurricane with open fixes, none with a path to the breaks
-
-```text
-[Morning briefing 6:05 AM]
-
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
-
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
-
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
-
-Watching
-Former hurricane [Nolo](https://www.nhc.noaa.gov/archive/2026/NOLO_graphics.php): nothing it has sent has a path to the breaks.
-```
-
-### T1: springs, no departure, the previous turn yesterday, one turn ahead before the file ends
-
-```text
-[Morning briefing 6:05 AM]
-
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
-
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
-
-Tide
-The tide is dropping to −0.7 ft (−0.21 m) at 6:40 AM. The previous PM high was 6.6 ft (2.01 m) at 10:10 PM yesterday. Today's range is 4.5 ft (1.37 m), spring tides; neaps around Oct 22. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
-```
-
-### Y1: yesterday's Midday, read the next morning before the Morning is out
-
-```text
-[Midday briefing Oct 15, 12:05 PM]
-
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Since 6:00 AM at North Island, no rain; air 61–64 °F (16–18 °C) and humidity 78–93%, 62 °F (17 °C) and 88% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
-
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM: North 2.8 ft (0.85 m), little change; Center 2.7 ft (0.81 m), little change; South 2.6 ft (0.80 m), little change.
-
-Tide
-The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM tomorrow then dropping to 1.8 ft (0.55 m) at 3:45 PM tomorrow. The previous AM low was 3.3 ft (1.01 m) at 3:15 AM tomorrow and the PM high will be 6.3 ft (1.92 m) at 10:05 PM tomorrow. The gauge is running 1.1 ft (0.34 m) over the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), neap tides; springs around Oct 25. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-NE 40° at 6 mph (5 kt) at 5:52 AM: offshore at all three breaks. At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South. Median 5 mph (4 kt).
-```
-
-### V1: the other branches: a light wind with a different side at each break, a lone shower with thunder, one humidity, a placed swell finished and an unplaced one arriving, a tropical storm due, the tide falling first with the day's other turns ahead, easing toward neaps
-
-```text
-[Morning briefing 6:05 AM]
-
-Overview
-Sunrise is at 6:54 AM with 11 h 20 m of daylight. Overnight at North Island, thunder, showers and rain at 3:52 AM, 0.11 in (2.8 mm); air 61–64 °F (16–18 °C) and humidity 90%, 62 °F (17 °C) and 90% at 5:52 AM. Water 72 °F (22.0 °C) at CDIP 191.
-
-Swell
-CDIP 191 at 5:00 AM: 14.3 s from WSW 245°, 3.1 ft (0.95 m); 9.1 s from WNW 285°, 1.3 ft (0.40 m). At 11:00 AM yesterday: 14.3 s from WSW 244°, 3.2 ft (0.98 m); 9.1 s from WNW 286°, 1.4 ft (0.42 m). Breaking at 5:00 AM, against 11:00 AM yesterday: North 3.0 ft (0.91 m), filling from 2.1 ft (0.64 m); Center 2.6 ft (0.79 m), little change; South 1.6 ft (0.50 m), fading from 2.0 ft (0.62 m). South leads. Arriving at South: the 17.2 s train from an unplaced storm, sent about Oct 9 from about 5,500 mi (9,000 km) away. Finished at North at 10:00 PM yesterday: the 10.7 s train from the Gulf of Alaska.
-
-Tide
-The tide is dropping to 1.4 ft (0.42 m) at 8:40 AM then pushing to 4.5 ft (1.38 m) at 2:55 PM. The previous AM high was 5.6 ft (1.71 m) at 2:20 AM; the PM low will be 3.3 ft (1.02 m) at 7:30 PM and the PM high 4.9 ft (1.49 m) at 11:10 PM. The gauge is running 0.2 ft (0.06 m) under the harmonic prediction, over the last 3 days. Today's range is 4.5 ft (1.37 m), easing toward neaps; neaps around Oct 18. On the 2016 survey the tide moves where the waves break, not how big they are; this season's sandbars are not known.
-
-Wind
-WNW 290° at 3 mph (3 kt) at 5:52 AM: light cross-shore at North; light onshore at Center and South. At this hour on the 28 days before: North light or variable on 9, offshore on 18; Center light or variable on 9, offshore on 19; South light or variable on 9, offshore on 17.
-
-Watching
-Tropical Storm [Paine](https://www.nhc.noaa.gov/archive/2026/PAINE_graphics.php) {tropical storm symbol}: its swell is due from 8:00 AM tomorrow, about 20 s first, until about Oct 21, 2:00 AM, near 12 s, from the fixes NHC has logged, sent from about 1,200 mi (2,000 km) away at S 188°. No buoy has borne it out yet.
-```
-
-### X1: no issue yet
+### X1: nothing built yet
 
 ```text
 (no Briefing: the fold is not drawn)

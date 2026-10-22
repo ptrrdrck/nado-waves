@@ -807,60 +807,58 @@ forecaster actually verifies against, Surfline included.
    coordinates, so nothing trustworthy was dropped.
    `tests/test_app_surface.py` enforces the vocabulary: the page may not use
    the words an accuracy claim would need.
-   **The Briefing** (owner's request, 2026-10-16; reshaped 2026-10-17;
-   `forecast/briefing.py`): a lifeguard's read in a fold on the BACKDROP
-   above the LIVE cards, not a card, closed until opened. **ISSUED twice a
-   day and then left alone** (owner's call, 2026-10-17: rebuilt every
-   collection it never sat still, which defeated its calm purpose):
-   **Morning** at 6:00 AM Pacific, over the night since sunset, and
-   **Midday** at 12:00 PM, over the morning since 6:00 AM (`ISSUES`), each
-   written by the first collection at or after its slot and never once
-   `MAX_LATE_H` (3 h) has passed — a missed issue is a gap, never written
-   late as though on time. **Every issue is kept**: `data/briefings/
-   YYYY-MM.jsonl`, append-only, the payload as built plus the words the
-   page printed from it (`briefingwording.render_issue`, Node; `text` null
-   without it). Its one writer is collect-beach-inputs.yml's "Record the
-   briefing", in a sparse worktree of the branch's NEWEST tip (a queued run's
-   checkout can predate the last issue), re-appending on a rejected push,
-   never rebasing; `briefing.json` is the newest kept line, rewritten every
-   collection, so the page changes only when an issue lands (it compares
-   `key`). Every word is as of the issue, never the reader's clock; only the
-   fold's line ("Morning briefing 6:05 AM", the day too when not today's)
-   reads it, and names no condition. Five entries, in order, set as
-   Origin's: **Overview** (sunrise and daylight at the sea horizon; rain,
-   air temperature and humidity over the window from KNZY's archived raw
-   METARs — the T group's tenths, the hourly P group on routine reports only
-   (a SPECI's repeats the hour's total), vicinity showers not counted — and
-   46232's standard-met water temperature), **Swell** (46232's trains now
-   and at the previous issue's newest spectrum, from the record, else the
-   series; each break filling / fading — the measured rose / dropped, same
-   threshold and 3-hour medians — against that hour; the leader; Origin's
-   arriving and finished; 46047's rises, due, never arrived, §43),
-   **Tide** (owner's wording: "The tide is pushing to … then dropping to
-   …", the previous turn, the rest of the day's, the gauge's departure, the
-   day's range between consecutive turns, the phase), **Wind** (KNZY's
-   newest and its side at each break, then how many of the earlier days
-   read the same at that clock hour, light / calm / variable counted
-   together as the Shore direction chart does: a COUNT, never a habit — the
-   onshore habit failed its test and is not carried), **Watching** (each
-   storm NHC tracks, due window or behind land; confluence events are the
-   owner's to define, not built). Morning reads the 5 AM spectrum and Midday
-   the 11 AM one, so Midday's comparison is exactly `MIN_SPAN_H`, the
-   shortest span the threshold was measured on. **Every judging word is
-   measured** (`forecast/briefingreport.py`, `docs/briefing_thresholds.md`,
-   the phase fold's 85% rule): 15% on 3-hour medians, a leader at 5%, no
-   word under 6 h. **Never the model** (owner's call): GFS-Wave and its
-   ensemble are the Forecast tab's; NHC's official forecast IS allowed, and
-   every window edge it sets says so. Units as each source publishes them
-   (°C, METAR's inches), converted only on the page (`fahrenheit`,
-   `MM_PER_IN` beside the other unit constants). Wording generated from the
-   page into `docs/briefing_wording.md` (the formula and each case) and
-   `docs/briefing_sentences.md` (every distinct sentence once, numbered by
-   entry, for the owner to edit; edits are carried into the page by hand)
-   by `forecast/briefingwording.py`, both pinned by a test.
+   **The Briefing** (owner's request, 2026-10-16; reshaped 2026-10-17 and
+   again 2026-10-22; `forecast/briefing.py`): a short read in a fold on the
+   BACKDROP above the LIVE cards, not a card, closed until opened. Its line
+   reads "Briefing updated 7:16 AM" (the day too when not today's) and names
+   no condition, with the provenance pills' green `.status` dot while that
+   update is unopened on this device (`BRIEF_SEEN` in localStorage, through
+   the gate's `stored`/`store`); opening the fold, or an update drawn into
+   an open one, removes it. **Built every collection; UPDATED only when its
+   swell or tide words change** (owner's call, 2026-10-22, replacing the
+   Morning / Midday issues): the build renders the page's own words
+   (`briefingwording.render_issue`, Node) and `briefing.settle` compares the
+   swell and tide lines with the newest kept line's, so a change below the
+   page's precision is no update. The conditions refresh every build without
+   one; the page redraws on a new `built_utc` and moves the time and dot only
+   on a new `key`. Three blocks, apart by Origin's dot: **Swell** — "Significant
+   waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period" (the
+   three cards' breaking heights, lowest floored and highest ceiled to whole
+   feet, at least a foot apart; the lead period at the break with the
+   biggest; metric in brackets by the units rule, the owner's own wording
+   had none), then each 46047 west / north-west rise in the last 24 h, its
+   first band, due by deep-water speed and the rays' leg (§43, kept until
+   6 h after due at the last break): "West swell (250–280°) at Tanner Banks
+   (7:07 AM), 10–12 s first; due at Point Loma South around 1:32 PM, and at
+   the breaks 39–53 min after."; a dark 46232 says so and nothing else.
+   **Conditions**, a line each — 46232's water temperature (≤ 6 h: its standard
+   met reaches the archive on collect.yml's throttled schedule, a median
+   2.7 h old), KNZY's air
+   temperature and humidity (≤ 90 min; the T group's tenths, Magnus), and
+   precipitation only when the last hour's (the newest routine report's P
+   group) or the rolling 24 h's (every routine report's; a SPECI's repeats
+   its hour) is above zero, then both (owner's call). **Tides**: the
+   Pacific day's predicted turns, "AM low 0.7 ft (0.21 m) at 3:15 AM", with
+   the gauge's departure as the card's carry it. **Every update is kept**:
+   `data/briefings/YYYY-MM.jsonl`, append-only, the build and its words; its
+   one writer is collect-beach-inputs.yml's "Record the briefing", in a
+   sparse worktree of the branch's NEWEST tip, re-appending on a rejected
+   push, never rebasing; `briefing.json` is each build settled against the
+   newest kept line. The lines from 18–22 Oct are the Morning / Midday
+   design's (`issued_utc`, no `update_words`), never matched. **Never the
+   model**: GFS-Wave and its ensemble are the Forecast tab's. Units as each
+   source publishes them (°C, METAR's inches), converted only on the page
+   (`fahrenheit`, `MM_PER_IN` beside the other unit constants). The 10-17
+   design's measured words (filling / fading, leader, a ridge's period
+   ahead; `forecast/briefingreport.py`, `docs/briefing_thresholds.md`) are
+   no longer said; their constants stay in briefing.py for the report.
+   Wording generated from the page into `docs/briefing_wording.md` (the
+   formula and each case) and `docs/briefing_sentences.md` (every distinct
+   line once, for the owner to edit; edits are carried into the page by
+   hand) by `forecast/briefingwording.py`, both pinned by a test.
    **The log-first gate** (owner's call, same day): "Wave observer", a
-   checkbox beside Docs, kept in localStorage (the page's only use of it,
-   pinned). On such a device the page opens on "Logging the beach today?"
+   checkbox beside Docs, kept in localStorage (with the Briefing's last
+   opened update, its only uses, pinned). On such a device the page opens on "Logging the beach today?"
    and nothing else until today's log is done or declined; it returns at
    Coronado's midnight, and ticking it after looking starts it tomorrow.
    That question is the ONE place the page links to the log; docs.html
@@ -1209,9 +1207,9 @@ forecaster actually verifies against, Surfline included.
                         own countdown and words                    [built]
       rose.py           one spectrum's height and period rose by compass
                         sector, for the Buoys tab's six-hour loop   [built]
-      briefing.py       the LIVE tab's Briefing: Morning and Midday issues,
-                        kept in data/briefings/, the newest as
-                        data/live/briefing.json                    [built]
+      briefing.py       the LIVE tab's Briefing: built every collection,
+                        updated when its swell or tide words change, each
+                        update kept in data/briefings/             [built]
       briefingreport.py its thresholds, measured; reports, never edits
       briefingwording.py its wording, run from the page's own code into
                         docs/briefing_wording.md; --check           [built]
@@ -1240,10 +1238,11 @@ forecaster actually verifies against, Surfline included.
                         series_all.json, windtide.json, origins.json,
                         buoys.json and briefing.json, what the app surface reads (derived,
                         gitignored)
-    data/briefings/     YYYY-MM.jsonl: every Briefing issued, Morning and Midday,
-                        as built and as worded. PERMANENT, append-only, one
-                        writer ("Record the briefing"); the page's
-                        briefing.json is its newest line
+    data/briefings/     YYYY-MM.jsonl: every Briefing update, as built and as
+                        worded (18–22 Oct: the Morning / Midday issues).
+                        PERMANENT, append-only, one writer ("Record the
+                        briefing"); the page's briefing.json is each build
+                        settled against its newest line
     data/series/        46232/YYYY-MM.csv: the observed chain for every
                         archived hour, and 46232_origins.json, the Origins
                         chart's marks, both rebuilt whole with today's chain

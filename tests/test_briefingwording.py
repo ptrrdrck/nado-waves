@@ -1,6 +1,6 @@
 """The LIVE Briefing's wording, rendered by the page's own code
-(docs/briefing_wording.md). Pins the doc to the page, and the claims the
-formula exists to get right."""
+(docs/briefing_wording.md, docs/briefing_sentences.md). Pins the docs to the
+page, and the claims the formula exists to get right."""
 
 import re
 import shutil
@@ -28,130 +28,77 @@ def test_the_sentence_list_is_what_the_page_prints(cases):
         "docs/briefing_sentences.md is out of date: run python -m forecast.briefingwording"
 
 
-def _entries(got):
-    return got["entries"]
+def _all(got):
+    return " ".join([got["line"] or ""] + got["swell"] + got["conditions"] + got["tides"])
 
 
-def _text(got):
-    return " ".join(h + " " + b for h, b in got["entries"])
-
-
-def _body(cases, cid, head):
-    return next(b for h, b in cases[cid]["entries"] if h == head)
-
-
-def test_five_entries_in_one_order(cases):
-    order = ["Overview", "Swell", "Tide", "Wind", "Watching"]
-    for cid, got in cases.items():
-        heads = [h for h, _ in got["entries"]]
-        assert heads == [h for h in order if h in heads], cid
-        assert set(heads) <= set(order), cid
-
-
-def test_the_line_names_the_issue_and_no_condition(cases):
-    assert cases["Q1"]["line"] == "Morning briefing 6:05 AM"
-    assert cases["M1"]["line"] == "Midday briefing 12:05 PM"
-    assert cases["Y1"]["line"] == "Midday briefing Oct 15, 12:05 PM"
+def test_the_line_names_the_update_and_no_condition(cases):
+    assert cases["Q1"]["line"] == "Briefing updated 7:16 AM"
+    assert cases["Y1"]["line"] == "Briefing updated Oct 21, 12:06 PM"
     for got in cases.values():
-        assert not got["line"] or (" ft" not in got["line"] and " mph" not in got["line"])
+        assert not got["line"] or (" ft" not in got["line"] and "°" not in got["line"])
+
+
+def test_the_swell_reads_as_the_owner_wrote_it(cases):
+    assert cases["Q1"]["swell"] == [
+        "Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period."]
+    assert cases["B1"]["swell"][1] == ("West swell (250–280°) at Tanner Banks (7:07 AM), 10–12 s first; due "
+                                       "at Point Loma South around 1:32 PM, and at the breaks 39–53 min after.")
+
+
+def test_the_range_spans_all_three_breaks_and_the_period_is_the_biggest_breaks(cases):
+    assert cases["B1"]["swell"][0] == \
+        "Significant waves breaking in the 2–5 ft (0.6–1.5 m) range with an 18.2 s period."
+
+
+def test_a_dark_buoy_says_so_and_nothing_else(cases):
+    assert cases["D1"]["swell"] == ["No spectrum from CDIP 191 since Oct 21, 3:00 PM."]
+
+
+def test_precipitation_shows_both_when_either_is_above_zero_and_neither_otherwise(cases):
+    assert not any(line.startswith("Precipitation") for line in cases["Q1"]["conditions"])
+    assert cases["B1"]["conditions"][-1] == \
+        "Precipitation 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h"
+    assert cases["C1"]["conditions"][-1] == \
+        "Precipitation 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h"
+
+
+def test_the_tides_are_the_days_turns_am_and_pm(cases):
+    assert cases["Q1"]["tides"] == ["AM low 0.7 ft (0.21 m) at 3:15 AM", "AM high 5.3 ft (1.62 m) at 9:32 AM",
+                                    "PM low 1.8 ft (0.55 m) at 3:48 PM", "PM high 6.3 ft (1.92 m) at 10:05 PM"]
+    assert cases["K1"]["tides"][0] == "AM low −0.7 ft (−0.21 m) at 6:40 AM"
+
+
+def test_a_missing_reading_drops_its_line(cases):
+    assert cases["K1"]["conditions"] == []
 
 
 def test_every_number_is_imperial_first(cases):
     for cid, got in cases.items():
-        for _, body in got["entries"]:
-            for ft in re.findall(r"(\d+\.\d) ft \((\d+\.\d\d) m\)", body):
-                assert abs(float(ft[0]) / 3.28084 - float(ft[1])) < 0.06, cid
-            for f, c in re.findall(r"(\d+) °F \((\d+(?:\.\d)?) °C\)", body):
-                assert abs((float(f) - 32) * 5 / 9 - float(c)) < 0.6, cid
-
-
-def test_the_tide_reads_as_the_owner_wrote_it(cases):
-    body = _body(cases, "Q1", "Tide")
-    assert body.startswith("The tide is pushing to 5.4 ft (1.65 m) at 9:30 AM then dropping to 1.8 ft (0.55 m) at 3:45 PM.")
-    assert "The previous AM low was 3.3 ft (1.01 m) at 3:15 AM and the PM high will be 6.3 ft (1.92 m) at 10:05 PM." in body
-    assert "The gauge is running 1.1 ft (0.34 m) over the harmonic prediction" in body
-    assert "Today's range is 4.5 ft (1.37 m)" in body
-
-
-def test_a_previous_turn_yesterday_says_so(cases):
-    assert "at 10:10 PM yesterday" in _body(cases, "T1", "Tide")
-
-
-def test_the_overview_opens_on_sunrise_and_daylight(cases):
-    assert _body(cases, "Q1", "Overview").startswith("Sunrise is at 6:54 AM with 11 h 20 m of daylight.")
-    assert _body(cases, "M1", "Overview").startswith("Sunrise was at 6:54 AM")
-
-
-def test_rain_is_said_with_its_amount_and_hours(cases):
-    assert "rain from 1:52 AM to 3:52 AM, 0.07 in (1.8 mm)" in _body(cases, "B1", "Overview")
-    assert "drizzle reported, too little to measure" in _body(cases, "N1", "Overview")
-    assert "no rain" in _body(cases, "Q1", "Overview")
-
-
-def test_a_dark_buoy_stands_the_swell_down_and_says_so_once(cases):
-    body = _body(cases, "D1", "Swell")
-    assert body == "No spectrum from CDIP 191 since 3:00 PM yesterday, so the swell waits for it."
-
-
-def test_a_short_span_judges_nothing(cases):
-    body = _body(cases, "U1", "Swell")
-    for word in ("filling", "fading", "little change", "leads"):
-        assert word not in body
-
-
-def test_filling_and_fading_are_the_measured_words(cases):
-    body = _body(cases, "B1", "Swell")
-    assert "filling from" in body and "fading from" in body and "North leads." in body
-    assert "rose from" not in body and "dropped from" not in body
-
-
-def test_tanner_banks_is_due_never_arrived(cases):
-    body = _body(cases, "B1", "Swell")
-    assert "due at CDIP 191" in body and "Due, not seen" in body
-    assert "arrives at" not in body and "arrived at" not in body
-
-
-def test_the_wind_is_a_count_never_a_habit(cases):
-    for cid, got in cases.items():
-        text = _text(got).lower()
-        for word in ("usual", "normal", "typical", "habit", "expect", "will turn", "should"):
-            assert word not in text, (cid, word)
-    assert "At this hour on the 28 days before: offshore on 18, 19 and 17 days at North, Center and South." \
-        in _body(cases, "Q1", "Wind")
-
-
-def test_a_storm_names_its_source_for_each_edge(cases):
-    assert "from the fixes NHC has logged" in _body(cases, "B1", "Watching")
-    assert "on NHC's forecast" in _body(cases, "H1", "Watching")
-    assert "behind land from Point Loma South" in _body(cases, "B1", "Watching")
-
-
-def test_every_word_is_as_of_the_issue_not_the_readers_clock():
-    """The same issue reads the same whenever it is read: only the fold's
-    line takes the reader's clock, to name the day of an issue not today's."""
-    src = briefingwording.PAGE.read_text(encoding="utf-8")
-    block = src[src.index("const BRIEF_EDITION = "):src.index("// Whether the Briefing is open")]
-    assert block.count("Date.now()") == 1 and "function briefIssue(B, nowMs = Date.now())" in block
+        text = _all(got)
+        for ft in re.findall(r"(−?\d+\.\d) ft \((−?\d+\.\d\d) m\)", text):
+            assert abs(float(ft[0].replace("−", "-")) / 3.28084 - float(ft[1].replace("−", "-"))) < 0.06, cid
+        for f, c in re.findall(r"(\d+) °F \((\d+(?:\.\d)?) °C\)", text):
+            assert abs((float(f) - 32) * 5 / 9 - float(c)) < 0.6, cid
 
 
 def test_nothing_is_called_safe_or_dangerous(cases):
     for got in cases.values():
-        text = _text(got).lower()
+        text = _all(got).lower()
         for word in ("safe", "danger", "hazard", "rip", "accurate", "mellow", "pumping"):
             assert word not in text, word
 
 
 def test_the_model_never_appears(cases):
     for got in cases.values():
-        text = _text(got)
+        text = _all(got)
         assert "GFS" not in text and "model" not in text.lower() and "ensemble" not in text.lower()
 
 
-def test_no_issue_draws_no_fold(cases):
-    assert cases["X1"] == {"line": None, "entries": []}
+def test_nothing_built_draws_no_fold(cases):
+    assert cases["X1"] == {"line": None, "swell": [], "conditions": [], "tides": []}
 
 
-def test_one_real_issue_renders_for_the_record():
+def test_one_build_renders_for_the_record():
     got = briefingwording.render_issue(briefingwording.QUIET)
-    assert got["line"] == "Morning briefing 6:05 AM"
-    assert [h for h, _ in got["entries"]] == ["Overview", "Swell", "Tide", "Wind"]
+    assert got["line"] is None and got["swell"] and got["tides"]

@@ -221,14 +221,15 @@ jobs:
           set -euo pipefail
           python -m forecast.buoys
 
-      # The LIVE tab's Briefing (forecast.briefing): ISSUED twice a day,
-      # Morning and Midday, from the files the steps above wrote, 46047's
-      # spectra, KNZY's reports and NHC's fixes. A collection at or after a
-      # slot that is not yet in the record writes the issue to
-      # data/live/briefing_issue.json for "Record the briefing" below; every
-      # collection writes the page's briefing.json from the newest KEPT issue,
-      # so nothing is rebuilt between issues. Its own step, after the context
-      # buoys, so a briefing that fails takes nothing else with it.
+      # The LIVE tab's Briefing (forecast.briefing): built every collection
+      # from the files the steps above wrote, 46047's spectra, KNZY's reports
+      # and the tide, into data/live/briefing_built.json, with the words the
+      # page prints. "Record the briefing" below decides whether it is an
+      # update (its swell or tide words changed) and keeps it if so. This
+      # step also writes the page's briefing.json against the local record, so
+      # a failed record step still leaves the page this collection's build.
+      # Its own step, after the context buoys, so a briefing that fails takes
+      # nothing else with it.
       - name: Briefing
         id: briefing
         continue-on-error: true
@@ -320,14 +321,15 @@ jobs:
           echo "::error title=Beach inputs push failed::Could not push archived inputs"
           exit 1
 
-      # Keep the issue: data/briefings/YYYY-MM.jsonl, append-only, this step
+      # Keep the update: data/briefings/YYYY-MM.jsonl, append-only, this step
       # its one writer. Worked in a worktree of the branch's NEWEST tip, never
       # the checkout: a queued run checked out before the last run pushed would
-      # not see that run's issue, and would write it twice or show the page an
-      # older one. Sparse, so only data/briefings is written out. A rejected
-      # push re-appends on the new tip and never rebases (CLAUDE.md); the
-      # append is idempotent by the issue's key. Every collection, issue or
-      # not, then rewrites the page's briefing.json from that record.
+      # not see that run's update, and would keep it twice. Sparse, so only
+      # data/briefings is written out. A line is added only when the build's
+      # swell or tide words differ from the newest kept line's
+      # (briefing.settle); a rejected push re-appends on the new tip and never
+      # rebases (CLAUDE.md). Every collection, update or not, then rewrites the
+      # page's briefing.json: this build's conditions, the newest update's time.
       - name: Record the briefing
         if: ${{ !inputs.skip_commit }}
         continue-on-error: true
@@ -336,26 +338,26 @@ jobs:
         run: |
           set -euo pipefail
           rec="${RUNNER_TEMP}/briefings"
-          issue=data/live/briefing_issue.json
+          built=data/live/briefing_built.json
           for attempt in 1 2 3 4; do
             git fetch --quiet origin "${BRANCH}"
             git worktree remove --force "${rec}" 2>/dev/null || rm -rf "${rec}"
             git worktree add --quiet --no-checkout --detach "${rec}" FETCH_HEAD
             git -C "${rec}" sparse-checkout set --no-cone /data/briefings/
             git -C "${rec}" reset --quiet --hard
-            python -m forecast.briefing --record "${issue}" --data-dir "${rec}/data" \
+            python -m forecast.briefing --record "${built}" --data-dir "${rec}/data" \
               --out data/live/briefing.json
             if [ -z "$(git -C "${rec}" status --porcelain -- data/briefings)" ]; then
               exit 0
             fi
-            key=$(python -c "import json, sys; print(json.load(open(sys.argv[1]))['key'])" "${issue}")
+            key=$(python -c "import json, sys; print(json.load(open(sys.argv[1]))['built_utc'])" "${built}")
             git -C "${rec}" add data/briefings
             git -C "${rec}" -c user.name="nado-waves collector" \
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-              commit --quiet -m "data: keep the ${key} briefing" \
+              commit --quiet -m "data: keep the briefing update of ${key}" \
               -m "Automated commit from .github/workflows/collect-beach-inputs.yml."
             if git -C "${rec}" push --quiet origin "HEAD:${BRANCH}"; then
-              echo "Kept ${key} on attempt ${attempt}."
+              echo "Kept the update of ${key} on attempt ${attempt}."
               exit 0
             fi
             echo "Push rejected (attempt ${attempt}); re-appending on the new tip."

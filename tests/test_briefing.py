@@ -1,11 +1,11 @@
-"""The LIVE briefing: when an issue is written and how it is kept, and each
-entry from the files the collection wrote, each judging word on its
-measured threshold (docs/briefing_thresholds.md)."""
+"""The LIVE briefing: what it reads from the collection's files, and when a
+build is an update. It updates only when its swell or tide words change
+(owner's call, 2026-10-22); the conditions refresh without one."""
 
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -14,205 +14,172 @@ from forecast import briefing as bf
 
 T0 = datetime(2026, 10, 9, 2, tzinfo=timezone.utc)
 ISO = "%Y-%m-%dT%H:%M:%SZ"
-DAY = date(2026, 10, 16)
 
 
 def _at(stamp: str) -> datetime:
     return datetime.strptime(stamp, ISO).replace(tzinfo=timezone.utc)
 
 
-def _series(levels: dict[str, list[float]], start=T0, gaps=()):
-    n = len(next(iter(levels.values())))
-    steps = []
-    for k in range(n):
-        t = start + timedelta(hours=k)
-        if k in gaps:
-            steps.append({"valid_utc": t.strftime(ISO), "gap": True})
-            continue
-        steps.append({"valid_utc": t.strftime(ISO), "gap": False,
-                      "breaks": {bid: {"hs_m": levels[bid][k]} for bid in bf.BREAKS}})
-    return {"steps": steps}
+def _built(stamp, swell=("Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period.",),
+           tides=("AM low 0.7 ft (0.21 m) at 3:15 AM",), water=19.4):
+    return {"built_utc": stamp, "available": True, "conditions": {"water": {"c": water}},
+            "update_words": list(swell) + list(tides), "text": {"swell": list(swell), "tides": list(tides)}}
 
 
-def _now(newest, breaks=None):
-    return {"observed_utc": newest.strftime(ISO), "stale": False,
-            "breaks": breaks or [{"id": bid, "shore_normal_deg": n, "nearshore": {"trains": []}}
-                                 for bid, n in zip(bf.BREAKS, (194.1, 213.9, 220.9))]}
+def _knzy(tmp_path, rows):
+    (tmp_path / "wind").mkdir(exist_ok=True)
+    with (tmp_path / "wind" / "KNZY.csv").open("w") as fh:
+        fh.write("observed_utc,first_seen_utc,wind_from_deg,wind_kt,gust_kt,variable,raw\n")
+        for t, raw in rows:
+            fh.write(f"{t},{t},0,0,,,{raw}\n")
 
 
-def _flat(v, n=13):
-    return [v] * n
+# ------------------------------------------------------------------ updates
+
+def test_a_first_build_is_an_update():
+    page, update = bf.settle(None, _built("2026-10-22T14:16:00Z"))
+    assert update and page["key"] == page["updated_utc"] == "2026-10-22T14:16:00Z"
 
 
-# ------------------------------------------------------------------ issues
-
-def test_the_slots_are_six_and_noon_pacific_in_either_offset():
-    assert bf.slot(DAY, "morning") == _at("2026-10-16T13:00:00Z")      # PDT
-    assert bf.slot(DAY, "midday") == _at("2026-10-16T19:00:00Z")
-    assert bf.slot(date(2026, 12, 1), "morning") == _at("2026-12-01T14:00:00Z")   # PST
-
-
-def test_an_issue_is_due_from_its_slot_until_it_is_written_or_too_late():
-    assert bf.due(_at("2026-10-16T12:59:00Z"), {}) is None           # yesterday's Midday, too late
-    got = bf.due(_at("2026-10-16T13:04:00Z"), {})
-    assert got[:2] == (DAY, "morning")
-    assert bf.due(_at("2026-10-16T13:04:00Z"), {"2026-10-16-morning": {}}) is None
-    late = _at("2026-10-16T13:00:00Z") + timedelta(hours=bf.MAX_LATE_H, minutes=1)
-    assert bf.due(late, {}) is None
-    assert bf.due(_at("2026-10-16T19:01:00Z"), {"2026-10-16-morning": {}})[:2] == (DAY, "midday")
+def test_the_same_words_are_no_update_and_keep_the_updates_time():
+    kept, _ = bf.settle(None, _built("2026-10-22T14:16:00Z"))
+    page, update = bf.settle(kept, _built("2026-10-22T15:16:00Z", water=19.9))
+    assert not update
+    assert page["key"] == page["updated_utc"] == "2026-10-22T14:16:00Z"
+    assert page["built_utc"] == "2026-10-22T15:16:00Z" and page["conditions"]["water"]["c"] == 19.9
 
 
-def test_a_missed_morning_is_never_written_at_midday():
-    """A gap is a gap: the newest slot is the only candidate."""
-    got = bf.due(_at("2026-10-16T19:10:00Z"), {})
-    assert got[1] == "midday"
+def test_changed_swell_or_tide_words_are_an_update():
+    kept, _ = bf.settle(None, _built("2026-10-22T14:16:00Z"))
+    assert bf.settle(kept, _built("2026-10-22T15:16:00Z", swell=("Significant waves breaking in the "
+                                                                "3–4 ft (0.9–1.2 m) range with a 14.3 s period.",)))[1]
+    assert bf.settle(kept, _built("2026-10-22T15:16:00Z", tides=("AM low 0.8 ft (0.24 m) at 3:15 AM",)))[1]
 
 
-def test_each_issue_follows_the_one_before():
-    assert bf.previous_slot(DAY, "midday")[:2] == (DAY, "morning")
-    assert bf.previous_slot(DAY, "morning")[:2] == (date(2026, 10, 15), "midday")
+def test_a_line_of_the_old_design_never_matches():
+    old = {"key": "2026-10-22-midday", "issued_utc": "2026-10-22T19:06:00Z", "updated_utc": None}
+    assert bf.settle(old, _built("2026-10-22T20:16:00Z"))[1]
 
 
-def test_the_record_is_append_only_and_idempotent(tmp_path):
-    issue = {"key": "2026-10-16-morning", "day": "2026-10-16", "slot_utc": "2026-10-16T13:00:00Z",
-             "edition": "morning", "available": True}
-    assert bf.append(tmp_path, issue)
-    assert not bf.append(tmp_path, dict(issue, edition="changed"))
-    later = dict(issue, key="2026-10-16-midday", slot_utc="2026-10-16T19:00:00Z", edition="midday")
-    assert bf.append(tmp_path, later)
+def test_a_build_without_words_is_always_an_update():
+    kept, _ = bf.settle(None, _built("2026-10-22T14:16:00Z"))
+    assert bf.settle(kept, {**_built("2026-10-22T15:16:00Z"), "update_words": None})[1]
+
+
+def test_the_record_keeps_updates_only_and_the_page_gets_every_build(tmp_path):
+    out = tmp_path / "live" / "briefing.json"
+    built = tmp_path / "built.json"
+    for stamp, water, period in (("2026-10-22T14:16:00Z", 19.4, "13.3"), ("2026-10-22T15:16:00Z", 19.9, "13.3"),
+                                 ("2026-10-22T16:16:00Z", 20.1, "14.3")):
+        swell = (f"Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a {period} s period.",)
+        built.write_text(json.dumps(_built(stamp, swell=swell, water=water)))
+        assert bf.main(["--data-dir", str(tmp_path), "--record", str(built), "--out", str(out)]) == 0
+        page = json.loads(out.read_text())
+        assert page["built_utc"] == stamp and page["conditions"]["water"]["c"] == water
     lines = (tmp_path / "briefings" / "2026-10.jsonl").read_text().splitlines()
-    assert [json.loads(x)["key"] for x in lines] == ["2026-10-16-morning", "2026-10-16-midday"]
-    assert json.loads(lines[0])["edition"] == "morning"
-    assert bf.newest(tmp_path)["key"] == "2026-10-16-midday"
+    assert [json.loads(x)["key"] for x in lines] == ["2026-10-22T14:16:00Z", "2026-10-22T16:16:00Z"]
+    assert page["updated_utc"] == "2026-10-22T16:16:00Z"
 
 
-def test_the_record_files_by_the_issues_pacific_month(tmp_path):
-    issue = {"key": "2026-10-31-midday", "day": "2026-10-31", "slot_utc": "2026-10-31T19:00:00Z"}
-    bf.append(tmp_path, issue)
+def test_the_record_files_by_the_pacific_month(tmp_path):
+    bf.append(tmp_path, bf.settle(None, _built("2026-11-01T02:00:00Z"))[0])     # 31 Oct, 7 PM Pacific
     assert (tmp_path / "briefings" / "2026-10.jsonl").exists()
 
 
-def test_the_page_file_is_the_newest_kept_issue_and_nothing_is_rebuilt_between(tmp_path):
-    issue = {"key": "2026-10-16-morning", "day": "2026-10-16", "slot_utc": "2026-10-16T13:00:00Z",
-             "available": True}
-    path = tmp_path / "issue.json"
-    path.write_text(json.dumps(issue))
-    out = tmp_path / "live" / "briefing.json"
-    assert bf.main(["--data-dir", str(tmp_path), "--record", str(path), "--out", str(out)]) == 0
-    assert json.loads(out.read_text())["key"] == "2026-10-16-morning"
-    # A collection with no issue due leaves the page on the kept one.
-    assert bf.main(["--data-dir", str(tmp_path), "--at", "2026-10-16T17:00:00Z", "--out", str(out)]) == 0
-    assert json.loads(out.read_text())["key"] == "2026-10-16-morning"
+def test_the_newest_kept_line_is_read_across_both_designs(tmp_path):
+    (tmp_path / "briefings").mkdir()
+    (tmp_path / "briefings" / "2026-10.jsonl").write_text(
+        json.dumps({"key": "2026-10-22-midday", "issued_utc": "2026-10-22T19:06:00Z"}) + "\n"
+        + json.dumps(bf.settle(None, _built("2026-10-22T20:16:00Z"))[0]) + "\n")
+    assert bf.newest(tmp_path)["key"] == "2026-10-22T20:16:00Z"
 
 
 def test_no_observed_reading_is_said_as_such(tmp_path):
-    got = bf.build(data_dir=tmp_path, at=_at("2026-10-16T13:05:00Z"))
-    assert got["available"] is False and got["key"] == "2026-10-16-morning"
-    assert got["why"] == "no observed reading was built this collection"
+    got = bf.build(data_dir=tmp_path, at=_at("2026-10-22T14:16:00Z"))
+    assert got["available"] is False and got["why"] == "no observed reading was built this collection"
 
 
 # ------------------------------------------------------------------ swell
 
-def test_a_rise_past_the_threshold_is_filling_and_one_under_it_is_little_change():
-    up = [1.0] * 3 + [1.0 + 0.05 * k for k in range(1, 11)]       # +50% by the end
-    small = [1.0] * 3 + [1.0 + 0.01 * k for k in range(1, 11)]    # +10%
-    s = _series({"coronado_north": up, "coronado_center": small, "coronado_south": _flat(1.0)})
-    got = bf.change(_now(T0 + timedelta(hours=12)), s, T0 + timedelta(hours=1))
-    assert {r["id"]: r["change"] for r in got["breaks"]} == {
-        "coronado_north": "filling", "coronado_center": "little", "coronado_south": "little"}
-    assert got["measured"] and got["span_h"] == 11.0
+def test_the_swell_is_each_breaks_card_number_and_lead_period(tmp_path):
+    now = {"observed_utc": "2026-10-22T14:00:00Z", "stale": False, "breaks": [
+        {"id": "coronado_north", "hs_nearshore_m": 1.31, "peak_period_s": 16.7},
+        {"id": "coronado_center", "hs_nearshore_m": 1.00, "peak_period_s": 16.7},
+        {"id": "coronado_south", "hs_nearshore_m": 0.74, "peak_period_s": 13.3}]}
+    got = bf.swell_story(now, None, _at("2026-10-22T14:16:00Z"), tmp_path)
+    assert got["breaks"] == [{"id": "coronado_north", "hs_m": 1.31, "period_s": 16.7},
+                             {"id": "coronado_center", "hs_m": 1.00, "period_s": 16.7},
+                             {"id": "coronado_south", "hs_m": 0.74, "period_s": 13.3}]
+    assert got["coming"] == []
 
 
-def test_a_fall_past_the_threshold_is_fading():
-    down = [1.0] * 3 + [1.0 - 0.05 * k for k in range(1, 11)]
-    s = _series({"coronado_north": down, "coronado_center": _flat(1.0), "coronado_south": _flat(1.0)})
-    got = bf.change(_now(T0 + timedelta(hours=12)), s, T0 + timedelta(hours=1))
-    assert got["breaks"][0]["change"] == "fading"
+def test_a_dark_buoy_is_said_and_nothing_else():
+    got = bf.swell_story({"observed_utc": "2026-10-21T22:00:00Z", "stale": True}, None,
+                         _at("2026-10-22T14:16:00Z"), Path("."))
+    assert got == {"dark": True, "newest_utc": "2026-10-21T22:00:00Z"}
 
 
-def test_a_short_span_gives_the_readings_and_no_word():
-    s = _series({bid: [1.0, 1.0, 2.0, 2.0] for bid in bf.BREAKS})
-    got = bf.change(_now(T0 + timedelta(hours=3)), s, T0)
-    assert not got["measured"]
-    assert all(r["change"] is None and r["then_m"] == 1.0 for r in got["breaks"])
+def test_a_rise_is_carried_as_its_first_band():
+    at = datetime(2026, 10, 9, 14, 30, tzinfo=timezone.utc)
+    got = bf.swell_story({"observed_utc": "2026-10-09T14:00:00Z", "stale": False, "breaks": []},
+                         {"buoys": [{"station": "46047", "stale": False}]}, at, Path("data"))
+    nw = next(c for c in got["coming"] if c["sector"] == "north-west")
+    full = next(u for u in bf.upstream_story(Path("data"), {"buoys": [{"station": "46047", "stale": False}]},
+                                             at - timedelta(hours=bf.UPSTREAM_LOOKBACK_H), at)
+                if u["sector"] == "north-west")
+    assert nw["band_s"] == full["bands"][0]["band_s"]            # the earliest rise, "… s first"
+    assert all(b["since_utc"] >= nw["since_utc"] for b in full["bands"])
+    assert nw["due_buoy_utc"] > nw["since_utc"] and {l["id"] for l in nw["legs"]} == set(bf.BREAKS)
 
 
-def test_the_midday_span_is_the_measured_six_hours():
-    """Morning reads the 5 AM spectrum and Midday the 11 AM one, so Midday's
-    comparison is exactly the shortest span the threshold was measured on."""
-    assert bf.MIN_SPAN_H == 6
-    assert (bf.slot(DAY, "midday") - bf.slot(DAY, "morning")) == timedelta(hours=bf.MIN_SPAN_H)
+# ------------------------------------------------------------------ conditions
+
+def test_the_conditions_are_the_newest_report_and_the_rain_two_ways(tmp_path):
+    _knzy(tmp_path, [
+        ("2026-10-21T16:52:00Z", "METAR KNZY 211652Z 27008KT 5SM -RA BR 17/16 A2990 RMK AO2 P0004 T01720161"),
+        ("2026-10-22T12:52:00Z", "METAR KNZY 221252Z 00000KT 10SM -RA OVC010 16/15 A2990 RMK AO2 P0002 T01610150"),
+        ("2026-10-22T13:10:00Z", "SPECI KNZY 221310Z 00000KT 10SM -RA OVC010 16/15 A2990 RMK AO2 P0001 T01610150"),
+        ("2026-10-22T13:52:00Z", "METAR KNZY 221352Z 00000KT 10SM OVC010 16/15 A2990 RMK AO2 T01670150")])
+    got = bf.weather_now(tmp_path, _at("2026-10-22T14:05:00Z"))
+    assert got["air_c"] == 16.7 and got["observed_utc"] == "2026-10-22T13:52:00Z"
+    assert got["humidity_pct"] == pytest.approx(bf.humidity(16.7, 15.0), abs=0.05)
+    assert got["precip_hour_in"] == 0.0          # the newest routine report had none
+    assert got["precip_day_in"] == 0.06          # 0.04 + 0.02; the SPECI repeats its hour
+    assert got["precip_kinds"] == ["rain"]       # the SPECI at 13:10 is within the hour
 
 
-def test_no_earlier_hour_gives_now_alone():
-    s = _series({bid: _flat(1.0) for bid in bf.BREAKS})
-    got = bf.change(_now(T0 + timedelta(hours=12)), s, None)
-    assert got["then_utc"] is None and all(r["then_m"] is None for r in got["breaks"])
+def test_a_stale_report_is_not_current(tmp_path):
+    _knzy(tmp_path, [("2026-10-22T10:52:00Z", "METAR KNZY 221052Z 00000KT 10SM CLR 16/15 A2990 RMK AO2 T01610150")])
+    got = bf.weather_now(tmp_path, _at("2026-10-22T14:16:00Z"))
+    assert got["air_c"] is None and got["humidity_pct"] is None and got["precip_hour_in"] is None
 
 
-def test_the_leader_needs_its_margin():
-    s = _series({"coronado_north": _flat(1.10), "coronado_center": _flat(1.0),
-                 "coronado_south": _flat(1.03)})
-    assert bf.change(_now(T0 + timedelta(hours=12)), s, T0 + timedelta(hours=1))["lead_now"] == "coronado_north"
-    s = _series({"coronado_north": _flat(1.03), "coronado_center": _flat(1.0),
-                 "coronado_south": _flat(1.0)})
-    assert bf.change(_now(T0 + timedelta(hours=12)), s, T0 + timedelta(hours=1))["lead_now"] is None
+def test_the_water_is_46232s_newest_within_three_hours():
+    got = bf.water_now(Path("data"), _at("2026-10-16T13:05:00Z"))
+    assert got["station"] == "46232" and got["observed_utc"] <= "2026-10-16T13:05:00Z"
+    assert _at("2026-10-16T13:05:00Z") - _at(got["observed_utc"]) <= timedelta(hours=bf.WATER_FRESH_H)
 
 
-def test_dark_or_missing_newest_hour_stands_the_story_down():
-    s = _series({bid: _flat(1.0) for bid in bf.BREAKS}, gaps={12})
-    assert bf.change(_now(T0 + timedelta(hours=12)), s, T0) is None
-    stale = _now(T0 + timedelta(hours=11)) | {"stale": True}
-    assert bf.change(stale, s, T0) is None
+# ------------------------------------------------------------------ tide
+
+def test_the_tides_are_the_pacific_days_turns():
+    got = bf.tide_story({"tide_station": "9410170"}, Path("data"), _at("2026-10-17T15:00:00Z"))
+    assert got["day"] == "2026-10-17" and got["turns"]
+    for t in got["turns"]:
+        local = _at(t["valid_utc"]) - timedelta(hours=7)
+        assert local.date().isoformat() == "2026-10-17"
 
 
-def test_what_was_out_there_is_what_the_previous_issue_read():
-    s = _series({bid: _flat(1.0, 30) for bid in bf.BREAKS})
-    prior = (DAY, "morning", T0 + timedelta(hours=20))
-    record = {"2026-10-16-morning": {"swell": {"newest_utc": (T0 + timedelta(hours=18)).strftime(ISO)}}}
-    assert bf.then_hour(record, prior, s) == T0 + timedelta(hours=18)
-    # Not kept: the series' newest hour at or before the previous slot.
-    assert bf.then_hour({}, prior, s) == T0 + timedelta(hours=20)
-
-
-def test_the_buoys_trains_then_are_its_own_spectrum_or_none():
-    hour = datetime(2026, 10, 9, 12, tzinfo=timezone.utc)
-    got = bf.trains_at(Path("data"), hour)
-    assert got and all(set(t) == {"hs_m", "period_s", "from_deg", "wind_sea"} for t in got)
-    assert bf.trains_at(Path("data"), hour + timedelta(minutes=30)) is None
-
-
-def test_origin_reads_the_sites_as_now_writes_them():
-    """now.json's `current` entries are {"arrival", "train_period_s"}, not bare
-    indexes: read as indexes they crashed the Morning issue of 2026-10-18."""
-    since, newest = T0, T0 + timedelta(hours=12)
-    arrival = {"first_utc": (T0 - timedelta(hours=30)).strftime(ISO), "running": True,
-               "last_utc": newest.strftime(ISO), "distance_km": 10000.0,
-               "generated_utc": (T0 - timedelta(days=8)).strftime(ISO), "latest_period_s": 16.7}
-    ended = dict(arrival, running=False, last_utc=(T0 + timedelta(hours=2)).strftime(ISO))
-    now = {"origin": {"arrivals": [ended, arrival], "hurricanes": [{"name": "TRUDY"}], "sites": {
-        "coronado_north": {"current": [{"arrival": 1, "train_period_s": 16.7}], "last": 0},
-        "coronado_center": {"current": [{"arrival": 1, "train_period_s": 18.2}], "last": 1},
-        "coronado_south": {"current": [], "last": 0},
-        "buoy": {"current": [{"arrival": 1, "train_period_s": 16.7}], "last": 1}}}}
-    got = bf.origin_story(now, since, newest)
-    assert [a["breaks"] for a in got["arriving"]] == [["coronado_north", "coronado_center"]]
-    assert [a["breaks"] for a in got["finished"]] == [["coronado_north", "coronado_south"]]
-    assert got["named"] == ["TRUDY"]
-
-
-def test_an_issue_builds_on_this_collections_own_files():
-    """The whole build, on the payloads forecast.now writes from the archive:
-    every story read from the real shapes, not a fixture's."""
-    from forecast import now as observed
+def test_a_build_reads_this_collections_own_files():
+    """The whole build on the payloads forecast.now writes, so every story
+    reads the real shapes, not a fixture's."""
 
     live = Path("data/live")
     if not (live / "now.json").exists():
         pytest.skip("no now.json built in data/live")
-    at = datetime.strptime(json.loads((live / "now.json").read_text())["generated_utc"], ISO) \
-        .replace(tzinfo=timezone.utc)
-    got = bf.build(at=at, issue=bf.latest_slot(at), record={})
-    assert got["available"] and set(got) >= {"overview", "swell", "tide", "wind", "watching"}
+    at = _at(json.loads((live / "now.json").read_text())["generated_utc"])
+    got = bf.build(at=at)
+    assert got["available"] and set(got) >= {"swell", "conditions", "tide"}
 
 
 def test_tanner_banks_north_west_rise_on_the_night_of_8_october():
@@ -263,82 +230,6 @@ def test_vicinity_showers_are_not_precipitation_here():
 def test_humidity_is_magnus():
     assert bf.humidity(20.0, 20.0) == pytest.approx(100.0)
     assert bf.humidity(25.0, 15.0) == pytest.approx(53.8, abs=0.3)
-
-
-def test_the_weather_covers_the_window_alone(tmp_path):
-    (tmp_path / "wind").mkdir()
-    rows = [("2026-10-16T01:52:00Z", "METAR KNZY 160152Z 27008KT 10SM CLR 20/12 A2990 RMK AO2 T02000120"),
-            ("2026-10-16T09:52:00Z", "METAR KNZY 160952Z 00000KT 5SM -RA BR 17/16 A2990 RMK AO2 P0004 T01720161"),
-            ("2026-10-16T12:52:00Z", "METAR KNZY 161252Z 00000KT 10SM OVC010 16/15 A2990 RMK AO2 T01610150")]
-    with (tmp_path / "wind" / "KNZY.csv").open("w") as fh:
-        fh.write("observed_utc,first_seen_utc,wind_from_deg,wind_kt,gust_kt,variable,raw\n")
-        for t, raw in rows:
-            fh.write(f"{t},{t},0,0,,,{raw}\n")
-    got = bf.weather_story(tmp_path, _at("2026-10-16T02:00:00Z"), _at("2026-10-16T13:05:00Z"))
-    assert got["reports"] == 2
-    assert got["air_c"] == {"min": 16.1, "max": 17.2, "now": 16.1, "now_utc": "2026-10-16T12:52:00Z"}
-    assert got["precip_in"] == 0.04 and got["precip_kinds"] == ["rain"]
-    assert got["wet_from_utc"] == got["wet_to_utc"] == "2026-10-16T09:52:00Z"
-
-
-def test_daylight_is_the_sea_horizons(tmp_path):
-    got = bf.overview_story(tmp_path, DAY, _at("2026-10-16T01:15:00Z"), _at("2026-10-16T13:05:00Z"))
-    rise, sets = _at(got["sunrise_utc"]), _at(got["sunset_utc"])
-    assert abs((sets - rise).total_seconds() / 60 - got["daylight_min"]) <= 1
-    assert 660 <= got["daylight_min"] <= 700                  # mid-October at 32.7° N
-    assert got["water"] is None and got["weather"]["reports"] == 0
-
-
-def test_the_water_is_46232s_standard_met_in_the_window():
-    got = bf.water_story(Path("data"), _at("2026-10-16T01:00:00Z"), _at("2026-10-16T13:05:00Z"))
-    assert got["station"] == "46232" and got["min_c"] <= got["now_c"] <= got["max_c"]
-    assert got["now_utc"] <= "2026-10-16T13:05:00Z"
-
-
-# ------------------------------------------------------------------ tide, wind
-
-def test_the_tide_keeps_the_turn_before_the_two_after_and_the_rest_of_the_day():
-    at = _at("2026-10-17T15:00:00Z")                          # 8 AM Pacific
-    got = bf.tide_story({"tide_station": "9410170"}, Path("data"), date(2026, 10, 17), at)
-    roles = [t["role"] for t in got["turns"]]
-    assert roles[0] == "previous" and roles.count("previous") == 1
-    assert got["turns"][0]["valid_utc"] <= "2026-10-17T15:00:00Z" < got["turns"][1]["valid_utc"]
-    assert got["range"] is None or got["range"]["m"] > 0
-
-
-def test_the_wind_counts_match_the_cards_verdict():
-    assert bf._sense(0.9, 0.0) == "calm"
-    assert bf._sense(0.9, 3.0) == "light"
-    assert bf._sense(None, 6.0) == "variable"
-    assert bf._sense(0.9, 6.0) == "offshore"
-    assert bf._sense(-0.9, 6.0) == "onshore"
-    assert bf._sense(0.0, 6.0) == "cross-shore"
-
-
-def test_the_wind_history_is_the_same_clock_hour_on_each_earlier_day():
-    now = _now(T0)
-    at = _at("2026-10-16T13:05:00Z")
-    got = bf.wind_story(now, Path("data"), at)
-    assert got["now"]["observed_utc"] <= "2026-10-16T13:05:00Z"
-    h = got["history"]
-    assert h["days"] > 20
-    for bid in bf.BREAKS:
-        assert sum(h["by_break"][bid].values()) == h["days"]
-
-
-def test_a_stale_wind_is_not_now():
-    got = bf.wind_story(_now(T0), Path("data"), _at("2026-09-01T12:00:00Z"))
-    assert got == {"now": None, "history": None}
-
-
-def test_sunset_is_the_last_one_before_the_reading():
-    morning = datetime(2026, 10, 9, 14, tzinfo=timezone.utc)      # 7 AM Pacific
-    evening = datetime(2026, 10, 9, 4, tzinfo=timezone.utc)       # 9 PM Pacific, Oct 8
-    for at in (morning, evening):
-        s = bf.last_sunset(at)
-        assert s <= at and at - s < timedelta(hours=24)
-        local_h = (s - timedelta(hours=7)).hour
-        assert 17 <= local_h <= 19
 
 
 def test_the_briefing_never_reads_the_model():
