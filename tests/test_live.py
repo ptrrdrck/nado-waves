@@ -338,10 +338,12 @@ class TestCycleSelection:
                             "using its swell partitions."]
         assert not any("http" in w.lower() for w in warnings)
 
-    def test_a_spectrum_failure_that_is_not_a_404_keeps_its_technical_line(self, monkeypatch):
+    def test_any_other_spectrum_failure_is_said_without_its_url(self, monkeypatch, capsys):
         source, warnings = self._spectra(monkeypatch, 503)
         assert source == "partitions"
-        assert len(warnings) == 1 and "HTTP 503" in warnings[0]
+        assert warnings == [f"GFS-Wave's {CYCLE:%H}Z spectrum could not be read; "
+                            "using its swell partitions."]
+        assert "HTTP 503" in capsys.readouterr().err      # the build's log keeps it
 
     def test_the_latest_cycle_respects_publication_lag(self):
         # 04:00Z is less than CYCLE_LAG_HOURS after 00Z, so 18Z the day before

@@ -729,10 +729,14 @@ th:first-child,td:first-child{text-align:left}
 th{color:var(--soft);font-weight:600;font-size:12px}
 
 
-/* overflow-wrap: a note can carry a URL with no break in it, and one ran past
-   the card on a phone (2026-10-22). */
-.warn{font-size:13px;color:var(--soft);background:var(--signal-wash);border:1px dashed var(--signal);
+/* The build's notes: greys on the backdrop, a warning triangle the one mark
+   (owner's call, 2026-10-22, replacing a red wash and dashed border).
+   overflow-wrap: a note once carried a URL with no break in it, and it ran
+   past the card on a phone (2026-10-22). */
+.warn{font-size:13px;color:var(--soft);border:1px solid var(--line-strong);
       border-radius:var(--r);padding:9px 11px;margin:0;overflow-wrap:anywhere}
+#warnings:not([hidden]){display:flex;align-items:flex-start;gap:8px}
+#warnings svg{flex:none;width:16px;height:16px;margin-top:.5px;color:var(--faint)}
 a{color:var(--surf)}
 /* Docs at the left and the Wave observer setting at the right, one line
    (owner's call, 2026-10-16). */
@@ -760,7 +764,13 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
             aria-controls="panel">Forecast</button>
   </nav>
 
-  <p class="warn" id="warnings" hidden></p>
+  <!-- Forecast tab only: these are the model build's notes, and LIVE is
+       built from measurements alone. The one exception is a page that could
+       not load at all (`NOTE.live`). -->
+  <p class="warn" id="warnings" role="status" hidden><svg viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+     aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path
+     d="M12 9v4"/><path d="M12 17h.01"/></svg><span id="warnings-text"></span></p>
   <p class="stale" id="stale" hidden></p>
 
   <!-- Earlier / later, with the hour between them. The full list is still a
@@ -1811,6 +1821,7 @@ let BRIEFING = null;  // briefing.json — the LIVE tab's Briefing
 let DATA = null;      // forecast.json — the modelled chain
 let NOW = null;       // now.json     — the observed chain
 let MODE = "now";     // which chain is on screen
+let NOTE = null;      // the banner's {text, live}: live, shown on LIVE too
 let TIDE_BY_TIME = {};
 let MEASURED = null;  // measured.json — the observed chain, past hours only
 let SERIES = null;    // series.json   — the observed chain, every hour for a week
@@ -6259,6 +6270,7 @@ function show() {
     return;
   }
   const forecasting = MODE === "forecast";
+  note();
   $("seek").hidden = !forecasting;
   const brief = forecasting ? "" : briefingFold(BRIEFING);
   $("briefing").hidden = !brief;
@@ -6309,6 +6321,14 @@ function show() {
   // The banner element stays for the case below, where there is no reading to
   // put a card under at all.
   $("stale").hidden = true;
+}
+
+// The banner: forecast.json's notes on the Forecast tab alone -- on LIVE a
+// model build's note sat over a chain built from measurements (2026-10-22).
+function note() {
+  const shown = Boolean(NOTE) && (MODE === "forecast" || NOTE.live);
+  $("warnings").hidden = !shown;
+  if (shown) $("warnings-text").textContent = NOTE.text;
 }
 
 function setMode(mode) {
@@ -6583,8 +6603,8 @@ function adoptForecast(data, keep) {
   DATA = data;
 
   const notes = (data.warnings && data.warnings.length) ? data.warnings : null;
-  $("warnings").hidden = !notes;
-  if (notes) $("warnings").textContent = notes.join("  ·  ");
+  NOTE = notes ? {text: notes.join("  ·  "), live: false} : null;
+  note();
 
   TIDE_BY_TIME = Object.fromEntries((data.tide || []).map((t) => [t.valid_utc, t]));
 
@@ -6778,10 +6798,10 @@ Promise.all([
   .then(([forecast, observed, measured, series, windtide]) =>
     boot(forecast, observed, measured, series, windtide))
   .catch((err) => {
-    $("warnings").hidden = false;
-    $("warnings").textContent =
+    NOTE = {live: true, text:
       "Could not load " + SOURCE + " (" + err.message + "). Run "
       + "`python -m forecast.live` to write it, and open this page over HTTP "
-      + "rather than from the filesystem.";
+      + "rather than from the filesystem."};
+    note();
   });
 </script>
