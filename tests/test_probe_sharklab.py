@@ -100,3 +100,21 @@ def test_epoch_numbers_are_read_by_their_size_and_windowed_in_kind():
     assert p.window_start(["1761110000000"], "long") == str((1761110000 - 2 * 86400) * 1000)
     assert p.window_start(["2026-10-22 01:00:00"], "String") == '"2026-10-20"'
     assert p.window_start(["1761110000000"], "String") == f'"{(1761110000 - 2 * 86400) * 1000}"'
+
+
+def test_a_hub_on_land_reads_landward_and_offshore_reads_seaward():
+    spots = p.breaks()
+    # Run 7: the newest fix ~190 m inland of Center, the deployed one ~480 m out.
+    assert p.seaward_m(32.6838331, -117.1845298, spots) < -150
+    assert p.seaward_m(32.67813, -117.18736, spots) > 400
+
+
+def test_stretches_split_on_side_and_on_silence():
+    from datetime import datetime, timedelta, timezone
+
+    t0 = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    fixes = [(t0 + timedelta(hours=h), True) for h in range(3)]
+    fixes += [(t0 + timedelta(hours=50 + h), True) for h in range(2)]
+    fixes += [(t0 + timedelta(hours=52 + h), False) for h in range(2)]
+    runs = p.stretches(fixes)
+    assert [(r.in_water, r.fixes) for r in runs] == [(True, 3), (None, 0), (True, 2), (False, 2)]

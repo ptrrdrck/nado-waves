@@ -610,6 +610,204 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
     return lines, 0 if found_fresh else 1
 
 
+# --- The Coronado hubs' history (--hubs) ------------------------------------
+#
+# Run 8 found every hub and receiver on the server silent since 2026-10-18
+# 23:59Z, and Coronado's two lying on land. Before anything is built on them,
+# the question is what their record holds: when each was in the water, how
+# often it heard a tag, and whether any temperature came through it. So this
+# reads each hub's whole history, and prints only aggregates: tag IDs stay
+# out of a public log until the lab has said how detections may be shown.
+
+#: The server's own dataset IDs, as run 5 listed them.
+DETECTIONS = "datasets_0794_7c56_a4f4"
+HUB_STATUS = "datasets_0193_1f45_ee2a"
+RECEIVER_STATUS = "datasets_575b_8cd5_27db"
+TAGGED_SHARKS = "datasets_b8e8_5e7d_89aa"
+
+#: A fix this far seaward of its nearest break's shoreline is in the water.
+#: Run 7 put the deployed fixes ~460-480 m out and the newest ~190 m inland,
+#: so the threshold sits well clear of both.
+IN_WATER_M = 100.0
+
+#: No fix for this long splits a stretch: the hub was not reporting.
+SILENT_H = 24.0
+
+HISTORY_TIMEOUT_S = 300.0
+
+
+def seaward_m(lat: float, lon: float, spots: list[geometry.Spot]) -> float:
+    """Metres seaward of the nearest break's position along its normal;
+    negative is landward."""
+
+    import math
+
+    from forecast.swell import initial_bearing
+
+    spot = min(spots, key=lambda s: great_circle_km((lat, lon), s.position))
+    d = great_circle_km(spot.position, (lat, lon)) * 1000.0
+    if d == 0:
+        return 0.0
+    bearing = initial_bearing(spot.position, (lat, lon))
+    return d * math.cos(math.radians(bearing - spot.normal))
+
+
+@dataclass
+class Stretch:
+    in_water: bool | None   # None: no fix at all (silent)
+    start: datetime
+    end: datetime
+    fixes: int
+
+
+def stretches(fixes: list[tuple[datetime, bool]]) -> list[Stretch]:
+    """Consecutive fixes on the same side of the shoreline, a silence of
+    more than SILENT_H between two fixes its own stretch."""
+
+    out: list[Stretch] = []
+    for when, wet in sorted(fixes):
+        last = out[-1] if out else None
+        if last and (when - last.end).total_seconds() / 3600 > SILENT_H:
+            out.append(Stretch(None, last.end, when, 0))
+            last = None
+        if last and last.in_water == wet:
+            last.end, last.fixes = when, last.fixes + 1
+        else:
+            out.append(Stretch(wet, when, when, 1))
+    return out
+
+
+def lab_tags() -> set[str]:
+    """The lab's own tagged sharks as "codeSpace-ID", the detections' form."""
+
+    import ast
+
+    fetched = fetch_csv(f"tabledap/{TAGGED_SHARKS}.csv", "fullIDs")
+    tags: set[str] = set()
+    for cell in column(fetched, "fullIDs"):
+        try:
+            for entry in ast.literal_eval(cell):
+                tags.add(f"{entry['codeSpace']}-{entry['ID']}")
+        except (ValueError, SyntaxError, TypeError, KeyError):
+            continue
+    return tags
+
+
+def _constraint(info: DatasetInfo, name: str, value: str) -> str:
+    return f'{name}="{value}"' if info.types.get(name) == "String" else f"{name}={value}"
+
+
+def _fmt(t: datetime | None) -> str:
+    return f"{t:%Y-%m-%d %H:%M}Z" if t else "-"
+
+
+def hub_history(hub: str, spots: list[geometry.Spot], tags: set[str]) -> list[str]:
+    lines = [f"### Hub {hub}", ""]
+
+    info, _ = dataset_info(HUB_STATUS)
+    status = fetch_csv(f"tabledap/{HUB_STATUS}.csv",
+                       _q("device_time_utc,latitude,longitude,battery_remaining,tilt",
+                          _constraint(info, "serial_number", hub)),
+                       timeout=HISTORY_TIMEOUT_S)
+    if not status.ok:
+        return lines + [f"hub status failed: {status.error}", ""]
+    fixes: list[tuple[datetime, bool]] = []
+    for t, a, o in zip(column(status, "device_time_utc"), column(status, "latitude"),
+                       column(status, "longitude")):
+        when = parse_time(t)
+        try:
+            lat, lon = float(a), float(o)
+        except ValueError:
+            continue
+        if when is None or lat != lat or lon != lon:
+            continue
+        fixes.append((when, seaward_m(lat, lon, spots) > IN_WATER_M))
+    runs = stretches(fixes)
+    lines += [f"Status: {len(status.rows)} rows, {len(fixes)} placed fixes, "
+              f"{_fmt(min(f[0] for f in fixes) if fixes else None)} to "
+              f"{_fmt(max(f[0] for f in fixes) if fixes else None)}. "
+              f"In the water = more than {IN_WATER_M:.0f} m seaward of the "
+              f"nearest break's shoreline; a silence is over {SILENT_H:.0f} h "
+              f"without a fix.", "",
+              "| From | To | Days | State | Fixes |", "|---|---|---|---|---|"]
+    for r in runs:
+        state = {True: "in the water", False: "on land", None: "silent"}[r.in_water]
+        days = (r.end - r.start).total_seconds() / 86400
+        if r.in_water is not None and days < 0.5 and r.fixes < 20:
+            continue  # a stray fix, not a stretch; still counted below
+        lines.append(f"| {_fmt(r.start)} | {_fmt(r.end)} | {days:.1f} | {state} | {r.fixes} |")
+    wet_days = sum((r.end - r.start).total_seconds() for r in runs if r.in_water) / 86400
+    lines += ["", f"In the water {wet_days:.0f} days in all.", ""]
+
+    dinfo, _ = dataset_info(DETECTIONS)
+    det = fetch_csv(f"tabledap/{DETECTIONS}.csv",
+                    _q("device_time_utc,serial_number,full_id,sensor_type,sensor_value,sensor_unit",
+                       _constraint(dinfo, "hub_serial", hub)),
+                    timeout=HISTORY_TIMEOUT_S)
+    if det.empty:
+        return lines + ["No detection rows at all.", ""]
+    if not det.ok:
+        return lines + [f"detections failed: {det.error}", ""]
+    receivers = sorted(set(column(det, "serial_number")))
+    lines += [f"Detections: {len(det.rows)} rows, receiver(s) {', '.join(receivers)}.", ""]
+
+    months: dict[str, dict] = {}
+    sensors: dict[str, list[float]] = {}
+    units: dict[str, set[str]] = {}
+    for t, fid, stype, sval, sunit in zip(column(det, "device_time_utc"), column(det, "full_id"),
+                                          column(det, "sensor_type"), column(det, "sensor_value"),
+                                          column(det, "sensor_unit")):
+        when = parse_time(t)
+        if when is None:
+            continue
+        m = months.setdefault(f"{when:%Y-%m}", {"rows": 0, "tags": set(), "lab": set(),
+                                                 "sensor": 0, "temps": []})
+        if stype:
+            m["sensor"] += 1
+            units.setdefault(stype, set()).add(sunit)
+            if _is_number(sval):
+                sensors.setdefault(stype, []).append(float(sval))
+                if stype == "Temperature":
+                    m["temps"].append(float(sval))
+            continue
+        m["rows"] += 1
+        m["tags"].add(fid)
+        if fid in tags:
+            m["lab"].add(fid)
+    lines += ["| Month | Tag detections | Distinct tags | Of them the lab's white sharks | "
+              "Sensor rows | Temperature min / mean / max |", "|---|---|---|---|---|---|"]
+    for key in sorted(months):
+        m = months[key]
+        temps = m["temps"]
+        tt = (f"{min(temps):.1f} / {sum(temps) / len(temps):.1f} / {max(temps):.1f}"
+              if temps else "-")
+        lines.append(f"| {key} | {m['rows']} | {len(m['tags'])} | {len(m['lab'])} | "
+                     f"{m['sensor']} | {tt} |")
+    lines.append("")
+    for stype, values in sorted(sensors.items()):
+        lines.append(f"- Sensor `{stype}` ({', '.join(sorted(units[stype]))}): {len(values)} "
+                     f"readings, {min(values):.1f} to {max(values):.1f}")
+    all_tags = set().union(*(m["tags"] for m in months.values())) if months else set()
+    lines += ["", f"{len(all_tags)} distinct tags in all, "
+              f"{len(all_tags & tags)} of them in the lab's white-shark list.", ""]
+    return lines
+
+
+def history(hubs: list[str]) -> tuple[list[str], int]:
+    lines = [f"## Coronado hubs' history ({BASE})", "",
+             f"Run at {utcnow():%Y-%m-%d %H:%M}Z.", ""]
+    reached, ok = reach()
+    lines += reached
+    if not ok:
+        return lines + ["Stopped: the server was not reached."], 1
+    spots = breaks()
+    tags = lab_tags()
+    lines += [f"The lab's tag list: {len(tags)} tag IDs.", ""]
+    for hub in hubs:
+        lines += hub_history(hub, spots, tags)
+    return lines, 0
+
+
 def main(argv: list[str] | None = None) -> int:
     global BASE
     parser = argparse.ArgumentParser(description="Probe CSULB Shark Lab's ERDDAP.")
@@ -617,10 +815,14 @@ def main(argv: list[str] | None = None) -> int:
                         help=f"ERDDAP root URL, default {BASE}.")
     parser.add_argument("--dataset", action="append", default=None,
                         help="Only this datasetID (repeatable); default every one.")
+    parser.add_argument("--hubs", default="",
+                        help="Comma-separated hub serials: read their whole history "
+                             "instead of surveying the server.")
     args = parser.parse_args(argv)
     if args.base:
         BASE = args.base.rstrip("/")
-    lines, code = probe(args.dataset)
+    hubs = [h.strip() for h in args.hubs.split(",") if h.strip()]
+    lines, code = history(hubs) if hubs else probe(args.dataset)
     text = "\n".join(lines)
     print(text)
     write_step_summary(text if len(text) <= SUMMARY_LIMIT
