@@ -1031,6 +1031,60 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         arrows the same way, and the train's row stays highlighted while it is picked. Tap it
         again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with
         Tab.</p>
+      <p>A picked train also gets a dashed arrow inside its own, pointing in at the break: the
+        direction it arrives from in 5 m of water, after the seabed has turned it, and its caption
+        gives that heading on a second line. <a href="#swell-bend">The next section</a> says how
+        it is worked out.</p>
+    </section>
+
+    <section id="swell-bend">
+      <h3>Which way a swell arrives in 5 m of water</h3>
+      <p>Every arrow from the rim of the drawing is the direction a train's energy came from
+        offshore, the frame the windows are drawn in. On its way in, a swell slows over the
+        shallowing seabed and turns toward the shallows (<a href="#calc-refraction">step 3</a>),
+        so by 5 m of water it comes from much nearer straight out to sea. The dashed arrow is that
+        heading: where each ray carrying the train's energy arrives from at the start point,
+        averaged by the energy each carries. It is worked out for every train from the spectrum
+        of the hour, at each break.</p>
+      <p>The table is the same calculation for one narrow swell at a time: 14.3 s, spread
+        &plusmn;10&deg; about each offshore heading, through the soft window edges and bottom
+        friction as a train is. A dash means less than a tenth of that heading's energy reaches
+        5 m, too little for its direction to tell you anything.</p>
+      <!-- bending:begin -->
+      <div class="tablebox"><table id="bendtable">
+        <thead><tr><th>From, offshore</th><th>North</th><th>Center</th><th>South</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Shore normal</th><td class="num">194&deg;</td><td class="num">214&deg;</td><td class="num">221&deg;</td></tr>
+          <tr><th scope="row">S 180&deg;</th><td class="num">199&deg;</td><td class="num">&mdash;</td><td class="num">205&deg;</td></tr>
+          <tr><th scope="row">S 190&deg;</th><td class="num">195&deg;</td><td class="num">&mdash;</td><td class="num">205&deg;</td></tr>
+          <tr><th scope="row">SSW 200&deg;</th><td class="num">191&deg;</td><td class="num">201&deg;</td><td class="num">&mdash;</td></tr>
+          <tr><th scope="row">SSW 210&deg;</th><td class="num">190&deg;</td><td class="num">205&deg;</td><td class="num">&mdash;</td></tr>
+          <tr><th scope="row">SW 220&deg;</th><td class="num">192&deg;</td><td class="num">205&deg;</td><td class="num">212&deg;</td></tr>
+          <tr><th scope="row">SW 230&deg;</th><td class="num">197&deg;</td><td class="num">205&deg;</td><td class="num">213&deg;</td></tr>
+          <tr><th scope="row">WSW 240&deg;</th><td class="num">203&deg;</td><td class="num">206&deg;</td><td class="num">216&deg;</td></tr>
+          <tr><th scope="row">WSW 250&deg;</th><td class="num">205&deg;</td><td class="num">210&deg;</td><td class="num">217&deg;</td></tr>
+          <tr><th scope="row">W 260&deg;</th><td class="num">206&deg;</td><td class="num">215&deg;</td><td class="num">221&deg;</td></tr>
+          <tr><th scope="row">W 270&deg;</th><td class="num">208&deg;</td><td class="num">219&deg;</td><td class="num">226&deg;</td></tr>
+          <tr><th scope="row">W 280&deg;</th><td class="num">&mdash;</td><td class="num">222&deg;</td><td class="num">228&deg;</td></tr>
+          <tr><th scope="row">WNW 290&deg;</th><td class="num">&mdash;</td><td class="num">224&deg;</td><td class="num">228&deg;</td></tr>
+          <tr><th scope="row">WNW 300&deg;</th><td class="num">&mdash;</td><td class="num">223&deg;</td><td class="num">229&deg;</td></tr>
+          <tr><th scope="row">NW 310&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">229&deg;</td></tr>
+          <tr><th scope="row">NW 320&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">229&deg;</td></tr>
+        </tbody></table></div>
+      <p class="foot">At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3&deg; at the median and 9&deg; at most, over the 30 cells all three periods give.</p>
+      <!-- bending:end -->
+      <p>Read across a row and the same swell arrives differently at each break, because each
+        has its own seabed in front of it. Read down a column and a wide spread of offshore
+        directions arrives inside a narrow one: whatever direction a swell comes from, near the
+        sand it is much closer to head-on than it was offshore.</p>
+      <p>Head-on to the seabed, though, not to the shoreline. A swell turns to meet the depth
+        contours, and at 5 m they need not run the way the beach does, so some swells cross the
+        shore normal on the way in: at Center, one from 230&deg;, west of the 214&deg; normal,
+        arrives from 205&deg;, south of it.</p>
+      <p class="see">It stops at 5 m. The last few metres turn a swell further still, and nothing
+        here observes either. Physics on the surveyed seabed, fitted to nothing; generated by
+        <span class="mono">python -m forecast.bending --write</span> from the same tables the
+        cards use.</p>
     </section>
 
     <section id="swell-trains">
