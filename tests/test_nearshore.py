@@ -13,8 +13,8 @@ import math
 import pytest
 
 from forecast.geometry import load
-from forecast.nearshore import Ray, Table, carry, local_sea, shoaling_squared
-from forecast.transform import through
+from forecast.nearshore import Ray, Table, carry, local_sea, shoaling_squared, train_dicts
+from forecast.transform import Spectrum, through
 from tests.test_transform import synthetic
 
 SPOTS, _ = load()
@@ -79,6 +79,71 @@ def test_a_diffracted_ray_reads_the_spectrum_at_its_own_heading():
     got = carry(synthetic(200.0, hs=1.5, spread_deg=5.0), table)
     assert got.hs_hard == 0.0
     assert got.off_from_deg == pytest.approx(200.0, abs=0.5)
+
+
+def bending_table(factor=0.5, normal=None):
+    """A toy seabed: every ray arrives `factor` as far off the normal as it
+    left deep water, with no gain change, so the 5 m heading is known."""
+
+    table = open_table(normal=normal)
+    normal = SOUTH.normal if normal is None else normal
+    for rays in table.by_freq.values():
+        for ray in rays:
+            off = (ray.near_from - normal + 180.0) % 360.0 - 180.0
+            ray.near_from = (normal + factor * off) % 360.0
+    return table
+
+
+def _off(a, b):
+    return abs((a - b + 180.0) % 360.0 - 180.0)
+
+
+class TestTheHeadingAtFiveMetres:
+    """Owner's request, 2026-10-22: each train's heading in 5 m of water, for
+    the break drawing -- where its energy's own rays arrive from, refracted."""
+
+    def test_with_no_seabed_it_arrives_from_where_it_left(self):
+        got = carry(synthetic(240.0, hs=1.5, spread_deg=10.0), open_table())
+        lead = got.trains[0]
+        assert _off(lead.near_from_deg, lead.from_deg) < 0.5
+
+    @pytest.mark.parametrize("direction", [190.0, 250.0, 280.0])
+    def test_it_is_the_rays_own_heading_not_the_offshore_one(self, direction):
+        got = carry(synthetic(direction, hs=1.5, spread_deg=5.0), bending_table(0.5))
+        lead = got.trains[0]
+        expect = (SOUTH.normal + 0.5 * ((lead.from_deg - SOUTH.normal + 180.0) % 360.0 - 180.0)) % 360.0
+        assert _off(lead.near_from_deg, expect) < 1.0
+        assert _off(lead.near_from_deg, SOUTH.normal) < _off(lead.from_deg, SOUTH.normal)
+
+    def test_two_swells_each_keep_their_own(self):
+        """A 16 s swell from 260 and an 8.5 s one from 190: two trains, each
+        bent from its own heading, never their mean."""
+
+        freqs = [0.025 + 0.0075 * i for i in range(48)]
+        c11, a1 = [], []
+        for f in freqs:
+            long_ = math.exp(-((f - 1 / 16.0) / 0.006) ** 2)
+            short = 0.6 * math.exp(-((f - 1 / 8.5) / 0.006) ** 2)
+            c11.append(long_ + short + 1e-9)
+            a1.append(260.0 if long_ >= short else 190.0)
+        spectrum = Spectrum(synthetic(200.0).time, freqs, c11, a1, a1, [0.95] * 48, [0.85] * 48)
+        trains = carry(spectrum, bending_table(0.5)).trains
+        assert len(trains) == 2
+        for t in trains:
+            expect = (SOUTH.normal + 0.5 * ((t.from_deg - SOUTH.normal + 180.0) % 360.0 - 180.0)) % 360.0
+            assert _off(t.near_from_deg, expect) < 1.0
+
+    def test_the_payload_carries_it_and_each_lobe(self):
+        got = carry(synthetic(250.0, hs=1.5, spread_deg=8.0), bending_table(0.5))
+        row = train_dicts(got.trains[:1])[0]
+        assert row["near_from_deg"] == round(got.trains[0].near_from_deg) % 360
+        assert row["near_lobes"] == []
+
+    def test_a_train_at_the_buoy_has_none(self):
+        """The buoy has no 5 m: a train made anywhere but `carry` says NaN."""
+
+        from forecast.transform import at_buoy
+        assert all(math.isnan(t.near_from_deg) for t in at_buoy(synthetic(240.0)).trains)
 
 
 def fetch_table():
