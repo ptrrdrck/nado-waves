@@ -403,6 +403,13 @@ def fetch_spectra(
         text, _read = fetch_station_spec(station, cycle)
         return {r.time: r for r in parse_spec(text, limit_hours=hours)}, None
     except WaveSpecError as exc:
+        # A 404 is the spectral tar not out yet: the bulletin can land first
+        # (2026-10-22 12Z, built at +5 h 30 min). Said in the page's words, as
+        # `fetch_latest` says a late run, rather than the URL that 404'd -- a
+        # URL in the banner ran past the card on a phone. Any other failure
+        # keeps its technical line.
+        if exc.status == 404:
+            return {}, f"GFS-Wave's {cycle:%H}Z spectrum is not published yet"
         return {}, str(exc)[-120:]
 
 
@@ -672,7 +679,9 @@ def build(
     # directional spread where the partitions need one assumed.
     if spectra is None and use_spectra:
         spectra, reason = fetch_spectra(bulletin.cycle_utc, hours=hours)
-        if reason:
+        if reason and reason.startswith("GFS-Wave's"):
+            forecast.warnings.append(f"{reason}; using its swell partitions.")
+        elif reason:
             forecast.warnings.append(f"spectral product unavailable ({reason}); using partitions")
     spectra = spectra or {}
     forecast.wave_source = "spectrum" if spectra else "partitions"

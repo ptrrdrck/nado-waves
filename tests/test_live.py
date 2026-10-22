@@ -319,6 +319,30 @@ class TestCycleSelection:
         assert got is None
         assert len(warnings) == 4 and all("HTTP 404" in w for w in warnings)
 
+    def _spectra(self, monkeypatch, status):
+        from collector.wavespec import WaveSpecError
+
+        def fake(station, cycle):
+            raise WaveSpecError(f"https://x/gfs/{cycle:%H}/gfswave.t{cycle:%H}z.spec_tar.gz: "
+                                f"HTTP {status}", status)
+        monkeypatch.setattr(live, "fetch_station_spec", fake)
+        got = live.build(bulletin=bulletin(SOUTH), now=CYCLE, use_spectra=True)
+        return got.wave_source, [w for w in got.warnings if "spec" in w]
+
+    def test_a_spectrum_not_out_yet_is_said_plainly(self, monkeypatch):
+        # 2026-10-22: the 12Z bulletin was out, its spectral tar 404'd, and the
+        # banner printed the URL -- unbroken, past the card on a phone.
+        source, warnings = self._spectra(monkeypatch, 404)
+        assert source == "partitions"
+        assert warnings == [f"GFS-Wave's {CYCLE:%H}Z spectrum is not published yet; "
+                            "using its swell partitions."]
+        assert not any("http" in w.lower() for w in warnings)
+
+    def test_a_spectrum_failure_that_is_not_a_404_keeps_its_technical_line(self, monkeypatch):
+        source, warnings = self._spectra(monkeypatch, 503)
+        assert source == "partitions"
+        assert len(warnings) == 1 and "HTTP 503" in warnings[0]
+
     def test_the_latest_cycle_respects_publication_lag(self):
         # 04:00Z is less than CYCLE_LAG_HOURS after 00Z, so 18Z the day before
         # is the newest cycle that should exist.

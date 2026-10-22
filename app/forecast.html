@@ -729,8 +729,10 @@ th:first-child,td:first-child{text-align:left}
 th{color:var(--soft);font-weight:600;font-size:12px}
 
 
+/* overflow-wrap: a note can carry a URL with no break in it, and one ran past
+   the card on a phone (2026-10-22). */
 .warn{font-size:13px;color:var(--soft);background:var(--signal-wash);border:1px dashed var(--signal);
-      border-radius:var(--r);padding:9px 11px;margin:0}
+      border-radius:var(--r);padding:9px 11px;margin:0;overflow-wrap:anywhere}
 a{color:var(--surf)}
 /* Docs at the left and the Wave observer setting at the right, one line
    (owner's call, 2026-10-16). */
