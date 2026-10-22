@@ -36,7 +36,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from forecast import geometry
 from forecast.swell import great_circle_km
@@ -60,6 +60,14 @@ NEAR_KM = 3.0
 #: Looking back this far for the newest rows near Coronado.
 RECENT_DAYS = 30
 
+#: The same, for a time kept as text, which ERDDAP cannot narrow with
+#: `now-`: every hub's detections in it are read, so it is kept short.
+RECENT_TEXT_DAYS = 2
+
+#: A text column with at most this many distinct values in the window is
+#: tallied (detection types, sensor types, animals).
+TALLY_MAX = 20
+
 #: Older than this and the newest row is present but not live.
 STALE_HOURS = 48.0
 
@@ -81,7 +89,7 @@ SUMMARY_LIMIT = 900_000
 #: Names the server's datasets use, found on run 4 (`Lng` in the temperatures).
 LAT_NAMES = ("latitude", "lat", "Lat", "Latitude")
 LON_NAMES = ("longitude", "lon", "Lng", "lng", "Lon", "Longitude", "long")
-GROUP_NAMES = ("serial_number", "serial", "Station", "station", "receiver", "device")
+GROUP_NAMES = ("hub_serial", "serial_number", "serial", "Station", "station", "receiver", "device")
 
 ALL_DATASETS_COLUMNS = (
     "datasetID", "title", "institution", "cdm_data_type", "dataStructure",
@@ -360,6 +368,74 @@ def _quoted(row: list[str]) -> str:
     return " | ".join(row)
 
 
+@dataclass
+class Latest:
+    key: tuple[str, ...]
+    newest: datetime
+    rows: int
+    row: list[str]
+
+    @property
+    def age_hours(self) -> float:
+        return (utcnow() - self.newest).total_seconds() / 3600
+
+    @property
+    def stale(self) -> bool:
+        return self.age_hours > STALE_HOURS
+
+
+def latest_rows(fetched: Fetched, group: list[str], time_var: str) -> list[Latest]:
+    """The newest row of each group, by the parsed time; a row whose time does
+    not parse is counted nowhere rather than guessed."""
+
+    keys = list(zip(*(column(fetched, g) for g in group))) or [()] * len(fetched.rows)
+    out: dict[tuple, Latest] = {}
+    for key, cell, row in zip(keys, column(fetched, time_var), fetched.rows):
+        stamp = parse_time(cell)
+        if stamp is None:
+            continue
+        best = out.get(tuple(key))
+        if best is None:
+            out[tuple(key)] = Latest(tuple(key), stamp, 1, row)
+            continue
+        best.rows += 1
+        if stamp > best.newest:
+            best.newest, best.row = stamp, row
+    return sorted(out.values(), key=lambda g: g.newest, reverse=True)
+
+
+def newest_by_group(fetched: Fetched, group: list[str], time_var: str,
+                    window: str) -> list[str]:
+    latest = latest_rows(fetched, group, time_var)
+    unparsed = len(fetched.rows) - sum(g.rows for g in latest)
+    lines = [f"Rows in the last {window}: {len(fetched.rows)} ({fetched.bytes_read} "
+             f"bytes){f', {unparsed} with an unparseable time' if unparsed else ''}. "
+             f"Newest per {','.join(group) or 'dataset'}:", "",
+             "```", ",".join(fetched.header)]
+    for g in latest:
+        flag = " STALE" if g.stale else ""
+        lines.append(",".join(g.row) + f"   <- {g.rows} rows, {g.age_hours:.1f} h old{flag}")
+    lines += ["```", ""]
+    for name in fetched.header:
+        if name == time_var or name in group:
+            continue
+        values = column(fetched, name)
+        distinct = set(values)
+        if 1 < len(distinct) <= TALLY_MAX and not all(_is_number(v) for v in distinct):
+            tally = sorted(((values.count(v), v) for v in distinct), reverse=True)
+            lines.append(f"- `{name}`: " + ", ".join(f"{v or '(blank)'} x{n}" for n, v in tally))
+    lines.append("")
+    return lines
+
+
+def _is_number(cell: str) -> bool:
+    try:
+        float(cell)
+    except ValueError:
+        return False
+    return True
+
+
 def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
     lines = [f"## CSULB Shark Lab ERDDAP probe ({BASE})", "",
              f"Run at {utcnow():%Y-%m-%d %H:%M}Z.", ""]
@@ -453,33 +529,26 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
         constraints = list(box)
         if numeric_time:
             constraints.append(f"{time_var}>=now-{RECENT_DAYS}days")
-        if group:
-            constraints.append(f'orderByMax("{",".join(group)},{time_var}")')
-        elif not numeric_time:
-            constraints.append(f'orderByMax("{time_var}")')
-        recent = fetch_csv(path, _q(*constraints))
+        else:
+            # A time kept as text cannot take `now-`, but compares as text,
+            # which an ISO date does correctly. The newest row per group is
+            # then found here, from the parsed times.
+            since = utcnow() - timedelta(days=RECENT_TEXT_DAYS)
+            constraints.append(f'{time_var}>="{since:%Y-%m-%d}"')
+        # With no variable list, the first constraint still needs its "&"
+        # (run 5: "All constraints ... must be preceded by '&'").
+        recent = fetch_csv(path, "&" + _q(*constraints))
+        window = f"{RECENT_DAYS if numeric_time else RECENT_TEXT_DAYS} days"
         if recent.empty:
-            lines += [f"No rows in the last {RECENT_DAYS} days"
+            lines += [f"No rows in the last {window}"
                       + (" near Coronado." if box else "."), ""]
             continue
         if not recent.ok:
             lines += [f"recent rows failed: {recent.error}", ""]
             denied |= recent.denied
             continue
-        times = [t for t in (parse_time(c) for c in column(recent, time_var)) if t]
-        newest = max(times) if times else None
-        age_h = (utcnow() - newest).total_seconds() / 3600 if newest else None
-        stale = age_h is None or age_h > STALE_HOURS
-        found_fresh |= not stale
-        what = "latest row per " + ",".join(group) if group else "rows"
-        lines += [
-            (f"Newest `{time_var}`: {newest:%Y-%m-%d %H:%M}Z, {age_h:.1f} h old"
-             + (" (STALE)" if stale else "")) if newest
-            else f"No parseable `{time_var}` (first: {column(recent, time_var)[:1]}).",
-            f"({what}: {len(recent.rows)} rows, {recent.bytes_read} bytes; "
-            f"verbatim, header and newest {SHOWN_ROWS}:)", "",
-            "```", recent.raw_tail, "```", "",
-        ]
+        lines += newest_by_group(recent, group, time_var, window)
+        found_fresh |= any(not g.stale for g in latest_rows(recent, group, time_var))
 
     if denied:
         lines.append(DENIAL_NOTE)

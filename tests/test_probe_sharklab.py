@@ -76,3 +76,17 @@ def test_time_variable_prefers_time_then_an_erddap_time():
     info = p.DatasetInfo("y", ["datetime_pt", "In_UTC"],
                          {("In_UTC", "units"): "seconds since 1970-01-01T00:00:00Z"})
     assert p.time_variable(info) == "In_UTC"
+
+
+def test_latest_row_per_group_by_parsed_time():
+    text = """device_time_utc,hub_serial,type
+2026-10-21 23:00:00,660494,det
+2026-10-22 01:00:00,660494,det
+2026-10-22 00:30:00,660495,status
+not a time,660495,det
+"""
+    fetched = p.Fetched(url="x", ok=True)
+    fetched.header, fetched.units, fetched.rows = p.parse_erddap_csv(text)
+    latest = p.latest_rows(fetched, ["hub_serial"], "device_time_utc")
+    assert [(g.key, g.rows, g.newest.hour) for g in latest] == [
+        (("660494",), 2, 1), (("660495",), 1, 0)]
