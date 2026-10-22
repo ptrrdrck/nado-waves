@@ -986,6 +986,13 @@ class Train:
     #: clockwise. Empty for a whole band, which holds every heading in `bins`.
     #: With `bins`, where in the spectrum this train is; not its identity.
     arc: tuple = field(default=(), compare=False, repr=False)
+    #: At a break only (`forecast.nearshore.carry`): the heading this train
+    #: arrives FROM in 5 m of water, refracted -- the energy-weighted mean of
+    #: its rays' own headings there -- and one per lobe, in `lobes`' order.
+    #: NaN and empty everywhere else. Drawn on the break's drawing, never in a
+    #: row (owner's call, 2026-10-22); not the train's identity.
+    near_from_deg: float = field(default=math.nan, compare=False, repr=False)
+    near_lobes: tuple = field(default=(), compare=False, repr=False)
 
     @property
     def is_wind_sea(self) -> bool:

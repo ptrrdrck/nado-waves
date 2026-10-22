@@ -184,6 +184,11 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
     bin_sin: dict[int, float] = {}
     bin_cos: dict[int, float] = {}
     hists: dict[int, list[float]] = {}
+    # Beside each bin's offshore histogram, where that energy heads at the
+    # start depth: sin and cos of its rays' 5 m headings, by offshore degree.
+    near_sin: dict[int, list[float]] = {}
+    near_cos: dict[int, list[float]] = {}
+    near_bin: dict[int, tuple[float, float]] = {}
     unmatched = 0
     for i, f in enumerate(spectrum.frequencies):
         grid = grids.get(i)
@@ -196,8 +201,10 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         width = spectrum.bin_width(i)
         short = f > 1.0 / WIND_SEA_PERIOD_S
         ks2 = shoaling_squared(f, table.start_depth_m)
-        bin_e = bs = bc = 0.0
+        bin_e = bs = bc = bns = bnc = 0.0
         hist = hists[i] = [0.0] * 360
+        ns = near_sin[i] = [0.0] * 360
+        nc = near_cos[i] = [0.0] * 360
         for ray in table.by_freq[near]:
             if ray.gain > 0:
                 e_hard += at(grid, ray.off_from) * width * ray.width_rad * ray.gain / ks2
@@ -212,15 +219,23 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
                 e_short += e
             bin_e += e
             t = math.radians(ray.near_from)
-            sn += e * math.sin(t); cn += e * math.cos(t)
+            s_near, c_near = e * math.sin(t), e * math.cos(t)
+            sn += s_near; cn += c_near
             t = math.radians(ray.diff_off_from)
             so += e * math.sin(t); co += e * math.cos(t)
             bs += e * math.sin(t); bc += e * math.cos(t)
-            hist[int(ray.diff_off_from) % 360] += e
+            k = int(ray.diff_off_from) % 360
+            hist[k] += e
+            ns[k] += s_near; nc[k] += c_near
+            bns += s_near; bnc += c_near
         per_bin.append((i, bin_e))
         bin_sin[i], bin_cos[i] = bs, bc
+        near_bin[i] = (bns, bnc)
     peak = max(per_bin, key=lambda item: item[1]) if per_bin else None
     hs = lambda m0: 4.0 * math.sqrt(max(m0, 0.0))
+    trains = split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos, hists=hists) if e10 > 0 else []
+    for train in trains:
+        _arrive(train, near_bin, near_sin, near_cos)
     return Nearshore(
         table.break_id, hs(e10), hs(e_eq), hs(e_hard),
         math.degrees(math.atan2(sn, cn)) % 360 if e10 > 0 else float("nan"),
@@ -228,9 +243,43 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         1.0 / spectrum.frequencies[peak[0]] if peak and peak[1] > 0 else float("nan"),
         unmatched,
         hs(e_fric),
-        split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos, hists=hists) if e10 > 0 else [],
+        trains,
         hs(e_short),
     )
+
+
+def _arrive(train, near_bin: dict[int, tuple[float, float]],
+            near_sin: dict[int, list[float]], near_cos: dict[int, list[float]]) -> None:
+    """Set a train's 5 m heading, and each lobe's, from the rays its energy
+    took: its own bins and, for a train divided by direction, its own arc of
+    offshore headings. A lobe holds the offshore degrees nearer it than any
+    other lobe, as `transform._divide_by_direction` divides a band. A whole
+    band with one direction -- most trains -- sums its bins and never walks
+    the degrees."""
+
+    deg = lambda s, c: math.degrees(math.atan2(s, c)) % 360.0 if (s or c) else math.nan
+    if not train.arc and not train.lobes:
+        s = sum(near_bin[i][0] for i in train.bins if i in near_bin)
+        c = sum(near_bin[i][1] for i in train.bins if i in near_bin)
+        train.near_from_deg = deg(s, c)
+        return
+    lo, hi = train.arc or (0, 360)
+    degrees = [k % 360 for k in range(lo, hi if hi > lo else hi + 360)]
+    heads = [h for h, _ in train.lobes]
+    owner = ([min(range(len(heads)), key=lambda m: abs((k + 0.5 - heads[m] + 180.0) % 360.0 - 180.0))
+              for k in range(360)] if heads else [0] * 360)
+    sums = [[0.0, 0.0] for _ in range(max(len(heads), 1))]
+    for i in train.bins:
+        ns, nc = near_sin.get(i), near_cos.get(i)
+        if ns is None:
+            continue
+        for k in degrees:
+            s, c = ns[k], nc[k]
+            if s or c:
+                part = sums[owner[k]]
+                part[0] += s; part[1] += c
+    train.near_from_deg = deg(sum(p[0] for p in sums), sum(p[1] for p in sums))
+    train.near_lobes = tuple(deg(s, c) for s, c in sums) if heads else ()
 
 
 # ------------------------------------------------------------------ local sea
@@ -362,6 +411,10 @@ def train_dicts(trains) -> list[dict]:
             "share": round(t.share, 4),
             "wind_sea": t.is_wind_sea,
             "lobes": lobes_payload(t),
+            # Where it arrives from in 5 m of water, and each lobe's: the
+            # break drawing's inner arrow, never a train row.
+            "near_from_deg": None if math.isnan(t.near_from_deg) else round(t.near_from_deg) % 360,
+            "near_lobes": [None if math.isnan(d) else round(d) % 360 for d in t.near_lobes],
         }
         for t in trains
     ]

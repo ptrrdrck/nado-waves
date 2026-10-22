@@ -319,6 +319,30 @@ class TestTheBreakDrawing:
     def test_the_leg_stops_inside_the_head(self):
         assert "tip + 0.6 * len" in self.DRAW
 
+    def test_a_picked_train_shows_where_it_arrives_from_in_five_metres(self):
+        """Owner's request, 2026-10-22: the heading at 5 m on the drawing,
+        one inner arrow per outer arrow, shown only while its train is picked
+        -- every train's at once would knot at the break -- and named in the
+        caption as "from <point> <deg>° in 5 m of water"."""
+
+        assert "const near = nearHeadings(t);" in self.DRAW
+        assert '`<g class="near" data-show="${key}" hidden>`' in self.DRAW
+        assert "in 5 m of water" in self.DRAW
+        assert "${arrows}${nears.join(\"\")}" in self.DRAW
+        assert ".aperture .near line{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 3" in SOURCE
+        fn = SOURCE[SOURCE.index("function nearHeadings"):]
+        fn = fn[:fn.index("\n}\n")]
+        assert "t.near_lobes" in fn and "t.near_from_deg" in fn
+
+    def test_the_five_metre_heading_is_never_in_a_train_row(self):
+        """Owner's call, 2026-10-22: on the drawing only. A row keeps its
+        offshore heading, the frame the windows are drawn in."""
+
+        for name in ("function trainList(", "function trainForms("):
+            fn = SOURCE[SOURCE.index(name):]
+            fn = fn[:fn.index("\n}\n")]
+            assert "near_" not in fn and "nearHeadings" not in fn
+
     def test_shadows_and_rays_reach_the_outer_edge_of_the_rim(self):
         """The rim is a stroke centred on r; ending at r stops halfway
         through it."""
@@ -885,6 +909,9 @@ class TestItMatchesTheLiveOutput:
         known |= {"blocker", "share", "verified"}       # taken_by entries
         known |= {"swell_deg", "wind_sea_deg", "note"}  # spread_assumption
         known |= {"hs_m", "period_s", "from_deg", "wind_sea", "local", "lobes"}  # train entries
+        from forecast.nearshore import train_dicts
+        from forecast.transform import Train
+        known |= set(train_dicts([Train(1.0, 12.0, 250.0, 1.0)])[0])  # a break's, 5 m heading too
         known |= {"peak_period_s", "peak_direction_deg", "frequency_bins"}  # buoy
         known |= {"age_hours", "observed_utc", "trains", "height_m", "kind"}
         known |= {"detail"}  # `past` entries: forecastlog.past_hours

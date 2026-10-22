@@ -398,7 +398,15 @@ forecaster actually verifies against, Surfline included.
    under the reading split from that same spectrum (`trains_from_utc`); a
    new spectrum clears it. A break tab's train row lights the same way
    when its train is picked, from the list or by its arrow on the drawing
-   (owner's request, 2026-10-09). The rose is spaced as a break tab's
+   (owner's request, 2026-10-09). **A picked train also shows its heading in
+   5 m of water** (owner's request, 2026-10-22): a dashed inner arrow and a
+   second caption line, "from SW 222° in 5 m of water" — its own rays' 5 m
+   headings, energy-weighted (`nearshore._arrive`, `near_from_deg` /
+   `near_lobes`), on the drawing only, never in the row. docs.html's
+   `swell-bend` table is the same calculation for one narrow swell per
+   heading (`forecast/bending.py --write`, pinned to `carry` by a test). At
+   5 m swells gather on the SEABED's direction, not the chord normal: some
+   cross it (Center's 230° arrives from 205°, its normal 214°). The rose is spaced as a break tab's
    drawing is (owner's request, same day): 31 px of card above its first
    ink, 28 px from its timeline to the provenance on Height, in painted
    pixels at 360 px — the drawing scales with the width and the rose does
@@ -1106,6 +1114,8 @@ forecaster actually verifies against, Surfline included.
                         closed fetches and grown on over the open water
                         between the buoy and the break; reports
                         against the aperture                        [built]
+      bending.py        which way each offshore heading arrives in 5 m,
+                        per break, into docs.html's swell-bend table [built]
       surfzone.py       5 m to the break on each profile at the tide,
                         Battjes–Janssen, pure Python                [built]
       tidesite.py       the bay gauge's level carried to the open coast
