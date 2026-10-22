@@ -45,7 +45,10 @@ from .common import utcnow, write_step_summary
 from .ndbc import USER_AGENT
 from .probe_mop import DENIAL_NOTE
 
-BASE = "https://erddap-02.thesharklab.org/erddap"
+#: The public server, as its maintainer gave it (2026-10-22): plain http, not
+#: https. erddap-02.thesharklab.org, the address first given, resolves but
+#: accepts no connection from GitHub's runners (run 2, 2026-10-20).
+BASE = "http://erddap-public.csulbshsrklab.org/erddap"
 
 #: Coronado's three breaks -- the only spots with charted positions.
 CORONADO = ("coronado_north", "coronado_center", "coronado_south")
@@ -138,26 +141,28 @@ def is_timeout(exc: BaseException) -> bool:
 
 
 def reach(timeout: float = 20.0) -> tuple[list[str], bool]:
-    """Where the road stops: DNS, then a TCP connection to 443, then ERDDAP's
+    """Where the road stops: DNS, then a TCP connection to the port, then ERDDAP's
     cheapest page. Each step's answer and time, so "the server did not
     answer" says at which layer."""
 
-    host = urllib.parse.urlsplit(BASE).hostname or ""
+    parts = urllib.parse.urlsplit(BASE)
+    host = parts.hostname or ""
+    port = parts.port or (443 if parts.scheme == "https" else 80)
     lines = [f"### Reachability of {host}", ""]
     start = time.monotonic()
     try:
-        addresses = sorted({a[4][0] for a in socket.getaddrinfo(host, 443)})
+        addresses = sorted({a[4][0] for a in socket.getaddrinfo(host, port)})
     except OSError as exc:
         return lines + [f"- DNS: failed, {exc}", ""], False
     lines.append(f"- DNS: {', '.join(addresses)} ({time.monotonic() - start:.1f} s)")
     start = time.monotonic()
     try:
-        with socket.create_connection((host, 443), timeout=timeout):
+        with socket.create_connection((host, port), timeout=timeout):
             pass
     except OSError as exc:
-        return lines + [f"- TCP 443: failed after {time.monotonic() - start:.1f} s, "
+        return lines + [f"- TCP {port}: failed after {time.monotonic() - start:.1f} s, "
                         f"{exc.__class__.__name__}: {exc}", ""], False
-    lines.append(f"- TCP 443: connected ({time.monotonic() - start:.1f} s)")
+    lines.append(f"- TCP {port}: connected ({time.monotonic() - start:.1f} s)")
     start = time.monotonic()
     version = fetch_csv("version", timeout=timeout * 3)
     elapsed = time.monotonic() - start
@@ -392,10 +397,15 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    global BASE
     parser = argparse.ArgumentParser(description="Probe CSULB Shark Lab's ERDDAP.")
+    parser.add_argument("--base", default=None,
+                        help=f"ERDDAP root URL, default {BASE}.")
     parser.add_argument("--dataset", action="append", default=None,
                         help="Only this datasetID (repeatable); default every one.")
     args = parser.parse_args(argv)
+    if args.base:
+        BASE = args.base.rstrip("/")
     lines, code = probe(args.dataset)
     text = "\n".join(lines)
     print(text)
