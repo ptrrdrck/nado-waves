@@ -100,5 +100,30 @@ def test_the_crossing_the_prose_quotes_is_the_tables():
     center = next(b for b in data["breaks"] if b["id"] == "coronado_center")
     assert center["normal_deg"] == 214
     assert center["cells"][data["headings"].index(230)] == 205
-    text = bending.DOCS.read_text(encoding="utf-8")
-    assert "at Center, one from 230&deg;, west of the 214&deg; normal,\n        arrives from 205&deg;" in text
+    text = " ".join(bending.DOCS.read_text(encoding="utf-8").split())
+    assert ("at Center, one from 230&deg;, west of the 214&deg; normal, arrives from 205&deg;, "
+            "south of it.") in text
+
+
+def test_about_half_the_rays_cross_on_the_way_in():
+    """The page says so: neighbouring rays swap order between deep water and
+    5 m about half the time at every break (37-59% over 10-18 s, measured
+    2026-10-22), where a one-to-one bending would give none."""
+
+    for t in TABLES.values():
+        for f in (0.10, bending.PERIOD_HZ, 0.055):
+            assert 0.33 <= bending.crossing_share(t, f) <= 0.65
+    text = " ".join(bending.DOCS.read_text(encoding="utf-8").split())
+    assert "about half of them swap order between deep water and 5 m" in text
+
+
+def test_every_column_arrives_within_about_twenty_degrees():
+    """The page says "within about 20° of straight in" for anything the
+    windows let in: every 5 m heading shown is within 20° of its break's
+    normal (16° at most, 2026-10-22)."""
+
+    data = bending.table()
+    for b in data["breaks"]:
+        for c in b["cells"]:
+            if c is not None:
+                assert _off(c, b["normal_deg"]) <= 20

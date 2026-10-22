@@ -321,15 +321,20 @@ class TestTheBreakDrawing:
 
     def test_a_picked_train_shows_where_it_arrives_from_in_five_metres(self):
         """Owner's request, 2026-10-22: the heading at 5 m on the drawing,
-        one inner arrow per outer arrow, shown only while its train is picked
+        one inner arrowhead per outer arrow, shown only while its train is picked
         -- every train's at once would knot at the break -- and named in the
         caption as "from <point> <deg>° in 5 m of water"."""
 
         assert "const near = nearHeadings(t);" in self.DRAW
-        assert '`<g class="near" data-show="${key}" hidden>`' in self.DRAW
+        assert '`<polygon class="near" data-show="${key}" hidden`' in self.DRAW
         assert "in 5 m of water" in self.DRAW
         assert "${arrows}${nears.join(\"\")}" in self.DRAW
-        assert ".aperture .near line{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 3" in SOURCE
+        # An arrowhead alone, a quarter larger than its own offshore head
+        # (owner's call, same day: the dashed leg looked bad).
+        assert "const NEAR_HEAD = 1.25;" in SOURCE
+        assert "const nlen = NEAR_HEAD * len, nhalf = NEAR_HEAD * half" in self.DRAW
+        assert ".aperture .near{pointer-events:none;fill:var(--ink)}" in SOURCE
+        assert ".aperture .near line" not in SOURCE
         fn = SOURCE[SOURCE.index("function nearHeadings"):]
         fn = fn[:fn.index("\n}\n")]
         assert "t.near_lobes" in fn and "t.near_from_deg" in fn

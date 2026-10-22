@@ -399,14 +399,21 @@ forecaster actually verifies against, Surfline included.
    new spectrum clears it. A break tab's train row lights the same way
    when its train is picked, from the list or by its arrow on the drawing
    (owner's request, 2026-10-09). **A picked train also shows its heading in
-   5 m of water** (owner's request, 2026-10-22): a dashed inner arrow and a
-   second caption line, "from SW 222° in 5 m of water" — its own rays' 5 m
-   headings, energy-weighted (`nearshore._arrive`, `near_from_deg` /
-   `near_lobes`), on the drawing only, never in the row. docs.html's
-   `swell-bend` table is the same calculation for one narrow swell per
-   heading (`forecast/bending.py --write`, pinned to `carry` by a test). At
-   5 m swells gather on the SEABED's direction, not the chord normal: some
-   cross it (Center's 230° arrives from 205°, its normal 214°). The rose is spaced as a break tab's
+   5 m of water** (owner's request, 2026-10-22): an arrowhead alone at the
+   break, 1.25× its own offshore head (`NEAR_HEAD`; owner's call, same day:
+   the dashed leg looked bad), and a second caption line, "from SW 222° in
+   5 m of water" — its own rays' 5 m headings, energy-weighted
+   (`nearshore._arrive`, `near_from_deg` / `near_lobes`), on the drawing
+   only, never in the row. docs.html's `swell-bend` table is the same
+   calculation for one narrow swell per heading (`forecast/bending.py
+   --write`, pinned to `carry` by a test). **By 5 m the offshore direction
+   is mostly erased** (BRIEFING §45): everything the windows let in arrives
+   within ~16° of the normal, turned crossing a wide 8–15 m shelf 3–8 km
+   out, which scrambles the rays (37–59% of neighbours swap order; real
+   shelf features, not grid noise). The seabed within 400 m of each start
+   faces its chord normal within 1–4°, so the surf zone's breaking angle
+   against the chord normal is consistent. Read a 5 m heading as a few
+   degrees either way: where rays cross, ray theory is at its limit. The rose is spaced as a break tab's
    drawing is (owner's request, same day): 31 px of card above its first
    ink, 28 px from its timeline to the provenance on Height, in painted
    pixels at 360 px — the drawing scales with the width and the rose does
