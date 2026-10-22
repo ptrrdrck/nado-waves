@@ -99,3 +99,4 @@ def test_epoch_numbers_are_read_by_their_size_and_windowed_in_kind():
     assert p.window_start(["1761110000", "1761000000"], "double") == str(1761110000 - 2 * 86400)
     assert p.window_start(["1761110000000"], "long") == str((1761110000 - 2 * 86400) * 1000)
     assert p.window_start(["2026-10-22 01:00:00"], "String") == '"2026-10-20"'
+    assert p.window_start(["1761110000000"], "String") == f'"{(1761110000 - 2 * 86400) * 1000}"'

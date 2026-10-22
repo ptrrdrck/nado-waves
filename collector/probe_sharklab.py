@@ -435,15 +435,20 @@ def window_start(cells: list[str], dtype: str) -> str | None:
     if not stamps:
         return None
     start = max(stamps) - timedelta(days=RECENT_TEXT_DAYS)
-    if dtype == "String":
-        return f'"{start:%Y-%m-%d}"'
     numbers = [float(c) for c in cells if _is_number(c)]
-    scale = epoch_scale(max(numbers)) if numbers else None
-    return None if scale is None else f"{start.timestamp() * scale:.0f}"
+    if not numbers:
+        return f'"{start:%Y-%m-%d}"'
+    scale = epoch_scale(max(numbers))
+    if scale is None:
+        return None
+    value = f"{start.timestamp() * scale:.0f}"
+    # An epoch kept as text (run 7: the detections' device_time_utc) compares
+    # as text, which equal-length digit strings do correctly.
+    return f'"{value}"' if dtype == "String" else value
 
 
 def newest_by_group(fetched: Fetched, group: list[str], time_var: str,
-                    window: str) -> list[str]:
+                    window: str, tally: bool = True) -> list[str]:
     latest = latest_rows(fetched, group, time_var)
     unparsed = len(fetched.rows) - sum(g.rows for g in latest)
     lines = [f"Rows in the last {window}: {len(fetched.rows)} ({fetched.bytes_read} "
@@ -454,7 +459,7 @@ def newest_by_group(fetched: Fetched, group: list[str], time_var: str,
         flag = " STALE" if g.stale else ""
         lines.append(",".join(g.row) + f"   <- {g.rows} rows, {g.age_hours:.1f} h old{flag}")
     lines += ["```", ""]
-    for name in fetched.header:
+    for name in fetched.header if tally else []:
         if name == time_var or name in group:
             continue
         values = column(fetched, name)
@@ -585,6 +590,9 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
             since = window_start(column(latest_src, time_var), info.types.get(time_var, ""))
             recent = (fetch_csv(path, "&" + _q(*box, f"{time_var}>={since}"))
                       if since is not None else latest_src)
+        if latest_src is not recent and latest_src.ok:
+            lines += newest_by_group(latest_src, group, time_var, "whole dataset",
+                                     tally=False)
         if recent.empty:
             lines += [f"No rows in the last {window}"
                       + (" near Coronado." if box else "."), ""]
