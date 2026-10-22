@@ -230,8 +230,26 @@ def _is_iso_time(cell: str) -> bool:
     return parse_time(cell) is not None
 
 
+#: An epoch number's unit, read from its size: seconds have ten digits now,
+#: milliseconds thirteen. Anything else is not read as a time.
+EPOCH_SCALES = ((1e9, 1e10, 1.0), (1e12, 1e13, 1e3))
+
+
+def epoch_scale(value: float) -> float | None:
+    return next((k for lo, hi, k in EPOCH_SCALES if lo <= abs(value) < hi), None)
+
+
 def parse_time(cell: str) -> datetime | None:
     cell = cell.strip()
+    try:
+        number = float(cell)
+    except ValueError:
+        number = None
+    if number is not None:
+        scale = epoch_scale(number)
+        if scale is None:
+            return None
+        return datetime.fromtimestamp(number / scale, tz=timezone.utc)
     for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%S",
                 "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"):
         try:
@@ -254,6 +272,8 @@ class DatasetInfo:
     variables: list[str] = field(default_factory=list)
     #: (variable, attribute) -> value; "NC_GLOBAL" holds the globals.
     attributes: dict[tuple[str, str], str] = field(default_factory=dict)
+    #: variable -> ERDDAP data type ("String", "double", "long", ...).
+    types: dict[str, str] = field(default_factory=dict)
 
     def station_variables(self) -> list[str]:
         """The variables that name a station, from the CF/ERDDAP cdm
@@ -279,9 +299,11 @@ def dataset_info(dataset_id: str) -> tuple[DatasetInfo, Fetched]:
     names = column(fetched, "Variable Name")
     attrs = column(fetched, "Attribute Name")
     values = column(fetched, "Value")
-    for kind, name, attr, value in zip(kinds, names, attrs, values):
+    dtypes = column(fetched, "Data Type")
+    for kind, name, attr, value, dtype in zip(kinds, names, attrs, values, dtypes):
         if kind == "variable":
             info.variables.append(name)
+            info.types[name] = dtype
         elif kind == "attribute":
             info.attributes[(name, attr)] = value
     return info, fetched
@@ -402,6 +424,22 @@ def latest_rows(fetched: Fetched, group: list[str], time_var: str) -> list[Lates
         if stamp > best.newest:
             best.newest, best.row = stamp, row
     return sorted(out.values(), key=lambda g: g.newest, reverse=True)
+
+
+def window_start(cells: list[str], dtype: str) -> str | None:
+    """The constraint value RECENT_TEXT_DAYS before the newest of `cells`, in
+    the column's own form: a quoted ISO date for text, the same epoch unit for
+    a number. None when the newest cannot be read as a time."""
+
+    stamps = [t for t in (parse_time(c) for c in cells) if t]
+    if not stamps:
+        return None
+    start = max(stamps) - timedelta(days=RECENT_TEXT_DAYS)
+    if dtype == "String":
+        return f'"{start:%Y-%m-%d}"'
+    numbers = [float(c) for c in cells if _is_number(c)]
+    scale = epoch_scale(max(numbers)) if numbers else None
+    return None if scale is None else f"{start.timestamp() * scale:.0f}"
 
 
 def newest_by_group(fetched: Fetched, group: list[str], time_var: str,
@@ -525,20 +563,28 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
 
         if not time_var:
             continue
-        numeric_time = "since" in info.attributes.get((time_var, "units"), "")
-        constraints = list(box)
-        if numeric_time:
-            constraints.append(f"{time_var}>=now-{RECENT_DAYS}days")
+        erddap_time = "since" in info.attributes.get((time_var, "units"), "")
+        if erddap_time:
+            # ERDDAP's own time: narrowed on the server with `now-`.
+            window = f"{RECENT_DAYS} days"
+            recent = fetch_csv(path, "&" + _q(*box, f"{time_var}>=now-{RECENT_DAYS}days"))
+            latest_src = recent
         else:
-            # A time kept as text cannot take `now-`, but compares as text,
-            # which an ISO date does correctly. The newest row per group is
-            # then found here, from the parsed times.
-            since = utcnow() - timedelta(days=RECENT_TEXT_DAYS)
-            constraints.append(f'{time_var}>="{since:%Y-%m-%d}"')
-        # With no variable list, the first constraint still needs its "&"
-        # (run 5: "All constraints ... must be preceded by '&'").
-        recent = fetch_csv(path, "&" + _q(*constraints))
-        window = f"{RECENT_DAYS if numeric_time else RECENT_TEXT_DAYS} days"
+            # A time ERDDAP does not know as one (run 6: device_time_utc is a
+            # number with no units). The newest row per group comes from the
+            # server's orderByMax, then the window is set back from it in the
+            # column's own terms. With no variable list, the first constraint
+            # still needs its "&" (run 5).
+            by = ",".join(group + [time_var])
+            latest_src = fetch_csv(path, "&" + _q(*box, f'orderByMax("{by}")'))
+            if not latest_src.ok:
+                lines += [f"newest rows failed: {latest_src.error}", ""]
+                denied |= latest_src.denied
+                continue
+            window = f"{RECENT_TEXT_DAYS} days before the newest row"
+            since = window_start(column(latest_src, time_var), info.types.get(time_var, ""))
+            recent = (fetch_csv(path, "&" + _q(*box, f"{time_var}>={since}"))
+                      if since is not None else latest_src)
         if recent.empty:
             lines += [f"No rows in the last {window}"
                       + (" near Coronado." if box else "."), ""]
@@ -548,7 +594,7 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
             denied |= recent.denied
             continue
         lines += newest_by_group(recent, group, time_var, window)
-        found_fresh |= any(not g.stale for g in latest_rows(recent, group, time_var))
+        found_fresh |= any(not g.stale for g in latest_rows(latest_src, group, time_var))
 
     if denied:
         lines.append(DENIAL_NOTE)

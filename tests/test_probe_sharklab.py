@@ -90,3 +90,12 @@ not a time,660495,det
     latest = p.latest_rows(fetched, ["hub_serial"], "device_time_utc")
     assert [(g.key, g.rows, g.newest.hour) for g in latest] == [
         (("660494",), 2, 1), (("660495",), 1, 0)]
+
+
+def test_epoch_numbers_are_read_by_their_size_and_windowed_in_kind():
+    assert p.parse_time("1761110000").year == 2025
+    assert p.parse_time("1761110000000").year == 2025
+    assert p.parse_time("660494") is None
+    assert p.window_start(["1761110000", "1761000000"], "double") == str(1761110000 - 2 * 86400)
+    assert p.window_start(["1761110000000"], "long") == str((1761110000 - 2 * 86400) * 1000)
+    assert p.window_start(["2026-10-22 01:00:00"], "String") == '"2026-10-20"'
