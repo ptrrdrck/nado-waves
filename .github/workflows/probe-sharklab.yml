@@ -14,8 +14,16 @@ name: Probe Shark Lab ERDDAP
 on:
   workflow_dispatch:
     inputs:
+      base:
+        description: "ERDDAP root URL (blank = the probe's default)"
+        required: false
+        default: ""
       dataset:
         description: "Only this datasetID (blank = every dataset)"
+        required: false
+        default: ""
+      hubs:
+        description: "Hub serials, comma-separated: read their whole history instead"
         required: false
         default: ""
 
@@ -38,11 +46,19 @@ jobs:
         # Dispatch inputs go through the environment, never interpolated into
         # the shell command.
         env:
+          BASE: ${{ inputs.base }}
           DATASET: ${{ inputs.dataset }}
+          HUBS: ${{ inputs.hubs }}
         run: |
           set -euo pipefail
           args=()
+          if [ -n "${BASE:-}" ]; then
+            args+=(--base "${BASE}")
+          fi
           if [ -n "${DATASET:-}" ]; then
             args+=(--dataset "${DATASET}")
+          fi
+          if [ -n "${HUBS:-}" ]; then
+            args+=(--hubs "${HUBS}")
           fi
           python -m collector.probe_sharklab "${args[@]}"

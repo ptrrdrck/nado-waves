@@ -36,7 +36,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from forecast import geometry
 from forecast.swell import great_circle_km
@@ -45,7 +45,10 @@ from .common import utcnow, write_step_summary
 from .ndbc import USER_AGENT
 from .probe_mop import DENIAL_NOTE
 
-BASE = "https://erddap-02.thesharklab.org/erddap"
+#: The public server its maintainer gave (2026-10-22): plain http, not https.
+#: His email spelled it "csulbshsrklab", which does not resolve (run 3). erddap-02.thesharklab.org, the address first given, resolves but
+#: accepts no connection from GitHub's runners (run 2, 2026-10-20).
+BASE = "http://erddap-public.csulbsharklab.org/erddap"
 
 #: Coronado's three breaks -- the only spots with charted positions.
 CORONADO = ("coronado_north", "coronado_center", "coronado_south")
@@ -57,11 +60,36 @@ NEAR_KM = 3.0
 #: Looking back this far for the newest rows near Coronado.
 RECENT_DAYS = 30
 
+#: The same, for a time kept as text, which ERDDAP cannot narrow with
+#: `now-`: every hub's detections in it are read, so it is kept short.
+RECENT_TEXT_DAYS = 2
+
+#: A text column with at most this many distinct values in the window is
+#: tallied (detection types, sensor types, animals).
+TALLY_MAX = 20
+
 #: Older than this and the newest row is present but not live.
 STALE_HOURS = 48.0
 
 #: Rows printed verbatim per query; the parse still reads all of them.
 SHOWN_ROWS = 8
+
+#: Positions are fetched only inside this box around the breaks, degrees: the
+#: detections dataset carries every GPS fix of every receiver, and run 4
+#: listed them all (54 MB, past the step summary's 1 MB).
+BOX_DEG = 0.2
+
+#: Positions are grouped to ~100 m, so a hub's GPS jitter reads as one place.
+CLUSTER_DECIMALS = 3
+MAX_CLUSTERS = 40
+
+#: The step summary refuses more than 1 MB.
+SUMMARY_LIMIT = 900_000
+
+#: Names the server's datasets use, found on run 4 (`Lng` in the temperatures).
+LAT_NAMES = ("latitude", "lat", "Lat", "Latitude")
+LON_NAMES = ("longitude", "lon", "Lng", "lng", "Lon", "Longitude", "long")
+GROUP_NAMES = ("hub_serial", "serial_number", "serial", "Station", "station", "receiver", "device")
 
 ALL_DATASETS_COLUMNS = (
     "datasetID", "title", "institution", "cdm_data_type", "dataStructure",
@@ -83,6 +111,7 @@ class Fetched:
     units: list[str] = field(default_factory=list)
     rows: list[list[str]] = field(default_factory=list)
     raw_head: str = ""
+    raw_tail: str = ""
     error: str = ""
 
 
@@ -122,7 +151,9 @@ def fetch_csv(path: str, query: str = "", *, timeout: float = 120.0) -> Fetched:
     result.ok = True
     result.bytes_read = len(payload)
     text = payload.decode("utf-8", errors="replace")
-    result.raw_head = "\n".join(text.splitlines()[: SHOWN_ROWS + 2])
+    text_lines = text.splitlines()
+    result.raw_head = "\n".join(text_lines[: SHOWN_ROWS + 2])
+    result.raw_tail = "\n".join(text_lines[:2] + text_lines[2:][-SHOWN_ROWS:])
     result.header, result.units, result.rows = parse_erddap_csv(text)
     return result
 
@@ -138,26 +169,28 @@ def is_timeout(exc: BaseException) -> bool:
 
 
 def reach(timeout: float = 20.0) -> tuple[list[str], bool]:
-    """Where the road stops: DNS, then a TCP connection to 443, then ERDDAP's
+    """Where the road stops: DNS, then a TCP connection to the port, then ERDDAP's
     cheapest page. Each step's answer and time, so "the server did not
     answer" says at which layer."""
 
-    host = urllib.parse.urlsplit(BASE).hostname or ""
+    parts = urllib.parse.urlsplit(BASE)
+    host = parts.hostname or ""
+    port = parts.port or (443 if parts.scheme == "https" else 80)
     lines = [f"### Reachability of {host}", ""]
     start = time.monotonic()
     try:
-        addresses = sorted({a[4][0] for a in socket.getaddrinfo(host, 443)})
+        addresses = sorted({a[4][0] for a in socket.getaddrinfo(host, port)})
     except OSError as exc:
         return lines + [f"- DNS: failed, {exc}", ""], False
     lines.append(f"- DNS: {', '.join(addresses)} ({time.monotonic() - start:.1f} s)")
     start = time.monotonic()
     try:
-        with socket.create_connection((host, 443), timeout=timeout):
+        with socket.create_connection((host, port), timeout=timeout):
             pass
     except OSError as exc:
-        return lines + [f"- TCP 443: failed after {time.monotonic() - start:.1f} s, "
+        return lines + [f"- TCP {port}: failed after {time.monotonic() - start:.1f} s, "
                         f"{exc.__class__.__name__}: {exc}", ""], False
-    lines.append(f"- TCP 443: connected ({time.monotonic() - start:.1f} s)")
+    lines.append(f"- TCP {port}: connected ({time.monotonic() - start:.1f} s)")
     start = time.monotonic()
     version = fetch_csv("version", timeout=timeout * 3)
     elapsed = time.monotonic() - start
@@ -197,9 +230,28 @@ def _is_iso_time(cell: str) -> bool:
     return parse_time(cell) is not None
 
 
+#: An epoch number's unit, read from its size: seconds have ten digits now,
+#: milliseconds thirteen. Anything else is not read as a time.
+EPOCH_SCALES = ((1e9, 1e10, 1.0), (1e12, 1e13, 1e3))
+
+
+def epoch_scale(value: float) -> float | None:
+    return next((k for lo, hi, k in EPOCH_SCALES if lo <= abs(value) < hi), None)
+
+
 def parse_time(cell: str) -> datetime | None:
     cell = cell.strip()
-    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ"):
+    try:
+        number = float(cell)
+    except ValueError:
+        number = None
+    if number is not None:
+        scale = epoch_scale(number)
+        if scale is None:
+            return None
+        return datetime.fromtimestamp(number / scale, tz=timezone.utc)
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"):
         try:
             return datetime.strptime(cell, fmt).replace(tzinfo=timezone.utc)
         except ValueError:
@@ -220,6 +272,8 @@ class DatasetInfo:
     variables: list[str] = field(default_factory=list)
     #: (variable, attribute) -> value; "NC_GLOBAL" holds the globals.
     attributes: dict[tuple[str, str], str] = field(default_factory=dict)
+    #: variable -> ERDDAP data type ("String", "double", "long", ...).
+    types: dict[str, str] = field(default_factory=dict)
 
     def station_variables(self) -> list[str]:
         """The variables that name a station, from the CF/ERDDAP cdm
@@ -245,9 +299,11 @@ def dataset_info(dataset_id: str) -> tuple[DatasetInfo, Fetched]:
     names = column(fetched, "Variable Name")
     attrs = column(fetched, "Attribute Name")
     values = column(fetched, "Value")
-    for kind, name, attr, value in zip(kinds, names, attrs, values):
+    dtypes = column(fetched, "Data Type")
+    for kind, name, attr, value, dtype in zip(kinds, names, attrs, values, dtypes):
         if kind == "variable":
             info.variables.append(name)
+            info.types[name] = dtype
         elif kind == "attribute":
             info.attributes[(name, attr)] = value
     return info, fetched
@@ -264,6 +320,66 @@ def nearest_break(lat: float, lon: float, spots: list[geometry.Spot]) -> tuple[s
     return spot_id, km
 
 
+def _pick(variables: list[str], names: tuple[str, ...]) -> str | None:
+    return next((n for n in names if n in variables), None)
+
+
+def time_variable(info: "DatasetInfo") -> str | None:
+    """`time` if there is one, else the first variable ERDDAP keeps as a time
+    ("seconds since"), else the first whose name says time."""
+
+    if "time" in info.variables:
+        return "time"
+    for v in info.variables:
+        if "since" in info.attributes.get((v, "units"), ""):
+            return v
+    return next((v for v in info.variables if "time" in v.lower()), None)
+
+
+def _box(lat_var: str, lon_var: str, points: list[tuple[float, float]],
+         pad: float) -> list[str]:
+    return [f"{lat_var}>={min(p[0] for p in points) - pad:.5f}",
+            f"{lat_var}<={max(p[0] for p in points) + pad:.5f}",
+            f"{lon_var}>={min(p[1] for p in points) - pad:.5f}",
+            f"{lon_var}<={max(p[1] for p in points) + pad:.5f}"]
+
+
+@dataclass
+class Cluster:
+    key: tuple[str, ...]
+    lat: float
+    lon: float
+    rows: int
+    spot: str
+    km: float
+
+
+def cluster_positions(fetched: Fetched, group: list[str], lat_var: str, lon_var: str,
+                      spots: list[geometry.Spot]) -> list[Cluster]:
+    """Distinct positions grouped by station and ~100 m, nearest break first.
+    A position that does not parse is left out, never placed."""
+
+    sums: dict[tuple, list[float]] = {}
+    keys = list(zip(*(column(fetched, g) for g in group))) or [()] * len(fetched.rows)
+    for key, lat, lon in zip(keys, column(fetched, lat_var), column(fetched, lon_var)):
+        try:
+            a, o = float(lat), float(lon)
+        except ValueError:
+            continue
+        if a != a or o != o:
+            continue
+        cell = (tuple(key), round(a, CLUSTER_DECIMALS), round(o, CLUSTER_DECIMALS))
+        acc = sums.setdefault(cell, [0.0, 0.0, 0])
+        acc[0] += a
+        acc[1] += o
+        acc[2] += 1
+    clusters = []
+    for (key, _, _), (a, o, n) in sums.items():
+        spot, km = nearest_break(a / n, o / n, spots)
+        clusters.append(Cluster(key, a / n, o / n, int(n), spot, km))
+    return sorted(clusters, key=lambda c: c.km)
+
+
 def _q(*parts: str) -> str:
     """Join query parts, percent-encoding what ERDDAP needs encoded."""
 
@@ -272,6 +388,95 @@ def _q(*parts: str) -> str:
 
 def _quoted(row: list[str]) -> str:
     return " | ".join(row)
+
+
+@dataclass
+class Latest:
+    key: tuple[str, ...]
+    newest: datetime
+    rows: int
+    row: list[str]
+
+    @property
+    def age_hours(self) -> float:
+        return (utcnow() - self.newest).total_seconds() / 3600
+
+    @property
+    def stale(self) -> bool:
+        return self.age_hours > STALE_HOURS
+
+
+def latest_rows(fetched: Fetched, group: list[str], time_var: str) -> list[Latest]:
+    """The newest row of each group, by the parsed time; a row whose time does
+    not parse is counted nowhere rather than guessed."""
+
+    keys = list(zip(*(column(fetched, g) for g in group))) or [()] * len(fetched.rows)
+    out: dict[tuple, Latest] = {}
+    for key, cell, row in zip(keys, column(fetched, time_var), fetched.rows):
+        stamp = parse_time(cell)
+        if stamp is None:
+            continue
+        best = out.get(tuple(key))
+        if best is None:
+            out[tuple(key)] = Latest(tuple(key), stamp, 1, row)
+            continue
+        best.rows += 1
+        if stamp > best.newest:
+            best.newest, best.row = stamp, row
+    return sorted(out.values(), key=lambda g: g.newest, reverse=True)
+
+
+def window_start(cells: list[str], dtype: str) -> str | None:
+    """The constraint value RECENT_TEXT_DAYS before the newest of `cells`, in
+    the column's own form: a quoted ISO date for text, the same epoch unit for
+    a number. None when the newest cannot be read as a time."""
+
+    stamps = [t for t in (parse_time(c) for c in cells) if t]
+    if not stamps:
+        return None
+    start = max(stamps) - timedelta(days=RECENT_TEXT_DAYS)
+    numbers = [float(c) for c in cells if _is_number(c)]
+    if not numbers:
+        return f'"{start:%Y-%m-%d}"'
+    scale = epoch_scale(max(numbers))
+    if scale is None:
+        return None
+    value = f"{start.timestamp() * scale:.0f}"
+    # An epoch kept as text (run 7: the detections' device_time_utc) compares
+    # as text, which equal-length digit strings do correctly.
+    return f'"{value}"' if dtype == "String" else value
+
+
+def newest_by_group(fetched: Fetched, group: list[str], time_var: str,
+                    window: str, tally: bool = True) -> list[str]:
+    latest = latest_rows(fetched, group, time_var)
+    unparsed = len(fetched.rows) - sum(g.rows for g in latest)
+    lines = [f"Rows in the last {window}: {len(fetched.rows)} ({fetched.bytes_read} "
+             f"bytes){f', {unparsed} with an unparseable time' if unparsed else ''}. "
+             f"Newest per {','.join(group) or 'dataset'}:", "",
+             "```", ",".join(fetched.header)]
+    for g in latest:
+        flag = " STALE" if g.stale else ""
+        lines.append(",".join(g.row) + f"   <- {g.rows} rows, {g.age_hours:.1f} h old{flag}")
+    lines += ["```", ""]
+    for name in fetched.header if tally else []:
+        if name == time_var or name in group:
+            continue
+        values = column(fetched, name)
+        distinct = set(values)
+        if 1 < len(distinct) <= TALLY_MAX and not all(_is_number(v) for v in distinct):
+            tally = sorted(((values.count(v), v) for v in distinct), reverse=True)
+            lines.append(f"- `{name}`: " + ", ".join(f"{v or '(blank)'} x{n}" for n, v in tally))
+    lines.append("")
+    return lines
+
+
+def _is_number(cell: str) -> bool:
+    try:
+        float(cell)
+    except ValueError:
+        return False
+    return True
 
 
 def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
@@ -322,68 +527,82 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
                 lines.append(f"- {key}: {value}")
         lines.append("")
 
-        if not {"latitude", "longitude"} <= set(info.variables):
-            lines += ["No latitude/longitude variables: no station positions to place.", ""]
-            continue
-
-        ids_vars = info.station_variables()
-        positions = fetch_csv(
-            f"tabledap/{urllib.parse.quote(dataset_id)}.csv",
-            _q(",".join(ids_vars + ["latitude", "longitude"]), "distinct()"),
-        )
-        if not positions.ok:
-            lines += [f"positions failed: {positions.error}", ""]
-            denied |= positions.denied
-            continue
-        lats = column(positions, "latitude")
-        lons = column(positions, "longitude")
-        near = []
-        lines += [f"Stations ({len(positions.rows)}; station variables "
-                  f"{ids_vars or 'none declared'}), nearest Coronado break:", ""]
-        for row, lat, lon in zip(positions.rows, lats, lons):
-            try:
-                spot_id, km = nearest_break(float(lat), float(lon), spots)
-            except ValueError:
-                lines.append(f"- {_quoted(row)}: position not numeric")
-                continue
-            mark = " **near**" if km <= NEAR_KM else ""
-            lines.append(f"- {_quoted(row)}: {km:.2f} km from {spot_id}{mark}")
-            if km <= NEAR_KM:
-                near.append((float(lat), float(lon)))
+        lat_var = _pick(info.variables, LAT_NAMES)
+        lon_var = _pick(info.variables, LON_NAMES)
+        time_var = time_variable(info)
+        group = info.station_variables() or (
+            [g] if (g := _pick(info.variables, GROUP_NAMES)) else [])
+        path = f"tabledap/{urllib.parse.quote(dataset_id)}.csv"
+        lines.append(f"Position `{lat_var}`/`{lon_var}`, time `{time_var}`, "
+                     f"grouped by {group or 'nothing'}.")
         lines.append("")
-        if not near or "time" not in info.variables:
-            continue
 
-        # Newest rows inside a box around the near stations, last RECENT_DAYS.
-        pad = 0.005
-        box = (min(a for a, _ in near) - pad, max(a for a, _ in near) + pad,
-               min(o for _, o in near) - pad, max(o for _, o in near) + pad)
-        recent = fetch_csv(
-            f"tabledap/{urllib.parse.quote(dataset_id)}.csv",
-            _q(f"time>=now-{RECENT_DAYS}days",
-               f"latitude>={box[0]:.5f}", f"latitude<={box[1]:.5f}",
-               f"longitude>={box[2]:.5f}", f"longitude<={box[3]:.5f}",
-               'orderByMax("time")' if not ids_vars
-               else f'orderByMax("{",".join(ids_vars)},time")'),
-        )
+        box: list[str] = []
+        if lat_var and lon_var:
+            box = _box(lat_var, lon_var, [s.position for s in spots], BOX_DEG)
+            positions = fetch_csv(path, _q(",".join(group + [lat_var, lon_var]),
+                                           *box, "distinct()"))
+            if positions.empty:
+                lines += [f"No positions within {BOX_DEG}° of the breaks.", ""]
+                continue
+            if not positions.ok:
+                lines += [f"positions failed: {positions.error}", ""]
+                denied |= positions.denied
+                continue
+            clusters = cluster_positions(positions, group, lat_var, lon_var, spots)
+            lines += [f"Positions within {BOX_DEG}° of the breaks: "
+                      f"{len(positions.rows)} distinct, in {len(clusters)} "
+                      f"clusters of ~100 m (mean position, rows, nearest break):", ""]
+            for c in clusters[:MAX_CLUSTERS]:
+                mark = " **near**" if c.km <= NEAR_KM else ""
+                lines.append(f"- {' | '.join(c.key) or '-'}: {c.lat:.5f}, {c.lon:.5f} "
+                             f"({c.rows} positions), {c.km:.2f} km from {c.spot}{mark}")
+            lines.append("")
+            near = [c for c in clusters if c.km <= NEAR_KM]
+            if not near:
+                continue
+            pad = 0.005
+            box = _box(lat_var, lon_var, [(c.lat, c.lon) for c in near], pad)
+        else:
+            lines += ["No position variables: rows are read whole, not placed.", ""]
+
+        if not time_var:
+            continue
+        erddap_time = "since" in info.attributes.get((time_var, "units"), "")
+        if erddap_time:
+            # ERDDAP's own time: narrowed on the server with `now-`.
+            window = f"{RECENT_DAYS} days"
+            recent = fetch_csv(path, "&" + _q(*box, f"{time_var}>=now-{RECENT_DAYS}days"))
+            latest_src = recent
+        else:
+            # A time ERDDAP does not know as one (run 6: device_time_utc is a
+            # number with no units). The newest row per group comes from the
+            # server's orderByMax, then the window is set back from it in the
+            # column's own terms. With no variable list, the first constraint
+            # still needs its "&" (run 5).
+            by = ",".join(group + [time_var])
+            latest_src = fetch_csv(path, "&" + _q(*box, f'orderByMax("{by}")'))
+            if not latest_src.ok:
+                lines += [f"newest rows failed: {latest_src.error}", ""]
+                denied |= latest_src.denied
+                continue
+            window = f"{RECENT_TEXT_DAYS} days before the newest row"
+            since = window_start(column(latest_src, time_var), info.types.get(time_var, ""))
+            recent = (fetch_csv(path, "&" + _q(*box, f"{time_var}>={since}"))
+                      if since is not None else latest_src)
+        if latest_src is not recent and latest_src.ok:
+            lines += newest_by_group(latest_src, group, time_var, "whole dataset",
+                                     tally=False)
         if recent.empty:
-            lines += [f"Nothing near Coronado in the last {RECENT_DAYS} days.", ""]
+            lines += [f"No rows in the last {window}"
+                      + (" near Coronado." if box else "."), ""]
             continue
         if not recent.ok:
             lines += [f"recent rows failed: {recent.error}", ""]
             denied |= recent.denied
             continue
-        times = [t for t in (parse_time(c) for c in column(recent, "time")) if t]
-        newest = max(times) if times else None
-        age_h = (utcnow() - newest).total_seconds() / 3600 if newest else None
-        stale = age_h is None or age_h > STALE_HOURS
-        found_fresh |= not stale
-        lines += [
-            f"Newest row near Coronado: {newest:%Y-%m-%d %H:%M}Z, {age_h:.1f} h old"
-            + (" (STALE)" if stale else "") if newest else "No parseable time column.",
-            f"({len(recent.rows)} rows, {recent.bytes_read} bytes; verbatim head:)", "",
-            "```", recent.raw_head, "```", "",
-        ]
+        lines += newest_by_group(recent, group, time_var, window)
+        found_fresh |= any(not g.stale for g in latest_rows(latest_src, group, time_var))
 
     if denied:
         lines.append(DENIAL_NOTE)
@@ -391,15 +610,223 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
     return lines, 0 if found_fresh else 1
 
 
+# --- The Coronado hubs' history (--hubs) ------------------------------------
+#
+# Run 8 found every hub and receiver on the server silent since 2026-10-18
+# 23:59Z, and Coronado's two lying on land. Before anything is built on them,
+# the question is what their record holds: when each was in the water, how
+# often it heard a tag, and whether any temperature came through it. So this
+# reads each hub's whole history, and prints only aggregates: tag IDs stay
+# out of a public log until the lab has said how detections may be shown.
+
+#: The server's own dataset IDs, as run 5 listed them.
+DETECTIONS = "datasets_0794_7c56_a4f4"
+HUB_STATUS = "datasets_0193_1f45_ee2a"
+RECEIVER_STATUS = "datasets_575b_8cd5_27db"
+TAGGED_SHARKS = "datasets_b8e8_5e7d_89aa"
+
+#: A fix this far seaward of its nearest break's shoreline is in the water.
+#: Run 7 put the deployed fixes ~460-480 m out and the newest ~190 m inland,
+#: so the threshold sits well clear of both.
+IN_WATER_M = 100.0
+
+#: No fix for this long splits a stretch: the hub was not reporting.
+SILENT_H = 24.0
+
+HISTORY_TIMEOUT_S = 300.0
+
+
+def seaward_m(lat: float, lon: float, spots: list[geometry.Spot]) -> float:
+    """Metres seaward of the nearest break's position along its normal;
+    negative is landward."""
+
+    import math
+
+    from forecast.swell import initial_bearing
+
+    spot = min(spots, key=lambda s: great_circle_km((lat, lon), s.position))
+    d = great_circle_km(spot.position, (lat, lon)) * 1000.0
+    if d == 0:
+        return 0.0
+    bearing = initial_bearing(spot.position, (lat, lon))
+    return d * math.cos(math.radians(bearing - spot.normal))
+
+
+@dataclass
+class Stretch:
+    in_water: bool | None   # None: no fix at all (silent)
+    start: datetime
+    end: datetime
+    fixes: int
+
+
+def stretches(fixes: list[tuple[datetime, bool]]) -> list[Stretch]:
+    """Consecutive fixes on the same side of the shoreline, a silence of
+    more than SILENT_H between two fixes its own stretch."""
+
+    out: list[Stretch] = []
+    for when, wet in sorted(fixes):
+        last = out[-1] if out else None
+        if last and (when - last.end).total_seconds() / 3600 > SILENT_H:
+            out.append(Stretch(None, last.end, when, 0))
+            last = None
+        if last and last.in_water == wet:
+            last.end, last.fixes = when, last.fixes + 1
+        else:
+            out.append(Stretch(wet, when, when, 1))
+    return out
+
+
+def lab_tags() -> set[str]:
+    """The lab's own tagged sharks as "codeSpace-ID", the detections' form."""
+
+    import ast
+
+    fetched = fetch_csv(f"tabledap/{TAGGED_SHARKS}.csv", "fullIDs")
+    tags: set[str] = set()
+    for cell in column(fetched, "fullIDs"):
+        try:
+            for entry in ast.literal_eval(cell):
+                tags.add(f"{entry['codeSpace']}-{entry['ID']}")
+        except (ValueError, SyntaxError, TypeError, KeyError):
+            continue
+    return tags
+
+
+def _constraint(info: DatasetInfo, name: str, value: str) -> str:
+    return f'{name}="{value}"' if info.types.get(name) == "String" else f"{name}={value}"
+
+
+def _fmt(t: datetime | None) -> str:
+    return f"{t:%Y-%m-%d %H:%M}Z" if t else "-"
+
+
+def hub_history(hub: str, spots: list[geometry.Spot], tags: set[str]) -> list[str]:
+    lines = [f"### Hub {hub}", ""]
+
+    info, _ = dataset_info(HUB_STATUS)
+    status = fetch_csv(f"tabledap/{HUB_STATUS}.csv",
+                       _q("device_time_utc,latitude,longitude,battery_remaining,tilt",
+                          _constraint(info, "serial_number", hub)),
+                       timeout=HISTORY_TIMEOUT_S)
+    if not status.ok:
+        return lines + [f"hub status failed: {status.error}", ""]
+    fixes: list[tuple[datetime, bool]] = []
+    for t, a, o in zip(column(status, "device_time_utc"), column(status, "latitude"),
+                       column(status, "longitude")):
+        when = parse_time(t)
+        try:
+            lat, lon = float(a), float(o)
+        except ValueError:
+            continue
+        if when is None or lat != lat or lon != lon:
+            continue
+        fixes.append((when, seaward_m(lat, lon, spots) > IN_WATER_M))
+    runs = stretches(fixes)
+    lines += [f"Status: {len(status.rows)} rows, {len(fixes)} placed fixes, "
+              f"{_fmt(min(f[0] for f in fixes) if fixes else None)} to "
+              f"{_fmt(max(f[0] for f in fixes) if fixes else None)}. "
+              f"In the water = more than {IN_WATER_M:.0f} m seaward of the "
+              f"nearest break's shoreline; a silence is over {SILENT_H:.0f} h "
+              f"without a fix.", "",
+              "| From | To | Days | State | Fixes |", "|---|---|---|---|---|"]
+    for r in runs:
+        state = {True: "in the water", False: "on land", None: "silent"}[r.in_water]
+        days = (r.end - r.start).total_seconds() / 86400
+        if r.in_water is not None and days < 0.5 and r.fixes < 20:
+            continue  # a stray fix, not a stretch; still counted below
+        lines.append(f"| {_fmt(r.start)} | {_fmt(r.end)} | {days:.1f} | {state} | {r.fixes} |")
+    wet_days = sum((r.end - r.start).total_seconds() for r in runs if r.in_water) / 86400
+    lines += ["", f"In the water {wet_days:.0f} days in all.", ""]
+
+    dinfo, _ = dataset_info(DETECTIONS)
+    det = fetch_csv(f"tabledap/{DETECTIONS}.csv",
+                    _q("device_time_utc,serial_number,full_id,sensor_type,sensor_value,sensor_unit",
+                       _constraint(dinfo, "hub_serial", hub)),
+                    timeout=HISTORY_TIMEOUT_S)
+    if det.empty:
+        return lines + ["No detection rows at all.", ""]
+    if not det.ok:
+        return lines + [f"detections failed: {det.error}", ""]
+    receivers = sorted(set(column(det, "serial_number")))
+    lines += [f"Detections: {len(det.rows)} rows, receiver(s) {', '.join(receivers)}.", ""]
+
+    months: dict[str, dict] = {}
+    sensors: dict[str, list[float]] = {}
+    units: dict[str, set[str]] = {}
+    for t, fid, stype, sval, sunit in zip(column(det, "device_time_utc"), column(det, "full_id"),
+                                          column(det, "sensor_type"), column(det, "sensor_value"),
+                                          column(det, "sensor_unit")):
+        when = parse_time(t)
+        if when is None:
+            continue
+        m = months.setdefault(f"{when:%Y-%m}", {"rows": 0, "tags": set(), "lab": set(),
+                                                 "sensor": 0, "temps": []})
+        if stype:
+            m["sensor"] += 1
+            units.setdefault(stype, set()).add(sunit)
+            if _is_number(sval):
+                sensors.setdefault(stype, []).append(float(sval))
+                if stype == "Temperature":
+                    m["temps"].append(float(sval))
+            continue
+        m["rows"] += 1
+        m["tags"].add(fid)
+        if fid in tags:
+            m["lab"].add(fid)
+    lines += ["| Month | Tag detections | Distinct tags | Of them the lab's white sharks | "
+              "Sensor rows | Temperature min / mean / max |", "|---|---|---|---|---|---|"]
+    for key in sorted(months):
+        m = months[key]
+        temps = m["temps"]
+        tt = (f"{min(temps):.1f} / {sum(temps) / len(temps):.1f} / {max(temps):.1f}"
+              if temps else "-")
+        lines.append(f"| {key} | {m['rows']} | {len(m['tags'])} | {len(m['lab'])} | "
+                     f"{m['sensor']} | {tt} |")
+    lines.append("")
+    for stype, values in sorted(sensors.items()):
+        lines.append(f"- Sensor `{stype}` ({', '.join(sorted(units[stype]))}): {len(values)} "
+                     f"readings, {min(values):.1f} to {max(values):.1f}")
+    all_tags = set().union(*(m["tags"] for m in months.values())) if months else set()
+    lines += ["", f"{len(all_tags)} distinct tags in all, "
+              f"{len(all_tags & tags)} of them in the lab's white-shark list.", ""]
+    return lines
+
+
+def history(hubs: list[str]) -> tuple[list[str], int]:
+    lines = [f"## Coronado hubs' history ({BASE})", "",
+             f"Run at {utcnow():%Y-%m-%d %H:%M}Z.", ""]
+    reached, ok = reach()
+    lines += reached
+    if not ok:
+        return lines + ["Stopped: the server was not reached."], 1
+    spots = breaks()
+    tags = lab_tags()
+    lines += [f"The lab's tag list: {len(tags)} tag IDs.", ""]
+    for hub in hubs:
+        lines += hub_history(hub, spots, tags)
+    return lines, 0
+
+
 def main(argv: list[str] | None = None) -> int:
+    global BASE
     parser = argparse.ArgumentParser(description="Probe CSULB Shark Lab's ERDDAP.")
+    parser.add_argument("--base", default=None,
+                        help=f"ERDDAP root URL, default {BASE}.")
     parser.add_argument("--dataset", action="append", default=None,
                         help="Only this datasetID (repeatable); default every one.")
+    parser.add_argument("--hubs", default="",
+                        help="Comma-separated hub serials: read their whole history "
+                             "instead of surveying the server.")
     args = parser.parse_args(argv)
-    lines, code = probe(args.dataset)
+    if args.base:
+        BASE = args.base.rstrip("/")
+    hubs = [h.strip() for h in args.hubs.split(",") if h.strip()]
+    lines, code = history(hubs) if hubs else probe(args.dataset)
     text = "\n".join(lines)
     print(text)
-    write_step_summary(text)
+    write_step_summary(text if len(text) <= SUMMARY_LIMIT
+                       else text[:SUMMARY_LIMIT] + "\n\n(cut at the summary's limit; the log has it all)")
     return code
 
 
