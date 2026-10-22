@@ -90,6 +90,20 @@ def arriving(table: Table, freq_hz: float, from_deg: float,
     return heading, e / ks2
 
 
+def crossing_share(table: Table, freq_hz: float = PERIOD_HZ) -> float:
+    """Of neighbouring rays (0.5° apart at 5 m) that both clear every edge,
+    the share whose offshore headings come in the opposite order: rays that
+    cross on the way in. A one-to-one bending gives 0; a shuffle about a half.
+    Measured with the seabed blurred ±150 m it barely moves, so it is the
+    shelf's own features, not the survey grid's noise (BRIEFING §45)."""
+
+    near = min(table.by_freq, key=lambda f: abs(f - freq_hz))
+    rays = sorted((r for r in table.by_freq[near] if r.gain > 0), key=lambda r: r.near_from)
+    pairs = [(a, b) for a, b in zip(rays, rays[1:]) if abs(b.near_from - a.near_from - 0.5) < 0.01]
+    crossed = sum(1 for a, b in pairs if (b.off_from - a.off_from + 180.0) % 360.0 - 180.0 < 0)
+    return crossed / len(pairs) if pairs else math.nan
+
+
 def table(directory: Path = TABLE_DIR) -> dict:
     """Every break's 5 m heading for each of `HEADINGS` at `PERIOD_HZ`, None
     where too little arrives; and at `COMPARE_HZ` too, for the period note."""
