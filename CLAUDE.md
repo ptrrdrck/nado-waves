@@ -819,8 +819,14 @@ forecaster actually verifies against, Surfline included.
    Morning / Midday issues): the build renders the page's own words
    (`briefingwording.render_issue`, Node) and `briefing.settle` compares the
    swell and tide lines with the newest kept line's, so a change below the
-   page's precision is no update. The conditions refresh every build without
-   one; the page redraws on a new `built_utc` and moves the time and dot only
+   page's precision is no update. **It updates most hours, and that is the
+   owner's call** (2026-10-22): over the week to then the swell sentence
+   alone changed on 139 of 170 hours (82%) — the floor/ceil range flips when
+   any break crosses a whole foot, and the lead period hops between the
+   buoy's bins (13.3 → 14.3 s), so whole seconds change nothing. 3-hour
+   medians gave 45%, 6-hour 24%; the owner kept every hour's own numbers so
+   the words always match the cards. The conditions refresh every build
+   without one; the page redraws on a new `built_utc` and moves the time and dot only
    on a new `key`. Three blocks, apart by Origin's dot: **Swell** — "Significant
    waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period" (the
    three cards' breaking heights, lowest floored and highest ceiled to whole
