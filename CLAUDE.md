@@ -972,7 +972,11 @@ forecaster actually verifies against, Surfline included.
   NEWEST cycle a 404 almost always means "not out yet" — 46232's bulletin
   lands ~5 h 25 min after the nominal time, the directory filling over an
   hour — so `live.fetch_latest` says the run is not published yet and which
-  run it is showing, rather than printing the URL.
+  run it is showing, rather than printing the URL. Its spectral tar can land
+  after the bulletin (2026-10-22 12Z), and `live.fetch_spectra` says that too;
+  no spectrum note carries a URL (it ran past the card on a phone), the build
+  log keeps it. The build's notes show on the Forecast tab only, in greys
+  under a warning triangle (owner's call, same day): LIVE is measurements.
 - **Retry what a build loses for its whole life, not what the next
   collection fetches again.** `common.retrying` (owner's request,
   2026-10-15) tries the NWS grid three times and GFS-Wave's spectral tar

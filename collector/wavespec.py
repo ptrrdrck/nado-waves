@@ -59,7 +59,12 @@ GRID_IS_TOWARD = True
 
 
 class WaveSpecError(RuntimeError):
-    pass
+    """A spectral file that could not be had. ``status`` is the HTTP code when
+    the server answered (404: the run's tar not out YET), else None."""
+
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
 
 
 @dataclass
@@ -157,7 +162,7 @@ def fetch_station_spec(
         if got is not None:
             return got
     except urllib.error.HTTPError as error:
-        raise WaveSpecError(f"{url}: HTTP {error.code}") from error
+        raise WaveSpecError(f"{url}: HTTP {error.code}", error.code) from error
     except (urllib.error.URLError, OSError, tarfile.TarError, EOFError) as error:
         raise WaveSpecError(f"{url}: {error}") from error
 

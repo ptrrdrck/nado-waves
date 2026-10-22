@@ -429,14 +429,14 @@ class TestTheSeekBar:
         if node is None:
             pytest.skip("node is not available")
         fns = ""
-        for name in ("currentHour", "adoptForecast", "firstUpcoming", "advancePastDefault",
+        for name in ("currentHour", "adoptForecast", "note", "firstUpcoming", "advancePastDefault",
                      "measuredAt", "measuredLine", "pastNearshore", "depthLabel", "depthText",
                      "compass"):
             start = SOURCE.index(f"function {name}(")
             fns += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
         prelude = (
             "let DATA = null, TIDE_BY_TIME = {}, STEPS = [], CURSOR = 0, CHOSEN = null;\n"
-            "let MEASURED = null; const FT_PER_M = 3.28084;\n"
+            "let MEASURED = null, NOTE = null, MODE = \"now\"; const FT_PER_M = 3.28084;\n"
             + CLOCK +
             "const height = (m) => m.toFixed(2) + ' m';\n"
 
@@ -3862,6 +3862,14 @@ class TestTheLogFirstGate:
         for hidden in ('"seek"', '"briefing"', '"stale"', '"warnings"'):
             assert hidden in body
         assert 'document.querySelector("nav.tabs").hidden = shut;' in body
+
+    def test_the_forecast_builds_notes_stay_off_live(self):
+        # 2026-10-22: a GFS-Wave build's note sat over the LIVE cards.
+        body = SOURCE[SOURCE.index("function note() {"):]
+        body = body[:body.index("\n}\n")]
+        assert '(MODE === "forecast" || NOTE.live)' in body
+        assert 'NOTE = notes ? {text: notes.join("  ·  "), live: false} : null;' in SOURCE
+        assert SOURCE.count('$("warnings").textContent') == 0
 
     def test_it_returns_at_coronados_midnight(self):
         assert 'stored(GATE.cleared) !== coastDay(Date.now())' in SOURCE

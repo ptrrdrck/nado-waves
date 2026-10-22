@@ -403,7 +403,15 @@ def fetch_spectra(
         text, _read = fetch_station_spec(station, cycle)
         return {r.time: r for r in parse_spec(text, limit_hours=hours)}, None
     except WaveSpecError as exc:
-        return {}, str(exc)[-120:]
+        # A 404 is the spectral tar not out yet: the bulletin can land first
+        # (2026-10-22 12Z, built at +5 h 30 min). Said in the page's words, as
+        # `fetch_latest` says a late run; any other failure as one that could
+        # not be read. Never the URL (owner's call, same day: one ran past
+        # the card on a phone) -- it goes to the build's log instead.
+        print(f"GFS-Wave spectrum: {exc}", file=sys.stderr)
+        if exc.status == 404:
+            return {}, f"GFS-Wave's {cycle:%H}Z spectrum is not published yet"
+        return {}, f"GFS-Wave's {cycle:%H}Z spectrum could not be read"
 
 
 def read_latest_wind(data_dir: Path, *, until: datetime | None = None) -> dict[str, str] | None:
@@ -673,7 +681,7 @@ def build(
     if spectra is None and use_spectra:
         spectra, reason = fetch_spectra(bulletin.cycle_utc, hours=hours)
         if reason:
-            forecast.warnings.append(f"spectral product unavailable ({reason}); using partitions")
+            forecast.warnings.append(f"{reason}; using its swell partitions.")
     spectra = spectra or {}
     forecast.wave_source = "spectrum" if spectra else "partitions"
     forecast.standing_on["model"] = (
