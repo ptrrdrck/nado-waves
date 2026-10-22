@@ -45,10 +45,10 @@ from .common import utcnow, write_step_summary
 from .ndbc import USER_AGENT
 from .probe_mop import DENIAL_NOTE
 
-#: The public server, as its maintainer gave it (2026-10-22): plain http, not
-#: https. erddap-02.thesharklab.org, the address first given, resolves but
+#: The public server its maintainer gave (2026-10-22): plain http, not https.
+#: His email spelled it "csulbshsrklab", which does not resolve (run 3). erddap-02.thesharklab.org, the address first given, resolves but
 #: accepts no connection from GitHub's runners (run 2, 2026-10-20).
-BASE = "http://erddap-public.csulbshsrklab.org/erddap"
+BASE = "http://erddap-public.csulbsharklab.org/erddap"
 
 #: Coronado's three breaks -- the only spots with charted positions.
 CORONADO = ("coronado_north", "coronado_center", "coronado_south")
@@ -65,6 +65,23 @@ STALE_HOURS = 48.0
 
 #: Rows printed verbatim per query; the parse still reads all of them.
 SHOWN_ROWS = 8
+
+#: Positions are fetched only inside this box around the breaks, degrees: the
+#: detections dataset carries every GPS fix of every receiver, and run 4
+#: listed them all (54 MB, past the step summary's 1 MB).
+BOX_DEG = 0.2
+
+#: Positions are grouped to ~100 m, so a hub's GPS jitter reads as one place.
+CLUSTER_DECIMALS = 3
+MAX_CLUSTERS = 40
+
+#: The step summary refuses more than 1 MB.
+SUMMARY_LIMIT = 900_000
+
+#: Names the server's datasets use, found on run 4 (`Lng` in the temperatures).
+LAT_NAMES = ("latitude", "lat", "Lat", "Latitude")
+LON_NAMES = ("longitude", "lon", "Lng", "lng", "Lon", "Longitude", "long")
+GROUP_NAMES = ("serial_number", "serial", "Station", "station", "receiver", "device")
 
 ALL_DATASETS_COLUMNS = (
     "datasetID", "title", "institution", "cdm_data_type", "dataStructure",
@@ -86,6 +103,7 @@ class Fetched:
     units: list[str] = field(default_factory=list)
     rows: list[list[str]] = field(default_factory=list)
     raw_head: str = ""
+    raw_tail: str = ""
     error: str = ""
 
 
@@ -125,7 +143,9 @@ def fetch_csv(path: str, query: str = "", *, timeout: float = 120.0) -> Fetched:
     result.ok = True
     result.bytes_read = len(payload)
     text = payload.decode("utf-8", errors="replace")
-    result.raw_head = "\n".join(text.splitlines()[: SHOWN_ROWS + 2])
+    text_lines = text.splitlines()
+    result.raw_head = "\n".join(text_lines[: SHOWN_ROWS + 2])
+    result.raw_tail = "\n".join(text_lines[:2] + text_lines[2:][-SHOWN_ROWS:])
     result.header, result.units, result.rows = parse_erddap_csv(text)
     return result
 
@@ -204,7 +224,8 @@ def _is_iso_time(cell: str) -> bool:
 
 def parse_time(cell: str) -> datetime | None:
     cell = cell.strip()
-    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ"):
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"):
         try:
             return datetime.strptime(cell, fmt).replace(tzinfo=timezone.utc)
         except ValueError:
@@ -269,6 +290,66 @@ def nearest_break(lat: float, lon: float, spots: list[geometry.Spot]) -> tuple[s
     return spot_id, km
 
 
+def _pick(variables: list[str], names: tuple[str, ...]) -> str | None:
+    return next((n for n in names if n in variables), None)
+
+
+def time_variable(info: "DatasetInfo") -> str | None:
+    """`time` if there is one, else the first variable ERDDAP keeps as a time
+    ("seconds since"), else the first whose name says time."""
+
+    if "time" in info.variables:
+        return "time"
+    for v in info.variables:
+        if "since" in info.attributes.get((v, "units"), ""):
+            return v
+    return next((v for v in info.variables if "time" in v.lower()), None)
+
+
+def _box(lat_var: str, lon_var: str, points: list[tuple[float, float]],
+         pad: float) -> list[str]:
+    return [f"{lat_var}>={min(p[0] for p in points) - pad:.5f}",
+            f"{lat_var}<={max(p[0] for p in points) + pad:.5f}",
+            f"{lon_var}>={min(p[1] for p in points) - pad:.5f}",
+            f"{lon_var}<={max(p[1] for p in points) + pad:.5f}"]
+
+
+@dataclass
+class Cluster:
+    key: tuple[str, ...]
+    lat: float
+    lon: float
+    rows: int
+    spot: str
+    km: float
+
+
+def cluster_positions(fetched: Fetched, group: list[str], lat_var: str, lon_var: str,
+                      spots: list[geometry.Spot]) -> list[Cluster]:
+    """Distinct positions grouped by station and ~100 m, nearest break first.
+    A position that does not parse is left out, never placed."""
+
+    sums: dict[tuple, list[float]] = {}
+    keys = list(zip(*(column(fetched, g) for g in group))) or [()] * len(fetched.rows)
+    for key, lat, lon in zip(keys, column(fetched, lat_var), column(fetched, lon_var)):
+        try:
+            a, o = float(lat), float(lon)
+        except ValueError:
+            continue
+        if a != a or o != o:
+            continue
+        cell = (tuple(key), round(a, CLUSTER_DECIMALS), round(o, CLUSTER_DECIMALS))
+        acc = sums.setdefault(cell, [0.0, 0.0, 0])
+        acc[0] += a
+        acc[1] += o
+        acc[2] += 1
+    clusters = []
+    for (key, _, _), (a, o, n) in sums.items():
+        spot, km = nearest_break(a / n, o / n, spots)
+        clusters.append(Cluster(key, a / n, o / n, int(n), spot, km))
+    return sorted(clusters, key=lambda c: c.km)
+
+
 def _q(*parts: str) -> str:
     """Join query parts, percent-encoding what ERDDAP needs encoded."""
 
@@ -327,67 +408,77 @@ def probe(dataset_ids: list[str] | None = None) -> tuple[list[str], int]:
                 lines.append(f"- {key}: {value}")
         lines.append("")
 
-        if not {"latitude", "longitude"} <= set(info.variables):
-            lines += ["No latitude/longitude variables: no station positions to place.", ""]
-            continue
-
-        ids_vars = info.station_variables()
-        positions = fetch_csv(
-            f"tabledap/{urllib.parse.quote(dataset_id)}.csv",
-            _q(",".join(ids_vars + ["latitude", "longitude"]), "distinct()"),
-        )
-        if not positions.ok:
-            lines += [f"positions failed: {positions.error}", ""]
-            denied |= positions.denied
-            continue
-        lats = column(positions, "latitude")
-        lons = column(positions, "longitude")
-        near = []
-        lines += [f"Stations ({len(positions.rows)}; station variables "
-                  f"{ids_vars or 'none declared'}), nearest Coronado break:", ""]
-        for row, lat, lon in zip(positions.rows, lats, lons):
-            try:
-                spot_id, km = nearest_break(float(lat), float(lon), spots)
-            except ValueError:
-                lines.append(f"- {_quoted(row)}: position not numeric")
-                continue
-            mark = " **near**" if km <= NEAR_KM else ""
-            lines.append(f"- {_quoted(row)}: {km:.2f} km from {spot_id}{mark}")
-            if km <= NEAR_KM:
-                near.append((float(lat), float(lon)))
+        lat_var = _pick(info.variables, LAT_NAMES)
+        lon_var = _pick(info.variables, LON_NAMES)
+        time_var = time_variable(info)
+        group = info.station_variables() or (
+            [g] if (g := _pick(info.variables, GROUP_NAMES)) else [])
+        path = f"tabledap/{urllib.parse.quote(dataset_id)}.csv"
+        lines.append(f"Position `{lat_var}`/`{lon_var}`, time `{time_var}`, "
+                     f"grouped by {group or 'nothing'}.")
         lines.append("")
-        if not near or "time" not in info.variables:
-            continue
 
-        # Newest rows inside a box around the near stations, last RECENT_DAYS.
-        pad = 0.005
-        box = (min(a for a, _ in near) - pad, max(a for a, _ in near) + pad,
-               min(o for _, o in near) - pad, max(o for _, o in near) + pad)
-        recent = fetch_csv(
-            f"tabledap/{urllib.parse.quote(dataset_id)}.csv",
-            _q(f"time>=now-{RECENT_DAYS}days",
-               f"latitude>={box[0]:.5f}", f"latitude<={box[1]:.5f}",
-               f"longitude>={box[2]:.5f}", f"longitude<={box[3]:.5f}",
-               'orderByMax("time")' if not ids_vars
-               else f'orderByMax("{",".join(ids_vars)},time")'),
-        )
+        box: list[str] = []
+        if lat_var and lon_var:
+            box = _box(lat_var, lon_var, [s.position for s in spots], BOX_DEG)
+            positions = fetch_csv(path, _q(",".join(group + [lat_var, lon_var]),
+                                           *box, "distinct()"))
+            if positions.empty:
+                lines += [f"No positions within {BOX_DEG}° of the breaks.", ""]
+                continue
+            if not positions.ok:
+                lines += [f"positions failed: {positions.error}", ""]
+                denied |= positions.denied
+                continue
+            clusters = cluster_positions(positions, group, lat_var, lon_var, spots)
+            lines += [f"Positions within {BOX_DEG}° of the breaks: "
+                      f"{len(positions.rows)} distinct, in {len(clusters)} "
+                      f"clusters of ~100 m (mean position, rows, nearest break):", ""]
+            for c in clusters[:MAX_CLUSTERS]:
+                mark = " **near**" if c.km <= NEAR_KM else ""
+                lines.append(f"- {' | '.join(c.key) or '-'}: {c.lat:.5f}, {c.lon:.5f} "
+                             f"({c.rows} positions), {c.km:.2f} km from {c.spot}{mark}")
+            lines.append("")
+            near = [c for c in clusters if c.km <= NEAR_KM]
+            if not near:
+                continue
+            pad = 0.005
+            box = _box(lat_var, lon_var, [(c.lat, c.lon) for c in near], pad)
+        else:
+            lines += ["No position variables: rows are read whole, not placed.", ""]
+
+        if not time_var:
+            continue
+        numeric_time = "since" in info.attributes.get((time_var, "units"), "")
+        constraints = list(box)
+        if numeric_time:
+            constraints.append(f"{time_var}>=now-{RECENT_DAYS}days")
+        if group:
+            constraints.append(f'orderByMax("{",".join(group)},{time_var}")')
+        elif not numeric_time:
+            constraints.append(f'orderByMax("{time_var}")')
+        recent = fetch_csv(path, _q(*constraints))
         if recent.empty:
-            lines += [f"Nothing near Coronado in the last {RECENT_DAYS} days.", ""]
+            lines += [f"No rows in the last {RECENT_DAYS} days"
+                      + (" near Coronado." if box else "."), ""]
             continue
         if not recent.ok:
             lines += [f"recent rows failed: {recent.error}", ""]
             denied |= recent.denied
             continue
-        times = [t for t in (parse_time(c) for c in column(recent, "time")) if t]
+        times = [t for t in (parse_time(c) for c in column(recent, time_var)) if t]
         newest = max(times) if times else None
         age_h = (utcnow() - newest).total_seconds() / 3600 if newest else None
         stale = age_h is None or age_h > STALE_HOURS
         found_fresh |= not stale
+        what = "latest row per " + ",".join(group) if group else "rows"
         lines += [
-            f"Newest row near Coronado: {newest:%Y-%m-%d %H:%M}Z, {age_h:.1f} h old"
-            + (" (STALE)" if stale else "") if newest else "No parseable time column.",
-            f"({len(recent.rows)} rows, {recent.bytes_read} bytes; verbatim head:)", "",
-            "```", recent.raw_head, "```", "",
+            (f"Newest `{time_var}`: {newest:%Y-%m-%d %H:%M}Z, {age_h:.1f} h old"
+             + (" (STALE)" if stale else "")) if newest
+            else f"No parseable `{time_var}` (first: {column(recent, time_var)[:1]}).",
+            f"({what}: {len(recent.rows)} rows, {recent.bytes_read} bytes; "
+            f"verbatim, header and newest {SHOWN_ROWS}:)", "",
+            "```", recent.raw_tail, "```", "",
         ]
 
     if denied:
@@ -409,7 +500,8 @@ def main(argv: list[str] | None = None) -> int:
     lines, code = probe(args.dataset)
     text = "\n".join(lines)
     print(text)
-    write_step_summary(text)
+    write_step_summary(text if len(text) <= SUMMARY_LIMIT
+                       else text[:SUMMARY_LIMIT] + "\n\n(cut at the summary's limit; the log has it all)")
     return code
 
 
