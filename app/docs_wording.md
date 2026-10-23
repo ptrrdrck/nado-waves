@@ -544,7 +544,7 @@ then the page adds its own refresh, every 5 minutes.
 | Swell, NDBC 46086 (Buoys tab) | half-hourly, stamped :20 and :50 |  |  | (12:20 PM reading) 1:15 PM, red after 2:45 PM |
 | Swell, NDBC 46047 (Buoys tab) | half-hourly, stamped :20 and :50 |  |  | (12:20 PM reading) 1:15 PM, red after 2:15 PM |
 | Wind, KNZY | hourly at :52 |  |  | (11:52 AM reading) 12:55 PM, red after 1:05 PM |
-| Tide, 9410170 | every 6 min |  |  | 12:15 PM |
+| Tide, 9410170 | every 6 min |  |  | 12:15 PM, red after 12:25 PM |
 
 It reads “Update in m:ss”, then “Update due” once the typical time has passed. Only past the late time does it turn red and say “Overdue m:ss”. The publishing lag varies from hour to hour, so one deadline would either cry wolf on every slow hour or promise a time that almost never applies. Hence two figures.
 

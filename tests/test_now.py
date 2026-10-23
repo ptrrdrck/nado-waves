@@ -9,6 +9,7 @@ HTTP 200 and rendered as current (BRIEFING §8).
 
 from __future__ import annotations
 
+import bisect
 import csv
 import json
 import math
@@ -489,6 +490,44 @@ class TestWhenEachSourceIsNextDue:
         assert now_mod.PUBLISH_LAG_LATE_MIN["swell"] == now_mod.SPECTRA_PUBLISHED_MIN[1]
         assert now_mod.next_expected("2026-09-25T04:00:00Z", "swell") == "2026-09-25T05:15:00Z"
         assert now_mod.overdue_after("2026-09-25T04:00:00Z", "swell") == "2026-09-25T05:45:00Z"
+
+    def test_the_tide_is_never_accused_before_the_archive_has_it(self):
+        """No collection at or after the tide's late deadline ever went
+        without the sample it was waiting for.
+
+        The tide file's `first_seen_utc` is the collection log: every run
+        fetches a trailing day and stamps what it adds, and a 6-minute source
+        on a 10-minute cadence gives almost every run a row. So each sample is
+        bracketed between the last run without it and the first with it, a
+        bracket wider than 12 minutes (a missed run) dropped, and the run
+        without it must have come BEFORE `overdue_after` for the reading it
+        succeeds. At 8 the archive had 34 samples absent past the late mark,
+        and the card went red on each of them (2026-10-23)."""
+
+        rows = list(csv.DictReader(Path("data/tide/9410170_observed.csv").open()))
+        if not rows:
+            pytest.skip("no tide archive")
+        parse = lambda s: datetime.strptime(s, now_mod.ISO)
+        runs = sorted({parse(r["first_seen_utc"]) for r in rows if r["first_seen_utc"]})
+        step = timedelta(minutes=6)
+
+        accused = []
+        for row in rows:
+            stamp, seen = parse(row["time_utc"]), parse(row["first_seen_utc"])
+            i = bisect.bisect_left(runs, seen)
+            if not i:
+                continue
+            absent = runs[i - 1]
+            if absent <= stamp or seen - absent > timedelta(minutes=12):
+                continue
+            late = parse(now_mod.overdue_after((stamp - step).strftime(now_mod.ISO), "tide"))
+            if absent >= late:
+                accused.append((row["time_utc"], round((absent - stamp).total_seconds() / 60, 1)))
+
+        assert not accused, (
+            f"{len(accused)} tide samples were still absent at a collection past "
+            f"their late deadline (stamp, minutes absent): {accused[:5]}"
+        )
 
     def test_no_source_is_accused_before_it_is_merely_expected(self):
         """`overdue_after` may equal `next_expected` -- at today's cadence the

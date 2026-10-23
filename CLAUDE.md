@@ -960,7 +960,7 @@ forecaster actually verifies against, Surfline included.
   took H+35.3**, so the old single value of 27 was above the typical AND below
   the worst — twelve minutes pessimistic on the common hour, promising an hourly
   source **100 minutes from stamp to screen where 80 was honest**, and still red
-  on the late one. Swell 15/36, tide 5/8, wind 3/4. n = 6 for the swell, which
+  on the late one. Swell 15/36, tide 5/10 (re-bracketed 2026-10-23 on ~6,800 samples: 8 sat inside the tail, 34 were still absent past it), wind 3/4. n = 6 for the swell, which
   is thin; revisit as the archive fills (re-bracketed 2026-10-06 on 260: 15
   holds, and 36 rounds to the H+45 run, red on 4 of 260 that came later —
   BRIEFING §39, not changed). 46047 on the Buoys tab: 25/85, its own, in
