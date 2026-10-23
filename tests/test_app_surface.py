@@ -710,10 +710,11 @@ class TestTheTwoChains:
         assert "remember(KEEP.mode, mode)" in SOURCE
         assert "remember(KEEP.swell, id)" in SOURCE
         assert "SWELL_TAB = recall(KEEP.swell)" in SOURCE
-        # The one exception is the log-first gate (owner's call, 2026-10-16):
-        # "Wave observer" belongs to the device, not the visit, so it and
-        # the day it was cleared live in localStorage, through its two
-        # helpers and nowhere else.
+        # The exceptions belong to the device, not the visit: the log-first
+        # gate (owner's call, 2026-10-16) -- "Wave observer" and the day it
+        # was cleared -- and which Briefing update was last opened (owner's
+        # request, 2026-10-22). Both live in localStorage, through the gate's
+        # two helpers and nowhere else.
         outside = SOURCE.replace(SOURCE[SOURCE.index("function stored("):SOURCE.index("const gated = ")], "")
         assert "localStorage." not in outside
 
@@ -3818,23 +3819,59 @@ class TestTheBriefing:
             assert word not in code, word
 
     def test_its_closed_line_names_no_condition(self):
-        """Owner's request, 2026-10-17: the line names the issue and when it
-        was issued, the day too when not today's, and nothing else."""
+        """Owner's request, 2026-10-22: "Briefing" and when it last updated,
+        the day too when not today's, and nothing else."""
         head = self.BLOCK[self.BLOCK.index("function briefingFold"):]
         head = head[:head.index("</div>")]
-        assert "<span>${briefIssue(B)}</span>" in head
-        line = self.BLOCK[self.BLOCK.index("function briefIssue"):]
+        assert "<span>${briefLine(B)}${dot}</span>" in head
+        line = self.BLOCK[self.BLOCK.index("function briefLine"):]
         line = line[:line.index("\n}\n")]
-        assert 'briefing <span class="count">${day}${clock(B.issued_utc)}</span>' in line
+        assert 'Briefing <span class="count">updated ${day}${clock(B.updated_utc)}</span>' in line
         for text in (head, line):
-            assert "height(" not in text and "speed(" not in text
+            assert "height(" not in text and "speed(" not in text and "briefTemp(" not in text
 
-    def test_it_is_issued_and_only_redrawn_when_a_new_issue_lands(self):
-        """Owner's request, 2026-10-17: live updating defeated its calm
-        purpose. The page swaps it only when the issue's key changes."""
+    def test_the_dot_is_the_pills_and_shows_only_on_an_unopened_update(self):
+        """The provenance pills' green `.status`, while this device has not
+        opened the fold since the update; opening it is reading it."""
+        assert "const briefDot = '<i class=\"status\"" in self.BLOCK
+        assert 'const dot = BRIEF_OPEN || !briefUnseen(B) ? "" : briefDot;' in self.BLOCK
+        assert "const briefUnseen = (B) => Boolean(B && B.key) && stored(BRIEF_SEEN) !== B.key;" in self.BLOCK
+        opened = self.BLOCK[self.BLOCK.index("function setBriefOpen"):]
+        opened = opened[:opened.index("\n}\n")]
+        assert "if (open) briefSeen();" in opened
+        assert "store(BRIEF_SEEN, BRIEFING.key);" in self.BLOCK
+        assert "if (brief && BRIEF_OPEN) briefSeen();" in SOURCE
+
+    def test_its_blocks_are_apart_by_the_cards_fold_rule(self):
+        """Owner's call, 2026-10-23: the rule the cards draw between their
+        fold-outs, no longer Origin's centred dot."""
+        rule = SOURCE[SOURCE.index(".brief-block + .brief-block{"):]
+        rule = rule[:rule.index("}")]
+        assert "border-top:1px solid var(--line)" in rule
+        assert ".brief-block + .brief-block::before" not in SOURCE
+
+    def test_its_numbers_are_ink_and_heavier_and_their_metric_grey(self):
+        """Owner's request, 2026-10-23: every number that says something
+        darker and heavier than the words round it; the brackets stay grey."""
+        assert ".brief-num{color:var(--ink);font-weight:600}" in SOURCE
+        assert ".brief-block{" in SOURCE and "color:var(--soft)" in SOURCE[
+            SOURCE.index(".brief-block{"):SOURCE.index("}", SOURCE.index(".brief-block{"))]
+        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${top.period_s.toFixed(1)} s`)",
+                     "briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)", "briefNum(`${lo}–${hi} min`)",
+                     "briefNum(`${Math.round(w.humidity_pct)}%`)", "briefNum(clock(x.valid_utc))",
+                     "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):
+            assert made in self.BLOCK, made
+        level = self.BLOCK[self.BLOCK.index("const briefLevel"):]
+        level = level[:level.index(";\n")]
+        assert "briefNum(" in level and '<span class="unit">' in level
+        assert "briefNum(" not in level[level.index('<span class="unit">'):]
+
+    def test_it_redraws_on_every_build_but_updates_only_on_its_key(self):
+        """Owner's request, 2026-10-22: the conditions refresh each build; the
+        line's time and the dot move only with an update (the build's key)."""
         refresh = SOURCE[SOURCE.index("function refreshBriefing() {"):]
         refresh = refresh[:refresh.index("\n}\n")]
-        assert "got.key === BRIEFING.key" in refresh and "generated_utc" not in refresh
+        assert "got.built_utc === BRIEFING.built_utc && got.key === BRIEFING.key" in refresh
 
     def test_it_is_closed_until_opened_and_kept_across_a_refresh(self):
         assert "let BRIEF_OPEN = false;" in SOURCE
