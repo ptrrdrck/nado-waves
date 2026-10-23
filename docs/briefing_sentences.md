@@ -45,21 +45,6 @@ SW11. At 13.3 s.  (H1)
 SW12. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
 
 
-## Conditions
-
-CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, H1, D1, Y1)
-
-CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, H1, D1, Y1)
-
-CO3. Humidity 88%, steady  (Q1, B1, C1, M1, H1, D1, Y1)
-
-CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, H1, D1, Y1)
-
-CO5. Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
-
-CO6. Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  (C1)
-
-
 ## Tides
 
 TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, H1, D1, Y1)
@@ -73,6 +58,21 @@ TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, H1, D1, Y1)
 TI5. AM low −0.7 ft (−0.21 m) at 6:40 AM  (K1)
 
 TI6. PM high 5.6 ft (1.71 m) at 1:05 PM  (K1)
+
+
+## Conditions
+
+CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, H1, D1, Y1)
+
+CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, H1, D1, Y1)
+
+CO3. Humidity 88%, steady  (Q1, B1, C1, M1, H1, D1, Y1)
+
+CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, H1, D1, Y1)
+
+CO5. Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
+
+CO6. Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  (C1)
 
 ## The cases
 

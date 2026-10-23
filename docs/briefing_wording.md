@@ -18,7 +18,8 @@ the numbers in the cases are made up, and times are Pacific.
 
 ## The formula
 
-Three blocks, always in this order, set apart by the cards' fold rule. Each
+Three blocks, always in this order (the tide above the conditions, owner's
+call, 2026-10-23), set apart by the cards' fold rule. Each
 is a fixed run of slots: a slot with no value is dropped with its joining
 words, and a block with nothing to say drops whole. Never the model: GFS-Wave
 and its ensemble are the Forecast tab's.
@@ -26,8 +27,8 @@ and its ensemble are the Forecast tab's.
 | Block | Slots, in order |
 |---|---|
 | **Swell** | Two sources, never matched to each other, each sentence a line of its own, the compass points in ink like the numbers. The beach: `{lo}–{hi} ft ({m}).` — the three breaks' breaking heights (the cards' numbers), lowest rounded down and highest rounded up to whole feet, at least one foot apart — set as a headline, the biggest breaking height each hour over 24 h a sparkline beside it. Under it, a line a train: `{point} at {T} s, {status}.` (shown `{point} at {T} s · {status}`, no trend mark), for the lead train at the break with the biggest waves and every other swell train there at ≥ 50% of its height, from any compass point (never wind sea or local chop), biggest first: the compass point it comes from OFFSHORE (its row's heading, the larger direction for a train of two; never its 5 m heading), its period, and its status — its band at CDIP 191 (the periods it holds and the offshore headings holding 90% of what it carries to the break) as energy averaged over 3 h: building (up ≥ 25% on 3 h before), fading (down ≥ 25%), peaking (the day's highest within 3 h), else holding. Then, a line each, in plain words (no ink) and ending on an `offshore` tag set as the cards' `wind sea` and `predicted` are, its point hung in the conditions' small caps, for each west (250–280°) or north-west (280–330°) swell Tanner Banks holds — found by a threefold rise in an 8–10, 10–12, 12–14 or 14–17 s band in the last 72 h, said until its energy there falls below a third of its peak: `{W / NW}, {band} s first, {trend}; due at Point Loma South around {time}, and at the breaks {lo}–{hi} min later.` (deep-water speed, then the rays' leg; BRIEFING §43), and from its first computed arrival at the breaks `{W / NW}, {band} s first, arriving since about {time}, {trend}.`, the trend at Tanner Banks now: building (up ≥ 25% over 3 h), fading (under half its peak), else peaking. A slot with no value drops with its words. If 46232 is dark: `No spectrum from CDIP 191 since {time}.` and nothing else |
-| **Conditions** | A ledger, a row each: the name in small caps, an ink arrowhead (up, down, or a dash for no change) against an earlier reading — water and air 3 h back, humidity and pressure the report before, none when there is no earlier reading — then the value, and a sparkline of its recent readings with its window. `Water {°F} ({°C})` (46232's newest, within 6 h; 14 d); `Air {°F} ({°C})` and `Humidity {n}%` (KNZY's newest, within 90 min; 24 h); `Pressure {inHg} ({hPa})` (KNZY's altimeter; 3 d); `Rain {in} ({mm}) in the last hour ({kinds}), {in} ({mm}) in 24 h`, only when either amount is above zero, and then both (a bar a day for 7 d). A tapped row says when it was read, by what, and against when. Below, each row's words are its name, value and arrow |
 | **Tides** | each of the Pacific day's predicted turns, `{AM / PM} {high / low} {height} at {time}`, with the gauge's departure as the card's turns carry it — drawn as the day's curve: the same prediction at the open coast with the departure, every 30 min from Coronado's midnight to the next and strictly that day, each turn's height by its dot (above a high, below a low; feet in ink, metric grey) and its time on the axis under it; the hours gone and their turns grey, the rest ink; a dashed `NOW` line with an open dot where the tide is now; nights faintly shaded, as the Tide card's charts are. Tapped, it says `Predicted · NOAA 9410170 · departure {±height}`. Below, each turn's words are the line it was before the curve, so the curve was no update |
+| **Conditions** | A ledger, a row each: the name in small caps, an ink arrowhead (up, down, or a dash for no change) against an earlier reading — water and air 3 h back, humidity and pressure the report before, none when there is no earlier reading — then the value, and a sparkline of its recent readings with its window. `Water {°F} ({°C})` (46232's newest, within 6 h; 14 d); `Air {°F} ({°C})` and `Humidity {n}%` (KNZY's newest, within 90 min; 24 h); `Pressure {inHg} ({hPa})` (KNZY's altimeter; 3 d); `Rain {in} ({mm}) in the last hour ({kinds}), {in} ({mm}) in 24 h`, only when either amount is above zero, and then both (a bar a day for 7 d). A tapped row says when it was read, by what, and against when. Below, each row's words are its name, value and arrow |
 
 **An update** is a change in the swell or tide words, as printed: a change
 below the page's precision is none. Each update is kept in
@@ -42,15 +43,15 @@ below the page's precision is none. Each update is kept in
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
-Water 67 °F (19.4 °C), up
-Air 61 °F (16 °C), down
-Humidity 88%, steady
-Pressure 30.05 inHg (1018 hPa)
-
 AM low 0.7 ft (0.21 m) at 3:15 AM
 AM high 5.3 ft (1.62 m) at 9:32 AM
 PM low 1.8 ft (0.55 m) at 3:48 PM
 PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
 ```
 
 ### B1: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
@@ -60,16 +61,16 @@ PM high 6.3 ft (1.92 m) at 10:05 PM
 
 2–5 ft (0.6–1.5 m). S at 18.2 s, building. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore
 
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+
 Water 67 °F (19.4 °C), up
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
 Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h
-
-AM low 0.7 ft (0.21 m) at 3:15 AM
-AM high 5.3 ft (1.62 m) at 9:32 AM
-PM low 1.8 ft (0.55 m) at 3:48 PM
-PM high 6.3 ft (1.92 m) at 10:05 PM
 ```
 
 ### C1: two sectors offshore, one arrived and fading; rain earlier in the day only
@@ -79,16 +80,16 @@ PM high 6.3 ft (1.92 m) at 10:05 PM
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, peaking. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading. offshore W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore
 
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+
 Water 67 °F (19.4 °C), up
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
 Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h
-
-AM low 0.7 ft (0.21 m) at 3:15 AM
-AM high 5.3 ft (1.62 m) at 9:32 AM
-PM low 1.8 ft (0.55 m) at 3:48 PM
-PM high 6.3 ft (1.92 m) at 10:05 PM
 ```
 
 ### M1: a mix at the biggest break: every swell train at half the lead's height or more, a line each, from any point
@@ -98,15 +99,15 @@ PM high 6.3 ft (1.92 m) at 10:05 PM
 
 3–4 ft (0.9–1.2 m). SSW at 15.4 s, fading. SSW at 14.3 s, holding. W at 10.0 s, building.
 
-Water 67 °F (19.4 °C), up
-Air 61 °F (16 °C), down
-Humidity 88%, steady
-Pressure 30.05 inHg (1018 hPa)
-
 AM low 0.7 ft (0.21 m) at 3:15 AM
 AM high 5.3 ft (1.62 m) at 9:32 AM
 PM low 1.8 ft (0.55 m) at 3:48 PM
 PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
 ```
 
 ### H1: the lead train has no heading, and no status yet: their slots drop with their words
@@ -116,15 +117,15 @@ PM high 6.3 ft (1.92 m) at 10:05 PM
 
 3–4 ft (0.9–1.2 m). At 13.3 s.
 
-Water 67 °F (19.4 °C), up
-Air 61 °F (16 °C), down
-Humidity 88%, steady
-Pressure 30.05 inHg (1018 hPa)
-
 AM low 0.7 ft (0.21 m) at 3:15 AM
 AM high 5.3 ft (1.62 m) at 9:32 AM
 PM low 1.8 ft (0.55 m) at 3:48 PM
 PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
 ```
 
 ### D1: 46232 dark: the swell says so and nothing else
@@ -134,15 +135,15 @@ PM high 6.3 ft (1.92 m) at 10:05 PM
 
 No spectrum from CDIP 191 since Oct 21, 3:00 PM.
 
-Water 67 °F (19.4 °C), up
-Air 61 °F (16 °C), down
-Humidity 88%, steady
-Pressure 30.05 inHg (1018 hPa)
-
 AM low 0.7 ft (0.21 m) at 3:15 AM
 AM high 5.3 ft (1.62 m) at 9:32 AM
 PM low 1.8 ft (0.55 m) at 3:48 PM
 PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
 ```
 
 ### K1: no water temperature, no KNZY report, a minus tide
@@ -163,15 +164,15 @@ PM high 5.6 ft (1.71 m) at 1:05 PM
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
-Water 67 °F (19.4 °C), up
-Air 61 °F (16 °C), down
-Humidity 88%, steady
-Pressure 30.05 inHg (1018 hPa)
-
 AM low 0.7 ft (0.21 m) at 3:15 AM
 AM high 5.3 ft (1.62 m) at 9:32 AM
 PM low 1.8 ft (0.55 m) at 3:48 PM
 PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
 ```
 
 ### X1: nothing built yet

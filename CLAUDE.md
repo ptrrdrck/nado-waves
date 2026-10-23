@@ -828,7 +828,9 @@ forecaster actually verifies against, Surfline included.
    the words always match the cards. The conditions refresh every build
    without one; the page redraws on a new `built_utc` and moves the time and dot only
    on a new `key`. Three blocks, apart by the cards' fold rule (owner's call,
-   2026-10-23, replacing Origin's dot), every number that says something in
+   2026-10-23, replacing Origin's dot) — Swell, Tides, then Conditions (the
+   tide moved above the conditions, owner's call, same day; described below
+   in their earlier order), every number that says something in
    ink and heavier, the metric in brackets grey (`briefNum`): **Swell** (owner's
    wording and calls, 2026-10-23), TWO SOURCES never matched to each other.
    Each swell sentence a line of its own, 6 px apart, the beach's compass

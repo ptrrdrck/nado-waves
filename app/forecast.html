@@ -145,8 +145,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    page's backdrop above the LIVE cards, in a fold of its own -- not a card:
    no border, no fill, its line the Charts line's weight with the same caret
    and, while an update is unread, the provenance pills' green dot. Open,
-   three blocks in a 15 px grey -- the swell as running sentences, the
-   conditions and the tides a line each -- apart by the cards' fold rule
+   three blocks in a 15 px grey -- the swell, the day's tide, then the
+   conditions -- apart by the cards' fold rule
    (owner's call, 2026-10-23, replacing Origin's dot). Its numbers are ink
    and heavier than the words round them, the metric in brackets left grey
    (same day). */
@@ -1610,8 +1610,9 @@ const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: tru
 // pills' `.status`) while that update is one this device has not opened; the
 // fold opened, the dot goes. It updates only when its swell or tide words
 // change (the build decides, on the words below); the conditions refresh
-// without an update. Open: the swell in two sentences, the conditions one a
-// line, the day's tides one a line, three blocks apart by the cards' fold
+// without an update. Open: the swell, the day's tide as a curve, then the
+// conditions one a line (owner's call, 2026-10-23: the tide above the
+// conditions), three blocks apart by the cards' fold
 // rule; every number that says something in ink and heavier (`briefNum`).
 // Never the model: GFS-Wave is the Forecast tab's.
 // Tanner Banks' sectors by their points, each line tagged "offshore"
@@ -1908,7 +1909,7 @@ function fitBriefTide() {
 // Every block in the fold's order; an empty block drops.
 function briefingParts(B) {
   if (!B || !B.available) return null;
-  return {swell: briefSwell(B), conditions: briefConditions(B), tides: briefTides(B)};
+  return {swell: briefSwell(B), tides: briefTides(B), conditions: briefConditions(B)};
 }
 
 // The fold's line: "Briefing", when it last updated (the day too when not
@@ -1942,7 +1943,8 @@ function briefSeen() {
 function briefingFold(B) {
   const parts = briefingParts(B);
   if (!parts) return "";
-  const blocks = [parts.swell, parts.conditions, parts.tides].filter((b) => b.length);
+  // The tide above the conditions (owner's call, 2026-10-23).
+  const blocks = [parts.swell, parts.tides, parts.conditions].filter((b) => b.length);
   if (!blocks.length) return "";
   const dot = BRIEF_OPEN || !briefUnseen(B) ? "" : briefDot;
   return `<div class="chart-head" data-brief-head><span>${briefLine(B)}${dot}</span><button
