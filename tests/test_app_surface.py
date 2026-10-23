@@ -3856,7 +3856,7 @@ class TestTheBriefing:
         assert ".brief-num{color:var(--ink);font-weight:600}" in SOURCE
         assert ".brief-block{" in SOURCE and "color:var(--soft)" in SOURCE[
             SOURCE.index(".brief-block{"):SOURCE.index("}", SOURCE.index(".brief-block{"))]
-        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${top.period_s.toFixed(1)} s`)",
+        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${t.period_s.toFixed(1)} s`)",
                      "briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)", "briefNum(`${lo}–${hi} min`)",
                      "briefNum(`${Math.round(w.humidity_pct)}%`)", "briefNum(clock(x.valid_utc))",
                      "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):

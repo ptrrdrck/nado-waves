@@ -40,14 +40,26 @@ def test_the_line_names_the_update_and_no_condition(cases):
 
 
 def test_the_swell_reads_as_the_owner_wrote_it(cases):
-    """Owner's wording, 2026-10-23."""
-    assert cases["Q1"]["swell"] == ["3–4 ft (0.9–1.2 m) from the SSW at 13.3 s."]
-    assert cases["B1"]["swell"][1] == ("West swell (250–280°) offshore, 10–12 s first; due "
+    """Owner's wording and calls, 2026-10-23: the beach, then what Tanner
+    Banks holds, each ending on its trend."""
+    assert cases["Q1"]["swell"] == ["3–4 ft (0.9–1.2 m) from the SSW at 13.3 s, and holding."]
+    assert cases["B1"]["swell"][1] == ("West swell (250–280°) offshore, 10–12 s first, and building; due "
                                        "at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.")
 
 
+def test_a_swell_that_has_reached_the_breaks_is_arriving(cases):
+    assert cases["C1"]["swell"][1] == ("North-west swell (280–330°) offshore, 14–17 s first, "
+                                       "arriving since about Oct 21, 7:29 PM, and fading.")
+    assert cases["C1"]["swell"][2].endswith("and building; due at Point Loma South around 1:32 PM, "
+                                            "and at the breaks 39–53 min later.")
+
+
+def test_a_mix_names_the_second_train_from_another_point(cases):
+    assert cases["M1"]["swell"] == ["3–4 ft (0.9–1.2 m) from the SSW at 15.4 s and the W at 10.0 s, and fading."]
+
+
 def test_the_range_spans_all_three_breaks_and_the_heading_and_period_are_the_biggest_breaks(cases):
-    assert cases["B1"]["swell"][0] == "2–5 ft (0.6–1.5 m) from the S at 18.2 s."
+    assert cases["B1"]["swell"][0] == "2–5 ft (0.6–1.5 m) from the S at 18.2 s, and building."
 
 
 def test_a_lead_train_with_no_heading_drops_its_slot(cases):

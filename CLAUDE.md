@@ -830,17 +830,38 @@ forecaster actually verifies against, Surfline included.
    on a new `key`. Three blocks, apart by the cards' fold rule (owner's call,
    2026-10-23, replacing Origin's dot), every number that says something in
    ink and heavier, the metric in brackets grey (`briefNum`): **Swell** (owner's
-   wording, 2026-10-23) — "3–4 ft (0.9–1.2 m) from the SSW at 13.3 s." (the
+   wording and calls, 2026-10-23), TWO SOURCES never matched to each other.
+   The beach: "3–4 ft (0.9–1.2 m) from the SSW at 13.3 s, and building." (the
    three cards' breaking heights, lowest floored and highest ceiled to whole
    feet, at least a foot apart; then the lead train's compass point and
    period at the break with the biggest — the point its row's OFFSHORE
    heading, the larger direction of a two-direction train, never its 5 m
-   one (owner's call, same day; `briefing.lead_heading`); metric in brackets
-   by the units rule), then each 46047 west / north-west rise in the last
-   24 h, its first band, due by deep-water speed and the rays' leg (§43,
-   kept until 6 h after due at the last break): "West swell (250–280°)
-   offshore, 10–12 s first; due at Point Loma South around 1:33 PM, and at
-   the breaks 39–53 min later."; a dark 46232 says so and nothing else.
+   one (`briefing.lead_heading`) — and " and the W at 10.0 s" for a second
+   swell train there at ≥ 70% of its height from another point
+   (`MIX_SHARE`, `mix_trains`; never wind sea or chop); then the biggest
+   breaking height's trend, series.json's hours as energy over a trailing
+   3 h (`beach_trend`): building ≥ +25% on 3 h before, fading ≤ −25%,
+   peaking when the day's highest came within 3 h, else holding — measured
+   over the ~850 archive hours with a breaking height (from 17 Sep):
+   holding 67%, peaking 16%, building 11%, fading 4%; metric in brackets by
+   the units rule). Offshore, each 46047 west / north-west swell: FOUND by a
+   ×3 rise (§43's three bands plus 8–10 s, owner's request, whose lag §43
+   did not check) in the last 72 h, its bands the newest rise and each
+   LONGER band's newest rise before it within 24 h (`disperse`: long periods
+   lead), and SAID while Tanner Banks holds it — until its sector's 8–17 s
+   energy falls under a third of its peak since it began (owner's call:
+   the rise run in reverse; it replaced the 6 h-after-due keep, which
+   dropped a west swell still running on 23 Oct): "West swell (250–280°)
+   offshore, 10–12 s first, and building; due at Point Loma South around
+   1:33 PM, and at the breaks 39–53 min later.", and from its first computed
+   arrival at the breaks "…, 10–12 s first, arriving since about 2:30 PM, and
+   peaking." — "arriving since" is the computed time, never a measured
+   arrival (§43), and the trend is Tanner Banks' NOW: building ≥ +25% on
+   3 h before, fading under half its peak, else peaking. Every 3 h over the
+   archive a west sentence showed on 82% of moments and a north-west on 80%,
+   arrived on 94%. SW at Tanner Banks is never said (owner's call): it is not
+   upstream of the breaks for a south swell. A dark 46232 says so and nothing
+   else.
    **Conditions**, a line each — 46232's water temperature (≤ 6 h: its standard
    met reaches the archive on collect.yml's throttled schedule, a median
    2.7 h old), KNZY's air

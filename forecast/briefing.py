@@ -7,15 +7,21 @@ Owner's request, 2026-10-16, reshaped 2026-10-17 and again 2026-10-22: a
 short read in a fold above the LIVE cards. Built every collection; it
 UPDATES only when what it says about the swell or the tide changes:
 
-- **Swell**, two sentences (owner's wording, 2026-10-23). "3–4 ft
-  (0.9–1.2 m) from the SSW at 13.3 s": the breaking height at the three
-  breaks, lowest to highest in whole feet, then the offshore heading and
-  the period of the biggest train at the break with the biggest waves (the
-  cards' own numbers; the heading the train row's, not its 5 m one). Then
-  46047's west or north-west rise, due at 46232 and the breaks by
+- **Swell**, two sentences (owner's wording and calls, 2026-10-23), a
+  summary of two sources that are never matched to each other. The beach,
+  from 46232's chain: "3–4 ft (0.9–1.2 m) from the SSW at 13.3 s, and
+  building." — the breaking height at the three breaks, lowest to highest
+  in whole feet; the offshore heading and period of the biggest train at the
+  break with the biggest waves (the cards' own numbers; the heading the train
+  row's, not its 5 m one), and a second swell train there from another
+  point at ≥ `MIX_SHARE` of its height (`also`); then the biggest breaking
+  height's trend (`beach_trend`). Offshore, at 46047: each west or
+  north-west swell found by its rise and said for as long as Tanner Banks
+  still holds it (`upstream_story`), due at 46232 and the breaks by
   deep-water speed (`forecast.upstreamlag`, BRIEFING §43): "West swell
-  (250–280°) offshore, 10–12 s first; due at Point Loma South around
-  1:33 PM, and at the breaks 39–53 min later."
+  (250–280°) offshore, 10–12 s first, and building; due at Point Loma South
+  around 1:33 PM, and at the breaks 39–53 min later.", then from its first
+  arrival "…, 10–12 s first, arriving since about 2:30 PM, and peaking."
 - **Conditions**, refreshed every collection without counting as an
   update: 46232's water temperature (`WATER_FRESH_H`), KNZY's air
   temperature and humidity,
@@ -78,10 +84,42 @@ WATER_FRESH_H = 6.0
 #: The rolling precipitation total.
 PRECIP_DAY_H = 24
 
-#: 46047's rises are read this far back; each is kept until this long after
-#: its swell was due at the last break (`upstream_story`).
-UPSTREAM_LOOKBACK_H = 24.0
-UPSTREAM_KEEP_H = 6.0
+#: 46047's rises FIND a swell; its presence keeps it (owner's call,
+#: 2026-10-23). A rise is looked for this far back, and the swell is said
+#: until Tanner Banks' energy from its sector over all the bands falls
+#: below UPSTREAM_GONE_SHARE of its peak since it began (the rise factor of
+#: 3, run in reverse); "fading" once under UPSTREAM_FADING_SHARE.
+UPSTREAM_LOOKBACK_H = 72.0
+UPSTREAM_GONE_SHARE = 1.0 / 3.0
+UPSTREAM_FADING_SHARE = 0.5
+
+#: The bands a rise is looked for in: §43's three (`upstreamlag.BANDS_S`),
+#: and 8–10 s (owner's request, 2026-10-23), whose lag the archive check
+#: there did not cover. A test pins the three to upstreamlag's.
+UPSTREAM_BANDS_S = ((8.0, 10.0), (10.0, 12.0), (12.0, 14.0), (14.0, 17.0))
+
+#: Rises in a sector's longer bands within this before its newest are one
+#: swell (`disperse`): a dispersed swell's long periods lead its short ones,
+#: by hours from a near storm and a day or more from a far one.
+UPSTREAM_GROUP_H = 24.0
+
+#: The trend words (owner's calls, 2026-10-23), in energy, over the last
+#: TREND_H: up by BUILDING_RATIO is "building", down to FADING_RATIO
+#: "fading". At the beach, of the biggest breaking height smoothed over
+#: TREND_H: else "peaking" when its highest in PEAK_OVER_H came within
+#: TREND_H, else "holding". At Tanner Banks: building, else fading under
+#: UPSTREAM_FADING_SHARE of the peak, else peaking.
+TREND_H = 3.0
+BUILDING_RATIO = 1.25
+FADING_RATIO = 0.75
+PEAK_OVER_H = 24.0
+#: The beach's day must hold this share of its hours to say "peaking".
+PEAK_COVER = 0.75
+
+#: A second swell train at the biggest break is named beside the lead when
+#: it holds this share of the lead's height and comes from another compass
+#: point (owner's call, 2026-10-23; never wind sea or local chop).
+MIX_SHARE = 0.7
 
 
 def _utc(stamp: str | None) -> datetime | None:
@@ -248,12 +286,22 @@ def water_now(data_dir: Path, at: datetime, station: str = "46232") -> dict | No
 
 # ------------------------------------------------------------------ swell
 
-def upstream_story(data_dir: Path, buoys: dict | None, since: datetime, at: datetime,
-                   spectra=None) -> list[dict]:
-    """46047's west and north-west sectors over the window: one entry per
-    sector that rose, its bands earliest first (a dispersed swell's long
-    periods lead), each band when it rose and when deep water puts it at
-    46232 and the breaks (BRIEFING §43)."""
+def _value_near(ser: list[tuple[datetime, float]], t: datetime, within_h: float) -> float | None:
+    """The value at the stamp nearest `t`, if one is within `within_h`."""
+
+    if not ser:
+        return None
+    tt, v = min(ser, key=lambda p: abs((p[0] - t).total_seconds()))
+    return v if abs((tt - t).total_seconds()) <= within_h * 3600.0 else None
+
+
+def upstream_story(data_dir: Path, buoys: dict | None, at: datetime, spectra=None) -> list[dict]:
+    """46047's west and north-west swells: one entry per sector holding a
+    swell that rose in the last UPSTREAM_LOOKBACK_H and is still there, its
+    bands earliest first (a dispersed swell's long periods lead), each band
+    when it rose and when deep water puts it at 46232 and the breaks
+    (BRIEFING §43); its first arrival at the breaks, and its trend at Tanner
+    Banks now."""
 
     from . import upstreamlag as ul
 
@@ -266,18 +314,33 @@ def upstream_story(data_dir: Path, buoys: dict | None, since: datetime, at: date
             spectra = load_spectra(Path(data_dir) / "spectra" / UPSTREAM)
         except (FileNotFoundError, ValueError):
             return []
+    since = at - timedelta(hours=UPSTREAM_LOOKBACK_H)
     recent = [s.with_spread("mem") for s in spectra
               if since - timedelta(hours=ul.RISE_WITHIN_H) <= s.time <= at]
+    whole_band = (UPSTREAM_BANDS_S[0][0], UPSTREAM_BANDS_S[-1][1])
     out = []
     for sector in ul.TIMED:
         heading = sum(ul.SECTORS[sector]) / 2.0
-        bands = []
-        for band in ul.BANDS_S:
+        risen = {}
+        for band in UPSTREAM_BANDS_S:
             smoothed = ul.smooth_log(ul.series(recent, band, ul.SECTORS[sector]), ul.SMOOTH_ONSET_H)
-            risen = [r for r in ul.rises(smoothed) if r.mid >= since]
-            if not risen:
-                continue
-            rise = risen[0]
+            risen[band] = [r for r in ul.rises(smoothed) if since - timedelta(hours=UPSTREAM_GROUP_H) <= r.mid <= at]
+        swell = disperse(risen, since)
+        if not swell:
+            continue
+        start = min(r.start for _, r in swell)
+        held = [(t, math.exp(v)) for t, v in ul.smooth_log(ul.series(recent, whole_band, ul.SECTORS[sector]),
+                                                           ul.SMOOTH_ONSET_H) if t >= start]
+        if not held:
+            continue
+        peak, now_e = max(v for _, v in held), held[-1][1]
+        if now_e < peak * UPSTREAM_GONE_SHARE:
+            continue
+        before = _value_near(held, held[-1][0] - timedelta(hours=TREND_H), 0.75)
+        trend = ("building" if before and now_e / before >= BUILDING_RATIO
+                 else "fading" if now_e < peak * UPSTREAM_FADING_SHARE else "peaking")
+        bands = []
+        for band, rise in swell:
             period = sum(band) / 2.0
             lag = ul.deep_water_lag_h(period, heading)
             at_buoy = rise.mid + timedelta(hours=lag)
@@ -289,15 +352,74 @@ def upstream_story(data_dir: Path, buoys: dict | None, since: datetime, at: date
             bands.append({"band_s": list(band), "since_utc": _iso(_minute(rise.mid)),
                           "factor": round(rise.factor, 1), "lag_h": round(lag, 1),
                           "due_buoy_utc": _iso(_minute(at_buoy)), "legs": legs})
-        if not bands:
-            continue
         bands.sort(key=lambda b: b["since_utc"])
-        latest = max(_utc(b["due_buoy_utc"]) + timedelta(minutes=max((l["hi_min"] for l in b["legs"]), default=0))
-                     for b in bands)
-        if at - latest > timedelta(hours=UPSTREAM_KEEP_H):
-            continue
-        out.append({"sector": sector, "sector_deg": list(ul.SECTORS[sector]), "bands": bands})
+        first = bands[0]
+        arrives = _utc(first["due_buoy_utc"]) + timedelta(
+            minutes=min((l["lo_min"] for l in first["legs"]), default=0))
+        out.append({"sector": sector, "sector_deg": list(ul.SECTORS[sector]), "bands": bands,
+                    "arrives_utc": _iso(arrives), "trend": trend,
+                    "peak_m2": round(peak, 5), "now_m2": round(now_e, 5), "read_utc": _iso(held[-1][0])})
     return out
+
+
+def disperse(risen: dict, since: datetime) -> list[tuple[tuple[float, float], object]]:
+    """One swell from each band's rises, as dispersion orders it: the newest
+    rise since `since`, then each LONGER band's newest rise before the one
+    already taken, within UPSTREAM_GROUP_H of the newest; a band that did
+    not rise on its own is passed over (its energy rode in under its
+    neighbours'). A shorter band that
+    rose earlier is another swell (a dispersed swell's long periods lead),
+    and so is a longer band that rose later."""
+
+    newest = max(((b, r) for b, rs in risen.items() for r in rs if r.mid >= since),
+                 key=lambda br: br[1].mid, default=None)
+    if newest is None:
+        return []
+    swell, (band, rise) = [newest], newest
+    limit = rise.mid - timedelta(hours=UPSTREAM_GROUP_H)
+    for longer in sorted((b for b in risen if b[0] > band[0]), key=lambda b: b[0]):
+        earlier = [r for r in risen[longer] if limit <= r.mid <= swell[-1][1].mid]
+        if earlier:
+            swell.append((longer, earlier[-1]))
+    return swell
+
+
+def beach_trend(steps: list[dict]) -> str | None:
+    """Building, fading, peaking or holding: the biggest of the three breaks'
+    breaking heights each hour (the series the charts draw), as energy
+    averaged over the trailing TREND_H. None without the hour TREND_H back."""
+
+    pts = []
+    for st in steps or []:
+        if st.get("gap") or st.get("pending"):
+            continue
+        hs = [((st.get("breaks") or {}).get(b) or {}).get("hs_m") for b in BREAKS]
+        hs = [h for h in hs if h is not None]
+        if hs:
+            pts.append((_utc(st["valid_utc"]), max(hs) ** 2))
+    if not pts:
+        return None
+    newest = pts[-1][0]
+    pts = [p for p in pts if p[0] > newest - timedelta(hours=PEAK_OVER_H + TREND_H)]
+    span = timedelta(hours=TREND_H - 1.0)
+    smooth = []
+    for t, _ in pts:
+        w = [v for tt, v in pts if t - span <= tt <= t]
+        smooth.append((t, sum(w) / len(w)))
+    now_e = smooth[-1][1]
+    before = next((v for t, v in smooth if t == newest - timedelta(hours=TREND_H)), None)
+    if before is None:
+        return None
+    if now_e / before >= BUILDING_RATIO:
+        return "building"
+    if now_e / before <= FADING_RATIO:
+        return "fading"
+    day = [(t, v) for t, v in smooth if t > newest - timedelta(hours=PEAK_OVER_H)]
+    if len(day) >= PEAK_COVER * PEAK_OVER_H:
+        top = max(day, key=lambda p: p[1])[0]
+        if top >= newest - timedelta(hours=TREND_H):
+            return "peaking"
+    return "holding"
 
 
 def _minute(t: datetime) -> datetime:
@@ -315,24 +437,47 @@ def lead_heading(site: dict) -> float | None:
     trains = site.get("trains") or []
     if not trains:
         return site.get("peak_direction_deg")
-    lobes = trains[0].get("lobes") or []
-    return lobes[0][0] if len(lobes) >= 2 else trains[0].get("from_deg")
+    return _heading(trains[0])
 
 
-def swell_story(now: dict, buoys: dict | None, at: datetime, data_dir: Path) -> dict:
+def _heading(train: dict) -> float | None:
+    lobes = train.get("lobes") or []
+    return lobes[0][0] if len(lobes) >= 2 else train.get("from_deg")
+
+
+def mix_trains(site: dict) -> list[dict]:
+    """The break's other swell trains at ≥ MIX_SHARE of its lead train's
+    height, biggest first, never wind sea or local chop: the page names the
+    first from another compass point beside the lead (owner's call,
+    2026-10-23)."""
+
+    trains = site.get("trains") or []
+    if not trains or not trains[0].get("hs_m"):
+        return []
+    lead = trains[0]["hs_m"]
+    return [{"period_s": t.get("period_s"), "from_deg": _heading(t), "hs_m": t.get("hs_m")}
+            for t in trains[1:]
+            if not t.get("wind_sea") and (t.get("hs_m") or 0) >= MIX_SHARE * lead and _heading(t) is not None]
+
+
+def swell_story(now: dict, buoys: dict | None, at: datetime, data_dir: Path,
+                series: dict | None = None) -> dict:
     """The breaking height and lead train's period and heading at each break,
-    as the cards show them, and 46047's rises."""
+    as the cards show them, with any second train of a mix; the beach's
+    trend; and 46047's swells."""
 
     newest = _utc(now.get("observed_utc"))
     if now.get("stale") or newest is None:
         return {"dark": True, "newest_utc": _iso(newest)}
     breaks = [{"id": b["id"], "hs_m": b.get("hs_nearshore_m"), "period_s": b.get("peak_period_s"),
-               "from_deg": lead_heading(b)}
+               "from_deg": lead_heading(b), "also": mix_trains(b)}
               for b in now.get("breaks", []) if b.get("id") in BREAKS]
-    coming = upstream_story(data_dir, buoys, at - timedelta(hours=UPSTREAM_LOOKBACK_H), at)
+    coming = upstream_story(data_dir, buoys, at)
     return {"dark": False, "newest_utc": _iso(newest),
             "breaks": [b for b in breaks if b["hs_m"] is not None],
-            "coming": [{"sector": c["sector"], "sector_deg": c["sector_deg"], **c["bands"][0]} for c in coming]}
+            "trend": beach_trend((series or {}).get("steps") or []),
+            "coming": [{"sector": c["sector"], "sector_deg": c["sector_deg"], **c["bands"][0],
+                        "arrives_utc": c["arrives_utc"], "trend": c["trend"]} for c in coming]}
 
 
 # ------------------------------------------------------------------ tide
@@ -373,7 +518,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None,
         "built_utc": built, "available": True,
         "station": now.get("station"), "station_cdip": now.get("station_cdip"),
         "station_names": origin.get("station_names") or {},
-        "swell": swell_story(now, _read(live / "buoys.json"), at, Path(data_dir)),
+        "swell": swell_story(now, _read(live / "buoys.json"), at, Path(data_dir), _read(live / "series.json")),
         "conditions": {"water": water_now(Path(data_dir), at), "weather": weather_now(Path(data_dir), at)},
         "tide": tide_story(now, Path(data_dir), at),
     }

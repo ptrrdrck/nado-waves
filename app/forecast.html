@@ -1529,11 +1529,16 @@ const briefLevel = (m) => `${briefNum(briefMinus(`${(m * FT_PER_M).toFixed(1)} f
 const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
   ? bareName(B.station_names[id]) : feedName(id, cdip));
 
-// The swell (owner's wording, 2026-10-23): the breaking heights at the
-// three breaks as one whole-foot range, then where the biggest train at the
-// break with the biggest waves comes from offshore (its row's heading, never
-// the 5 m one) and its period; then each 46047 rise, due by deep-water speed
-// (BRIEFING §43). A slot with no value drops with its words.
+// The swell (owner's wording and calls, 2026-10-23): two sources, never
+// matched to each other. The beach: the breaking heights at the three
+// breaks as one whole-foot range, then where the biggest train at the break
+// with the biggest waves comes from offshore (its row's heading, never the
+// 5 m one) and its period, and a second swell train there from another point
+// at 70% of its height or more (`also`); then the biggest breaking height's
+// trend. Offshore: each west or north-west swell Tanner Banks holds, due by
+// deep-water speed (BRIEFING §43) until it has arrived at the breaks, then
+// "arriving since" -- judged at the build, so the words are the build's --
+// and its trend there. A slot with no value drops with its words.
 function briefSwell(B) {
   const s = B.swell || {};
   if (s.dark) {
@@ -1546,19 +1551,28 @@ function briefSwell(B) {
     const ft = rows.map((r) => r.hs_m * FT_PER_M);
     const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
     const top = rows.reduce((a, r) => (r.hs_m > a.hs_m ? r : a));
+    const lead = top.from_deg != null ? point(top.from_deg) : null;
+    const mix = lead && (top.also || []).find((t) => point(t.from_deg) !== lead);
+    const at = (t) => (t.period_s != null ? ` at ${briefNum(`${t.period_s.toFixed(1)} s`)}` : "");
     out.push(`${briefNum(`${lo}–${hi}\u00a0ft`)} <span class="unit">`
       + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span>`
-      + (top.from_deg != null ? ` from the ${point(top.from_deg)}` : "")
-      + (top.period_s != null ? ` at ${briefNum(`${top.period_s.toFixed(1)} s`)}` : "")
-      + ".");
+      + (lead ? ` from the ${lead}` : "") + at(top)
+      + (mix ? ` and the ${point(mix.from_deg)}${at(mix)}` : "")
+      + (s.trend ? `, and ${s.trend}` : "") + ".");
   }
   for (const c of s.coming || []) {
     const legs = c.legs || [];
     const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
-    out.push(`${BRIEF_SECTOR[c.sector] || c.sector} swell (${briefNum(`${c.sector_deg[0]}–${c.sector_deg[1]}°`)}) `
-      + `offshore, ${briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)} first; `
-      + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefWhen(c.due_buoy_utc, B)}`
-      + (legs.length ? `, and at the breaks ${briefNum(`${lo}–${hi} min`)} later` : "") + ".");
+    const head = `${BRIEF_SECTOR[c.sector] || c.sector} swell (${briefNum(`${c.sector_deg[0]}–${c.sector_deg[1]}°`)}) `
+      + `offshore, ${briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)} first`;
+    const trend = c.trend ? `, and ${c.trend}` : "";
+    if (c.arrives_utc && Date.parse(c.arrives_utc) <= Date.parse(B.built_utc)) {
+      out.push(`${head}, arriving since about ${briefWhen(c.arrives_utc, B)}${trend}.`);
+    } else {
+      out.push(`${head}${trend}; `
+        + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefWhen(c.due_buoy_utc, B)}`
+        + (legs.length ? `, and at the breaks ${briefNum(`${lo}–${hi} min`)} later` : "") + ".");
+    }
   }
   return out;
 }

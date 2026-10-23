@@ -15,31 +15,35 @@ the page will read as the page's again until that happens. The formula is in
 
 ## The fold's line
 
-- Briefing updated 7:16 AM  (Q1, B1, C1, H1, D1, K1)
+- Briefing updated 7:16 AM  (Q1, B1, C1, M1, H1, D1, K1)
 - Briefing updated Oct 21, 12:06 PM  (Y1)
 
 ## Swell
 
-SW1. 3–4 ft (0.9–1.2 m) from the SSW at 13.3 s.  (Q1, C1, K1, Y1)
+SW1. 3–4 ft (0.9–1.2 m) from the SSW at 13.3 s, and holding.  (Q1, K1, Y1)
 
-SW2. 2–5 ft (0.6–1.5 m) from the S at 18.2 s.  (B1)
+SW2. 2–5 ft (0.6–1.5 m) from the S at 18.2 s, and building.  (B1)
 
-SW3. West swell (250–280°) offshore, 10–12 s first; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.  (B1, C1)
+SW3. West swell (250–280°) offshore, 10–12 s first, and building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.  (B1, C1)
 
-SW4. North-west swell (280–330°) offshore, 14–17 s first; due at Point Loma South around Oct 21, 6:50 PM, and at the breaks 39–53 min later.  (C1)
+SW4. 3–4 ft (0.9–1.2 m) from the SSW at 13.3 s, and peaking.  (C1)
 
-SW5. 3–4 ft (0.9–1.2 m) at 13.3 s.  (H1)
+SW5. North-west swell (280–330°) offshore, 14–17 s first, arriving since about Oct 21, 7:29 PM, and fading.  (C1)
 
-SW6. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
+SW6. 3–4 ft (0.9–1.2 m) from the SSW at 15.4 s and the W at 10.0 s, and fading.  (M1)
+
+SW7. 3–4 ft (0.9–1.2 m) at 13.3 s.  (H1)
+
+SW8. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
 
 
 ## Conditions
 
-CO1. Water 67 °F (19.4 °C)  (Q1, B1, C1, H1, D1, Y1)
+CO1. Water 67 °F (19.4 °C)  (Q1, B1, C1, M1, H1, D1, Y1)
 
-CO2. Air 61 °F (16 °C)  (Q1, B1, C1, H1, D1, Y1)
+CO2. Air 61 °F (16 °C)  (Q1, B1, C1, M1, H1, D1, Y1)
 
-CO3. Humidity 88%  (Q1, B1, C1, H1, D1, Y1)
+CO3. Humidity 88%  (Q1, B1, C1, M1, H1, D1, Y1)
 
 CO4. Precipitation 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
 
@@ -48,13 +52,13 @@ CO5. Precipitation 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  
 
 ## Tides
 
-TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, H1, D1, Y1)
+TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, H1, D1, Y1)
 
-TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, H1, D1, Y1)
+TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, H1, D1, Y1)
 
-TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, H1, D1, Y1)
+TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, H1, D1, Y1)
 
-TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, H1, D1, Y1)
+TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, H1, D1, Y1)
 
 TI5. AM low −0.7 ft (−0.21 m) at 6:40 AM  (K1)
 
@@ -64,8 +68,9 @@ TI6. PM high 5.6 ft (1.71 m) at 1:05 PM  (K1)
 
 - **Q1**: a quiet morning: one range, nothing coming, no rain
 - **B1**: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
-- **C1**: two sectors coming, one risen yesterday; rain earlier in the day only
-- **H1**: the lead train has no heading: its slot drops with its words
+- **C1**: two sectors offshore, one arrived and fading; rain earlier in the day only
+- **M1**: a mix at the biggest break: the second train from another point is named, one from the same point is not
+- **H1**: the lead train has no heading, and no trend yet: their slots drop with their words
 - **D1**: 46232 dark: the swell says so and nothing else
 - **K1**: no water temperature, no KNZY report, a minus tide
 - **Y1**: yesterday's update, read this morning
