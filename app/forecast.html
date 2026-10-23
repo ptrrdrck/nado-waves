@@ -160,7 +160,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                      max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior:contain}
 .brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
 .brief-block .unit{color:inherit}
-.brief-block:first-child{display:block}
+/* The swell's sentences a line each, a little apart (owner's request,
+   2026-10-23), "Offshore:" tight over the first of its own. */
+.brief-block.brief-swell{gap:6px}
+.brief-swell .brief-label{margin-bottom:-4px}
 .brief-block + .brief-block{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .brief-num{color:var(--ink);font-weight:600}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
@@ -1507,14 +1510,18 @@ const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: tru
 // line, the day's tides one a line, three blocks apart by the cards' fold
 // rule; every number that says something in ink and heavier (`briefNum`).
 // Never the model: GFS-Wave is the Forecast tab's.
-const BRIEF_SECTOR = {west: "West", "north-west": "North-west"};
+// Tanner Banks' sectors by their points, under one "Offshore:" (owner's
+// wording, 2026-10-23).
+const BRIEF_SECTOR = {west: "W", "north-west": "NW"};
+const BRIEF_OFFSHORE = "Offshore:";
 const BRIEF_SEEN = "nado-waves.brief-seen";
 // A number that says something, with its unit: ink, heavier than the words
 // round it; its metric stays outside, grey.
 const briefNum = (s) => `<b class="brief-num">${s}</b>`;
 // A time as of the build: "7:07 AM", or "Oct 21, 7:07 AM" on another day.
-const briefWhen = (iso, B) => briefNum(coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc))
-  ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`);
+// Its clock never parts from its AM / PM at a line's end.
+const briefWhen = (iso, B) => briefNum((coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc))
+  ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`).replace(/ (AM|PM)$/, "\u00a0$1"));
 // Temperatures, Fahrenheit first in whole degrees; the water's Celsius to
 // the tenth its buoy reports.
 const briefTemp = (c, tenths = false) =>
@@ -1535,7 +1542,8 @@ const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
 // with the biggest waves comes from offshore (its row's heading, never the
 // 5 m one) and its period, and a second swell train there from another point
 // at 70% of its height or more (`also`); then the biggest breaking height's
-// trend. Offshore: each west or north-west swell Tanner Banks holds, due by
+// trend. Then "Offshore:" and, a line each, every west or north-west swell
+// Tanner Banks holds, by its point (owner's wording, 2026-10-23), due by
 // deep-water speed (BRIEFING §43) until it has arrived at the breaks, then
 // "arriving since" -- judged at the build, so the words are the build's --
 // and its trend there. A slot with no value drops with its words.
@@ -1556,16 +1564,16 @@ function briefSwell(B) {
     const at = (t) => (t.period_s != null ? ` at ${briefNum(`${t.period_s.toFixed(1)} s`)}` : "");
     out.push(`${briefNum(`${lo}–${hi}\u00a0ft`)} <span class="unit">`
       + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span>`
-      + (lead ? ` from the ${lead}` : "") + at(top)
-      + (mix ? ` and the ${point(mix.from_deg)}${at(mix)}` : "")
-      + (s.trend ? `, and ${s.trend}` : "") + ".");
+      + (lead ? ` ${briefNum(lead)}` : "") + at(top)
+      + (mix ? ` and ${briefNum(point(mix.from_deg))}${at(mix)}` : "")
+      + (s.trend ? `, ${s.trend}` : "") + ".");
   }
+  if ((s.coming || []).length) out.push(BRIEF_OFFSHORE);
   for (const c of s.coming || []) {
     const legs = c.legs || [];
     const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
-    const head = `${BRIEF_SECTOR[c.sector] || c.sector} swell (${briefNum(`${c.sector_deg[0]}–${c.sector_deg[1]}°`)}) `
-      + `offshore, ${briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)} first`;
-    const trend = c.trend ? `, and ${c.trend}` : "";
+    const head = `${briefNum(BRIEF_SECTOR[c.sector] || c.sector)}, ${briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)} first`;
+    const trend = c.trend ? `, ${c.trend}` : "";
     if (c.arrives_utc && Date.parse(c.arrives_utc) <= Date.parse(B.built_utc)) {
       out.push(`${head}, arriving since about ${briefWhen(c.arrives_utc, B)}${trend}.`);
     } else {
@@ -1648,8 +1656,8 @@ function briefingFold(B) {
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
-      ${blocks.map((b, i) => `<div class="brief-block">${b.map((line) =>
-        `<span class="${i ? "brief-line" : "brief-text"}">${line}</span>`).join(i ? "" : " ")}</div>`).join("")}
+      ${blocks.map((b, i) => `<div class="brief-block${i ? "" : " brief-swell"}">${b.map((line) =>
+        `<span class="brief-line${line === BRIEF_OFFSHORE ? " brief-label" : ""}">${line}</span>`).join("")}</div>`).join("")}
     </div>`;
 }
 // End of the briefing.

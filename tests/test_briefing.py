@@ -20,7 +20,7 @@ def _at(stamp: str) -> datetime:
     return datetime.strptime(stamp, ISO).replace(tzinfo=timezone.utc)
 
 
-def _built(stamp, swell=("3–4 ft (0.9–1.2 m) from the SSW at 13.3 s.",),
+def _built(stamp, swell=("3–4 ft (0.9–1.2 m) SSW at 13.3 s, holding.",),
            tides=("AM low 0.7 ft (0.21 m) at 3:15 AM",), water=19.4):
     return {"built_utc": stamp, "available": True, "conditions": {"water": {"c": water}},
             "update_words": list(swell) + list(tides), "text": {"swell": list(swell), "tides": list(tides)}}
@@ -51,7 +51,7 @@ def test_the_same_words_are_no_update_and_keep_the_updates_time():
 
 def test_changed_swell_or_tide_words_are_an_update():
     kept, _ = bf.settle(None, _built("2026-10-22T14:16:00Z"))
-    assert bf.settle(kept, _built("2026-10-22T15:16:00Z", swell=("3–4 ft (0.9–1.2 m) from the SSW at 14.3 s.",)))[1]
+    assert bf.settle(kept, _built("2026-10-22T15:16:00Z", swell=("3–4 ft (0.9–1.2 m) SSW at 14.3 s, holding.",)))[1]
     assert bf.settle(kept, _built("2026-10-22T15:16:00Z", tides=("AM low 0.8 ft (0.24 m) at 3:15 AM",)))[1]
 
 
@@ -70,7 +70,7 @@ def test_the_record_keeps_updates_only_and_the_page_gets_every_build(tmp_path):
     built = tmp_path / "built.json"
     for stamp, water, period in (("2026-10-22T14:16:00Z", 19.4, "13.3"), ("2026-10-22T15:16:00Z", 19.9, "13.3"),
                                  ("2026-10-22T16:16:00Z", 20.1, "14.3")):
-        swell = (f"3–4 ft (0.9–1.2 m) from the SSW at {period} s.",)
+        swell = (f"3–4 ft (0.9–1.2 m) SSW at {period} s, holding.",)
         built.write_text(json.dumps(_built(stamp, swell=swell, water=water)))
         assert bf.main(["--data-dir", str(tmp_path), "--record", str(built), "--out", str(out)]) == 0
         page = json.loads(out.read_text())
@@ -116,7 +116,7 @@ def test_the_swell_is_each_breaks_card_number_and_lead_period(tmp_path):
 
 
 def test_the_lead_heading_is_the_rows_offshore_one_never_its_5_m_one():
-    """Owner's call, 2026-10-23: "from the SSW" is the heading the train row
+    """Owner's call, 2026-10-23: "SSW at 13.3 s" names the heading the train row
     shows; a train of two directions names the larger, as the row's
     shortest form does."""
     one = {"trains": [{"from_deg": 215, "near_from_deg": 192, "lobes": []}]}

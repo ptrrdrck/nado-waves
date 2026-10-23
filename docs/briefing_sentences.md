@@ -20,21 +20,23 @@ the page will read as the page's again until that happens. The formula is in
 
 ## Swell
 
-SW1. 3–4 ft (0.9–1.2 m) from the SSW at 13.3 s, and holding.  (Q1, K1, Y1)
+SW1. 3–4 ft (0.9–1.2 m) SSW at 13.3 s, holding.  (Q1, K1, Y1)
 
-SW2. 2–5 ft (0.6–1.5 m) from the S at 18.2 s, and building.  (B1)
+SW2. 2–5 ft (0.6–1.5 m) S at 18.2 s, building.  (B1)
 
-SW3. West swell (250–280°) offshore, 10–12 s first, and building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.  (B1, C1)
+SW3. Offshore:  (B1, C1)
 
-SW4. 3–4 ft (0.9–1.2 m) from the SSW at 13.3 s, and peaking.  (C1)
+SW4. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.  (B1, C1)
 
-SW5. North-west swell (280–330°) offshore, 14–17 s first, arriving since about Oct 21, 7:29 PM, and fading.  (C1)
+SW5. 3–4 ft (0.9–1.2 m) SSW at 13.3 s, peaking.  (C1)
 
-SW6. 3–4 ft (0.9–1.2 m) from the SSW at 15.4 s and the W at 10.0 s, and fading.  (M1)
+SW6. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading.  (C1)
 
-SW7. 3–4 ft (0.9–1.2 m) at 13.3 s.  (H1)
+SW7. 3–4 ft (0.9–1.2 m) SSW at 15.4 s and W at 10.0 s, fading.  (M1)
 
-SW8. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
+SW8. 3–4 ft (0.9–1.2 m) at 13.3 s.  (H1)
+
+SW9. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
 
 
 ## Conditions

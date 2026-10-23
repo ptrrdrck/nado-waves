@@ -9,8 +9,7 @@ UPDATES only when what it says about the swell or the tide changes:
 
 - **Swell**, two sentences (owner's wording and calls, 2026-10-23), a
   summary of two sources that are never matched to each other. The beach,
-  from 46232's chain: "3–4 ft (0.9–1.2 m) from the SSW at 13.3 s, and
-  building." — the breaking height at the three breaks, lowest to highest
+  from 46232's chain: "3–4 ft (0.9–1.2 m) SSW at 13.3 s, building." — the breaking height at the three breaks, lowest to highest
   in whole feet; the offshore heading and period of the biggest train at the
   break with the biggest waves (the cards' own numbers; the heading the train
   row's, not its 5 m one), and a second swell train there from another
@@ -18,10 +17,11 @@ UPDATES only when what it says about the swell or the tide changes:
   height's trend (`beach_trend`). Offshore, at 46047: each west or
   north-west swell found by its rise and said for as long as Tanner Banks
   still holds it (`upstream_story`), due at 46232 and the breaks by
-  deep-water speed (`forecast.upstreamlag`, BRIEFING §43): "West swell
-  (250–280°) offshore, 10–12 s first, and building; due at Point Loma South
+  deep-water speed (`forecast.upstreamlag`, BRIEFING §43), under one
+  "Offshore:" line: "W, 10–12 s first, building; due at Point Loma South
   around 1:33 PM, and at the breaks 39–53 min later.", then from its first
-  arrival "…, 10–12 s first, arriving since about 2:30 PM, and peaking."
+  arrival "W, 10–12 s first, arriving since about 2:30 PM, peaking."
+  Each sentence is a line of its own (owner's wording, same day).
 - **Conditions**, refreshed every collection without counting as an
   update: 46232's water temperature (`WATER_FRESH_H`), KNZY's air
   temperature and humidity,
