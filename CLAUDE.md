@@ -894,12 +894,19 @@ forecaster actually verifies against, Surfline included.
    what, and against when. The record keeps the arrows, never the
    sparklines (`unsparked`): they are the archives' own readings again. **Tides**: the
    Pacific day's predicted turns, "AM low 0.7 ft (0.21 m) at 3:15 AM", with
-   the gauge's departure as the card's carry it — a ledger too (owner's
-   request, same day; `briefTides` through `briefCondRow`): "AM LOW" in the
-   conditions' small caps, no arrow, the height, the time where they keep a
-   sparkline; tapped, "Predicted · NOAA 9410170 · departure +1.5 ft
-   (0.46 m)". Each row's words (`briefTideText`) are the line's before the
-   ledger, so it was no update. **Every update is kept**:
+   the gauge's departure as the card's carry it — DRAWN AS THE DAY'S CURVE
+   (owner's choices, 2026-10-23, replacing that day's ledger;
+   `briefTideChart`, `tide_story`'s `curve` and `nights`): the same
+   prediction at the open coast with the departure every 30 min
+   (`TIDE_CURVE_MIN`), Coronado's midnight to midnight and STRICTLY TODAY —
+   no next day's turn at the edge — each turn's height by its dot (above a
+   high, below a low) and its time on the axis under it, the hours gone and
+   their turns grey, the rest ink, a dashed NOW line with an open dot, nights
+   shaded as the Tide card's charts are; drawn at its own width
+   (`fitBriefTide`, a ResizeObserver, as the fold opens); tapped,
+   "Predicted · NOAA 9410170 · departure +1.5 ft (0.46 m)". The record
+   keeps the turns, never the curve (`unsparked`). Each turn's words
+   (`briefTideText`) are the ledger's, so the curve was no update. **Every update is kept**:
    `data/briefings/YYYY-MM.jsonl`, append-only, the build and its words; its
    one writer is collect-beach-inputs.yml's "Record the briefing", in a
    sparse worktree of the branch's NEWEST tip, re-appending on a rejected

@@ -392,10 +392,12 @@ def test_a_sparkline_is_an_hour_a_point_and_never_fills_a_gap():
 def test_the_record_keeps_the_arrows_not_the_sparklines():
     line = {"built_utc": "x", "conditions": {"trends": {"air": {"dir": "up", "spark": [[1, 2.0]]},
                                                          "rain": {"days": [["2026-10-22", 0.0]]}}},
-            "swell": {"trend": "building", "spark": [[1, 1.2]], "window_h": 24}}
+            "swell": {"trend": "building", "spark": [[1, 1.2]], "window_h": 24},
+            "tide": {"day": "2026-10-23", "curve": [[1, 0.6]], "nights": [["a", "b"]], "turns": []}}
     kept = bf.unsparked(line)
     assert kept["conditions"]["trends"] == {"air": {"dir": "up"}, "rain": {}}
     assert kept["swell"] == {"trend": "building", "window_h": 24}
+    assert kept["tide"] == {"day": "2026-10-23", "turns": []}
     assert line["conditions"]["trends"]["air"]["spark"]                  # the page's copy is untouched
 
 
@@ -455,3 +457,22 @@ def test_the_workflow_records_from_a_fresh_tip_and_never_rebases():
     main = flow[flow.index("- name: Commit and push"):]
     main = main[:main.index("\n      - name:")]
     assert "git add data/briefings" not in main and "data/briefings 2" not in main
+
+
+def test_the_tide_curve_is_strictly_today_and_meets_its_turns():
+    """Owner's choices, 2026-10-23: Coronado's midnight to midnight, every
+    TIDE_CURVE_MIN, the same prediction the turns are (open coast, with the
+    departure), so each turn sits on the drawn curve; and its nights."""
+
+    now = {"tide_station": "9410170"}
+    at = datetime(2026, 10, 23, 21, 50, tzinfo=timezone.utc)
+    got = bf.tide_story(now, Path("data"), at)
+    assert (got["start_utc"], got["end_utc"]) == ("2026-10-23T07:00:00Z", "2026-10-24T07:00:00Z")
+    assert len(got["curve"]) == 24 * 60 // bf.TIDE_CURVE_MIN + 1
+    assert got["curve"][0][0] == int(datetime(2026, 10, 23, 7, tzinfo=timezone.utc).timestamp())
+    assert all(b[0] - a[0] == bf.TIDE_CURVE_MIN * 60 for a, b in zip(got["curve"], got["curve"][1:]))
+    for turn in got["turns"]:
+        t = _at(turn["valid_utc"]).timestamp()
+        near = min(got["curve"], key=lambda p: abs(p[0] - t))
+        assert abs(near[0] - t) <= 15 * 60 and abs(near[1] - turn["height_m"]) < 0.03
+    assert got["nights"][0][0] == "2026-10-23T07:00:00Z" and got["nights"][-1][1] == "2026-10-24T07:00:00Z"
