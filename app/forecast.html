@@ -168,6 +168,28 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                   letter-spacing:.06em;margin-left:5px;white-space:nowrap}
 .brief-block + .brief-block{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .brief-num{color:var(--ink);font-weight:600}
+/* The conditions as a ledger (owner's calls, 2026-10-23): name in the
+   page's small caps, an ink arrowhead, the value, a sparkline and its
+   window, each row a button that shows when it was read. */
+.brief-block.brief-cond{gap:6px}
+.brief-row{display:grid;grid-template-columns:62px 9px minmax(0,1fr) auto;column-gap:6px;align-items:center;
+           width:100%;padding:0;margin:0;border:0;background:none;font:inherit;color:inherit;
+           text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.brief-key{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;font-size:12.5px;
+           letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}
+.brief-val{min-width:0;line-height:1.35}
+.brief-val .unit{white-space:nowrap}
+.brief-trend{display:flex;align-items:center;gap:5px}
+.brief-spark{display:block;width:64px;height:18px;overflow:visible;fill:none;stroke:var(--faint);
+             stroke-width:1.2;stroke-linejoin:round}
+.brief-spark circle{fill:var(--ink);stroke:none}
+@media (max-width:360px){.brief-spark{width:44px}}
+.brief-bars rect{fill:var(--faint);stroke:none}
+.brief-bars rect.base{fill:var(--line)}
+.brief-bars rect.now{fill:var(--ink)}
+.brief-window{font-size:10.5px;color:var(--faint);letter-spacing:.04em;min-width:22px}
+.brief-when{font-size:12px;color:var(--faint);padding-left:83px;margin-top:-3px}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
@@ -877,6 +899,8 @@ const MI_PER_KM = 0.621371;
 // The Briefing's weather (owner's request, 2026-10-17): METAR's °C and its
 // precipitation in inches, as published.
 const MM_PER_IN = 25.4;
+// Its pressure (owner's request, 2026-10-23): METAR's altimeter in inHg.
+const HPA_PER_INHG = 33.8639;
 const fahrenheit = (c) => c * 9 / 5 + 32;
 
 const height = (m) => (m == null ? "\u2014"
@@ -1589,21 +1613,93 @@ function briefSwell(B) {
   return out;
 }
 
-// The conditions, one a line; precipitation only when the last hour's or
-// the last 24 hours' is above zero, and then both.
+// The conditions as a ledger (owner's calls, 2026-10-23): a row each --
+// its name in small caps, an ink arrowhead against an earlier reading (up,
+// down, or a dash for no change; water and air 3 h back, humidity and
+// pressure the report before; none when there is no earlier reading), the
+// value, and a sparkline of its recent readings with its window. Rain only
+// when the last hour's or the last 24 hours' is above zero, and then both,
+// with the last week's daily totals. A tapped row says when it was read,
+// by what, and against when.
+const BRIEF_ARROW = {up: '<path d="M4.5 1.5 8.5 7.5 0.5 7.5Z"/>', down: '<path d="M4.5 7.5 8.5 1.5 0.5 1.5Z"/>',
+                     steady: '<rect x="1.5" y="3.8" width="6" height="1.4"/>'};
+const BRIEF_AGAINST = {up: "up from", down: "down from", steady: "same as"};
+const briefArrow = (dir) => (dir ? `<svg class="brief-arrow" viewBox="0 0 9 9" aria-hidden="true">${BRIEF_ARROW[dir]}</svg>` : "");
+// "14 d", "3 d", "24 h": a sparkline's window.
+const briefWindow = (h) => (h >= 48 ? `${Math.round(h / 24)} d` : `${h} h`);
+// A sparkline: the window ending at its newest reading, a faint line broken
+// wherever an hour is missing (never drawn across a gap), the newest an ink dot.
+function briefSpark(points, windowH) {
+  if (!points || points.length < 2) return "";
+  const W = 64, H = 18, t1 = points[points.length - 1][0], t0 = t1 - windowH * 3600;
+  const ys = points.map((p) => p[1]), lo = Math.min(...ys), hi = Math.max(...ys);
+  const X = (t) => 1 + (t - t0) / (t1 - t0) * (W - 4), Y = (v) => H - 2 - (hi > lo ? (v - lo) / (hi - lo) : 0.5) * (H - 4);
+  const runs = [[]];
+  points.forEach((p, i) => {
+    if (i && p[0] - points[i - 1][0] > 1.5 * 3600) runs.push([]);
+    runs[runs.length - 1].push(`${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`);
+  });
+  const last = points[points.length - 1];
+  return `<svg class="brief-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
+    + runs.map((r) => (r.length > 1 ? `<polyline points="${r.join(" ")}"/>` : "")).join("")
+    + `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="2.2"/></svg>`;
+}
+// Rain's week: a bar a Pacific day, today's in ink; a day with no reports
+// has no bar and no baseline.
+function briefBars(days) {
+  if (!days || !days.length) return "";
+  const W = 64, H = 18, bw = W / days.length, top = Math.max(...days.map((d) => d[1] || 0), 0.01);
+  return `<svg class="brief-spark brief-bars" viewBox="0 0 ${W} ${H}" aria-hidden="true">` + days.map((d, i) => {
+    if (d[1] == null) return "";
+    const h = d[1] > 0 ? Math.max(1.5, (H - 1) * d[1] / top) : 0;
+    return `<rect class="base" x="${(i * bw + 1).toFixed(1)}" y="${H - 0.75}" width="${(bw - 2).toFixed(1)}" height="0.75"/>`
+      + (h ? `<rect${i === days.length - 1 ? ' class="now"' : ""} x="${(i * bw + 1).toFixed(1)}" y="${(H - h).toFixed(1)}"`
+        + ` width="${(bw - 2).toFixed(1)}" height="${h.toFixed(1)}"/>` : "");
+  }).join("") + "</svg>";
+}
 function briefConditions(B) {
   const c = B.conditions || {};
-  const water = c.water, w = c.weather || {};
+  const water = c.water, w = c.weather || {}, T = c.trends || {};
+  const knzy = "METAR KNZY";
   const out = [];
-  if (water && water.c != null) out.push(`Water ${briefTemp(water.c, true)}`);
-  if (w.air_c != null) out.push(`Air ${briefTemp(w.air_c)}`);
-  if (w.humidity_pct != null) out.push(`Humidity ${briefNum(`${Math.round(w.humidity_pct)}%`)}`);
+  const row = (key, label, value, at, src, tr, extra = {}) => out.push({key, label, value, at, src,
+    dir: tr ? tr.dir : null, was: tr ? tr.was_utc : null,
+    trend: tr && tr.spark ? briefSpark(tr.spark, tr.window_h) : "",
+    window: tr && tr.window_h ? briefWindow(tr.window_h) : "", ...extra});
+  if (water && water.c != null) {
+    row("water", "Water", briefTemp(water.c, true), water.observed_utc,
+        feedName(water.station, water.station === B.station ? B.station_cdip : ""), T.water);
+  }
+  if (w.air_c != null) row("air", "Air", briefTemp(w.air_c), w.observed_utc, knzy, T.air);
+  if (w.humidity_pct != null) {
+    row("humidity", "Humidity", briefNum(`${Math.round(w.humidity_pct)}%`), w.observed_utc, knzy, T.humidity);
+  }
+  if (w.pressure_inhg != null) {
+    row("pressure", "Pressure", `${briefNum(`${w.pressure_inhg.toFixed(2)} inHg`)} <span class="unit">`
+      + `(${Math.round(w.pressure_inhg * HPA_PER_INHG)} hPa)</span>`, w.pressure_utc, knzy, T.pressure);
+  }
   if ((w.precip_hour_in || 0) > 0 || (w.precip_day_in || 0) > 0) {
     const kinds = (w.precip_kinds || []).length ? ` (${andList(w.precip_kinds)})` : "";
-    out.push(`Precipitation ${briefRain(w.precip_hour_in || 0)} in the last hour${kinds}, `
-      + `${briefRain(w.precip_day_in || 0)} in 24 h`);
+    row("rain", "Rain", `${briefRain(w.precip_hour_in || 0)} in the last hour${kinds}, `
+      + `${briefRain(w.precip_day_in || 0)} in 24 h`, w.pressure_utc || w.observed_utc, knzy, null,
+        {trend: briefBars((T.rain || {}).days), window: (T.rain || {}).days ? "7 d" : ""});
   }
   return out;
+}
+// A row's words, for docs/briefing_wording.md: its name, value and arrow.
+const briefCondText = (r) => `${r.label} ${r.value}${r.dir ? `, ${r.dir}` : ""}`;
+// What a tapped row says: when, by what, and against when.
+const briefRowWhen = (r, B) => [r.at ? briefAt(r.at, B) : null, r.src,
+  r.dir && r.was ? `${BRIEF_AGAINST[r.dir]} ${briefAt(r.was, B)}` : null].filter(Boolean).join(" · ");
+// Which rows are open, across a redraw (not a reload).
+const BRIEF_ROWS = new Set();
+function briefCondRow(r, B) {
+  const open = BRIEF_ROWS.has(r.key);
+  return `<button type="button" class="brief-row" data-brief-row="${r.key}" aria-expanded="${open}">`
+    + `<span class="brief-key">${r.label}</span><span class="brief-dir">${briefArrow(r.dir)}</span>`
+    + `<span class="brief-val">${r.value}</span>`
+    + `<span class="brief-trend">${r.trend}<span class="brief-window">${r.window}</span></span></button>`
+    + `<div class="brief-when"${open ? "" : " hidden"}>${briefRowWhen(r, B)}</div>`;
 }
 
 // The day's turns, AM / PM by each turn's own clock (predicted, with the
@@ -1660,8 +1756,10 @@ function briefingFold(B) {
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
-      ${blocks.map((b, i) => `<div class="brief-block${i ? "" : " brief-swell"}">${b.map((line) =>
-        `<span class="brief-line">${line}</span>`).join("")}</div>`).join("")}
+      ${blocks.map((b) => (b === parts.conditions
+        ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
+        : `<div class="brief-block${b === parts.swell ? " brief-swell" : ""}">${b.map((line) =>
+          `<span class="brief-line">${line}</span>`).join("")}</div>`)).join("")}
     </div>`;
 }
 // End of the briefing.
@@ -6587,6 +6685,13 @@ function boot(data, observed, measured, series, windtide) {
   wireGate();
   $("briefing").addEventListener("click", (e) => {
     if (e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
+    const row = e.target.closest("[data-brief-row]");
+    if (row) {
+      const open = row.getAttribute("aria-expanded") !== "true";
+      row.setAttribute("aria-expanded", String(open));
+      row.nextElementSibling.hidden = !open;
+      if (open) BRIEF_ROWS.add(row.dataset.briefRow); else BRIEF_ROWS.delete(row.dataset.briefRow);
+    }
   });
 
   if (!adoptForecast(data, null)) return;

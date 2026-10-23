@@ -39,15 +39,17 @@ SW8. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
 
 ## Conditions
 
-CO1. Water 67 °F (19.4 °C)  (Q1, B1, C1, M1, H1, D1, Y1)
+CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, H1, D1, Y1)
 
-CO2. Air 61 °F (16 °C)  (Q1, B1, C1, M1, H1, D1, Y1)
+CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, H1, D1, Y1)
 
-CO3. Humidity 88%  (Q1, B1, C1, M1, H1, D1, Y1)
+CO3. Humidity 88%, steady  (Q1, B1, C1, M1, H1, D1, Y1)
 
-CO4. Precipitation 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
+CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, H1, D1, Y1)
 
-CO5. Precipitation 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  (C1)
+CO5. Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
+
+CO6. Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  (C1)
 
 
 ## Tides

@@ -25,9 +25,10 @@ UPDATES only when what it says about the swell or the tide changes:
   own (owner's wording, same day).
 - **Conditions**, refreshed every collection without counting as an
   update: 46232's water temperature (`WATER_FRESH_H`), KNZY's air
-  temperature and humidity,
-  and precipitation — the last hour's and the rolling 24 hours', both shown
-  when either is above zero, neither when not.
+  temperature, humidity and pressure, and rain — the last hour's and the
+  rolling 24 hours', both shown when either is above zero, neither when
+  not. Each with an arrow against an earlier reading and a sparkline of
+  its recent readings (`trends`; owner's calls, 2026-10-23).
 - **Tides**: the day's predicted turns, AM / PM, with the gauge's measured
   departure as the card's turns carry it.
 
@@ -190,10 +191,14 @@ def parse_metar(raw: str) -> dict:
     """What the briefing reads from one KNZY report: temperature and
     dewpoint (°C, the RMK T group's tenths where it is there), the hour's
     precipitation (RMK P group, hundredths of an inch, routine reports only)
-    and the kinds of precipitation in present weather."""
+    and the kinds of precipitation in present weather; and the altimeter
+    setting (the body's A group, inHg as METAR publishes it)."""
 
-    out = {"air_c": None, "dew_c": None, "precip_in": None, "kinds": []}
+    out = {"air_c": None, "dew_c": None, "precip_in": None, "kinds": [], "altimeter_inhg": None}
     body, _, rmk = raw.partition(" RMK ")
+    alt = re.search(r"\sA(\d{4})\b", body)
+    if alt:
+        out["altimeter_inhg"] = int(alt.group(1)) / 100
     exact = re.search(r"\bT([01])(\d{3})([01])(\d{3})\b", rmk)
     if exact:
         sign = lambda s: -1 if s == "1" else 1
@@ -242,7 +247,8 @@ def _knzy_reports(data_dir: Path, start: datetime, end: datetime) -> list[tuple[
 
 
 def weather_now(data_dir: Path, at: datetime) -> dict:
-    """KNZY's newest report: air temperature and humidity; and the
+    """KNZY's newest report: air temperature and humidity; the newest
+    routine report's altimeter setting; and the
     precipitation of the last hour (the newest routine report's P group) and
     of the last `PRECIP_DAY_H` (every routine report's), with the kinds
     reported in the last hour."""
@@ -263,7 +269,9 @@ def weather_now(data_dir: Path, at: datetime) -> dict:
             "observed_utc": _iso(air[0]) if air else None,
             "precip_hour_in": (last[1]["precip_in"] or 0.0) if last else None,
             "precip_day_in": round(sum(m["precip_in"] or 0.0 for _, m in routine), 2) if routine else None,
-            "precip_kinds": hour_kinds}
+            "precip_kinds": hour_kinds,
+            "pressure_inhg": last[1]["altimeter_inhg"] if last else None,
+            "pressure_utc": _iso(last[0]) if last and last[1]["altimeter_inhg"] is not None else None}
 
 
 def water_now(data_dir: Path, at: datetime, station: str = "46232") -> dict | None:
@@ -283,6 +291,116 @@ def water_now(data_dir: Path, at: datetime, station: str = "46232") -> dict | No
                     and at - t <= timedelta(hours=WATER_FRESH_H) and (best is None or t > best[0])):
                 best = (t, float(token))
     return {"station": station, "c": best[1], "observed_utc": _iso(best[0])} if best else None
+
+
+# ------------------------------------------------------------------ trends
+
+#: The conditions' arrows and sparklines (owner's calls, 2026-10-23). Water
+#: and air are compared with the reading TREND_BACK_H earlier, not the one
+#: before: measured over the archive, the previous reading was the same on
+#: 64% of 46232's half-hours and 32% of KNZY's hours, 3 h back on 22% and
+#: 15%. Humidity and pressure with the report before. A change under half a
+#: source's own step is steady; humidity, computed, is compared in the whole
+#: percent the page shows.
+TREND_BACK_H = 3.0
+TREND_MATCH_MIN = 20
+STEADY = {"water": 0.05, "air": 0.05, "humidity": 0.5, "pressure": 0.005}
+#: Each sparkline's window, by how fast the condition moves.
+SPARK_H = {"water": 14 * 24, "air": 24, "humidity": 24, "pressure": 72}
+RAIN_DAYS = 7
+
+
+def _direction(key: str, now: float, was: float | None) -> str | None:
+    if was is None:
+        return None
+    if key == "humidity":            # computed, not measured: compared as the page shows it
+        now, was = round(now), round(was)
+    d = now - was
+    return "steady" if abs(d) < STEADY[key] else "up" if d > 0 else "down"
+
+
+def _near(series: list[tuple[datetime, float]], t: datetime, within_min: float):
+    best = min(series, key=lambda p: abs((p[0] - t).total_seconds()), default=None)
+    return best if best and abs((best[0] - t).total_seconds()) <= within_min * 60 else None
+
+
+def _hourly(series: list[tuple[datetime, float]]) -> list[list]:
+    """One reading an hour, the hour's newest, as [epoch s, value]: the
+    sparkline's points. Never a value an hour did not have."""
+
+    by_hour = {}
+    for t, v in series:
+        by_hour[t.replace(minute=0, second=0, microsecond=0)] = (t, v)
+    return [[int(t.timestamp()), round(v, 3)] for t, v in sorted(by_hour.values())]
+
+
+def _trend(key: str, series: list[tuple[datetime, float]], back_h: float | None) -> dict | None:
+    """The newest reading's arrow against the one `back_h` earlier (the
+    report before when None), and the sparkline over SPARK_H[key]."""
+
+    if not series:
+        return None
+    t, v = series[-1]
+    if back_h is None:
+        before = series[-2] if len(series) > 1 and t - series[-2][0] <= timedelta(minutes=WIND_FRESH_MIN) else None
+    else:
+        before = _near(series[:-1], t - timedelta(hours=back_h), TREND_MATCH_MIN)
+    spark = [p for p in series if p[0] > t - timedelta(hours=SPARK_H[key])]
+    return {"dir": _direction(key, v, before[1] if before else None),
+            "was": round(before[1], 3) if before else None, "was_utc": _iso(before[0]) if before else None,
+            "window_h": SPARK_H[key], "spark": _hourly(spark)}
+
+
+def trends(data_dir: Path, at: datetime, water: dict | None, weather: dict) -> dict:
+    """The arrows and sparklines for the conditions shown: only for a
+    reading the block shows, each from its own source's archive."""
+
+    from collector.ndbc import is_missing
+
+    out = {}
+    if water:
+        path = Path(data_dir) / "observations" / f"{water['station']}.csv"
+        newest = _utc(water["observed_utc"])
+        ser = {}
+        with path.open(newline="", encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                token = row.get("wtmp") or ""
+                t = _utc(row["timestamp_utc"])
+                if token and not is_missing("WTMP", token) and newest - timedelta(hours=SPARK_H["water"]) < t <= newest:
+                    ser[t] = float(token)
+        out["water"] = _trend("water", sorted(ser.items()), TREND_BACK_H)
+    span = max(SPARK_H["air"], SPARK_H["pressure"], RAIN_DAYS * 24) + 24
+    routine = [(t, m) for t, raw, m in _knzy_reports(data_dir, at - timedelta(hours=span), at)
+               if raw.startswith("METAR")]
+    if weather.get("air_c") is not None:
+        out["air"] = _trend("air", [(t, m["air_c"]) for t, m in routine if m["air_c"] is not None], TREND_BACK_H)
+    if weather.get("humidity_pct") is not None:
+        out["humidity"] = _trend("humidity", [(t, humidity(m["air_c"], m["dew_c"])) for t, m in routine
+                                              if m["air_c"] is not None and m["dew_c"] is not None], None)
+    if weather.get("pressure_inhg") is not None:
+        out["pressure"] = _trend("pressure", [(t, m["altimeter_inhg"]) for t, m in routine
+                                              if m["altimeter_inhg"] is not None], None)
+    if weather.get("precip_hour_in") is not None:
+        today = at.astimezone(LOCAL_TZ).date()
+        days = {today - timedelta(days=k): None for k in range(RAIN_DAYS - 1, -1, -1)}
+        for t, m in routine:
+            d = t.astimezone(LOCAL_TZ).date()
+            if d in days:
+                days[d] = round((days[d] or 0.0) + (m["precip_in"] or 0.0), 2)
+        out["rain"] = {"days": [[str(d), v] for d, v in days.items()]}
+    return out
+
+
+def unsparked(line: dict) -> dict:
+    """A build as the record keeps it: the arrows, not the sparklines, which
+    are the archives' own readings over again."""
+
+    line = json.loads(json.dumps(line))
+    for t in ((line.get("conditions") or {}).get("trends") or {}).values():
+        if isinstance(t, dict):
+            t.pop("spark", None)
+            t.pop("days", None)
+    return line
 
 
 # ------------------------------------------------------------------ swell
@@ -520,9 +638,14 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None,
         "station": now.get("station"), "station_cdip": now.get("station_cdip"),
         "station_names": origin.get("station_names") or {},
         "swell": swell_story(now, _read(live / "buoys.json"), at, Path(data_dir), _read(live / "series.json")),
-        "conditions": {"water": water_now(Path(data_dir), at), "weather": weather_now(Path(data_dir), at)},
+        "conditions": _conditions(Path(data_dir), at),
         "tide": tide_story(now, Path(data_dir), at),
     }
+
+
+def _conditions(data_dir: Path, at: datetime) -> dict:
+    water, weather = water_now(data_dir, at), weather_now(data_dir, at)
+    return {"water": water, "weather": weather, "trends": trends(data_dir, at, water, weather)}
 
 
 def with_text(built: dict) -> dict:
@@ -564,7 +687,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         page, update = settle(newest(args.data_dir), built)
         if update:
-            append(args.data_dir, page)
+            append(args.data_dir, unsparked(page))
         print(f"{'Updated' if update else 'No change'}: {page['key']}")
     else:
         at = _utc(args.at) if args.at else utcnow()

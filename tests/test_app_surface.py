@@ -3861,6 +3861,41 @@ class TestTheBriefing:
                      "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):
             assert made in self.BLOCK, made
 
+    def test_the_conditions_are_a_ledger_of_buttons(self):
+        """Owner's calls, 2026-10-23: name, arrow, value, sparkline and its
+        window a row; a tapped row shows when, by what, against when."""
+        row = self.BLOCK[self.BLOCK.index("function briefCondRow"):]
+        row = row[:row.index("\n}\n")]
+        for part in ('class="brief-row" data-brief-row=', 'class="brief-key"', 'class="brief-dir"',
+                     'class="brief-val"', 'class="brief-trend"', 'class="brief-window"', 'class="brief-when"'):
+            assert part in row, part
+        assert ".brief-row{display:grid;grid-template-columns:62px 9px minmax(0,1fr) auto;" in SOURCE
+        assert 'const row = e.target.closest("[data-brief-row]");' in SOURCE
+        assert "row.nextElementSibling.hidden = !open;" in SOURCE
+
+    def test_its_rows_are_water_air_humidity_pressure_then_rain(self):
+        cond = self.BLOCK[self.BLOCK.index("function briefConditions"):]
+        cond = cond[:cond.index("\n}\n")]
+        order = [cond.index(f'row("{k}", "{label}"') for k, label in
+                 (("water", "Water"), ("air", "Air"), ("humidity", "Humidity"), ("pressure", "Pressure"),
+                  ("rain", "Rain"))]
+        assert order == sorted(order)
+        assert "Precipitation" not in cond
+        assert "const HPA_PER_INHG = 33.8639;" in SOURCE and SOURCE.count("HPA_PER_INHG = ") == 1
+
+    def test_the_arrow_is_an_ink_arrowhead_or_a_dash(self):
+        assert ".brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}" in SOURCE
+        arrows = self.BLOCK[self.BLOCK.index("const BRIEF_ARROW = "):self.BLOCK.index("const BRIEF_AGAINST")]
+        assert "up:" in arrows and "down:" in arrows and "steady: '<rect" in arrows
+        assert 'const briefArrow = (dir) => (dir ? ' in self.BLOCK          # no earlier reading, no arrow
+
+    def test_a_sparkline_never_draws_across_a_missing_hour(self):
+        spark = self.BLOCK[self.BLOCK.index("function briefSpark"):]
+        spark = spark[:spark.index("\n}\n")]
+        assert "if (i && p[0] - points[i - 1][0] > 1.5 * 3600) runs.push([]);" in spark
+        bars = self.BLOCK[self.BLOCK.index("function briefBars"):]
+        assert 'if (d[1] == null) return "";' in bars[:bars.index("\n}\n")]
+
     def test_tanner_banks_lines_are_plain_and_tagged_offshore(self):
         """Owner's calls, 2026-10-23: no ink in Tanner Banks' lines, and each
         ends on an "offshore" tag set as the cards' "wind sea" is; no
