@@ -192,7 +192,7 @@ const text = (html) => html
 const words = (B, readAt) => {
   const p = briefingParts(B);
   return p ? {line: text(briefLine(B, readAt)), swell: p.swell.map(text),
-              conditions: p.conditions.map((r) => text(briefCondText(r))), tides: p.tides.map(text)}
+              conditions: p.conditions.map((r) => text(briefCondText(r))), tides: p.tides.map((r) => text(briefTideText(r)))}
            : {line: null, swell: [], conditions: [], tides: []};
 };
 """

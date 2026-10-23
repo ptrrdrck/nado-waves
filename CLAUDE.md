@@ -886,7 +886,12 @@ forecaster actually verifies against, Surfline included.
    what, and against when. The record keeps the arrows, never the
    sparklines (`unsparked`): they are the archives' own readings again. **Tides**: the
    Pacific day's predicted turns, "AM low 0.7 ft (0.21 m) at 3:15 AM", with
-   the gauge's departure as the card's carry it. **Every update is kept**:
+   the gauge's departure as the card's carry it — a ledger too (owner's
+   request, same day; `briefTides` through `briefCondRow`): "AM LOW" in the
+   conditions' small caps, no arrow, the height, the time where they keep a
+   sparkline; tapped, "Predicted · NOAA 9410170 · departure +1.5 ft
+   (0.46 m)". Each row's words (`briefTideText`) are the line's before the
+   ledger, so it was no update. **Every update is kept**:
    `data/briefings/YYYY-MM.jsonl`, append-only, the build and its words; its
    one writer is collect-beach-inputs.yml's "Record the briefing", in a
    sparse worktree of the branch's NEWEST tip, re-appending on a rejected

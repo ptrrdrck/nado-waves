@@ -3857,7 +3857,7 @@ class TestTheBriefing:
         assert ".brief-block{" in SOURCE and "color:var(--soft)" in SOURCE[
             SOURCE.index(".brief-block{"):SOURCE.index("}", SOURCE.index(".brief-block{"))]
         for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${t.period_s.toFixed(1)} s`)",
-                     "briefNum(`${Math.round(w.humidity_pct)}%`)", "briefNum(clock(x.valid_utc))",
+                     "briefNum(`${Math.round(w.humidity_pct)}%`)", "briefNum(clock(x.valid_utc).replace(",
                      "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):
             assert made in self.BLOCK, made
 
@@ -3895,6 +3895,16 @@ class TestTheBriefing:
         assert "if (i && p[0] - points[i - 1][0] > 1.5 * 3600) runs.push([]);" in spark
         bars = self.BLOCK[self.BLOCK.index("function briefBars"):]
         assert 'if (d[1] == null) return "";' in bars[:bars.index("\n}\n")]
+
+    def test_the_tides_are_a_ledger_whose_words_are_unchanged(self):
+        """Owner's request, 2026-10-23: the turns set out as the conditions
+        are; their words are the lines they were, so the ledger was no update."""
+        assert "b === parts.conditions || b === parts.tides" in self.BLOCK
+        assert "const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;" in self.BLOCK
+        assert "tides: p.tides.map((r) => text(briefTideText(r)))" in \
+            (APP.parent.parent / "forecast" / "briefingwording.py").read_text(encoding="utf-8")
+        assert "const briefRowWhen = (r, B) => r.when || [" in self.BLOCK
+        assert ".brief-window:empty{display:none}" in SOURCE
 
     def test_tanner_banks_lines_are_plain_and_tagged_offshore(self):
         """Owner's calls, 2026-10-23: no ink in Tanner Banks' lines, and each

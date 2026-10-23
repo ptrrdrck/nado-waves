@@ -180,7 +180,7 @@ def test_the_water_is_46232s_newest_within_three_hours():
 
 def test_the_tides_are_the_pacific_days_turns():
     got = bf.tide_story({"tide_station": "9410170"}, Path("data"), _at("2026-10-17T15:00:00Z"))
-    assert got["day"] == "2026-10-17" and got["turns"]
+    assert got["day"] == "2026-10-17" and got["turns"] and got["station"] == "9410170"
     for t in got["turns"]:
         local = _at(t["valid_utc"]) - timedelta(hours=7)
         assert local.date().isoformat() == "2026-10-17"

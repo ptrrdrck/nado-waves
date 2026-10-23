@@ -180,7 +180,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}
 .brief-val{min-width:0;line-height:1.35}
 .brief-val .unit{white-space:nowrap}
-.brief-trend{display:flex;align-items:center;gap:5px}
+.brief-trend{display:flex;align-items:center;justify-content:flex-end;gap:5px}
 .brief-spark{display:block;width:64px;height:18px;overflow:visible;fill:none;stroke:var(--faint);
              stroke-width:1.2;stroke-linejoin:round}
 .brief-spark circle{fill:var(--ink);stroke:none}
@@ -189,6 +189,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-bars rect.base{fill:var(--line)}
 .brief-bars rect.now{fill:var(--ink)}
 .brief-window{font-size:10.5px;color:var(--faint);letter-spacing:.04em;min-width:22px}
+.brief-window:empty{display:none}
 .brief-when{font-size:12px;color:var(--faint);padding-left:83px;margin-top:-3px}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
@@ -1689,7 +1690,7 @@ function briefConditions(B) {
 // A row's words, for docs/briefing_wording.md: its name, value and arrow.
 const briefCondText = (r) => `${r.label} ${r.value}${r.dir ? `, ${r.dir}` : ""}`;
 // What a tapped row says: when, by what, and against when.
-const briefRowWhen = (r, B) => [r.at ? briefAt(r.at, B) : null, r.src,
+const briefRowWhen = (r, B) => r.when || [r.at ? briefAt(r.at, B) : null, r.src,
   r.dir && r.was ? `${BRIEF_AGAINST[r.dir]} ${briefAt(r.was, B)}` : null].filter(Boolean).join(" · ");
 // Which rows are open, across a redraw (not a reload).
 const BRIEF_ROWS = new Set();
@@ -1703,13 +1704,21 @@ function briefCondRow(r, B) {
 }
 
 // The day's turns, AM / PM by each turn's own clock (predicted, with the
-// gauge's departure, as the card's).
+// gauge's departure, as the card's), a ledger as the conditions are (owner's
+// request, 2026-10-23): "AM low" in their small caps, no arrow, its height,
+// its time where they keep a sparkline; tapped, what it stands on. Its words
+// are the line's as before (`briefTideText`), so the ledger was no update.
 const briefHalf = (iso) => (Number(new Date(iso).toLocaleString("en-US",
   {hour: "numeric", hour12: false, timeZone: COAST_TZ})) % 24 < 12 ? "AM" : "PM");
 function briefTides(B) {
-  return ((B.tide || {}).turns || []).map((x) =>
-    `${briefHalf(x.valid_utc)} ${x.event} ${briefLevel(x.height_m)} at ${briefNum(clock(x.valid_utc))}`);
+  const T = B.tide || {}, dep = T.departure_m;
+  const when = ["Predicted", `NOAA ${T.station || "9410170"}`, dep == null ? "no departure"
+    : `departure ${dep < 0 ? "\u2212" : "+"}${height(Math.abs(dep))}`].join(" · ");
+  return (T.turns || []).map((x, i) => ({key: `tide${i}`, label: `${briefHalf(x.valid_utc)} ${x.event}`,
+    value: briefLevel(x.height_m), dir: null, window: "", time: clock(x.valid_utc),
+    trend: briefNum(clock(x.valid_utc).replace(/ (AM|PM)$/, "\u00a0$1")), when}));
 }
+const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;
 
 // Every block in the fold's order; an empty block drops.
 function briefingParts(B) {
@@ -1756,7 +1765,7 @@ function briefingFold(B) {
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
-      ${blocks.map((b) => (b === parts.conditions
+      ${blocks.map((b) => (b === parts.conditions || b === parts.tides
         ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
         : `<div class="brief-block${b === parts.swell ? " brief-swell" : ""}">${b.map((line) =>
           `<span class="brief-line">${line}</span>`).join("")}</div>`)).join("")}

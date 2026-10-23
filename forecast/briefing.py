@@ -614,7 +614,8 @@ def tide_story(now: dict, data_dir: Path, at: datetime) -> dict:
     end = start + timedelta(days=1)
     turns = [coast_turn(t, departure).as_dict()
              for t in read_turns(data_dir, now.get("tide_station") or "9410170")]
-    return {"day": day.isoformat(), "departure_m": round(departure, 3) if departure is not None else None,
+    return {"day": day.isoformat(), "station": now.get("tide_station") or "9410170",
+            "departure_m": round(departure, 3) if departure is not None else None,
             "turns": [{k: t[k] for k in ("valid_utc", "height_m", "event")} for t in turns
                       if start <= _utc(t["valid_utc"]) < end]}
 
