@@ -831,8 +831,8 @@ forecaster actually verifies against, Surfline included.
    2026-10-23, replacing Origin's dot), every number that says something in
    ink and heavier, the metric in brackets grey (`briefNum`): **Swell** (owner's
    wording and calls, 2026-10-23), TWO SOURCES never matched to each other.
-   Each swell sentence a line of its own, 6 px apart, the compass points in
-   ink like the numbers (owner's request, same day). The beach: "3–4 ft
+   Each swell sentence a line of its own, 6 px apart, the beach's compass
+   points in ink like the numbers (owner's request, same day). The beach: "3–4 ft
    (0.9–1.2 m) SSW at 13.3 s, building." (the
    three cards' breaking heights, lowest floored and highest ceiled to whole
    feet, at least a foot apart; then the lead train's compass point and
@@ -853,8 +853,10 @@ forecaster actually verifies against, Surfline included.
    lead), and SAID while Tanner Banks holds it — until its sector's 8–17 s
    energy falls under a third of its peak since it began (owner's call:
    the rise run in reverse; it replaced the 6 h-after-due keep, which
-   dropped a west swell still running on 23 Oct), under one "Offshore:"
-   line, each by its point: "W, 10–12 s first, building; due at Point Loma
+   dropped a west swell still running on 23 Oct), each by its point, in
+   plain words with no ink, and ending on an "offshore" tag set as the
+   cards' "wind sea" and "predicted" are (owner's calls, same day; it
+   replaced an "Offshore:" line): "W, 10–12 s first, building; due at Point Loma
    South around 1:33 PM, and at the breaks 39–53 min later.", and from its
    first computed arrival at the breaks "W, 10–12 s first, arriving since
    about 2:30 PM, peaking." — "arriving since" is the computed time, never a measured

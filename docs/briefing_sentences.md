@@ -24,19 +24,17 @@ SW1. 3–4 ft (0.9–1.2 m) SSW at 13.3 s, holding.  (Q1, K1, Y1)
 
 SW2. 2–5 ft (0.6–1.5 m) S at 18.2 s, building.  (B1)
 
-SW3. Offshore:  (B1, C1)
+SW3. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore  (B1, C1)
 
-SW4. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.  (B1, C1)
+SW4. 3–4 ft (0.9–1.2 m) SSW at 13.3 s, peaking.  (C1)
 
-SW5. 3–4 ft (0.9–1.2 m) SSW at 13.3 s, peaking.  (C1)
+SW5. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading. offshore  (C1)
 
-SW6. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading.  (C1)
+SW6. 3–4 ft (0.9–1.2 m) SSW at 15.4 s and W at 10.0 s, fading.  (M1)
 
-SW7. 3–4 ft (0.9–1.2 m) SSW at 15.4 s and W at 10.0 s, fading.  (M1)
+SW7. 3–4 ft (0.9–1.2 m) at 13.3 s.  (H1)
 
-SW8. 3–4 ft (0.9–1.2 m) at 13.3 s.  (H1)
-
-SW9. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
+SW8. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
 
 
 ## Conditions

@@ -17,11 +17,12 @@ UPDATES only when what it says about the swell or the tide changes:
   height's trend (`beach_trend`). Offshore, at 46047: each west or
   north-west swell found by its rise and said for as long as Tanner Banks
   still holds it (`upstream_story`), due at 46232 and the breaks by
-  deep-water speed (`forecast.upstreamlag`, BRIEFING §43), under one
-  "Offshore:" line: "W, 10–12 s first, building; due at Point Loma South
-  around 1:33 PM, and at the breaks 39–53 min later.", then from its first
-  arrival "W, 10–12 s first, arriving since about 2:30 PM, peaking."
-  Each sentence is a line of its own (owner's wording, same day).
+  deep-water speed (`forecast.upstreamlag`, BRIEFING §43), each line in
+  plain words and tagged OFFSHORE as the cards tag wind sea: "W, 10–12 s
+  first, building; due at Point Loma South around 1:33 PM, and at the
+  breaks 39–53 min later.", then from its first arrival "W, 10–12 s first,
+  arriving since about 2:30 PM, peaking." Each sentence is a line of its
+  own (owner's wording, same day).
 - **Conditions**, refreshed every collection without counting as an
   update: 46232's water temperature (`WATER_FRESH_H`), KNZY's air
   temperature and humidity,

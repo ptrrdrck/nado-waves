@@ -41,17 +41,16 @@ def test_the_line_names_the_update_and_no_condition(cases):
 
 def test_the_swell_reads_as_the_owner_wrote_it(cases):
     """Owner's wording and calls, 2026-10-23: the beach, then what Tanner
-    Banks holds under "Offshore:", each a line ending on its trend."""
+    Banks holds, each a line ending on its trend, Tanner Banks' tagged."""
     assert cases["Q1"]["swell"] == ["3–4 ft (0.9–1.2 m) SSW at 13.3 s, holding."]
-    assert cases["B1"]["swell"][1:] == ["Offshore:", "W, 10–12 s first, building; due at Point Loma South "
-                                        "around 1:32 PM, and at the breaks 39–53 min later."]
+    assert cases["B1"]["swell"][1:] == ["W, 10–12 s first, building; due at Point Loma South "
+                                        "around 1:32 PM, and at the breaks 39–53 min later. offshore"]
 
 
 def test_a_swell_that_has_reached_the_breaks_is_arriving(cases):
-    assert cases["C1"]["swell"][1:3] == ["Offshore:", "NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading."]
-    assert cases["C1"]["swell"][3].endswith("first, building; due at Point Loma South around 1:32 PM, "
-                                            "and at the breaks 39–53 min later.")
-    assert cases["Q1"]["swell"].count("Offshore:") == 0           # no swell offshore, no heading
+    assert cases["C1"]["swell"][1] == "NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading. offshore"
+    assert cases["C1"]["swell"][2].endswith("first, building; due at Point Loma South around 1:32 PM, "
+                                            "and at the breaks 39–53 min later. offshore")
 
 
 def test_a_mix_names_the_second_train_from_another_point(cases):
