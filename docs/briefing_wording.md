@@ -25,7 +25,7 @@ and its ensemble are the Forecast tab's.
 
 | Block | Slots, in order |
 |---|---|
-| **Swell** | `Significant waves breaking in the {lo}–{hi} ft ({m}) range with a/an {T} s period.` — the three breaks' breaking heights (the cards' numbers), lowest rounded down and highest rounded up to whole feet, at least one foot apart; the lead period at the break with the biggest waves. Then, for each west (250–280°) or north-west (280–330°) rise at Tanner Banks in the last 24 hours, kept until 6 h after it was due at the last break: `{West / North-west} swell ({sector}) at Tanner Banks ({when it rose}), {band} s first; due at Point Loma South around {time}, and at the breaks {lo}–{hi} min after.` (deep-water speed, then the rays' leg; BRIEFING §43). If 46232 is dark: `No spectrum from CDIP 191 since {time}.` and nothing else |
+| **Swell** | Two sources, never matched to each other, each sentence a line of its own, the compass points in ink like the numbers. The beach: `{lo}–{hi} ft ({m}) {point} at {T} s[ and {point} at {T} s], {trend}.` — the three breaks' breaking heights (the cards' numbers), lowest rounded down and highest rounded up to whole feet, at least one foot apart; then the compass point the lead train comes from OFFSHORE (its row's heading, the larger direction for a train of two; never its 5 m heading) and its period, both the biggest train's at the break with the biggest waves; then a second swell train at that break at ≥ 70% of its height from another point (never wind sea or local chop); then the biggest breaking height's trend over 3 h in energy: building (up ≥ 25%), fading (down ≥ 25%), peaking (the day's highest within 3 h), else holding. Then, a line each, in plain words (no ink) and ending on an `offshore` tag set as the cards' `wind sea` and `predicted` are, for each west (250–280°) or north-west (280–330°) swell Tanner Banks holds — found by a threefold rise in an 8–10, 10–12, 12–14 or 14–17 s band in the last 72 h, said until its energy there falls below a third of its peak: `{W / NW}, {band} s first, {trend}; due at Point Loma South around {time}, and at the breaks {lo}–{hi} min later.` (deep-water speed, then the rays' leg; BRIEFING §43), and from its first computed arrival at the breaks `{W / NW}, {band} s first, arriving since about {time}, {trend}.`, the trend at Tanner Banks now: building (up ≥ 25% over 3 h), fading (under half its peak), else peaking. A slot with no value drops with its words. If 46232 is dark: `No spectrum from CDIP 191 since {time}.` and nothing else |
 | **Conditions** | `Water {°F} ({°C})` (46232's newest, within 6 h); `Air {°F} ({°C})` and `Humidity {n}%` (KNZY's newest, within 90 min); `Precipitation {in} ({mm}) in the last hour ({kinds}), {in} ({mm}) in 24 h`, only when either amount is above zero, and then both |
 | **Tides** | each of the Pacific day's predicted turns, `{AM / PM} {high / low} {height} at {time}`, with the gauge's departure as the card's turns carry it |
 
@@ -40,7 +40,7 @@ below the page's precision is none. Each update is kept in
 ```text
 [Briefing updated 7:16 AM]
 
-Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period.
+3–4 ft (0.9–1.2 m) SSW at 13.3 s, holding.
 
 Water 67 °F (19.4 °C)
 Air 61 °F (16 °C)
@@ -57,7 +57,7 @@ PM high 6.3 ft (1.92 m) at 10:05 PM
 ```text
 [Briefing updated 7:16 AM]
 
-Significant waves breaking in the 2–5 ft (0.6–1.5 m) range with an 18.2 s period. West swell (250–280°) at Tanner Banks (7:07 AM), 10–12 s first; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min after.
+2–5 ft (0.6–1.5 m) S at 18.2 s, building. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore
 
 Water 67 °F (19.4 °C)
 Air 61 °F (16 °C)
@@ -70,17 +70,51 @@ PM low 1.8 ft (0.55 m) at 3:48 PM
 PM high 6.3 ft (1.92 m) at 10:05 PM
 ```
 
-### C1: two sectors coming, one risen yesterday; rain earlier in the day only
+### C1: two sectors offshore, one arrived and fading; rain earlier in the day only
 
 ```text
 [Briefing updated 7:16 AM]
 
-Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period. North-west swell (280–330°) at Tanner Banks (Oct 21, 3:10 PM), 14–17 s first; due at Point Loma South around Oct 21, 6:50 PM, and at the breaks 39–53 min after. West swell (250–280°) at Tanner Banks (7:07 AM), 10–12 s first; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min after.
+3–4 ft (0.9–1.2 m) SSW at 13.3 s, peaking. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading. offshore W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore
 
 Water 67 °F (19.4 °C)
 Air 61 °F (16 °C)
 Humidity 88%
 Precipitation 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h
+
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+```
+
+### M1: a mix at the biggest break: the second train from another point is named, one from the same point is not
+
+```text
+[Briefing updated 7:16 AM]
+
+3–4 ft (0.9–1.2 m) SSW at 15.4 s and W at 10.0 s, fading.
+
+Water 67 °F (19.4 °C)
+Air 61 °F (16 °C)
+Humidity 88%
+
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+```
+
+### H1: the lead train has no heading, and no trend yet: their slots drop with their words
+
+```text
+[Briefing updated 7:16 AM]
+
+3–4 ft (0.9–1.2 m) at 13.3 s.
+
+Water 67 °F (19.4 °C)
+Air 61 °F (16 °C)
+Humidity 88%
 
 AM low 0.7 ft (0.21 m) at 3:15 AM
 AM high 5.3 ft (1.62 m) at 9:32 AM
@@ -110,7 +144,7 @@ PM high 6.3 ft (1.92 m) at 10:05 PM
 ```text
 [Briefing updated 7:16 AM]
 
-Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period.
+3–4 ft (0.9–1.2 m) SSW at 13.3 s, holding.
 
 AM low −0.7 ft (−0.21 m) at 6:40 AM
 PM high 5.6 ft (1.71 m) at 1:05 PM
@@ -121,7 +155,7 @@ PM high 5.6 ft (1.71 m) at 1:05 PM
 ```text
 [Briefing updated Oct 21, 12:06 PM]
 
-Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period.
+3–4 ft (0.9–1.2 m) SSW at 13.3 s, holding.
 
 Water 67 °F (19.4 °C)
 Air 61 °F (16 °C)

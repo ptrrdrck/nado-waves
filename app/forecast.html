@@ -160,7 +160,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                      max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior:contain}
 .brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
 .brief-block .unit{color:inherit}
-.brief-block:first-child{display:block}
+/* The swell's sentences a line each, a little apart (owner's request,
+   2026-10-23); each of Tanner Banks' ends on an "offshore" tag set as the
+   cards' "wind sea" and "predicted" are, and its words are plain. */
+.brief-block.brief-swell{gap:6px}
+.brief-block .tag{font-size:11px;color:var(--faint);text-transform:uppercase;
+                  letter-spacing:.06em;margin-left:5px;white-space:nowrap}
 .brief-block + .brief-block{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .brief-num{color:var(--ink);font-weight:600}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
@@ -1507,14 +1512,20 @@ const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: tru
 // line, the day's tides one a line, three blocks apart by the cards' fold
 // rule; every number that says something in ink and heavier (`briefNum`).
 // Never the model: GFS-Wave is the Forecast tab's.
-const BRIEF_SECTOR = {west: "West", "north-west": "North-west"};
+// Tanner Banks' sectors by their points, each line tagged "offshore"
+// (owner's wording, 2026-10-23).
+const BRIEF_SECTOR = {west: "W", "north-west": "NW"};
+const BRIEF_OFFSHORE = ' <span class="tag">offshore</span>';
 const BRIEF_SEEN = "nado-waves.brief-seen";
 // A number that says something, with its unit: ink, heavier than the words
 // round it; its metric stays outside, grey.
 const briefNum = (s) => `<b class="brief-num">${s}</b>`;
 // A time as of the build: "7:07 AM", or "Oct 21, 7:07 AM" on another day.
-const briefWhen = (iso, B) => briefNum(coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc))
-  ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`);
+// Its clock never parts from its AM / PM at a line's end; `briefAt` is the
+// same time without the ink, for Tanner Banks' plain lines.
+const briefAt = (iso, B) => (coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc))
+  ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`).replace(/ (AM|PM)$/, "\u00a0$1");
+const briefWhen = (iso, B) => briefNum(briefAt(iso, B));
 // Temperatures, Fahrenheit first in whole degrees; the water's Celsius to
 // the tenth its buoy reports.
 const briefTemp = (c, tenths = false) =>
@@ -1529,11 +1540,18 @@ const briefLevel = (m) => `${briefNum(briefMinus(`${(m * FT_PER_M).toFixed(1)} f
 const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
   ? bareName(B.station_names[id]) : feedName(id, cdip));
 
-// "an 8.3", "an 11.1", "an 18.2"; "a" before every other period.
-const briefArticle = (n) => (/^(8|11|18)(\.|$)/.test(n) ? "an" : "a");
-// The swell: the breaking heights at the three breaks as one whole-foot
-// range, and the period of the biggest train at the break with the biggest
-// waves; then each 46047 rise, due by deep-water speed (BRIEFING §43).
+// The swell (owner's wording and calls, 2026-10-23): two sources, never
+// matched to each other. The beach: the breaking heights at the three
+// breaks as one whole-foot range, then where the biggest train at the break
+// with the biggest waves comes from offshore (its row's heading, never the
+// 5 m one) and its period, and a second swell train there from another point
+// at 70% of its height or more (`also`); then the biggest breaking height's
+// trend. Then, a line each, every west or north-west swell Tanner Banks
+// holds, by its point and in plain words, tagged "offshore" (owner's
+// wording, 2026-10-23), due by
+// deep-water speed (BRIEFING §43) until it has arrived at the breaks, then
+// "arriving since" -- judged at the build, so the words are the build's --
+// and its trend there. A slot with no value drops with its words.
 function briefSwell(B) {
   const s = B.swell || {};
   if (s.dark) {
@@ -1546,18 +1564,27 @@ function briefSwell(B) {
     const ft = rows.map((r) => r.hs_m * FT_PER_M);
     const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
     const top = rows.reduce((a, r) => (r.hs_m > a.hs_m ? r : a));
-    out.push(`Significant waves breaking in the ${briefNum(`${lo}–${hi}\u00a0ft`)} <span class="unit">`
-      + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span> range`
-      + (top.period_s != null ? ` with ${briefArticle(top.period_s.toFixed(1))} ${briefNum(`${top.period_s.toFixed(1)} s`)} period` : "")
-      + ".");
+    const lead = top.from_deg != null ? point(top.from_deg) : null;
+    const mix = lead && (top.also || []).find((t) => point(t.from_deg) !== lead);
+    const at = (t) => (t.period_s != null ? ` at ${briefNum(`${t.period_s.toFixed(1)} s`)}` : "");
+    out.push(`${briefNum(`${lo}–${hi}\u00a0ft`)} <span class="unit">`
+      + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span>`
+      + (lead ? ` ${briefNum(lead)}` : "") + at(top)
+      + (mix ? ` and ${briefNum(point(mix.from_deg))}${at(mix)}` : "")
+      + (s.trend ? `, ${s.trend}` : "") + ".");
   }
   for (const c of s.coming || []) {
     const legs = c.legs || [];
     const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
-    out.push(`${BRIEF_SECTOR[c.sector] || c.sector} swell (${briefNum(`${c.sector_deg[0]}–${c.sector_deg[1]}°`)}) at `
-      + `${briefBuoy(B, "46047")} (${briefWhen(c.since_utc, B)}), ${briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)} first; `
-      + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefWhen(c.due_buoy_utc, B)}`
-      + (legs.length ? `, and at the breaks ${briefNum(`${lo}–${hi} min`)} after` : "") + ".");
+    const head = `${BRIEF_SECTOR[c.sector] || c.sector}, ${c.band_s[0]}–${c.band_s[1]} s first`;
+    const trend = c.trend ? `, ${c.trend}` : "";
+    if (c.arrives_utc && Date.parse(c.arrives_utc) <= Date.parse(B.built_utc)) {
+      out.push(`${head}, arriving since about ${briefAt(c.arrives_utc, B)}${trend}.${BRIEF_OFFSHORE}`);
+    } else {
+      out.push(`${head}${trend}; `
+        + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefAt(c.due_buoy_utc, B)}`
+        + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + `.${BRIEF_OFFSHORE}`);
+    }
   }
   return out;
 }
@@ -1633,8 +1660,8 @@ function briefingFold(B) {
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
-      ${blocks.map((b, i) => `<div class="brief-block">${b.map((line) =>
-        `<span class="${i ? "brief-line" : "brief-text"}">${line}</span>`).join(i ? "" : " ")}</div>`).join("")}
+      ${blocks.map((b, i) => `<div class="brief-block${i ? "" : " brief-swell"}">${b.map((line) =>
+        `<span class="brief-line">${line}</span>`).join("")}</div>`).join("")}
     </div>`;
 }
 // End of the briefing.

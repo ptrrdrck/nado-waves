@@ -3856,11 +3856,22 @@ class TestTheBriefing:
         assert ".brief-num{color:var(--ink);font-weight:600}" in SOURCE
         assert ".brief-block{" in SOURCE and "color:var(--soft)" in SOURCE[
             SOURCE.index(".brief-block{"):SOURCE.index("}", SOURCE.index(".brief-block{"))]
-        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${top.period_s.toFixed(1)} s`)",
-                     "briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)", "briefNum(`${lo}–${hi} min`)",
+        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${t.period_s.toFixed(1)} s`)",
                      "briefNum(`${Math.round(w.humidity_pct)}%`)", "briefNum(clock(x.valid_utc))",
                      "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):
             assert made in self.BLOCK, made
+
+    def test_tanner_banks_lines_are_plain_and_tagged_offshore(self):
+        """Owner's calls, 2026-10-23: no ink in Tanner Banks' lines, and each
+        ends on an "offshore" tag set as the cards' "wind sea" is; no
+        "Offshore:" line."""
+        loop = self.BLOCK[self.BLOCK.index("for (const c of s.coming || [])"):]
+        loop = loop[:loop.index("\n  return out;")]
+        assert "briefNum(" not in loop and "briefWhen(" not in loop
+        assert loop.count("${BRIEF_OFFSHORE}") == 2
+        assert """const BRIEF_OFFSHORE = ' <span class="tag">offshore</span>';""" in self.BLOCK
+        assert ".brief-block .tag{font-size:11px;color:var(--faint);text-transform:uppercase;" in SOURCE
+        assert '"Offshore:"' not in SOURCE
         level = self.BLOCK[self.BLOCK.index("const briefLevel"):]
         level = level[:level.index(";\n")]
         assert "briefNum(" in level and '<span class="unit">' in level
