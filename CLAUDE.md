@@ -949,7 +949,11 @@ forecaster actually verifies against, Surfline included.
   though it were promised a sample CO-OPS had not written yet, turning a reading
   eight minutes old into a red card), rounded
   up to the next COLLECTION from `EXTERNAL_TRIGGER_CRON`; the page then adds its
-  own refresh interval, because only it knows that.
+  own refresh interval, because only it knows that, and to the RED instant
+  alone `PUBLISH_LEG_MS` (5 min; owner's call, 2026-10-23, BRIEFING §46): the
+  run publishes ~2.1 min after its mark and Pages deploys after that, so red
+  at mark + refresh caught files still on their way. The countdown is not
+  moved; "Update due" covers the publishing.
 - **The lag is a distribution, so it takes two numbers, not one.** A single
   deadline has to choose between crying wolf and quoting a figure that almost
   never applies, and both are dishonest on screen. `PUBLISH_LAG_MIN` is the

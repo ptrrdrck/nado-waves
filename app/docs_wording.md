@@ -546,7 +546,7 @@ then the page adds its own refresh, every 5 minutes.
 | Wind, KNZY | hourly at :52 |  |  | (11:52 AM reading) 12:55 PM, red after 1:05 PM |
 | Tide, 9410170 | every 6 min |  |  | 12:15 PM, red after 12:25 PM |
 
-It reads “Update in m:ss”, then “Update due” once the typical time has passed. Only past the late time does it turn red and say “Overdue m:ss”. The publishing lag varies from hour to hour, so one deadline would either cry wolf on every slow hour or promise a time that almost never applies. Hence two figures.
+It reads “Update in m:ss”, then “Update due” once the typical time has passed. Only past the late time does it turn red and say “Overdue m:ss”, and not until 5 minutes after it plus the page's refresh: a collection takes a few minutes to publish what it fetched, and the update is due, not late, while it does. The publishing lag varies from hour to hour, so one deadline would either cry wolf on every slow hour or promise a time that almost never applies. Hence two figures.
 
 ## [wind] The Wind card
 
