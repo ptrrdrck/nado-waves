@@ -306,7 +306,7 @@ TREND_BACK_H = 3.0
 TREND_MATCH_MIN = 20
 STEADY = {"water": 0.05, "air": 0.05, "humidity": 0.5, "pressure": 0.005}
 #: Each sparkline's window, by how fast the condition moves.
-SPARK_H = {"water": 14 * 24, "air": 24, "humidity": 24, "pressure": 72}
+SPARK_H = {"water": 14 * 24, "air": 24, "humidity": 24, "pressure": 72, "beach": 24}
 RAIN_DAYS = 7
 
 
@@ -400,6 +400,7 @@ def unsparked(line: dict) -> dict:
         if isinstance(t, dict):
             t.pop("spark", None)
             t.pop("days", None)
+    (line.get("swell") or {}).pop("spark", None)
     return line
 
 
@@ -541,6 +542,25 @@ def beach_trend(steps: list[dict]) -> str | None:
     return "holding"
 
 
+def beach_spark(steps: list[dict]) -> list[list]:
+    """The swell headline's sparkline: the biggest of the three breaks'
+    breaking heights each hour over SPARK_H["beach"], in metres, a missing
+    hour missing."""
+
+    pts = []
+    for st in steps or []:
+        if st.get("gap") or st.get("pending"):
+            continue
+        hs = [((st.get("breaks") or {}).get(b) or {}).get("hs_m") for b in BREAKS]
+        hs = [h for h in hs if h is not None]
+        if hs:
+            pts.append((_utc(st["valid_utc"]), max(hs)))
+    if not pts:
+        return []
+    newest = pts[-1][0]
+    return _hourly([p for p in pts if p[0] > newest - timedelta(hours=SPARK_H["beach"])])
+
+
 def _minute(t: datetime) -> datetime:
     return t.replace(second=0, microsecond=0)
 
@@ -592,9 +612,10 @@ def swell_story(now: dict, buoys: dict | None, at: datetime, data_dir: Path,
                "from_deg": lead_heading(b), "also": mix_trains(b)}
               for b in now.get("breaks", []) if b.get("id") in BREAKS]
     coming = upstream_story(data_dir, buoys, at)
+    steps = (series or {}).get("steps") or []
     return {"dark": False, "newest_utc": _iso(newest),
             "breaks": [b for b in breaks if b["hs_m"] is not None],
-            "trend": beach_trend((series or {}).get("steps") or []),
+            "trend": beach_trend(steps), "spark": beach_spark(steps), "window_h": SPARK_H["beach"],
             "coming": [{"sector": c["sector"], "sector_deg": c["sector_deg"], **c["bands"][0],
                         "arrives_utc": c["arrives_utc"], "trend": c["trend"]} for c in coming]}
 

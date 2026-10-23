@@ -832,7 +832,13 @@ forecaster actually verifies against, Surfline included.
    ink and heavier, the metric in brackets grey (`briefNum`): **Swell** (owner's
    wording and calls, 2026-10-23), TWO SOURCES never matched to each other.
    Each swell sentence a line of its own, 6 px apart, the beach's compass
-   points in ink like the numbers (owner's request, same day). The beach: "3–4 ft
+   points in ink like the numbers (owner's request, same day); set (owner's
+   choice, same day) as a HEADLINE — the range at 27 px, "SSW at 13.3 s ·
+   building" under it, no trend mark, the biggest breaking height each hour
+   over 24 h a sparkline at its right (`beach_spark`, `swell.spark`, kept
+   out of the record by `unsparked`) — over Tanner Banks' sentences, each
+   point hung in the ledger's small caps; `briefSwellText` keeps every
+   line's words as they were, so the setting was no update. The beach: "3–4 ft
    (0.9–1.2 m) SSW at 13.3 s, building." (the
    three cards' breaking heights, lowest floored and highest ceiled to whole
    feet, at least a foot apart; then the lead train's compass point and

@@ -191,7 +191,7 @@ const text = (html) => html
   .replace(/<[^>]+>/g, "").replace(/\u00a0/g, " ").trim();
 const words = (B, readAt) => {
   const p = briefingParts(B);
-  return p ? {line: text(briefLine(B, readAt)), swell: p.swell.map(text),
+  return p ? {line: text(briefLine(B, readAt)), swell: p.swell.map((r) => text(briefSwellText(r))),
               conditions: p.conditions.map((r) => text(briefCondText(r))), tides: p.tides.map((r) => text(briefTideText(r)))}
            : {line: null, swell: [], conditions: [], tides: []};
 };
