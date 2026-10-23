@@ -425,18 +425,33 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    card's 2 px gap; the swell card's pane gives its box 11 px. */
 .cond > .measured,.cond .subcond > .measured{margin-top:8px}
 
-/* Earlier / later seek bar. */
-.seek{display:flex;align-items:stretch;gap:8px}
-.seek button{flex:none;width:46px;font:inherit;font-size:19px;line-height:1;cursor:pointer;
-             background:var(--card);color:var(--ink);border:1px solid var(--line-strong);
-             border-radius:var(--r);box-shadow:var(--shadow)}
-.seek button:hover:not(:disabled){border-color:var(--surf);color:var(--surf)}
+/* The Forecast tab's hour line, set as LIVE's Briefing line is (owner's
+   choice, 2026-10-23): on the backdrop with no box, the day in ink and the
+   rest of the hour in the count's grey, a small caret saying the hour opens
+   a list, and earlier / later as the fold carets' chevrons at the right end
+   where the Briefing's caret sits. The same 24 px row, so the cards start
+   at the same height under the tabs on both, and switching does not move
+   them. */
+.seek{display:flex;align-items:center;gap:4px;min-height:24px;padding:0 13px;
+      font-size:14.5px;font-weight:600;color:var(--ink)}
+.seek button{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px 0;
+             padding:0;border:0;border-radius:6px;background:transparent;color:var(--soft);cursor:pointer}
+.seek #later{margin-right:-6px}
+.seek button:hover:not(:disabled){color:var(--ink)}
 .seek button:disabled{opacity:.38;cursor:default}
-.seek-when{position:relative;flex:1;display:flex;align-items:center;justify-content:center;
-           text-align:center;background:var(--card);border:1px solid var(--line);
-           border-radius:var(--r);box-shadow:var(--shadow);padding:9px 6px;
-           font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
-           font-size:18px;letter-spacing:.01em}
+.seek button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.seek button svg,.seek-when svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
+                                stroke-linecap:round;stroke-linejoin:round}
+.seek-when{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:4px;
+           border-radius:6px;cursor:pointer}
+.seek-when .count{color:var(--soft);font-weight:400}
+/* One line at every width, or the row grows and the cards move: the
+   longest hour, "Wednesday Sep 30, 12:00 PM", is 196 px and a 320 px phone
+   leaves it 179, so under 340 px the weekday is the short one. */
+#when-label{white-space:nowrap}
+.seek-when .wd-short{display:none}
+@media (max-width:340px){.seek-when .wd-long{display:none}.seek-when .wd-short{display:inline}}
+.seek-when svg{flex:none;width:13px;height:13px;color:var(--soft)}
 /* The real control, invisible but on top, so a tap opens the native list. */
 .seek-when select{position:absolute;inset:0;width:100%;height:100%;opacity:0;
                   border:0;padding:0;cursor:pointer;font:inherit}
@@ -808,16 +823,19 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
      d="M12 9v4"/><path d="M12 17h.01"/></svg><span id="warnings-text"></span></p>
   <p class="stale" id="stale" hidden></p>
 
-  <!-- Earlier / later, with the hour between them. The full list is still a
-       real <select>, laid transparently over the label, so the native picker
+  <!-- The hour, then earlier / later. The full list is still a real
+       <select>, laid transparently over the label, so the native picker
        opens on tap and the control stays keyboard-reachable. -->
   <nav class="seek" id="seek" aria-label="Forecast hour" hidden>
-    <button type="button" id="earlier" aria-label="Earlier">&#8592;</button>
     <span class="seek-when">
-      <span id="when-label">&hellip;</span>
+      <span id="when-label">&hellip;</span><svg viewBox="0 0 16 16"
+        aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>
       <select id="when" aria-label="Choose forecast hour"></select>
     </span>
-    <button type="button" id="later" aria-label="Later">&#8594;</button>
+    <button type="button" id="earlier" aria-label="Earlier"><svg viewBox="0 0 16 16"
+      aria-hidden="true"><path d="M10 3.5 5.5 8 10 12.5"/></svg></button>
+    <button type="button" id="later" aria-label="Later"><svg viewBox="0 0 16 16"
+      aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
   </nav>
 
   <!-- One Swell card with a tab per break and the buoy last, then wind and
@@ -1038,6 +1056,15 @@ function when(iso) {
     weekday: "long", month: "short", day: "numeric",
     hour: "numeric", minute: "2-digit",
   });
+}
+// The hour line's own setting of the same moment: the day in ink, the rest
+// in the count's grey, as the Briefing line sets "Briefing updated 7:16 AM".
+function whenLine(iso) {
+  const d = new Date(iso);
+  const day = (weekday) => d.toLocaleString(undefined, {weekday});
+  const rest = d.toLocaleString(undefined, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"});
+  return `<span class="wd-long">${day("long")}</span><span class="wd-short">${day("short")}</span>`
+    + ` <span class="count">${rest}</span>`;
 }
 
 // The build stamps an age into now.json and that number freezes the instant
@@ -6306,7 +6333,7 @@ function show() {
 
   if (forecasting) {
     const step = STEPS[CURSOR];
-    $("when-label").textContent = when(step.valid_utc);
+    $("when-label").innerHTML = whenLine(step.valid_utc);
     $("when").value = String(CURSOR);
     $("earlier").disabled = CURSOR === 0;
     $("later").disabled = CURSOR === STEPS.length - 1;

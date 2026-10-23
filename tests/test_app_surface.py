@@ -1363,7 +1363,7 @@ class TestTheProvenanceLines:
         # The hour left the titles, and since 2026-10-15 the provenance (owner's
         # request: pills naming the source, the model and the run), so the
         # hour bar above the cards is what says which moment they describe.
-        assert '$("when-label").textContent = when(step.valid_utc);' in SOURCE
+        assert '$("when-label").innerHTML = whenLine(step.valid_utc);' in SOURCE
 
     def test_every_provenance_line_ends_in_a_full_stop(self):
         """Including the collector's own notes, which do not all carry one —

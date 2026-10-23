@@ -677,7 +677,7 @@ The survey is bare earth. The trees along the ridge, the lighthouse and the buil
 
 ### [time-picker] The hour picker
 
-On the Forecast tab, the arrows step through the hours three at a time, and tapping the hour between them opens the full list. It opens on the first hour not yet passed, never one that has.
+On the Forecast tab, the arrows step through the hours three at a time, and tapping the hour beside them opens the full list. It opens on the first hour not yet passed, never one that has.
 
 ### [time-past] Past hours: what the page showed then
 
