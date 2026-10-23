@@ -866,13 +866,25 @@ forecaster actually verifies against, Surfline included.
    arrived on 94%. SW at Tanner Banks is never said (owner's call): it is not
    upstream of the breaks for a south swell. A dark 46232 says so and nothing
    else.
-   **Conditions**, a line each — 46232's water temperature (≤ 6 h: its standard
+   **Conditions**, a LEDGER (owner's calls, 2026-10-23; `briefConditions`,
+   `briefCondRow`): a row each, its name in small caps, an ink arrowhead —
+   up, down, or a dash for no change, none with no earlier reading — the
+   value, and a sparkline of its recent readings, broken at a missing hour,
+   with its window (`briefing.trends`). Water 46232's (≤ 6 h: its standard
    met reaches the archive on collect.yml's throttled schedule, a median
-   2.7 h old), KNZY's air
-   temperature and humidity (≤ 90 min; the T group's tenths, Magnus), and
-   precipitation only when the last hour's (the newest routine report's P
-   group) or the rolling 24 h's (every routine report's; a SPECI's repeats
-   its hour) is above zero, then both (owner's call). **Tides**: the
+   2.7 h old; 14 d), KNZY's air temperature and humidity (≤ 90 min; the T
+   group's tenths, Magnus; 24 h), its PRESSURE (the body's A group, inHg
+   as published, hPa in brackets; 3 d; owner's request, same day), and RAIN
+   only when the last hour's (the newest routine report's P group) or the
+   rolling 24 h's (every routine report's; a SPECI's repeats its hour) is
+   above zero, then both, with a bar a Pacific day for 7 d. **Water and air
+   are compared 3 h back** (owner's call, measured: the reading before was
+   the same on 64% of 46232's half-hours and 32% of KNZY's hours, 3 h back
+   22% and 15%), humidity and pressure with the report before; a change
+   under half a source's step is steady, humidity compared in the whole
+   percent shown (it is computed). A tapped row says when it was read, by
+   what, and against when. The record keeps the arrows, never the
+   sparklines (`unsparked`): they are the archives' own readings again. **Tides**: the
    Pacific day's predicted turns, "AM low 0.7 ft (0.21 m) at 3:15 AM", with
    the gauge's departure as the card's carry it. **Every update is kept**:
    `data/briefings/YYYY-MM.jsonl`, append-only, the build and its words; its

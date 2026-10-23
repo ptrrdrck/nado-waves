@@ -69,12 +69,20 @@ def test_a_dark_buoy_says_so_and_nothing_else(cases):
     assert cases["D1"]["swell"] == ["No spectrum from CDIP 191 since Oct 21, 3:00 PM."]
 
 
-def test_precipitation_shows_both_when_either_is_above_zero_and_neither_otherwise(cases):
-    assert not any(line.startswith("Precipitation") for line in cases["Q1"]["conditions"])
+def test_rain_shows_both_when_either_is_above_zero_and_neither_otherwise(cases):
+    """"Rain", not "Precipitation" (owner's call, 2026-10-23)."""
+    assert not any(line.startswith("Rain") for line in cases["Q1"]["conditions"])
     assert cases["B1"]["conditions"][-1] == \
-        "Precipitation 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h"
+        "Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h"
     assert cases["C1"]["conditions"][-1] == \
-        "Precipitation 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h"
+        "Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h"
+
+
+def test_the_conditions_are_a_ledger_with_arrows_and_pressure(cases):
+    """Owner's calls, 2026-10-23: water, air, humidity, pressure, then rain,
+    each with its arrow's direction; none where nothing earlier was read."""
+    assert cases["Q1"]["conditions"] == ["Water 67 °F (19.4 °C), up", "Air 61 °F (16 °C), down",
+                                         "Humidity 88%, steady", "Pressure 30.05 inHg (1018 hPa)"]
 
 
 def test_the_tides_are_the_days_turns_am_and_pm(cases):

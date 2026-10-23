@@ -311,7 +311,70 @@ def test_the_metar_t_group_and_hourly_precipitation_are_read():
     raw = ("METAR KNZY 161352Z 00000KT 10SM -RA BR OVC008 16/15 A2995 RMK AO2 SLP141 "
            "P0003 T01610150")
     got = bf.parse_metar(raw)
-    assert got == {"air_c": 16.1, "dew_c": 15.0, "precip_in": 0.03, "kinds": ["rain"]}
+    assert got == {"air_c": 16.1, "dew_c": 15.0, "precip_in": 0.03, "kinds": ["rain"], "altimeter_inhg": 29.95}
+
+
+def test_the_altimeter_is_the_bodys_a_group_never_the_remarks():
+    """Owner's request, 2026-10-23: pressure, as METAR publishes it (inHg);
+    SLP in the remarks is another quantity and never read."""
+
+    assert bf.parse_metar("METAR KNZY 230352Z 27006KT 10SM CLR 19/12 A2999 RMK AO2 SLP155")["altimeter_inhg"] == 29.99
+    assert bf.parse_metar("METAR KNZY 230352Z 27006KT 10SM CLR 19/12 RMK AO2 SLP155")["altimeter_inhg"] is None
+
+
+def _series(start, values, step_min=60):
+    return [(start + timedelta(minutes=step_min * k), v) for k, v in enumerate(values)]
+
+
+def test_water_and_air_are_compared_three_hours_back_the_others_with_the_report_before():
+    """Owner's calls, 2026-10-23, measured: the previous reading was the same
+    on 64% of 46232's half-hours and 32% of KNZY's hours; 3 h back, 22% and
+    15%. A change under half a source's step is steady."""
+
+    water = _series(T0, [20.0, 20.0, 20.0, 20.1, 20.1, 20.1, 20.1], step_min=30)
+    got = bf._trend("water", water, bf.TREND_BACK_H)
+    assert got["dir"] == "up" and got["was_utc"] == bf._iso(T0)
+    assert bf._trend("air", _series(T0, [18.0, 18.3, 18.9, 18.0]), bf.TREND_BACK_H)["dir"] == "steady"
+    assert bf._trend("pressure", _series(T0, [30.01, 29.99]), None)["dir"] == "down"
+    assert bf._trend("pressure", _series(T0, [29.99]), None)["dir"] is None        # nothing to compare: no arrow
+    assert bf._trend("air", _series(T0, [18.0, 19.0]), bf.TREND_BACK_H)["dir"] is None  # no reading 3 h back
+
+
+def test_humidity_is_compared_as_the_page_shows_it():
+    """Computed from temperature and dewpoint, not measured: 65.3 to 65.6%
+    reads 65% then 66% on the page, so the arrow says up."""
+
+    assert bf._trend("humidity", _series(T0, [65.3, 65.6]), None)["dir"] == "up"
+    assert bf._trend("humidity", _series(T0, [65.1, 65.4]), None)["dir"] == "steady"
+
+
+def test_a_sparkline_is_an_hour_a_point_and_never_fills_a_gap():
+    ser = _series(T0, [1.0, 1.1, 1.2], step_min=30) + _series(T0 + timedelta(hours=5), [2.0])
+    spark = bf._trend("air", ser, None)["spark"]
+    assert [p[1] for p in spark] == [1.1, 1.2, 2.0]           # the hour's newest; hours 2–4 stay empty
+    assert spark[-1][0] - spark[-2][0] == 4 * 3600
+
+
+def test_the_record_keeps_the_arrows_not_the_sparklines():
+    line = {"built_utc": "x", "conditions": {"trends": {"air": {"dir": "up", "spark": [[1, 2.0]]},
+                                                         "rain": {"days": [["2026-10-22", 0.0]]}}}}
+    kept = bf.unsparked(line)
+    assert kept["conditions"]["trends"] == {"air": {"dir": "up"}, "rain": {}}
+    assert line["conditions"]["trends"]["air"]["spark"]                  # the page's copy is untouched
+
+
+def test_the_trends_on_the_archive():
+    """On 23 October at 04:30Z: each row the block shows has its arrow and
+    sparkline, from its own source, over its own window."""
+
+    at = datetime(2026, 10, 23, 4, 30, tzinfo=timezone.utc)
+    water, weather = bf.water_now(Path("data"), at), bf.weather_now(Path("data"), at)
+    got = bf.trends(Path("data"), at, water, weather)
+    assert set(got) == {"water", "air", "humidity", "pressure", "rain"}
+    assert got["water"]["window_h"] == 14 * 24 and got["air"]["window_h"] == 24 and got["pressure"]["window_h"] == 72
+    assert all(got[k]["dir"] in ("up", "down", "steady") for k in ("water", "air", "humidity", "pressure"))
+    assert len(got["rain"]["days"]) == bf.RAIN_DAYS and got["rain"]["days"][-1][0] == "2026-10-22"
+    assert weather["pressure_inhg"] == 29.99
 
 
 def test_a_metar_without_the_t_group_falls_back_to_whole_degrees():

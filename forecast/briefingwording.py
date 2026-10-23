@@ -57,7 +57,19 @@ QUIET = {
     "conditions": {"water": {"station": "46232", "c": 19.4, "observed_utc": "2026-10-22T13:56:00Z"},
                    "weather": {"station": "KNZY", "air_c": 16.1, "humidity_pct": 87.6,
                                "observed_utc": "2026-10-22T13:52:00Z", "precip_hour_in": 0.0,
-                               "precip_day_in": 0.0, "precip_kinds": []}},
+                               "precip_day_in": 0.0, "precip_kinds": [], "pressure_inhg": 30.05,
+                               "pressure_utc": "2026-10-22T13:52:00Z"},
+                   "trends": {"water": {"dir": "up", "was_utc": "2026-10-22T10:56:00Z", "window_h": 336,
+                                        "spark": [[1792058160, 19.1], [1792061760, 19.3], [1792065360, 19.4]]},
+                              "air": {"dir": "down", "was_utc": "2026-10-22T10:52:00Z", "window_h": 24,
+                                      "spark": [[1792058160, 16.7], [1792061760, 16.1]]},
+                              "humidity": {"dir": "steady", "was_utc": "2026-10-22T12:52:00Z", "window_h": 24,
+                                           "spark": [[1792058160, 87.0], [1792061760, 87.6]]},
+                              "pressure": {"dir": None, "was_utc": None, "window_h": 72,
+                                           "spark": [[1792061760, 30.05]]},
+                              "rain": {"days": [["2026-10-16", 0.0], ["2026-10-17", None], ["2026-10-18", 0.0],
+                                                ["2026-10-19", 0.0], ["2026-10-20", 0.0], ["2026-10-21", 0.15],
+                                                ["2026-10-22", 0.0]]}}},
     "tide": {"day": "2026-10-22", "departure_m": 0.31, "turns": [
         {"valid_utc": "2026-10-22T10:15:00Z", "height_m": 0.21, "event": "low"},
         {"valid_utc": "2026-10-22T16:32:00Z", "height_m": 1.62, "event": "high"},
@@ -138,6 +150,7 @@ def code(source: str) -> str:
         _lift(source, "const MPH_PER_KT = ", ";"),
         _lift(source, "const MI_PER_KM = ", ";"),
         _lift(source, "const MM_PER_IN = ", ";"),
+        _lift(source, "const HPA_PER_INHG = ", ";"),
         _lift(source, "const fahrenheit = ", ";\n"),
         _lift(source, "const height = ", "</span>`);"),
         _lift(source, "const speed = ", "</span>`);"),
@@ -179,7 +192,7 @@ const text = (html) => html
 const words = (B, readAt) => {
   const p = briefingParts(B);
   return p ? {line: text(briefLine(B, readAt)), swell: p.swell.map(text),
-              conditions: p.conditions.map(text), tides: p.tides.map(text)}
+              conditions: p.conditions.map((r) => text(briefCondText(r))), tides: p.tides.map(text)}
            : {line: null, swell: [], conditions: [], tides: []};
 };
 """
