@@ -173,18 +173,35 @@ PUBLISH_MINUTES = {
 #: twelve minutes pessimistic on the common hour AND still red on 02Z. n = 6,
 #: which is thin; revisit as the archive fills.
 #:
-#: **tide, 5 expected / 8 late.** 9410170 was modelled at 0 on the claim that a
+#: **tide, 5 expected / 10 late.** 9410170 was modelled at 0 on the claim that a
 #: :24 sample was in hand by the :25 collection, and the archive falsifies it:
-#: no sample has ever been fetchable within 4.9 minutes of its own stamp.
-#: Bracketed the same way, 01:36 was in hand by H+4.9 while 00:54 was still
-#: absent at H+6.4. Over the window where the 10-minute cadence ran unbroken,
-#: first-seen runs H+5.2 to H+13.4, median 9.3.
+#: no sample has ever been fetchable within 4.8 minutes of its own stamp.
 #:
-#: Three minutes is narrower than the collection interval, so the rounding
-#: absorbs the difference on 6 of the tide's 10 stamp phases and separates them
-#: by one slot on the other 4 -- checked, not assumed. That is a fact about the
-#: interval rather than about the tide: change the cadence and the proportion
-#: moves.
+#: Re-bracketed 2026-10-23: the late figure was 8, and the card went red on
+#: samples that were not late. Replayed over 9-23 Oct, a reader refetching
+#: every 5 minutes saw it red 2.3% of the time on the source's lag alone,
+#: with the page counted as landing the instant the tide was fetched; at 10,
+#: 0.3%. The tide file's own
+#: `first_seen_utc` is the record: each sample between the last collection
+#: without it and the first with it, 2026-09-25 to 10-23, brackets wider than
+#: 12 minutes (a missed run) dropped. Tide stamps fall on a 2-minute phase of
+#: the 10-minute collection, so each phase's first chance is its own point on
+#: the distribution, the fetch landing ~30 s after the run's mark:
+#:
+#:     first fetch at   caught there
+#:       H+ 4.2          0%   (n=16)
+#:       H+ 5.5         75%   (n=1,399)
+#:       H+ 7.5         93.5% (n=1,374)
+#:       H+ 9.5         97.4% (n=1,319)
+#:       H+11.5        100%   (n=1,370)
+#:       H+13.5        100%   (n=1,318)
+#:
+#: So the typical stays 5 (it rounds onto the H+5.5 fetch), and the worst
+#: sits between the largest still-absent bracket, H+9.75 (2026-10-07 18:36),
+#: and H+11.4, by which every sample was in hand. 8 was inside that tail: 34
+#: samples were still absent past it. 10 clears the largest absent bracket; at
+#: this cadence 10 and 11 give identical deadlines on every stamp phase.
+#: `test_the_tide_is_never_accused_before_the_archive_has_it` re-measures it.
 #:
 #: **wind, 3 expected / 4 late.** KNZY's routine METAR at :52, measured floor
 #: H+3.2 with one still absent at H+0.7. Three minutes past :52 rounds onto the
@@ -195,7 +212,7 @@ PUBLISH_MINUTES = {
 #: mark, which is the point: it buys the card one collection of grace before it
 #: accuses a station that publishes on a pinned minute 81 times in 95.
 PUBLISH_LAG_MIN = {"swell": SPECTRA_PUBLISHED_MIN[0], "wind": 3, "tide": 5}
-PUBLISH_LAG_LATE_MIN = {"swell": SPECTRA_PUBLISHED_MIN[1], "wind": 4, "tide": 8}
+PUBLISH_LAG_LATE_MIN = {"swell": SPECTRA_PUBLISHED_MIN[1], "wind": 4, "tide": 10}
 
 
 def _collect_minutes() -> tuple[int, ...]:

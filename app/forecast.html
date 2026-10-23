@@ -1198,6 +1198,19 @@ function hms(ms) {
 const NOW_REFRESH_MS = 5 * 60 * 1000;
 const FORECAST_REFRESH_MS = 60 * 60 * 1000;
 
+// How long a collection's new file takes to reach this page's host, charged
+// to the RED instant only (owner's call, 2026-10-23, BRIEFING §46). Both
+// instants from now.json are collection MARKS, but the run publishes ~2.1 min
+// after its mark (median of 100 runs on 23 Oct; p95 2.5, worst 8.1) and Pages
+// then deploys the bundle, which nothing here has timed. Without this leg the
+// card reddened at mark + refresh while the file was still on its way: the
+// tide, which meets a deadline every six minutes, was red 5-9% of the time on
+// samples that were not late. Replayed over 9-23 Oct, 5 minutes keeps it near
+// 0.1% for any deploy up to ~3 min. The countdown is NOT moved: "Update due"
+// is the honest word while the file is publishing, and red still says a
+// reading is late, a few minutes later than it did.
+const PUBLISH_LEG_MS = 5 * 60 * 1000;
+
 // "Update in m:ss", and "Overdue m:ss" once the update has not come (no
 // "by": owner's call, 2026-10-21, so a long outage's pill stays on its row).
 //
@@ -1239,7 +1252,8 @@ const FORECAST_REFRESH_MS = 60 * 60 * 1000;
 // source when 80 was honest. See PUBLISH_LAG_MIN in forecast/now.py.
 //
 // Both get this page's refresh leg added, for the same reason: the reader sees
-// nothing until the page refetches.
+// nothing until the page refetches. The late one also gets PUBLISH_LEG_MS, the
+// time a collection's file takes to reach the page's host.
 function dueInstants(iso, lateIso) {
   if (!iso) return null;
   const at = new Date(iso).getTime();
@@ -1249,7 +1263,9 @@ function dueInstants(iso, lateIso) {
   const lateAt = lateIso ? new Date(lateIso).getTime() : NaN;
   // Falling back to `at` keeps a payload without `overdue_after` behaving
   // exactly as it did before the two split, rather than never going red.
-  return {due: plusRefresh(at), late: plusRefresh(Number.isFinite(lateAt) ? Math.max(lateAt, at) : at)};
+  // PUBLISH_LEG_MS on the late instant alone: see its declaration.
+  return {due: plusRefresh(at),
+          late: plusRefresh((Number.isFinite(lateAt) ? Math.max(lateAt, at) : at) + PUBLISH_LEG_MS)};
 }
 
 // `bare`: inside a pill, with no leading space and no closing full stop.

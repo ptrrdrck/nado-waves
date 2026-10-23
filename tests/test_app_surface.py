@@ -1557,7 +1557,23 @@ class TestTheUpdateCountdown:
         # Applied to BOTH instants: a late bound that skipped the refresh leg
         # would redden the card for the page's own latency.
         assert "plusRefresh(at)" in SOURCE
-        assert "plusRefresh(Number.isFinite(lateAt)" in SOURCE
+        assert "plusRefresh((Number.isFinite(lateAt)" in SOURCE
+
+    def test_the_publish_leg_delays_red_and_never_the_countdown(self):
+        """Both instants in now.json are collection marks, and the new file
+        reaches the page minutes after its run's mark. Charging that to the
+        late instant keeps "Update due" on screen while it publishes; charging
+        it to the due instant would move every countdown (BRIEFING §46).
+
+        The leg must at least cover the run's own measured publish time,
+        p95 2.5 min after the mark on 23 Oct."""
+
+        found = re.search(r"const PUBLISH_LEG_MS = (\d+) \* 60 \* 1000", SOURCE)
+        assert found, "PUBLISH_LEG_MS is not in the minutes form this test reads"
+        assert int(found.group(1)) >= 3
+        assert "due: plusRefresh(at)," in SOURCE
+        assert "Math.max(lateAt, at) : at) + PUBLISH_LEG_MS)" in SOURCE
+        assert SOURCE.index("const PUBLISH_LEG_MS") < SOURCE.index("function dueSpan")
 
     def test_the_refresh_interval_is_declared_before_the_countdown_uses_it(self):
         """`dueSpan` reads NOW_REFRESH_MS. A `const` used above its own line is
