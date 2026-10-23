@@ -832,7 +832,13 @@ forecaster actually verifies against, Surfline included.
    ink and heavier, the metric in brackets grey (`briefNum`): **Swell** (owner's
    wording and calls, 2026-10-23), TWO SOURCES never matched to each other.
    Each swell sentence a line of its own, 6 px apart, the beach's compass
-   points in ink like the numbers (owner's request, same day). The beach: "3–4 ft
+   points in ink like the numbers (owner's request, same day); set (owner's
+   choice, same day) as a HEADLINE — the range at 27 px, "SSW at 13.3 s ·
+   building" under it, no trend mark, the biggest breaking height each hour
+   over 24 h a sparkline at its right (`beach_spark`, `swell.spark`, kept
+   out of the record by `unsparked`) — over Tanner Banks' sentences, each
+   point hung in the ledger's small caps; `briefSwellText` keeps every
+   line's words as they were, so the setting was no update. The beach: "3–4 ft
    (0.9–1.2 m) SSW at 13.3 s, building." (the
    three cards' breaking heights, lowest floored and highest ceiled to whole
    feet, at least a foot apart; then the lead train's compass point and
@@ -886,7 +892,12 @@ forecaster actually verifies against, Surfline included.
    what, and against when. The record keeps the arrows, never the
    sparklines (`unsparked`): they are the archives' own readings again. **Tides**: the
    Pacific day's predicted turns, "AM low 0.7 ft (0.21 m) at 3:15 AM", with
-   the gauge's departure as the card's carry it. **Every update is kept**:
+   the gauge's departure as the card's carry it — a ledger too (owner's
+   request, same day; `briefTides` through `briefCondRow`): "AM LOW" in the
+   conditions' small caps, no arrow, the height, the time where they keep a
+   sparkline; tapped, "Predicted · NOAA 9410170 · departure +1.5 ft
+   (0.46 m)". Each row's words (`briefTideText`) are the line's before the
+   ledger, so it was no update. **Every update is kept**:
    `data/briefings/YYYY-MM.jsonl`, append-only, the build and its words; its
    one writer is collect-beach-inputs.yml's "Record the briefing", in a
    sparse worktree of the branch's NEWEST tip, re-appending on a rejected

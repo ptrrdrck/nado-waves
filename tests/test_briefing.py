@@ -180,7 +180,7 @@ def test_the_water_is_46232s_newest_within_three_hours():
 
 def test_the_tides_are_the_pacific_days_turns():
     got = bf.tide_story({"tide_station": "9410170"}, Path("data"), _at("2026-10-17T15:00:00Z"))
-    assert got["day"] == "2026-10-17" and got["turns"]
+    assert got["day"] == "2026-10-17" and got["turns"] and got["station"] == "9410170"
     for t in got["turns"]:
         local = _at(t["valid_utc"]) - timedelta(hours=7)
         assert local.date().isoformat() == "2026-10-17"
@@ -287,6 +287,19 @@ def test_the_beach_trend_is_the_biggest_breaking_height_over_three_hours():
     assert bf.beach_trend(_steps(flat[:-1] + [None])) == "holding"
 
 
+def test_the_swell_headline_sparkline_is_the_biggest_breaking_height_over_24_hours():
+    """Owner's choice, 2026-10-23: the beach line a headline, its last 24 h
+    a sparkline: the biggest of the three breaks each hour, a gap a gap."""
+
+    heights = [1.0 + 0.01 * k for k in range(30)]
+    heights[27] = None
+    spark = bf.beach_spark(_steps(heights))
+    assert len(spark) == bf.SPARK_H["beach"] - 1                    # 24 h back, the missing hour missing
+    assert spark[-1][1] == round(heights[-1], 3)                   # the north break's, the biggest here
+    assert spark[-1][0] - spark[0][0] == 23 * 3600
+    assert bf.beach_spark([]) == []
+
+
 def test_no_trend_without_the_hour_three_back():
     assert bf.beach_trend(_steps([1.0] * 23 + [None, 1.0, 1.0, 1.0])[:-3] + _steps([1.0], T0 + timedelta(hours=30))) \
         is None
@@ -357,9 +370,11 @@ def test_a_sparkline_is_an_hour_a_point_and_never_fills_a_gap():
 
 def test_the_record_keeps_the_arrows_not_the_sparklines():
     line = {"built_utc": "x", "conditions": {"trends": {"air": {"dir": "up", "spark": [[1, 2.0]]},
-                                                         "rain": {"days": [["2026-10-22", 0.0]]}}}}
+                                                         "rain": {"days": [["2026-10-22", 0.0]]}}},
+            "swell": {"trend": "building", "spark": [[1, 1.2]], "window_h": 24}}
     kept = bf.unsparked(line)
     assert kept["conditions"]["trends"] == {"air": {"dir": "up"}, "rain": {}}
+    assert kept["swell"] == {"trend": "building", "window_h": 24}
     assert line["conditions"]["trends"]["air"]["spark"]                  # the page's copy is untouched
 
 

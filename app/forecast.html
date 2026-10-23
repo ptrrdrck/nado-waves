@@ -162,8 +162,20 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-block .unit{color:inherit}
 /* The swell's sentences a line each, a little apart (owner's request,
    2026-10-23); each of Tanner Banks' ends on an "offshore" tag set as the
-   cards' "wind sea" and "predicted" are, and its words are plain. */
+   cards' "wind sea" and "predicted" are, and its words are plain. The
+   beach's line is a headline (owner's choice, same day): its range large,
+   where it comes from and its trend under it, its last 24 h a sparkline at
+   the right; Tanner Banks' points hang in the ledger's small caps. */
 .brief-block.brief-swell{gap:6px}
+.brief-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:4px}
+.brief-headline{min-width:0}
+.brief-big{font-size:27px;line-height:1.1;letter-spacing:-.01em}
+.brief-big .unit{font-size:15px;letter-spacing:0;white-space:nowrap}
+.brief-sub{margin-top:3px}
+.brief-sep{color:var(--faint);margin:0 6px}
+.brief-head .brief-trend{padding-bottom:4px;flex:none}
+.brief-hang{display:grid;grid-template-columns:30px minmax(0,1fr);column-gap:6px;align-items:baseline;
+            font-size:14.5px}
 .brief-block .tag{font-size:11px;color:var(--faint);text-transform:uppercase;
                   letter-spacing:.06em;margin-left:5px;white-space:nowrap}
 .brief-block + .brief-block{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
@@ -180,7 +192,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}
 .brief-val{min-width:0;line-height:1.35}
 .brief-val .unit{white-space:nowrap}
-.brief-trend{display:flex;align-items:center;gap:5px}
+.brief-trend{display:flex;align-items:center;justify-content:flex-end;gap:5px}
 .brief-spark{display:block;width:64px;height:18px;overflow:visible;fill:none;stroke:var(--faint);
              stroke-width:1.2;stroke-linejoin:round}
 .brief-spark circle{fill:var(--ink);stroke:none}
@@ -189,6 +201,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-bars rect.base{fill:var(--line)}
 .brief-bars rect.now{fill:var(--ink)}
 .brief-window{font-size:10.5px;color:var(--faint);letter-spacing:.04em;min-width:22px}
+.brief-window:empty{display:none}
 .brief-when{font-size:12px;color:var(--faint);padding-left:83px;margin-top:-3px}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
@@ -1576,11 +1589,17 @@ const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
 // deep-water speed (BRIEFING §43) until it has arrived at the breaks, then
 // "arriving since" -- judged at the build, so the words are the build's --
 // and its trend there. A slot with no value drops with its words.
+// Set (owner's choice, same day) as a headline -- the range large, where
+// it comes from and its trend under it, the biggest breaking height's last
+// 24 h as a sparkline at its right, no trend mark -- over Tanner Banks'
+// sentences with each point hung in the conditions' small caps. Each line's
+// words (`briefSwellText`) are the sentences' as before, so the setting
+// was no update.
 function briefSwell(B) {
   const s = B.swell || {};
   if (s.dark) {
-    return [`No spectrum from ${feedName(B.station, B.station_cdip)}`
-      + (s.newest_utc ? ` since ${briefWhen(s.newest_utc, B)}` : "") + "."];
+    return [{kind: "text", html: `No spectrum from ${feedName(B.station, B.station_cdip)}`
+      + (s.newest_utc ? ` since ${briefWhen(s.newest_utc, B)}` : "") + "."}];
   }
   const out = [];
   const rows = (s.breaks || []).filter((r) => r.hs_m != null);
@@ -1591,26 +1610,43 @@ function briefSwell(B) {
     const lead = top.from_deg != null ? point(top.from_deg) : null;
     const mix = lead && (top.also || []).find((t) => point(t.from_deg) !== lead);
     const at = (t) => (t.period_s != null ? ` at ${briefNum(`${t.period_s.toFixed(1)} s`)}` : "");
-    out.push(`${briefNum(`${lo}–${hi}\u00a0ft`)} <span class="unit">`
-      + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span>`
-      + (lead ? ` ${briefNum(lead)}` : "") + at(top)
-      + (mix ? ` and ${briefNum(point(mix.from_deg))}${at(mix)}` : "")
-      + (s.trend ? `, ${s.trend}` : "") + ".");
+    out.push({kind: "beach", range: `${briefNum(`${lo}–${hi}\u00a0ft`)} <span class="unit">`
+      + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span>`,
+      tail: (lead ? ` ${briefNum(lead)}` : "") + at(top)
+        + (mix ? ` and ${briefNum(point(mix.from_deg))}${at(mix)}` : ""),
+      trend: s.trend || "", spark: briefSpark(s.spark, s.window_h || 24),
+      window: s.spark && s.spark.length > 1 ? briefWindow(s.window_h || 24) : ""});
   }
   for (const c of s.coming || []) {
     const legs = c.legs || [];
     const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
-    const head = `${BRIEF_SECTOR[c.sector] || c.sector}, ${c.band_s[0]}–${c.band_s[1]} s first`;
+    const head = `${c.band_s[0]}–${c.band_s[1]} s first`;
     const trend = c.trend ? `, ${c.trend}` : "";
+    const key = BRIEF_SECTOR[c.sector] || c.sector;
     if (c.arrives_utc && Date.parse(c.arrives_utc) <= Date.parse(B.built_utc)) {
-      out.push(`${head}, arriving since about ${briefAt(c.arrives_utc, B)}${trend}.${BRIEF_OFFSHORE}`);
+      out.push({kind: "off", key, body: `${head}, arriving since about ${briefAt(c.arrives_utc, B)}${trend}.${BRIEF_OFFSHORE}`});
     } else {
-      out.push(`${head}${trend}; `
+      out.push({kind: "off", key, body: `${head}${trend}; `
         + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefAt(c.due_buoy_utc, B)}`
-        + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + `.${BRIEF_OFFSHORE}`);
+        + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + `.${BRIEF_OFFSHORE}`});
     }
   }
   return out;
+}
+// A swell line's words, for the record and docs/briefing_wording.md: the
+// sentence as it reads.
+const briefSwellText = (r) => (r.kind === "beach" ? `${r.range}${r.tail}${r.trend ? `, ${r.trend}` : ""}.`
+  : r.kind === "off" ? `${r.key}, ${r.body}` : r.html);
+function briefSwellRow(r) {
+  if (r.kind === "beach") {
+    const sub = [r.tail.trim(), r.trend].filter(Boolean).join('<span class="brief-sep">·</span>');
+    return `<div class="brief-head"><div class="brief-headline"><div class="brief-big">${r.range}</div>`
+      + (sub ? `<div class="brief-sub">${sub}</div>` : "") + `</div>`
+      + (r.spark ? `<span class="brief-trend">${r.spark}<span class="brief-window">${r.window}</span></span>` : "")
+      + `</div>`;
+  }
+  if (r.kind === "off") return `<div class="brief-hang"><span class="brief-key">${r.key}</span><span>${r.body}</span></div>`;
+  return `<span class="brief-line">${r.html}</span>`;
 }
 
 // The conditions as a ledger (owner's calls, 2026-10-23): a row each --
@@ -1689,7 +1725,7 @@ function briefConditions(B) {
 // A row's words, for docs/briefing_wording.md: its name, value and arrow.
 const briefCondText = (r) => `${r.label} ${r.value}${r.dir ? `, ${r.dir}` : ""}`;
 // What a tapped row says: when, by what, and against when.
-const briefRowWhen = (r, B) => [r.at ? briefAt(r.at, B) : null, r.src,
+const briefRowWhen = (r, B) => r.when || [r.at ? briefAt(r.at, B) : null, r.src,
   r.dir && r.was ? `${BRIEF_AGAINST[r.dir]} ${briefAt(r.was, B)}` : null].filter(Boolean).join(" · ");
 // Which rows are open, across a redraw (not a reload).
 const BRIEF_ROWS = new Set();
@@ -1703,13 +1739,21 @@ function briefCondRow(r, B) {
 }
 
 // The day's turns, AM / PM by each turn's own clock (predicted, with the
-// gauge's departure, as the card's).
+// gauge's departure, as the card's), a ledger as the conditions are (owner's
+// request, 2026-10-23): "AM low" in their small caps, no arrow, its height,
+// its time where they keep a sparkline; tapped, what it stands on. Its words
+// are the line's as before (`briefTideText`), so the ledger was no update.
 const briefHalf = (iso) => (Number(new Date(iso).toLocaleString("en-US",
   {hour: "numeric", hour12: false, timeZone: COAST_TZ})) % 24 < 12 ? "AM" : "PM");
 function briefTides(B) {
-  return ((B.tide || {}).turns || []).map((x) =>
-    `${briefHalf(x.valid_utc)} ${x.event} ${briefLevel(x.height_m)} at ${briefNum(clock(x.valid_utc))}`);
+  const T = B.tide || {}, dep = T.departure_m;
+  const when = ["Predicted", `NOAA ${T.station || "9410170"}`, dep == null ? "no departure"
+    : `departure ${dep < 0 ? "\u2212" : "+"}${height(Math.abs(dep))}`].join(" · ");
+  return (T.turns || []).map((x, i) => ({key: `tide${i}`, label: `${briefHalf(x.valid_utc)} ${x.event}`,
+    value: briefLevel(x.height_m), dir: null, window: "", time: clock(x.valid_utc),
+    trend: briefNum(clock(x.valid_utc).replace(/ (AM|PM)$/, "\u00a0$1")), when}));
 }
+const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;
 
 // Every block in the fold's order; an empty block drops.
 function briefingParts(B) {
@@ -1756,10 +1800,9 @@ function briefingFold(B) {
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
-      ${blocks.map((b) => (b === parts.conditions
+      ${blocks.map((b) => (b === parts.conditions || b === parts.tides
         ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
-        : `<div class="brief-block${b === parts.swell ? " brief-swell" : ""}">${b.map((line) =>
-          `<span class="brief-line">${line}</span>`).join("")}</div>`)).join("")}
+        : `<div class="brief-block brief-swell">${b.map(briefSwellRow).join("")}</div>`)).join("")}
     </div>`;
 }
 // End of the briefing.
