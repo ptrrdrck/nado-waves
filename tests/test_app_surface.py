@@ -3842,6 +3842,30 @@ class TestTheBriefing:
         assert "store(BRIEF_SEEN, BRIEFING.key);" in self.BLOCK
         assert "if (brief && BRIEF_OPEN) briefSeen();" in SOURCE
 
+    def test_its_blocks_are_apart_by_the_cards_fold_rule(self):
+        """Owner's call, 2026-10-23: the rule the cards draw between their
+        fold-outs, no longer Origin's centred dot."""
+        rule = SOURCE[SOURCE.index(".brief-block + .brief-block{"):]
+        rule = rule[:rule.index("}")]
+        assert "border-top:1px solid var(--line)" in rule
+        assert ".brief-block + .brief-block::before" not in SOURCE
+
+    def test_its_numbers_are_ink_and_heavier_and_their_metric_grey(self):
+        """Owner's request, 2026-10-23: every number that says something
+        darker and heavier than the words round it; the brackets stay grey."""
+        assert ".brief-num{color:var(--ink);font-weight:600}" in SOURCE
+        assert ".brief-block{" in SOURCE and "color:var(--soft)" in SOURCE[
+            SOURCE.index(".brief-block{"):SOURCE.index("}", SOURCE.index(".brief-block{"))]
+        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${top.period_s.toFixed(1)} s`)",
+                     "briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)", "briefNum(`${lo}–${hi} min`)",
+                     "briefNum(`${Math.round(w.humidity_pct)}%`)", "briefNum(clock(x.valid_utc))",
+                     "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):
+            assert made in self.BLOCK, made
+        level = self.BLOCK[self.BLOCK.index("const briefLevel"):]
+        level = level[:level.index(";\n")]
+        assert "briefNum(" in level and '<span class="unit">' in level
+        assert "briefNum(" not in level[level.index('<span class="unit">'):]
+
     def test_it_redraws_on_every_build_but_updates_only_on_its_key(self):
         """Owner's request, 2026-10-22: the conditions refresh each build; the
         line's time and the dot move only with an update (the build's key)."""

@@ -827,7 +827,9 @@ forecaster actually verifies against, Surfline included.
    medians gave 45%, 6-hour 24%; the owner kept every hour's own numbers so
    the words always match the cards. The conditions refresh every build
    without one; the page redraws on a new `built_utc` and moves the time and dot only
-   on a new `key`. Three blocks, apart by Origin's dot: **Swell** — "Significant
+   on a new `key`. Three blocks, apart by the cards' fold rule (owner's call,
+   2026-10-23, replacing Origin's dot), every number that says something in
+   ink and heavier, the metric in brackets grey (`briefNum`): **Swell** — "Significant
    waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period" (the
    three cards' breaking heights, lowest floored and highest ceiled to whole
    feet, at least a foot apart; the lead period at the break with the

@@ -146,7 +146,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    no border, no fill, its line the Charts line's weight with the same caret
    and, while an update is unread, the provenance pills' green dot. Open,
    three blocks in a 15 px grey -- the swell as running sentences, the
-   conditions and the tides a line each -- apart by Origin's centred dot. */
+   conditions and the tides a line each -- apart by the cards' fold rule
+   (owner's call, 2026-10-23, replacing Origin's dot). Its numbers are ink
+   and heavier than the words round them, the metric in brackets left grey
+   (same day). */
 .briefing{display:flex;flex-direction:column;gap:6px;padding:0 13px}
 /* Open, it is at most half the reader's screen (owner's call, 2026-10-16):
    shorter, it is its own height; longer, it scrolls inside itself and the
@@ -158,9 +161,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
 .brief-block .unit{color:inherit}
 .brief-block:first-child{display:block}
-.brief-block + .brief-block{margin-top:10px;padding-top:12px;position:relative}
-.brief-block + .brief-block::before{content:"";position:absolute;top:-2px;left:calc(50% - 2px);
-                                    width:4px;height:4px;border-radius:50%;background:var(--soft)}
+.brief-block + .brief-block{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
+.brief-num{color:var(--ink);font-weight:600}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
@@ -1502,20 +1504,27 @@ const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: tru
 // fold opened, the dot goes. It updates only when its swell or tide words
 // change (the build decides, on the words below); the conditions refresh
 // without an update. Open: the swell in two sentences, the conditions one a
-// line, the day's tides one a line, three blocks apart by Origin's dot.
+// line, the day's tides one a line, three blocks apart by the cards' fold
+// rule; every number that says something in ink and heavier (`briefNum`).
 // Never the model: GFS-Wave is the Forecast tab's.
 const BRIEF_SECTOR = {west: "West", "north-west": "North-west"};
 const BRIEF_SEEN = "nado-waves.brief-seen";
+// A number that says something, with its unit: ink, heavier than the words
+// round it; its metric stays outside, grey.
+const briefNum = (s) => `<b class="brief-num">${s}</b>`;
 // A time as of the build: "7:07 AM", or "Oct 21, 7:07 AM" on another day.
-const briefWhen = (iso, B) => (coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc))
+const briefWhen = (iso, B) => briefNum(coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc))
   ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`);
 // Temperatures, Fahrenheit first in whole degrees; the water's Celsius to
 // the tenth its buoy reports.
 const briefTemp = (c, tenths = false) =>
-  `${Math.round(fahrenheit(c))} °F <span class="unit">(${tenths ? c.toFixed(1) : Math.round(c)} °C)</span>`;
-const briefRain = (inches) => `${inches.toFixed(2)} in <span class="unit">(${(inches * MM_PER_IN).toFixed(1)} mm)</span>`;
-// A minus tide with a true minus sign, "−0.7 ft (−0.21 m)".
-const briefLevel = (m) => height(m).replace(/-/g, "−");
+  `${briefNum(`${Math.round(fahrenheit(c))} °F`)} <span class="unit">(${tenths ? c.toFixed(1) : Math.round(c)} °C)</span>`;
+const briefRain = (inches) => `${briefNum(`${inches.toFixed(2)} in`)} <span class="unit">(${(inches * MM_PER_IN).toFixed(1)} mm)</span>`;
+// A minus tide with a true minus sign, "−0.7 ft (−0.21 m)", its feet in
+// ink (the swap is on the numbers alone: the class name has a hyphen).
+const briefMinus = (x) => x.replace(/-/g, "−");
+const briefLevel = (m) => `${briefNum(briefMinus(`${(m * FT_PER_M).toFixed(1)} ft`))} `
+  + `<span class="unit">(${briefMinus(m.toFixed(2))} m)</span>`;
 // A buoy by its place alone, "Point Loma South", or its feed without one.
 const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
   ? bareName(B.station_names[id]) : feedName(id, cdip));
@@ -1537,18 +1546,18 @@ function briefSwell(B) {
     const ft = rows.map((r) => r.hs_m * FT_PER_M);
     const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
     const top = rows.reduce((a, r) => (r.hs_m > a.hs_m ? r : a));
-    out.push(`Significant waves breaking in the ${lo}–${hi}\u00a0ft <span class="unit">`
+    out.push(`Significant waves breaking in the ${briefNum(`${lo}–${hi}\u00a0ft`)} <span class="unit">`
       + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span> range`
-      + (top.period_s != null ? ` with ${briefArticle(top.period_s.toFixed(1))} ${top.period_s.toFixed(1)} s period` : "")
+      + (top.period_s != null ? ` with ${briefArticle(top.period_s.toFixed(1))} ${briefNum(`${top.period_s.toFixed(1)} s`)} period` : "")
       + ".");
   }
   for (const c of s.coming || []) {
     const legs = c.legs || [];
     const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
-    out.push(`${BRIEF_SECTOR[c.sector] || c.sector} swell (${c.sector_deg[0]}–${c.sector_deg[1]}°) at `
-      + `${briefBuoy(B, "46047")} (${briefWhen(c.since_utc, B)}), ${c.band_s[0]}–${c.band_s[1]} s first; `
+    out.push(`${BRIEF_SECTOR[c.sector] || c.sector} swell (${briefNum(`${c.sector_deg[0]}–${c.sector_deg[1]}°`)}) at `
+      + `${briefBuoy(B, "46047")} (${briefWhen(c.since_utc, B)}), ${briefNum(`${c.band_s[0]}–${c.band_s[1]} s`)} first; `
       + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefWhen(c.due_buoy_utc, B)}`
-      + (legs.length ? `, and at the breaks ${lo}–${hi} min after` : "") + ".");
+      + (legs.length ? `, and at the breaks ${briefNum(`${lo}–${hi} min`)} after` : "") + ".");
   }
   return out;
 }
@@ -1561,7 +1570,7 @@ function briefConditions(B) {
   const out = [];
   if (water && water.c != null) out.push(`Water ${briefTemp(water.c, true)}`);
   if (w.air_c != null) out.push(`Air ${briefTemp(w.air_c)}`);
-  if (w.humidity_pct != null) out.push(`Humidity ${Math.round(w.humidity_pct)}%`);
+  if (w.humidity_pct != null) out.push(`Humidity ${briefNum(`${Math.round(w.humidity_pct)}%`)}`);
   if ((w.precip_hour_in || 0) > 0 || (w.precip_day_in || 0) > 0) {
     const kinds = (w.precip_kinds || []).length ? ` (${andList(w.precip_kinds)})` : "";
     out.push(`Precipitation ${briefRain(w.precip_hour_in || 0)} in the last hour${kinds}, `
@@ -1576,7 +1585,7 @@ const briefHalf = (iso) => (Number(new Date(iso).toLocaleString("en-US",
   {hour: "numeric", hour12: false, timeZone: COAST_TZ})) % 24 < 12 ? "AM" : "PM");
 function briefTides(B) {
   return ((B.tide || {}).turns || []).map((x) =>
-    `${briefHalf(x.valid_utc)} ${x.event} ${briefLevel(x.height_m)} at ${clock(x.valid_utc)}`);
+    `${briefHalf(x.valid_utc)} ${x.event} ${briefLevel(x.height_m)} at ${briefNum(clock(x.valid_utc))}`);
 }
 
 // Every block in the fold's order; an empty block drops.

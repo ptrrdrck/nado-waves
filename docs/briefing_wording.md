@@ -18,7 +18,7 @@ the numbers in the cases are made up, and times are Pacific.
 
 ## The formula
 
-Three blocks, always in this order, set apart by Origin's centred dot. Each
+Three blocks, always in this order, set apart by the cards' fold rule. Each
 is a fixed run of slots: a slot with no value is dropped with its joining
 words, and a block with nothing to say drops whole. Never the model: GFS-Wave
 and its ensemble are the Forecast tab's.
