@@ -829,16 +829,18 @@ forecaster actually verifies against, Surfline included.
    without one; the page redraws on a new `built_utc` and moves the time and dot only
    on a new `key`. Three blocks, apart by the cards' fold rule (owner's call,
    2026-10-23, replacing Origin's dot), every number that says something in
-   ink and heavier, the metric in brackets grey (`briefNum`): **Swell** — "Significant
-   waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period" (the
+   ink and heavier, the metric in brackets grey (`briefNum`): **Swell** (owner's
+   wording, 2026-10-23) — "3–4 ft (0.9–1.2 m) from the SSW at 13.3 s." (the
    three cards' breaking heights, lowest floored and highest ceiled to whole
-   feet, at least a foot apart; the lead period at the break with the
-   biggest; metric in brackets by the units rule, the owner's own wording
-   had none), then each 46047 west / north-west rise in the last 24 h, its
-   first band, due by deep-water speed and the rays' leg (§43, kept until
-   6 h after due at the last break): "West swell (250–280°) at Tanner Banks
-   (7:07 AM), 10–12 s first; due at Point Loma South around 1:32 PM, and at
-   the breaks 39–53 min after."; a dark 46232 says so and nothing else.
+   feet, at least a foot apart; then the lead train's compass point and
+   period at the break with the biggest — the point its row's OFFSHORE
+   heading, the larger direction of a two-direction train, never its 5 m
+   one (owner's call, same day; `briefing.lead_heading`); metric in brackets
+   by the units rule), then each 46047 west / north-west rise in the last
+   24 h, its first band, due by deep-water speed and the rays' leg (§43,
+   kept until 6 h after due at the last break): "West swell (250–280°)
+   offshore, 10–12 s first; due at Point Loma South around 1:33 PM, and at
+   the breaks 39–53 min later."; a dark 46232 says so and nothing else.
    **Conditions**, a line each — 46232's water temperature (≤ 6 h: its standard
    met reaches the archive on collect.yml's throttled schedule, a median
    2.7 h old), KNZY's air

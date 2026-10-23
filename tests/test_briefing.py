@@ -20,7 +20,7 @@ def _at(stamp: str) -> datetime:
     return datetime.strptime(stamp, ISO).replace(tzinfo=timezone.utc)
 
 
-def _built(stamp, swell=("Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period.",),
+def _built(stamp, swell=("3–4 ft (0.9–1.2 m) from the SSW at 13.3 s.",),
            tides=("AM low 0.7 ft (0.21 m) at 3:15 AM",), water=19.4):
     return {"built_utc": stamp, "available": True, "conditions": {"water": {"c": water}},
             "update_words": list(swell) + list(tides), "text": {"swell": list(swell), "tides": list(tides)}}
@@ -51,8 +51,7 @@ def test_the_same_words_are_no_update_and_keep_the_updates_time():
 
 def test_changed_swell_or_tide_words_are_an_update():
     kept, _ = bf.settle(None, _built("2026-10-22T14:16:00Z"))
-    assert bf.settle(kept, _built("2026-10-22T15:16:00Z", swell=("Significant waves breaking in the "
-                                                                "3–4 ft (0.9–1.2 m) range with a 14.3 s period.",)))[1]
+    assert bf.settle(kept, _built("2026-10-22T15:16:00Z", swell=("3–4 ft (0.9–1.2 m) from the SSW at 14.3 s.",)))[1]
     assert bf.settle(kept, _built("2026-10-22T15:16:00Z", tides=("AM low 0.8 ft (0.24 m) at 3:15 AM",)))[1]
 
 
@@ -71,7 +70,7 @@ def test_the_record_keeps_updates_only_and_the_page_gets_every_build(tmp_path):
     built = tmp_path / "built.json"
     for stamp, water, period in (("2026-10-22T14:16:00Z", 19.4, "13.3"), ("2026-10-22T15:16:00Z", 19.9, "13.3"),
                                  ("2026-10-22T16:16:00Z", 20.1, "14.3")):
-        swell = (f"Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a {period} s period.",)
+        swell = (f"3–4 ft (0.9–1.2 m) from the SSW at {period} s.",)
         built.write_text(json.dumps(_built(stamp, swell=swell, water=water)))
         assert bf.main(["--data-dir", str(tmp_path), "--record", str(built), "--out", str(out)]) == 0
         page = json.loads(out.read_text())
@@ -103,14 +102,29 @@ def test_no_observed_reading_is_said_as_such(tmp_path):
 
 def test_the_swell_is_each_breaks_card_number_and_lead_period(tmp_path):
     now = {"observed_utc": "2026-10-22T14:00:00Z", "stale": False, "breaks": [
-        {"id": "coronado_north", "hs_nearshore_m": 1.31, "peak_period_s": 16.7},
-        {"id": "coronado_center", "hs_nearshore_m": 1.00, "peak_period_s": 16.7},
-        {"id": "coronado_south", "hs_nearshore_m": 0.74, "peak_period_s": 13.3}]}
+        {"id": "coronado_north", "hs_nearshore_m": 1.31, "peak_period_s": 16.7, "peak_direction_deg": 215,
+         "trains": [{"period_s": 16.7, "from_deg": 215, "near_from_deg": 192, "lobes": []}]},
+        {"id": "coronado_center", "hs_nearshore_m": 1.00, "peak_period_s": 16.7, "peak_direction_deg": 231,
+         "trains": [{"period_s": 16.7, "from_deg": 231, "near_from_deg": 206, "lobes": []}]},
+        {"id": "coronado_south", "hs_nearshore_m": 0.74, "peak_period_s": 13.3, "peak_direction_deg": 266,
+         "trains": [{"period_s": 13.3, "from_deg": 266, "near_from_deg": 224, "lobes": []}]}]}
     got = bf.swell_story(now, None, _at("2026-10-22T14:16:00Z"), tmp_path)
-    assert got["breaks"] == [{"id": "coronado_north", "hs_m": 1.31, "period_s": 16.7},
-                             {"id": "coronado_center", "hs_m": 1.00, "period_s": 16.7},
-                             {"id": "coronado_south", "hs_m": 0.74, "period_s": 13.3}]
+    assert got["breaks"] == [{"id": "coronado_north", "hs_m": 1.31, "period_s": 16.7, "from_deg": 215},
+                             {"id": "coronado_center", "hs_m": 1.00, "period_s": 16.7, "from_deg": 231},
+                             {"id": "coronado_south", "hs_m": 0.74, "period_s": 13.3, "from_deg": 266}]
     assert got["coming"] == []
+
+
+def test_the_lead_heading_is_the_rows_offshore_one_never_its_5_m_one():
+    """Owner's call, 2026-10-23: "from the SSW" is the heading the train row
+    shows; a train of two directions names the larger, as the row's
+    shortest form does."""
+    one = {"trains": [{"from_deg": 215, "near_from_deg": 192, "lobes": []}]}
+    two = {"trains": [{"from_deg": 230, "near_from_deg": 210, "lobes": [[258, 0.6], [180, 0.4]]}]}
+    assert bf.lead_heading(one) == 215
+    assert bf.lead_heading(two) == 258
+    assert bf.lead_heading({"trains": [], "peak_direction_deg": 200}) == 200
+    assert bf.lead_heading({"trains": [{"from_deg": None, "lobes": []}]}) is None
 
 
 def test_a_dark_buoy_is_said_and_nothing_else():

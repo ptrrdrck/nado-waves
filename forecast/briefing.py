@@ -7,14 +7,15 @@ Owner's request, 2026-10-16, reshaped 2026-10-17 and again 2026-10-22: a
 short read in a fold above the LIVE cards. Built every collection; it
 UPDATES only when what it says about the swell or the tide changes:
 
-- **Swell**, two sentences. "Significant waves breaking in the 3–4 ft
-  range with a 13.3 s period": the breaking height at the three breaks,
-  lowest to highest in whole feet, and the period of the biggest train at
-  the break with the biggest waves (the cards' own numbers). Then 46047's
-  west or north-west rise, due at 46232 and the breaks by deep-water speed
-  (`forecast.upstreamlag`, BRIEFING §43): "West swell (250–280°) at Tanner
-  Banks (7:07 AM), 10–12 s first; due at Point Loma South around 1:32 PM,
-  and at the breaks 39–53 min after."
+- **Swell**, two sentences (owner's wording, 2026-10-23). "3–4 ft
+  (0.9–1.2 m) from the SSW at 13.3 s": the breaking height at the three
+  breaks, lowest to highest in whole feet, then the offshore heading and
+  the period of the biggest train at the break with the biggest waves (the
+  cards' own numbers; the heading the train row's, not its 5 m one). Then
+  46047's west or north-west rise, due at 46232 and the breaks by
+  deep-water speed (`forecast.upstreamlag`, BRIEFING §43): "West swell
+  (250–280°) offshore, 10–12 s first; due at Point Loma South around
+  1:33 PM, and at the breaks 39–53 min later."
 - **Conditions**, refreshed every collection without counting as an
   update: 46232's water temperature (`WATER_FRESH_H`), KNZY's air
   temperature and humidity,
@@ -305,14 +306,28 @@ def _minute(t: datetime) -> datetime:
 
 
 
+def lead_heading(site: dict) -> float | None:
+    """Where the break's lead train comes from offshore, as its row on the
+    card says it: one direction, its mean; two, the larger (lobes come
+    largest first), as the row's shortest form names it. Never the 5 m
+    heading (owner's call, 2026-10-23)."""
+
+    trains = site.get("trains") or []
+    if not trains:
+        return site.get("peak_direction_deg")
+    lobes = trains[0].get("lobes") or []
+    return lobes[0][0] if len(lobes) >= 2 else trains[0].get("from_deg")
+
+
 def swell_story(now: dict, buoys: dict | None, at: datetime, data_dir: Path) -> dict:
-    """The breaking height and lead period at each break, as the cards show
-    them, and 46047's rises."""
+    """The breaking height and lead train's period and heading at each break,
+    as the cards show them, and 46047's rises."""
 
     newest = _utc(now.get("observed_utc"))
     if now.get("stale") or newest is None:
         return {"dark": True, "newest_utc": _iso(newest)}
-    breaks = [{"id": b["id"], "hs_m": b.get("hs_nearshore_m"), "period_s": b.get("peak_period_s")}
+    breaks = [{"id": b["id"], "hs_m": b.get("hs_nearshore_m"), "period_s": b.get("peak_period_s"),
+               "from_deg": lead_heading(b)}
               for b in now.get("breaks", []) if b.get("id") in BREAKS]
     coming = upstream_story(data_dir, buoys, at - timedelta(hours=UPSTREAM_LOOKBACK_H), at)
     return {"dark": False, "newest_utc": _iso(newest),

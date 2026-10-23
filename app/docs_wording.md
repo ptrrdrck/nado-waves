@@ -101,7 +101,7 @@ Above the “LIVE” cards, a **Briefing** line folds out a short read of the be
 
 Three blocks, always in the same order:
 
-- **Swell**: the breaking height at the three breaks as one range in whole feet, the lowest rounded down and the highest rounded up, with the period of the biggest train at the break with the biggest waves: the cards' own numbers, a significant height, not a face height. Then any swell that has risen at Tanner Banks, with when it is due here ([below](#briefing-upstream)). If CDIP 191 is dark it says so and nothing else.
+- **Swell**: the breaking height at the three breaks as one range in whole feet, the lowest rounded down and the highest rounded up, then where the biggest train at the break with the biggest waves comes from and its period: the cards' own numbers, a significant height, not a face height. Its direction is the one its row on the card gives, offshore, not the one it arrives from in 5 m of water. Then any swell that has risen offshore, read at Tanner Banks, with when it is due here ([below](#briefing-upstream)). If CDIP 191 is dark it says so and nothing else.
 - **Conditions**: the water temperature at CDIP 191, and the air temperature and humidity in North Island's newest weather report (KNZY). Precipitation only when some fell: the last hour's and the last 24 hours', both shown when either is above zero.
 - **Tides**: the day's high and low tides, AM and PM, predicted, with the gauge's departure, as the Tide card's turns carry it.
 

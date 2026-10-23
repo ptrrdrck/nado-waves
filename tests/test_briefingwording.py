@@ -40,15 +40,18 @@ def test_the_line_names_the_update_and_no_condition(cases):
 
 
 def test_the_swell_reads_as_the_owner_wrote_it(cases):
-    assert cases["Q1"]["swell"] == [
-        "Significant waves breaking in the 3–4 ft (0.9–1.2 m) range with a 13.3 s period."]
-    assert cases["B1"]["swell"][1] == ("West swell (250–280°) at Tanner Banks (7:07 AM), 10–12 s first; due "
-                                       "at Point Loma South around 1:32 PM, and at the breaks 39–53 min after.")
+    """Owner's wording, 2026-10-23."""
+    assert cases["Q1"]["swell"] == ["3–4 ft (0.9–1.2 m) from the SSW at 13.3 s."]
+    assert cases["B1"]["swell"][1] == ("West swell (250–280°) offshore, 10–12 s first; due "
+                                       "at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.")
 
 
-def test_the_range_spans_all_three_breaks_and_the_period_is_the_biggest_breaks(cases):
-    assert cases["B1"]["swell"][0] == \
-        "Significant waves breaking in the 2–5 ft (0.6–1.5 m) range with an 18.2 s period."
+def test_the_range_spans_all_three_breaks_and_the_heading_and_period_are_the_biggest_breaks(cases):
+    assert cases["B1"]["swell"][0] == "2–5 ft (0.6–1.5 m) from the S at 18.2 s."
+
+
+def test_a_lead_train_with_no_heading_drops_its_slot(cases):
+    assert cases["H1"]["swell"] == ["3–4 ft (0.9–1.2 m) at 13.3 s."]
 
 
 def test_a_dark_buoy_says_so_and_nothing_else(cases):
