@@ -3826,6 +3826,15 @@ class TestTheBriefing:
         assert "max-height:50dvh" in rule and "overflow-y:auto" in rule
         assert "height:" not in rule.replace("max-height:", "")
 
+    def test_at_its_top_a_swipe_down_carries_on_to_the_page(self):
+        """Owner's request, 2026-10-23: pull-to-refresh from inside the open
+        Briefing. Its scroll stays its own except while it rests at its top."""
+        assert "overscroll-behavior:contain}" in SOURCE
+        assert ".briefing .fold-body.at-top{overscroll-behavior-y:auto}" in SOURCE
+        assert '<div class="fold-body at-top" id="brief-body"' in self.BLOCK
+        assert ('if (e.target.id === "brief-body") e.target.classList.toggle("at-top", '
+                'e.target.scrollTop <= 0);\n  }, {capture: true, passive: true});') in SOURCE
+
     def test_it_is_live_only(self):
         assert 'const brief = forecasting ? "" : briefingFold(BRIEFING);' in SOURCE
 

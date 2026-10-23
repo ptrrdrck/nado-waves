@@ -155,9 +155,14 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    shorter, it is its own height; longer, it scrolls inside itself and the
    rest is cut off at the cards' edge, so the cards never move down past
    half a screen. dvh where the browser has it, so a phone's collapsing
-   toolbar does not leave it a bar too tall. */
+   toolbar does not leave it a bar too tall. Its scroll is its own, never
+   the page's, except at its top (owner's request, 2026-10-23): there a
+   swipe down carries on to the page, so pull-to-refresh works from inside
+   it. `at-top` is set while it rests at its top (the scroll listener by
+   its click one). */
 .briefing .fold-body{display:flex;flex-direction:column;gap:2px;padding-top:2px;
                      max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior:contain}
+.briefing .fold-body.at-top{overscroll-behavior-y:auto}
 .brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
 .brief-block .unit{color:inherit}
 /* The swell's sentences a line each, a little apart (owner's request,
@@ -1951,7 +1956,7 @@ function briefingFold(B) {
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
-    <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
+    <div class="fold-body at-top" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
       ${blocks.map((b) => (b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
         : b === parts.conditions
         ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
@@ -6880,6 +6885,12 @@ function boot(data, observed, measured, series, windtide) {
   wireCharts();
 
   wireGate();
+  // At its top the Briefing hands a swipe down on to the page (see its CSS).
+  // Scroll does not bubble, so the listener captures; a redraw starts it at
+  // its top again, with the class in its markup.
+  $("briefing").addEventListener("scroll", (e) => {
+    if (e.target.id === "brief-body") e.target.classList.toggle("at-top", e.target.scrollTop <= 0);
+  }, {capture: true, passive: true});
   $("briefing").addEventListener("click", (e) => {
     if (e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
     const row = e.target.closest("[data-brief-row]");
