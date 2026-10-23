@@ -10,10 +10,9 @@ UPDATES only when what it says about the swell or the tide changes:
 - **Swell** (owner's wording and calls, 2026-10-23), a summary of two
   sources that are never matched to each other. The beach, from 46232's
   chain: "3–4 ft (0.9–1.2 m)", the breaking height at the three breaks,
-  lowest to highest in whole feet; then, a line each, the trains at the
-  break with the biggest waves -- its lead and every other swell train at
-  ≥ `MIX_SHARE` of its height (`listed_trains`) -- "SSW at 13.3 s,
-  building.", each its offshore heading as its row names it (never its 5 m
+  lowest to highest in whole feet; then, a line each, the swell trains
+  of all three breaks at ≥ `MIX_SHARE` of the biggest one anywhere, one a
+  compass point (`listed_trains`) -- "SSW at 13.3 s, building.", each its offshore heading as its row names it (never its 5 m
   one), its period, and its status: its band at 46232 over the last day
   (`train_trend`). Offshore, at 46047: each west or
   north-west swell found by its rise and said for as long as Tanner Banks
@@ -121,11 +120,11 @@ PEAK_OVER_H = 24.0
 #: A train's day must hold this share of its hours to say "peaking".
 PEAK_COVER = 0.75
 
-#: Every swell train at the break with the biggest breaking height that
-#: holds this share of its lead train's height is listed, a line each, from
-#: any compass point (owner's calls, 2026-10-23: half its height, a quarter
-#: of its energy; it was 0.7, beside the lead, from another point only).
-#: Never wind sea or local chop.
+#: Every swell train at any of the three breaks that holds this share of
+#: the biggest one's height is listed, a line each, one a compass point
+#: (owner's calls, 2026-10-23: half its height, a quarter of its energy,
+#: pooled over the breaks; it was 0.7, beside the lead at the biggest break,
+#: from another point only). Never wind sea or local chop.
 MIX_SHARE = 0.5
 
 
@@ -571,23 +570,50 @@ def _heading(train: dict) -> float | None:
     return lobes[0][0] if len(lobes) >= 2 else train.get("from_deg")
 
 
-def listed_trains(site: dict) -> list[dict]:
-    """The break's lead train and every other swell train at ≥ MIX_SHARE of
-    its height, biggest first, from any point; never wind sea or local chop
-    (owner's calls, 2026-10-23). Each with its offshore heading as its row
-    names it, and its band at the buoy (`band_hz`, `held_deg`) when the
-    reading carries one."""
+#: The page's sixteen compass points (`point` in app/forecast.html): two
+#: listed trains never share one.
+POINTS = ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
 
-    trains = site.get("trains") or []
-    if not trains:
-        return ([{"period_s": site.get("peak_period_s"), "from_deg": site.get("peak_direction_deg"),
-                  "hs_m": site.get("hs_nearshore_m")}] if site.get("peak_period_s") is not None else [])
-    lead = trains[0].get("hs_m") or 0.0
-    out = []
-    for k, t in enumerate(trains):
-        if k and (t.get("wind_sea") or t.get("local") or _heading(t) is None
-                  or (t.get("hs_m") or 0.0) < MIX_SHARE * lead):
+
+def compass_point(deg: float) -> str:
+    return POINTS[round(deg / 22.5) % 16]
+
+
+def listed_trains(sites: list[dict]) -> list[dict]:
+    """The swell trains the headline lists, POOLED over the three breaks
+    (owner's call, 2026-10-23, after the WSW sea leading Center and South
+    went unsaid because North was the biggest break): every swell train at
+    any break at ≥ MIX_SHARE of the biggest one anywhere, biggest first,
+    and only the biggest from each compass point, so one sea read at two
+    breaks is one line. Never wind sea or local chop; with no swell train
+    at all, the biggest break's lead as its row gives it. Each with its
+    offshore heading as its row names it, and its band at the buoy
+    (`band_hz`, `held_deg`) from its own break when the reading carries one."""
+
+    order = {b: k for k, b in enumerate(BREAKS)}
+    pool = sorted(((t, site) for site in sites for t in site.get("trains") or []
+                   if not t.get("wind_sea") and not t.get("local") and _heading(t) is not None),
+                  key=lambda ts: (-(ts[0].get("hs_m") or 0.0), order.get(ts[1].get("id"), 9)))
+    if not pool:
+        if not sites:
+            return []
+        top = max(sites, key=lambda b: b.get("hs_nearshore_m") or 0.0)
+        trains = top.get("trains") or []
+        if trains:
+            t = trains[0]
+            return [{"period_s": t.get("period_s"), "from_deg": _heading(t), "hs_m": t.get("hs_m"),
+                     "band_hz": t.get("band_hz"), "held_deg": t.get("held_deg")}]
+        return ([{"period_s": top.get("peak_period_s"), "from_deg": top.get("peak_direction_deg"),
+                  "hs_m": top.get("hs_nearshore_m")}] if top.get("peak_period_s") is not None else [])
+    biggest = pool[0][0].get("hs_m") or 0.0
+    out, said = [], set()
+    for t, site in pool:
+        if (t.get("hs_m") or 0.0) < MIX_SHARE * biggest:
+            break
+        point = compass_point(_heading(t))
+        if point in said:
             continue
+        said.add(point)
         out.append({"period_s": t.get("period_s"), "from_deg": _heading(t), "hs_m": t.get("hs_m"),
                     "band_hz": t.get("band_hz"), "held_deg": t.get("held_deg")})
     return out
@@ -646,18 +672,16 @@ def train_trend(spectra, train: dict, newest: datetime) -> str | None:
 
 def swell_story(now: dict, buoys: dict | None, at: datetime, data_dir: Path,
                 series: dict | None = None, spectra=None) -> dict:
-    """The breaking height at each break as the cards show it; at the break
-    with the biggest, each train the page lists, with its status; the
+    """The breaking height at each break as the cards show it; the trains
+    the page lists, pooled over the three breaks, each with its status; the
     biggest breaking height's last day; and 46047's swells."""
 
     newest = _utc(now.get("observed_utc"))
     if now.get("stale") or newest is None:
         return {"dark": True, "newest_utc": _iso(newest)}
     sites = [b for b in now.get("breaks", []) if b.get("id") in BREAKS and b.get("hs_nearshore_m") is not None]
-    trains = []
-    if sites:
-        top = max(sites, key=lambda b: b["hs_nearshore_m"])
-        trains = listed_trains(top)
+    trains = listed_trains(sites)
+    if trains:
         if any(t.get("band_hz") for t in trains):
             if spectra is None:
                 from .transform import load_spectra

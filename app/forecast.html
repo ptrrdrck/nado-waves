@@ -1647,8 +1647,8 @@ const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
 // matched to each other. The beach: the breaking heights at the three
 // breaks as one whole-foot range, set as a headline with the biggest
 // breaking height's last 24 h as a sparkline beside it; then, a line each,
-// the trains at the break with the biggest waves -- its lead and every
-// other swell train at half its height or more, from any point -- each
+// the swell trains of all three breaks at half the biggest one's height or
+// more, one a compass point (`briefing.listed_trains`) -- each
 // where it comes from offshore (its row's heading, never the 5 m one), its
 // period, and its status: its band at the buoy (`briefing.train_trend`),
 // with no trend mark. Then, a line each, every west or north-west swell

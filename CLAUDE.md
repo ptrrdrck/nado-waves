@@ -841,10 +841,13 @@ forecaster actually verifies against, Surfline included.
    breaking height each hour over 24 h a sparkline beside it (`beach_spark`,
    `swell.spark`, kept out of the record by `unsparked`); then A LINE A
    TRAIN, "SSW at 13.3 s · building" (its words "SSW at 13.3 s, building."),
-   no trend mark: the lead train at the break with the biggest breaking
-   height and every other swell train there at ≥ HALF its height, from any
-   point (`MIX_SHARE` 0.5 of height, `listed_trains`; never wind sea or
-   chop; it was 0.7, beside the lead, another point only), each its row's
+   no trend mark: every swell train at ANY of the three breaks at ≥ HALF
+   the biggest one's height, biggest first, ONE A COMPASS POINT (owner's
+   call, same day, after the WSW sea leading Center and South went unsaid
+   because North, the biggest break, held only an SSW train; `MIX_SHARE`
+   0.5 of height, `listed_trains`, `compass_point`; never wind sea or
+   chop, unless no swell train exists at all; it was 0.7, beside the lead
+   at the biggest break, another point only), each its row's
    OFFSHORE heading (the larger direction of a two-direction train, never
    its 5 m one) and period, and ITS OWN STATUS (owner's call, same day):
    its band at 46232 -- the bins it holds in the newest spectrum and the
