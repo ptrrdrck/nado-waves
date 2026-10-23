@@ -79,7 +79,7 @@ CO6. Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  (C1)
 - **Q1**: a quiet morning: one range, nothing coming, no rain
 - **B1**: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
 - **C1**: two sectors offshore, one arrived and fading; rain earlier in the day only
-- **M1**: a mix at the biggest break: every swell train at half the lead's height or more, a line each, from any point
+- **M1**: a mix: every swell train at the breaks at half the biggest's height or more, a line each, one a compass point
 - **H1**: the lead train has no heading, and no status yet: their slots drop with their words
 - **D1**: 46232 dark: the swell says so and nothing else
 - **K1**: no water temperature, no KNZY report, a minus tide

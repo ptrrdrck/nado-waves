@@ -100,7 +100,7 @@ def test_no_observed_reading_is_said_as_such(tmp_path):
 
 # ------------------------------------------------------------------ swell
 
-def test_the_swell_is_each_breaks_card_number_and_the_biggest_breaks_trains(tmp_path):
+def test_the_swell_is_each_breaks_card_number_and_the_trains_pooled_over_the_breaks(tmp_path):
     now = {"observed_utc": "2026-10-22T14:00:00Z", "stale": False, "breaks": [
         {"id": "coronado_north", "hs_nearshore_m": 1.31, "peak_period_s": 16.7, "peak_direction_deg": 215,
          "trains": [{"period_s": 16.7, "from_deg": 215, "hs_m": 1.2, "near_from_deg": 192, "lobes": []}]},
@@ -111,29 +111,39 @@ def test_the_swell_is_each_breaks_card_number_and_the_biggest_breaks_trains(tmp_
     got = bf.swell_story(now, None, _at("2026-10-22T14:16:00Z"), tmp_path)
     assert got["breaks"] == [{"id": "coronado_north", "hs_m": 1.31}, {"id": "coronado_center", "hs_m": 1.00},
                              {"id": "coronado_south", "hs_m": 0.74}]
+    # pooled over the three breaks, one a point (215° and 231° are both SW);
     # no band at the buoy in the reading: no status, never a guessed one
-    assert got["trains"] == [{"period_s": 16.7, "from_deg": 215, "hs_m": 1.2, "trend": None}]
+    assert got["trains"] == [{"period_s": 16.7, "from_deg": 215, "hs_m": 1.2, "trend": None},
+                             {"period_s": 13.3, "from_deg": 266, "hs_m": 0.7, "trend": None}]
     assert got["coming"] == []
 
 
-def test_every_swell_train_at_half_the_leads_height_is_listed_from_any_point():
-    """Owner's calls, 2026-10-23: half its height, any point; never wind
-    sea or local chop; a train of two directions by its larger, as its row
-    names it, never its 5 m heading."""
-    site = {"trains": [
-        {"period_s": 15.4, "from_deg": 230, "hs_m": 1.0, "near_from_deg": 210, "lobes": [[258, 0.6], [180, 0.4]],
-         "band_hz": [0.05, 0.08], "held_deg": [200, 270]},
-        {"period_s": 14.3, "from_deg": 208, "hs_m": 0.5, "lobes": []},
+def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_point():
+    """Owner's calls, 2026-10-23: pooled over the three breaks, half the
+    biggest swell train's height, any point but one train a point (the
+    biggest), never wind sea or local chop; a train of two directions by its
+    larger, as its row names it, never its 5 m heading."""
+
+    north = {"id": "coronado_north", "hs_nearshore_m": 1.3, "trains": [
+        {"period_s": 13.3, "from_deg": 207, "hs_m": 1.26, "lobes": [], "band_hz": [0.045, 0.43],
+         "held_deg": [187, 234]},
         {"period_s": 4.8, "from_deg": 240, "hs_m": 0.9, "wind_sea": True, "lobes": []},
-        {"period_s": 3.5, "from_deg": 250, "hs_m": 0.9, "wind_sea": True, "local": True},
-        {"period_s": 10.0, "from_deg": 268, "hs_m": 0.49, "lobes": []}]}
-    got = bf.listed_trains(site)
-    assert [(t["period_s"], t["from_deg"]) for t in got] == [(15.4, 258), (14.3, 208)]
-    assert got[0]["band_hz"] == [0.05, 0.08] and got[0]["held_deg"] == [200, 270]
-    assert bf.listed_trains({"trains": [], "peak_period_s": 13.3, "peak_direction_deg": 200,
-                             "hs_nearshore_m": 1.0})[0]["from_deg"] == 200
-    assert bf.listed_trains({"trains": [{"period_s": 13.3, "from_deg": None, "hs_m": 1.0, "lobes": []}]}) \
-        == [{"period_s": 13.3, "from_deg": None, "hs_m": 1.0, "band_hz": None, "held_deg": None}]
+        {"period_s": 3.5, "from_deg": 250, "hs_m": 0.9, "wind_sea": True, "local": True}]}
+    center = {"id": "coronado_center", "hs_nearshore_m": 0.8, "trains": [
+        {"period_s": 10.5, "from_deg": 230, "hs_m": 0.77, "near_from_deg": 210, "lobes": [[239, 0.7], [180, 0.3]]}]}
+    south = {"id": "coronado_south", "hs_nearshore_m": 0.84, "trains": [
+        {"period_s": 8.3, "from_deg": 252, "hs_m": 0.77, "lobes": []},        # WSW again: one line a point
+        {"period_s": 16.7, "from_deg": 194, "hs_m": 0.34, "lobes": []}]}      # under half the biggest
+    got = bf.listed_trains([north, center, south])
+    assert [(t["period_s"], t["from_deg"]) for t in got] == [(13.3, 207), (10.5, 239)]
+    assert got[0]["band_hz"] == [0.045, 0.43] and got[0]["held_deg"] == [187, 234]
+    assert bf.listed_trains([{"id": "coronado_north", "trains": [], "peak_period_s": 13.3,
+                              "peak_direction_deg": 200, "hs_nearshore_m": 1.0}])[0]["from_deg"] == 200
+    only_sea = {"id": "coronado_north", "hs_nearshore_m": 1.0,
+                "trains": [{"period_s": 5.3, "from_deg": 272, "hs_m": 1.0, "wind_sea": True, "lobes": []}]}
+    assert bf.listed_trains([only_sea])[0]["period_s"] == 5.3       # nothing else to name: the lead
+    assert bf.listed_trains([]) == []
+    assert [bf.compass_point(d) for d in (207, 239, 252, 349, 351)] == ["SSW", "WSW", "WSW", "N", "N"]
 
 
 def test_a_dark_buoy_is_said_and_nothing_else():
