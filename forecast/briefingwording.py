@@ -4,8 +4,8 @@
     python -m forecast.briefingwording --check    # exit 1 if they are out of date
 
 `docs/briefing_wording.md` states the formula: the fold's line, then three
-blocks — the swell (a range, a line a train, a line an offshore swell), the conditions a line each, the day's
-tides a line each — each a fixed run of slots, a slot with no value dropped
+blocks — the swell (a range, a line a train, a line an offshore swell), the
+day's tides a line each, the conditions a line each — each a fixed run of slots, a slot with no value dropped
 with its joining words. Its last section shows every permutation, and this
 writes it: the Briefing functions are lifted out of `app/forecast.html` and
 run in Node on one made-up briefing per branch, so the examples are what the
@@ -232,7 +232,8 @@ console.log(JSON.stringify(words(B, Date.parse(B.built_utc))));
     return {**got, "line": None}
 
 
-BLOCKS = (("swell", "Swell"), ("conditions", "Conditions"), ("tides", "Tides"))
+#: The fold's order (owner's call, 2026-10-23: the tide above the conditions).
+BLOCKS = (("swell", "Swell"), ("tides", "Tides"), ("conditions", "Conditions"))
 
 
 def permutations(rendered: dict[str, dict]) -> str:

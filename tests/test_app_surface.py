@@ -3873,7 +3873,7 @@ class TestTheBriefing:
         assert ".brief-block{" in SOURCE and "color:var(--soft)" in SOURCE[
             SOURCE.index(".brief-block{"):SOURCE.index("}", SOURCE.index(".brief-block{"))]
         for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${tn.period_s.toFixed(1)}\\u00a0s`)",
-                     "briefNum(`${Math.round(w.humidity_pct)}%`)", "briefNum(clock(x.valid_utc).replace(",
+                     "briefNum(`${Math.round(w.humidity_pct)}%`)", '<tspan class="ft">${ft}</tspan> <tspan class="m">${m}</tspan>',
                      "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):
             assert made in self.BLOCK, made
 
@@ -3912,15 +3912,26 @@ class TestTheBriefing:
         bars = self.BLOCK[self.BLOCK.index("function briefBars"):]
         assert 'if (d[1] == null) return "";' in bars[:bars.index("\n}\n")]
 
-    def test_the_tides_are_a_ledger_whose_words_are_unchanged(self):
-        """Owner's request, 2026-10-23: the turns set out as the conditions
-        are; their words are the lines they were, so the ledger was no update."""
-        assert "b === parts.conditions || b === parts.tides" in self.BLOCK
+    def test_the_tides_are_the_days_curve_whose_words_are_unchanged(self):
+        """Owner's choices, 2026-10-23: the day's curve, strictly today, each
+        turn's height by its dot and its time on the axis under it, the hours
+        gone grey, a dashed now line, nights shaded; tapped, what it stands
+        on. Its words are the ledger's, so the curve was no update."""
+        chart = self.BLOCK[self.BLOCK.index("function briefTideChart("):self.BLOCK.index("function briefTideBlock(")]
+        assert "const xn = X(now), today = now >= t0 && now <= t1;" in chart
+        assert '<path class="now" d=' in chart and "NOW</text>" in chart and 'class="now-dot"' in chart
+        assert '<path class="gone" d="${line}"/><path class="ahead" d="${line}" clip-path=' in chart
+        assert "(T.nights || []).map(" in chart
+        assert "y=\"${(high ? y - 9 : y + 17).toFixed(1)}\"" in chart
+        assert '<text class="time${gone ? " gone" : ""}"' in chart
+        assert "p[0] - curve[i - 1][0] > 3600" in chart                  # a missing stamp is a gap
+        assert '${briefTideBlock(b, B)}' in self.BLOCK
+        assert 'data-brief-row="tide" data-brief-tide' in self.BLOCK
+        assert ".brief-tide .night{fill:var(--ink);opacity:.04}" in SOURCE
+        assert "  $(\"briefing\").innerHTML = brief;\n  fitBriefTide();" in SOURCE
         assert "const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;" in self.BLOCK
         assert "tides: p.tides.map((r) => text(briefTideText(r)))" in \
             (APP.parent.parent / "forecast" / "briefingwording.py").read_text(encoding="utf-8")
-        assert "const briefRowWhen = (r, B) => r.when || [" in self.BLOCK
-        assert ".brief-window:empty{display:none}" in SOURCE
 
     def test_the_swell_is_a_headline_a_line_a_train_over_hung_offshore_lines(self):
         """Owner's choices, 2026-10-23: the range a headline with its 24 h

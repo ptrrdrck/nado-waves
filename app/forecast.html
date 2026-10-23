@@ -145,8 +145,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    page's backdrop above the LIVE cards, in a fold of its own -- not a card:
    no border, no fill, its line the Charts line's weight with the same caret
    and, while an update is unread, the provenance pills' green dot. Open,
-   three blocks in a 15 px grey -- the swell as running sentences, the
-   conditions and the tides a line each -- apart by the cards' fold rule
+   three blocks in a 15 px grey -- the swell, the day's tide, then the
+   conditions -- apart by the cards' fold rule
    (owner's call, 2026-10-23, replacing Origin's dot). Its numbers are ink
    and heavier than the words round them, the metric in brackets left grey
    (same day). */
@@ -203,6 +203,28 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-window{font-size:10.5px;color:var(--faint);letter-spacing:.04em;min-width:22px}
 .brief-window:empty{display:none}
 .brief-when{font-size:12px;color:var(--faint);padding-left:83px;margin-top:-3px}
+/* The day's tide as a curve (owner's choice, 2026-10-23): greys and ink,
+   the hours gone grey, nights shaded as the Tide card's charts are. */
+.brief-tide{display:block;width:100%;height:132px;padding:0;margin:0;border:0;background:none;font:inherit;
+            color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.brief-tide svg{display:block;overflow:visible}
+.brief-tide path{fill:none;stroke-linejoin:round}
+.brief-tide path.gone{stroke:var(--faint);stroke-width:1.4}
+.brief-tide path.ahead{stroke:var(--ink);stroke-width:1.8}
+.brief-tide .night{fill:var(--ink);opacity:.04}
+.brief-tide .now{stroke:var(--ink);stroke-width:1;stroke-dasharray:2 2}
+.brief-tide .now-label{font-size:10.5px;letter-spacing:.04em;fill:var(--faint);text-anchor:middle}
+.brief-tide .now-dot{fill:var(--paper);stroke:var(--ink);stroke-width:1.6}
+.brief-tide circle.turn{fill:var(--ink)}
+.brief-tide circle.turn.gone{fill:var(--faint)}
+.brief-tide text{font-family:inherit;text-anchor:middle}
+.brief-tide .level{font-size:12px}
+.brief-tide .level .ft{font-weight:600;fill:var(--ink)}
+.brief-tide .level.gone .ft{fill:var(--faint)}
+.brief-tide .level .m{fill:var(--faint)}
+.brief-tide .time{font-size:11.5px;font-weight:600;fill:var(--ink)}
+.brief-tide .time.gone{font-weight:400;fill:var(--faint)}
+.brief-when.brief-when-tide{padding-left:0;margin-top:2px}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
@@ -1588,8 +1610,9 @@ const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: tru
 // pills' `.status`) while that update is one this device has not opened; the
 // fold opened, the dot goes. It updates only when its swell or tide words
 // change (the build decides, on the words below); the conditions refresh
-// without an update. Open: the swell in two sentences, the conditions one a
-// line, the day's tides one a line, three blocks apart by the cards' fold
+// without an update. Open: the swell, the day's tide as a curve, then the
+// conditions one a line (owner's call, 2026-10-23: the tide above the
+// conditions), three blocks apart by the cards' fold
 // rule; every number that says something in ink and heavier (`briefNum`).
 // Never the model: GFS-Wave is the Forecast tab's.
 // Tanner Banks' sectors by their points, each line tagged "offshore"
@@ -1779,10 +1802,14 @@ function briefCondRow(r, B) {
 }
 
 // The day's turns, AM / PM by each turn's own clock (predicted, with the
-// gauge's departure, as the card's), a ledger as the conditions are (owner's
-// request, 2026-10-23): "AM low" in their small caps, no arrow, its height,
-// its time where they keep a sparkline; tapped, what it stands on. Its words
-// are the line's as before (`briefTideText`), so the ledger was no update.
+// gauge's departure, as the card's). Drawn as the day's curve (owner's
+// choice, 2026-10-23, replacing the ledger of the same day): Coronado's
+// midnight to midnight, strictly today, each turn's height by its dot --
+// above a high, below a low -- and its time on the axis under it; the hours
+// gone grey and the rest ink, a dashed now line with an open dot where the
+// tide is now, nights faintly shaded as the Tide card's charts are. Tapped,
+// what it stands on. Its words are the ledger's (`briefTideText`), so the
+// curve was no update.
 const briefHalf = (iso) => (Number(new Date(iso).toLocaleString("en-US",
   {hour: "numeric", hour12: false, timeZone: COAST_TZ})) % 24 < 12 ? "AM" : "PM");
 function briefTides(B) {
@@ -1791,14 +1818,98 @@ function briefTides(B) {
     : `departure ${dep < 0 ? "\u2212" : "+"}${height(Math.abs(dep))}`].join(" · ");
   return (T.turns || []).map((x, i) => ({key: `tide${i}`, label: `${briefHalf(x.valid_utc)} ${x.event}`,
     value: briefLevel(x.height_m), dir: null, window: "", time: clock(x.valid_utc),
-    trend: briefNum(clock(x.valid_utc).replace(/ (AM|PM)$/, "\u00a0$1")), when}));
+    at: x.valid_utc, m: x.height_m, event: x.event, when}));
 }
 const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;
+const BRIEF_TIDE_H = 132;
+// A smooth line through the curve's points (Catmull-Rom as cubic Béziers):
+// the half-hourly prediction drawn as a tide, not as a polyline.
+function briefSmooth(pts) {
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c = (k) => [p1[k] + (p2[k] - p0[k]) / 6, p2[k] - (p3[k] - p1[k]) / 6];
+    const [ax, bx] = c(0), [ay, by] = c(1);
+    d += `C${ax.toFixed(1)},${ay.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+function briefTideChart(B, rows, W, nowMs = Date.now()) {
+  const T = B.tide || {}, curve = T.curve || [];
+  if (curve.length < 2 || !T.start_utc || !T.end_utc || W <= 0) return "";
+  const H = BRIEF_TIDE_H, top = 30, bot = 34;
+  const t0 = Date.parse(T.start_utc) / 1000, t1 = Date.parse(T.end_utc) / 1000, now = nowMs / 1000;
+  const hs = curve.map((p) => p[1]).concat(rows.map((r) => r.m));
+  const lo = Math.min(...hs), hi = Math.max(...hs);
+  const X = (t) => (t - t0) / (t1 - t0) * W;
+  const Y = (v) => top + (hi > lo ? (hi - v) / (hi - lo) : 0.5) * (H - top - bot);
+  // Runs of the curve, broken where a stamp is missing: a gap is a gap.
+  const runs = [[]];
+  curve.forEach((p, i) => {
+    if (i && p[0] - curve[i - 1][0] > 3600) runs.push([]);
+    runs[runs.length - 1].push([X(p[0]), Y(p[1])]);
+  });
+  const line = runs.filter((r) => r.length > 1).map(briefSmooth).join("");
+  const xn = X(now), today = now >= t0 && now <= t1;
+  const shade = (T.nights || []).map(([a, b]) => {
+    const x0 = Math.max(0, X(Date.parse(a) / 1000)), x1 = Math.min(W, X(Date.parse(b) / 1000));
+    return x1 > x0 ? `<rect class="night" x="${x0.toFixed(1)}" y="0" width="${(x1 - x0).toFixed(1)}" height="${H - bot + 6}"/>` : "";
+  }).join("");
+  // Each label kept inside the drawing: centred on its turn where it fits.
+  const inside = (x, w) => Math.max(w / 2, Math.min(W - w / 2, x));
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${shade}`
+    + `<clipPath id="brief-tide-ahead"><rect x="${today ? xn.toFixed(1) : now < t0 ? 0 : W}" y="0" width="${W}" height="${H}"/></clipPath>`
+    + `<path class="gone" d="${line}"/><path class="ahead" d="${line}" clip-path="url(#brief-tide-ahead)"/>`;
+  if (today) {
+    const i = curve.findIndex((p) => p[0] >= now);
+    const yn = i > 0 ? curve[i - 1][1] + (curve[i][1] - curve[i - 1][1]) * (now - curve[i - 1][0]) / (curve[i][0] - curve[i - 1][0])
+      : null;
+    s += `<path class="now" d="M${xn.toFixed(1)},12V${H - bot + 6}"/>`
+      + `<text class="now-label" x="${inside(xn, 26).toFixed(1)}" y="8">NOW</text>`
+      + (yn != null ? `<circle class="now-dot" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4"/>` : "");
+  }
+  for (const r of rows) {
+    const t = Date.parse(r.at) / 1000, x = X(t), y = Y(r.m), gone = t < now, high = r.event === "high";
+    const ft = briefMinus(`${(r.m * FT_PER_M).toFixed(1)} ft`), m = briefMinus(`(${r.m.toFixed(2)} m)`);
+    s += `<circle class="turn${gone ? " gone" : ""}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3"/>`
+      + `<text class="level${gone ? " gone" : ""}" x="${inside(x, 6.6 * (ft.length + m.length + 1)).toFixed(1)}"`
+      + ` y="${(high ? y - 9 : y + 17).toFixed(1)}"><tspan class="ft">${ft}</tspan> <tspan class="m">${m}</tspan></text>`
+      + `<text class="time${gone ? " gone" : ""}" x="${inside(x, 6.6 * r.time.length).toFixed(1)}" y="${H - 4}">${r.time}</text>`;
+  }
+  return s + "</svg>";
+}
+// The tides block: the curve, drawn at its own width (`drawBriefTide`), a
+// button whose tap says what it stands on, as a ledger row's does.
+function briefTideBlock(rows, B) {
+  const open = BRIEF_ROWS.has("tide");
+  const said = rows.map((r) => `${r.label} ${(r.m * FT_PER_M).toFixed(1)} feet at ${r.time}`).join(", ");
+  return `<button type="button" class="brief-tide" data-brief-row="tide" data-brief-tide aria-expanded="${open}"`
+    + ` aria-label="Today's tide, predicted: ${said}"></button>`
+    + `<div class="brief-when brief-when-tide"${open ? "" : " hidden"}>${rows[0].when}</div>`;
+}
+const TIDE_WIDTH = new WeakMap();
+function drawBriefTide(el) {
+  const width = el.clientWidth;
+  if (!width || !BRIEFING) return;
+  TIDE_WIDTH.set(el, width);
+  el.innerHTML = briefTideChart(BRIEFING, briefTides(BRIEFING), width);
+}
+const tideResize = typeof ResizeObserver === "undefined" ? null
+  : new ResizeObserver((entries) => entries.forEach(({target, contentRect}) => {
+    const width = Math.round(contentRect.width);
+    if (width && TIDE_WIDTH.get(target) !== width) drawBriefTide(target);
+  }));
+function fitBriefTide() {
+  const el = document.querySelector("[data-brief-tide]");
+  if (!el) return;
+  if (tideResize) tideResize.observe(el);
+  drawBriefTide(el);
+}
 
 // Every block in the fold's order; an empty block drops.
 function briefingParts(B) {
   if (!B || !B.available) return null;
-  return {swell: briefSwell(B), conditions: briefConditions(B), tides: briefTides(B)};
+  return {swell: briefSwell(B), tides: briefTides(B), conditions: briefConditions(B)};
 }
 
 // The fold's line: "Briefing", when it last updated (the day too when not
@@ -1832,7 +1943,8 @@ function briefSeen() {
 function briefingFold(B) {
   const parts = briefingParts(B);
   if (!parts) return "";
-  const blocks = [parts.swell, parts.conditions, parts.tides].filter((b) => b.length);
+  // The tide above the conditions (owner's call, 2026-10-23).
+  const blocks = [parts.swell, parts.tides, parts.conditions].filter((b) => b.length);
   if (!blocks.length) return "";
   const dot = BRIEF_OPEN || !briefUnseen(B) ? "" : briefDot;
   return `<div class="chart-head" data-brief-head><span>${briefLine(B)}${dot}</span><button
@@ -1840,7 +1952,8 @@ function briefingFold(B) {
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
-      ${blocks.map((b) => (b === parts.conditions || b === parts.tides
+      ${blocks.map((b) => (b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
+        : b === parts.conditions
         ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
         : `<div class="brief-block brief-swell">${b.map(briefSwellRow).join("")}</div>`)).join("")}
     </div>`;
@@ -6339,6 +6452,7 @@ function show() {
   const brief = forecasting ? "" : briefingFold(BRIEFING);
   $("briefing").hidden = !brief;
   $("briefing").innerHTML = brief;
+  fitBriefTide();
   // An update drawn into an open fold has been read.
   if (brief && BRIEF_OPEN) briefSeen();
   $("tab-now").setAttribute("aria-selected", String(!forecasting));

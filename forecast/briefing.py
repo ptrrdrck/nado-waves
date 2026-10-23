@@ -31,7 +31,8 @@ UPDATES only when what it says about the swell or the tide changes:
   not. Each with an arrow against an earlier reading and a sparkline of
   its recent readings (`trends`; owner's calls, 2026-10-23).
 - **Tides**: the day's predicted turns, AM / PM, with the gauge's measured
-  departure as the card's turns carry it.
+  departure as the card's turns carry it, and the day's curve the page
+  draws them on (`tide_story`; owner's choices, 2026-10-23).
 
 An update is a change in the words the page prints for the swell or the
 tides (`briefingwording.render_issue`, Node, the page's own code), so a
@@ -396,8 +397,8 @@ def trends(data_dir: Path, at: datetime, water: dict | None, weather: dict) -> d
 
 
 def unsparked(line: dict) -> dict:
-    """A build as the record keeps it: the arrows, not the sparklines, which
-    are the archives' own readings over again."""
+    """A build as the record keeps it: the arrows, not the sparklines or the
+    tide's curve, which are the archives' own readings over again."""
 
     line = json.loads(json.dumps(line))
     for t in ((line.get("conditions") or {}).get("trends") or {}).values():
@@ -405,6 +406,8 @@ def unsparked(line: dict) -> dict:
             t.pop("spark", None)
             t.pop("days", None)
     (line.get("swell") or {}).pop("spark", None)
+    for key in ("curve", "nights"):
+        (line.get("tide") or {}).pop(key, None)
     return line
 
 
@@ -679,23 +682,42 @@ def swell_story(now: dict, buoys: dict | None, at: datetime, data_dir: Path,
 
 # ------------------------------------------------------------------ tide
 
+#: The day's tide curve, a point every this many minutes: the hourly
+#: prediction interpolated as the Tide card's is, close enough that the
+#: drawn curve meets each turn's own dot.
+TIDE_CURVE_MIN = 30
+
 def tide_story(now: dict, data_dir: Path, at: datetime) -> dict:
     """The Pacific day's predicted turns at the open coast, each carrying
     the gauge's measured departure as the card's do."""
 
-    from .tidesite import anomaly, coast_turn
+    from .daylight import nights
+    from .tidesite import anomaly, coast_predicted, coast_turn, predicted_series
     from .tideturns import read_turns
 
     departure, _ = anomaly(data_dir, at)
     day = at.astimezone(LOCAL_TZ).date()
     start = datetime.combine(day, time(0), tzinfo=LOCAL_TZ).astimezone(timezone.utc)
-    end = start + timedelta(days=1)
+    end = datetime.combine(day + timedelta(days=1), time(0), tzinfo=LOCAL_TZ).astimezone(timezone.utc)
     turns = [coast_turn(t, departure).as_dict()
              for t in read_turns(data_dir, now.get("tide_station") or "9410170")]
+    # The day's curve (owner's choice, 2026-10-23): the same prediction the
+    # turns are, at the open coast with the departure, every TIDE_CURVE_MIN
+    # from Coronado's midnight to the next; a stamp the prediction does not
+    # reach is left out, never filled.
+    predicted = predicted_series(data_dir)
+    curve, t = [], start
+    while t <= end:
+        h = coast_predicted(predicted, t, departure)
+        if h is not None:
+            curve.append([int(t.timestamp()), round(h, 3)])
+        t += timedelta(minutes=TIDE_CURVE_MIN)
     return {"day": day.isoformat(), "station": now.get("tide_station") or "9410170",
             "departure_m": round(departure, 3) if departure is not None else None,
             "turns": [{k: t[k] for k in ("valid_utc", "height_m", "event")} for t in turns
-                      if start <= _utc(t["valid_utc"]) < end]}
+                      if start <= _utc(t["valid_utc"]) < end],
+            "start_utc": _iso(start), "end_utc": _iso(end), "curve": curve,
+            "nights": nights(start, end)}
 
 
 # ------------------------------------------------------------------ build
