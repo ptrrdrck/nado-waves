@@ -229,3 +229,32 @@ def test_without_the_buoy_or_the_carried_sea_open_water_adds_nothing():
 def test_the_carried_wind_sea_is_the_short_period_part():
     swell = carry(synthetic(200.0, hs=1.5, spread_deg=15.0), open_table())
     assert 0.0 <= swell.hs_short < swell.hs_ref
+
+
+def test_a_trains_held_headings_are_the_narrowest_arc_holding_its_share():
+    """The Briefing's status of a train reads its band at the buoy from the
+    headings it carried to the break (owner's call, 2026-10-23): the
+    narrowest arc holding HELD_SHARE of that energy, crossing north when it
+    must, and every heading when it holds them all."""
+
+    from types import SimpleNamespace
+
+    from forecast.nearshore import HELD_SHARE, _held
+
+    hist = [0.0] * 360
+    for k in range(200, 220):
+        hist[k] = 1.0
+    hist[300] = 1.0                                   # 1 of 21: outside the arc at 90%
+    got = _held(SimpleNamespace(bins=(3,), arc=()), {3: hist})
+    lo, hi = got
+    width = (hi - lo) % 360
+    inside = sum(hist[(lo + k) % 360] for k in range(width))
+    assert inside >= HELD_SHARE * sum(hist) and width == 19
+    north = [0.0] * 360
+    for k in list(range(350, 360)) + list(range(0, 10)):
+        north[k] = 1.0
+    lo, hi = _held(SimpleNamespace(bins=(3,), arc=()), {3: north})
+    assert lo in (350, 351, 352) and (hi - lo) % 360 == 18           # 18 of 20 headings, across north
+    assert _held(SimpleNamespace(bins=(3,), arc=()), {3: [0.0] * 360}) == ()
+    divided = _held(SimpleNamespace(bins=(3,), arc=(205, 215)), {3: hist})
+    assert divided[0] >= 205 and divided[1] <= 215

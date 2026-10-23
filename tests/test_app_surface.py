@@ -3872,7 +3872,7 @@ class TestTheBriefing:
         assert ".brief-num{color:var(--ink);font-weight:600}" in SOURCE
         assert ".brief-block{" in SOURCE and "color:var(--soft)" in SOURCE[
             SOURCE.index(".brief-block{"):SOURCE.index("}", SOURCE.index(".brief-block{"))]
-        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${t.period_s.toFixed(1)} s`)",
+        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${tn.period_s.toFixed(1)}\\u00a0s`)",
                      "briefNum(`${Math.round(w.humidity_pct)}%`)", "briefNum(clock(x.valid_utc).replace(",
                      "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):
             assert made in self.BLOCK, made
@@ -3922,20 +3922,22 @@ class TestTheBriefing:
         assert "const briefRowWhen = (r, B) => r.when || [" in self.BLOCK
         assert ".brief-window:empty{display:none}" in SOURCE
 
-    def test_the_swell_is_a_headline_over_hung_offshore_lines(self):
-        """Owner's choice, 2026-10-23: the beach's line a headline with its
-        24 h sparkline and no trend mark, Tanner Banks' points hung in the
-        ledger's small caps; each line's words as before."""
+    def test_the_swell_is_a_headline_a_line_a_train_over_hung_offshore_lines(self):
+        """Owner's choices, 2026-10-23: the range a headline with its 24 h
+        sparkline beside it, each train a line under it with its own status
+        and no trend mark, Tanner Banks' points hung in the ledger's small
+        caps."""
         rows = self.BLOCK[self.BLOCK.index("function briefSwellRow(r)"):]
         rows = rows[:rows.index("\n}\n")]
-        assert 'class="brief-big"' in rows and 'class="brief-sub"' in rows
+        assert ('<div class="brief-head"><div class="brief-big">${r.range}</div>`\n'
+                '      + (r.spark ? `<span class="brief-trend">${r.spark}') in rows
+        assert '<div class="brief-sub">${r.html}${r.trend ? `<span class="brief-sep">·</span>${r.trend}` : ""}</div>' in rows
         assert 'class="brief-hang"><span class="brief-key">' in rows
         assert "briefArrow(" not in rows and "briefArrow(" not in self.BLOCK[
             self.BLOCK.index("function briefSwell(B)"):self.BLOCK.index("function briefSwellRow(r)")]
         assert ".brief-big{font-size:27px;" in SOURCE
-        assert "spark: briefSpark(s.spark, s.window_h || 24)" in self.BLOCK
-        assert ("const briefSwellText = (r) => (r.kind === \"beach\" ? `${r.range}${r.tail}${r.trend ? `, ${r.trend}` : \"\"}.`"
-                in self.BLOCK)
+        assert "for (const tn of s.trains || [])" in self.BLOCK
+        assert ': r.kind === "train" ? `${r.html}${r.trend ? `, ${r.trend}` : ""}.`' in self.BLOCK
         assert "p.swell.map((r) => text(briefSwellText(r)))" in \
             (APP.parent.parent / "forecast" / "briefingwording.py").read_text(encoding="utf-8")
 

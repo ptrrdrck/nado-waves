@@ -4,7 +4,7 @@
     python -m forecast.briefingwording --check    # exit 1 if they are out of date
 
 `docs/briefing_wording.md` states the formula: the fold's line, then three
-blocks — the swell in two sentences, the conditions a line each, the day's
+blocks — the swell (a range, a line a train, a line an offshore swell), the conditions a line each, the day's
 tides a line each — each a fixed run of slots, a slot with no value dropped
 with its joining words. Its last section shows every permutation, and this
 writes it: the Briefing functions are lifted out of `app/forecast.html` and
@@ -50,10 +50,9 @@ QUIET = {
     "station": "46232", "station_cdip": "191",
     "station_names": {"46232": "Point Loma South, CA", "46047": "Tanner Banks, CA"},
     "swell": {"dark": False, "newest_utc": "2026-10-22T14:00:00Z",
-              "breaks": [{"id": N, "hs_m": 1.02, "period_s": 13.3, "from_deg": 215},
-                         {"id": C, "hs_m": 1.10, "period_s": 13.3, "from_deg": 209},
-                         {"id": S, "hs_m": 1.18, "period_s": 13.3, "from_deg": 205}],
-              "trend": "holding", "coming": []},
+              "breaks": [{"id": N, "hs_m": 1.02}, {"id": C, "hs_m": 1.10}, {"id": S, "hs_m": 1.18}],
+              "trains": [{"period_s": 13.3, "from_deg": 205, "hs_m": 1.18, "trend": "holding"}],
+              "spark": [[1792058160, 1.12], [1792061760, 1.18]], "window_h": 24, "coming": []},
     "conditions": {"water": {"station": "46232", "c": 19.4, "observed_utc": "2026-10-22T13:56:00Z"},
                    "weather": {"station": "KNZY", "air_c": 16.1, "humidity_pct": 87.6,
                                "observed_utc": "2026-10-22T13:52:00Z", "precip_hour_in": 0.0,
@@ -102,22 +101,24 @@ NORTH_WEST = {**WEST, "sector": "north-west", "sector_deg": [280.0, 330.0], "ban
 CASES = [
     ("Q1", "a quiet morning: one range, nothing coming, no rain", QUIET),
     ("B1", "west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour",
-     _case(swell__breaks=[{"id": N, "hs_m": 0.74, "period_s": 16.7, "from_deg": 196},
-                          {"id": C, "hs_m": 1.00, "period_s": 16.7, "from_deg": 193},
-                          {"id": S, "hs_m": 1.31, "period_s": 18.2, "from_deg": 188}],
-           swell__trend="building", swell__coming=[WEST],
+     _case(swell__breaks=[{"id": N, "hs_m": 0.74}, {"id": C, "hs_m": 1.00}, {"id": S, "hs_m": 1.31}],
+           swell__trains=[{"period_s": 18.2, "from_deg": 188, "hs_m": 1.31, "trend": "building"}],
+           swell__coming=[WEST],
            conditions__weather=dict(QUIET["conditions"]["weather"], precip_hour_in=0.03, precip_day_in=0.11,
                                     precip_kinds=["rain"]))),
     ("C1", "two sectors offshore, one arrived and fading; rain earlier in the day only",
-     _case(swell__trend="peaking", swell__coming=[NORTH_WEST, WEST],
+     _case(swell__trains=[{"period_s": 13.3, "from_deg": 205, "hs_m": 1.18, "trend": "peaking"}],
+           swell__coming=[NORTH_WEST, WEST],
            conditions__weather=dict(QUIET["conditions"]["weather"], precip_day_in=0.24))),
-    ("M1", "a mix at the biggest break: the second train from another point is named, one from the same point is not",
-     _case(swell__breaks=[{"id": N, "hs_m": 1.02, "period_s": 15.4, "from_deg": 203,
-                           "also": [{"period_s": 14.3, "from_deg": 208, "hs_m": 0.9},
-                                    {"period_s": 10.0, "from_deg": 268, "hs_m": 0.8}]}],
-           swell__trend="fading")),
-    ("H1", "the lead train has no heading, and no trend yet: their slots drop with their words",
-     _case(swell__breaks=[{"id": N, "hs_m": 1.02, "period_s": 13.3, "from_deg": None}], swell__trend=None)),
+    ("M1", "a mix at the biggest break: every swell train at half the lead's height or more, a line each, "
+           "from any point",
+     _case(swell__breaks=[{"id": N, "hs_m": 1.02}],
+           swell__trains=[{"period_s": 15.4, "from_deg": 203, "hs_m": 1.02, "trend": "fading"},
+                          {"period_s": 14.3, "from_deg": 208, "hs_m": 0.9, "trend": "holding"},
+                          {"period_s": 10.0, "from_deg": 268, "hs_m": 0.6, "trend": "building"}])),
+    ("H1", "the lead train has no heading, and no status yet: their slots drop with their words",
+     _case(swell__breaks=[{"id": N, "hs_m": 1.02}],
+           swell__trains=[{"period_s": 13.3, "from_deg": None, "hs_m": 1.02, "trend": None}])),
     ("D1", "46232 dark: the swell says so and nothing else",
      _case(swell={"dark": True, "newest_utc": "2026-10-21T22:00:00Z"})),
     ("K1", "no water temperature, no KNZY report, a minus tide",

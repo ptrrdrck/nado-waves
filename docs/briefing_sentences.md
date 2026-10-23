@@ -20,21 +20,29 @@ the page will read as the page's again until that happens. The formula is in
 
 ## Swell
 
-SW1. 3–4 ft (0.9–1.2 m) SSW at 13.3 s, holding.  (Q1, K1, Y1)
+SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, H1, K1, Y1)
 
-SW2. 2–5 ft (0.6–1.5 m) S at 18.2 s, building.  (B1)
+SW2. SSW at 13.3 s, holding.  (Q1, K1, Y1)
 
-SW3. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore  (B1, C1)
+SW3. 2–5 ft (0.6–1.5 m).  (B1)
 
-SW4. 3–4 ft (0.9–1.2 m) SSW at 13.3 s, peaking.  (C1)
+SW4. S at 18.2 s, building.  (B1)
 
-SW5. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading. offshore  (C1)
+SW5. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore  (B1, C1)
 
-SW6. 3–4 ft (0.9–1.2 m) SSW at 15.4 s and W at 10.0 s, fading.  (M1)
+SW6. SSW at 13.3 s, peaking.  (C1)
 
-SW7. 3–4 ft (0.9–1.2 m) at 13.3 s.  (H1)
+SW7. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading. offshore  (C1)
 
-SW8. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
+SW8. SSW at 15.4 s, fading.  (M1)
+
+SW9. SSW at 14.3 s, holding.  (M1)
+
+SW10. W at 10.0 s, building.  (M1)
+
+SW11. At 13.3 s.  (H1)
+
+SW12. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
 
 
 ## Conditions
@@ -71,8 +79,8 @@ TI6. PM high 5.6 ft (1.71 m) at 1:05 PM  (K1)
 - **Q1**: a quiet morning: one range, nothing coming, no rain
 - **B1**: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
 - **C1**: two sectors offshore, one arrived and fading; rain earlier in the day only
-- **M1**: a mix at the biggest break: the second train from another point is named, one from the same point is not
-- **H1**: the lead train has no heading, and no trend yet: their slots drop with their words
+- **M1**: a mix at the biggest break: every swell train at half the lead's height or more, a line each, from any point
+- **H1**: the lead train has no heading, and no status yet: their slots drop with their words
 - **D1**: 46232 dark: the swell says so and nothing else
 - **K1**: no water temperature, no KNZY report, a minus tide
 - **Y1**: yesterday's update, read this morning

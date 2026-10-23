@@ -832,27 +832,29 @@ forecaster actually verifies against, Surfline included.
    ink and heavier, the metric in brackets grey (`briefNum`): **Swell** (owner's
    wording and calls, 2026-10-23), TWO SOURCES never matched to each other.
    Each swell sentence a line of its own, 6 px apart, the beach's compass
-   points in ink like the numbers (owner's request, same day); set (owner's
-   choice, same day) as a HEADLINE — the range at 27 px, "SSW at 13.3 s ·
-   building" under it, no trend mark, the biggest breaking height each hour
-   over 24 h a sparkline at its right (`beach_spark`, `swell.spark`, kept
-   out of the record by `unsparked`) — over Tanner Banks' sentences, each
-   point hung in the ledger's small caps; `briefSwellText` keeps every
-   line's words as they were, so the setting was no update. The beach: "3–4 ft
-   (0.9–1.2 m) SSW at 13.3 s, building." (the
-   three cards' breaking heights, lowest floored and highest ceiled to whole
-   feet, at least a foot apart; then the lead train's compass point and
-   period at the break with the biggest — the point its row's OFFSHORE
-   heading, the larger direction of a two-direction train, never its 5 m
-   one (`briefing.lead_heading`) — and " and W at 10.0 s" for a second
-   swell train there at ≥ 70% of its height from another point
-   (`MIX_SHARE`, `mix_trains`; never wind sea or chop); then the biggest
-   breaking height's trend, series.json's hours as energy over a trailing
-   3 h (`beach_trend`): building ≥ +25% on 3 h before, fading ≤ −25%,
-   peaking when the day's highest came within 3 h, else holding — measured
-   over the ~850 archive hours with a breaking height (from 17 Sep):
-   holding 67%, peaking 16%, building 11%, fading 4%; metric in brackets by
-   the units rule). Offshore, each 46047 west / north-west swell: FOUND by a
+   points in ink like the numbers (owner's request, same day). The beach
+   (owner's choices, same day) is a HEADLINE: the range at 27 px, "3–4 ft
+   (0.9–1.2 m)" (the three cards' breaking heights, lowest floored and
+   highest ceiled to whole feet, at least a foot apart), the biggest
+   breaking height each hour over 24 h a sparkline beside it (`beach_spark`,
+   `swell.spark`, kept out of the record by `unsparked`); then A LINE A
+   TRAIN, "SSW at 13.3 s · building" (its words "SSW at 13.3 s, building."),
+   no trend mark: the lead train at the break with the biggest breaking
+   height and every other swell train there at ≥ HALF its height, from any
+   point (`MIX_SHARE` 0.5 of height, `listed_trains`; never wind sea or
+   chop; it was 0.7, beside the lead, another point only), each its row's
+   OFFSHORE heading (the larger direction of a two-direction train, never
+   its 5 m one) and period, and ITS OWN STATUS (owner's call, same day):
+   its band at 46232 -- the bins it holds in the newest spectrum and the
+   offshore headings holding 90% of what it carries to the break
+   (`Train.held`, `nearshore.HELD_SHARE`; now.json trains' `band_hz` /
+   `held_deg`) -- as energy over a trailing 3 h (`train_trend`, `trend_word`):
+   building ≥ +25% on 3 h before, fading ≤ −25%, peaking when the day's
+   highest came within 3 h, else holding. Nothing follows a train between
+   spectra, so it is the band's energy at the buoy, not the train's at the
+   break; how often each word fires is NOT measured yet (the beach-wide
+   trend it replaced was: holding 67%, peaking 16%, building 11%, fading 4%).
+   Metric in brackets by the units rule. Offshore, each 46047 west / north-west swell: FOUND by a
    ×3 rise (§43's three bands plus 8–10 s, owner's request, whose lag §43
    did not check) in the last 72 h, its bands the newest rise and each
    LONGER band's newest rise before it within 24 h (`disperse`: long periods

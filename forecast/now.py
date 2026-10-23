@@ -780,6 +780,14 @@ def build(
                              profile=profiles.get(break_id), tide_m=tide_coast,
                              normal_deg=spot.normal)
             near_hs = near["hs_m"]
+            # Where each carried train sits at the buoy -- its period band and
+            # the headings it came from -- for the Briefing's status of a
+            # train (owner's call, 2026-10-23). The local chop has none.
+            for row, train in zip(near["trains"], carried.trains[:3]):
+                if train.bins:
+                    freqs = [spectrum.frequencies[i] for i in train.bins]
+                    row["band_hz"] = [round(min(freqs), 5), round(max(freqs), 5)]
+                    row["held_deg"] = list(train.held)
         reading.breaks.append(NowBreak(
             id=spot.id,
             name=spot.name,

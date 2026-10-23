@@ -7,14 +7,15 @@ Owner's request, 2026-10-16, reshaped 2026-10-17 and again 2026-10-22: a
 short read in a fold above the LIVE cards. Built every collection; it
 UPDATES only when what it says about the swell or the tide changes:
 
-- **Swell**, two sentences (owner's wording and calls, 2026-10-23), a
-  summary of two sources that are never matched to each other. The beach,
-  from 46232's chain: "3–4 ft (0.9–1.2 m) SSW at 13.3 s, building." — the breaking height at the three breaks, lowest to highest
-  in whole feet; the offshore heading and period of the biggest train at the
-  break with the biggest waves (the cards' own numbers; the heading the train
-  row's, not its 5 m one), and a second swell train there from another
-  point at ≥ `MIX_SHARE` of its height (`also`); then the biggest breaking
-  height's trend (`beach_trend`). Offshore, at 46047: each west or
+- **Swell** (owner's wording and calls, 2026-10-23), a summary of two
+  sources that are never matched to each other. The beach, from 46232's
+  chain: "3–4 ft (0.9–1.2 m)", the breaking height at the three breaks,
+  lowest to highest in whole feet; then, a line each, the trains at the
+  break with the biggest waves -- its lead and every other swell train at
+  ≥ `MIX_SHARE` of its height (`listed_trains`) -- "SSW at 13.3 s,
+  building.", each its offshore heading as its row names it (never its 5 m
+  one), its period, and its status: its band at 46232 over the last day
+  (`train_trend`). Offshore, at 46047: each west or
   north-west swell found by its rise and said for as long as Tanner Banks
   still holds it (`upstream_story`), due at 46232 and the breaks by
   deep-water speed (`forecast.upstreamlag`, BRIEFING §43), each line in
@@ -107,21 +108,24 @@ UPSTREAM_GROUP_H = 24.0
 
 #: The trend words (owner's calls, 2026-10-23), in energy, over the last
 #: TREND_H: up by BUILDING_RATIO is "building", down to FADING_RATIO
-#: "fading". At the beach, of the biggest breaking height smoothed over
-#: TREND_H: else "peaking" when its highest in PEAK_OVER_H came within
-#: TREND_H, else "holding". At Tanner Banks: building, else fading under
-#: UPSTREAM_FADING_SHARE of the peak, else peaking.
+#: "fading". For each train at the beach, of its band at 46232 smoothed
+#: over TREND_H (`train_trend`): else "peaking" when its highest in
+#: PEAK_OVER_H came within TREND_H, else "holding". At Tanner Banks:
+#: building, else fading under UPSTREAM_FADING_SHARE of the peak, else
+#: peaking.
 TREND_H = 3.0
 BUILDING_RATIO = 1.25
 FADING_RATIO = 0.75
 PEAK_OVER_H = 24.0
-#: The beach's day must hold this share of its hours to say "peaking".
+#: A train's day must hold this share of its hours to say "peaking".
 PEAK_COVER = 0.75
 
-#: A second swell train at the biggest break is named beside the lead when
-#: it holds this share of the lead's height and comes from another compass
-#: point (owner's call, 2026-10-23; never wind sea or local chop).
-MIX_SHARE = 0.7
+#: Every swell train at the break with the biggest breaking height that
+#: holds this share of its lead train's height is listed, a line each, from
+#: any compass point (owner's calls, 2026-10-23: half its height, a quarter
+#: of its energy; it was 0.7, beside the lead, from another point only).
+#: Never wind sea or local chop.
+MIX_SHARE = 0.5
 
 
 def _utc(stamp: str | None) -> datetime | None:
@@ -504,19 +508,11 @@ def disperse(risen: dict, since: datetime) -> list[tuple[tuple[float, float], ob
     return swell
 
 
-def beach_trend(steps: list[dict]) -> str | None:
-    """Building, fading, peaking or holding: the biggest of the three breaks'
-    breaking heights each hour (the series the charts draw), as energy
-    averaged over the trailing TREND_H. None without the hour TREND_H back."""
+def trend_word(pts: list[tuple[datetime, float]]) -> str | None:
+    """Building, fading, peaking or holding: an hourly energy series
+    averaged over the trailing TREND_H, its newest against TREND_H before.
+    None without that hour: a gap is never filled from the hour beside it."""
 
-    pts = []
-    for st in steps or []:
-        if st.get("gap") or st.get("pending"):
-            continue
-        hs = [((st.get("breaks") or {}).get(b) or {}).get("hs_m") for b in BREAKS]
-        hs = [h for h in hs if h is not None]
-        if hs:
-            pts.append((_utc(st["valid_utc"]), max(hs) ** 2))
     if not pts:
         return None
     newest = pts[-1][0]
@@ -567,55 +563,116 @@ def _minute(t: datetime) -> datetime:
 
 
 
-def lead_heading(site: dict) -> float | None:
-    """Where the break's lead train comes from offshore, as its row on the
-    card says it: one direction, its mean; two, the larger (lobes come
-    largest first), as the row's shortest form names it. Never the 5 m
-    heading (owner's call, 2026-10-23)."""
-
-    trains = site.get("trains") or []
-    if not trains:
-        return site.get("peak_direction_deg")
-    return _heading(trains[0])
-
-
 def _heading(train: dict) -> float | None:
     lobes = train.get("lobes") or []
     return lobes[0][0] if len(lobes) >= 2 else train.get("from_deg")
 
 
-def mix_trains(site: dict) -> list[dict]:
-    """The break's other swell trains at ≥ MIX_SHARE of its lead train's
-    height, biggest first, never wind sea or local chop: the page names the
-    first from another compass point beside the lead (owner's call,
-    2026-10-23)."""
+def listed_trains(site: dict) -> list[dict]:
+    """The break's lead train and every other swell train at ≥ MIX_SHARE of
+    its height, biggest first, from any point; never wind sea or local chop
+    (owner's calls, 2026-10-23). Each with its offshore heading as its row
+    names it, and its band at the buoy (`band_hz`, `held_deg`) when the
+    reading carries one."""
 
     trains = site.get("trains") or []
-    if not trains or not trains[0].get("hs_m"):
-        return []
-    lead = trains[0]["hs_m"]
-    return [{"period_s": t.get("period_s"), "from_deg": _heading(t), "hs_m": t.get("hs_m")}
-            for t in trains[1:]
-            if not t.get("wind_sea") and (t.get("hs_m") or 0) >= MIX_SHARE * lead and _heading(t) is not None]
+    if not trains:
+        return ([{"period_s": site.get("peak_period_s"), "from_deg": site.get("peak_direction_deg"),
+                  "hs_m": site.get("hs_nearshore_m")}] if site.get("peak_period_s") is not None else [])
+    lead = trains[0].get("hs_m") or 0.0
+    out = []
+    for k, t in enumerate(trains):
+        if k and (t.get("wind_sea") or t.get("local") or _heading(t) is None
+                  or (t.get("hs_m") or 0.0) < MIX_SHARE * lead):
+            continue
+        out.append({"period_s": t.get("period_s"), "from_deg": _heading(t), "hs_m": t.get("hs_m"),
+                    "band_hz": t.get("band_hz"), "held_deg": t.get("held_deg")})
+    return out
+
+
+def band_energy(spectrum, band_hz, held) -> float | None:
+    """m² at the buoy in a train's band: the frequency bins from its lowest
+    to its highest, from the headings it held (`held_deg`; every heading
+    when it held them all), by maximum entropy in closed form. None when a
+    bin cannot be read: never a partial sum."""
+
+    from .spreadmethod import Unrealisable, mem_sector
+
+    lo, hi = band_hz
+    whole = not held or (held[1] - held[0]) % 360 == 0
+    total, n = 0.0, 0
+    for i, f in enumerate(spectrum.frequencies):
+        if not lo - 1e-9 <= f <= hi + 1e-9:
+            continue
+        e = spectrum.c11[i]
+        if e is None or math.isnan(e):
+            return None
+        share = 1.0
+        if not whole:
+            vals = (spectrum.r1[i], spectrum.r2[i], spectrum.a1[i], spectrum.a2[i])
+            if any(v is None or math.isnan(v) for v in vals):
+                return None
+            try:
+                share = mem_sector(*vals, float(held[0]), float(held[1]))
+            except (Unrealisable, ValueError, ZeroDivisionError):
+                return None
+        total += e * spectrum.bin_width(i) * share
+        n += 1
+    return total if n else None
+
+
+def train_trend(spectra, train: dict, newest: datetime) -> str | None:
+    """A train's status (owner's call, 2026-10-23): its band at 46232 --
+    the periods and headings it holds in the newest spectrum -- each hour
+    of the last PEAK_OVER_H + TREND_H, through `trend_word`. Nothing follows
+    a train between spectra, so this is the band's energy, not the train's."""
+
+    if not train.get("band_hz"):
+        return None
+    start = newest - timedelta(hours=PEAK_OVER_H + TREND_H)
+    pts = []
+    for sp in spectra:
+        if start < sp.time <= newest:
+            e = band_energy(sp, train["band_hz"], train.get("held_deg"))
+            if e is not None:
+                pts.append((sp.time, e))
+    if not pts or pts[-1][0] != newest:
+        return None
+    return trend_word(pts)
 
 
 def swell_story(now: dict, buoys: dict | None, at: datetime, data_dir: Path,
-                series: dict | None = None) -> dict:
-    """The breaking height and lead train's period and heading at each break,
-    as the cards show them, with any second train of a mix; the beach's
-    trend; and 46047's swells."""
+                series: dict | None = None, spectra=None) -> dict:
+    """The breaking height at each break as the cards show it; at the break
+    with the biggest, each train the page lists, with its status; the
+    biggest breaking height's last day; and 46047's swells."""
 
     newest = _utc(now.get("observed_utc"))
     if now.get("stale") or newest is None:
         return {"dark": True, "newest_utc": _iso(newest)}
-    breaks = [{"id": b["id"], "hs_m": b.get("hs_nearshore_m"), "period_s": b.get("peak_period_s"),
-               "from_deg": lead_heading(b), "also": mix_trains(b)}
-              for b in now.get("breaks", []) if b.get("id") in BREAKS]
+    sites = [b for b in now.get("breaks", []) if b.get("id") in BREAKS and b.get("hs_nearshore_m") is not None]
+    trains = []
+    if sites:
+        top = max(sites, key=lambda b: b["hs_nearshore_m"])
+        trains = listed_trains(top)
+        if any(t.get("band_hz") for t in trains):
+            if spectra is None:
+                from .transform import load_spectra
+                try:
+                    spectra = load_spectra(Path(data_dir) / "spectra" / (now.get("station") or "46232"))
+                except (FileNotFoundError, ValueError):
+                    spectra = []
+            for t in trains:
+                t["trend"] = train_trend(spectra, t, newest)
+        for t in trains:
+            t.pop("band_hz", None)
+            t.pop("held_deg", None)
+            t.setdefault("trend", None)
     coming = upstream_story(data_dir, buoys, at)
     steps = (series or {}).get("steps") or []
     return {"dark": False, "newest_utc": _iso(newest),
-            "breaks": [b for b in breaks if b["hs_m"] is not None],
-            "trend": beach_trend(steps), "spark": beach_spark(steps), "window_h": SPARK_H["beach"],
+            "breaks": [{"id": b["id"], "hs_m": b["hs_nearshore_m"]} for b in sites],
+            "trains": trains, "spark": beach_spark(steps), "window_h": SPARK_H["beach"],
             "coming": [{"sector": c["sector"], "sector_deg": c["sector_deg"], **c["bands"][0],
                         "arrives_utc": c["arrives_utc"], "trend": c["trend"]} for c in coming]}
 

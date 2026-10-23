@@ -100,31 +100,40 @@ def test_no_observed_reading_is_said_as_such(tmp_path):
 
 # ------------------------------------------------------------------ swell
 
-def test_the_swell_is_each_breaks_card_number_and_lead_period(tmp_path):
+def test_the_swell_is_each_breaks_card_number_and_the_biggest_breaks_trains(tmp_path):
     now = {"observed_utc": "2026-10-22T14:00:00Z", "stale": False, "breaks": [
         {"id": "coronado_north", "hs_nearshore_m": 1.31, "peak_period_s": 16.7, "peak_direction_deg": 215,
-         "trains": [{"period_s": 16.7, "from_deg": 215, "near_from_deg": 192, "lobes": []}]},
+         "trains": [{"period_s": 16.7, "from_deg": 215, "hs_m": 1.2, "near_from_deg": 192, "lobes": []}]},
         {"id": "coronado_center", "hs_nearshore_m": 1.00, "peak_period_s": 16.7, "peak_direction_deg": 231,
-         "trains": [{"period_s": 16.7, "from_deg": 231, "near_from_deg": 206, "lobes": []}]},
+         "trains": [{"period_s": 16.7, "from_deg": 231, "hs_m": 0.9, "near_from_deg": 206, "lobes": []}]},
         {"id": "coronado_south", "hs_nearshore_m": 0.74, "peak_period_s": 13.3, "peak_direction_deg": 266,
-         "trains": [{"period_s": 13.3, "from_deg": 266, "near_from_deg": 224, "lobes": []}]}]}
+         "trains": [{"period_s": 13.3, "from_deg": 266, "hs_m": 0.7, "near_from_deg": 224, "lobes": []}]}]}
     got = bf.swell_story(now, None, _at("2026-10-22T14:16:00Z"), tmp_path)
-    assert got["breaks"] == [{"id": "coronado_north", "hs_m": 1.31, "period_s": 16.7, "from_deg": 215, "also": []},
-                             {"id": "coronado_center", "hs_m": 1.00, "period_s": 16.7, "from_deg": 231, "also": []},
-                             {"id": "coronado_south", "hs_m": 0.74, "period_s": 13.3, "from_deg": 266, "also": []}]
+    assert got["breaks"] == [{"id": "coronado_north", "hs_m": 1.31}, {"id": "coronado_center", "hs_m": 1.00},
+                             {"id": "coronado_south", "hs_m": 0.74}]
+    # no band at the buoy in the reading: no status, never a guessed one
+    assert got["trains"] == [{"period_s": 16.7, "from_deg": 215, "hs_m": 1.2, "trend": None}]
     assert got["coming"] == []
 
 
-def test_the_lead_heading_is_the_rows_offshore_one_never_its_5_m_one():
-    """Owner's call, 2026-10-23: "SSW at 13.3 s" names the heading the train row
-    shows; a train of two directions names the larger, as the row's
-    shortest form does."""
-    one = {"trains": [{"from_deg": 215, "near_from_deg": 192, "lobes": []}]}
-    two = {"trains": [{"from_deg": 230, "near_from_deg": 210, "lobes": [[258, 0.6], [180, 0.4]]}]}
-    assert bf.lead_heading(one) == 215
-    assert bf.lead_heading(two) == 258
-    assert bf.lead_heading({"trains": [], "peak_direction_deg": 200}) == 200
-    assert bf.lead_heading({"trains": [{"from_deg": None, "lobes": []}]}) is None
+def test_every_swell_train_at_half_the_leads_height_is_listed_from_any_point():
+    """Owner's calls, 2026-10-23: half its height, any point; never wind
+    sea or local chop; a train of two directions by its larger, as its row
+    names it, never its 5 m heading."""
+    site = {"trains": [
+        {"period_s": 15.4, "from_deg": 230, "hs_m": 1.0, "near_from_deg": 210, "lobes": [[258, 0.6], [180, 0.4]],
+         "band_hz": [0.05, 0.08], "held_deg": [200, 270]},
+        {"period_s": 14.3, "from_deg": 208, "hs_m": 0.5, "lobes": []},
+        {"period_s": 4.8, "from_deg": 240, "hs_m": 0.9, "wind_sea": True, "lobes": []},
+        {"period_s": 3.5, "from_deg": 250, "hs_m": 0.9, "wind_sea": True, "local": True},
+        {"period_s": 10.0, "from_deg": 268, "hs_m": 0.49, "lobes": []}]}
+    got = bf.listed_trains(site)
+    assert [(t["period_s"], t["from_deg"]) for t in got] == [(15.4, 258), (14.3, 208)]
+    assert got[0]["band_hz"] == [0.05, 0.08] and got[0]["held_deg"] == [200, 270]
+    assert bf.listed_trains({"trains": [], "peak_period_s": 13.3, "peak_direction_deg": 200,
+                             "hs_nearshore_m": 1.0})[0]["from_deg"] == 200
+    assert bf.listed_trains({"trains": [{"period_s": 13.3, "from_deg": None, "hs_m": 1.0, "lobes": []}]}) \
+        == [{"period_s": 13.3, "from_deg": None, "hs_m": 1.0, "band_hz": None, "held_deg": None}]
 
 
 def test_a_dark_buoy_is_said_and_nothing_else():
@@ -273,18 +282,20 @@ def _steps(heights, start=T0):
             for k, h in enumerate(heights)]
 
 
-def test_the_beach_trend_is_the_biggest_breaking_height_over_three_hours():
+def _energies(values, start=T0):
+    return [(start + timedelta(hours=k), v) for k, v in enumerate(values) if v is not None]
+
+
+def test_the_trend_words_are_energy_over_three_hours():
     """Owner's calls, 2026-10-23: up 25% in energy over 3 h is building,
     down 25% fading; the day's highest within 3 h peaking; else holding."""
 
     flat = [1.0] * 27
-    assert bf.beach_trend(_steps(flat)) == "holding"
-    assert bf.beach_trend(_steps(flat[:-4] + [1.1, 1.2, 1.3, 1.4])) == "building"
-    assert bf.beach_trend(_steps(flat[:-4] + [0.9, 0.85, 0.8, 0.75])) == "fading"
-    rise_and_turn = [0.8 + 0.01 * k for k in range(25)] + [1.04, 1.03]
-    assert bf.beach_trend(_steps(rise_and_turn)) == "peaking"
-    # the south break is never the biggest here: only the biggest is read
-    assert bf.beach_trend(_steps(flat[:-1] + [None])) == "holding"
+    assert bf.trend_word(_energies(flat)) == "holding"
+    assert bf.trend_word(_energies(flat[:-4] + [1.2, 1.4, 1.7, 2.0])) == "building"
+    assert bf.trend_word(_energies(flat[:-4] + [0.8, 0.7, 0.6, 0.5])) == "fading"
+    rise_and_turn = [0.64 + 0.016 * k for k in range(25)] + [1.08, 1.06]
+    assert bf.trend_word(_energies(rise_and_turn)) == "peaking"
 
 
 def test_the_swell_headline_sparkline_is_the_biggest_breaking_height_over_24_hours():
@@ -301,21 +312,31 @@ def test_the_swell_headline_sparkline_is_the_biggest_breaking_height_over_24_hou
 
 
 def test_no_trend_without_the_hour_three_back():
-    assert bf.beach_trend(_steps([1.0] * 23 + [None, 1.0, 1.0, 1.0])[:-3] + _steps([1.0], T0 + timedelta(hours=30))) \
-        is None
-    assert bf.beach_trend([]) is None
+    assert bf.trend_word(_energies([1.0] * 23 + [None, 1.0, 1.0, 1.0])[:-3]
+                         + _energies([1.0], T0 + timedelta(hours=30))) is None
+    assert bf.trend_word([]) is None
 
 
-def test_a_mix_is_another_swell_train_at_seven_tenths_of_the_lead():
-    """Owner's call, 2026-10-23: never wind sea, at least 70% of the lead's
-    height; the page names the first from another compass point."""
+def test_a_trains_status_is_its_band_at_the_buoy():
+    """Owner's call, 2026-10-23: each train's status is its band at 46232 --
+    its bins and the headings it held -- through the same words. Read on
+    the archive at 23 Oct 05Z: the band's energy is the bins' within the
+    held headings, never more than the whole band's, and a band the newest
+    spectrum does not reach has no status."""
 
-    site = {"trains": [{"hs_m": 1.0, "period_s": 15.4, "from_deg": 203, "lobes": []},
-                       {"hs_m": 0.9, "period_s": 5.0, "from_deg": 280, "lobes": [], "wind_sea": True},
-                       {"hs_m": 0.75, "period_s": 10.0, "from_deg": 268, "lobes": [[268, 0.6], [200, 0.4]]},
-                       {"hs_m": 0.6, "period_s": 12.5, "from_deg": 250, "lobes": []}]}
-    assert bf.mix_trains(site) == [{"period_s": 10.0, "from_deg": 268, "hs_m": 0.75}]
-    assert bf.mix_trains({"trains": []}) == []
+    from forecast.transform import load_spectra
+
+    spectra = load_spectra(Path("data/spectra/46232"))
+    newest = datetime(2026, 10, 23, 5, tzinfo=timezone.utc)
+    sp = next(s for s in spectra if s.time == newest)
+    band = [0.045, 0.14]
+    whole, held = bf.band_energy(sp, band, []), bf.band_energy(sp, band, [197, 235])
+    assert 0 < held < whole
+    assert bf.band_energy(sp, band, [197, 197]) == whole           # a full circle is every heading
+    train = {"band_hz": band, "held_deg": [197, 235]}
+    assert bf.train_trend(spectra, train, newest) in ("building", "fading", "peaking", "holding")
+    assert bf.train_trend(spectra, train, newest + timedelta(hours=30)) is None
+    assert bf.train_trend(spectra, {"band_hz": None}, newest) is None
 
 
 # ------------------------------------------------------------------ overview
