@@ -993,6 +993,12 @@ class Train:
     #: row (owner's call, 2026-10-22); not the train's identity.
     near_from_deg: float = field(default=math.nan, compare=False, repr=False)
     near_lobes: tuple = field(default=(), compare=False, repr=False)
+    #: At a break only (`forecast.nearshore.carry`): the offshore headings its
+    #: energy that reaches the break came FROM, as (first degree, one past the
+    #: last) clockwise -- the narrowest arc holding `nearshore.HELD_SHARE` of
+    #: it. With `bins`, its band at the buoy, for the Briefing's status of a
+    #: train (owner's call, 2026-10-23); not its identity.
+    held: tuple = field(default=(), compare=False, repr=False)
 
     @property
     def is_wind_sea(self) -> bool:

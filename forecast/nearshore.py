@@ -46,6 +46,9 @@ TABLE_DIR = ROOT / "data" / "nearshore"
 BREAKS = ("coronado_north", "coronado_center", "coronado_south")
 G = 9.81
 KT_TO_MS = 0.514444
+#: A train's headings at the buoy: the narrowest arc of offshore headings
+#: holding this share of its energy that reaches the break (`_held`).
+HELD_SHARE = 0.9
 
 
 # ------------------------------------------------------------------ tables
@@ -236,6 +239,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
     trains = split_trains(per_bin, spectrum.frequencies, bin_sin, bin_cos, hists=hists) if e10 > 0 else []
     for train in trains:
         _arrive(train, near_bin, near_sin, near_cos)
+        train.held = _held(train, hists)
     return Nearshore(
         table.break_id, hs(e10), hs(e_eq), hs(e_hard),
         math.degrees(math.atan2(sn, cn)) % 360 if e10 > 0 else float("nan"),
@@ -246,6 +250,42 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         trains,
         hs(e_short),
     )
+
+
+def _held(train, hists: dict[int, list[float]]) -> tuple:
+    """The narrowest arc of offshore headings, (first degree FROM, one past
+    the last) clockwise, holding HELD_SHARE of the energy this train carried
+    to the break: its own bins and, for a train divided by direction, its
+    own arc. Empty when it carried none."""
+
+    lo, hi = train.arc or (0, 360)
+    inside = {k % 360 for k in range(lo, hi if hi > lo else hi + 360)}
+    dist = [0.0] * 360
+    for i in train.bins:
+        h = hists.get(i)
+        if h:
+            for k in inside:
+                dist[k] += h[k]
+    total = sum(dist)
+    if total <= 0:
+        return ()
+    run = [0.0]
+    for v in dist + dist:
+        run.append(run[-1] + v)
+
+    def start(width: int) -> int | None:
+        best = max(range(360), key=lambda k: run[k + width] - run[k])
+        return best if run[best + width] - run[best] >= HELD_SHARE * total - 1e-12 else None
+
+    low, high = 1, 360
+    while low < high:
+        mid = (low + high) // 2
+        if start(mid) is None:
+            low = mid + 1
+        else:
+            high = mid
+    first = start(low)
+    return (first, (first + low) % 360)
 
 
 def _arrive(train, near_bin: dict[int, tuple[float, float]],
