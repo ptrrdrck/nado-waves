@@ -158,6 +158,18 @@ jobs:
           set -euo pipefail
           python -m collector.nhcforecast
 
+      # NWS's alerts for Coronado's coast (CAZ043) and the coastal waters off
+      # it (PZZ750): the LIVE Briefing's top line and the Forecast tab's line
+      # above the Swell card (owner's request, 2026-10-24). Each alert's own
+      # document, byte for byte, written once by its NWS id; this job is the
+      # archive's one writer. api.weather.gov is denied from a session.
+      - name: NWS alerts
+        id: alerts
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.nwsalerts
+
       - name: Wind (KNZY)
         id: wind
         continue-on-error: true
@@ -214,6 +226,13 @@ jobs:
       # (BRIEFING §3a), and `forecast.now` exits 1 when 46232 is dark, which
       # must not take their readings with it. Also each buoy's last six hours
       # of roses (forecast.rose).
+      # Which of the archived alerts are coast and ocean, and over which
+      # hours each was in force, for the Forecast tab (forecast.alerts). Read
+      # from data/alerts alone, ~0.1 s; the Briefing reads the same archive.
+      - name: NWS alerts for the page
+        continue-on-error: true
+        run: python -m forecast.alerts
+
       - name: Context buoys
         id: buoys
         continue-on-error: true
@@ -258,6 +277,7 @@ jobs:
         env:
           SPECTRA: ${{ steps.spectra.outcome }}
           TRACKS: ${{ steps.besttracks.outcome }}
+          ALERTS: ${{ steps.alerts.outcome }}
           BEARING: ${{ steps.bearing.outcome }}
           WIND: ${{ steps.wind.outcome }}
           TIDE: ${{ steps.tide.outcome }}
@@ -267,7 +287,7 @@ jobs:
           # only turns the outcomes into a headline, because "the job went red"
           # does not say which of three sources failed.
           failed=""
-          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "best-tracks:${TRACKS}" "wind:${WIND}" "tide:${TIDE}"; do
+          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "best-tracks:${TRACKS}" "nws-alerts:${ALERTS}" "wind:${WIND}" "tide:${TIDE}"; do
             name="${pair%%:*}"; outcome="${pair##*:}"
             if [ "${outcome}" != "success" ]; then
               failed="${failed} ${name}"
@@ -293,13 +313,15 @@ jobs:
           # Its own line: it does not exist until the first active storm, and
           # one missing pathspec makes git add stage nothing at all.
           git add data/nhcforecasts 2>/dev/null || true
+          # Likewise: it does not exist until the first alert is seen.
+          git add data/alerts 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No new beach inputs to commit."
             exit 0
           fi
 
-          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts \
+          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts data/alerts \
             | awk '{sum += $1} END {print sum + 0}')
 
           git commit \

@@ -29,6 +29,8 @@ def test_the_sentence_list_is_what_the_page_prints(cases):
 
 
 def _all(got):
+    """The page's own words: NWS's alerts are NWS's names, quoted with their
+    tag, so a "Rip Current Statement" is NWS calling it that."""
     return " ".join([got["line"] or ""] + got["swell"] + got["conditions"] + got["tides"])
 
 
@@ -127,7 +129,28 @@ def test_the_model_never_appears(cases):
 
 
 def test_nothing_built_draws_no_fold(cases):
-    assert cases["X1"] == {"line": None, "swell": [], "conditions": [], "tides": []}
+    assert cases["X1"] == {"line": None, "alerts": [], "swell": [], "conditions": [], "tides": []}
+
+
+def test_nws_alerts_are_the_top_line_by_nws_name_and_end(cases):
+    assert cases["A1"]["alerts"] == ["Coastal Flood Warning until 2 PM Sun", "Small Craft Advisory in effect"]
+    # None anywhere else, and one that ended by the reader's clock drops.
+    assert all(not got["alerts"] for cid, got in cases.items() if cid != "A1")
+    assert "High Surf Advisory" not in " ".join(cases["A1"]["alerts"])
+
+
+def test_an_alert_is_an_update():
+    from forecast import briefing
+
+    quiet = briefing.with_text(briefingwording.QUIET)
+    alerted = briefing.with_text({**briefingwording.QUIET, "alerts": [briefingwording.COASTAL_FLOOD]})
+    assert alerted["update_words"][0] == "Coastal Flood Warning until 2 PM Sun"
+    assert alerted["update_words"][1:] == quiet["update_words"]
+    # A changed end is new words; the same alert re-sent is not.
+    moved = {**briefingwording.COASTAL_FLOOD, "ends_utc": "2026-10-25T23:00:00Z"}
+    assert briefing.with_text({**briefingwording.QUIET, "alerts": [moved]})["update_words"] != alerted["update_words"]
+    resent = {**briefingwording.COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.other.001.1"}
+    assert briefing.with_text({**briefingwording.QUIET, "alerts": [resent]})["update_words"] == alerted["update_words"]
 
 
 def test_one_build_renders_for_the_record():

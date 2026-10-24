@@ -229,6 +229,20 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-tide .time{font-size:11.5px;font-weight:600;fill:var(--ink)}
 .brief-tide .time.gone{font-weight:400;fill:var(--faint)}
 .brief-when.brief-when-tide{padding-left:0;margin-top:2px}
+/* NWS's coast and ocean alerts (owner's calls, 2026-10-24): a line each,
+   the triangle in ink, the event a link, an NWS tag; tapped, NWS's own
+   headline in grey under it. The Briefing's top block, and on the Forecast
+   tab a line above the Swell card on the backdrop. */
+.alerts{display:flex;flex-direction:column;gap:6px;padding:0 13px}
+.alert{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:start;
+       font-size:15px;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.alert-tri{display:block;width:16px;height:16px;margin-top:2px;color:var(--ink)}
+.alert-line a{font-weight:600}
+.alert-when{white-space:nowrap}
+.alert .tag{font:inherit;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;
+            margin-left:3px;padding:0;border:0;background:none;cursor:pointer;white-space:nowrap}
+.alert-head{font-size:13px;color:var(--soft);padding-left:24px;overflow-wrap:anywhere}
+.brief-block.brief-alerts{gap:6px}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
@@ -889,6 +903,11 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
   <!-- The Briefing: LIVE only, above the cards, a fold on the backdrop. -->
   <section class="briefing" id="briefing" aria-label="Briefing" hidden></section>
 
+  <!-- NWS's coast and ocean alerts over the hour shown: Forecast tab only,
+       above the Swell card (owner's call, 2026-10-24). LIVE has them in the
+       Briefing. -->
+  <section class="alerts" id="fc-alerts" aria-label="NWS alerts" hidden></section>
+
   <section id="panel" role="tabpanel">
     <div class="conditions" id="conditions"></div>
   </section>
@@ -927,6 +946,9 @@ const ORIGINS_SOURCE = PARAM.get("origins") || "../data/live/origins.json";
 // The context buoys shown under 46232 on the LIVE tab's Buoys tab
 // (forecast.buoys): what each measured at the buoy, not carried to any break.
 const BUOYS_SOURCE = PARAM.get("buoys") || "../data/live/buoys.json";
+// NWS's coast and ocean alerts (forecast.alerts), above the Forecast tab's
+// Swell card over the hours each covers.
+const ALERTS_SOURCE = PARAM.get("alerts") || "../data/live/alerts.json";
 // The LIVE tab's Briefing (forecast.briefing), above the cards.
 const BRIEFING_SOURCE = PARAM.get("briefing") || "../data/live/briefing.json";
 // Their heights at every archived stamp, for the Buoys tab's Height chart past
@@ -1616,9 +1638,10 @@ const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: tru
 // its own on the page's backdrop, not a card. Its line reads "Briefing" and
 // when it last updated, never a condition, with a green dot (the provenance
 // pills' `.status`) while that update is one this device has not opened; the
-// fold opened, the dot goes. It updates only when its swell or tide words
-// change (the build decides, on the words below); the conditions refresh
-// without an update. Open: the swell, the day's tide as a curve, then the
+// fold opened, the dot goes. It updates only when its alert, swell or tide
+// words change (the build decides, on the words below); the conditions
+// refresh without an update. Open: NWS's alerts in force, a line each
+// (owner's call, 2026-10-24), then the swell, the day's tide as a curve, then the
 // conditions one a line (owner's call, 2026-10-23: the tide above the
 // conditions), three blocks apart by the cards' fold
 // rule; every number that says something in ink and heavier (`briefNum`).
@@ -1656,6 +1679,41 @@ const briefLevel = (m) => `${briefNum(briefMinus(`${(m * FT_PER_M).toFixed(1)} f
 // A buoy by its place alone, "Point Loma South", or its feed without one.
 const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
   ? bareName(B.station_names[id]) : feedName(id, cdip));
+
+// NWS's coast and ocean alerts (owner's request and calls, 2026-10-24;
+// forecast.alerts): a line each, a warning triangle, the event linking to
+// NWS's page, when it ends by NWS's own time, and an NWS tag; tapped, NWS's
+// own headline under it. The Briefing's are those in force at its build,
+// the top line above the swell; the Forecast tab's, those over the hour
+// shown, above the Swell card. Their words are NWS's, so escaped.
+const esc = (x) => String(x == null ? "" : x).replace(/[&<>"']/g,
+  (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const ALERT_TRI = '<svg class="alert-tri" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+  + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2'
+  + ' 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+// "2 PM Sun", "2:30 PM Sun": always with its weekday, so a line reads the
+// same on every day it runs and a new day is no update.
+const alertClock = (iso) => `${clock(iso).replace(/:00(?= )/, "")} `
+  + new Date(iso).toLocaleString(undefined, {weekday: "short"});
+// "until 2 PM Sun"; "from 6 AM Sun until 2 PM Sun" when it starts after the
+// moment asked about; "in effect" when NWS gives no end.
+const alertWhen = (a, fromIso) => [
+  Date.parse(a.start_utc) > Date.parse(fromIso) ? `from ${alertClock(a.start_utc)}` : "",
+  a.ends_utc ? `until ${alertClock(a.ends_utc)}` : "in effect"].filter(Boolean).join(" ");
+const alertText = (a, fromIso) => `${a.event} ${alertWhen(a, fromIso)}`;
+// Which alerts' headlines are open, by NWS id, on both tabs.
+const ALERT_OPEN = new Set();
+const alertRow = (a, fromIso) => {
+  const open = ALERT_OPEN.has(a.id);
+  return `<div class="alert" data-alert="${esc(a.id)}">${ALERT_TRI}<span class="alert-line">`
+    + `<a href="${esc(a.url)}" rel="noopener">${esc(a.event)}</a> <span class="alert-when">${alertWhen(a, fromIso)}`
+    + ` <button type="button" class="tag" data-alert-toggle aria-expanded="${open}"`
+    + ` aria-label="NWS headline">NWS</button></span></span></div>`
+    + (a.headline ? `<div class="alert-head"${open ? "" : " hidden"}>${esc(a.headline)}</div>` : "");
+};
+// The Briefing's: in force at its build, and not ended by the reader's clock.
+const briefAlerts = (B, nowMs) => (B.alerts || [])
+  .filter((a) => a.event && (!a.ends_utc || Date.parse(a.ends_utc) > nowMs));
 
 // The swell (owner's wording and calls, 2026-10-23): two sources, never
 // matched to each other. The beach: the breaking heights at the three
@@ -1919,9 +1977,9 @@ function fitBriefTide() {
 }
 
 // Every block in the fold's order; an empty block drops.
-function briefingParts(B) {
+function briefingParts(B, nowMs = Date.now()) {
   if (!B || !B.available) return null;
-  return {swell: briefSwell(B), tides: briefTides(B), conditions: briefConditions(B)};
+  return {alerts: briefAlerts(B, nowMs), swell: briefSwell(B), tides: briefTides(B), conditions: briefConditions(B)};
 }
 
 // The fold's line: "Briefing", when it last updated (the day too when not
@@ -1957,8 +2015,9 @@ function briefSeen() {
 function briefingFold(B) {
   const parts = briefingParts(B);
   if (!parts) return "";
-  // The tide above the conditions (owner's call, 2026-10-23).
-  const blocks = [parts.swell, parts.tides, parts.conditions].filter((b) => b.length);
+  // NWS's alerts the top line (owner's call, 2026-10-24); the tide above
+  // the conditions (owner's call, 2026-10-23).
+  const blocks = [parts.alerts, parts.swell, parts.tides, parts.conditions].filter((b) => b.length);
   if (!blocks.length) return "";
   const dot = BRIEF_OPEN || !briefUnseen(B) ? "" : briefDot;
   return `<div class="chart-head" data-brief-head><span>${briefLine(B)}${dot}</span><button
@@ -1966,7 +2025,9 @@ function briefingFold(B) {
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
-      ${blocks.map((b) => (b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
+      ${blocks.map((b) => (b === parts.alerts
+        ? `<div class="brief-block brief-alerts">${b.map((a) => alertRow(a, B.built_utc)).join("")}</div>`
+        : b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
         : b === parts.conditions
         ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
         : `<div class="brief-block brief-swell">${b.map(briefSwellRow).join("")}</div>`)).join("")}
@@ -2008,6 +2069,7 @@ function wireGate() {
 }
 
 let BRIEFING = null;  // briefing.json — the LIVE tab's Briefing
+let ALERTS = null;    // alerts.json   — NWS's coast and ocean alerts, for the Forecast tab
 let DATA = null;      // forecast.json — the modelled chain
 let NOW = null;       // now.json     — the observed chain
 let MODE = "now";     // which chain is on screen
@@ -6457,7 +6519,7 @@ function show() {
   $("panel").hidden = shut;
   document.querySelector("nav.tabs").hidden = shut;
   if (shut) {
-    for (const id of ["seek", "briefing", "stale", "warnings"]) $(id).hidden = true;
+    for (const id of ["seek", "briefing", "fc-alerts", "stale", "warnings"]) $(id).hidden = true;
     return;
   }
   const forecasting = MODE === "forecast";
@@ -6475,6 +6537,10 @@ function show() {
   if (brief && BRIEF_OPEN) briefSeen();
   $("tab-now").setAttribute("aria-selected", String(!forecasting));
   $("tab-forecast").setAttribute("aria-selected", String(forecasting));
+
+  const alertsHere = forecasting ? fcAlerts(STEPS[CURSOR]) : "";
+  $("fc-alerts").hidden = !alertsHere;
+  $("fc-alerts").innerHTML = alertsHere;
 
   if (forecasting) {
     const step = STEPS[CURSOR];
@@ -6519,6 +6585,38 @@ function show() {
   // The banner element stays for the case below, where there is no reading to
   // put a card under at all.
   $("stale").hidden = true;
+}
+
+// NWS's coast and ocean alerts over the hour shown (owner's call,
+// 2026-10-24): every version in force at some moment from the hour to the
+// next one the picker offers, a line an event -- the version ending last,
+// said "from" only when the event had not started by the hour.
+function fcAlerts(step) {
+  if (!ALERTS || !step) return "";
+  const t = Date.parse(step.valid_utc), span = ((DATA && DATA.hour_step_h) || 3) * 3600000;
+  const byEvent = new Map();
+  for (const a of ALERTS.alerts || []) {
+    const start = Date.parse(a.start_utc), stop = a.stop_utc ? Date.parse(a.stop_utc) : Infinity;
+    if (!a.event || start >= t + span || stop <= t) continue;
+    const have = byEvent.get(a.event);
+    byEvent.set(a.event, !have ? {...a, stop}
+      : {...(stop >= have.stop ? {...a, stop} : have),
+         start_utc: start < Date.parse(have.start_utc) ? a.start_utc : have.start_utc});
+  }
+  const rows = [...byEvent.values()].sort((x, y) => Date.parse(x.start_utc) - Date.parse(y.start_utc));
+  return rows.map((a) => alertRow(a, step.valid_utc)).join("");
+}
+// A tapped alert shows NWS's headline under it, or hides it; its link goes
+// to NWS's page.
+function toggleAlert(e) {
+  const row = e.target.closest("[data-alert]");
+  if (!row || e.target.closest("a")) return;
+  const id = row.dataset.alert, open = !ALERT_OPEN.has(id);
+  if (open) ALERT_OPEN.add(id); else ALERT_OPEN.delete(id);
+  const btn = row.querySelector("[data-alert-toggle]");
+  if (btn) btn.setAttribute("aria-expanded", String(open));
+  const head = row.nextElementSibling;
+  if (head && head.classList.contains("alert-head")) head.hidden = !open;
 }
 
 // The banner: forecast.json's notes on the Forecast tab alone -- on LIVE a
@@ -6718,6 +6816,20 @@ function refreshBriefing() {
     .catch(() => {});
 }
 
+// Rebuilt with every collection from the alerts it archives; drawn on the
+// Forecast tab alone, without the flash, as a line above the cards.
+function refreshAlerts() {
+  fetch(fresh(ALERTS_SOURCE), {cache: "no-store"})
+    .then((r) => (r.ok ? r.json() : null))
+    .then((got) => {
+      if (!got || !got.generated_utc || !got.alerts) return;
+      if (ALERTS && got.generated_utc === ALERTS.generated_utc) return;
+      ALERTS = got;
+      if (MODE === "forecast") show();
+    })
+    .catch(() => {});
+}
+
 // Rebuilt with every collection from the daily archive and the newest
 // spectra; drawn only by the Origins view, so redrawn without the flash.
 function refreshOrigins() {
@@ -6903,8 +7015,10 @@ function boot(data, observed, measured, series, windtide) {
   $("briefing").addEventListener("scroll", (e) => {
     if (e.target.id === "brief-body") BRIEF_SCROLL = e.target.scrollTop;
   }, {capture: true, passive: true});
+  $("fc-alerts").addEventListener("click", toggleAlert);
   $("briefing").addEventListener("click", (e) => {
     if (e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
+    toggleAlert(e);
     const row = e.target.closest("[data-brief-row]");
     if (row) {
       const open = row.getAttribute("aria-expanded") !== "true";
@@ -6918,6 +7032,7 @@ function boot(data, observed, measured, series, windtide) {
   refreshOrigins();
   refreshBuoys();
   refreshBriefing();
+  refreshAlerts();
 
   $("when").onchange = (e) => {
     choose(Math.max(0, Math.min(STEPS.length - 1, Number(e.target.value))));
@@ -6979,6 +7094,7 @@ function boot(data, observed, measured, series, windtide) {
   setInterval(refreshOrigins, NOW_REFRESH_MS);
   setInterval(refreshBuoys, NOW_REFRESH_MS);
   setInterval(refreshBriefing, NOW_REFRESH_MS);
+  setInterval(refreshAlerts, NOW_REFRESH_MS);
   setInterval(refreshSeriesAll, FORECAST_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
 }

@@ -404,6 +404,8 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         and carried in through the same windows, seabed and surf zone. Its wind is the National
         Weather Service's forecast at Coronado and its tide is the harmonic prediction. It shows
         every third hour, from 48 hours back to the end of the newest run.</p>
+      <p>Above its cards, the National Weather Service's coast and ocean alerts over the hour shown,
+        a line each. <a href="#briefing-alerts">The alerts</a>.</p>
     </section>
 
     <section id="chains-apart">
@@ -428,7 +430,9 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
     <section id="briefing-stories">
       <h3>What it says</h3>
-      <p>Three blocks, always in the same order:</p>
+      <p>When the National Weather Service has a coast or ocean alert in force, it comes first, a
+        line each (<a href="#briefing-alerts">below</a>). Then three blocks, always in the same
+        order:</p>
       <ul>
         <li><b>Swell</b>: two sources, never matched to each other. First the beach, from CDIP
           191: the breaking height at the three breaks as one range in whole feet, the lowest
@@ -473,13 +477,35 @@ svg text{font-family:Archivo,system-ui,sans-serif}
     <section id="briefing-words">
       <h3>When it updates</h3>
       <p>It is rebuilt with every collection, but it <i>updates</i> only when what it says about the
-        swell or the tides changes, as printed: a change too small to show is no update. The
+        alerts, the swell or the tides changes, as printed: a change too small to show is no update. The
         conditions refresh with each collection without counting as one. Each update is kept in
         the repository's record of briefings, words and numbers, with the conditions of that
         moment.</p>
       <p>It never uses the model. GFS-Wave and its ensemble belong to the Forecast tab; the
         Briefing is the &ldquo;LIVE&rdquo; chain and North Island's reports. Its wording, every case
         it can take, is in <code>docs/briefing_wording.md</code>.</p>
+    </section>
+
+    <section id="briefing-alerts">
+      <h3>NWS alerts</h3>
+      <p>The National Weather Service's own alerts for the coast and the ocean here, a line each
+        while one is in force: &ldquo;Coastal Flood Warning until 2&nbsp;PM Sun&rdquo;, or &ldquo;in
+        effect&rdquo; when it gives no end. The name links to the Weather Service's page for it, the
+        grey <i>NWS</i> tag says whose it is, and a tap shows its own headline. Every alert for the
+        coastal waters off Coronado (zone PZZ750) is shown, and from the land zone (San Diego County
+        Coastal Areas, CAZ043) its coastal flood, high surf, rip current, beach hazards, tsunami and
+        storm surge alerts &mdash; never heat, fire weather or wind on land. They are the Weather
+        Service's words, not this page's, and nothing here checks them.</p>
+      <p>The times are the alert's: from the hazard's start, never before the alert was issued,
+        until its end. A newer alert that replaces it takes over from when that one was issued, and
+        one that cancels it ends it then. An alert that starts, moves its end or ends is a Briefing
+        update; the same alert sent again in the same words is not.</p>
+      <p>On the Forecast tab the same alerts sit above the Swell card, over the hours they cover:
+        each one in force at some moment from the hour shown to the next one the picker offers,
+        saying &ldquo;from&rdquo; when it starts after the hour shown. A past hour shows the alert
+        as it stood then. The alerts are collected with every collection and each is kept as the
+        Weather Service published it. One issued and ended between two collections is never seen;
+        that is a gap, and nothing fills it.</p>
     </section>
 
     <section id="briefing-upstream">

@@ -15,14 +15,21 @@ the page will read as the page's again until that happens. The formula is in
 
 ## The fold's line
 
-- Briefing updated 7:16 AM  (Q1, B1, C1, M1, H1, D1, K1)
+- Briefing updated 7:16 AM  (Q1, B1, C1, M1, H1, D1, K1, A1)
 - Briefing updated Oct 21, 12:06 PM  (Y1)
+
+## Alerts
+
+AL1. Coastal Flood Warning until 2 PM Sun  (A1)
+
+AL2. Small Craft Advisory in effect  (A1)
+
 
 ## Swell
 
-SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, H1, K1, Y1)
+SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, H1, K1, A1, Y1)
 
-SW2. SSW at 13.3 s, holding.  (Q1, K1, Y1)
+SW2. SSW at 13.3 s, holding.  (Q1, K1, A1, Y1)
 
 SW3. 2–5 ft (0.6–1.5 m).  (B1)
 
@@ -47,13 +54,13 @@ SW12. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
 
 ## Tides
 
-TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, H1, D1, Y1)
+TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, H1, D1, A1, Y1)
 
-TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, H1, D1, Y1)
+TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, H1, D1, A1, Y1)
 
-TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, H1, D1, Y1)
+TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, H1, D1, A1, Y1)
 
-TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, H1, D1, Y1)
+TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, H1, D1, A1, Y1)
 
 TI5. AM low −0.7 ft (−0.21 m) at 6:40 AM  (K1)
 
@@ -62,13 +69,13 @@ TI6. PM high 5.6 ft (1.71 m) at 1:05 PM  (K1)
 
 ## Conditions
 
-CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, H1, D1, Y1)
+CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, H1, D1, A1, Y1)
 
-CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, H1, D1, Y1)
+CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, H1, D1, A1, Y1)
 
-CO3. Humidity 88%, steady  (Q1, B1, C1, M1, H1, D1, Y1)
+CO3. Humidity 88%, steady  (Q1, B1, C1, M1, H1, D1, A1, Y1)
 
-CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, H1, D1, Y1)
+CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, H1, D1, A1, Y1)
 
 CO5. Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
 
@@ -83,5 +90,6 @@ CO6. Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  (C1)
 - **H1**: the lead train has no heading, and no status yet: their slots drop with their words
 - **D1**: 46232 dark: the swell says so and nothing else
 - **K1**: no water temperature, no KNZY report, a minus tide
+- **A1**: two NWS alerts in force, one with no end, and one that ended after the build, which drops
 - **Y1**: yesterday's update, read this morning
 - **X1**: nothing built yet

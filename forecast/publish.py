@@ -33,6 +33,8 @@ The bundle:
                     Height chart zoomed out; fetched only when asked for
     briefing.json   data/live/briefing.json — the LIVE tab's Briefing: this
                     collection's build, updated as kept in data/briefings/ (forecast.briefing)
+    alerts.json     data/live/alerts.json — NWS's coast and ocean alerts over
+                    the Forecast tab's hours (forecast.alerts)
     docs.html       app/docs.html: the documentation, with the geometry
                     drawing filled by forecast.geomviz from spots.json, the
                     caveat and both chains' standing-on blocks; linked from
@@ -130,6 +132,10 @@ BUNDLE_BUOYS_ALL_PATH = "buoys_all.json"
 #: Optional in the same way.
 REPO_BRIEFING_PATH = "../data/live/briefing.json"
 BUNDLE_BRIEFING_PATH = "briefing.json"
+#: NWS's coast and ocean alerts (`forecast.alerts`), for the Forecast tab's
+#: hours. Optional in the same way.
+REPO_ALERTS_PATH = "../data/live/alerts.json"
+BUNDLE_ALERTS_PATH = "alerts.json"
 
 DOCTYPE = "<!doctype html>"
 HEAD = """<html lang="en">
@@ -213,12 +219,13 @@ def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
             .replace(REPO_ORIGINS_PATH, BUNDLE_ORIGINS_PATH)
             .replace(REPO_BUOYS_PATH, BUNDLE_BUOYS_PATH)
             .replace(REPO_BUOYS_ALL_PATH, BUNDLE_BUOYS_ALL_PATH)
-            .replace(REPO_BRIEFING_PATH, BUNDLE_BRIEFING_PATH))
+            .replace(REPO_BRIEFING_PATH, BUNDLE_BRIEFING_PATH)
+            .replace(REPO_ALERTS_PATH, BUNDLE_ALERTS_PATH))
 
 
 def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
     """`measured.json`, `series.json`, `series_all.json`, `windtide.json`,
-    `origins.json`, `buoys.json`, `buoys_all.json` and `briefing.json`, minified, when the
+    `origins.json`, `buoys.json`, `buoys_all.json`, `briefing.json` and `alerts.json`, minified, when the
     collection job has built them.
 
     In BOTH builds: they change every collection (a past hour's measurement
@@ -227,7 +234,7 @@ def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> Non
 
     for name in (BUNDLE_MEASURED_PATH, BUNDLE_SERIES_PATH, BUNDLE_SERIES_ALL_PATH,
                  BUNDLE_WINDTIDE_PATH, BUNDLE_ORIGINS_PATH, BUNDLE_BUOYS_PATH,
-                 BUNDLE_BUOYS_ALL_PATH, BUNDLE_BRIEFING_PATH):
+                 BUNDLE_BUOYS_ALL_PATH, BUNDLE_BRIEFING_PATH, BUNDLE_ALERTS_PATH):
         source = Path(data_dir) / "live" / name
         if not source.exists():
             continue
