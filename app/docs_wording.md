@@ -87,6 +87,8 @@ Above its cards, the [Briefing](#briefing) folds out a short read of the swell, 
 
 Built from the GFS-Wave model run by NOAA (WAVEWATCH III), read at the buoy's position and carried in through the same windows, seabed and surf zone. Its wind is the National Weather Service's forecast at Coronado and its tide is the harmonic prediction. It shows every third hour, from 48 hours back to the end of the newest run.
 
+Above its cards, the National Weather Service's coast and ocean alerts over the hour shown, a line each. [The alerts](#briefing-alerts).
+
 ### [chains-apart] Why they are never mixed
 
 So that you always know which chain a number belongs to. A forecast hour that has gone by gets a blue line under it that comes from the measured chain, and that line is labelled “Observed at” with its hour, never blended into the forecast figure above it. [The blue line](#time-observed).
@@ -99,7 +101,7 @@ Above the “LIVE” cards, a **Briefing** line folds out a short read of the be
 
 ### [briefing-stories] What it says
 
-Three blocks, always in the same order:
+When the National Weather Service has a coast or ocean alert in force, it comes first, a line each ([below](#briefing-alerts)). Then three blocks, always in the same order:
 
 - **Swell**: two sources, never matched to each other. First the beach, from CDIP 191: the breaking height at the three breaks as one range in whole feet, the lowest rounded down and the highest rounded up: the cards' own numbers, a significant height, not a face height. It is set as a headline, beside it a line of the biggest breaking height each hour over the last 24 hours, broken where an hour is missing. Under it, a line for each swell train at any of the three breaks at least half the height of the biggest one anywhere, biggest first, and one a compass point: the same sea read at two breaks is one line. Wind sea and local chop never are. Each says where it comes from and its period, as its row on the card does: offshore, not the direction it arrives from in 5 m of water. Then its status, read at CDIP 191 in that train's band: the periods it holds, from the offshore directions that hold nine tenths of what it carries to the break. That band's energy, averaged over three hours, is *building* when up a quarter or more on three hours before, *fading* when down a quarter or more, *peaking* when the day's highest came in the last three hours, and *holding* otherwise. Nothing follows a train from one spectrum to the next, so this is the band's energy, measured at the buoy before the windows, not the train's at the break. Then each west or north-west swell Tanner Banks holds, a line each opening on its compass point, with how it is doing there (“building offshore”) and when it is due here, while some of it is still to arrive ([below](#briefing-upstream)). A small grey mark in the margin, a dot sending two arcs, points the way that swell is travelling. If CDIP 191 is dark it says so and nothing else.
 - **Tides**: today's tide as a curve, from midnight to midnight at Coronado, never past it: the harmonic prediction at the open coast with the gauge's departure, as the Tide card carries it. Each high and low tide has its height by its dot and its time on the axis under it. The hours already gone, and their turns, are grey; a dashed line marks now, with an open dot where the tide is; nights are faintly shaded. Tap it to see that it is predicted, from which gauge, and the departure it carries.
@@ -107,9 +109,17 @@ Three blocks, always in the same order:
 
 ### [briefing-words] When it updates
 
-It is rebuilt with every collection, but it *updates* only when what it says about the swell or the tides changes, as printed: a change too small to show is no update. The conditions refresh with each collection without counting as one. Each update is kept in the repository's record of briefings, words and numbers, with the conditions of that moment.
+It is rebuilt with every collection, but it *updates* only when what it says about the alerts, the swell or the tides changes, as printed: a change too small to show is no update. The conditions refresh with each collection without counting as one. Each update is kept in the repository's record of briefings, words and numbers, with the conditions of that moment.
 
 It never uses the model. GFS-Wave and its ensemble belong to the Forecast tab; the Briefing is the “LIVE” chain and North Island's reports. Its wording, every case it can take, is in `docs/briefing_wording.md`.
+
+### [briefing-alerts] NWS alerts
+
+The National Weather Service's own alerts for the coast and the ocean here, a line each while one is in force: “Coastal Flood Warning until 2 PM Sun”, or “in effect” when it gives no end. The name links to the Weather Service's page for it, the grey *NWS* tag says whose it is, and a tap shows its own headline. Every alert for the coastal waters off Coronado (zone PZZ750) is shown, and from the land zone (San Diego County Coastal Areas, CAZ043) its coastal flood, high surf, rip current, beach hazards, tsunami and storm surge alerts — never heat, fire weather or wind on land. They are the Weather Service's words, not this page's, and nothing here checks them.
+
+The times are the alert's: from the hazard's start, never before the alert was issued, until its end. A newer alert that replaces it takes over from when that one was issued, and one that cancels it ends it then. An alert that starts, moves its end or ends is a Briefing update; the same alert sent again in the same words is not.
+
+On the Forecast tab the same alerts sit above the Swell card, over the hours they cover: each one in force at some moment from the hour shown to the next one the picker offers, saying “from” when it starts after the hour shown. A past hour shows the alert as it stood then. The alerts are collected with every collection and each is kept as the Weather Service published it. One issued and ended between two collections is never seen; that is a gap, and nothing fills it.
 
 ### [briefing-upstream] Swell seen first at Tanner Banks
 

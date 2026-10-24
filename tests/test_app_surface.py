@@ -1744,12 +1744,13 @@ class TestTheCdnCannotServeAStalePayload:
         assert SOURCE.count("fetch(fresh(ORIGINS_SOURCE)") == 1     # boot and hourly, one function
         assert SOURCE.count("fetch(fresh(BUOYS_ALL_SOURCE)") == 1   # with series_all, once
         assert SOURCE.count("fetch(fresh(BRIEFING_SOURCE)") == 1    # boot and hourly, one function
+        assert SOURCE.count("fetch(fresh(ALERTS_SOURCE)") == 1      # boot and hourly, one function
 
     def test_no_store_is_kept_as_well(self):
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 16
+        assert SOURCE.count('{cache: "no-store"}') == 17
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a

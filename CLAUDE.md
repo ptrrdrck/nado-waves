@@ -821,7 +821,7 @@ forecaster actually verifies against, Surfline included.
    update is unopened on this device (`BRIEF_SEEN` in localStorage, through
    the gate's `stored`/`store`); opening the fold, or an update drawn into
    an open one, removes it. **Built every collection; UPDATED only when its
-   swell or tide words change** (owner's call, 2026-10-22, replacing the
+   alert, swell or tide words change** (owner's call, 2026-10-22, replacing the
    Morning / Midday issues): the build renders the page's own words
    (`briefingwording.render_issue`, Node) and `briefing.settle` compares the
    swell and tide lines with the newest kept line's, so a change below the
@@ -833,7 +833,32 @@ forecaster actually verifies against, Surfline included.
    medians gave 45%, 6-hour 24%; the owner kept every hour's own numbers so
    the words always match the cards. The conditions refresh every build
    without one; the page redraws on a new `built_utc` and moves the time and dot only
-   on a new `key`. Three blocks, apart by the cards' fold rule (owner's call,
+   on a new `key`. **NWS's coast and ocean alerts come first** (owner's
+   request and calls, 2026-10-24; `forecast.alerts`, archived by
+   `collector/nwsalerts.py` → `data/alerts/`): a line each while one is in
+   force at the build, "Coastal Flood Warning until 2 PM Sun" (always the
+   weekday, so midnight is no update; "in effect" with no NWS end), an ink
+   triangle, the event linking to NWS's showsigwx page as the owner's link
+   has it, a grey NWS tag, and tapped NWS's own `headline` — NWS's words,
+   escaped, and exempt from the page's vocabulary test because "Rip Current
+   Statement" is NWS's name. Coast and ocean only (owner's choice): every
+   alert for PZZ750, and CAZ043's events in `COASTAL_EVENTS`, never heat,
+   fire weather or wind on land, never a Test. In force is NWS's own times:
+   onset (never before `sent`) to `ends` (`expires` without one); a later
+   alert that references it takes over from its `sent`, and a Cancel or an
+   all-CAN/EXP/UPG VTEC alert ends it and is never shown. One line an event.
+   An alert that starts, moves its end or ends is an update (its words enter
+   `update_words` first). **The Forecast tab shows them too**, above the
+   Swell card on the backdrop (`#fc-alerts`, `fcAlerts`), every version in
+   force from the hour shown to the next one the picker offers, "from …"
+   when it starts after that hour, from `alerts.json` (48 h back, as NWS had
+   it by the build, `forecast.alerts`, each collection). The archive is
+   every alert the active listing returns for CAZ043 and PZZ750, each its
+   own `/alerts/{id}` document byte for byte, written once by its id
+   (`data/alerts/YYYY/<oid>.json`); an alert issued and ended between
+   collections is a gap. api.weather.gov is denied from a session: built on
+   the API's documented shape, unverified against a live alert until the
+   first one lands. Three blocks, apart by the cards' fold rule (owner's call,
    2026-10-23, replacing Origin's dot) — Swell, Tides, then Conditions (the
    tide moved above the conditions, owner's call, same day; described below
    in their earlier order), every number that says something in
@@ -1161,6 +1186,9 @@ forecaster actually verifies against, Surfline included.
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log),
+                        nwsalerts.py (NWS's alerts for CAZ043 and PZZ750,
+                        each one's document byte for byte, once by its id
+                        -> data/alerts/; Actions only),
                         nhcforecast.py (NHC's official forecast, the OFCL
                         lines of each live storm's a-deck, Actions only —
                         unverified against a live file until its first run),
@@ -1295,6 +1323,9 @@ forecaster actually verifies against, Surfline included.
                         own countdown and words                    [built]
       rose.py           one spectrum's height and period rose by compass
                         sector, for the Buoys tab's six-hour loop   [built]
+      alerts.py         NWS's coast and ocean alerts: which are in force,
+                        and over which hours; the Briefing's top line and
+                        the Forecast tab's, alerts.json             [built]
       briefing.py       the LIVE tab's Briefing: built every collection,
                         updated when its swell or tide words change, each
                         update kept in data/briefings/             [built]
@@ -1324,8 +1355,11 @@ forecaster actually verifies against, Surfline included.
       beachverify.py    does the log agree with the geometry, and the control
     data/live/          forecast.json, now.json, measured.json, series.json,
                         series_all.json, windtide.json, origins.json,
-                        buoys.json and briefing.json, what the app surface reads (derived,
-                        gitignored)
+                        buoys.json, briefing.json and alerts.json, what the app surface
+                        reads (derived, gitignored)
+    data/alerts/        YYYY/<oid>.json: every NWS alert the active listing
+                        returned for CAZ043 and PZZ750, as NWS served it,
+                        written once (collector.nwsalerts, its one writer)
     data/briefings/     YYYY-MM.jsonl: every Briefing update, as built and as
                         worded (18–22 Oct: the Morning / Midday issues).
                         PERMANENT, append-only, one writer ("Record the

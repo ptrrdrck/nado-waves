@@ -3,8 +3,8 @@
     python -m forecast.briefingwording            # rewrite the permutations
     python -m forecast.briefingwording --check    # exit 1 if they are out of date
 
-`docs/briefing_wording.md` states the formula: the fold's line, then three
-blocks — the swell (a range, a line a train, a line an offshore swell), the
+`docs/briefing_wording.md` states the formula: the fold's line, NWS's
+alerts a line each when there are any, then three blocks — the swell (a range, a line a train, a line an offshore swell), the
 day's tides a line each, the conditions a line each — each a fixed run of slots, a slot with no value dropped
 with its joining words. Its last section shows every permutation, and this
 writes it: the Briefing functions are lifted out of `app/forecast.html` and
@@ -96,6 +96,17 @@ WEST = {"sector": "west", "sector_deg": [250.0, 280.0], "band_s": [10.0, 12.0],
 NORTH_WEST = {**WEST, "sector": "north-west", "sector_deg": [280.0, 330.0], "band_s": [14.0, 17.0],
               "since_utc": "2026-10-22T09:10:00Z", "due_buoy_utc": "2026-10-22T16:50:00Z", "trend": "fading"}
 
+COASTAL_FLOOD = {"id": "urn:oid:2.49.0.1.840.0.example.001.1", "event": "Coastal Flood Warning",
+                 "headline": "Coastal Flood Warning issued October 22 at 3:12AM PDT until October 25 at 2:00PM PDT "
+                             "by NWS San Diego CA",
+                 "url": "https://forecast.weather.gov/showsigwx.php?warnzone=CAZ043&product1=Coastal+Flood+Warning",
+                 "start_utc": "2026-10-22T10:12:00Z", "ends_utc": "2026-10-25T21:00:00Z"}
+SMALL_CRAFT = {**COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.example.002.1", "event": "Small Craft Advisory",
+               "headline": "Small Craft Advisory issued October 22 at 2:05AM PDT by NWS San Diego CA",
+               "ends_utc": None}
+ENDED = {**COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.example.003.1", "event": "High Surf Advisory",
+         "ends_utc": "2026-10-22T14:20:00Z"}
+
 #: (id, what it is, the briefing.json). One per branch the page can take.
 CASES = [
     ("Q1", "a quiet morning: one range, nothing coming, no rain", QUIET),
@@ -126,6 +137,8 @@ CASES = [
                                                   "precip_day_in": None, "precip_kinds": []}},
            tide__turns=[{"valid_utc": "2026-10-22T13:40:00Z", "height_m": -0.21, "event": "low"},
                         {"valid_utc": "2026-10-22T20:05:00Z", "height_m": 1.71, "event": "high"}])),
+    ("A1", "two NWS alerts in force, one with no end, and one that ended after the build, which drops",
+     _case(alerts=[COASTAL_FLOOD, SMALL_CRAFT, ENDED])),
     ("Y1", "yesterday's update, read this morning",
      _case(updated_utc="2026-10-21T19:06:00Z", key="2026-10-21T19:06:00Z")),
     ("X1", "nothing built yet", {"available": False, "why": "no briefing has been built yet"}),
@@ -190,10 +203,10 @@ const text = (html) => html
   .replace(/ <span class="unit">(?!\()/g, " ")
   .replace(/<[^>]+>/g, "").replace(/\u00a0/g, " ").trim();
 const words = (B, readAt) => {
-  const p = briefingParts(B);
-  return p ? {line: text(briefLine(B, readAt)), swell: p.swell.map((r) => text(briefSwellText(r))),
+  const p = briefingParts(B, readAt);
+  return p ? {line: text(briefLine(B, readAt)), alerts: p.alerts.map((a) => text(alertText(a, B.built_utc))), swell: p.swell.map((r) => text(briefSwellText(r))),
               conditions: p.conditions.map((r) => text(briefCondText(r))), tides: p.tides.map((r) => text(briefTideText(r)))}
-           : {line: null, swell: [], conditions: [], tides: []};
+           : {line: null, alerts: [], swell: [], conditions: [], tides: []};
 };
 """
 
@@ -231,8 +244,9 @@ console.log(JSON.stringify(words(B, Date.parse(B.built_utc))));
     return {**got, "line": None}
 
 
-#: The fold's order (owner's call, 2026-10-23: the tide above the conditions).
-BLOCKS = (("swell", "Swell"), ("tides", "Tides"), ("conditions", "Conditions"))
+#: The fold's order (owner's calls: the tide above the conditions, 2026-10-23;
+#: NWS's alerts the top line, 2026-10-24).
+BLOCKS = (("alerts", "Alerts"), ("swell", "Swell"), ("tides", "Tides"), ("conditions", "Conditions"))
 
 
 def permutations(rendered: dict[str, dict]) -> str:
@@ -267,7 +281,7 @@ the page will read as the page's again until that happens. The formula is in
 """
 
 #: Each line's number in the list, by its block.
-PREFIX = {"swell": "SW", "conditions": "CO", "tides": "TI"}
+PREFIX = {"alerts": "AL", "swell": "SW", "conditions": "CO", "tides": "TI"}
 
 
 def sentences(rendered: dict[str, dict]) -> str:

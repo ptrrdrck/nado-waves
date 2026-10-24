@@ -5,8 +5,14 @@
 
 Owner's request, 2026-10-16, reshaped 2026-10-17 and again 2026-10-22: a
 short read in a fold above the LIVE cards. Built every collection; it
-UPDATES only when what it says about the swell or the tide changes:
+UPDATES only when what it says about the swell or the tide changes, or
+NWS's alerts do:
 
+- **Alerts** (owner's request and calls, 2026-10-24): NWS's coast and ocean
+  alerts in force at the build, a line each above the swell --
+  "Coastal Flood Warning until 2 PM Sun" -- its name linking to NWS's page,
+  tapped its NWS headline (`forecast.alerts`, from `data/alerts/`). One that
+  starts, changes its words or ends is an update.
 - **Swell** (owner's wording and calls, 2026-10-23), a summary of two
   sources that are never matched to each other. The beach, from 46232's
   chain: "3–4 ft (0.9–1.2 m)", the breaking height at the three breaks,
@@ -34,8 +40,8 @@ UPDATES only when what it says about the swell or the tide changes:
   departure as the card's turns carry it, and the day's curve the page
   draws them on (`tide_story`; owner's choices, 2026-10-23).
 
-An update is a change in the words the page prints for the swell or the
-tides (`briefingwording.render_issue`, Node, the page's own code), so a
+An update is a change in the words the page prints for the alerts, the
+swell or the tides (`briefingwording.render_issue`, Node, the page's own code), so a
 change below the page's precision is no update. Each update is kept in
 `data/briefings/YYYY-MM.jsonl`, append-only, with the conditions of that
 moment; the page shows the newest build with the newest update's time, and
@@ -68,6 +74,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
+
+from .alerts import briefing as nws_alerts
 
 BREAKS = ("coronado_north", "coronado_center", "coronado_south")
 UPSTREAM = "46047"
@@ -778,6 +786,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None,
         "built_utc": built, "available": True,
         "station": now.get("station"), "station_cdip": now.get("station_cdip"),
         "station_names": origin.get("station_names") or {},
+        "alerts": nws_alerts(Path(data_dir), at),
         "swell": swell_story(now, _read(live / "buoys.json"), at, Path(data_dir), _read(live / "series.json")),
         "conditions": _conditions(Path(data_dir), at),
         "tide": tide_story(now, Path(data_dir), at),
@@ -790,8 +799,8 @@ def _conditions(data_dir: Path, at: datetime) -> dict:
 
 
 def with_text(built: dict) -> dict:
-    """The build with the words the page prints from it, and the swell and
-    tide words that decide an update. Without Node the words are null and
+    """The build with the words the page prints from it, and the alert,
+    swell and tide words that decide an update. Without Node the words are null and
     every build is an update, said on stderr."""
 
     from .briefingwording import render_issue
@@ -801,7 +810,7 @@ def with_text(built: dict) -> dict:
     except Exception as exc:  # noqa: BLE001 -- the payload stands without its words
         print(f"briefing: words not rendered ({type(exc).__name__}: {exc})", file=sys.stderr)
         return {**built, "text": None, "update_words": None}
-    return {**built, "text": text, "update_words": text["swell"] + text["tides"]}
+    return {**built, "text": text, "update_words": text["alerts"] + text["swell"] + text["tides"]}
 
 
 def main(argv: list[str] | None = None) -> int:
