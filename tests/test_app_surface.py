@@ -3976,9 +3976,10 @@ class TestTheBriefing:
         loop = self.BLOCK[self.BLOCK.index("for (const c of s.coming || [])"):]
         loop = loop[:loop.index("\n  return out;")]
         assert "briefNum(" not in loop and "briefWhen(" not in loop
-        assert 'const head = `${BRIEF_SECTOR[c.sector] || c.sector} ${c.band_s[0]}–${c.band_s[1]} s first`;' in loop
+        assert 'const head = `${BRIEF_SECTOR[c.sector] || c.sector} ${c.band_s[0]}–${c.band_s[1]} s`;' in loop
         assert 'const off = `${c.trend ? `${c.trend} ` : ""}offshore`;' in loop
-        assert loop.count("${off}") == 2 and "BRIEF_OFFSHORE" not in SOURCE
+        assert loop.count("${off}") == 1 and "BRIEF_OFFSHORE" not in SOURCE
+        assert "arriving since" not in SOURCE and "arrives_utc" not in loop
         assert "const from = (c.sector_deg[0] + c.sector_deg[1]) / 2;" in loop
         assert '<g transform="rotate(${(fromDeg + 180) % 360} 0 1.5)">' in self.BLOCK
         assert ".brief-signal circle{fill:var(--faint)}" in SOURCE

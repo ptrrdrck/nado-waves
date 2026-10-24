@@ -44,14 +44,19 @@ def test_the_swell_reads_as_the_owner_wrote_it(cases):
     train with its own status, then what Tanner Banks holds, each opening on
     its point, its trend said as offshore's (owner's wording, 2026-10-24)."""
     assert cases["Q1"]["swell"] == ["3–4 ft (0.9–1.2 m).", "SSW at 13.3 s, holding."]
-    assert cases["B1"]["swell"][2:] == ["W 10–12 s first, building offshore; due at Point Loma South "
+    assert cases["B1"]["swell"][2:] == ["W 10–12 s, building offshore; due at Point Loma South "
                                         "around 1:32 PM, and at the breaks 39–53 min later."]
 
 
-def test_a_swell_that_has_reached_the_breaks_is_arriving(cases):
-    assert cases["C1"]["swell"][2] == "NW 14–17 s first, arriving since about Oct 21, 7:29 PM, fading offshore."
-    assert cases["C1"]["swell"][3].endswith("first, building offshore; due at Point Loma South around 1:32 PM, "
+def test_each_swell_offshore_is_its_own_line_with_its_due_time(cases):
+    """Owner's calls, 2026-10-24: no "first", and no "arriving since": a
+    swell offshore is said only while a band of it is still to reach the
+    breaks (the build decides, `briefing.next_band`)."""
+    assert cases["C1"]["swell"][2] == ("NW 14–17 s, fading offshore; due at Point Loma South around 9:50 AM, "
+                                       "and at the breaks 39–53 min later.")
+    assert cases["C1"]["swell"][3].endswith("s, building offshore; due at Point Loma South around 1:32 PM, "
                                             "and at the breaks 39–53 min later.")
+    assert not any("arriving" in line or " first" in line for case in cases.values() for line in case["swell"])
 
 
 def test_a_mix_is_a_line_a_train_each_with_its_own_status(cases):

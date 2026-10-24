@@ -18,12 +18,12 @@ UPDATES only when what it says about the swell or the tide changes:
   north-west swell found by its rise and said for as long as Tanner Banks
   still holds it (`upstream_story`), due at 46232 and the breaks by
   deep-water speed (`forecast.upstreamlag`, BRIEFING §43), each line in
-  plain words opening on its point, its trend said as offshore's: "W 10–12 s
-  first, building offshore; due at Point Loma South around 1:33 PM, and at
-  the breaks 39–53 min later.", then from its first arrival "W 10–12 s
-  first, arriving since about 2:30 PM, peaking offshore." (owner's wording,
-  2026-10-23 and -24), a signal mark beside it on the page. Each sentence
-  is a line of its own.
+  plain words opening on its point, its trend said as offshore's: "W 10–12 s,
+  building offshore; due at Point Loma South around 1:33 PM, and at the
+  breaks 39–53 min later." -- the next of its bands not yet at the breaks
+  (`next_band`), and gone once the last has passed (owner's wording and
+  calls, 2026-10-23 and -24), a signal mark beside it on the page. Each
+  sentence is a line of its own.
 - **Conditions**, refreshed every collection without counting as an
   update: 46232's water temperature (`WATER_FRESH_H`), KNZY's air
   temperature, humidity and pressure, and rain — the last hour's and the
@@ -489,6 +489,21 @@ def upstream_story(data_dir: Path, buoys: dict | None, at: datetime, spectra=Non
     return out
 
 
+def next_band(swell: dict, at: datetime) -> dict | None:
+    """The band of a Tanner Banks swell the Briefing names at `at`: the
+    first, by its due time, whose window at the breaks (due at 46232 plus
+    the slowest leg) has not yet passed. None once the last has: by then the
+    swell is the beach chain's to show, in the headline or not at all
+    (owner's call, 2026-10-24, replacing "arriving since")."""
+
+    def window_end(band):
+        return _utc(band["due_buoy_utc"]) + timedelta(
+            minutes=max((leg["hi_min"] for leg in band.get("legs") or []), default=0))
+
+    ahead = [b for b in swell.get("bands") or [] if window_end(b) > at]
+    return min(ahead, key=lambda b: b["due_buoy_utc"]) if ahead else None
+
+
 def disperse(risen: dict, since: datetime) -> list[tuple[tuple[float, float], object]]:
     """One swell from each band's rises, as dispersion orders it: the newest
     rise since `since`, then each LONGER band's newest rise before the one
@@ -696,13 +711,13 @@ def swell_story(now: dict, buoys: dict | None, at: datetime, data_dir: Path,
             t.pop("band_hz", None)
             t.pop("held_deg", None)
             t.setdefault("trend", None)
-    coming = upstream_story(data_dir, buoys, at)
+    coming = [(c, next_band(c, at)) for c in upstream_story(data_dir, buoys, at)]
     steps = (series or {}).get("steps") or []
     return {"dark": False, "newest_utc": _iso(newest),
             "breaks": [{"id": b["id"], "hs_m": b["hs_nearshore_m"]} for b in sites],
             "trains": trains, "spark": beach_spark(steps), "window_h": SPARK_H["beach"],
-            "coming": [{"sector": c["sector"], "sector_deg": c["sector_deg"], **c["bands"][0],
-                        "arrives_utc": c["arrives_utc"], "trend": c["trend"]} for c in coming]}
+            "coming": [{"sector": c["sector"], "sector_deg": c["sector_deg"], **band, "trend": c["trend"]}
+                       for c, band in coming if band is not None]}
 
 
 # ------------------------------------------------------------------ tide

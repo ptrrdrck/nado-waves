@@ -869,23 +869,26 @@ forecaster actually verifies against, Surfline included.
    ×3 rise (§43's three bands plus 8–10 s, owner's request, whose lag §43
    did not check) in the last 72 h, its bands the newest rise and each
    LONGER band's newest rise before it within 24 h (`disperse`: long periods
-   lead), and SAID while Tanner Banks holds it — until its sector's 8–17 s
-   energy falls under a third of its peak since it began (owner's call:
-   the rise run in reverse; it replaced the 6 h-after-due keep, which
-   dropped a west swell still running on 23 Oct), in plain words with no
-   ink, each OPENING ON ITS POINT and saying "offshore" on its trend, which
-   is Tanner Banks' own (owner's calls, 2026-10-24, replacing an "offshore"
-   tag, which had replaced an "Offshore:" line), with a grey SIGNAL MARK in
-   the margin — a dot, the origin, sending two arcs — turned to the swell's
-   direction of TRAVEL, its sector's middle plus 180° (`briefSignal`):
-   "W 10–12 s first, building offshore; due at Point Loma South around
-   1:33 PM, and at the breaks 39–53 min later.", and from its first
-   computed arrival at the breaks "W 10–12 s first, arriving since about
-   2:30 PM, peaking offshore." — "arriving since" is the computed time, never a measured
-   arrival (§43), and the trend is Tanner Banks' NOW: building ≥ +25% on
-   3 h before, fading under half its peak, else peaking. Every 3 h over the
-   archive a west sentence showed on 82% of moments and a north-west on 80%,
-   arrived on 94%. SW at Tanner Banks is never said (owner's call): it is not
+   lead), and SAID only while a band of it is still to reach the breaks
+   (owner's calls, 2026-10-24, replacing "arriving since", which read as
+   arriving at the beach): the band due next (`next_band`), the next once
+   that band's window at the breaks — due at 46232 plus the slowest leg —
+   has passed, and nothing after the last, when the swell is the headline's
+   to show or not at all; or sooner, once its sector's 8–17 s energy falls
+   under a third of its peak since it began. In plain words with no
+   ink, each OPENING ON ITS POINT, no "first", and saying "offshore" on its
+   trend, which is Tanner Banks' own (owner's calls, same day, replacing an
+   "offshore" tag, which had replaced an "Offshore:" line), with a grey
+   SIGNAL MARK in the margin — a dot, the origin, sending two arcs — turned
+   to the swell's direction of TRAVEL, its sector's middle plus 180°
+   (`briefSignal`): "W 10–12 s, building offshore; due at Point Loma South
+   around 1:33 PM, and at the breaks 39–53 min later." The due time is
+   computed, never a measured arrival (§43), and the trend is Tanner Banks'
+   NOW: building ≥ +25% on 3 h before, fading under half its peak, else
+   peaking. Hourly over the 60 days to 24 Oct a line showed on 19% of hours
+   (the first band's window alone would have given 10%; with "arriving
+   since" it was 91%), a swell caught a median 3.1 h before its first
+   band's window. SW at Tanner Banks is never said (owner's call): it is not
    upstream of the breaks for a south swell. A dark 46232 says so and nothing
    else.
    **Conditions**, a LEDGER (owner's calls, 2026-10-23; `briefConditions`,

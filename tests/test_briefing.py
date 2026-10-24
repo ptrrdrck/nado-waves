@@ -152,19 +152,34 @@ def test_a_dark_buoy_is_said_and_nothing_else():
     assert got == {"dark": True, "newest_utc": "2026-10-21T22:00:00Z"}
 
 
-def test_a_rise_is_carried_as_its_first_band():
+def _band(due, hi=50):
+    return {"band_s": [12.0, 14.0], "due_buoy_utc": due, "legs": [{"id": "coronado_north", "lo_min": 30, "hi_min": hi}]}
+
+
+def test_a_swell_offshore_names_its_next_band_still_to_reach_the_breaks():
+    """Owner's calls, 2026-10-24: the line names the band due next at the
+    breaks, steps on to the next once that band's window (due at 46232 plus
+    the slowest leg) has passed, and goes after the last one's."""
+
+    swell = {"bands": [_band("2026-10-22T20:00:00Z"), _band("2026-10-23T08:00:00Z")]}
+    assert bf.next_band(swell, _at("2026-10-22T19:00:00Z"))["due_buoy_utc"] == "2026-10-22T20:00:00Z"
+    assert bf.next_band(swell, _at("2026-10-22T20:45:00Z"))["due_buoy_utc"] == "2026-10-22T20:00:00Z"
+    assert bf.next_band(swell, _at("2026-10-22T20:51:00Z"))["due_buoy_utc"] == "2026-10-23T08:00:00Z"
+    assert bf.next_band(swell, _at("2026-10-23T08:51:00Z")) is None
+    assert bf.next_band({"bands": []}, _at("2026-10-22T19:00:00Z")) is None
+
+
+def test_on_the_archive_only_swells_still_to_arrive_are_said():
     at = datetime(2026, 10, 9, 14, 30, tzinfo=timezone.utc)
-    got = bf.swell_story({"observed_utc": "2026-10-09T14:00:00Z", "stale": False, "breaks": []},
-                         {"buoys": [{"station": "46047", "stale": False}]}, at, Path("data"))
-    nw = next(c for c in got["coming"] if c["sector"] == "north-west")
-    full = next(u for u in bf.upstream_story(Path("data"), {"buoys": [{"station": "46047", "stale": False}]}, at)
-                if u["sector"] == "north-west")
-    assert nw["band_s"] == full["bands"][0]["band_s"]            # the earliest rise, "… s first"
-    assert all(b["since_utc"] >= nw["since_utc"] for b in full["bands"])
-    assert nw["due_buoy_utc"] > nw["since_utc"] and {l["id"] for l in nw["legs"]} == set(bf.BREAKS)
-    assert nw["trend"] in ("building", "peaking", "fading")
-    first_in = min(_at(nw["due_buoy_utc"]) + timedelta(minutes=l["lo_min"]) for l in nw["legs"])
-    assert _at(nw["arrives_utc"]) == first_in                     # "arriving since about …"
+    buoys = {"buoys": [{"station": "46047", "stale": False}]}
+    got = bf.swell_story({"observed_utc": "2026-10-09T14:00:00Z", "stale": False, "breaks": []}, buoys, at, Path("data"))
+    full = {u["sector"]: u for u in bf.upstream_story(Path("data"), buoys, at)}
+    for c in got["coming"]:
+        assert c["band_s"] == bf.next_band(full[c["sector"]], at)["band_s"] and "arrives_utc" not in c
+        end = _at(c["due_buoy_utc"]) + timedelta(minutes=max(l["hi_min"] for l in c["legs"]))
+        assert end > at and c["trend"] in ("building", "peaking", "fading")
+    said = {c["sector"] for c in got["coming"]}
+    assert said == {k for k, u in full.items() if bf.next_band(u, at) is not None}
 
 
 # ------------------------------------------------------------------ conditions

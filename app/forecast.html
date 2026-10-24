@@ -1666,11 +1666,12 @@ const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
 // where it comes from offshore (its row's heading, never the 5 m one), its
 // period, and its status: its band at the buoy (`briefing.train_trend`),
 // with no trend mark. Then, a line each, every west or north-west swell
-// Tanner Banks holds, its point hung in the conditions' small caps, in
-// plain words, tagged "offshore", due by deep-water speed (BRIEFING §43)
-// until it has arrived at the breaks, then "arriving since" -- judged at
-// the build, so the words are the build's -- and its trend there. A slot
-// with no value drops with its words.
+// Tanner Banks holds whose next band is still to reach the breaks
+// (`briefing.next_band`), in plain words opening on its point, its trend
+// there said as offshore's, and when that band is due by deep-water speed
+// (BRIEFING §43); once its last band has passed it is the headline's to
+// show (owner's calls, 2026-10-24). A slot with no value drops with its
+// words.
 function briefSwell(B) {
   const s = B.swell || {};
   if (s.dark) {
@@ -1695,17 +1696,13 @@ function briefSwell(B) {
   for (const c of s.coming || []) {
     const legs = c.legs || [];
     const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
-    const head = `${BRIEF_SECTOR[c.sector] || c.sector} ${c.band_s[0]}–${c.band_s[1]} s first`;
+    const head = `${BRIEF_SECTOR[c.sector] || c.sector} ${c.band_s[0]}–${c.band_s[1]} s`;
     // Its trend is Tanner Banks' own, so it is said as offshore's.
     const off = `${c.trend ? `${c.trend} ` : ""}offshore`;
     const from = (c.sector_deg[0] + c.sector_deg[1]) / 2;
-    if (c.arrives_utc && Date.parse(c.arrives_utc) <= Date.parse(B.built_utc)) {
-      out.push({kind: "off", from, body: `${head}, arriving since about ${briefAt(c.arrives_utc, B)}, ${off}.`});
-    } else {
-      out.push({kind: "off", from, body: `${head}, ${off}; `
-        + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefAt(c.due_buoy_utc, B)}`
-        + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + "."});
-    }
+    out.push({kind: "off", from, body: `${head}, ${off}; `
+      + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefAt(c.due_buoy_utc, B)}`
+      + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + "."});
   }
   return out;
 }

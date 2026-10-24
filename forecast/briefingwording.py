@@ -90,12 +90,11 @@ def _case(**changes):
 
 WEST = {"sector": "west", "sector_deg": [250.0, 280.0], "band_s": [10.0, 12.0],
         "since_utc": "2026-10-22T14:07:00Z", "factor": 3.4, "lag_h": 6.4,
-        "due_buoy_utc": "2026-10-22T20:32:00Z", "arrives_utc": "2026-10-22T21:11:00Z", "trend": "building",
+        "due_buoy_utc": "2026-10-22T20:32:00Z", "trend": "building",
         "legs": [{"id": N, "lo_min": 41, "hi_min": 53}, {"id": C, "lo_min": 39, "hi_min": 50},
                  {"id": S, "lo_min": 40, "hi_min": 52}]}
 NORTH_WEST = {**WEST, "sector": "north-west", "sector_deg": [280.0, 330.0], "band_s": [14.0, 17.0],
-              "since_utc": "2026-10-21T22:10:00Z", "due_buoy_utc": "2026-10-22T01:50:00Z",
-              "arrives_utc": "2026-10-22T02:29:00Z", "trend": "fading"}
+              "since_utc": "2026-10-22T09:10:00Z", "due_buoy_utc": "2026-10-22T16:50:00Z", "trend": "fading"}
 
 #: (id, what it is, the briefing.json). One per branch the page can take.
 CASES = [
@@ -106,7 +105,7 @@ CASES = [
            swell__coming=[WEST],
            conditions__weather=dict(QUIET["conditions"]["weather"], precip_hour_in=0.03, precip_day_in=0.11,
                                     precip_kinds=["rain"]))),
-    ("C1", "two sectors offshore, one arrived and fading; rain earlier in the day only",
+    ("C1", "two sectors offshore, each still to reach the breaks; rain earlier in the day only",
      _case(swell__trains=[{"period_s": 13.3, "from_deg": 205, "hs_m": 1.18, "trend": "peaking"}],
            swell__coming=[NORTH_WEST, WEST],
            conditions__weather=dict(QUIET["conditions"]["weather"], precip_day_in=0.24))),
