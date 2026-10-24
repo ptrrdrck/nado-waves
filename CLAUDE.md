@@ -872,13 +872,16 @@ forecaster actually verifies against, Surfline included.
    lead), and SAID while Tanner Banks holds it — until its sector's 8–17 s
    energy falls under a third of its peak since it began (owner's call:
    the rise run in reverse; it replaced the 6 h-after-due keep, which
-   dropped a west swell still running on 23 Oct), each by its point, in
-   plain words with no ink, and ending on an "offshore" tag set as the
-   cards' "wind sea" and "predicted" are (owner's calls, same day; it
-   replaced an "Offshore:" line): "W, 10–12 s first, building; due at Point Loma
-   South around 1:33 PM, and at the breaks 39–53 min later.", and from its
-   first computed arrival at the breaks "W, 10–12 s first, arriving since
-   about 2:30 PM, peaking." — "arriving since" is the computed time, never a measured
+   dropped a west swell still running on 23 Oct), in plain words with no
+   ink, each OPENING ON ITS POINT and saying "offshore" on its trend, which
+   is Tanner Banks' own (owner's calls, 2026-10-24, replacing an "offshore"
+   tag, which had replaced an "Offshore:" line), with a grey SIGNAL MARK in
+   the margin — a dot, the origin, sending two arcs — turned to the swell's
+   direction of TRAVEL, its sector's middle plus 180° (`briefSignal`):
+   "W 10–12 s first, building offshore; due at Point Loma South around
+   1:33 PM, and at the breaks 39–53 min later.", and from its first
+   computed arrival at the breaks "W 10–12 s first, arriving since about
+   2:30 PM, peaking offshore." — "arriving since" is the computed time, never a measured
    arrival (§43), and the trend is Tanner Banks' NOW: building ≥ +25% on
    3 h before, fading under half its peak, else peaking. Every 3 h over the
    archive a west sentence showed on 82% of moments and a north-west on 80%,

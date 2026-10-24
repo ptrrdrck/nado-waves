@@ -3959,7 +3959,7 @@ class TestTheBriefing:
         assert ('<div class="brief-head"><div class="brief-big">${r.range}</div>`\n'
                 '      + (r.spark ? `<span class="brief-trend">${r.spark}') in rows
         assert '<div class="brief-sub">${r.html}${r.trend ? `<span class="brief-sep">·</span>${r.trend}` : ""}</div>' in rows
-        assert 'class="brief-hang"><span class="brief-key">' in rows
+        assert '<div class="brief-hang">${briefSignal(r.from)}<span>${r.body}</span></div>' in rows
         assert "briefArrow(" not in rows and "briefArrow(" not in self.BLOCK[
             self.BLOCK.index("function briefSwell(B)"):self.BLOCK.index("function briefSwellRow(r)")]
         assert ".brief-big{font-size:27px;" in SOURCE
@@ -3968,16 +3968,20 @@ class TestTheBriefing:
         assert "p.swell.map((r) => text(briefSwellText(r)))" in \
             (APP.parent.parent / "forecast" / "briefingwording.py").read_text(encoding="utf-8")
 
-    def test_tanner_banks_lines_are_plain_and_tagged_offshore(self):
-        """Owner's calls, 2026-10-23: no ink in Tanner Banks' lines, and each
-        ends on an "offshore" tag set as the cards' "wind sea" is; no
-        "Offshore:" line."""
+    def test_tanner_banks_lines_are_plain_open_on_their_point_and_say_offshore(self):
+        """Owner's calls, 2026-10-23 and -24: no ink in Tanner Banks' lines;
+        each opens on its point, says "offshore" on its trend ("peaking
+        offshore"), and hangs a grey signal mark turned the way the swell
+        travels; no tag and no "Offshore:" line."""
         loop = self.BLOCK[self.BLOCK.index("for (const c of s.coming || [])"):]
         loop = loop[:loop.index("\n  return out;")]
         assert "briefNum(" not in loop and "briefWhen(" not in loop
-        assert loop.count("${BRIEF_OFFSHORE}") == 2
-        assert """const BRIEF_OFFSHORE = ' <span class="tag">offshore</span>';""" in self.BLOCK
-        assert ".brief-block .tag{font-size:11px;color:var(--faint);text-transform:uppercase;" in SOURCE
+        assert 'const head = `${BRIEF_SECTOR[c.sector] || c.sector} ${c.band_s[0]}–${c.band_s[1]} s first`;' in loop
+        assert 'const off = `${c.trend ? `${c.trend} ` : ""}offshore`;' in loop
+        assert loop.count("${off}") == 2 and "BRIEF_OFFSHORE" not in SOURCE
+        assert "const from = (c.sector_deg[0] + c.sector_deg[1]) / 2;" in loop
+        assert '<g transform="rotate(${(fromDeg + 180) % 360} 0 1.5)">' in self.BLOCK
+        assert ".brief-signal circle{fill:var(--faint)}" in SOURCE
         assert '"Offshore:"' not in SOURCE
         level = self.BLOCK[self.BLOCK.index("const briefLevel"):]
         level = level[:level.index(";\n")]

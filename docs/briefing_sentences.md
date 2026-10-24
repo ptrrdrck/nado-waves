@@ -28,11 +28,11 @@ SW3. 2–5 ft (0.6–1.5 m).  (B1)
 
 SW4. S at 18.2 s, building.  (B1)
 
-SW5. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore  (B1, C1)
+SW5. W 10–12 s first, building offshore; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.  (B1, C1)
 
 SW6. SSW at 13.3 s, peaking.  (C1)
 
-SW7. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading. offshore  (C1)
+SW7. NW 14–17 s first, arriving since about Oct 21, 7:29 PM, fading offshore.  (C1)
 
 SW8. SSW at 15.4 s, fading.  (M1)
 
