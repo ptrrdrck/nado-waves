@@ -3935,13 +3935,16 @@ class TestTheBriefing:
         gone grey, a dashed now line, nights shaded; tapped, what it stands
         on. Its words are the ledger's, so the curve was no update. Since
         2026-10-24 the shading runs from under a row of the day's sunrise and
-        sunset to just above the times, so every height sits on it, and the
-        now line carries no word (owner's requests)."""
+        sunset to just above the times, so every height sits on it, and now
+        is the open dot on the curve alone (owner's requests)."""
         chart = self.BLOCK[self.BLOCK.index("function briefTideChart("):self.BLOCK.index("function briefTideBlock(")]
         assert "const xn = X(now), today = now >= t0 && now <= t1;" in chart
-        assert '<path class="now" d=' in chart and "NOW" not in chart and 'class="now-dot"' in chart
+        # Now is the open dot alone: no line, no word (owner's calls, 2026-10-24).
+        assert 'class="now"' not in chart and "NOW" not in chart and 'class="now-dot"' in chart
         assert 'y="${shadeTop}"' in chart and 'height="${shadeBot - shadeTop}"' in chart
-        assert '["Sunset", a]' in chart and '["Sunrise", b]' in chart and "briefRow(labels, W)" in chart
+        assert "briefSuns(T)" in chart and "briefRow(labels, W)" in chart
+        # Sunrise and sunset as icons, each time set as the turns' are, grey once passed.
+        assert '<svg class="sun${gone ? " gone" : ""}"' in chart and '<text class="time${gone ? " gone" : ""}"' in chart
         assert '<path class="gone" d="${line}"/><path class="ahead" d="${line}" clip-path=' in chart
         assert "(T.nights || []).map(" in chart
         assert "y=\"${(high ? y - 9 : y + 17).toFixed(1)}\"" in chart
