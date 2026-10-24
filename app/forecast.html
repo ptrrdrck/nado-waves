@@ -470,8 +470,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .seek-when{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:4px;
            border-radius:6px;cursor:pointer}
 .seek-when .count{color:var(--soft);font-weight:400}
+/* The time in ink and weight, as the weekday is (owner's request, 2026-10-24). */
+.seek-when .when-time{color:var(--ink);font-weight:600}
 /* One line at every width, or the row grows and the cards move: the
-   longest hour, "Wednesday Sep 30, 12:00 PM", is 196 px and a 320 px phone
+   longest hour, "Wednesday Sep 30, 12:00 PM", is 197 px and a 320 px phone
    leaves it 179, so under 340 px the weekday is the short one. */
 #when-label{white-space:nowrap}
 .seek-when .wd-short{display:none}
@@ -1082,14 +1084,16 @@ function when(iso) {
     hour: "numeric", minute: "2-digit",
   });
 }
-// The hour line's own setting of the same moment: the day in ink, the rest
-// in the count's grey, as the Briefing line sets "Briefing updated 7:16 AM".
+// The hour line's own setting of the same moment: the day and the time in
+// ink, the date between them in the count's grey, as the Briefing line sets
+// "Briefing updated 7:16 AM".
 function whenLine(iso) {
   const d = new Date(iso);
   const day = (weekday) => d.toLocaleString(undefined, {weekday});
-  const rest = d.toLocaleString(undefined, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"});
+  const date = d.toLocaleString(undefined, {month: "short", day: "numeric"});
+  const time = d.toLocaleString(undefined, {hour: "numeric", minute: "2-digit"});
   return `<span class="wd-long">${day("long")}</span><span class="wd-short">${day("short")}</span>`
-    + ` <span class="count">${rest}</span>`;
+    + ` <span class="count">${date}, <b class="when-time">${time}</b></span>`;
 }
 
 // The build stamps an age into now.json and that number freezes the instant
