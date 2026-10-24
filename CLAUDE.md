@@ -810,11 +810,12 @@ forecaster actually verifies against, Surfline included.
    **The Briefing** (owner's request, 2026-10-16; reshaped 2026-10-17 and
    again 2026-10-22; `forecast/briefing.py`): a short read in a fold on the
    BACKDROP above the LIVE cards, not a card, closed until opened (open, at
-   most half the screen, scrolling inside itself with its scroll its own —
-   except at its top, where a swipe down carries on to the page so
-   pull-to-refresh works from inside it; owner's request, 2026-10-23; and a
-   redraw keeps the reader's place in it, `BRIEF_SCROLL`, owner's request,
-   2026-10-24). Its line
+   most half the screen, scrolling inside itself, its scroll carrying on to
+   the page at either end — a swipe down at its top reaches the page so
+   pull-to-refresh works from inside it, one up at its bottom scrolls on
+   down the page; owner's requests, 2026-10-23 and -24; and a redraw keeps
+   the reader's place in it, `BRIEF_SCROLL`, owner's request, 2026-10-24).
+   Its line
    reads "Briefing updated 7:16 AM" (the day too when not today's) and names
    no condition, with the provenance pills' green `.status` dot while that
    update is unopened on this device (`BRIEF_SEEN` in localStorage, through

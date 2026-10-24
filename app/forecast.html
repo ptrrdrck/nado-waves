@@ -155,14 +155,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    shorter, it is its own height; longer, it scrolls inside itself and the
    rest is cut off at the cards' edge, so the cards never move down past
    half a screen. dvh where the browser has it, so a phone's collapsing
-   toolbar does not leave it a bar too tall. Its scroll is its own, never
-   the page's, except at its top (owner's request, 2026-10-23): there a
-   swipe down carries on to the page, so pull-to-refresh works from inside
-   it. `at-top` is set while it rests at its top (the scroll listener by
-   its click one). */
+   toolbar does not leave it a bar too tall. At either end its scroll
+   carries on to the page (owner's requests, 2026-10-23 and -24): a swipe
+   down at its top reaches the page, so pull-to-refresh works from inside
+   it, and a swipe up at its bottom scrolls on down the page. */
 .briefing .fold-body{display:flex;flex-direction:column;gap:2px;padding-top:2px;
-                     max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior:contain}
-.briefing .fold-body.at-top{overscroll-behavior-y:auto}
+                     max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior-y:auto}
 .brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
 .brief-block .unit{color:inherit}
 /* The swell's sentences a line each, a little apart (owner's request,
@@ -1958,7 +1956,7 @@ function briefingFold(B) {
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
-    <div class="fold-body${BRIEF_SCROLL > 0 ? "" : " at-top"}" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
+    <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
       ${blocks.map((b) => (b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
         : b === parts.conditions
         ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
@@ -6891,13 +6889,10 @@ function boot(data, observed, measured, series, windtide) {
   wireCharts();
 
   wireGate();
-  // At its top the Briefing hands a swipe down on to the page (see its CSS).
-  // Scroll does not bubble, so the listener captures; it keeps the place a
-  // redraw returns to (`BRIEF_SCROLL`), and the class is in the markup.
+  // The place a redraw returns the open Briefing to (`BRIEF_SCROLL`).
+  // Scroll does not bubble, so the listener captures.
   $("briefing").addEventListener("scroll", (e) => {
-    if (e.target.id !== "brief-body") return;
-    BRIEF_SCROLL = e.target.scrollTop;
-    e.target.classList.toggle("at-top", BRIEF_SCROLL <= 0);
+    if (e.target.id === "brief-body") BRIEF_SCROLL = e.target.scrollTop;
   }, {capture: true, passive: true});
   $("briefing").addEventListener("click", (e) => {
     if (e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
