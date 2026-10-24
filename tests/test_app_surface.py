@@ -3826,14 +3826,14 @@ class TestTheBriefing:
         assert "max-height:50dvh" in rule and "overflow-y:auto" in rule
         assert "height:" not in rule.replace("max-height:", "")
 
-    def test_at_its_top_a_swipe_down_carries_on_to_the_page(self):
-        """Owner's request, 2026-10-23: pull-to-refresh from inside the open
-        Briefing. Its scroll stays its own except while it rests at its top."""
-        assert "overscroll-behavior:contain}" in SOURCE
-        assert ".briefing .fold-body.at-top{overscroll-behavior-y:auto}" in SOURCE
-        assert '<div class="fold-body${BRIEF_SCROLL > 0 ? "" : " at-top"}" id="brief-body"' in self.BLOCK
-        assert ('    BRIEF_SCROLL = e.target.scrollTop;\n'
-                '    e.target.classList.toggle("at-top", BRIEF_SCROLL <= 0);\n'
+    def test_at_either_end_its_scroll_carries_on_to_the_page(self):
+        """Owner's requests, 2026-10-23 and -24: pull-to-refresh from its top,
+        and on down the page from its bottom: nothing holds its scroll in."""
+        rule = SOURCE[SOURCE.index(".briefing .fold-body{"):]
+        rule = rule[:rule.index("}")]
+        assert "overscroll-behavior-y:auto" in rule and "contain" not in rule
+        assert ".fold-body.at-top" not in SOURCE
+        assert ('if (e.target.id === "brief-body") BRIEF_SCROLL = e.target.scrollTop;\n'
                 '  }, {capture: true, passive: true});') in SOURCE
 
     def test_a_redraw_keeps_the_readers_place(self):
