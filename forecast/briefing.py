@@ -18,8 +18,10 @@ NWS's alerts do:
   chain: "3–4 ft (0.9–1.2 m)", the breaking height at the three breaks,
   lowest to highest in whole feet; then, a line each, the swell trains
   of all three breaks at ≥ `MIX_SHARE` of the biggest one anywhere, one a
-  compass point (`listed_trains`) -- "SSW at 13.3 s, building.", each its offshore heading as its row names it (never its 5 m
-  one), its period, and its status: its band at 46232 over the last day
+  train at 46232, so one swell read at two breaks is one line
+  (`listed_trains`, `forecast.trainmatch`; owner's call, 2026-10-24) --
+  "SSW at 13.3 s, building.", each its offshore heading as its row names it
+  (never its 5 m one), its period, and its status: its band at 46232 over the last day
   (`train_trend`). Offshore, at 46047: each west or
   north-west swell found by its rise and said for as long as Tanner Banks
   still holds it (`upstream_story`), due at 46232 and the breaks by
@@ -594,25 +596,20 @@ def _heading(train: dict) -> float | None:
     return lobes[0][0] if len(lobes) >= 2 else train.get("from_deg")
 
 
-#: The page's sixteen compass points (`point` in app/forecast.html): two
-#: listed trains never share one.
-POINTS = ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
-
-
-def compass_point(deg: float) -> str:
-    return POINTS[round(deg / 22.5) % 16]
-
-
 def listed_trains(sites: list[dict]) -> list[dict]:
     """The swell trains the headline lists, POOLED over the three breaks
     (owner's call, 2026-10-23, after the WSW sea leading Center and South
     went unsaid because North was the biggest break): every swell train at
     any break at ≥ MIX_SHARE of the biggest one anywhere, biggest first,
-    and only the biggest from each compass point, so one sea read at two
-    breaks is one line. Never wind sea or local chop; with no swell train
-    at all, the biggest break's lead as its row gives it. Each with its
-    offshore heading as its row names it, and its band at the buoy
-    (`band_hz`, `held_deg`) from its own break when the reading carries one."""
+    and ONE LINE A BUOY TRAIN (owner's call, 2026-10-24, replacing one a
+    compass point, which listed one W swell twice either side of the W / WSW
+    boundary): trains at two breaks that are the same train at 46232
+    (`buoy_train`, `forecast.trainmatch`) are one line, the biggest's. A
+    train with no buoy train is its own line. Never wind sea or local chop;
+    with no swell train at all, the biggest break's lead as its row gives it.
+    Each with its offshore heading as its row names it, and its band at the
+    buoy (`band_hz`, `held_deg`) from its own break when the reading carries
+    one."""
 
     order = {b: k for k, b in enumerate(BREAKS)}
     pool = sorted(((t, site) for site in sites for t in site.get("trains") or []
@@ -634,10 +631,11 @@ def listed_trains(sites: list[dict]) -> list[dict]:
     for t, site in pool:
         if (t.get("hs_m") or 0.0) < MIX_SHARE * biggest:
             break
-        point = compass_point(_heading(t))
-        if point in said:
-            continue
-        said.add(point)
+        swell = t.get("buoy_train")
+        if swell is not None:
+            if swell in said:
+                continue
+            said.add(swell)
         out.append({"period_s": t.get("period_s"), "from_deg": _heading(t), "hs_m": t.get("hs_m"),
                     "band_hz": t.get("band_hz"), "held_deg": t.get("held_deg")})
     return out

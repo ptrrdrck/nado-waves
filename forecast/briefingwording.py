@@ -121,7 +121,7 @@ CASES = [
            swell__coming=[NORTH_WEST, WEST],
            conditions__weather=dict(QUIET["conditions"]["weather"], precip_day_in=0.24))),
     ("M1", "a mix: every swell train at the breaks at half the biggest's height or more, a line each, "
-           "one a compass point",
+           "one a train at the buoy",
      _case(swell__breaks=[{"id": N, "hs_m": 1.02}],
            swell__trains=[{"period_s": 15.4, "from_deg": 203, "hs_m": 1.02, "trend": "fading"},
                           {"period_s": 14.3, "from_deg": 208, "hs_m": 0.9, "trend": "holding"},

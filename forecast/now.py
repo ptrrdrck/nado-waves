@@ -71,6 +71,7 @@ from .stormtrack import GATE_STATIONS
 from .surfzone import load_profiles
 from .tidesite import (LEAD_MIN, RATIO, SITE_NAME, SITE_PLACE, anomaly, coast_height, coast_level, coast_turn,
                        msl_above_mllw)
+from .trainmatch import buoy_train
 from .transform import Spectrum, at_buoy, load_spectra, lobes_payload, through
 
 #: Older than this and the spectrum is not "now". NDBC publishes hourly and the
@@ -782,12 +783,16 @@ def build(
             near_hs = near["hs_m"]
             # Where each carried train sits at the buoy -- its period band and
             # the headings it came from -- for the Briefing's status of a
-            # train (owner's call, 2026-10-23). The local chop has none.
+            # train (owner's call, 2026-10-23), and which of the buoy's own
+            # trains it is, so one swell read at two breaks is one line of
+            # the Briefing (owner's call, 2026-10-24; `forecast.trainmatch`):
+            # its index in the buoy's train list above. The local chop has none.
             for row, train in zip(near["trains"], carried.trains[:3]):
                 if train.bins:
                     freqs = [spectrum.frequencies[i] for i in train.bins]
                     row["band_hz"] = [round(min(freqs), 5), round(max(freqs), 5)]
                     row["held_deg"] = list(train.held)
+                    row["buoy_train"] = buoy_train(train, raw.trains, spectrum.frequencies)
         reading.breaks.append(NowBreak(
             id=spot.id,
             name=spot.name,

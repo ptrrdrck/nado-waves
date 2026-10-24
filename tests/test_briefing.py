@@ -103,47 +103,56 @@ def test_no_observed_reading_is_said_as_such(tmp_path):
 def test_the_swell_is_each_breaks_card_number_and_the_trains_pooled_over_the_breaks(tmp_path):
     now = {"observed_utc": "2026-10-22T14:00:00Z", "stale": False, "breaks": [
         {"id": "coronado_north", "hs_nearshore_m": 1.31, "peak_period_s": 16.7, "peak_direction_deg": 215,
-         "trains": [{"period_s": 16.7, "from_deg": 215, "hs_m": 1.2, "near_from_deg": 192, "lobes": []}]},
+         "trains": [{"period_s": 16.7, "from_deg": 215, "hs_m": 1.2, "near_from_deg": 192, "lobes": [], "buoy_train": 0}]},
         {"id": "coronado_center", "hs_nearshore_m": 1.00, "peak_period_s": 16.7, "peak_direction_deg": 231,
-         "trains": [{"period_s": 16.7, "from_deg": 231, "hs_m": 0.9, "near_from_deg": 206, "lobes": []}]},
+         "trains": [{"period_s": 16.7, "from_deg": 231, "hs_m": 0.9, "near_from_deg": 206, "lobes": [], "buoy_train": 0}]},
         {"id": "coronado_south", "hs_nearshore_m": 0.74, "peak_period_s": 13.3, "peak_direction_deg": 266,
-         "trains": [{"period_s": 13.3, "from_deg": 266, "hs_m": 0.7, "near_from_deg": 224, "lobes": []}]}]}
+         "trains": [{"period_s": 13.3, "from_deg": 266, "hs_m": 0.7, "near_from_deg": 224, "lobes": [], "buoy_train": 1}]}]}
     got = bf.swell_story(now, None, _at("2026-10-22T14:16:00Z"), tmp_path)
     assert got["breaks"] == [{"id": "coronado_north", "hs_m": 1.31}, {"id": "coronado_center", "hs_m": 1.00},
                              {"id": "coronado_south", "hs_m": 0.74}]
-    # pooled over the three breaks, one a point (215° and 231° are both SW);
+    # pooled over the three breaks, one a buoy train;
     # no band at the buoy in the reading: no status, never a guessed one
     assert got["trains"] == [{"period_s": 16.7, "from_deg": 215, "hs_m": 1.2, "trend": None},
                              {"period_s": 13.3, "from_deg": 266, "hs_m": 0.7, "trend": None}]
     assert got["coming"] == []
 
 
-def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_point():
-    """Owner's calls, 2026-10-23: pooled over the three breaks, half the
-    biggest swell train's height, any point but one train a point (the
-    biggest), never wind sea or local chop; a train of two directions by its
-    larger, as its row names it, never its 5 m heading."""
+def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_buoy_train():
+    """Owner's calls, 2026-10-23 and -24: pooled over the three breaks, half
+    the biggest swell train's height, one line a train at the buoy (the
+    biggest's), never wind sea or local chop; a train of two directions by
+    its larger, as its row names it, never its 5 m heading."""
 
     north = {"id": "coronado_north", "hs_nearshore_m": 1.3, "trains": [
-        {"period_s": 13.3, "from_deg": 207, "hs_m": 1.26, "lobes": [], "band_hz": [0.045, 0.43],
-         "held_deg": [187, 234]},
+        {"period_s": 15.4, "from_deg": 221, "hs_m": 1.26, "lobes": [], "band_hz": [0.045, 0.43],
+         "held_deg": [187, 234], "buoy_train": 1},
         {"period_s": 4.8, "from_deg": 240, "hs_m": 0.9, "wind_sea": True, "lobes": []},
         {"period_s": 3.5, "from_deg": 250, "hs_m": 0.9, "wind_sea": True, "local": True}]}
     center = {"id": "coronado_center", "hs_nearshore_m": 0.8, "trains": [
-        {"period_s": 10.5, "from_deg": 230, "hs_m": 0.77, "near_from_deg": 210, "lobes": [[239, 0.7], [180, 0.3]]}]}
+        {"period_s": 9.9, "from_deg": 230, "hs_m": 0.74, "near_from_deg": 210, "lobes": [[256, 0.7], [180, 0.3]],
+         "buoy_train": 0},
+        {"period_s": 14.3, "from_deg": 233, "hs_m": 0.7, "lobes": [], "buoy_train": 1}]}   # North's swell again
     south = {"id": "coronado_south", "hs_nearshore_m": 0.84, "trains": [
-        {"period_s": 8.3, "from_deg": 252, "hs_m": 0.77, "lobes": []},        # WSW again: one line a point
-        {"period_s": 16.7, "from_deg": 194, "hs_m": 0.34, "lobes": []}]}      # under half the biggest
+        {"period_s": 9.1, "from_deg": 264, "hs_m": 0.94, "lobes": [], "buoy_train": 0},   # Center's W swell: one line
+        {"period_s": 16.7, "from_deg": 194, "hs_m": 0.34, "lobes": [], "buoy_train": 1}]}  # under half the biggest
     got = bf.listed_trains([north, center, south])
-    assert [(t["period_s"], t["from_deg"]) for t in got] == [(13.3, 207), (10.5, 239)]
+    assert [(t["period_s"], t["from_deg"]) for t in got] == [(15.4, 221), (9.1, 264)]
     assert got[0]["band_hz"] == [0.045, 0.43] and got[0]["held_deg"] == [187, 234]
+    # Two trains of one compass point that are two trains at the buoy are two
+    # lines; a train the buoy's split does not hold is its own line.
+    two = [{"id": "coronado_north", "hs_nearshore_m": 1.0, "trains": [
+               {"period_s": 15.4, "from_deg": 200, "hs_m": 1.0, "lobes": [], "buoy_train": 0},
+               {"period_s": 11.1, "from_deg": 205, "hs_m": 0.8, "lobes": [], "buoy_train": 1}]},
+           {"id": "coronado_south", "hs_nearshore_m": 1.0, "trains": [
+               {"period_s": 12.5, "from_deg": 210, "hs_m": 0.7, "lobes": [], "buoy_train": None}]}]
+    assert [t["period_s"] for t in bf.listed_trains(two)] == [15.4, 11.1, 12.5]
     assert bf.listed_trains([{"id": "coronado_north", "trains": [], "peak_period_s": 13.3,
                               "peak_direction_deg": 200, "hs_nearshore_m": 1.0}])[0]["from_deg"] == 200
     only_sea = {"id": "coronado_north", "hs_nearshore_m": 1.0,
                 "trains": [{"period_s": 5.3, "from_deg": 272, "hs_m": 1.0, "wind_sea": True, "lobes": []}]}
     assert bf.listed_trains([only_sea])[0]["period_s"] == 5.3       # nothing else to name: the lead
     assert bf.listed_trains([]) == []
-    assert [bf.compass_point(d) for d in (207, 239, 252, 349, 351)] == ["SSW", "WSW", "WSW", "N", "N"]
 
 
 def test_a_dark_buoy_is_said_and_nothing_else():
@@ -360,7 +369,9 @@ def test_a_trains_status_is_its_band_at_the_buoy():
     assert bf.band_energy(sp, band, [197, 197]) == whole           # a full circle is every heading
     train = {"band_hz": band, "held_deg": [197, 235]}
     assert bf.train_trend(spectra, train, newest) in ("building", "fading", "peaking", "holding")
-    assert bf.train_trend(spectra, train, newest + timedelta(hours=30)) is None
+    # Past the archive's end, no spectrum in the window: no status (the
+    # archive's end, not a fixed hour: it grows every collection).
+    assert bf.train_trend(spectra, train, max(s.time for s in spectra) + timedelta(hours=30)) is None
     assert bf.train_trend(spectra, {"band_hz": None}, newest) is None
 
 
