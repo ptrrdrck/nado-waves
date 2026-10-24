@@ -873,12 +873,25 @@ forecaster actually verifies against, Surfline included.
    `swell.spark`, kept out of the record by `unsparked`); then A LINE A
    TRAIN, "SSW at 13.3 s · building" (its words "SSW at 13.3 s, building."),
    no trend mark: every swell train at ANY of the three breaks at ≥ HALF
-   the biggest one's height, biggest first, ONE A COMPASS POINT (owner's
-   call, same day, after the WSW sea leading Center and South went unsaid
-   because North, the biggest break, held only an SSW train; `MIX_SHARE`
-   0.5 of height, `listed_trains`, `compass_point`; never wind sea or
-   chop, unless no swell train exists at all; it was 0.7, beside the lead
-   at the biggest break, another point only), each its row's
+   the biggest one's height, biggest first (owner's call, same day, after
+   the WSW sea leading Center and South went unsaid because North, the
+   biggest break, held only an SSW train; `MIX_SHARE` 0.5 of height; never
+   wind sea or chop, unless no swell train exists at all), **ONE LINE A
+   TRAIN AT 46232** (owner's call, 2026-10-24, replacing one a compass
+   point, which listed one W swell twice, W 9.1 s at South and WSW 9.9 s at
+   Center, either side of the 258.75° boundary): each carried row's
+   `buoy_train` (now.py, `forecast.trainmatch.buoy_train`) is the buoy
+   train holding its peak period, and of a band the buoy divided by
+   direction the one holding its heading, else the nearest; trains of one
+   buoy train are one line, the biggest's words. MEASURED first
+   (`python -m forecast.trainmatch`, owner's condition): periods alone
+   joined two buoy trains on 24% of its joins over the archive, nearly all
+   a band the buoy divides by direction, and was rejected; in a known-answer
+   control the shipped rule is wrong on 6.1% of joins of swells ≥ 3 s apart
+   (17 of 18 a 15 s SSW + 12 s from 250–270° the buoy itself reads as one
+   train, §40) and 25% at 1–2 s, catching 97% of duplicates where the
+   compass point was wrong on 34% and caught 46%; pairs with a train no
+   swell carries ⅔ of are counted, not scored. each its row's
    OFFSHORE heading (the larger direction of a two-direction train, never
    its 5 m one) and period, and ITS OWN STATUS (owner's call, same day):
    its band at 46232 -- the bins it holds in the newest spectrum and the
@@ -1329,6 +1342,9 @@ forecaster actually verifies against, Surfline included.
       briefing.py       the LIVE tab's Briefing: built every collection,
                         updated when its swell or tide words change, each
                         update kept in data/briefings/             [built]
+      trainmatch.py     a break's train to the buoy train it is, for the
+                        Briefing's one line a swell; and the archive and
+                        known-answer control that chose it; reports  [built]
       briefingreport.py its thresholds, measured; reports, never edits
       briefingwording.py its wording, run from the page's own code into
                         docs/briefing_wording.md; --check           [built]
