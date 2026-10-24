@@ -956,8 +956,12 @@ forecaster actually verifies against, Surfline included.
    (`TIDE_CURVE_MIN`), Coronado's midnight to midnight and STRICTLY TODAY —
    no next day's turn at the edge — each turn's height by its dot (above a
    high, below a low) and its time on the axis under it, the hours gone and
-   their turns grey, the rest ink, a dashed NOW line with an open dot, nights
-   shaded as the Tide card's charts are; drawn at its own width
+   their turns grey, the rest ink, a dashed now line with an open dot and
+   no word on it, nights shaded as the Tide card's charts are — from under
+   a top row naming the day's sunrise and sunset (the shading's own edges,
+   `daylight`'s sea horizon at the center break, packed in order by
+   `briefRow`) to just above the times, so every height sits on the
+   shading (owner's requests, 2026-10-24); drawn at its own width
    (`fitBriefTide`, a ResizeObserver, as the fold opens); tapped,
    "Predicted · NOAA 9410170 · departure +1.5 ft (0.46 m)". The record
    keeps the turns, never the curve (`unsparked`). Each turn's words
