@@ -3831,9 +3831,16 @@ class TestTheBriefing:
         Briefing. Its scroll stays its own except while it rests at its top."""
         assert "overscroll-behavior:contain}" in SOURCE
         assert ".briefing .fold-body.at-top{overscroll-behavior-y:auto}" in SOURCE
-        assert '<div class="fold-body at-top" id="brief-body"' in self.BLOCK
-        assert ('if (e.target.id === "brief-body") e.target.classList.toggle("at-top", '
-                'e.target.scrollTop <= 0);\n  }, {capture: true, passive: true});') in SOURCE
+        assert '<div class="fold-body${BRIEF_SCROLL > 0 ? "" : " at-top"}" id="brief-body"' in self.BLOCK
+        assert ('    BRIEF_SCROLL = e.target.scrollTop;\n'
+                '    e.target.classList.toggle("at-top", BRIEF_SCROLL <= 0);\n'
+                '  }, {capture: true, passive: true});') in SOURCE
+
+    def test_a_redraw_keeps_the_readers_place(self):
+        """Owner's request, 2026-10-24: an automatic refresh no longer puts the
+        open Briefing back at its top."""
+        assert ('  $("briefing").innerHTML = brief;\n  fitBriefTide();\n') in SOURCE
+        assert "if (briefBody && BRIEF_SCROLL > 0) briefBody.scrollTop = BRIEF_SCROLL;" in SOURCE
 
     def test_it_is_live_only(self):
         assert 'const brief = forecasting ? "" : briefingFold(BRIEFING);' in SOURCE

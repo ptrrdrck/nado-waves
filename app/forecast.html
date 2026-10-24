@@ -1930,6 +1930,8 @@ const briefDot = '<i class="status" style="margin-left:6px;vertical-align:1px" r
 // Whether the Briefing is open: one state, kept across a refresh like
 // Origin's. Open on an update is that update read.
 let BRIEF_OPEN = false;
+// Where the open fold is scrolled to, so a redraw keeps the reader's place.
+let BRIEF_SCROLL = 0;
 function setBriefOpen(open) {
   BRIEF_OPEN = open;
   remember(KEEP.briefOpen, open ? "open" : "closed");
@@ -1956,7 +1958,7 @@ function briefingFold(B) {
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
-    <div class="fold-body at-top" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
+    <div class="fold-body${BRIEF_SCROLL > 0 ? "" : " at-top"}" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
       ${blocks.map((b) => (b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
         : b === parts.conditions
         ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
@@ -6458,6 +6460,10 @@ function show() {
   $("briefing").hidden = !brief;
   $("briefing").innerHTML = brief;
   fitBriefTide();
+  // A redraw keeps the reader's place in the open fold (owner's request,
+  // 2026-10-24: every refresh put it back at its top).
+  const briefBody = $("brief-body");
+  if (briefBody && BRIEF_SCROLL > 0) briefBody.scrollTop = BRIEF_SCROLL;
   // An update drawn into an open fold has been read.
   if (brief && BRIEF_OPEN) briefSeen();
   $("tab-now").setAttribute("aria-selected", String(!forecasting));
@@ -6886,10 +6892,12 @@ function boot(data, observed, measured, series, windtide) {
 
   wireGate();
   // At its top the Briefing hands a swipe down on to the page (see its CSS).
-  // Scroll does not bubble, so the listener captures; a redraw starts it at
-  // its top again, with the class in its markup.
+  // Scroll does not bubble, so the listener captures; it keeps the place a
+  // redraw returns to (`BRIEF_SCROLL`), and the class is in the markup.
   $("briefing").addEventListener("scroll", (e) => {
-    if (e.target.id === "brief-body") e.target.classList.toggle("at-top", e.target.scrollTop <= 0);
+    if (e.target.id !== "brief-body") return;
+    BRIEF_SCROLL = e.target.scrollTop;
+    e.target.classList.toggle("at-top", BRIEF_SCROLL <= 0);
   }, {capture: true, passive: true});
   $("briefing").addEventListener("click", (e) => {
     if (e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
