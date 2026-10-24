@@ -209,15 +209,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-when{font-size:12px;color:var(--faint);padding-left:83px;margin-top:-3px}
 /* The day's tide as a curve (owner's choice, 2026-10-23): greys and ink,
    the hours gone grey, nights shaded as the Tide card's charts are. */
-.brief-tide{display:block;width:100%;height:132px;padding:0;margin:0;border:0;background:none;font:inherit;
+.brief-tide{display:block;width:100%;height:148px;padding:0;margin:0;border:0;background:none;font:inherit;
             color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .brief-tide svg{display:block;overflow:visible}
 .brief-tide path{fill:none;stroke-linejoin:round}
 .brief-tide path.gone{stroke:var(--faint);stroke-width:1.4}
 .brief-tide path.ahead{stroke:var(--ink);stroke-width:1.8}
 .brief-tide .night{fill:var(--ink);opacity:.04}
-.brief-tide .now{stroke:var(--ink);stroke-width:1;stroke-dasharray:2 2}
-.brief-tide .now-label{font-size:10.5px;letter-spacing:.04em;fill:var(--faint);text-anchor:middle}
+.brief-tide svg.sun{overflow:visible;fill:none;stroke:var(--ink);stroke-width:1.9;stroke-linecap:round;
+                    stroke-linejoin:round}
+.brief-tide svg.sun.gone{stroke:var(--faint)}
 .brief-tide .now-dot{fill:var(--paper);stroke:var(--ink);stroke-width:1.6}
 .brief-tide circle.turn{fill:var(--ink)}
 .brief-tide circle.turn.gone{fill:var(--faint)}
@@ -1877,8 +1878,11 @@ function briefCondRow(r, B) {
 // choice, 2026-10-23, replacing the ledger of the same day): Coronado's
 // midnight to midnight, strictly today, each turn's height by its dot --
 // above a high, below a low -- and its time on the axis under it; the hours
-// gone grey and the rest ink, a dashed now line with an open dot where the
-// tide is now, nights faintly shaded as the Tide card's charts are. Tapped,
+// gone grey and the rest ink, an open dot where the tide is now (no line
+// and no word: owner's calls, 2026-10-24), nights shaded as the Tide card's charts
+// are, from under a row of the day's sunrise and sunset to just above the
+// turns' times, so every height sits on the shading (owner's requests,
+// 2026-10-24). Tapped,
 // what it stands on. Its words are the ledger's (`briefTideText`), so the
 // curve was no update.
 const briefHalf = (iso) => (Number(new Date(iso).toLocaleString("en-US",
@@ -1892,7 +1896,7 @@ function briefTides(B) {
     at: x.valid_utc, m: x.height_m, event: x.event, when}));
 }
 const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;
-const BRIEF_TIDE_H = 132;
+const BRIEF_TIDE_H = 148;
 // A smooth line through the curve's points (Catmull-Rom as cubic Béziers):
 // the half-hourly prediction drawn as a tide, not as a polyline.
 function briefSmooth(pts) {
@@ -1905,10 +1909,44 @@ function briefSmooth(pts) {
   }
   return d;
 }
+// Labels on one row: each {x, w} centred as near its x as it can be, in
+// order, BRIEF_ROW_GAP apart and inside [0, W]; sets each one's cx.
+const BRIEF_ROW_GAP = 8;
+function briefRow(labels, W) {
+  const ls = [...labels].sort((a, b) => a.x - b.x);
+  ls.forEach((l, i) => {
+    l.cx = Math.max(l.x, l.w / 2, i ? ls[i - 1].cx + ls[i - 1].w / 2 + BRIEF_ROW_GAP + l.w / 2 : -Infinity);
+  });
+  for (let i = ls.length - 1; i >= 0; i--) {
+    const l = ls[i];
+    l.cx = Math.min(l.cx, W - l.w / 2, i < ls.length - 1 ? ls[i + 1].cx - ls[i + 1].w / 2 - BRIEF_ROW_GAP - l.w / 2 : Infinity);
+  }
+  return ls;
+}
+// The day's sunrise and sunset, oldest first: the edges of the shading's
+// nights that fall inside the day (a night clipped at midnight has none).
+function briefSuns(T) {
+  const out = [];
+  for (const [a, b] of T.nights || []) {
+    if (Date.parse(a) > Date.parse(T.start_utc)) out.push({rise: false, at: a});
+    if (Date.parse(b) < Date.parse(T.end_utc)) out.push({rise: true, at: b});
+  }
+  return out.sort((p, q) => Date.parse(p.at) - Date.parse(q.at));
+}
+// Sunrise and sunset as icons (owner's choice, 2026-10-24): the horizon,
+// the half sun on it, and an arrow up for sunrise and down for sunset, in
+// the turns' times' ink, grey once passed.
+const BRIEF_SUN_ICON = 16;
+const BRIEF_SUN = {rise: '<path d="M1 21h22M17 21a5 5 0 0 0-10 0M12 3v7M8.5 6.5 12 3l3.5 3.5"/>',
+                   set: '<path d="M1 21h22M17 21a5 5 0 0 0-10 0M12 3v7M8.5 6.5 12 10l3.5-3.5"/>'};
 function briefTideChart(B, rows, W, nowMs = Date.now()) {
   const T = B.tide || {}, curve = T.curve || [];
   if (curve.length < 2 || !T.start_utc || !T.end_utc || W <= 0) return "";
-  const H = BRIEF_TIDE_H, top = 30, bot = 34;
+  // A top row for the sun, the shaded day under it from just below
+  // that row to just above the turns' times, so every height sits on it
+  // (owner's request, 2026-10-24), and the curve inside it with room for a
+  // high's label above it and a low's below.
+  const H = BRIEF_TIDE_H, shadeTop = 16, shadeBot = H - 20, top = shadeTop + 22, bot = H - shadeBot + 22;
   const t0 = Date.parse(T.start_utc) / 1000, t1 = Date.parse(T.end_utc) / 1000, now = nowMs / 1000;
   const hs = curve.map((p) => p[1]).concat(rows.map((r) => r.m));
   const lo = Math.min(...hs), hi = Math.max(...hs);
@@ -1924,7 +1962,8 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
   const xn = X(now), today = now >= t0 && now <= t1;
   const shade = (T.nights || []).map(([a, b]) => {
     const x0 = Math.max(0, X(Date.parse(a) / 1000)), x1 = Math.min(W, X(Date.parse(b) / 1000));
-    return x1 > x0 ? `<rect class="night" x="${x0.toFixed(1)}" y="0" width="${(x1 - x0).toFixed(1)}" height="${H - bot + 6}"/>` : "";
+    return x1 > x0 ? `<rect class="night" x="${x0.toFixed(1)}" y="${shadeTop}" width="${(x1 - x0).toFixed(1)}"`
+      + ` height="${shadeBot - shadeTop}"/>` : "";
   }).join("");
   // Each label kept inside the drawing: centred on its turn where it fits.
   const inside = (x, w) => Math.max(w / 2, Math.min(W - w / 2, x));
@@ -1935,9 +1974,24 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
     const i = curve.findIndex((p) => p[0] >= now);
     const yn = i > 0 ? curve[i - 1][1] + (curve[i][1] - curve[i - 1][1]) * (now - curve[i - 1][0]) / (curve[i][0] - curve[i - 1][0])
       : null;
-    s += `<path class="now" d="M${xn.toFixed(1)},12V${H - bot + 6}"/>`
-      + `<text class="now-label" x="${inside(xn, 26).toFixed(1)}" y="8">NOW</text>`
-      + (yn != null ? `<circle class="now-dot" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4"/>` : "");
+    if (yn != null) s += `<circle class="now-dot" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4"/>`;
+  }
+  // Sunrise and sunset above the shading, at the edges of its nights inside
+  // the day (owner's request, 2026-10-24): the times the shading is drawn
+  // from (`forecast.daylight`, the sea horizon at the center break), each
+  // as near its edge as the row allows (`briefRow`), an icon and the time
+  // set as the turns' times are, grey once passed (owner's choices, same
+  // day). Now is the open dot on the curve alone, no line and no word
+  // (owner's calls, same day): the curve grey before it and ink after
+  // already says what it is.
+  const labels = briefSuns(T).map((u) => ({...u, time: clock(u.at), x: X(Date.parse(u.at) / 1000),
+    w: BRIEF_SUN_ICON + 4 + 6.6 * clock(u.at).length}));
+  for (const l of briefRow(labels, W)) {
+    const x0 = l.cx - l.w / 2, gone = Date.parse(l.at) / 1000 < now;
+    s += `<svg class="sun${gone ? " gone" : ""}" x="${x0.toFixed(1)}" y="-2" width="${BRIEF_SUN_ICON}"`
+      + ` height="${BRIEF_SUN_ICON}" viewBox="0 0 24 24">${BRIEF_SUN[l.rise ? "rise" : "set"]}</svg>`
+      + `<text class="time${gone ? " gone" : ""}" x="${(x0 + BRIEF_SUN_ICON + 4).toFixed(1)}" y="12"`
+      + ` style="text-anchor:start">${l.time}</text>`;
   }
   for (const r of rows) {
     const t = Date.parse(r.at) / 1000, x = X(t), y = Y(r.m), gone = t < now, high = r.event === "high";
@@ -1953,7 +2007,8 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
 // button whose tap says what it stands on, as a ledger row's does.
 function briefTideBlock(rows, B) {
   const open = BRIEF_ROWS.has("tide");
-  const said = rows.map((r) => `${r.label} ${(r.m * FT_PER_M).toFixed(1)} feet at ${r.time}`).join(", ");
+  const said = rows.map((r) => `${r.label} ${(r.m * FT_PER_M).toFixed(1)} feet at ${r.time}`)
+    .concat(briefSuns(B.tide || {}).map((u) => `${u.rise ? "sunrise" : "sunset"} ${clock(u.at)}`)).join(", ");
   return `<button type="button" class="brief-tide" data-brief-row="tide" data-brief-tide aria-expanded="${open}"`
     + ` aria-label="Today's tide, predicted: ${said}"></button>`
     + `<div class="brief-when brief-when-tide"${open ? "" : " hidden"}>${rows[0].when}</div>`;
