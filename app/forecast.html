@@ -164,11 +164,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
 .brief-block .unit{color:inherit}
 /* The swell's sentences a line each, a little apart (owner's request,
-   2026-10-23); each of Tanner Banks' ends on an "offshore" tag set as the
-   cards' "wind sea" and "predicted" are, and its words are plain. The
-   beach's range is a headline (owner's choices, same day), its last 24 h a
-   sparkline beside it, and each train a line under it; Tanner Banks'
-   points hang in the ledger's small caps. */
+   2026-10-23). The beach's range is a headline (owner's choices, same day),
+   its last 24 h a sparkline beside it, and each train a line under it.
+   Tanner Banks' lines are plain words, each opening on its point, with a
+   grey signal mark hung in the margin turned the way the swell travels
+   (owner's choice, 2026-10-24). */
 .brief-block.brief-swell{gap:6px}
 .brief-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .brief-big{font-size:27px;line-height:1.1;letter-spacing:-.01em;min-width:0}
@@ -177,10 +177,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-sep{color:var(--faint);margin:0 6px}
 .brief-head .brief-trend{flex:none}
 .brief-sub + .brief-hang{margin-top:4px}
-.brief-hang{display:grid;grid-template-columns:30px minmax(0,1fr);column-gap:6px;align-items:baseline;
+.brief-hang{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:start;
             font-size:14.5px}
-.brief-block .tag{font-size:11px;color:var(--faint);text-transform:uppercase;
-                  letter-spacing:.06em;margin-left:5px;white-space:nowrap}
+.brief-signal{display:block;width:16px;height:16px;margin-top:3px;overflow:visible}
+.brief-signal circle{fill:var(--faint)}
+.brief-signal path{fill:none;stroke:var(--faint);stroke-width:1.3;stroke-linecap:round}
 .brief-block + .brief-block{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .brief-num{color:var(--ink);font-weight:600}
 /* The conditions as a ledger (owner's calls, 2026-10-23): name in the
@@ -1622,10 +1623,16 @@ const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: tru
 // conditions), three blocks apart by the cards' fold
 // rule; every number that says something in ink and heavier (`briefNum`).
 // Never the model: GFS-Wave is the Forecast tab's.
-// Tanner Banks' sectors by their points, each line tagged "offshore"
-// (owner's wording, 2026-10-23).
+// Tanner Banks' sectors by their points, each opening its line (owner's
+// wording, 2026-10-23 and -24).
 const BRIEF_SECTOR = {west: "W", "north-west": "NW"};
-const BRIEF_OFFSHORE = ' <span class="tag">offshore</span>';
+// A signal from far away (owner's choice, 2026-10-24): a dot, the origin,
+// sending two arcs. Drawn pointing north and turned to the swell's direction
+// of TRAVEL, its sector's middle plus 180°, so the arcs run the way the swell
+// goes. Grey, in the margin where the point hung; the words say "offshore".
+const briefSignal = (fromDeg) => `<svg class="brief-signal" viewBox="-7 -5.5 14 14" aria-hidden="true">`
+  + `<g transform="rotate(${(fromDeg + 180) % 360} 0 1.5)"><circle cx="0" cy="4.5" r="1.6"/>`
+  + `<path d="M-3.06 1.93A4 4 0 0 1 3.06 1.93M-5.75 -0.32A7.5 7.5 0 0 1 5.75 -0.32"/></g></svg>`;
 const BRIEF_SEEN = "nado-waves.brief-seen";
 // A number that says something, with its unit: ink, heavier than the words
 // round it; its metric stays outside, grey.
@@ -1659,11 +1666,12 @@ const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
 // where it comes from offshore (its row's heading, never the 5 m one), its
 // period, and its status: its band at the buoy (`briefing.train_trend`),
 // with no trend mark. Then, a line each, every west or north-west swell
-// Tanner Banks holds, its point hung in the conditions' small caps, in
-// plain words, tagged "offshore", due by deep-water speed (BRIEFING §43)
-// until it has arrived at the breaks, then "arriving since" -- judged at
-// the build, so the words are the build's -- and its trend there. A slot
-// with no value drops with its words.
+// Tanner Banks holds whose next band is still to reach the breaks
+// (`briefing.next_band`), in plain words opening on its point, its trend
+// there said as offshore's, and when that band is due by deep-water speed
+// (BRIEFING §43); once its last band has passed it is the headline's to
+// show (owner's calls, 2026-10-24). A slot with no value drops with its
+// words.
 function briefSwell(B) {
   const s = B.swell || {};
   if (s.dark) {
@@ -1688,16 +1696,13 @@ function briefSwell(B) {
   for (const c of s.coming || []) {
     const legs = c.legs || [];
     const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
-    const head = `${c.band_s[0]}–${c.band_s[1]} s first`;
-    const trend = c.trend ? `, ${c.trend}` : "";
-    const key = BRIEF_SECTOR[c.sector] || c.sector;
-    if (c.arrives_utc && Date.parse(c.arrives_utc) <= Date.parse(B.built_utc)) {
-      out.push({kind: "off", key, body: `${head}, arriving since about ${briefAt(c.arrives_utc, B)}${trend}.${BRIEF_OFFSHORE}`});
-    } else {
-      out.push({kind: "off", key, body: `${head}${trend}; `
-        + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefAt(c.due_buoy_utc, B)}`
-        + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + `.${BRIEF_OFFSHORE}`});
-    }
+    const head = `${BRIEF_SECTOR[c.sector] || c.sector} ${c.band_s[0]}–${c.band_s[1]} s`;
+    // Its trend is Tanner Banks' own, so it is said as offshore's.
+    const off = `${c.trend ? `${c.trend} ` : ""}offshore`;
+    const from = (c.sector_deg[0] + c.sector_deg[1]) / 2;
+    out.push({kind: "off", from, body: `${head}, ${off}; `
+      + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefAt(c.due_buoy_utc, B)}`
+      + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + "."});
   }
   return out;
 }
@@ -1705,7 +1710,7 @@ function briefSwell(B) {
 // range, each train as a sentence, each Tanner Banks line as it reads.
 const briefSwellText = (r) => (r.kind === "beach" ? `${r.range}.`
   : r.kind === "train" ? `${r.html}${r.trend ? `, ${r.trend}` : ""}.`
-  : r.kind === "off" ? `${r.key}, ${r.body}` : r.html);
+  : r.kind === "off" ? r.body : r.html);
 function briefSwellRow(r) {
   if (r.kind === "beach") {
     return `<div class="brief-head"><div class="brief-big">${r.range}</div>`
@@ -1715,7 +1720,7 @@ function briefSwellRow(r) {
   if (r.kind === "train") {
     return `<div class="brief-sub">${r.html}${r.trend ? `<span class="brief-sep">·</span>${r.trend}` : ""}</div>`;
   }
-  if (r.kind === "off") return `<div class="brief-hang"><span class="brief-key">${r.key}</span><span>${r.body}</span></div>`;
+  if (r.kind === "off") return `<div class="brief-hang">${briefSignal(r.from)}<span>${r.body}</span></div>`;
   return `<span class="brief-line">${r.html}</span>`;
 }
 

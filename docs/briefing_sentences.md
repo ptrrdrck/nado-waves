@@ -28,11 +28,11 @@ SW3. 2–5 ft (0.6–1.5 m).  (B1)
 
 SW4. S at 18.2 s, building.  (B1)
 
-SW5. W, 10–12 s first, building; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later. offshore  (B1, C1)
+SW5. W 10–12 s, building offshore; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.  (B1, C1)
 
 SW6. SSW at 13.3 s, peaking.  (C1)
 
-SW7. NW, 14–17 s first, arriving since about Oct 21, 7:29 PM, fading. offshore  (C1)
+SW7. NW 14–17 s, fading offshore; due at Point Loma South around 9:50 AM, and at the breaks 39–53 min later.  (C1)
 
 SW8. SSW at 15.4 s, fading.  (M1)
 
@@ -78,7 +78,7 @@ CO6. Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  (C1)
 
 - **Q1**: a quiet morning: one range, nothing coming, no rain
 - **B1**: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
-- **C1**: two sectors offshore, one arrived and fading; rain earlier in the day only
+- **C1**: two sectors offshore, each still to reach the breaks; rain earlier in the day only
 - **M1**: a mix: every swell train at the breaks at half the biggest's height or more, a line each, one a compass point
 - **H1**: the lead train has no heading, and no status yet: their slots drop with their words
 - **D1**: 46232 dark: the swell says so and nothing else
