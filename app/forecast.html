@@ -48,7 +48,7 @@
 /* No double-tap zoom anywhere (owner's request, 2026-10-25): a page this
    dense in taps zoomed on two quick ones and left the layout off-screen.
    manipulation keeps pinch zoom and scrolling; set on every element, not
-   the root alone, because the Briefing scrolls inside itself and a scroller
+   the root alone, because the Briefing scrolls inside itself: a scroller
    ends the ancestors' say. Zero specificity, so the charts' pan-y stands. */
 *{box-sizing:border-box;touch-action:manipulation}
 [hidden]{display:none!important}

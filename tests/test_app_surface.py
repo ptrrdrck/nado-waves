@@ -896,13 +896,6 @@ class TestThePageIsSelfContainedAndThemed:
     def test_body_has_an_explicit_background(self):
         assert re.search(r"body\{[^}]*background:var\(--paper\)", TEXT.replace(" ", ""))
 
-    def test_a_double_tap_never_zooms_the_page(self):
-        """Owner's request, 2026-10-25. Every element, so the Briefing's own
-        scroller is covered; pinch zoom stays, which user-scalable=no would take."""
-        css = SOURCE[:SOURCE.index("</style>")]
-        assert "*{box-sizing:border-box;touch-action:manipulation}" in css
-        assert "user-scalable" not in SOURCE and "maximum-scale" not in SOURCE
-
     def test_it_loads_no_script_from_a_third_party(self):
         assert not re.search(r"<script[^>]+src=", SOURCE)
 
@@ -4115,3 +4108,17 @@ class TestAStaleReadingGreys:
         assert not any(".ring" in line or ".pt" in line for line in css)
         drawing = [line for line in css if ".aperture.aged" in line]
         assert drawing and all(".swell.lead" in line for line in drawing)
+
+
+@pytest.mark.parametrize("page", sorted(APP.parent.glob("*.html")), ids=lambda p: p.name)
+def test_a_double_tap_never_zooms_and_a_pinch_always_does(page):
+    """Owner's request, 2026-10-25: every page, pinch zoom kept everywhere.
+    Every element, so a box that scrolls on its own is covered too; and no
+    viewport may take the pinch, which user-scalable=no or a maximum-scale
+    would, in the page or the head `forecast.publish` wraps it in."""
+    from forecast import publish
+    text = page.read_text(encoding="utf-8")
+    css = text[:text.index("</style>")]
+    assert "*{box-sizing:border-box;touch-action:manipulation}" in css
+    for source in (text, publish.HEAD):
+        assert "user-scalable" not in source and "maximum-scale" not in source
