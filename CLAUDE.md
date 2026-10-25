@@ -1063,9 +1063,15 @@ forecaster actually verifies against, Surfline included.
   break's line) by KNZY, Tide's height by the gauge. NOT the calculation
   table or Origin (right for the reading they were made from), the
   provenance, or the tide's predicted turn; on the drawing only the leading
-  train's arrow. A rose greys PER FRAME by that frame's own age — petals and
-  the line under it, Period's bands kept in order up to `--faint` — never the
-  rings or N / E / S / W, so a current buoy's loop greys its older frames.
+  train's arrow. A rose frame greys only if it was itself the stale
+  reading (`roseAged`): more than 3 h from its stamp to the NEXT frame's
+  stamp, or to now for the newest — petals and the line under them,
+  Period's bands kept in order up to `--faint` — never the rings or
+  N / E / S / W. A frame replaced in time stays in ink however old it grows
+  in the loop: greying frames by their age today greyed every current
+  buoy's 3–6 h frames, and greying the whole rose with its newest frame was
+  wrong too (owner's calls, same day). Stamps, not arrival times, by the
+  owner's call.
   Red "Overdue" starts long before this, at each source's late instant.
 - **A cadence promised on screen must match the trigger that keeps it.**
   `COLLECT_INTERVAL_MIN` in `forecast/now.py` feeds each Now card's countdown.

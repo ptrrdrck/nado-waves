@@ -4074,7 +4074,7 @@ class TestAStaleReadingGreys:
         start = SOURCE.index("const roseTime")
         body += SOURCE[start:SOURCE.index(";\n", start) + 2]
         start = SOURCE.index("const roseAged")
-        body += SOURCE[start:SOURCE.index(";\n", start) + 2]
+        body += SOURCE[start:SOURCE.index("\n};\n", start) + 4]
         return subprocess.run([node, "-e", "let NOW = {stale_hours: 3};\n" + body + script],
                               capture_output=True, text=True, check=True).stdout.strip()
 
@@ -4084,13 +4084,19 @@ class TestAStaleReadingGreys:
             "console.log(agedAttr(null, true));\n"
             "console.log(JSON.stringify(agedAttr(null)));\n"
             "const ago = (h) => new Date(Date.now() - h * 3600000).toISOString();\n"
-            "console.log(roseAged({frame: {time_utc: ago(2.9)}}), roseAged({frame: {time_utc: ago(3.1)}}),"
-            " roseAged({}));"
+            "const at = (frames, k) => roseAged({frames}, {frame: frames[k], k});\n"
+            "const fresh = [{time_utc: ago(5)}, {time_utc: ago(4)}, {time_utc: ago(2.9)}];\n"
+            "const stale = [{time_utc: ago(5)}, {time_utc: ago(4)}, {time_utc: ago(3.1)}];\n"
+            "const gap = [{time_utc: ago(5.5)}, {time_utc: ago(2)}];\n"
+            "console.log(at(fresh, 0), at(fresh, 1), at(fresh, 2), '|', at(stale, 0), at(stale, 1), at(stale, 2),"
+            " '|', at(gap, 0), at(gap, 1), '|', roseAged({frames: []}, {}));"
         ).splitlines()
         assert got[0].strip() == 'data-aged-at="2026-10-25T15:00:00.000Z"'
         assert got[1].strip() == 'data-aged-at="" data-aged-force="1"'
         assert got[2] == '""'
-        assert got[3] == "false true false"
+        # A frame replaced in time stays in ink however old; only the newest
+        # greys once stale, and a frame left over 3 h before a gap stays grey.
+        assert got[3] == "false false false | false false true | true false | false"
 
     def test_the_tick_flips_it_both_ways(self):
         tick = SOURCE[SOURCE.index("function tickDue"):]
