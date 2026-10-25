@@ -957,7 +957,9 @@ forecaster actually verifies against, Surfline included.
    no next day's turn at the edge — each turn's height by its dot (above a
    high, below a low) and its time on the axis under it, the hours gone and
    their turns grey, the rest ink, now an open dot on the curve alone (no
-   line, no word), nights shaded as the Tide card's charts are — from under
+   line, no word) with a ring rippling out of it — to 3× over 2 s as it
+   fades, then 1 s of rest, its phase the clock's so a redraw never
+   restarts it, none under reduced motion (owner's choice, 2026-10-25) — nights shaded as the Tide card's charts are — from under
    a top row with the day's sunrise and sunset, each an icon (horizon, half
    sun, arrow up or down; `BRIEF_SUN`) beside its time, set as the turns'
    times are and grey once passed (the shading's own edges,
