@@ -957,9 +957,13 @@ forecaster actually verifies against, Surfline included.
    no next day's turn at the edge — each turn's height by its dot (above a
    high, below a low) and its time on the axis under it, the hours gone and
    their turns grey, the rest ink, now an open dot on the curve alone (no
-   line, no word) with a ring rippling out of it — to 3× over 2 s as it
-   fades, then 1 s of rest, its phase the clock's so a redraw never
-   restarts it, none under reduced motion (owner's choice, 2026-10-25) — nights shaded as the Tide card's charts are — from under
+   line, no word) with a ring rippling out of it — to 3× over 2.6 s as it
+   fades, then 2 s of rest (`BRIEF_RING`), none under reduced motion
+   (owner's choices, 2026-10-25). A Web Animation counted from the page's
+   timeline (`ringNow`, startTime 0), never a CSS animation: the chart is
+   redrawn every minute and on every width change, each time a new ring,
+   and a CSS one restarted on each even with a clock-set negative delay
+   (measured the same day: phase jumps of 1.5–2.5 s, now 0) — nights shaded as the Tide card's charts are — from under
    a top row with the day's sunrise and sunset, each an icon (horizon, half
    sun, arrow up or down; `BRIEF_SUN`) beside its time, set as the turns'
    times are and grey once passed (the shading's own edges,

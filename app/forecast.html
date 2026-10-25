@@ -225,16 +225,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                     stroke-linejoin:round}
 .brief-tide svg.sun.gone{stroke:var(--faint)}
 .brief-tide .now-dot{fill:var(--paper);stroke:var(--ink);stroke-width:1.6}
-/* The now ring (owner's choice, 2026-10-25): from the dot's own size to 3x
-   over 2 s while it fades, easing out like a ripple, then 1 s of rest;
-   its line stays the dot's width as it grows. None under reduced motion. */
+/* The now ring (owner's choices, 2026-10-25): from the dot's own size to
+   3x while it fades, easing out like a ripple, then a rest (`ringNow`);
+   its line stays the dot's width as it grows. Unseen until animated, and
+   none under reduced motion. */
 .brief-tide .now-ring{fill:none;stroke:var(--ink);stroke-width:1.6;vector-effect:non-scaling-stroke;
-                      transform-box:fill-box;transform-origin:center;animation:brief-now-ring 3s infinite}
-@keyframes brief-now-ring{
-  0%{transform:scale(1);opacity:.7;animation-timing-function:cubic-bezier(.2,.6,.3,1)}
-  66.667%{transform:scale(3);opacity:0}
-  100%{transform:scale(3);opacity:0}
-}
+                      transform-box:fill-box;transform-origin:center;opacity:0}
 @media (prefers-reduced-motion: reduce){ .brief-tide .now-ring{display:none} }
 .brief-tide circle.turn{fill:var(--ink)}
 .brief-tide circle.turn.gone{fill:var(--faint)}
@@ -1955,9 +1951,26 @@ function briefTides(B) {
 }
 const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;
 const BRIEF_TIDE_H = 151;
-// The now ring's cycle: 2 s growing to 3× while it fades, then 1 s of rest
-// (`brief-now-ring`; owner's choice, 2026-10-25).
-const BRIEF_RING_MS = 3000;
+// The now ring's cycle: 2.6 s growing to 3× while it fades, then 2 s of
+// rest (owner's choices, 2026-10-25, slowed from 2 s and 1 s the same day).
+const BRIEF_RING_GROW_MS = 2600, BRIEF_RING_REST_MS = 2000;
+const BRIEF_RING_MS = BRIEF_RING_GROW_MS + BRIEF_RING_REST_MS;
+const BRIEF_RING = [
+  {offset: 0, transform: "scale(1)", opacity: 0.7, easing: "cubic-bezier(.2,.6,.3,1)"},
+  {offset: BRIEF_RING_GROW_MS / BRIEF_RING_MS, transform: "scale(3)", opacity: 0},
+  {offset: 1, transform: "scale(3)", opacity: 0}];
+// Set the ring going, its cycle counted from the page's own timeline
+// (startTime 0) rather than from when this ring was drawn: the chart is
+// redrawn every minute and on every width change, each time a new ring,
+// and a CSS animation (even one given a clock-set negative delay) began
+// again from its start on each, which the owner saw on 2026-10-25.
+function ringNow(el) {
+  const ring = el.querySelector(".now-ring");
+  if (!ring || typeof ring.animate !== "function") return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const a = ring.animate(BRIEF_RING, {duration: BRIEF_RING_MS, iterations: Infinity});
+  a.startTime = 0;
+}
 // The times' ink: the cap height of the times' 11.5 px (8 px, measured in
 // painted pixels: the font's own metrics said 9), and the gap kept between
 // the shading and the times on both sides of it, the sun row's above and
@@ -2045,11 +2058,9 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
     const yn = i > 0 ? curve[i - 1][1] + (curve[i][1] - curve[i - 1][1]) * (now - curve[i - 1][0]) / (curve[i][0] - curve[i - 1][0])
       : null;
     // A ring under the dot that grows and fades, then rests (owner's
-    // choice, 2026-10-25), its phase set by the clock so a redraw carries
-    // it on rather than restarting it.
-    const ring = `animation-delay:-${((nowMs % BRIEF_RING_MS) / 1000).toFixed(2)}s`;
+    // choice, 2026-10-25), set going by `ringNow` once drawn.
     if (yn != null) {
-      s += `<circle class="now-ring" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4" style="${ring}"/>`
+      s += `<circle class="now-ring" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4"/>`
         + `<circle class="now-dot" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4"/>`;
     }
   }
@@ -2096,6 +2107,7 @@ function drawBriefTide(el) {
   if (!width || !BRIEFING) return;
   TIDE_WIDTH.set(el, width);
   el.innerHTML = briefTideChart(BRIEFING, briefTides(BRIEFING), width);
+  ringNow(el);
 }
 const tideResize = typeof ResizeObserver === "undefined" ? null
   : new ResizeObserver((entries) => entries.forEach(({target, contentRect}) => {

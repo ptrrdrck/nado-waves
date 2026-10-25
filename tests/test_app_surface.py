@@ -3941,11 +3941,14 @@ class TestTheBriefing:
         assert "const xn = X(now), today = now >= t0 && now <= t1;" in chart
         # Now is the open dot alone: no line, no word (owner's calls, 2026-10-24).
         assert 'class="now"' not in chart and "NOW" not in chart and 'class="now-dot"' in chart
-        # The ring under it (2026-10-25): 2 s to 3x, 1 s of rest, its phase
-        # the clock's so a redraw does not restart it, none under reduced motion.
-        assert '<circle class="now-ring"' in chart and "nowMs % BRIEF_RING_MS" in chart
-        assert "animation:brief-now-ring 3s infinite" in SOURCE and "66.667%{transform:scale(3);opacity:0}" in SOURCE
-        assert ".brief-tide .now-ring{display:none}" in SOURCE
+        # The ring under it (2026-10-25): 2.6 s to 3x, 2 s of rest, counted
+        # from the page's timeline so a redraw never restarts it (a CSS
+        # animation did, even with a clock-set delay), none under reduced motion.
+        assert '<circle class="now-ring"' in chart
+        assert "const BRIEF_RING_GROW_MS = 2600, BRIEF_RING_REST_MS = 2000;" in SOURCE
+        assert 'transform: "scale(3)", opacity: 0' in SOURCE and "a.startTime = 0;" in SOURCE
+        assert "ringNow(el);" in SOURCE and ".brief-tide .now-ring{display:none}" in SOURCE
+        assert "@keyframes brief-now-ring" not in SOURCE
         assert 'y="${shadeTop}"' in chart and 'height="${shadeBot - shadeTop}"' in chart
         assert "briefSuns(T)" in chart and "briefRow(labels, W)" in chart
         # Sunrise and sunset as icons, each time set as the turns' are, grey once passed.
