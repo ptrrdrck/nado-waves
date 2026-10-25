@@ -1047,6 +1047,20 @@ forecaster actually verifies against, Surfline included.
   should say so. **46232's `:26`/`:56` is STANDARD MET**, a different product in
   `data/observations/` that no card reads; the Now tab's swell is the hourly
   directional spectrum.
+- **Past `STALE_HOURS` (3 h) a LIVE card's numbers go grey** (owner's call,
+  2026-10-25; `agedAttr`, flipped by `tickDue` on the reader's clock, the
+  build's `stale` a floor): every such text one shade, `--faint` — a
+  secondary train's heading within a few steps on both themes, so secondary
+  rows lose their fade — weights kept, and back to normal when a newer
+  reading lands. Each card its own source: break tabs and 46232's reading by
+  46232's spectrum, 46047 and 46086 by their own, Wind (value and each
+  break's line) by KNZY, Tide's height by the gauge. NOT the calculation
+  table or Origin (right for the reading they were made from), the
+  provenance, or the tide's predicted turn; on the drawing only the leading
+  train's arrow. A rose greys PER FRAME by that frame's own age — petals and
+  the line under it, Period's bands kept in order up to `--faint` — never the
+  rings or N / E / S / W, so a current buoy's loop greys its older frames.
+  Red "Overdue" starts long before this, at each source's late instant.
 - **A cadence promised on screen must match the trigger that keeps it.**
   `COLLECT_INTERVAL_MIN` in `forecast/now.py` feeds each Now card's countdown.
   When the cron said `*/10` and GitHub was delivering one run every four hours,

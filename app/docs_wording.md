@@ -558,6 +558,8 @@ then the page adds its own refresh, every 5 minutes.
 
 It reads “Update in m:ss”, then “Update due” once the typical time has passed. Only past the late time does it turn red and say “Overdue m:ss”, and not until 5 minutes after it plus the page's refresh: a collection takes a few minutes to publish what it fetched, and the update is due, not late, while it does. The publishing lag varies from hour to hour, so one deadline would either cry wolf on every slow hour or promise a time that almost never applies. Hence two figures.
 
+Three hours after a reading, if no newer one has come, the numbers made from it turn grey: each break's height and trains and its drawing's leading arrow on 46232's reading, each buoy's on its own, the Wind card's on KNZY's and the Tide card's height on the gauge's. They return to their usual colours when a newer reading lands. The calculation table, Origin, the provenance and the tide's predicted turn keep their colours. On a rose, each frame more than three hours old is grey, its petals and the line under it, so a looping rose greys its older frames.
+
 ## [wind] The Wind card
 
 ### [wind-three] Three winds
@@ -841,6 +843,8 @@ Until that record exists, no figure on the forecast page states how well it does
   The next reading is expected and nothing is wrong yet: the source is at the slow end of its usual lag.
 - **“Overdue m:ss” in red**
   Past the latest the source normally takes. The reading on screen is still the newest there is.
+- **Grey numbers on a card**
+  The reading they were made from is more than three hours old. They return to their usual colours when a newer one lands.
 - **“not in yet”**
   The buoy's spectrum for that hour has not been collected yet. It usually lands 15–35 minutes after the hour.
 - **“The calculation for this hour was not kept.”**

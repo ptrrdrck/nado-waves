@@ -754,6 +754,24 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .rose .legend span{white-space:nowrap}
 .rose .legend.off{visibility:hidden}
 .rose .legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 0}
+
+/* A reading past the three-hour stale limit greys its numbers (owner's call,
+   2026-10-25; `agedAttr`): every text in one shade, --faint, which is a
+   secondary train's heading within a few steps on both themes, so the
+   secondary rows lose their fade. Weights are kept. On the drawing only the
+   leading train's arrow greys. The id outranks every card rule it replaces. */
+#conditions [data-aged-at].aged,#conditions [data-aged-at].aged *{color:var(--faint)}
+#conditions .trains.aged .train{opacity:1}
+#conditions .aperture.aged .swell.lead line{stroke:var(--faint)}
+#conditions .aperture.aged .swell.lead polygon{fill:var(--faint)}
+/* A rose frame past it, by its own age: the petals and the line under them,
+   never the rings or the points. Period's five bands keep their order, from
+   the faintest rule up to --faint where they ran up to ink. */
+.rose-svg.aged .rp,.rose-svg.aged .rt,.rose-svg.aged .rb4{fill:var(--faint)}
+.rose-svg.aged .rb1{fill:color-mix(in srgb,var(--line-strong) 75%,var(--faint))}
+.rose-svg.aged .rb2{fill:color-mix(in srgb,var(--line-strong),var(--faint))}
+.rose-svg.aged .rb3{fill:color-mix(in srgb,var(--line-strong) 25%,var(--faint))}
+.rose .rose-scale.aged,.rose .rose-scale.aged .v,.rose .rose-scale.aged .v .unit{color:var(--faint)}
 /* The Wind and Tide cards' charts: gusts as dots, the measured direction in
    the measured blue, and the Now tab's predicted tide dashed and soft -- the
    one modelled line on that tab. */
@@ -1213,6 +1231,24 @@ function nowIsStale() {
   return NOW.stale || (observedAge != null && observedAge > limit);
 }
 
+// A LIVE card's numbers turn grey (`--faint`) once the reading they are
+// calculated from is past the build's stale limit, three hours, and return
+// when a newer one lands (owner's call, 2026-10-25). Each card its own
+// source: the swell card's break tabs and 46232's reading by 46232's
+// spectrum, 46047 and 46086 by their own, Wind by KNZY, Tide by the gauge.
+// The calculation table, Origin, the provenance and the tide's predicted
+// turn keep their colours: each was right for the reading it was made from,
+// or is not that reading. `tickDue` flips the class on the reader's clock,
+// so an open page greys on the minute; `force` is the build's own `stale`,
+// a floor as in `nowIsStale`.
+const staleLimitH = () => (NOW && NOW.stale_hours != null ? NOW.stale_hours : 3);
+function agedAttr(iso, force = false) {
+  const at = iso ? new Date(iso).getTime() + staleLimitH() * 3600000 : NaN;
+  if (!Number.isFinite(at) && !force) return "";
+  return ` data-aged-at="${Number.isFinite(at) ? new Date(at).toISOString() : ""}"`
+    + (force ? ' data-aged-force="1"' : "");
+}
+
 const pad2 = (n) => String(n).padStart(2, "0");
 
 // Elapsed time with the leading units dropped while they are zero. A card read
@@ -1362,6 +1398,11 @@ function tickDue() {
     const said = over ? "Overdue" : isDue ? "Update due" : "Receiving normally";
     el.setAttribute("aria-label", said);
     el.setAttribute("title", said);
+  });
+  document.querySelectorAll("[data-aged-at]").forEach((el) => {
+    const at = new Date(el.getAttribute("data-aged-at")).getTime();
+    el.classList.toggle("aged", el.getAttribute("data-aged-force") === "1"
+      || (Number.isFinite(at) && now >= at));
   });
 }
 
@@ -2232,6 +2273,8 @@ function cardsForNow() {
     windKt: NOW.wind ? NOW.wind.speed_kt : null,
     windVariable: !!NOW.wind && NOW.wind.from_deg == null && NOW.wind.speed_kt > 0,
     origin: originFor(b.id),
+    // Every break's numbers are 46232's spectrum, so they grey on its age.
+    aged: agedAttr(NOW.observed_utc, nowIsStale()),
     // The week's hourly chart goes under the drawing. It is the observed
     // chain; the Forecast tab's charts are drawn from its own hours
     // (`fcSteps`), never from these.
@@ -2303,9 +2346,9 @@ function cardsForForecast(step) {
 // One line per train, always (owner's calls, 2026-10-06 and -07). The row
 // carries every form of its heading (`trainForms`), the longest shown, and
 // `fitTrains` steps down to the first that fits the row once it is laid out.
-function trainList(trains, {limit = 4, drawn = () => false, rose = null} = {}) {
+function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = ""} = {}) {
   if (!trains || !trains.length) return "";
-  return `<div class="trains">` + trains.slice(0, limit).map((t, i) => {
+  return `<div class="trains"${aged}>` + trains.slice(0, limit).map((t, i) => {
     const tag = t.local ? "chop" : t.wind_sea ? "ws" : "";
     const forms = trainForms(t, !!tag);
     // On the Buoys tab a row lights its period range on the rose below.
@@ -2477,7 +2520,8 @@ function breakPanel(c) {
   // 2026-09-26), in place of the two lists that followed a rule here. When it
   // cannot be drawn, the list's own sentence says why. The windows' chart
   // provenance is on docs.html's aperture section, vertex by vertex, one tap away.
-  const value = `<span class="val">${c.hsWindow != null
+  const aged = c.aged || "";
+  const value = `<span class="val"${aged}>${c.hsWindow != null
       ? `${height(c.hsWindow)} <span class="unit">${depthLabel(c)}</span>`
       : '<span class="unit">no spectrum</span>'}</span>`;
   const measured = measuredLine(c.measured, (m) => (m.breaks || {})[c.id]);
@@ -2497,7 +2541,7 @@ function breakPanel(c) {
     <div class="src">The calculation for this hour was not kept.</div>`;
   }
 
-  const drawing = windowDrawing(c);
+  const drawing = windowDrawing(c, aged);
   // Which trains have an arrow there, for the list's rows to pick.
   const drawn = (i) => !!drawing
     && (drawing.includes(`data-pick="t${i}"`) || drawing.includes(`data-pick="t${i}-`));
@@ -2516,8 +2560,8 @@ function breakPanel(c) {
   return `
     ${head}
 
-    ${c.trains && c.trains.length ? trainList(c.trains, {drawn}) : `
-    <div class="quiet">
+    ${c.trains && c.trains.length ? trainList(c.trains, {drawn, aged}) : `
+    <div class="quiet"${aged}>
       peak <b>${c.period ? c.period.toFixed(1) + " s" : "—"}</b>
       from <b>${compass(c.direction)}</b>
     </div>`}
@@ -2990,7 +3034,7 @@ const shareText = (share) => {
 // own edge headings and puts its line where "facing" was. Tap it again, or
 // the sand below the chord, to return to the default drawing. A mouse
 // previews on hover; the keyboard reaches every section with Tab.
-function windowDrawing(c) {
+function windowDrawing(c, aged = "") {
   if (c.normal == null || !isFinite(c.normal)) return "";
   const {w, h, cx, cy, r} = DRAW;
   // Bearing -> angle off the normal, -180..180. Negative is the reader's left.
@@ -3179,7 +3223,7 @@ function windowDrawing(c) {
   const geo = svgText(JSON.stringify({cx, cy, r: outer, sections, trains, away: !!away}));
 
   return `<svg class="aperture" viewBox="0 0 ${w} ${h}" role="group" aria-label="${svgText(summary)}"
-    data-break="${c.id}" data-geo="${geo}">
+    data-break="${c.id}" data-geo="${geo}"${aged}>
     <path class="sea" d="${wedge(-90, 90)}"/>
     ${windowPaths}${shading}${rays}${labels.join("")}${arrows}${nears.join("")}
     <line class="chord" x1="${cx - r}" y1="${cy}" x2="${cx + r}" y2="${cy}"/>
@@ -3351,7 +3395,7 @@ function wireDrawings() {
 // (owner's call, 2026-10-06): 46232's reading here, then the card's own
 // provenance lines, which are 46232's, then each context buoy's block after
 // them (`swellCard`'s `after`), its provenance in the same style.
-function buoyPanel(buoy, measured = null, station = null, rose = "") {
+function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "") {
   const line = measuredLine(measured, (m) => m.buoy);
   const id = station && station.id;
   // The sentence under the rose, LIVE only as the rose is: on Forecast the
@@ -3360,7 +3404,7 @@ function buoyPanel(buoy, measured = null, station = null, rose = "") {
   if (!buoy || buoy.hs_m == null) {
     return valLine('<span class="val"><span class="unit">no spectrum</span></span>') + rose + note + line;
   }
-  return buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note}) + line;
+  return buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note, aged}) + line;
 }
 
 // One sentence under each buoy's rose (owner's wording, 2026-10-12): the
@@ -3389,11 +3433,11 @@ const valLine = (val) => `<div class="val-line">${val}</div>`;
 // trains, the rose and the words under them. Closed until opened, each buoy
 // its own, kept across a refresh. Nothing to fold, no caret. Under a past
 // Forecast hour the observed line stays outside it, as on a break's tab.
-function buoyReading(buoy, id, {roseFor = null, rose = "", note = ""} = {}) {
-  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor})
-    : buoy.period_s ? `<div class="quiet">peak <b>${buoy.period_s.toFixed(1)} s</b>`
+function buoyReading(buoy, id, {roseFor = null, rose = "", note = "", aged = ""} = {}) {
+  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor, aged})
+    : buoy.period_s ? `<div class="quiet"${aged}>peak <b>${buoy.period_s.toFixed(1)} s</b>`
       + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
-  const value = `<span class="val">${height(buoy.hs_m)} <span class="unit">combined</span></span>`;
+  const value = `<span class="val"${aged}>${height(buoy.hs_m)} <span class="unit">combined</span></span>`;
   const body = trains + rose + note;
   if (!id || !body) return valLine(value) + body;
   const open = !!BUOY_OPEN[id];
@@ -3489,7 +3533,8 @@ function contextBuoy(b) {
   // What it is, said under its rose and above its provenance with space
   // between (owner's call, 2026-10-11): a description, not a provenance line.
   const note = buoyAbout(b.station);
-  const reading = b.hs_m != null ? buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note})
+  const reading = b.hs_m != null ? buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note,
+                                                             aged: agedAttr(b.observed_utc, !!b.stale)})
     : valLine('<span class="val"><span class="unit">no spectrum</span></span>') + roseBlock(b.station) + note;
   return `<hr>${reading}`
     + srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)], feed);
@@ -3654,6 +3699,12 @@ function rosePetal(i, r0, r1) {
 
 const rosePct = (s) => `${Math.round(s * 100)}%`;
 
+// A frame greys on its OWN age, past the same three hours as the cards
+// (owner's call, 2026-10-25): its petals and the line under it, never the
+// rings or N / E / S / W. So a current buoy's loop greys its older frames.
+const roseAged = (state) => !!state.frame
+  && Date.now() - roseTime(state.frame) > staleLimitH() * 3600000;
+
 function rosePlot(state, mode, station) {
   const {c, r: R} = ROSE;
   const scale = roseScale(mode, station);
@@ -3710,7 +3761,7 @@ function rosePlot(state, mode, station) {
   const when = state.frame ? clock(state.frame.time_utc) : "";
   const aria = state.frame ? `${mode === "height" ? "Height" : "Period"} rose at ${when}: ${said}`
     : state.note;
-  return `<svg class="rose-svg${pick != null ? " picked" : ""}" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
+  return `<svg class="rose-svg${pick != null ? " picked" : ""}${roseAged(state) ? " aged" : ""}" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
     + grid + petals + marks + `</svg>`;
 }
 
@@ -3770,7 +3821,7 @@ function roseView(station) {
   if (!rose || !span) return null;
   const t = roseMoment(span);
   const state = roseAt(rose, t);
-  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}:${rosePick(station)}`,
+  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}:${rosePick(station)}:${roseAged(state) ? "aged" : ""}`,
     rose, span, t, state, station};
 }
 
@@ -3791,7 +3842,7 @@ function roseBlock(station) {
     + ` aria-pressed="${m.id === ROSE_MODE}" aria-label="${m.label}" title="${m.label}">${m.symbol}</button>`).join("");
   return `<div class="rose" data-rose="${station}" data-k="${v.key}">
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
-    <div class="rose-scale" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
+    <div class="rose-scale${roseAged(v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
     <div class="rose-time">${rosePlayButton()}
     <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
@@ -3811,6 +3862,7 @@ function roseUpdate(el) {
     el.setAttribute("data-k", v.key);
     el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE, el.getAttribute("data-rose"));
     el.querySelector(".rose-scale").innerHTML = roseReadout(v.state, el.getAttribute("data-rose"));
+    el.querySelector(".rose-scale").classList.toggle("aged", roseAged(v.state));
     el.querySelector(".rose-line").setAttribute("aria-valuenow", rosePercent(v));
     el.querySelector(".rose-line").setAttribute("aria-valuetext",
       v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);
@@ -6224,7 +6276,7 @@ function cardChart(id) {
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
-                    due = "", measured = null, chart = false, origin = null, buoyRose = ""}) {
+                    due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = ""}) {
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
     origin: c.origin || null,
@@ -6236,7 +6288,7 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   // provenance stays under 46232's reading and each context buoy's under its
   // own; shown and hidden with the tab like its pane.
   tabs.push({id: BUOY_TAB, title: "Buoys",
-             body: buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose),
+             body: buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged),
              after: others.map(contextBuoy).join(""), chart, origin});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
@@ -6270,7 +6322,7 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
 // Now tab only (owner's decision, 2026-09-26). The forecast's wind is
 // GFS-Wave's at the buoy, 29 km offshore, which is not the wind KNZY measures
 // at the beach, and a verdict against the shore normal needs the local one.
-function windAtBreaks(cards) {
+function windAtBreaks(cards, aged = "") {
   return (cards || []).map((c) => {
     // A calm or a variable wind has no side at any break. The line says why
     // rather than leaving the line out, or repeating the headline's Calm or
@@ -6278,7 +6330,7 @@ function windAtBreaks(cards) {
     const why = c.windKt === 0 ? "no wind" : c.windVariable ? "no direction" : null;
     const s = why ? null : sense(c.windOffshore, c.windKt);
     if (!why && !s) return "";
-    return `<span class="turn" data-wind-for="${c.id}"${c.id === SWELL_TAB ? "" : " hidden"}>`
+    return `<span class="turn" data-wind-for="${c.id}"${c.id === SWELL_TAB ? "" : " hidden"}${aged}>`
       + (why ? `<b>${why}</b>, so no side set`
         : `<b>${s}</b> at this break`
           + (c.windNote ? ` <span class="tag">${c.windNote}</span>` : ""))
@@ -6423,6 +6475,7 @@ function renderConditions(step, cards) {
       stationName: NOW && NOW.station_name,
       others: (BUOYS && BUOYS.buoys) || [],
       buoyRose: roseBlock(NOW && NOW.station),
+      buoyAged: NOW ? agedAttr(NOW.observed_utc, nowIsStale()) : "",
       cards,
       // In pills (owner's request, 2026-10-11): where and what, then when.
       source: [
@@ -6435,13 +6488,16 @@ function renderConditions(step, cards) {
       origin: originFor("buoy"),
     }));
 
+    // Wind and Tide grey on their own readings' ages (`agedAttr`); the
+    // tide's predicted turn never does.
+    const windAged = windHeard(wind) ? agedAttr(wind.observed_utc) : "";
     rows.push(`<div class="cond" data-card="wind">
       <span class="lbl">Wind</span>
-      <span class="val">${windHeard(wind)
+      <span class="val"${windAged}>${windHeard(wind)
         ? windVal(wind.from_deg, wind.speed_kt)
           + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
-      ${windHeard(wind) ? windAtBreaks(cards) : ""}
+      ${windHeard(wind) ? windAtBreaks(cards, windAged) : ""}
       ${windHeard(wind)
         // In pills, as the swell card's (owner's request, 2026-10-11).
         ? srcLines([placeWhen(wind.station_name, wind.observed_utc)],
@@ -6453,7 +6509,7 @@ function renderConditions(step, cards) {
     // it keeps being the next turn as turns pass beneath an open page.
     rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
-      <span class="val">${tide.height_m != null
+      <span class="val"${tide.height_m != null ? agedAttr(tide.observed_utc) : ""}>${tide.height_m != null
         ? height(tide.height_m)
         : '<span class="unit">not collected</span>'}</span>
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
