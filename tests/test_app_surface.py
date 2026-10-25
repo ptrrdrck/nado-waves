@@ -159,7 +159,7 @@ class TestTheBreakCard:
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         panel = panel[:panel.index("function depthLabel")]
         order = ("depthLabel(c)", "calculationTable(c)", 'id="calc-${c.id}"',
-                 "trainList(c.trains, {drawn})", "drawing || windowList(c.swellWindow)")
+                 "trainList(c.trains, {drawn, aged})", "drawing || windowList(c.swellWindow)")
         at = [panel.index(mark) for mark in order]
         assert at == sorted(at)
         # The windows and the shares are in the drawing now (2026-09-26); the
@@ -676,10 +676,10 @@ class TestWindAndTideAreHoisted:
         """The forecast's wind is GFS-Wave's at the buoy, not KNZY's at the
         beach, and a verdict against the shore normal needs the local wind."""
 
-        assert SOURCE.count("? windAtBreaks(cards) :") == 1      # one call, not the definition
+        assert SOURCE.count("? windAtBreaks(cards, windAged) :") == 1      # one call, not the definition
         now = SOURCE[SOURCE.index('if (MODE === "now") {'):]
         now = now[:now.index("  } else {")]
-        assert "windAtBreaks(cards)" in now
+        assert "windAtBreaks(cards, windAged)" in now
 
     def test_it_is_styled_as_the_tides_next_turn(self):
         fn = SOURCE[SOURCE.index("function windAtBreaks"):]
@@ -1113,7 +1113,7 @@ class TestWaveTrainsOnScreen:
 
     def test_there_is_a_train_renderer_shared_by_both_chains(self):
         assert "function trainList" in SOURCE
-        assert "trainList(buoy.trains, {rose: roseFor})" in SOURCE
+        assert "trainList(buoy.trains, {rose: roseFor, aged})" in SOURCE
         assert "trainList(c.trains" in SOURCE
 
     def test_a_train_shows_height_period_and_heading(self):
@@ -1199,8 +1199,8 @@ class TestWaveTrainsOnScreen:
 
         card = SOURCE[SOURCE.index("function breakPanel"):]
         card = card[:card.index("function buoyPanel")]
-        assert "trainList(c.trains, {drawn})" in card and "buoy.trains" not in card
-        assert card.index("in window") < card.index("trainList(c.trains, {drawn})")
+        assert "trainList(c.trains, {drawn, aged})" in card and "buoy.trains" not in card
+        assert card.index("in window") < card.index("trainList(c.trains, {drawn, aged})")
 
     def test_the_swell_card_is_styled_like_wind_and_tide(self):
         """Same .cond card in the same strip, not a dashed aside."""
@@ -4050,3 +4050,61 @@ class TestTheLogFirstGate:
 
     def test_turning_it_on_after_reading_starts_tomorrow(self):
         assert "if (box.checked) store(GATE.cleared, coastDay(Date.now()));" in SOURCE
+
+
+class TestAStaleReadingGreys:
+    """A LIVE card's numbers turn --faint once the reading they come from is
+    past the build's three-hour stale limit, each card on its own source, and
+    return when a newer reading lands (owner's call, 2026-10-25)."""
+
+    def _run(self, script):
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        start = SOURCE.index("const staleLimitH")
+        body = SOURCE[start:SOURCE.index("\n}\n", start) + 3]
+        start = SOURCE.index("const roseTime")
+        body += SOURCE[start:SOURCE.index(";\n", start) + 2]
+        start = SOURCE.index("const roseAged")
+        body += SOURCE[start:SOURCE.index(";\n", start) + 2]
+        return subprocess.run([node, "-e", "let NOW = {stale_hours: 3};\n" + body + script],
+                              capture_output=True, text=True, check=True).stdout.strip()
+
+    def test_it_greys_three_hours_after_the_reading_or_when_the_build_says_stale(self):
+        got = self._run(
+            "console.log(agedAttr('2026-10-25T12:00:00Z'));\n"
+            "console.log(agedAttr(null, true));\n"
+            "console.log(JSON.stringify(agedAttr(null)));\n"
+            "const ago = (h) => new Date(Date.now() - h * 3600000).toISOString();\n"
+            "console.log(roseAged({frame: {time_utc: ago(2.9)}}), roseAged({frame: {time_utc: ago(3.1)}}),"
+            " roseAged({}));"
+        ).splitlines()
+        assert got[0].strip() == 'data-aged-at="2026-10-25T15:00:00.000Z"'
+        assert got[1].strip() == 'data-aged-at="" data-aged-force="1"'
+        assert got[2] == '""'
+        assert got[3] == "false true false"
+
+    def test_the_tick_flips_it_both_ways(self):
+        tick = SOURCE[SOURCE.index("function tickDue"):]
+        tick = tick[:tick.index("\n}\n")]
+        assert 'el.classList.toggle("aged"' in tick
+
+    def test_each_card_on_its_own_source(self):
+        now = SOURCE[SOURCE.index('if (MODE === "now") {'):]
+        now = now[:now.index("  } else {")]
+        assert "agedAttr(NOW.observed_utc, nowIsStale())" in now
+        assert "agedAttr(wind.observed_utc)" in now
+        assert "agedAttr(tide.observed_utc)" in now
+        assert "agedAttr(b.observed_utc, !!b.stale)" in SOURCE
+
+    def test_what_keeps_its_colours(self):
+        """The calculation table, Origin, the provenance and the tide's
+        predicted turn are never aged; on the drawing only the leading arrow
+        greys; on the rose never the rings or the compass points."""
+        for fn in ("calculationTable", "originFold", "feedPills", "turnLine"):
+            body = SOURCE[SOURCE.index(f"function {fn}("):]
+            assert "aged" not in body[:body.index("\n}\n")], fn
+        css = [line for line in SOURCE.splitlines() if ".aged" in line and "{" in line]
+        assert not any(".ring" in line or ".pt" in line for line in css)
+        drawing = [line for line in css if ".aperture.aged" in line]
+        assert drawing and all(".swell.lead" in line for line in drawing)

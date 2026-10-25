@@ -190,7 +190,7 @@ class TestOnThePage:
 
         block = PAGE[PAGE.index("function roseBlock("):]
         block = block[:block.index("\n}\n")]
-        assert (block.index('class="rose-plot"') < block.index('class="rose-scale"')
+        assert (block.index('class="rose-plot"') < block.index('class="rose-scale')
                 < block.index('class="rose-time">${rosePlayButton()}')
                 < block.index('class="rose-line"'))
         assert "rosePlayButton" not in block[:block.index('class="rose-plot"')]
@@ -242,7 +242,7 @@ class TestOnThePage:
         block = PAGE[PAGE.index("function roseBlock("):]
         block = block[:block.index("\n}\n")]
         assert 'class="readout"' not in block
-        assert '<div class="rose-scale" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>' in block
+        assert '<div class="rose-scale${roseAged(v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>' in block
         read = PAGE[PAGE.index("function roseReadout("):]
         read = read[:read.index("\n}\n")]
         assert read.index("roseScaleLine(ROSE_MODE, station)") < read.index("clock(f.time_utc)")

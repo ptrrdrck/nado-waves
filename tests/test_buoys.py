@@ -538,9 +538,9 @@ class TestTheBuoyHeadlineFolds:
         # Nothing to fold, no caret.
         assert "if (!id || !body) return valLine(value) + body;" in read
         # The rose is in the fold on both buoys, and the provenance is not.
-        assert "buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note}) + line" in _fn("buoyPanel")
+        assert "buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note, aged}) + line" in _fn("buoyPanel")
         block = _fn("contextBuoy")
-        assert "buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note})" in block
+        assert "buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note," in block
 
     def test_each_buoy_its_own_state_kept_across_a_refresh(self):
         assert 'buoyOpen: "nado-waves.buoy-open"' in PAGE
