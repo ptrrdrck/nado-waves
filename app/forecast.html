@@ -776,8 +776,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 #conditions .trains.aged .train{opacity:1}
 #conditions .aperture.aged .swell.lead line{stroke:var(--faint)}
 #conditions .aperture.aged .swell.lead polygon{fill:var(--faint)}
-/* A rose frame past it, by its own age: the petals and the line under them,
-   never the rings or the points. Period's five bands keep their order, from
+/* A rose frame that went past it unreplaced (`roseAged`): its petals and
+   the line under them, never the rings or the points. Period's five bands keep their order, from
    the faintest rule up to --faint where they ran up to ink. */
 .rose-svg.aged .rp,.rose-svg.aged .rt,.rose-svg.aged .rb4{fill:var(--faint)}
 .rose-svg.aged .rb1{fill:color-mix(in srgb,var(--line-strong) 75%,var(--faint))}
@@ -3738,11 +3738,18 @@ function rosePetal(i, r0, r1) {
 
 const rosePct = (s) => `${Math.round(s * 100)}%`;
 
-// A frame greys on its OWN age, past the same three hours as the cards
-// (owner's call, 2026-10-25): its petals and the line under it, never the
-// rings or N / E / S / W. So a current buoy's loop greys its older frames.
-const roseAged = (state) => !!state.frame
-  && Date.now() - roseTime(state.frame) > staleLimitH() * 3600000;
+// A frame greys only if it was itself the stale reading: more than the
+// cards' three hours went by before the next frame's stamp, or, for the
+// newest, before now (owner's calls, 2026-10-25). A frame replaced in time
+// stays in ink however old it grows in the loop, so a stale buoy greys its
+// newest frame alone, and a gap leaves the frame before it grey. Its petals
+// and the line under it; never the rings or N / E / S / W.
+const roseAged = (rose, state) => {
+  const frames = (rose && rose.frames) || [];
+  if (!state || !state.frame || !Number.isInteger(state.k)) return false;
+  const until = state.k + 1 < frames.length ? roseTime(frames[state.k + 1]) : Date.now();
+  return until - roseTime(frames[state.k]) > staleLimitH() * 3600000;
+};
 
 function rosePlot(state, mode, station) {
   const {c, r: R} = ROSE;
@@ -3800,7 +3807,7 @@ function rosePlot(state, mode, station) {
   const when = state.frame ? clock(state.frame.time_utc) : "";
   const aria = state.frame ? `${mode === "height" ? "Height" : "Period"} rose at ${when}: ${said}`
     : state.note;
-  return `<svg class="rose-svg${pick != null ? " picked" : ""}${roseAged(state) ? " aged" : ""}" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
+  return `<svg class="rose-svg${pick != null ? " picked" : ""}${roseAged(roseOf(station), state) ? " aged" : ""}" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
     + grid + petals + marks + `</svg>`;
 }
 
@@ -3860,7 +3867,7 @@ function roseView(station) {
   if (!rose || !span) return null;
   const t = roseMoment(span);
   const state = roseAt(rose, t);
-  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}:${rosePick(station)}:${roseAged(state) ? "aged" : ""}`,
+  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}:${rosePick(station)}:${roseAged(rose, state) ? "aged" : ""}`,
     rose, span, t, state, station};
 }
 
@@ -3881,7 +3888,7 @@ function roseBlock(station) {
     + ` aria-pressed="${m.id === ROSE_MODE}" aria-label="${m.label}" title="${m.label}">${m.symbol}</button>`).join("");
   return `<div class="rose" data-rose="${station}" data-k="${v.key}">
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
-    <div class="rose-scale${roseAged(v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
+    <div class="rose-scale${roseAged(rose, v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
     <div class="rose-time">${rosePlayButton()}
     <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
@@ -3901,7 +3908,7 @@ function roseUpdate(el) {
     el.setAttribute("data-k", v.key);
     el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE, el.getAttribute("data-rose"));
     el.querySelector(".rose-scale").innerHTML = roseReadout(v.state, el.getAttribute("data-rose"));
-    el.querySelector(".rose-scale").classList.toggle("aged", roseAged(v.state));
+    el.querySelector(".rose-scale").classList.toggle("aged", roseAged(v.rose, v.state));
     el.querySelector(".rose-line").setAttribute("aria-valuenow", rosePercent(v));
     el.querySelector(".rose-line").setAttribute("aria-valuetext",
       v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);
