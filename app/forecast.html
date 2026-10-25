@@ -225,6 +225,17 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                     stroke-linejoin:round}
 .brief-tide svg.sun.gone{stroke:var(--faint)}
 .brief-tide .now-dot{fill:var(--paper);stroke:var(--ink);stroke-width:1.6}
+/* The now ring (owner's choice, 2026-10-25): from the dot's own size to 3x
+   over 2 s while it fades, easing out like a ripple, then 1 s of rest;
+   its line stays the dot's width as it grows. None under reduced motion. */
+.brief-tide .now-ring{fill:none;stroke:var(--ink);stroke-width:1.6;vector-effect:non-scaling-stroke;
+                      transform-box:fill-box;transform-origin:center;animation:brief-now-ring 3s infinite}
+@keyframes brief-now-ring{
+  0%{transform:scale(1);opacity:.7;animation-timing-function:cubic-bezier(.2,.6,.3,1)}
+  66.667%{transform:scale(3);opacity:0}
+  100%{transform:scale(3);opacity:0}
+}
+@media (prefers-reduced-motion: reduce){ .brief-tide .now-ring{display:none} }
 .brief-tide circle.turn{fill:var(--ink)}
 .brief-tide circle.turn.gone{fill:var(--faint)}
 .brief-tide text{font-family:inherit;text-anchor:middle}
@@ -1925,7 +1936,8 @@ function briefCondRow(r, B) {
 // midnight to midnight, strictly today, each turn's height by its dot --
 // above a high, below a low -- and its time on the axis under it; the hours
 // gone grey and the rest ink, an open dot where the tide is now (no line
-// and no word: owner's calls, 2026-10-24), nights shaded as the Tide card's charts
+// and no word: owner's calls, 2026-10-24) with a ring rippling out of it
+// (2026-10-25), nights shaded as the Tide card's charts
 // are, from under a row of the day's sunrise and sunset to just above the
 // turns' times, so every height sits on the shading (owner's requests,
 // 2026-10-24). Tapped,
@@ -1943,6 +1955,9 @@ function briefTides(B) {
 }
 const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;
 const BRIEF_TIDE_H = 151;
+// The now ring's cycle: 2 s growing to 3× while it fades, then 1 s of rest
+// (`brief-now-ring`; owner's choice, 2026-10-25).
+const BRIEF_RING_MS = 3000;
 // The times' ink: the cap height of the times' 11.5 px (8 px, measured in
 // painted pixels: the font's own metrics said 9), and the gap kept between
 // the shading and the times on both sides of it, the sun row's above and
@@ -2029,7 +2044,14 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
     const i = curve.findIndex((p) => p[0] >= now);
     const yn = i > 0 ? curve[i - 1][1] + (curve[i][1] - curve[i - 1][1]) * (now - curve[i - 1][0]) / (curve[i][0] - curve[i - 1][0])
       : null;
-    if (yn != null) s += `<circle class="now-dot" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4"/>`;
+    // A ring under the dot that grows and fades, then rests (owner's
+    // choice, 2026-10-25), its phase set by the clock so a redraw carries
+    // it on rather than restarting it.
+    const ring = `animation-delay:-${((nowMs % BRIEF_RING_MS) / 1000).toFixed(2)}s`;
+    if (yn != null) {
+      s += `<circle class="now-ring" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4" style="${ring}"/>`
+        + `<circle class="now-dot" cx="${xn.toFixed(1)}" cy="${Y(yn).toFixed(1)}" r="3.4"/>`;
+    }
   }
   // Sunrise and sunset above the shading, at the edges of its nights inside
   // the day (owner's request, 2026-10-24): the times the shading is drawn

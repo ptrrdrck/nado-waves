@@ -3941,6 +3941,11 @@ class TestTheBriefing:
         assert "const xn = X(now), today = now >= t0 && now <= t1;" in chart
         # Now is the open dot alone: no line, no word (owner's calls, 2026-10-24).
         assert 'class="now"' not in chart and "NOW" not in chart and 'class="now-dot"' in chart
+        # The ring under it (2026-10-25): 2 s to 3x, 1 s of rest, its phase
+        # the clock's so a redraw does not restart it, none under reduced motion.
+        assert '<circle class="now-ring"' in chart and "nowMs % BRIEF_RING_MS" in chart
+        assert "animation:brief-now-ring 3s infinite" in SOURCE and "66.667%{transform:scale(3);opacity:0}" in SOURCE
+        assert ".brief-tide .now-ring{display:none}" in SOURCE
         assert 'y="${shadeTop}"' in chart and 'height="${shadeBot - shadeTop}"' in chart
         assert "briefSuns(T)" in chart and "briefRow(labels, W)" in chart
         # Sunrise and sunset as icons, each time set as the turns' are, grey once passed.
