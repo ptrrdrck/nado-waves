@@ -209,7 +209,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-when{font-size:12px;color:var(--faint);padding-left:83px;margin-top:-3px}
 /* The day's tide as a curve (owner's choice, 2026-10-23): greys and ink,
    the hours gone grey, nights shaded as the Tide card's charts are. */
-.brief-tide{display:block;width:100%;height:148px;padding:0;margin:0;border:0;background:none;font:inherit;
+.brief-tide{display:block;width:100%;height:151px;padding:0;margin:0;border:0;background:none;font:inherit;
             color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .brief-tide svg{display:block;overflow:visible}
 .brief-tide path{fill:none;stroke-linejoin:round}
@@ -1896,7 +1896,12 @@ function briefTides(B) {
     at: x.valid_utc, m: x.height_m, event: x.event, when}));
 }
 const briefTideText = (r) => `${r.label} ${r.value} at ${briefNum(r.time)}`;
-const BRIEF_TIDE_H = 148;
+const BRIEF_TIDE_H = 151;
+// The times' ink: the cap height of the times' 11.5 px (8 px, measured in
+// painted pixels: the font's own metrics said 9), and the gap kept between
+// the shading and the times on both sides of it, the sun row's above and
+// the turns' below (owner's request, 2026-10-25).
+const BRIEF_TIME_CAP = 8, BRIEF_TIME_GAP = 7;
 // A smooth line through the curve's points (Catmull-Rom as cubic Béziers):
 // the half-hourly prediction drawn as a tide, not as a polyline.
 function briefSmooth(pts) {
@@ -1946,7 +1951,11 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
   // that row to just above the turns' times, so every height sits on it
   // (owner's request, 2026-10-24), and the curve inside it with room for a
   // high's label above it and a low's below.
-  const H = BRIEF_TIDE_H, shadeTop = 16, shadeBot = H - 20, top = shadeTop + 22, bot = H - shadeBot + 22;
+  // The sun row's baseline, the shading BRIEF_TIME_GAP under it, the turns'
+  // times BRIEF_TIME_GAP under the shading's foot (their caps, not their
+  // baseline): the same gap above the shading and below it.
+  const sunBase = 12, H = BRIEF_TIDE_H, shadeTop = sunBase + BRIEF_TIME_GAP, shadeBot = H - 20;
+  const timeBase = shadeBot + BRIEF_TIME_GAP + BRIEF_TIME_CAP, top = shadeTop + 22, bot = H - shadeBot + 22;
   const t0 = Date.parse(T.start_utc) / 1000, t1 = Date.parse(T.end_utc) / 1000, now = nowMs / 1000;
   const hs = curve.map((p) => p[1]).concat(rows.map((r) => r.m));
   const lo = Math.min(...hs), hi = Math.max(...hs);
@@ -1988,9 +1997,9 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
     w: BRIEF_SUN_ICON + 4 + 6.6 * clock(u.at).length}));
   for (const l of briefRow(labels, W)) {
     const x0 = l.cx - l.w / 2, gone = Date.parse(l.at) / 1000 < now;
-    s += `<svg class="sun${gone ? " gone" : ""}" x="${x0.toFixed(1)}" y="-2" width="${BRIEF_SUN_ICON}"`
+    s += `<svg class="sun${gone ? " gone" : ""}" x="${x0.toFixed(1)}" y="${sunBase - 14}" width="${BRIEF_SUN_ICON}"`
       + ` height="${BRIEF_SUN_ICON}" viewBox="0 0 24 24">${BRIEF_SUN[l.rise ? "rise" : "set"]}</svg>`
-      + `<text class="time${gone ? " gone" : ""}" x="${(x0 + BRIEF_SUN_ICON + 4).toFixed(1)}" y="12"`
+      + `<text class="time${gone ? " gone" : ""}" x="${(x0 + BRIEF_SUN_ICON + 4).toFixed(1)}" y="${sunBase}"`
       + ` style="text-anchor:start">${l.time}</text>`;
   }
   for (const r of rows) {
@@ -1999,7 +2008,7 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
     s += `<circle class="turn${gone ? " gone" : ""}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3"/>`
       + `<text class="level${gone ? " gone" : ""}" x="${inside(x, 6.6 * (ft.length + m.length + 1)).toFixed(1)}"`
       + ` y="${(high ? y - 9 : y + 17).toFixed(1)}"><tspan class="ft">${ft}</tspan> <tspan class="m">${m}</tspan></text>`
-      + `<text class="time${gone ? " gone" : ""}" x="${inside(x, 6.6 * r.time.length).toFixed(1)}" y="${H - 4}">${r.time}</text>`;
+      + `<text class="time${gone ? " gone" : ""}" x="${inside(x, 6.6 * r.time.length).toFixed(1)}" y="${timeBase}">${r.time}</text>`;
   }
   return s + "</svg>";
 }
