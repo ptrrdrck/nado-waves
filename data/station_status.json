@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-26T04:04:38Z",
+  "generated_utc": "2026-10-26T10:01:11Z",
   "max_age_hours": 48.0,
   "stations": [
     {
@@ -12,9 +12,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:26:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:26:00Z",
-      "observation_rows": 4013
+      "newest_observation_utc": "2026-10-26T08:56:00Z",
+      "newest_water_temp_utc": "2026-10-26T08:56:00Z",
+      "observation_rows": 4023
     },
     {
       "id": "46086",
@@ -26,9 +26,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:30:00Z",
+      "newest_observation_utc": "2026-10-26T09:10:00Z",
       "newest_water_temp_utc": "2026-10-26T00:00:00Z",
-      "observation_rows": 12717
+      "observation_rows": 12749
     },
     {
       "id": "46047",
@@ -40,9 +40,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:30:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:30:00Z",
-      "observation_rows": 12641
+      "newest_observation_utc": "2026-10-26T09:10:00Z",
+      "newest_water_temp_utc": "2026-10-26T09:10:00Z",
+      "observation_rows": 12672
     },
     {
       "id": "46258",
@@ -54,9 +54,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:26:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:26:00Z",
-      "observation_rows": 4266
+      "newest_observation_utc": "2026-10-26T08:56:00Z",
+      "newest_water_temp_utc": "2026-10-26T08:56:00Z",
+      "observation_rows": 4277
     },
     {
       "id": "46235",
@@ -82,9 +82,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:26:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:26:00Z",
-      "observation_rows": 4178
+      "newest_observation_utc": "2026-10-26T08:56:00Z",
+      "newest_water_temp_utc": "2026-10-26T08:56:00Z",
+      "observation_rows": 4188
     },
     {
       "id": "46225",
@@ -96,9 +96,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:26:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:26:00Z",
-      "observation_rows": 4261
+      "newest_observation_utc": "2026-10-26T08:56:00Z",
+      "newest_water_temp_utc": "2026-10-26T08:56:00Z",
+      "observation_rows": 4271
     },
     {
       "id": "46224",
@@ -110,9 +110,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:26:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:26:00Z",
-      "observation_rows": 4264
+      "newest_observation_utc": "2026-10-26T07:56:00Z",
+      "newest_water_temp_utc": "2026-10-26T07:56:00Z",
+      "observation_rows": 4273
     },
     {
       "id": "46253",
@@ -124,9 +124,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:26:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:26:00Z",
-      "observation_rows": 4262
+      "newest_observation_utc": "2026-10-26T08:56:00Z",
+      "newest_water_temp_utc": "2026-10-26T08:56:00Z",
+      "observation_rows": 4272
     },
     {
       "id": "46222",
@@ -138,9 +138,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:26:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:26:00Z",
-      "observation_rows": 4264
+      "newest_observation_utc": "2026-10-26T08:56:00Z",
+      "newest_water_temp_utc": "2026-10-26T08:56:00Z",
+      "observation_rows": 4275
     },
     {
       "id": "46221",
@@ -152,9 +152,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:26:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:26:00Z",
-      "observation_rows": 4260
+      "newest_observation_utc": "2026-10-26T08:56:00Z",
+      "newest_water_temp_utc": "2026-10-26T08:56:00Z",
+      "observation_rows": 4271
     },
     {
       "id": "46001",
@@ -166,9 +166,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:30:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:30:00Z",
-      "observation_rows": 12517
+      "newest_observation_utc": "2026-10-26T09:10:00Z",
+      "newest_water_temp_utc": "2026-10-26T09:10:00Z",
+      "observation_rows": 12548
     },
     {
       "id": "46006",
@@ -180,9 +180,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:30:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:30:00Z",
-      "observation_rows": 12483
+      "newest_observation_utc": "2026-10-26T09:10:00Z",
+      "newest_water_temp_utc": "2026-10-26T09:10:00Z",
+      "observation_rows": 12513
     },
     {
       "id": "46005",
@@ -194,9 +194,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:30:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:30:00Z",
-      "observation_rows": 12516
+      "newest_observation_utc": "2026-10-26T09:10:00Z",
+      "newest_water_temp_utc": "2026-10-26T09:10:00Z",
+      "observation_rows": 12546
     },
     {
       "id": "46059",
@@ -208,9 +208,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:30:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:30:00Z",
-      "observation_rows": 12487
+      "newest_observation_utc": "2026-10-26T09:10:00Z",
+      "newest_water_temp_utc": "2026-10-26T09:10:00Z",
+      "observation_rows": 12517
     },
     {
       "id": "51101",
@@ -222,9 +222,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:40:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:40:00Z",
-      "observation_rows": 11463
+      "newest_observation_utc": "2026-10-26T09:10:00Z",
+      "newest_water_temp_utc": "2026-10-26T09:10:00Z",
+      "observation_rows": 11492
     },
     {
       "id": "51002",
@@ -236,9 +236,9 @@
       "first_checked_utc": "2026-09-18T12:20:37Z",
       "rounds_paused": false,
       "paused_reason": null,
-      "newest_observation_utc": "2026-10-26T03:40:00Z",
-      "newest_water_temp_utc": "2026-10-26T03:40:00Z",
-      "observation_rows": 12458
+      "newest_observation_utc": "2026-10-26T09:10:00Z",
+      "newest_water_temp_utc": "2026-10-26T09:10:00Z",
+      "observation_rows": 12488
     }
   ]
 }
