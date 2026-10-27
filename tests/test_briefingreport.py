@@ -36,3 +36,16 @@ def test_the_wind_habit_stays_out_while_it_fails():
     habit = br.wind_habit()
     assert all(hits / n < br.RIGHT for hits, n in habit.values() if n)
     assert not hasattr(briefing, "WIND_HABIT")
+
+
+def test_long_period_energy_stays_out_while_it_fails():
+    """Measured 2026-10-27 at the owner's request, on one autumn: 46232's
+    long-period energy doubling comes before a bigger beach no more often
+    than any hour does. If winter's archive makes a row pass, the briefing
+    may carry it: this test is what says so."""
+
+    for row in br.long_period_ahead():
+        for name in ("rise", "bigger"):
+            hits, n = row[name]
+            assert not n or hits / n < br.RIGHT, (row, name)
+    assert not hasattr(briefing, "LONG_PERIOD_AHEAD")
