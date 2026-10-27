@@ -897,7 +897,11 @@ forecaster actually verifies against, Surfline included.
    its band at 46232 -- the bins it holds in the newest spectrum and the
    offshore headings holding 90% of what it carries to the break
    (`Train.held`, `nearshore.HELD_SHARE`; now.json trains' `band_hz` /
-   `held_deg`) -- as energy over a trailing 3 h (`train_trend`, `trend_word`):
+   `held_deg`) -- as energy over a trailing 3 h (`train_trend`, `trend_word`;
+   a bin MEM cannot represent read as the chain reads it, by NDBC's Fourier
+   form, `band_energy` / `fourier_sector`, since 2026-10-27: dropping the
+   band left 9 of 225 lines with no status, and 16.7% of 46232's spectra
+   hold such a bin):
    building ≥ +25% on 3 h before, fading ≤ −25%, peaking when the day's
    highest came within 3 h, else holding. Nothing follows a train between
    spectra, so it is the band's energy at the buoy, not the train's at the

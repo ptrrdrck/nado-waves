@@ -512,3 +512,22 @@ def test_the_tide_curve_is_strictly_today_and_meets_its_turns():
         near = min(got["curve"], key=lambda p: abs(p[0] - t))
         assert abs(near[0] - t) <= 15 * 60 and abs(near[1] - turn["height_m"]) < 0.03
     assert got["nights"][0][0] == "2026-10-23T07:00:00Z" and got["nights"][-1][1] == "2026-10-24T07:00:00Z"
+
+
+def test_a_bin_mem_cannot_read_is_read_as_the_chain_reads_it():
+    """2026-10-27: 25 Oct 00Z holds a bin at 0.11 Hz whose moments MEM
+    cannot represent. The chain reads it by NDBC's Fourier form
+    (`Spectrum.density`); the status dropped the whole band instead, and
+    9 of 225 train lines since 23 Oct had none. Now the band is read whole."""
+
+    from forecast.spreadmethod import mem_sector, shipped
+    from forecast.transform import load_spectra
+
+    sp = next(s for s in load_spectra(Path("data/spectra/46232"))
+              if s.time == datetime(2026, 10, 25, 0, tzinfo=timezone.utc))
+    assert bf.band_energy(sp, [0.085, 0.38], [233, 295]) > 0
+    # The Fourier share is a share: the two halves of the circle make one,
+    # and on a bin MEM can read the two methods agree on its broad sector.
+    vals = (0.6, 0.4, 250.0, 250.0)
+    assert abs(bf.fourier_sector(shipped(*vals), [0, 180]) + bf.fourier_sector(shipped(*vals), [180, 360]) - 1) < 0.02
+    assert abs(bf.fourier_sector(shipped(*vals), [200, 300]) - mem_sector(*vals, 200.0, 300.0)) < 0.05

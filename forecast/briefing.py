@@ -644,10 +644,17 @@ def listed_trains(sites: list[dict]) -> list[dict]:
 def band_energy(spectrum, band_hz, held) -> float | None:
     """m² at the buoy in a train's band: the frequency bins from its lowest
     to its highest, from the headings it held (`held_deg`; every heading
-    when it held them all), by maximum entropy in closed form. None when a
-    bin cannot be read: never a partial sum."""
+    when it held them all), by maximum entropy in closed form. A bin MEM
+    cannot represent (r1 at its ceiling, or moments it finds unrealisable)
+    is read as the chain reads it (`transform.Spectrum.density`): by NDBC's
+    clamped Fourier form, so the status reads the same energy the card's
+    heights were made from. Before 2026-10-27 such a bin dropped the whole
+    band, and 9 of 225 train lines since 23 Oct had no status; 16.7% of
+    46232's spectra hold at least one. None only when a bin has no reading
+    at all (an energetic bin with none never loads: `transform.unplaceable_bin`):
+    never a partial sum."""
 
-    from .spreadmethod import Unrealisable, mem_sector
+    from .spreadmethod import R1_CEILING, Unrealisable, mem_sector, shipped
 
     lo, hi = band_hz
     whole = not held or (held[1] - held[0]) % 360 == 0
@@ -664,12 +671,22 @@ def band_energy(spectrum, band_hz, held) -> float | None:
             if any(v is None or math.isnan(v) for v in vals):
                 return None
             try:
+                if vals[0] >= R1_CEILING:
+                    raise Unrealisable("r1 at its ceiling")
                 share = mem_sector(*vals, float(held[0]), float(held[1]))
             except (Unrealisable, ValueError, ZeroDivisionError):
-                return None
+                share = fourier_sector(shipped(*vals), held)
         total += e * spectrum.bin_width(i) * share
         n += 1
     return total if n else None
+
+
+def fourier_sector(dist: list[float], held) -> float:
+    """The share of a 1° distribution (`spreadmethod.shipped`'s, centred on
+    each half degree) between two bearings, clockwise from the first."""
+
+    lo, width = held[0] % 360.0, (held[1] - held[0]) % 360.0
+    return sum(v for d, v in enumerate(dist) if (d + 0.5 - lo) % 360.0 < width)
 
 
 def train_trend(spectra, train: dict, newest: datetime) -> str | None:
