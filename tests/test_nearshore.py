@@ -231,6 +231,16 @@ def test_the_carried_wind_sea_is_the_short_period_part():
     assert 0.0 <= swell.hs_short < swell.hs_ref
 
 
+def test_the_bins_are_the_curve_the_height_integrates():
+    """The per-bin energy at 5 m, exposed for a curve on the page, is exactly
+    what `hs_ref` sums: drawing it changes no height."""
+
+    for direction in (200.0, 260.0):
+        got = carry(synthetic(direction, hs=1.5, spread_deg=15.0), open_table())
+        assert got.bins and all(e >= 0.0 for _, e in got.bins)
+        assert sum(e for _, e in got.bins) == pytest.approx((got.hs_ref / 4) ** 2, rel=1e-12)
+
+
 def test_a_trains_held_headings_are_the_narrowest_arc_holding_its_share():
     """The Briefing's status of a train reads its band at the buoy from the
     headings it carried to the break (owner's call, 2026-10-23): the

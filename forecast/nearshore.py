@@ -172,6 +172,11 @@ class Nearshore:
     #: sea the buoy already carried in, which open-water chop grows on from
     #: rather than beside (`local_sea`).
     hs_short: float = 0.0
+    #: (bin index, energy m² at the start depth) for every bin of the
+    #: spectrum the table carries: the curve `hs_ref` integrates, before it is
+    #: summed. Density is each energy over `spectrum.bin_width`. Not the
+    #: reading's identity: equality and repr ignore it.
+    bins: tuple = field(default=(), compare=False, repr=False)
 
 
 def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -> Nearshore:
@@ -249,6 +254,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
         hs(e_fric),
         trains,
         hs(e_short),
+        tuple(per_bin),
     )
 
 

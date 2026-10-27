@@ -1344,6 +1344,11 @@ forecaster actually verifies against, Surfline included.
                         entropy, as the chain reads it) and the archive,
                         period-only vs 10° watershed vs shipped; reports,
                         never edits (BRIEFING §40)                [built]
+      spectrumreport.py how much of a drawn energy-by-period curve is the
+                        buoy's sampling noise, at 46232 and in 5 m off each
+                        break: the archive's hour-to-hour jitter raw, [1,2,1]
+                        and as a 3 h mean, and a known-answer control under
+                        two noise models; reports, never edits      [built]
       nwbearing.py      46232's north-west bearing: the mean against its
                         lobes, the hull control, the Channel Islands' edges,
                         what the lobe carries into each break, shown train
