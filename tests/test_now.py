@@ -502,8 +502,16 @@ class TestWhenEachSourceIsNextDue:
         bracket wider than 12 minutes (a missed run) dropped, and the run
         without it must have come BEFORE `overdue_after` for the reading it
         succeeds. At 8 the archive had 34 samples absent past the late mark,
-        and the card went red on each of them (2026-10-23)."""
+        and the card went red on each of them (2026-10-23).
 
+        An outage at CO-OPS is red, and rightly (owner's call, 2026-10-27):
+        on 26 Oct ten samples from 15:42Z landed together at 18:25Z, 100-154
+        min late. So a sample still absent past the late mark must be an
+        OUTAGE, absent `OUTAGE_MIN` or more, never the tail the mark
+        misjudged. Over ~3,500 bracketed samples the tail ends at 9 min and
+        the outage starts at 99, nothing between, so the bound is not fitted."""
+
+        OUTAGE_MIN = 60
         rows = list(csv.DictReader(Path("data/tide/9410170_observed.csv").open()))
         if not rows:
             pytest.skip("no tide archive")
@@ -521,8 +529,9 @@ class TestWhenEachSourceIsNextDue:
             if absent <= stamp or seen - absent > timedelta(minutes=12):
                 continue
             late = parse(now_mod.overdue_after((stamp - step).strftime(now_mod.ISO), "tide"))
-            if absent >= late:
-                accused.append((row["time_utc"], round((absent - stamp).total_seconds() / 60, 1)))
+            minutes = (absent - stamp).total_seconds() / 60
+            if absent >= late and minutes < OUTAGE_MIN:
+                accused.append((row["time_utc"], round(minutes, 1)))
 
         assert not accused, (
             f"{len(accused)} tide samples were still absent at a collection past "
