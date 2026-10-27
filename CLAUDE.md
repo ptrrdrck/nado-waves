@@ -990,6 +990,13 @@ forecaster actually verifies against, Surfline included.
    design's measured words (filling / fading, leader, a ridge's period
    ahead; `forecast/briefingreport.py`, `docs/briefing_thresholds.md`) are
    no longer said; their constants stay in briefing.py for the report.
+   **Long-period energy ahead is NOT said** (measured 2026-10-27 at the
+   owner's request, kept in the same report to re-run in winter): 46232's
+   energy at 14, 16 or 18 s and longer from the breaks' windows doubling on
+   3 h before came before a beach 15% higher within a day LESS often than
+   any hour did (25–60% against 69%), and before a bigger day at most one
+   firing in five (13% for any hour); a test says when a winter archive
+   passes the 85% rule.
    Wording generated from the page into `docs/briefing_wording.md` (the
    formula and each case) and `docs/briefing_sentences.md` (every distinct
    line once, for the owner to edit; edits are carried into the page by
