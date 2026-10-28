@@ -1,0 +1,87 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.99285a02ab50a4f02123a282d35c7d88e5e08c08.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.99285a02ab50a4f02123a282d35c7d88e5e08c08.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.99285a02ab50a4f02123a282d35c7d88e5e08c08.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [],
+        "sent": "2026-10-28T11:46:00-07:00",
+        "effective": "2026-10-28T11:46:00-07:00",
+        "onset": "2026-10-29T13:00:00-07:00",
+        "expires": "2026-10-28T20:00:00-07:00",
+        "ends": "2026-10-30T14:00:00-07:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Coastal Flood Advisory",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Coastal Flood Advisory issued October 28 at 11:46AM PDT until October 30 at 2:00PM PDT by NWS San Diego CA",
+        "description": "* WHAT...For the Coastal Flood Warning, significant coastal\nflooding. For the Coastal Flood Advisory, minor coastal\nflooding expected.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...For the Coastal Flood Warning, until 1 PM PDT Thursday.\nFor the Coastal Flood Advisory, from 1 PM Thursday to 2 PM PDT\nFriday.\n\n* IMPACTS...Numerous roads may be closed. Low lying property\nincluding homes, businesses, and some critical infrastructure\nwill be inundated. Some shoreline erosion will occur.\n\n* ADDITIONAL DETAILS...Coastal residents and managers of\ninfrastructure in the warned/advisory area should prepare for\nrising water and take appropriate action to protect life and\nproperty. Highest tides will occur around 11 AM on Thursday and\nnoon on Friday. Observed high tides are 1.4 to 1.6 feet above\nastronomical tide predictions.",
+        "instruction": "Take the necessary actions to protect flood-prone property. If\ntravel is required, do not drive around barricades or through\nwater of unknown depth.",
+        "response": "Monitor",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 281846"
+            ],
+            "NWSheadline": [
+                "COASTAL FLOOD WARNING REMAINS IN EFFECT UNTIL 1 PM PDT THURSDAY... ...COASTAL FLOOD ADVISORY IN EFFECT FROM 1 PM THURSDAY TO 2 PM PDT FRIDAY"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.NEW.KSGX.CF.Y.0008.261029T2000Z-261030T2100Z/"
+            ],
+            "eventEndingTime": [
+                "2026-10-30T14:00:00-07:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "CFY"
+            ]
+        }
+    }
+}
