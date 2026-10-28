@@ -165,8 +165,8 @@ def code(source: str) -> str:
         _lift(source, "const MM_PER_IN = ", ";"),
         _lift(source, "const HPA_PER_INHG = ", ";"),
         _lift(source, "const fahrenheit = ", ";\n"),
-        _lift(source, "const height = ", "</span>`);"),
-        _lift(source, "const speed = ", "</span>`);"),
+        # The Units setting and the formatters built on it, as one block.
+        source[source.index("let UNITS = "):source.index("\n// Display-only shortenings")],
         _lift(source, "const ORDER = ", ";"),
         _lift(source, "const SHORT = ", "};"),
         _lift(source, "const bareName = ", ";\n"),

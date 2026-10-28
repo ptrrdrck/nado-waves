@@ -1,5 +1,13 @@
 <title>Nado Waves — Documentation</title>
 <meta name="description" content="How the Coronado forecast works: every card, chart and calculation, and what each one is standing on.">
+<script>
+// The theme chosen at the foot of the forecast page (owner's call,
+// 2026-10-28), before the first paint; absent, this page follows the phone.
+try {
+  const t = localStorage.getItem("nado-waves.theme");
+  if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+} catch (e) { /* follows the phone */ }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -31,6 +39,7 @@
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
   }
 }
+:root[data-theme="light"]{color-scheme:light}
 :root[data-theme="dark"]{
   color-scheme:dark;
   --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
@@ -552,12 +561,30 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
     <section id="briefing-gate">
       <h3>Wave observer</h3>
-      <p>At the foot of the page, at the right, on Docs' line. On a phone where it is ticked, the page opens on a
+      <p>The Observer switch at the foot of the page, after Docs. On a phone where it is on, the page opens on a
         quiet question, &ldquo;Logging the beach today?&rdquo;, and shows nothing else until today's
         log is done or you say you are not logging today. It comes back at midnight. Someone who has
         seen a forecast is no longer an independent witness, and the log is what will one day check
         this page, so the log comes first. That question is the one place the page links to the
-        log. Ticking it after you have already looked starts it tomorrow.</p>
+        log. Turning it on after you have already looked starts it tomorrow.</p>
+      <div class="next"><a href="#settings">Next: Units and theme &rarr;</a></div>
+    </section>
+
+    <section id="settings">
+      <h3>Units and theme</h3>
+      <p>The last two settings at the foot of the page. Each is kept on your phone, as Observer is.</p>
+      <p><b>Units</b> shows what it is set to, and each tap moves it on: <em>Both</em>, the
+        default, gives every number in feet, miles per hour, miles, &deg;F and inches with the
+        metric figure in parentheses, &ldquo;3.5 ft (1.07 m)&rdquo;; <em>Imperial</em> gives the
+        first alone; <em>Metric</em> gives the parenthesised figure alone, &ldquo;1.07 m&rdquo;,
+        in metres, knots, kilometres, &deg;C, hectopascals and millimetres. A metric number is
+        never rounded again: it is the same figure Both shows in parentheses. The chart axes and
+        the rose's rings step in metres and knots on Metric. Wind stays in knots, as the buoys
+        and the forecast models publish it. This page keeps both units throughout, because its
+        worked numbers are checked against one another.</p>
+      <p><b>The theme</b> is the half-lit circle at the end of the line. A tap gives the other
+        theme, light or dark; switch back to whichever your phone is set to and the page forgets
+        the choice and follows the phone again. This page follows the same choice.</p>
       <div class="next"><a href="#aperture">Next: The aperture &rarr;</a></div>
     </section>
   </section>
@@ -1056,7 +1083,8 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
     <section id="swell-headline">
       <h3>The headline</h3>
       <p>The breaking height, in feet with metres in parentheses: &ldquo;3.5 ft (1.07 m)
-        breaking height&rdquo;. The depth it breaks in is the last row of
+        breaking height&rdquo;, or in one of the two by <a href="#settings">the Units
+        setting</a>. The depth it breaks in is the last row of
         <a href="#calc-table">the calculation</a>, under Wave break: &ldquo;at 8 ft (2.3 m)
         depth&rdquo;. When there is no tide to break it at, the headline is the height in 5 m of
         water and says so. The caret at its end opens the calculation.</p>

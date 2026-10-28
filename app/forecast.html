@@ -3,6 +3,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Nado Waves — Coronado</title>
 <meta name="description" content="Physically derived swell aperture for Coronado's three breaks. Not a verified forecast.">
+<script>
+// The reader's theme, set before the first paint so a dark choice never
+// flashes light (owner's call, 2026-10-28; the glyph at the foot of the page,
+// `wireSettings`). Absent, the page follows the phone. Read here and only
+// here outside the page's storage helpers, because they load too late.
+try {
+  const t = localStorage.getItem("nado-waves.theme");
+  if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+} catch (e) { /* follows the phone */ }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
@@ -34,9 +44,14 @@
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
     --ok:#5FBF86;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    color-scheme:dark;
   }
 }
+/* A chosen theme carries the native controls with it: the bundle's meta says
+   "light dark", which follows the phone. */
+:root[data-theme="light"]{color-scheme:light}
 :root[data-theme="dark"]{
+  color-scheme:dark;
   --paper:#0E1A20; --card:#152630; --ink:#E4ECE9; --soft:#9DB0B7; --faint:#7A8D95;
   --line:#283C46; --line-strong:#3A525E;
   --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
@@ -267,7 +282,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .gate button,.gate .gate-log{font:inherit;font-size:15px;padding:7px 12px;border-radius:8px;
                              border:1px solid var(--line-strong);background:var(--card);color:var(--ink);
                              cursor:pointer;text-decoration:none}
-.links .logger{display:flex;align-items:center;gap:6px;color:var(--soft)}
+.links .logger{display:inline-flex;align-items:center;gap:6px;color:var(--soft)}
 /* Origin's and the phase's paragraphs read at 15 px in the supporting grey,
    as each buoy's sentence does -- the size of "combined" beside a height --
    and the dot between them takes that grey too, a step more contrast than
@@ -865,11 +880,54 @@ th{color:var(--soft);font-weight:600;font-size:12px}
 #warnings:not([hidden]){display:flex;align-items:flex-start;gap:8px}
 #warnings svg{flex:none;width:16px;height:16px;margin-top:.5px;color:var(--faint)}
 a{color:var(--surf)}
-/* Docs at the left and the Wave observer setting at the right, one line
-   (owner's call, 2026-10-16). */
-.links{margin:0;font-size:13px;display:flex;flex-direction:row;justify-content:space-between;
-       align-items:center;flex-wrap:wrap;gap:4px 12px;
-       border-top:1px solid var(--line);padding-top:12px}
+/* The foot of the page (owner's design, 2026-10-28): ONE centred line,
+   Docs | Observer | Units | the theme glyph at its right end, short bars
+   between. Docs in ink at the line's weight, the page's one link. On a
+   phone under 340 px the bars go and the gaps close, which keeps it one
+   line at 320. Line height 1, so its words centre on their boxes as
+   the chip's word does: at the page's 1.5 they read 1.25 px above it. */
+.links{margin:0;font-size:13px;line-height:1;color:var(--soft);display:flex;justify-content:center;align-items:center;
+       gap:12px;flex-wrap:nowrap;white-space:nowrap;
+       border-top:1px solid var(--line);padding-top:14px}
+.links a{color:var(--ink);text-decoration:none}
+.links a:focus-visible,.links button:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
+.links .bar{width:1px;height:14px;background:var(--line-strong);flex:none}
+@media (max-width:340px){ .links{gap:10px} .links .bar{display:none} }
+/* Observer: a real checkbox, drawn as a small switch. */
+.links .logger{position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.links .logger input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.links .logger .sw{position:relative;width:28px;height:16px;border-radius:8px;background:var(--line-strong);
+                   transition:background-color .2s;flex:none}
+.links .logger .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;
+                          background:var(--card);transition:transform .2s}
+.links .logger input:checked + .sw{background:var(--ink)}
+.links .logger input:checked + .sw::after{transform:translateX(12px)}
+.links .logger input:focus-visible + .sw{outline:2px solid var(--surf);outline-offset:2px}
+/* Units: a chip that shows the setting, a tap moving on. All three words in
+   one grid cell, the two unset unseen, so it is always as wide as
+   "Imperial" and a tap never moves the centred line. The cell centres its
+   word on a line box of the text alone, and a 0.3 px drop centres cap
+   height to baseline in the chip: without it the word sat ~0.4 px high
+   (measured at 4x, 2026-10-28). A transform, because padding snaps to the
+   pixel. */
+.links .units{display:inline-flex;align-items:center;gap:6px}
+.links .units button{display:inline-grid;place-items:center;height:22px;padding:0 7px;margin:0;
+                     border:1px solid var(--line-strong);border-radius:5px;background:transparent;
+                     font:inherit;font-size:12.5px;line-height:1;color:var(--ink);cursor:pointer;
+                     -webkit-tap-highlight-color:transparent}
+.links .units button > span{grid-area:1/1;transform:translateY(.3px)}
+.links .units button > span:not(.on){visibility:hidden}
+/* Theme: one glyph, a half-lit disc, its lit half turned to the theme a
+   tap gives. 18 px drawn in a 32 px target. */
+.links .theme{display:grid;place-items:center;width:32px;height:32px;margin:-7px;padding:0;border:0;
+              background:none;color:var(--soft);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.links .theme:hover{color:var(--ink)}
+.links .theme svg{display:block;width:18px;height:18px;transition:transform .35s ease}
+:root[data-theme="dark"] .links .theme svg{transform:rotate(180deg)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .links .theme svg{transform:rotate(180deg)} }
+@media (prefers-reduced-motion: reduce){
+  .links .theme svg,.links .logger .sw,.links .logger .sw::after{transition:none}
+}
 select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px solid var(--line-strong);
        background:var(--card);color:var(--ink)}
 @media(max-width:380px){
@@ -953,8 +1011,16 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
        beside this page in the bundle. It replaced info.html and
        geometry.html on 2026-10-02 (owner's decision). -->
   <nav class="links" aria-label="More">
-    <a href="docs.html">Docs</a>
-    <label class="logger"><input type="checkbox" id="log-gate"> Wave observer</label>
+    <a href="docs.html">Docs</a><span class="bar" aria-hidden="true"></span>
+    <label class="logger" title="Wave observer: log the beach before the forecast"><input type="checkbox"
+      id="log-gate" role="switch"><span class="sw" aria-hidden="true"></span>Observer</label><span class="bar"
+      aria-hidden="true"></span>
+    <span class="units">Units <button type="button" id="units"><span data-units="both">Both</span><span
+      data-units="imperial">Imperial</span><span data-units="metric">Metric</span></button></span><span
+      class="bar" aria-hidden="true"></span>
+    <button type="button" class="theme" id="theme"><svg viewBox="0 0 18 18" aria-hidden="true"><circle
+      cx="9" cy="9" r="6.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path
+      d="M9 2.25a6.75 6.75 0 0 1 0 13.5z" fill="currentColor"/></svg></button>
   </nav>
 </div>
 
@@ -1018,11 +1084,23 @@ const MM_PER_IN = 25.4;
 // Its pressure (owner's request, 2026-10-23): METAR's altimeter in inHg.
 const HPA_PER_INHG = 33.8639;
 const fahrenheit = (c) => c * 9 / 5 + 32;
+// The reader's Units setting (owner's call, 2026-10-28), at the foot of the
+// page: "both", imperial first and metric in parentheses, the default; or
+// "imperial" or "metric" alone. Every number on screen goes through `dual`
+// (HTML) or `dualText` (an SVG caption, a spoken label), so one setting
+// reaches each; a metric-only value is the "both" form's bracket, never a
+// second rounding. `lead` styles the value that leads (the Briefing's ink).
+// Read from this device at start-up (`UNITS_KEY`); the conversions above stay
+// the only ones.
+let UNITS = "both";
+const dual = (imp, met, lead = (x) => x) => (UNITS === "imperial" ? lead(imp)
+  : UNITS === "metric" ? lead(met) : `${lead(imp)} <span class="unit">(${met})</span>`);
+const dualText = (imp, met) => (UNITS === "imperial" ? imp : UNITS === "metric" ? met : `${imp} (${met})`);
+// A gust beside its wind, one unit as it always was: mph, or knots on metric.
+const gustSpeed = (kt) => (UNITS === "metric" ? `${Math.round(kt)} kt` : `${Math.round(kt * MPH_PER_KT)} mph`);
 
-const height = (m) => (m == null ? "\u2014"
-  : `${(m * FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)</span>`);
-const speed = (kt) => (kt == null ? "\u2014"
-  : `${Math.round(kt * MPH_PER_KT)} mph <span class="unit">(${Math.round(kt)} kt)</span>`);
+const height = (m) => (m == null ? "\u2014" : dual(`${(m * FT_PER_M).toFixed(1)} ft`, `${m.toFixed(2)} m`));
+const speed = (kt) => (kt == null ? "\u2014" : dual(`${Math.round(kt * MPH_PER_KT)} mph`, `${Math.round(kt)} kt`));
 
 // Display-only shortenings for the card's window rows. A full blocker name is
 // the truth and stays in the JSON, the "taking the swell" list and the
@@ -1727,13 +1805,12 @@ const briefWhen = (iso, B) => briefNum(briefAt(iso, B));
 // Temperatures, Fahrenheit first in whole degrees; the water's Celsius to
 // the tenth its buoy reports.
 const briefTemp = (c, tenths = false) =>
-  `${briefNum(`${Math.round(fahrenheit(c))} °F`)} <span class="unit">(${tenths ? c.toFixed(1) : Math.round(c)} °C)</span>`;
-const briefRain = (inches) => `${briefNum(`${inches.toFixed(2)} in`)} <span class="unit">(${(inches * MM_PER_IN).toFixed(1)} mm)</span>`;
+  dual(`${Math.round(fahrenheit(c))} °F`, `${tenths ? c.toFixed(1) : Math.round(c)} °C`, briefNum);
+const briefRain = (inches) => dual(`${inches.toFixed(2)} in`, `${(inches * MM_PER_IN).toFixed(1)} mm`, briefNum);
 // A minus tide with a true minus sign, "−0.7 ft (−0.21 m)", its feet in
 // ink (the swap is on the numbers alone: the class name has a hyphen).
 const briefMinus = (x) => x.replace(/-/g, "−");
-const briefLevel = (m) => `${briefNum(briefMinus(`${(m * FT_PER_M).toFixed(1)} ft`))} `
-  + `<span class="unit">(${briefMinus(m.toFixed(2))} m)</span>`;
+const briefLevel = (m) => dual(briefMinus(`${(m * FT_PER_M).toFixed(1)} ft`), briefMinus(`${m.toFixed(2)} m`), briefNum);
 // A buoy by its place alone, "Point Loma South", or its feed without one.
 const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
   ? bareName(B.station_names[id]) : feedName(id, cdip));
@@ -1800,8 +1877,8 @@ function briefSwell(B) {
   if (rows.length) {
     const ft = rows.map((r) => r.hs_m * FT_PER_M);
     const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
-    out.push({kind: "beach", range: `${briefNum(`${lo}–${hi}\u00a0ft`)} <span class="unit">`
-      + `(${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m)</span>`,
+    out.push({kind: "beach", range: dual(`${lo}–${hi}\u00a0ft`,
+      `${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m`, briefNum),
       spark: briefSpark(s.spark, s.window_h || 24),
       window: s.spark && s.spark.length > 1 ? briefWindow(s.window_h || 24) : ""});
     for (const tn of s.trains || []) {
@@ -1903,8 +1980,8 @@ function briefConditions(B) {
     row("humidity", "Humidity", briefNum(`${Math.round(w.humidity_pct)}%`), w.observed_utc, knzy, T.humidity);
   }
   if (w.pressure_inhg != null) {
-    row("pressure", "Pressure", `${briefNum(`${w.pressure_inhg.toFixed(2)} inHg`)} <span class="unit">`
-      + `(${Math.round(w.pressure_inhg * HPA_PER_INHG)} hPa)</span>`, w.pressure_utc, knzy, T.pressure);
+    row("pressure", "Pressure", dual(`${w.pressure_inhg.toFixed(2)} inHg`,
+      `${Math.round(w.pressure_inhg * HPA_PER_INHG)} hPa`, briefNum), w.pressure_utc, knzy, T.pressure);
   }
   if ((w.precip_hour_in || 0) > 0 || (w.precip_day_in || 0) > 0) {
     const kinds = (w.precip_kinds || []).length ? ` (${andList(w.precip_kinds)})` : "";
@@ -2087,10 +2164,12 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
   }
   for (const r of rows) {
     const t = Date.parse(r.at) / 1000, x = X(t), y = Y(r.m), gone = t < now, high = r.event === "high";
-    const ft = briefMinus(`${(r.m * FT_PER_M).toFixed(1)} ft`), m = briefMinus(`(${r.m.toFixed(2)} m)`);
+    // The leading value in ink, a bracketed metric after it only on "both".
+    const ftv = briefMinus(`${(r.m * FT_PER_M).toFixed(1)} ft`), mv = briefMinus(`${r.m.toFixed(2)} m`);
+    const ft = UNITS === "metric" ? mv : ftv, m = UNITS === "both" ? `(${mv})` : "";
     s += `<circle class="turn${gone ? " gone" : ""}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3"/>`
-      + `<text class="level${gone ? " gone" : ""}" x="${inside(x, 6.6 * (ft.length + m.length + 1)).toFixed(1)}"`
-      + ` y="${(high ? y - 9 : y + 17).toFixed(1)}"><tspan class="ft">${ft}</tspan> <tspan class="m">${m}</tspan></text>`
+      + `<text class="level${gone ? " gone" : ""}" x="${inside(x, 6.6 * (ft.length + (m ? m.length + 1 : 0))).toFixed(1)}"`
+      + ` y="${(high ? y - 9 : y + 17).toFixed(1)}"><tspan class="ft">${ft}</tspan>${m ? ` <tspan class="m">${m}</tspan>` : ""}</text>`
       + `<text class="time${gone ? " gone" : ""}" x="${inside(x, 6.6 * r.time.length).toFixed(1)}" y="${timeBase}">${r.time}</text>`;
   }
   return s + "</svg>";
@@ -2099,7 +2178,8 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
 // button whose tap says what it stands on, as a ledger row's does.
 function briefTideBlock(rows, B) {
   const open = BRIEF_ROWS.has("tide");
-  const said = rows.map((r) => `${r.label} ${(r.m * FT_PER_M).toFixed(1)} feet at ${r.time}`)
+  const said = rows.map((r) => `${r.label} ${UNITS === "metric" ? `${r.m.toFixed(2)} metres`
+    : `${(r.m * FT_PER_M).toFixed(1)} feet`} at ${r.time}`)
     .concat(briefSuns(B.tide || {}).map((u) => `${u.rise ? "sunrise" : "sunset"} ${clock(u.at)}`)).join(", ");
   return `<button type="button" class="brief-tide" data-brief-row="tide" data-brief-tide aria-expanded="${open}"`
     + ` aria-label="Today's tide, predicted: ${said}"></button>`
@@ -2215,6 +2295,45 @@ function wireGate() {
     if (box.checked) store(GATE.cleared, coastDay(Date.now()));
     show();
   };
+}
+
+// The foot of the page's two other settings (owner's design, 2026-10-28),
+// this device's as "Observer" is. Units: Both (the default, imperial first
+// and metric in parentheses), Imperial or Metric, a tap moving on; every
+// number is redrawn. Theme: a tap gives the other theme, and landing on the
+// phone's own forgets the choice, so the page follows the phone again. The
+// saved theme is applied before the first paint, at the top of the page.
+const UNITS_KEY = "nado-waves.units", THEME_KEY = "nado-waves.theme";
+const UNIT_ORDER = ["both", "imperial", "metric"];
+const UNIT_WORD = {both: "Both", imperial: "Imperial", metric: "Metric"};
+const DARK_MQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+const phoneTheme = () => (DARK_MQ && DARK_MQ.matches ? "dark" : "light");
+const shownTheme = () => document.documentElement.dataset.theme || phoneTheme();
+function paintSettings() {
+  const next = UNIT_ORDER[(UNIT_ORDER.indexOf(UNITS) + 1) % UNIT_ORDER.length];
+  const chip = $("units");
+  chip.querySelectorAll("[data-units]").forEach((w) => w.classList.toggle("on", w.dataset.units === UNITS));
+  chip.setAttribute("aria-label", `Units: ${UNIT_WORD[UNITS]}. Tap for ${UNIT_WORD[next]}.`);
+  $("theme").setAttribute("aria-label", `Switch to ${shownTheme() === "dark" ? "light" : "dark"} theme`);
+}
+function wireSettings() {
+  const saved = stored(UNITS_KEY);
+  UNITS = saved === "imperial" || saved === "metric" ? saved : "both";
+  $("units").onclick = () => {
+    UNITS = UNIT_ORDER[(UNIT_ORDER.indexOf(UNITS) + 1) % UNIT_ORDER.length];
+    store(UNITS_KEY, UNITS);
+    paintSettings();
+    if (DATA) show();
+  };
+  $("theme").onclick = () => {
+    const next = shownTheme() === "dark" ? "light" : "dark";
+    if (next === phoneTheme()) delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = next;
+    store(THEME_KEY, next === phoneTheme() ? "" : next);
+    paintSettings();
+  };
+  if (DARK_MQ && DARK_MQ.addEventListener) DARK_MQ.addEventListener("change", paintSettings);
+  paintSettings();
 }
 
 let BRIEFING = null;  // briefing.json — the LIVE tab's Briefing
@@ -2697,8 +2816,8 @@ function lastArrival(o) {
 // Rounded in each unit to `step`: 500 for Origin's dispersion distances, which
 // two buoys read about a fifth apart; 100 for a position from NHC's best track.
 const about = (v, step) => Math.max(step, Math.round(v / step) * step).toLocaleString("en-US");
-const farAway = (km, step = 500) =>
-  `about ${about(km * MI_PER_KM, step)} mi <span class="unit">(${about(km, step)} km)</span>`;
+const farAway = (km, step = 500) => (UNITS === "metric" ? `about ${about(km, step)} km`
+  : dual(`about ${about(km * MI_PER_KM, step)} mi`, `${about(km, step)} km`));
 const sea = (region) => {
   const r = (region || "").replace(/^the /, "");
   return r ? r[0].toUpperCase() + r.slice(1) : "";
@@ -2907,7 +3026,7 @@ function setOriginOpen(open) {
 
 // A depth for a label: whole feet, metres to one decimal below ten.
 function depthText(m) {
-  return `${Math.round(m * FT_PER_M)} ft (${m < 10 ? m.toFixed(1) : Math.round(m)} m)`;
+  return dualText(`${Math.round(m * FT_PER_M)} ft`, `${m < 10 ? m.toFixed(1) : Math.round(m)} m`);
 }
 
 // What the headline number is. Where it breaks, when the payload carries the
@@ -2923,7 +3042,7 @@ function depthLabel(c) {
   if (b && b.depth_m != null) return "breaking height";
   const d = n.depth_m;
   return d != null && isFinite(d)
-    ? `at ${Math.round(d * FT_PER_M)} ft (${Math.round(d)} m) depth` : "in window";
+    ? `at ${dualText(`${Math.round(d * FT_PER_M)} ft`, `${Math.round(d)} m`)} depth` : "in window";
 }
 
 // Where the headline's breaking height breaks, under "Wave break": the
@@ -2948,7 +3067,7 @@ function pct(to, from) {
 // A fetch, miles first: tenths below 10, whole past it.
 const fetchText = (km) => {
   const f = (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v)));
-  return `${f(km * MI_PER_KM)} mi (${f(km)} km)`;
+  return dualText(`${f(km * MI_PER_KM)} mi`, `${f(km)} km`);
 };
 
 // How the headline was made from the buoy's reading, one effect per row:
@@ -3061,7 +3180,7 @@ const NEAR_HEAD = 1.25;
 
 // Plain text for SVG captions, which cannot hold the HTML `height()` returns.
 // Same one conversion constant, so the rule that a factor appears once holds.
-const heightText = (m) => `${(m * FT_PER_M).toFixed(1)} ft (${m.toFixed(2)} m)`;
+const heightText = (m) => dualText(`${(m * FT_PER_M).toFixed(1)} ft`, `${m.toFixed(2)} m`);
 const svgText = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;")
   .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const shareText = (share) => {
@@ -3460,7 +3579,7 @@ function buoyAbout(station) {
   const a = BUOYS && BUOYS.about && BUOYS.about[station];
   if (!a || !a.says) return "";
   const where = a.range_km != null && a.bearing_deg != null
-    ? `, ${Math.round(a.range_km * MI_PER_KM)} mi <span class="unit">(${Math.round(a.range_km)} km)</span>`
+    ? `, ${dual(`${Math.round(a.range_km * MI_PER_KM)} mi`, `${Math.round(a.range_km)} km`)}`
       + ` offshore at ${Math.round(a.bearing_deg)}&deg; ${point(a.bearing_deg)} from Center break`
     : "";
   return `<p class="quiet buoy-note"><a href="${a.url}" rel="noopener">${a.place} (${a.feed})</a>`
@@ -3611,6 +3730,10 @@ function contextBuoy(b) {
 // rose): "ft" and "s", the units the line under the rose reads in. The
 // label is what a screen reader says.
 const ROSE_MODES = [{id: "height", label: "Height", symbol: "ft"}, {id: "period", label: "Period", symbol: "s"}];
+// A petal's height in the scale's unit: feet, or metres on metric, whose
+// rings step in metres (`roseScale`).
+const roseHt = (m) => (UNITS === "metric" ? m : m * FT_PER_M);
+const roseSymbol = (m) => (m.id === "height" && UNITS === "metric" ? "m" : m.symbol);
 let ROSE_MODE = recall(KEEP.roseMode) === "period" ? "period" : "height";
 const ROSE_PLAY_MS = 9000;
 const ROSE_HOLD_MS = 2500;
@@ -3687,9 +3810,10 @@ function roseMoment(span) {
 function roseScale(mode, station) {
   const frames = (roseOf(station) || {}).frames || [];
   const top = Math.max(0, ...frames.flatMap((f) => mode === "height"
-    ? f.sector_hs_m.map((m) => m * FT_PER_M)
+    ? f.sector_hs_m.map(roseHt)
     : f.period_share.map((row) => row.reduce((a, b) => a + b, 0))));
-  const steps = mode === "height" ? [1, 2, 5, 10, 20] : [0.05, 0.1, 0.2, 0.25];
+  const steps = mode !== "height" ? [0.05, 0.1, 0.2, 0.25]
+    : UNITS === "metric" ? [0.25, 0.5, 1, 2, 5] : [1, 2, 5, 10, 20];
   // The tolerance is far under the 0.1 ft shown, and keeps a petal of exactly
   // 6 ft (1.8288 m, 6.000002 ft through the converter) on the 6 ft ring.
   const count = (st) => Math.max(1, Math.ceil(top / st - 1e-4));
@@ -3704,7 +3828,7 @@ function roseScale(mode, station) {
 function roseScaleLine(mode, station) {
   const sc = roseScale(mode, station);
   return mode === "height"
-    ? `Rings every ${sc.step} ft (${(sc.step / FT_PER_M).toFixed(2)} m)`
+    ? `Rings every ${UNITS === "metric" ? `${sc.step} m` : dualText(`${sc.step} ft`, `${(sc.step / FT_PER_M).toFixed(2)} m`)}`
     : `Rings every ${rosePct(sc.step)}`;
 }
 
@@ -3773,8 +3897,8 @@ function rosePlot(state, mode, station) {
   if (state.frame) {
     const f = state.frame;
     if (mode === "height") {
-      petals = f.sector_hs_m.map((m, i) => (m * FT_PER_M < scale.max * 0.004 ? ""
-        : `<path class="rp" d="${rosePetal(i, 0, R * m * FT_PER_M / scale.max)}">`
+      petals = f.sector_hs_m.map((m, i) => (roseHt(m) < scale.max * 0.004 ? ""
+        : `<path class="rp" d="${rosePetal(i, 0, R * roseHt(m) / scale.max)}">`
           + `<title>${ROSE_POINTS[i]}: ${heightText(m)}</title></path>`)).join("");
       const top = f.sector_hs_m.map((m, i) => [m, i]).sort((a, b) => b[0] - a[0]).slice(0, 3);
       said = `largest from ${top.map(([m, i]) => `${ROSE_POINTS[i]} ${heightText(m)}`).join(", ")}`;
@@ -3798,7 +3922,7 @@ function rosePlot(state, mode, station) {
     if (share) {
       const range = roseRange(station, pick);
       const lit = share.map((s, i) => {
-        const v = mode === "height" ? f.hs_m * Math.sqrt(s) * FT_PER_M : s;
+        const v = mode === "height" ? roseHt(f.hs_m * Math.sqrt(s)) : s;
         if (v < scale.max * 0.004) return "";
         const what = mode === "height" ? heightText(f.hs_m * Math.sqrt(s)) : `${rosePct(s)} of the energy`;
         return `<path class="rt" d="${rosePetal(i, 0, R * v / scale.max)}">`
@@ -3889,7 +4013,7 @@ function roseBlock(station) {
     return `<p class="quiet buoy-note rose-none">No spectrum from ${buoyFeed(station)} in the last six hours.</p>`;
   }
   const modes = ROSE_MODES.map((m) => `<button type="button" data-rose-mode="${m.id}"`
-    + ` aria-pressed="${m.id === ROSE_MODE}" aria-label="${m.label}" title="${m.label}">${m.symbol}</button>`).join("");
+    + ` aria-pressed="${m.id === ROSE_MODE}" aria-label="${m.label}" title="${m.label}">${roseSymbol(m)}</button>`).join("");
   return `<div class="rose" data-rose="${station}" data-k="${v.key}">
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
     <div class="rose-scale${roseAged(rose, v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
@@ -4168,7 +4292,7 @@ const signedHeight = (m) => {
   if (m == null) return "—";
   const sign = m < 0 ? "−" : "+";
   const a = Math.abs(m);
-  return `${sign}${(a * FT_PER_M).toFixed(1)} ft <span class="unit">(${sign}${a.toFixed(2)} m)</span>`;
+  return dual(`${sign}${(a * FT_PER_M).toFixed(1)} ft`, `${sign}${a.toFixed(2)} m`);
 };
 const dayClock = (iso) => new Date(iso).toLocaleString(undefined, {
   weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
@@ -4180,18 +4304,21 @@ const dayClock = (iso) => new Date(iso).toLocaleString(undefined, {
 // the edges of the plot are drawn on every chart, whatever the heights in
 // view -- and the furthest line never touches it. At most four steps from
 // zero to the top, or three either side of zero when the axis is signed.
+// On metric the same axis in metres, its steps metric ones.
 function feetAxis(reach, {floor = 0.3, signed = false} = {}) {
-  const ft = Math.max(floor, reach) * FT_PER_M;
+  const metric = UNITS === "metric", per = metric ? 1 : FT_PER_M, unit = metric ? "m" : "ft";
+  const ft = Math.max(floor, reach) * per;
   const most = signed ? 3 : 4;
-  const step = [0.5, 1, 2, 5, 10, 20, 50].find((f) => Math.ceil(ft / f + 0.05) <= most) || 100;
+  const step = (metric ? [0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 20] : [0.5, 1, 2, 5, 10, 20, 50])
+    .find((f) => Math.ceil(ft / f + 0.05) <= most) || 100;
   const n = Math.ceil(ft / step + 0.05);
   const ticks = [];
   for (let k = signed ? -n : 0; k <= n; k++) {
-    const v = Number((k * step).toFixed(1));
-    const text = v === 0 ? "0" : `${v < 0 ? "−" : signed ? "+" : ""}${Math.abs(v)} ft`;
-    ticks.push({at: v / FT_PER_M, text});
+    const v = Number((k * step).toFixed(2));
+    const text = v === 0 ? "0" : `${v < 0 ? "−" : signed ? "+" : ""}${Math.abs(v)} ${unit}`;
+    ticks.push({at: v / per, text});
   }
-  const top = n * step / FT_PER_M;
+  const top = n * step / per;
   return {domain: [signed ? -top : 0, top], ticks};
 }
 
@@ -4756,8 +4883,7 @@ const dayOnly = (iso) => new Date(iso).toLocaleDateString(undefined, {day: "nume
 // Heights either side of a spread of runs, imperial first: "2.8–3.4 ft
 // (0.85–1.04 m)".
 const heightSpan = (lo, hi) => (Math.abs(hi - lo) < 0.005 ? height(lo)
-  : `${(lo * FT_PER_M).toFixed(1)}–${(hi * FT_PER_M).toFixed(1)} ft `
-    + `<span class="unit">(${lo.toFixed(2)}–${hi.toFixed(2)} m)</span>`);
+  : dual(`${(lo * FT_PER_M).toFixed(1)}–${(hi * FT_PER_M).toFixed(1)} ft`, `${lo.toFixed(2)}–${hi.toFixed(2)} m`));
 
 function fcSpec(id, mode, steps) {
   const station = buoyFeed(DATA.station) || "the buoy";
@@ -4892,12 +5018,12 @@ function fcSpec(id, mode, steps) {
       read: (i) => {
         const e = steps[i].ens;
         if (!e) return "no ensemble for this hour";
-        const pm = `±${(e.hs_spread_m * FT_PER_M).toFixed(1)} ft <span class="unit">(±${e.hs_spread_m.toFixed(2)} m)</span>`;
+        const pm = dual(`±${(e.hs_spread_m * FT_PER_M).toFixed(1)} ft`, `±${e.hs_spread_m.toFixed(2)} m`);
         // Only the 2 m share: the bulletin's shares are read by what they hold,
         // not their printed labels (forecast.ensemble.P_ABOVE), and 1 m is
         // exceeded on nearly every hour here.
         const shares = e.p_gt_2m != null
-          ? ` &middot; ${Math.round(100 * e.p_gt_2m)}% of members above 6.6 ft (2 m)` : "";
+          ? ` &middot; ${Math.round(100 * e.p_gt_2m)}% of members above ${dual("6.6 ft", "2 m")}` : "";
         return value(`Ensemble mean ${height(e.hs_mean_m)}`) + ` ${pm}` + shares
           + (single[i] != null ? ` &middot; newest GFS-Wave run ${height(single[i])}` : "")
           + obsRead(i, observed[i] == null ? null : height(observed[i]));
@@ -4949,9 +5075,12 @@ function chartDomain(spec, a, z) {
     return {domain: [0, 1], ticks: [0, 0.5, 1].map((v) => ({at: v, text: `${v * 100}%`}))};
   }
   if (spec.scale === "distance") {
+    // Plotted in log miles; on metric its gridlines are whole kilometres.
     return {domain: ORIGIN_KM.map(logMi),
-            ticks: [500, 1000, 2000, 5000, 10000].map((mi) => ({at: Math.log10(mi),
-              text: `${mi.toLocaleString("en-US")} mi`}))};
+            ticks: UNITS === "metric"
+              ? [1000, 2000, 5000, 10000, 20000].map((km) => ({at: logMi(km), text: `${km.toLocaleString("en-US")} km`}))
+              : [500, 1000, 2000, 5000, 10000].map((mi) => ({at: Math.log10(mi),
+                text: `${mi.toLocaleString("en-US")} mi`}))};
   }
   if (spec.scale === "period") {
     return {domain: [0, 24], ticks: [0, 6, 12, 18, 24].map((v) => ({at: v, text: v ? `${v} s` : "0"}))};
@@ -5779,32 +5908,37 @@ function windWords(w) {
   if (!w || w.kt == null) return null;
   if (w.kt === 0) return "calm";
   return `${w.from == null ? "variable" : compass(w.from)} at ${speed(w.kt)}`
-    + (w.gust != null ? `, gusting ${Math.round(w.gust * MPH_PER_KT)} mph` : "");
+    + (w.gust != null ? `, gusting ${gustSpeed(w.gust)}` : "");
 }
 
 // A wind axis in mph, placed in knots: the data stays in knots and the
 // conversion is the page's one constant. Framed by gridlines, as the heights'.
+// On metric, the same axis in knots.
 function mphAxis(reachKt) {
-  const mph = Math.max(10, reachKt * MPH_PER_KT);
+  const per = UNITS === "metric" ? 1 : MPH_PER_KT, unit = UNITS === "metric" ? "kt" : "mph";
+  const mph = Math.max(10, reachKt * per);
   const step = [5, 10, 20, 25, 50].find((f) => Math.ceil(mph / f + 0.05) <= 4) || 100;
   const n = Math.ceil(mph / step + 0.05);
   const ticks = [];
-  for (let k = 0; k <= n; k++) ticks.push({at: k * step / MPH_PER_KT, text: k ? `${k * step} mph` : "0"});
-  return {domain: [0, n * step / MPH_PER_KT], ticks};
+  for (let k = 0; k <= n; k++) ticks.push({at: k * step / per, text: k ? `${k * step} ${unit}` : "0"});
+  return {domain: [0, n * step / per], ticks};
 }
 
 // A water-level axis in feet on MLLW, placed in metres. A low tide goes
 // below zero, so both ends are rounded outward to a whole tick.
+// On metric, metres, from half-metre steps.
 function tideAxis(lo, hi) {
-  const a = lo * FT_PER_M, b = Math.max(hi * FT_PER_M, a + 1);
-  const step = [1, 2, 5, 10].find((f) => Math.ceil(b / f + 0.05) - Math.floor(a / f - 0.05) <= 5) || 20;
+  const metric = UNITS === "metric", per = metric ? 1 : FT_PER_M, unit = metric ? "m" : "ft";
+  const a = lo * per, b = Math.max(hi * per, a + (metric ? 0.3 : 1));
+  const step = (metric ? [0.5, 1, 2, 5] : [1, 2, 5, 10])
+    .find((f) => Math.ceil(b / f + 0.05) - Math.floor(a / f - 0.05) <= 5) || 20;
   const k0 = Math.floor(a / step - 0.05), k1 = Math.ceil(b / step + 0.05);
   const ticks = [];
   for (let k = k0; k <= k1; k++) {
-    const v = k * step;
-    ticks.push({at: v / FT_PER_M, text: v === 0 ? "0" : `${v < 0 ? "−" : ""}${Math.abs(v)} ft`});
+    const v = Number((k * step).toFixed(2));
+    ticks.push({at: v / per, text: v === 0 ? "0" : `${v < 0 ? "−" : ""}${Math.abs(v)} ${unit}`});
   }
-  return {domain: [k0 * step / FT_PER_M, k1 * step / FT_PER_M], ticks};
+  return {domain: [k0 * step / per, k1 * step / per], ticks};
 }
 
 // The departure's axis: from zero to the furthest reading either side, in
@@ -5812,18 +5946,21 @@ function tideAxis(lo, hi) {
 // gauge has run on one side of its prediction for weeks at a time and a
 // mirrored empty half would flatten the line that matters.
 function depAxis(lo, hi) {
-  const a = Math.min(0, lo) * FT_PER_M, b = Math.max(0, hi) * FT_PER_M;
+  // On metric, metres, from 0.05 m steps.
+  const metric = UNITS === "metric", per = metric ? 1 : FT_PER_M, unit = metric ? "m" : "ft";
+  const a = Math.min(0, lo) * per, b = Math.max(0, hi) * per;
   // Only a side that has readings gets the margin; zero itself is the edge.
   const lowK = (f) => (a < 0 ? Math.floor(a / f - 0.05) : 0);
   const highK = (f) => (b > 0 ? Math.ceil(b / f + 0.05) : 0);
-  const step = [0.25, 0.5, 1, 2, 5].find((f) => highK(f) - lowK(f) <= 4) || 10;
+  const step = (metric ? [0.05, 0.1, 0.2, 0.5, 1] : [0.25, 0.5, 1, 2, 5])
+    .find((f) => highK(f) - lowK(f) <= 4) || 10;
   const k0 = lowK(step), k1 = Math.max(k0 + 1, highK(step));
   const ticks = [];
   for (let k = k0; k <= k1; k++) {
     const v = Number((k * step).toFixed(2));
-    ticks.push({at: v / FT_PER_M, text: v === 0 ? "0" : `${v < 0 ? "−" : "+"}${Math.abs(v)} ft`});
+    ticks.push({at: v / per, text: v === 0 ? "0" : `${v < 0 ? "−" : "+"}${Math.abs(v)} ${unit}`});
   }
-  return {domain: [k0 * step / FT_PER_M, k1 * step / FT_PER_M], ticks};
+  return {domain: [k0 * step / per, k1 * step / per], ticks};
 }
 
 function wtSpec(id, steps, mode) {
@@ -6482,7 +6619,7 @@ function wireSwellTabs() {
 function localWindBlock(hour, cards, past, seen = "", updated = null) {
   const L = (DATA && DATA.local_wind) || {};
   if (hour && hour.local_wind_from_deg != null) {
-    const gust = hour.local_gust_kt ? ` <span class="unit">gusting ${Math.round(hour.local_gust_kt * MPH_PER_KT)} mph</span>` : "";
+    const gust = hour.local_gust_kt ? ` <span class="unit">gusting ${gustSpeed(hour.local_gust_kt)}</span>` : "";
     // In pills, as the model's (owner's request, 2026-10-15): the service,
     // its grid cell at Coronado, and when the grid was last updated.
     const grid = L.office ? `Grid ${L.office} ${L.grid_x},${L.grid_y}` : "Grid";
@@ -6545,7 +6682,7 @@ function renderConditions(step, cards) {
       <span class="lbl">Wind</span>
       <span class="val"${windAged}>${windHeard(wind)
         ? windVal(wind.from_deg, wind.speed_kt)
-          + (wind.gust_kt ? ` <span class="unit">gusting ${Math.round(wind.gust_kt * MPH_PER_KT)} mph</span>` : "")
+          + (wind.gust_kt ? ` <span class="unit">gusting ${gustSpeed(wind.gust_kt)}</span>` : "")
         : '<span class="unit">not collected</span>'}</span>
       ${windHeard(wind) ? windAtBreaks(cards, windAged) : ""}
       ${windHeard(wind)
@@ -7269,6 +7406,10 @@ function boot(data, observed, measured, series, windtide) {
   setInterval(refreshSeriesAll, FORECAST_REFRESH_MS);
   setInterval(refreshForecast, FORECAST_REFRESH_MS);
 }
+
+// Before the data: the foot of the page works whether or not it loads, and
+// the Units setting is read before the first number is drawn.
+wireSettings();
 
 Promise.all([
   fetch(fresh(SOURCE), {cache: "no-store"})

@@ -191,7 +191,8 @@ def script(source: str) -> str:
         _lift(source, "const bareName = ", ";"),
         _lift(source, "const MPH_PER_KT = ", ";"),
         _lift(source, "const MI_PER_KM = ", ";"),
-        _lift(source, "const speed = ", "</span>`);"),
+        # The Units setting and the formatters built on it, as one block.
+        source[source.index("let UNITS = "):source.index("\n// Display-only shortenings")],
         _lift(source, "function point(", "\n}\n"),
         source[source.index("function originFor("):source.index("// Whether Origin is folded out")],
     ])
