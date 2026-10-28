@@ -321,7 +321,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    from "(1.16 m)" that every other number on the page keeps together. */
 .cond .turn{font-size:13.5px;color:var(--soft)}
 .cond .turn b{color:var(--ink);font-weight:600}
-.cond .turn .tag{font-size:11px;color:var(--faint);text-transform:uppercase;
+/* Tags in the supporting grey, the colour of a secondary train's heading
+   (owner's call, 2026-10-28: --faint read too dim, in dark mode most). */
+.cond .turn .tag{font-size:11px;color:var(--soft);text-transform:uppercase;
                  letter-spacing:.06em;margin-left:5px;white-space:nowrap}
 /* THE TIDE PHASE folds out like Origin, from its own line under a rule of
    its own, right above "Charts" (owner's request, 2026-10-11): the line is
@@ -330,7 +332,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    docs.html). */
 .cond > .phase-fold{display:flex;flex-direction:column;gap:6px;
                     border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
-.phase-fold .chart-head .tag{font-size:11px;color:var(--faint);text-transform:uppercase;font-weight:400;
+.phase-fold .chart-head .tag{font-size:11px;color:var(--soft);text-transform:uppercase;font-weight:400;
                             letter-spacing:.06em;margin-left:6px;white-space:nowrap}
 .phase-fold .chart-head:hover .calc-toggle{color:var(--ink)}
 .phase-fold .fold-body{display:flex;flex-direction:column;gap:2px}
@@ -345,7 +347,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .train .ht{font-weight:600;min-width:112px}
 .train .tp{color:var(--soft);min-width:48px}
 .train .dr{color:var(--soft);flex:1;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.train .tag{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;
+/* "wind sea" and "local chop" in the heading's own grey (owner's call,
+   2026-10-28): on a secondary row the two are one colour under its fade. */
+.train .tag{font-size:11px;color:var(--soft);text-transform:uppercase;letter-spacing:.06em;
             white-space:nowrap;flex:none}
 /* One line per train (owner's calls, 2026-10-06 and -07). Each row carries
    its heading in every form it may take, longest first, and `fitTrains`
