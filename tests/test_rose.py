@@ -161,17 +161,30 @@ class TestOnThePage:
         scale = scale[:scale.index("\n}\n") + 3]
         assert "roseOf(station)" in scale and "BUOYS.roses" not in scale
         assert "rosePlot(v.state, ROSE_MODE, station)" in PAGE
+        units = PAGE[PAGE.index("let UNITS = "):PAGE.index("\nconst dual = ")]
+        ht = PAGE[PAGE.index("const roseHt = "):]
+        ht = ht[:ht.index(";\n") + 2]
         script = (
-            "const FT_PER_M = 3.28084; let FRAMES;\n"
+            "const FT_PER_M = 3.28084; let FRAMES;\n" + units + "\n" + ht +
             "const roseOf = () => ({frames: FRAMES});\n" + scale +
             "const out = [];\n"
             "for (const [h, s] of [[0.41, 0.26], [1.2526, 0.431], [0.05, 0.02], [1.8288, 0.10],"
             " [0.5517, 0.24]]) {\n"
             "  FRAMES = [{sector_hs_m: [h, 0.1], period_share: [[s, 0, 0, 0, 0], [0.01, 0, 0, 0, 0]]}];\n"
             "  out.push([roseScale('height', 'x'), roseScale('period', 'x')]);\n"
-            "}\nconsole.log(JSON.stringify(out));\n")
-        got = json.loads(subprocess.run(["node", "-e", script], capture_output=True,
-                                        text=True, check=True).stdout)
+            "}\nUNITS = 'metric'; const metric = [];\n"
+            "for (const h of [0.41, 1.2526, 0.05, 1.8288, 0.5517]) {\n"
+            "  FRAMES = [{sector_hs_m: [h, 0.1], period_share: [[0.1, 0, 0, 0, 0]]}];\n"
+            "  metric.push(roseScale('height', 'x'));\n"
+            "}\nconsole.log(JSON.stringify(out)); console.log(JSON.stringify(metric));\n")
+        lines = subprocess.run(["node", "-e", script], capture_output=True,
+                               text=True, check=True).stdout.splitlines()
+        got, metric = json.loads(lines[0]), json.loads(lines[1])
+        # On Metric (owner's call, 2026-10-28) the rings step in metres, the
+        # same rule: 0.41 m -> 0.5 in 0.25 m rings; 1.25 -> 1.5 in 0.5; 0.05
+        # still draws 0.25; 1.83 -> 2 in 0.5; 0.55 -> 0.75 in 0.25.
+        assert [g["max"] for g in metric] == [0.5, 1.5, 0.25, 2, 0.75]
+        assert [g["step"] for g in metric] == [0.25, 0.5, 0.25, 0.5, 0.25]
         # 1.35 ft -> 2; 4.11 -> 5; a near-empty loop still draws 1 ft; exactly
         # 6.0 ft stays on 6 (in 2 ft rings); 1.81 ft (46232, 7 Oct) -> 2.
         assert [g[0]["max"] for g in got] == [2, 5, 1, 6, 2]
@@ -205,7 +218,9 @@ class TestOnThePage:
         assert "rose-head" not in block
         assert (block.index('class="rose-line"') < block.index('class="ranges rose-modes"')
                 < block.index("${roseLegend(ROSE_MODE)}"))
-        assert 'aria-label="${m.label}"' in block and "${m.symbol}</button>" in block
+        assert 'aria-label="${m.label}"' in block and "${roseSymbol(m)}</button>" in block
+        # "m | s" on Metric (owner's call, 2026-10-28).
+        assert 'const roseSymbol = (m) => (m.id === "height" && UNITS === "metric" ? "m" : m.symbol);' in PAGE
         assert 'const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];' in PAGE
 
     def test_the_outer_ring_is_the_drawing_edge(self):

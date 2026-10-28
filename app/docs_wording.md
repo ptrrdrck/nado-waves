@@ -131,7 +131,15 @@ Checked against two months of both buoys' spectra, three ways. On average the ar
 
 ### [briefing-gate] Wave observer
 
-At the foot of the page, at the right, on Docs' line. On a phone where it is ticked, the page opens on a quiet question, “Logging the beach today?”, and shows nothing else until today's log is done or you say you are not logging today. It comes back at midnight. Someone who has seen a forecast is no longer an independent witness, and the log is what will one day check this page, so the log comes first. That question is the one place the page links to the log. Ticking it after you have already looked starts it tomorrow.
+The Observer switch at the foot of the page, after Docs. On a phone where it is on, the page opens on a quiet question, “Logging the beach today?”, and shows nothing else until today's log is done or you say you are not logging today. It comes back at midnight. Someone who has seen a forecast is no longer an independent witness, and the log is what will one day check this page, so the log comes first. That question is the one place the page links to the log. Turning it on after you have already looked starts it tomorrow.
+
+### [settings] Units and theme
+
+The last two settings at the foot of the page. Each is kept on your phone, as Observer is.
+
+**Units** shows what it is set to, and each tap moves it on: *Both*, the default, gives every number in feet, miles per hour, miles, °F and inches with the metric figure in parentheses, “3.5 ft (1.07 m)”; *Imperial* gives the first alone; *Metric* gives the parenthesised figure alone, “1.07 m”, in metres, knots, kilometres, °C, hectopascals and millimetres. A metric number is never rounded again: it is the same figure Both shows in parentheses. The chart axes and the rose's rings step in metres and knots on Metric. Wind stays in knots, as the buoys and the forecast models publish it. This page keeps both units throughout, because its worked numbers are checked against one another.
+
+**The theme** is the half-lit circle at the end of the line. A tap gives the other theme, light or dark; switch back to whichever your phone is set to and the page forgets the choice and follows the phone again. This page follows the same choice.
 
 ## [aperture] The aperture
 
@@ -456,7 +464,7 @@ Each buoy's headline folds out, as a break's does: tap it, or the caret at its e
 
 ### [swell-headline] The headline
 
-The breaking height, in feet with metres in parentheses: “3.5 ft (1.07 m) breaking height”. The depth it breaks in is the last row of [the calculation](#calc-table), under Wave break: “at 8 ft (2.3 m) depth”. When there is no tide to break it at, the headline is the height in 5 m of water and says so. The caret at its end opens the calculation.
+The breaking height, in feet with metres in parentheses: “3.5 ft (1.07 m) breaking height”, or in one of the two by [the Units setting](#settings). The depth it breaks in is the last row of [the calculation](#calc-table), under Wave break: “at 8 ft (2.3 m) depth”. When there is no tide to break it at, the headline is the height in 5 m of water and says so. The caret at its end opens the calculation.
 
 ### [swell-drawing] The window drawing
 

@@ -1001,9 +1001,20 @@ forecaster actually verifies against, Surfline included.
    formula and each case) and `docs/briefing_sentences.md` (every distinct
    line once, for the owner to edit; edits are carried into the page by
    hand) by `forecast/briefingwording.py`, both pinned by a test.
-   **The log-first gate** (owner's call, same day): "Wave observer", a
-   checkbox beside Docs, kept in localStorage (with the Briefing's last
-   opened update, its only uses, pinned). On such a device the page opens on "Logging the beach today?"
+   **The foot of the page** (owner's design, 2026-10-28): ONE centred
+   line, "Docs | Observer | Units [Both] | ◐" — Docs in ink at the line's
+   weight, Observer the gate's checkbox drawn as a switch, Units a bordered
+   chip that shows its setting and cycles Both → Imperial → Metric on a tap
+   (its word centred cap-to-baseline in the chip, measured at 4x; always as
+   wide as "Imperial", so a tap never moves the line), and the theme a
+   half-lit disc at the right end: a tap gives the other theme, and landing
+   on the phone's own forgets the choice. Below 340 px the bars drop and the
+   gaps close, keeping one line at 320. The theme is applied before the
+   first paint by a script at the top of the page (docs.html too, which
+   follows the same saved choice) and sets `color-scheme` with it.
+   **The log-first gate** (owner's call, 2026-10-16): "Wave observer", the
+   Observer switch, kept in localStorage (with the Briefing's last opened
+   update and the Units and theme settings, its only uses, pinned). On such a device the page opens on "Logging the beach today?"
    and nothing else until today's log is done or declined; it returns at
    Coronado's midnight, and ticking it after looking starts it tomorrow.
    That question is the ONE place the page links to the log; docs.html
@@ -1646,8 +1657,16 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   its tag (a 320 px phone) does the tag wrap. Worst-case width thresholds
   (the 2026-10-06 container queries) dropped degrees on rows that had room
   for them; measuring each row is what stops that.
-- **Imperial leads, metric in parentheses, everywhere a number is shown.**
-  "2.3 ft (0.71 m)", "9 mph (8 kt)". **Nothing upstream of a display converts**:
+- **Imperial leads, metric in parentheses, everywhere a number is shown — by
+  default.** "2.3 ft (0.71 m)", "9 mph (8 kt)". Since 2026-10-28 (owner's
+  call) the reader's Units setting at the foot of the page can show
+  Imperial or Metric alone instead: every number goes through the page's
+  one `dual` / `dualText` (beside the constants), a metric value alone is
+  the "both" form's bracket and never a second rounding, wind's metric stays
+  knots (owner's call, same day), and the chart axes and the rose's rings
+  step in metric units on Metric. docs.html keeps both throughout: its
+  worked numbers are checked against each other. Python's report strings
+  (`forecast/units.py`) are not the page and keep both. **Nothing upstream of a display converts**:
   the JSON, the transform and the collectors stay in metres and knots, because
   that is what NDBC and WAVEWATCH III publish and putting a unit change between
   the source and every cross-check is how a 3.28 ends up somewhere it should

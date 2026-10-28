@@ -299,12 +299,14 @@ class TestTheSentenceUnderEachRose:
     the station linked to its public page, its distance offshore and bearing
     from Center break, what is read from it and its role here."""
 
-    def _render(self, about):
+    def _render(self, about, units="both"):
         node = shutil.which("node")
         if node is None:
             pytest.skip("node is not available")
         script = (
             "const MI_PER_KM = 0.621371;\n"
+            + PAGE[PAGE.index("let UNITS = "):PAGE.index("\nconst height = ")]
+            + f"\nUNITS = {json.dumps(units)};\n"
             + _fn("point") + "\n}\n" + _fn("buoyAbout") + "\n}\n"
             + f"const BUOYS = {{about: {json.dumps(about)}}};\n"
             + "for (const s of ['46232', '46086', '46047']) console.log(buoyAbout(s));\n"
@@ -331,6 +333,15 @@ class TestTheSentenceUnderEachRose:
         assert '<a href="https://cdip.ucsd.edu/m/products/?stn=191p1" rel="noopener">' in got[0]
         assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46086"' in got[1]
         assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46047"' in got[2]
+
+    def test_the_distance_follows_the_units_setting(self):
+        """Owner's call, 2026-10-28: Imperial gives miles alone, Metric the
+        bracket's kilometres alone, never rounded again."""
+
+        about = buoys.about(ROOT / "data")
+        plain = lambda got: [re.sub(r"<[^>]+>", "", line) for line in got]
+        assert plain(self._render(about, "imperial"))[0].startswith("Point Loma South (CDIP 191), 18 mi offshore")
+        assert plain(self._render(about, "metric"))[0].startswith("Point Loma South (CDIP 191), 29 km offshore")
 
     def test_measured_from_center_and_never_typed(self):
         from forecast import siting

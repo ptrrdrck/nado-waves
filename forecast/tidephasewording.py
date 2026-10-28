@@ -122,7 +122,8 @@ def _lift(source: str, start: str, end: str) -> str:
 def script(source: str, cases: list) -> str:
     code = "\n".join([
         _lift(source, "const FT_PER_M = ", ";"),
-        _lift(source, "const height = ", "</span>`);"),
+        # The Units setting and the formatters built on it, as one block.
+        source[source.index("let UNITS = "):source.index("\n// Display-only shortenings")],
         source[source.index("const COAST_TZ = "):source.index("// Whether the phase fold is open")],
     ])
     return code + f"""

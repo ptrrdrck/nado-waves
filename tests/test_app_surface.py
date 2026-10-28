@@ -28,6 +28,9 @@ TEXT = re.sub(r"\s+", " ", SOURCE)
 INFO_PAGE = APP.parent / "docs.html"
 INFO = INFO_PAGE.read_text(encoding="utf-8")
 INFO_TEXT = re.sub(r"\s+", " ", INFO)
+# The Units setting's block -- UNITS, `dual`, `dualText`, `gustSpeed` -- for a
+# harness that runs page code beside its own stub formatters.
+UNITS_JS = SOURCE[SOURCE.index("let UNITS = "):SOURCE.index("\nconst height = ")] + "\n"
 
 
 class TestItSaysWhatItIsStandingOn:
@@ -712,11 +715,18 @@ class TestTheTwoChains:
         assert "SWELL_TAB = recall(KEEP.swell)" in SOURCE
         # The exceptions belong to the device, not the visit: the log-first
         # gate (owner's call, 2026-10-16) -- "Wave observer" and the day it
-        # was cleared -- and which Briefing update was last opened (owner's
-        # request, 2026-10-22). Both live in localStorage, through the gate's
-        # two helpers and nowhere else.
+        # was cleared -- which Briefing update was last opened (owner's
+        # request, 2026-10-22), and the Units and theme settings (owner's
+        # call, 2026-10-28). All live in localStorage, through the gate's two
+        # helpers -- save the theme's one read before the first paint, at the
+        # top of the page, where the helpers are not loaded yet.
+        early = SOURCE[:SOURCE.index("</script>")]
+        assert early.count('localStorage.getItem("nado-waves.theme")') == 1 and "try {" in early
         outside = SOURCE.replace(SOURCE[SOURCE.index("function stored("):SOURCE.index("const gated = ")], "")
+        outside = outside.replace(early, "")
         assert "localStorage." not in outside
+        assert 'const UNITS_KEY = "nado-waves.units", THEME_KEY = "nado-waves.theme";' in SOURCE
+        assert "store(UNITS_KEY, UNITS);" in SOURCE and "stored(UNITS_KEY)" in SOURCE
 
     def test_storage_that_throws_does_not_break_the_page(self):
         """Private modes and blocked site data throw on the accessor itself."""
@@ -825,14 +835,42 @@ class TestUnits:
         assert f"const MI_PER_KM = {MI_PER_KM}" in SOURCE
 
     def test_height_puts_feet_first(self):
-        assert 'FT_PER_M).toFixed(1)} ft <span class="unit">(${m.toFixed(2)} m)' in SOURCE
+        assert 'dual(`${(m * FT_PER_M).toFixed(1)} ft`, `${m.toFixed(2)} m`)' in SOURCE
 
     def test_speed_puts_mph_first(self):
-        assert 'MPH_PER_KT)} mph <span class="unit">(${Math.round(kt)} kt)' in SOURCE
+        assert 'dual(`${Math.round(kt * MPH_PER_KT)} mph`, `${Math.round(kt)} kt`)' in SOURCE
+
+    def test_the_units_setting_gives_both_imperial_or_metric(self):
+        """Owner's call, 2026-10-28: Both (the default) is imperial first
+        with metric in parentheses; Imperial and Metric give one alone, and a
+        metric value alone is the bracket's figure, never rounded again."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        block = SOURCE[SOURCE.index("const FT_PER_M = "):SOURCE.index("\n// Display-only shortenings")]
+        script = block + (
+            "\nconst out = [];\n"
+            "for (const u of ['both', 'imperial', 'metric']) {\n"
+            "  UNITS = u; out.push([height(0.71), speed(8), dualText('2 ft', '0.6 m'), gustSpeed(12)]);\n"
+            "}\nconsole.log(JSON.stringify(out));")
+        got = json.loads(subprocess.run([node, "-e", script], capture_output=True, text=True,
+                                        check=True).stdout)
+        assert got == [
+            ['2.3 ft <span class="unit">(0.71 m)</span>', '9 mph <span class="unit">(8 kt)</span>',
+             "2 ft (0.6 m)", "14 mph"],
+            ["2.3 ft", "9 mph", "2 ft", "14 mph"],
+            ["0.71 m", "8 kt", "0.6 m", "12 kt"],
+        ]
+        assert 'let UNITS = "both";' in SOURCE
 
     def test_nothing_still_renders_a_bare_metric_value(self):
+        """A metric value alone is shown only by the Units setting: every
+        line that writes one asks it."""
         assert "metres(" not in SOURCE and "feet(" not in SOURCE
-        assert "} kt`" not in SOURCE
+        for line in SOURCE.splitlines():
+            if "} kt`" in line:
+                assert "dual(" in line or 'UNITS === "metric"' in line, line
 
     def test_the_python_side_shares_the_same_rule(self):
         from forecast.units import height, speed
@@ -1005,7 +1043,7 @@ class TestTheCalculationTable:
     def test_the_headline_names_its_depth(self):
         label = SOURCE[SOURCE.index("function depthLabel"):]
         label = label[:label.index("\n}\n")]
-        assert "ft (${Math.round(d)} m) depth" in label
+        assert "${dualText(`${Math.round(d * FT_PER_M)} ft`, `${Math.round(d)} m`)} depth" in label
         assert '"in window"' in label           # an older payload says what its number is
 
     def test_a_break_under_way_at_the_start_depth_is_a_bound(self):
@@ -2060,7 +2098,7 @@ class TestTheWeekChart:
         for name in ("point", "headings", "fromText", "pointsText"):
             start = SOURCE.index(f"function {name}(")
             compass += SOURCE[start:SOURCE.index("\n}\n", start) + 2]
-        prelude = (
+        prelude = UNITS_JS + (
             "const FT_PER_M = 3.28084;\n"
             "const ORDER = ['coronado_north', 'coronado_center', 'coronado_south'];\n"
             "const SHORT = {coronado_north: 'North', coronado_center: 'Center',"
@@ -3216,7 +3254,7 @@ class TestTheLocalWindOnTheForecastTab:
             start = SOURCE.index(f"function {name}(")
             return SOURCE[start:SOURCE.index("\n}\n", start) + 2]
 
-        prelude = (
+        prelude = UNITS_JS + (
             "const FT_PER_M = 3.28084; const MPH_PER_KT = 1.15078; let SWELL_TAB = 'coronado_north';\n"
             "const speed = (kt) => `${Math.round(kt * MPH_PER_KT)} mph (${Math.round(kt)} kt)`;\n"
             "const when = (iso) => iso; const period = (t) => t;\n"
@@ -3889,10 +3927,15 @@ class TestTheBriefing:
         assert ".brief-num{color:var(--ink);font-weight:600}" in SOURCE
         assert ".brief-block{" in SOURCE and "color:var(--soft)" in SOURCE[
             SOURCE.index(".brief-block{"):SOURCE.index("}", SOURCE.index(".brief-block{"))]
-        for made in ("briefNum(`${lo}–${hi}\\u00a0ft`)", "briefNum(`${tn.period_s.toFixed(1)}\\u00a0s`)",
-                     "briefNum(`${Math.round(w.humidity_pct)}%`)", '<tspan class="ft">${ft}</tspan> <tspan class="m">${m}</tspan>',
-                     "briefNum(`${inches.toFixed(2)} in`)", "const briefWhen = (iso, B) => briefNum("):
+        # A unit pair leads with `briefNum` through `dual`, which keeps the
+        # bracket grey; on Imperial or Metric the one value shown is the ink.
+        for made in ("dual(`${lo}–${hi}\\u00a0ft`,", "briefNum(`${tn.period_s.toFixed(1)}\\u00a0s`)",
+                     "briefNum(`${Math.round(w.humidity_pct)}%`)",
+                     '<tspan class="ft">${ft}</tspan>${m ? ` <tspan class="m">${m}</tspan>` : ""}',
+                     "dual(`${inches.toFixed(2)} in`, `${(inches * MM_PER_IN).toFixed(1)} mm`, briefNum)",
+                     "const briefWhen = (iso, B) => briefNum("):
             assert made in self.BLOCK, made
+        assert '`${lead(imp)} <span class="unit">(${met})</span>`' in UNITS_JS
 
     def test_the_conditions_are_a_ledger_of_buttons(self):
         """Owner's calls, 2026-10-23: name, arrow, value, sparkline and its
@@ -4003,8 +4046,8 @@ class TestTheBriefing:
         assert '"Offshore:"' not in SOURCE
         level = self.BLOCK[self.BLOCK.index("const briefLevel"):]
         level = level[:level.index(";\n")]
-        assert "briefNum(" in level and '<span class="unit">' in level
-        assert "briefNum(" not in level[level.index('<span class="unit">'):]
+        # Its feet lead in ink, `dual`'s bracket grey (UNITS_JS).
+        assert level.endswith("briefNum)") and "dual(briefMinus(" in level
 
     def test_it_redraws_on_every_build_but_updates_only_on_its_key(self):
         """Owner's request, 2026-10-22: the conditions refresh each build; the
@@ -4024,13 +4067,16 @@ class TestTheLogFirstGate:
     right; the gate is the one place the page links to the log."""
 
     def test_the_setting_sits_by_the_docs_link(self):
+        """Owner's design, 2026-10-28: one centred line, Docs | Observer |
+        Units | the theme glyph at its right end."""
         links = SOURCE[SOURCE.index('<nav class="links"'):]
         links = links[:links.index("</nav>")]
-        assert 'id="log-gate"' in links and "Wave observer" in links
-        assert links.index("docs.html") < links.index('id="log-gate"')
+        assert 'id="log-gate"' in links and "Observer</label>" in links
+        assert (links.index("docs.html") < links.index('id="log-gate"') < links.index('id="units"')
+                < links.index('id="theme"'))
         rule = SOURCE[SOURCE.index(".links{"):]
         rule = rule[:rule.index("}")]
-        assert "flex-direction:row" in rule and "justify-content:space-between" in rule
+        assert "justify-content:center" in rule and "flex-wrap:nowrap" in rule
 
     def test_the_log_is_linked_from_the_gate_alone(self):
         assert SOURCE.count("nado-waves-log/") == 1
