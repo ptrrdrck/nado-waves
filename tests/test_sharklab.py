@@ -72,3 +72,26 @@ def test_the_registry_holds_ids_never_a_coordinate():
     assert reg["base"].startswith("http://erddap-public.csulbsharklab.org/")
     for hub, v in reg["hubs"].items():
         assert set(v) == {"receiver"} and hub.isdigit() and v["receiver"].isdigit()
+
+
+def test_a_collection_fetches_at_most_hourly(tmp_path):
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime(2026, 10, 29, 21, 0, tzinfo=timezone.utc)
+    assert sl.due({}, now, sl.MIN_INTERVAL_MIN)
+    assert not sl.due({"last_fetch_utc": "2026-10-29T20:15:00Z"}, now, sl.MIN_INTERVAL_MIN)
+    assert sl.due({"last_fetch_utc": "2026-10-29T20:00:00Z"}, now, sl.MIN_INTERVAL_MIN)
+    # A skipped collection touches nothing and fetches nothing.
+    sl.write_state(tmp_path, {"last_fetch_utc": (datetime.now(timezone.utc) - timedelta(minutes=5))
+                              .strftime("%Y-%m-%dT%H:%M:%SZ")})
+    lines, code = sl.collect(tmp_path, None, sl.MIN_INTERVAL_MIN)
+    assert code == 0 and "not fetched" in lines[0]
+    assert sorted(p.name for p in (tmp_path / "sharklab").iterdir()) == ["state.json"]
+
+
+def test_the_workflow_keeps_the_collectors_interval():
+    from pathlib import Path
+
+    flow = Path(".github/workflows/collect-beach-inputs.yml").read_text()
+    assert f"python -m collector.sharklab --min-interval-min {sl.MIN_INTERVAL_MIN}" in flow
+    assert 'python -m collector.sharklab --backfill-from "${BACKFILL_FROM}"' in flow

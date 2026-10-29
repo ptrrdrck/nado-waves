@@ -84,6 +84,10 @@ on:
         type: boolean
         required: false
         default: false
+      sharklab_backfill_from:
+        description: "Once: read the Shark Lab receivers from this date (YYYY-MM-DD)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -192,9 +196,17 @@ jobs:
       - name: Shark Lab receivers (Coronado)
         id: sharklab
         continue-on-error: true
+        env:
+          BACKFILL_FROM: ${{ inputs.sharklab_backfill_from }}
         run: |
           set -euo pipefail
-          python -m collector.sharklab
+          # The lab's data changes nightly: fetched at most hourly
+          # (collector.sharklab.MIN_INTERVAL_MIN), or once from a date.
+          if [ -n "${BACKFILL_FROM:-}" ]; then
+            python -m collector.sharklab --backfill-from "${BACKFILL_FROM}"
+          else
+            python -m collector.sharklab --min-interval-min 60
+          fi
 
       # NOAA's harmonic constants for 9410170, which the Tide card's phase line
       # reads (forecast.tidephase). They change only when NOAA re-analyses the

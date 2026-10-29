@@ -37,7 +37,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from . import probe_sharklab as lab
-from .common import DEFAULT_DATA_DIR, to_iso, utcnow, write_step_summary
+from .common import DEFAULT_DATA_DIR, parse_iso, to_iso, utcnow, write_step_summary
 
 REGISTRY = Path(__file__).resolve().parent / "sharklab.json"
 
@@ -50,6 +50,29 @@ TRAILING_H = 72
 IN_WATER_M = lab.IN_WATER_M
 
 FIELDS = ("timestamp_utc", "device_time_ms", "ambient_temperature", "tilt", "first_seen_utc")
+
+#: The lab's data changes once a night, so a collection fetches only when the
+#: last fetch is at least this old (owner's call, 2026-10-29: the step took
+#: ~50 s of every 3-minute collection). Kept in `state.json`.
+MIN_INTERVAL_MIN = 60
+
+STATE = "state.json"
+
+
+def read_state(data_dir: Path) -> dict:
+    path = Path(data_dir) / "sharklab" / STATE
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def write_state(data_dir: Path, state: dict) -> None:
+    path = Path(data_dir) / "sharklab" / STATE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def due(state: dict, now, min_interval_min: float) -> bool:
+    last = parse_iso(state.get("last_fetch_utc"))
+    return last is None or (now - last).total_seconds() >= min_interval_min * 60
 
 
 def registry(path: Path = REGISTRY) -> dict:
@@ -150,23 +173,34 @@ def receiver_swaps(fetched: "lab.Fetched", hubs: dict) -> list[str]:
             if hub in hubs and rxs - {hubs[hub]["receiver"]}]
 
 
-def collect(data_dir: Path = DEFAULT_DATA_DIR) -> tuple[list[str], int]:
+def collect(data_dir: Path = DEFAULT_DATA_DIR, backfill_from=None,
+            min_interval_min: float = 0) -> tuple[list[str], int]:
+    """One collection: the receivers over the trailing window (or, once,
+    from `backfill_from`), each hub's break and the swap check over the
+    trailing window. Skipped while the last fetch is under
+    `min_interval_min` old; a backfill is never skipped."""
+
     reg = registry()
     lab.BASE = reg["base"].rstrip("/")
     hubs = reg["hubs"]
     receivers = sorted(h["receiver"] for h in hubs.values())
     now = utcnow()
+    state = read_state(data_dir)
+    if backfill_from is None and not due(state, now, min_interval_min):
+        return [f"Shark Lab: last fetched {state.get('last_fetch_utc')}, under "
+                f"{min_interval_min:.0f} min ago; the lab's data changes nightly, so not fetched."], 0
     since = now - timedelta(hours=TRAILING_H)
+    window = backfill_from or since
     lines = [f"## Shark Lab receivers ({lab.BASE})", "", f"Run at {now:%Y-%m-%d %H:%M}Z, "
-             f"the last {TRAILING_H} h.", ""]
+             + (f"a BACKFILL from {window:%Y-%m-%d}." if backfill_from else f"the last {TRAILING_H} h."), ""]
 
     rinfo, got = lab.dataset_info(lab.RECEIVER_STATUS)
     if not got.ok:
         return lines + [f"receiver status info failed: {got.error}"], 2 if got.denied else 1
     status = lab.fetch_csv(f"tabledap/{lab.RECEIVER_STATUS}.csv",
                            lab._q("device_time_utc,serial_number,ambient_temperature,tilt",
-                                  lab._time_constraint(rinfo, since),
-                                  f'serial_number=~"({"|".join(receivers)})"'), timeout=300)
+                                  lab._time_constraint(rinfo, window),
+                                  f'serial_number=~"({"|".join(receivers)})"'), timeout=600)
     if status.empty:
         per = {}
     elif not status.ok:
@@ -180,6 +214,13 @@ def collect(data_dir: Path = DEFAULT_DATA_DIR) -> tuple[list[str], int]:
         lines.append(f"- receiver {rx}: {len(per.get(rx, []))} readings in the window, {added} new, "
                      f"{conflicts} changed since archived (kept as first seen), newest {newest or 'none'}")
     lines.append("")
+    state["last_fetch_utc"] = seen
+    if backfill_from:
+        # Backfilled rows carry the backfill's first_seen_utc, which is when
+        # this archive first held them, not when the lab loaded them: a lag
+        # measured on first_seen_utc must leave these runs out.
+        state.setdefault("backfills", []).append({"run_utc": seen, "from_utc": to_iso(backfill_from)})
+    write_state(data_dir, state)
 
     hinfo, _ = lab.dataset_info(lab.HUB_STATUS)
     fixes = lab.fetch_csv(f"tabledap/{lab.HUB_STATUS}.csv",
@@ -217,8 +258,17 @@ def collect(data_dir: Path = DEFAULT_DATA_DIR) -> tuple[list[str], int]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Archive the Coronado hubs' receiver temperatures.")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--min-interval-min", type=float, default=0,
+                        help="Skip when the last fetch is under this many minutes old.")
+    parser.add_argument("--backfill-from", default=None, metavar="YYYY-MM-DD",
+                        help="Once: read the receivers from this date, not the trailing window.")
     args = parser.parse_args(argv)
-    lines, code = collect(args.data_dir)
+    start = None
+    if args.backfill_from:
+        from datetime import datetime, timezone
+
+        start = datetime.strptime(args.backfill_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    lines, code = collect(args.data_dir, start, args.min_interval_min)
     text = "\n".join(lines)
     print(text)
     write_step_summary(text)

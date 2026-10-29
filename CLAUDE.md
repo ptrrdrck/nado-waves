@@ -1282,8 +1282,11 @@ forecaster actually verifies against, Surfline included.
                         -> data/alerts/; Actions only),
                         sharklab.py + sharklab.json (the Coronado
                         shark-monitoring buoys' receiver temperatures from
-                        CSULB Shark Lab's ERDDAP, a trailing 72 h each
-                        collection, each reading once -> data/sharklab/;
+                        CSULB Shark Lab's ERDDAP, a trailing 72 h at most
+                        hourly (MIN_INTERVAL_MIN: the lab's data changes
+                        nightly), or once from a date (the workflow's
+                        sharklab_backfill_from), each reading once ->
+                        data/sharklab/;
                         the registry holds hub and receiver IDs, never a
                         coordinate; plain http, Actions only),
                         probe_sharklab.py (what that ERDDAP serves; its
@@ -1466,9 +1469,12 @@ forecaster actually verifies against, Surfline included.
                         written once (collector.nwsalerts, its one writer)
     data/sharklab/      <receiver>/YYYY-MM.csv: each Coronado receiver's
                         ambient_temperature and tilt, once per device stamp,
-                        with first_seen_utc; hubs.json, each hub's receiver
-                        and the break its newest fix in the water serves
-                        (collector.sharklab, its one writer)
+                        with first_seen_utc (a backfill's rows carry the
+                        backfill's: state.json lists those runs, to leave out
+                        of any arrival lag); hubs.json, each hub's receiver
+                        and the break its newest fix in the water serves;
+                        state.json, the last fetch (collector.sharklab, its
+                        one writer)
     data/briefings/     YYYY-MM.jsonl: every Briefing update, as built and as
                         worded (18–22 Oct: the Morning / Midday issues).
                         PERMANENT, append-only, one writer ("Record the
