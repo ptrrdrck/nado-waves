@@ -83,20 +83,20 @@ code{font-size:.88em;background:var(--surf-wash);padding:1px 5px;border-radius:4
    shrank and wrapped beside a long section title. */
 .back{font-size:14px;text-decoration:none;font-weight:500;align-self:flex-start}
 .back:hover{text-decoration:underline}
-/* Closed, the scrim is truly transparent and hidden, never a dark colour at
-   no opacity: Safari tints the status bar from a fixed element touching the
-   top of the screen, and read the faded scrim's colour there, leaving a dark
-   band over the clock after the panel first closed (owner's report,
-   2026-10-29, iPhone 15). */
-.scrim{position:fixed;inset:0;z-index:30;background-color:transparent;visibility:hidden;pointer-events:none;
-  transition:background-color .25s, visibility 0s linear .25s}
-.pill-open .scrim{background-color:rgba(10,20,26,.45);visibility:visible;pointer-events:auto;
-  transition:background-color .25s, visibility 0s}
+/* Safari tints the status bar from a fixed element touching the top of the
+   screen, reading its colour at moments of change and keeping it: a scrim
+   left in place at no opacity kept the strip dark after the panel closed,
+   and one fading its colour was caught mid-fade, lighter than the dimmed
+   page while open and darker than the page once closed (owner's reports,
+   2026-10-29, iPhone 15). So its colour never changes: it fades by opacity
+   alone, and is off the page (hidden) whenever the panel is closed. */
+.scrim{position:fixed;inset:0;z-index:30;background:rgba(10,20,26,.45);opacity:0;pointer-events:none;transition:opacity .25s}
+.pill-open .scrim{opacity:1;pointer-events:auto}
 .pill-wrap{position:fixed;inset:0;z-index:40;pointer-events:none;
   filter:drop-shadow(0 0 .6px var(--edge)) drop-shadow(0 6px 18px var(--drop))}
 .dock{--ph:52px;position:absolute;display:flex;flex-direction:column;background:var(--card);pointer-events:auto;
   left:max(16px, env(safe-area-inset-left, 0px));right:max(16px, env(safe-area-inset-right, 0px));margin:0 auto;
-  transition:clip-path .34s cubic-bezier(.2,.8,.2,1), bottom .2s ease}
+  transition:clip-path .34s cubic-bezier(.2,.8,.2,1), bottom .25s ease}
 /* While the keyboard is up the panel ends just above it, so every result can
    be scrolled into view; --kb is the keyboard's height, from the visual
    viewport (owner's request, 2026-10-29). */
@@ -322,7 +322,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 
-<div class="scrim" id="scrim"></div>
+<div class="scrim" id="scrim" hidden></div>
 <!-- The contents are built from the article's own h2 and h3, so they cannot
      list a section the page does not have or miss one it does. -->
 <div class="pill-wrap">
@@ -2378,6 +2378,14 @@ addEventListener("keydown", (ev) => {
 // Neither focuses the search on a title tap, which would put a phone's
 // keyboard over the contents the reader asked for.
 const panel = $("panel");
+// The scrim is on the page only while it shows: in before it fades in, off
+// once it has faded out (see its CSS for why).
+let scrimOff = 0;
+function scrimShown(open) {
+  clearTimeout(scrimOff);
+  if (open) { $("scrim").hidden = false; void $("scrim").offsetWidth; }
+  else scrimOff = setTimeout(() => { if (!PILL_OPEN) $("scrim").hidden = true; }, 260);
+}
 function currentLink() { return toc.hidden ? null : toc.querySelector('a[aria-current="true"]'); }
 function showCurrent() {
   const a = currentLink();
@@ -2388,6 +2396,7 @@ function pill(open, {search: wantSearch = false, jumped = false} = {}) {
   if (open !== PILL_OPEN) {
     if (open) spy();
     PILL_OPEN = open;
+    scrimShown(open);
     document.documentElement.classList.toggle("pill-open", open);
     panel.inert = !open;
     $("menu-open").setAttribute("aria-expanded", String(open));
@@ -2427,12 +2436,18 @@ const vv = window.visualViewport;
 function keyboard() {
   if (!vv) return;
   const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-  const up = kb > 120;
+  // Only while the field has focus: a late report from the keyboard coming
+  // up must not lift the panel again after it has gone.
+  const up = kb > 120 && document.activeElement === $("search");
   document.documentElement.classList.toggle("kb-up", up);
   $("pill").style.setProperty("--kb", up ? kb + "px" : "0px");
   $("pill").style.setProperty("--vvt", up ? vv.offsetTop + "px" : "0px");
 }
 if (vv) { vv.addEventListener("resize", keyboard); vv.addEventListener("scroll", keyboard); }
+// iOS reports the keyboard's size only once it has finished sliding away, so
+// the panel waited for the animation and then grew. Leaving the field is
+// when the keyboard starts to go: the panel grows back with it from there.
+$("search").addEventListener("blur", keyboard);
 // Dragging the results means reading has begun, so the keyboard goes away,
 // as it does in Messages and Mail; tapping the field brings it back. A
 // gesture, never a timer: a pause mid-word is still typing.
