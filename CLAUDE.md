@@ -1264,9 +1264,11 @@ forecaster actually verifies against, Surfline included.
                         CO-OPS on Actions — needs requirements-precompute.txt)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/docs.html       the documentation, the live page's one link: every
-                        card, chart and calculation; a left menu built from
-                        its own headings (a drawer on a phone) and full-text
-                        search; the caveat, the cycle line and both chains'
+                        card, chart and calculation; one contents pill built
+                        from its own headings, with full-text search, its
+                        panel growing out of it (at the bottom on a phone, at
+                        the top on a wide screen; owner's design, 2026-10-29,
+                        replacing the sidebar and drawer); the caveat, the cycle line and both chains'
                         standing-on blocks; the model-geometry drawing,
                         filled by `forecast.geomviz` from spots.json and never
                         hand-edited with coordinates; and ONE worked hour
