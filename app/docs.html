@@ -61,7 +61,7 @@ try {
    ends the ancestors' say. Zero specificity, so the map's own none stands. */
 *{box-sizing:border-box;touch-action:manipulation}
 [hidden]{display:none!important}
-html{scroll-padding-top:16px}
+html{scroll-padding-top:16px;background:var(--paper)}
 body{background:var(--paper);color:var(--ink);margin:0;
   font:400 16.5px/1.6 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
   -webkit-text-size-adjust:100%}
@@ -92,15 +92,26 @@ code{font-size:.88em;background:var(--surf-wash);padding:1px 5px;border-radius:4
    alone, and is off the page (hidden) whenever the panel is closed. */
 .scrim{position:fixed;inset:0;z-index:30;background:rgba(10,20,26,.45);opacity:0;pointer-events:none;transition:opacity .25s}
 .pill-open .scrim{opacity:1;pointer-events:auto}
-.pill-wrap{position:fixed;inset:0;z-index:40;pointer-events:none;
-  filter:drop-shadow(0 0 .6px var(--edge)) drop-shadow(0 6px 18px var(--drop))}
-.dock{--ph:52px;position:absolute;display:flex;flex-direction:column;background:var(--card);pointer-events:auto;
+/* The wrapper is the pill's own box, never the whole screen: Safari 26 tints
+   the status bar from the topmost fixed element at the top of the screen,
+   and a transparent one there kept the dimmed colour after the panel closed
+   (owner's report, 2026-10-29). The shadow is drawn on it because the pill
+   itself is clipped. */
+.pill-wrap{position:fixed;z-index:40;pointer-events:none;
   left:max(16px, env(safe-area-inset-left, 0px));right:max(16px, env(safe-area-inset-right, 0px));margin:0 auto;
-  transition:clip-path .34s cubic-bezier(.2,.8,.2,1), bottom .25s ease}
+  filter:drop-shadow(0 0 .6px var(--edge)) drop-shadow(0 6px 18px var(--drop));transition:bottom .25s ease}
+.dock{--ph:52px;position:absolute;inset:0;display:flex;flex-direction:column;background:var(--card);pointer-events:auto;
+  transition:clip-path .34s cubic-bezier(.2,.8,.2,1)}
 /* While the keyboard is up the panel ends just above it, so every result can
    be scrolled into view; --kb is the keyboard's height, from the visual
    viewport (owner's request, 2026-10-29). */
-.kb-up .dock{bottom:calc(var(--kb, 0px) + 8px)}
+.kb-up .pill-wrap{bottom:calc(var(--kb, 0px) + 8px)}
+/* A strip of the page under the status bar, so the topmost thing Safari
+   finds there is the scrim while it shows and the page otherwise: a solid
+   band of the page's colour on a phone, the fade under the pill on a wide
+   screen. A real element, not a pseudo-element, which reports say Safari's
+   sampling may not see. */
+.status-strip{position:fixed;left:0;right:0;top:0;z-index:20;pointer-events:none}
 .pill-panel{flex:1;min-height:0;display:flex;flex-direction:column;opacity:0;transition:opacity .2s}
 .pill-open .pill-panel{opacity:1;transition-delay:.06s}
 .pill-open .dock{clip-path:inset(0 0 0 0 round 20px)}
@@ -167,12 +178,11 @@ mark.hit-now{outline:2px solid var(--surf)}
 /* Wide: the row on top, the panel growing down, the text fading out under it. */
 @media (min-width: 901px){
   html{scroll-padding-top:84px}
-  .dock{top:calc(14px + env(safe-area-inset-top, 0px) + var(--vvt, 0px));bottom:24px;max-width:600px;
-    clip-path:inset(0 0 calc(100% - var(--ph)) 0 round 22px)}
+  .pill-wrap{top:calc(14px + env(safe-area-inset-top, 0px) + var(--vvt, 0px));bottom:24px;max-width:600px}
+  .dock{clip-path:inset(0 0 calc(100% - var(--ph)) 0 round 22px)}
   .pill-row{order:-1}
   .pill-open .pill-row{border-bottom:1px solid var(--line)}
-  body::before{content:"";position:fixed;left:0;right:0;top:0;z-index:20;pointer-events:none;
-    height:calc(84px + env(safe-area-inset-top, 0px));background:linear-gradient(var(--paper) 40%, transparent)}
+  .status-strip{height:calc(84px + env(safe-area-inset-top, 0px));background:linear-gradient(var(--paper) 40%, transparent)}
 }
 
 main{padding:96px 32px 80px;min-width:0}
@@ -310,8 +320,9 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
 /* ---------- phone: the pill at the bottom, growing up ---------- */
 @media (max-width: 900px){
-  .dock{top:calc(52px + env(safe-area-inset-top, 0px) + var(--vvt, 0px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));max-width:420px;
-    clip-path:inset(calc(100% - var(--ph)) 0 0 0 round 22px)}
+  .pill-wrap{top:calc(52px + env(safe-area-inset-top, 0px) + var(--vvt, 0px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));max-width:420px}
+  .dock{clip-path:inset(calc(100% - var(--ph)) 0 0 0 round 22px)}
+  .status-strip{height:env(safe-area-inset-top, 0px);background:var(--paper)}
   .pill-open .pill-row{border-top:1px solid var(--line)}
   main{padding:20px 16px calc(120px + env(safe-area-inset-bottom, 0px))}
   .math{font-size:12px}
@@ -322,10 +333,11 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 
+<div class="status-strip" aria-hidden="true"></div>
 <div class="scrim" id="scrim" hidden></div>
 <!-- The contents are built from the article's own h2 and h3, so they cannot
      list a section the page does not have or miss one it does. -->
-<div class="pill-wrap">
+<div class="pill-wrap" id="pill-wrap">
   <nav class="dock" id="pill" aria-label="Documentation contents">
     <div class="pill-panel" id="panel" inert>
       <div class="search" role="search">
@@ -2440,8 +2452,8 @@ function keyboard() {
   // up must not lift the panel again after it has gone.
   const up = kb > 120 && document.activeElement === $("search");
   document.documentElement.classList.toggle("kb-up", up);
-  $("pill").style.setProperty("--kb", up ? kb + "px" : "0px");
-  $("pill").style.setProperty("--vvt", up ? vv.offsetTop + "px" : "0px");
+  $("pill-wrap").style.setProperty("--kb", up ? kb + "px" : "0px");
+  $("pill-wrap").style.setProperty("--vvt", up ? vv.offsetTop + "px" : "0px");
 }
 if (vv) { vv.addEventListener("resize", keyboard); vv.addEventListener("scroll", keyboard); }
 // iOS reports the keyboard's size only once it has finished sliding away, so
