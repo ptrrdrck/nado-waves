@@ -751,6 +751,35 @@ def _fmt(t: datetime | None) -> str:
     return f"{t:%Y-%m-%d %H:%M}Z" if t else "-"
 
 
+def duplicates(label: str, times: list[str], rows: list[tuple]) -> list[str]:
+    """Rows against distinct rows and distinct stamps, per UTC month: run 10,
+    after the lab's refresh, read ~1,440 fixes a day where run 9 read ~720,
+    from hubs that report every 2 minutes. An exact repeat is a stored
+    duplicate; a repeated stamp with different values is not, and is said."""
+
+    from collections import defaultdict
+
+    per: dict[str, list] = defaultdict(lambda: [0, set(), set()])
+    for t, row in zip(times, rows):
+        when = parse_time(t)
+        if when is None:
+            continue
+        m = per[f"{when:%Y-%m}"]
+        m[0] += 1
+        m[1].add(row)
+        m[2].add(t)
+    total = sum(m[0] for m in per.values())
+    distinct = sum(len(m[1]) for m in per.values())
+    lines = [f"{label}: {total} rows, {distinct} distinct rows, "
+             f"{total - distinct} exact repeats.", "",
+             "| Month | Rows | Distinct rows | Distinct stamps |", "|---|---|---|---|"]
+    for key in sorted(per):
+        n, uniq, stamps = per[key]
+        if n != len(uniq) or key >= f"{utcnow() - timedelta(days=RECENT_STRETCH_DAYS):%Y-%m}":
+            lines.append(f"| {key} | {n} | {len(uniq)} | {len(stamps)} |")
+    return lines + [""]
+
+
 def hub_history(hub: str, spots: list[geometry.Spot], tags: set[str]) -> list[str]:
     lines = [f"### Hub {hub}", ""]
 
@@ -772,6 +801,8 @@ def hub_history(hub: str, spots: list[geometry.Spot], tags: set[str]) -> list[st
         if when is None or lat != lat or lon != lon:
             continue
         fixes.append((when, seaward_m(lat, lon, spots) > IN_WATER_M))
+    lines += duplicates("Status", column(status, "device_time_utc"),
+                        [tuple(r) for r in status.rows])
     runs = stretches(fixes)
     lines += [f"Status: {len(status.rows)} rows, {len(fixes)} placed fixes, "
               f"{_fmt(min(f[0] for f in fixes) if fixes else None)} to "
@@ -803,6 +834,8 @@ def hub_history(hub: str, spots: list[geometry.Spot], tags: set[str]) -> list[st
     if not det.ok:
         return lines + [f"detections failed: {det.error}", ""]
     receivers = sorted(set(column(det, "serial_number")))
+    lines += duplicates("Detections", column(det, "device_time_utc"),
+                        [tuple(r) for r in det.rows])
     lines += [f"Detections: {len(det.rows)} rows, receiver(s) {', '.join(receivers)}.", ""]
 
     months: dict[str, dict] = {}

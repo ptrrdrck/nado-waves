@@ -130,3 +130,11 @@ def test_coverage_names_missing_and_partial_days():
     text = "\n".join(p.coverage(fixes))
     assert f"Missing days since {day0.date()}: {day0 + timedelta(days=1):%m-%d}." in text
     assert f"{day0 + timedelta(days=2):%m-%d} (100)" in text
+
+
+def test_duplicates_counts_exact_repeats_not_repeated_stamps():
+    times = ["1792367906297", "1792367906297", "1792367906297", "1792368026297"]
+    rows = [("a", 1), ("a", 1), ("a", 2), ("b", 1)]
+    text = "\n".join(p.duplicates("Status", times, rows))
+    assert "4 rows, 3 distinct rows, 1 exact repeats." in text
+    assert "| 4 | 3 | 2 |" in text
