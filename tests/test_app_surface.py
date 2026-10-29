@@ -4077,6 +4077,8 @@ class TestTheLogFirstGate:
         rule = SOURCE[SOURCE.index(".links{"):]
         rule = rule[:rule.index("}")]
         assert "justify-content:center" in rule and "flex-wrap:nowrap" in rule
+        # On a phone, edge to edge (owner's call, 2026-10-29).
+        assert "@media (max-width:600px){ .links{justify-content:space-between} }" in SOURCE
 
     def test_the_log_is_linked_from_the_gate_alone(self):
         assert SOURCE.count("nado-waves-log/") == 1
