@@ -213,10 +213,75 @@ def test_a_stale_report_is_not_current(tmp_path):
     assert got["air_c"] is None and got["humidity_pct"] is None and got["precip_hour_in"] is None
 
 
-def test_the_water_is_46232s_newest_within_three_hours():
-    got = bf.water_now(Path("data"), _at("2026-10-16T13:05:00Z"))
-    assert got["station"] == "46232" and got["observed_utc"] <= "2026-10-16T13:05:00Z"
+def test_the_buoy_water_is_46232s_newest_within_its_window():
+    got = bf.buoy_water_now(Path("data"), _at("2026-10-16T13:05:00Z"))
+    assert got["source"] == "ndbc" and got["station"] == "46232"
+    assert got["observed_utc"] <= "2026-10-16T13:05:00Z"
     assert _at("2026-10-16T13:05:00Z") - _at(got["observed_utc"]) <= timedelta(hours=bf.WATER_FRESH_H)
+
+
+def _hubs(tmp_path, hubs, readings):
+    """data/sharklab as collector.sharklab writes it: hubs.json and each
+    receiver's month files, (stamp, °C, tilt) a reading."""
+
+    root = tmp_path / "sharklab"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "hubs.json").write_text(json.dumps(hubs))
+    for rx, rows in readings.items():
+        for stamp, c, tilt in rows:
+            path = root / rx / f"{stamp[:7]}.csv"
+            path.parent.mkdir(exist_ok=True)
+            new = not path.exists()
+            with path.open("a") as fh:
+                if new:
+                    fh.write("timestamp_utc,device_time_ms,ambient_temperature,tilt,first_seen_utc\n")
+                ms = int(_at(stamp).timestamp() * 1000)
+                fh.write(f"{stamp},{ms},{c},{tilt},{stamp}\n")
+
+
+HUBS = {"660495": {"receiver": "667382", "break": "coronado_center"},
+        "660494": {"receiver": "667381", "break": "coronado_south"}}
+
+
+def test_the_water_is_a_coronado_hubs_first_centers_before_souths(tmp_path):
+    """Owner's call, 2026-10-29: the hubs' receivers first, one hub, Center's."""
+    _hubs(tmp_path, HUBS, {"667382": [("2026-10-28T23:58:00Z", 22.7, 5)],
+                           "667381": [("2026-10-28T23:58:00Z", 22.9, 6)]})
+    got = bf.water_now(tmp_path, _at("2026-10-29T19:00:00Z"))
+    assert got == {"source": "sharklab", "hub": "660495", "receiver": "667382", "break": "coronado_center",
+                   "c": 22.7, "observed_utc": "2026-10-28T23:58:00Z"}
+
+
+def test_a_receiver_on_its_side_is_the_air_and_south_stands_in(tmp_path):
+    _hubs(tmp_path, HUBS, {"667382": [("2026-10-28T23:58:00Z", 28.6, 77)],
+                           "667381": [("2026-10-28T23:50:00Z", 22.9, 6)]})
+    got = bf.water_now(tmp_path, _at("2026-10-29T19:00:00Z"))
+    assert got["receiver"] == "667381" and got["break"] == "coronado_south" and got["c"] == 22.9
+
+
+def test_a_hub_reading_past_its_window_falls_back_to_the_buoy(tmp_path):
+    _hubs(tmp_path, HUBS, {"667382": [("2026-10-26T23:58:00Z", 22.7, 5)]})
+    (tmp_path / "observations").mkdir()
+    (tmp_path / "observations" / "46232.csv").write_text(
+        "timestamp_utc,first_seen_utc,wtmp\n2026-10-29T18:26:00Z,2026-10-29T18:40:00Z,25.0\n")
+    at = _at("2026-10-29T19:00:00Z")
+    assert at - _at("2026-10-26T23:58:00Z") > timedelta(hours=bf.HUB_WATER_FRESH_H)
+    got = bf.water_now(tmp_path, at)
+    assert got["source"] == "ndbc" and got["c"] == 25.0
+
+
+def test_the_waters_arrow_and_line_are_its_own_sources(tmp_path):
+    """Never a series spliced across sources, and never a reading on its side."""
+    _hubs(tmp_path, HUBS, {"667382": [("2026-10-28T20:58:00Z", 22.5, 5), ("2026-10-28T21:58:00Z", 30.0, 80),
+                                      ("2026-10-28T23:58:00Z", 22.7, 5)]})
+    (tmp_path / "observations").mkdir()
+    (tmp_path / "observations" / "46232.csv").write_text(
+        "timestamp_utc,first_seen_utc,wtmp\n2026-10-28T23:56:00Z,2026-10-29T00:10:00Z,25.0\n")
+    at = _at("2026-10-29T19:00:00Z")
+    water = bf.water_now(tmp_path, at)
+    got = bf.trends(tmp_path, at, water, {})["water"]
+    assert got["dir"] == "up" and got["was_utc"] == "2026-10-28T20:58:00Z"
+    assert [v for _, v in got["spark"]] == [22.5, 22.7]
 
 
 # ------------------------------------------------------------------ tide

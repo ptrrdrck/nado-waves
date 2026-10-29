@@ -184,6 +184,18 @@ jobs:
           set -euo pipefail
           python -m collector.tide
 
+      # The Coronado shark-monitoring buoys' receivers: their temperature is
+      # the Briefing's water (owner's call, 2026-10-29; BRIEFING §47). The lab
+      # loads each day the next night, so a trailing 72 h is re-read and each
+      # reading kept once (collector.sharklab, its one writer). Plain http,
+      # denied from a session.
+      - name: Shark Lab receivers (Coronado)
+        id: sharklab
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.sharklab
+
       # NOAA's harmonic constants for 9410170, which the Tide card's phase line
       # reads (forecast.tidephase). They change only when NOAA re-analyses the
       # station, so the file is re-fetched once it is a month old; a failed
@@ -281,13 +293,14 @@ jobs:
           BEARING: ${{ steps.bearing.outcome }}
           WIND: ${{ steps.wind.outcome }}
           TIDE: ${{ steps.tide.outcome }}
+          SHARKLAB: ${{ steps.sharklab.outcome }}
         run: |
           set -euo pipefail
           # The collectors write their own tables to the step summary. This
           # only turns the outcomes into a headline, because "the job went red"
           # does not say which of three sources failed.
           failed=""
-          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "best-tracks:${TRACKS}" "nws-alerts:${ALERTS}" "wind:${WIND}" "tide:${TIDE}"; do
+          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "best-tracks:${TRACKS}" "nws-alerts:${ALERTS}" "wind:${WIND}" "tide:${TIDE}" "shark-lab:${SHARKLAB}"; do
             name="${pair%%:*}"; outcome="${pair##*:}"
             if [ "${outcome}" != "success" ]; then
               failed="${failed} ${name}"
@@ -315,13 +328,15 @@ jobs:
           git add data/nhcforecasts 2>/dev/null || true
           # Likewise: it does not exist until the first alert is seen.
           git add data/alerts 2>/dev/null || true
+          # Likewise: until the first Shark Lab collection.
+          git add data/sharklab 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No new beach inputs to commit."
             exit 0
           fi
 
-          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts data/alerts \
+          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts data/alerts data/sharklab \
             | awk '{sum += $1} END {print sum + 0}')
 
           git commit \

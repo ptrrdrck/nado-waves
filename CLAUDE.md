@@ -937,9 +937,21 @@ forecaster actually verifies against, Surfline included.
    `briefCondRow`): a row each, its name in small caps, an ink arrowhead —
    up, down, or a dash for no change, none with no earlier reading — the
    value, and a sparkline of its recent readings, broken at a missing hour,
-   with its window (`briefing.trends`). Water 46232's (≤ 6 h: its standard
-   met reaches the archive on collect.yml's throttled schedule, a median
-   2.7 h old; 14 d), KNZY's air temperature and humidity (≤ 90 min; the T
+   with its window (`briefing.trends`). WATER a Coronado shark-monitoring
+   buoy's receiver (owner's call, 2026-10-29; BRIEFING §47;
+   `briefing.hub_water_now`, `collector/sharklab.py`): its
+   `ambient_temperature` at ~1–2 m, measured to be the water's (+0.6 °C
+   against the lab's AquaMeasure sensors on 19,129 pairs, day and night
+   alike; −0.4 °C against 46232 at Coronado, Sept–Oct). ONE hub, Center's
+   first, South's next, each hub's break read off its own newest fix in
+   the water; upright only (tilt < 30°: on land it lies at 77–94° and reads
+   the air); ≤ 48 h (`HUB_WATER_FRESH_H`), because the lab loads each UTC
+   day the next night, so it is normally yesterday's, which the TAPPED row
+   says ("yesterday, 4:58 PM", `briefAgo`) and the row never does (owner's
+   call, same day). Else 46232's (≤ 6 h: its standard met reaches the
+   archive on collect.yml's throttled schedule, a median 2.7 h old), the
+   fallback only; never a blend, the row's value, arrow and sparkline one
+   source's (14 d), KNZY's air temperature and humidity (≤ 90 min; the T
    group's tenths, Magnus; 24 h), its PRESSURE (the body's A group, inHg
    as published, hPa in brackets; 3 d; owner's request, same day), and RAIN
    only when the last hour's (the newest routine report's P group) or the
@@ -1149,6 +1161,16 @@ forecaster actually verifies against, Surfline included.
   A 403 at CONNECT is a denial, not throttling: check
   `$HTTPS_PROXY/__agentproxy/status`, report the blocked host, do not route
   around it. See `collector/probe_mop.py:DENIAL_NOTE` and BRIEFING §8.
+- **CSULB Shark Lab's ERDDAP is a nightly copy, with gaps and every row
+  twice** (measured 2026-10-20 to -29, BRIEFING §47): the lab downloads
+  from Innovasea once a night, a whole UTC day the next day; days go
+  missing for good (October 2026 at both Coronado hubs: 11 of 28); and
+  every status and detection row is stored twice, as exact copies. So
+  `collector.sharklab` re-reads a trailing 72 h, keeps each reading once,
+  never fills a gap, and counts a stamp that comes back changed rather
+  than overwriting it. It is plain http
+  (`erddap-public.csulbsharklab.org`), denied from a session, and not in
+  the staleness alert: a 48 h alert would fire every night.
 - **A 404 that used to mean one thing can start meaning another.** NCEP dropped
   the per-station GFS-Wave bulletin files between 2026-09-15 and 2026-09-16;
   the data moved to `gfswave.tHHz.bull_tar` in the same directory. The archive
@@ -1258,6 +1280,14 @@ forecaster actually verifies against, Surfline included.
                         nwsalerts.py (NWS's alerts for CAZ043 and PZZ750,
                         each one's document byte for byte, once by its id
                         -> data/alerts/; Actions only),
+                        sharklab.py + sharklab.json (the Coronado
+                        shark-monitoring buoys' receiver temperatures from
+                        CSULB Shark Lab's ERDDAP, a trailing 72 h each
+                        collection, each reading once -> data/sharklab/;
+                        the registry holds hub and receiver IDs, never a
+                        coordinate; plain http, Actions only),
+                        probe_sharklab.py (what that ERDDAP serves; its
+                        --hubs history and --temps comparison — BRIEFING §47),
                         nhcforecast.py (NHC's official forecast, the OFCL
                         lines of each live storm's a-deck, Actions only —
                         unverified against a live file until its first run),
@@ -1434,6 +1464,11 @@ forecaster actually verifies against, Surfline included.
     data/alerts/        YYYY/<oid>.json: every NWS alert the active listing
                         returned for CAZ043 and PZZ750, as NWS served it,
                         written once (collector.nwsalerts, its one writer)
+    data/sharklab/      <receiver>/YYYY-MM.csv: each Coronado receiver's
+                        ambient_temperature and tilt, once per device stamp,
+                        with first_seen_utc; hubs.json, each hub's receiver
+                        and the break its newest fix in the water serves
+                        (collector.sharklab, its one writer)
     data/briefings/     YYYY-MM.jsonl: every Briefing update, as built and as
                         worded (18–22 Oct: the Morning / Midday issues).
                         PERMANENT, append-only, one writer ("Record the

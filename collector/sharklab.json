@@ -1,0 +1,8 @@
+{
+  "_comment": "Coronado's two shark-monitoring hubs (CSULB Shark Lab, owned by the City of Coronado and kept by its lifeguards) and the receiver on each. IDs, not coordinates: which break a hub serves is derived each collection from the hub's own position against forecast/spots.json (collector.sharklab), never typed. A receiver swap shows as a warning when a hub's detections name another receiver; the owner updates this file.",
+  "base": "http://erddap-public.csulbsharklab.org/erddap",
+  "hubs": {
+    "660494": {"receiver": "667381"},
+    "660495": {"receiver": "667382"}
+  }
+}

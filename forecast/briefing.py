@@ -33,7 +33,10 @@ NWS's alerts do:
   calls, 2026-10-23 and -24), a signal mark beside it on the page. Each
   sentence is a line of its own.
 - **Conditions**, refreshed every collection without counting as an
-  update: 46232's water temperature (`WATER_FRESH_H`), KNZY's air
+  update: the water temperature at a Coronado hub's receiver, Center's
+  first, yesterday's as the lab loads it nightly (`HUB_WATER_FRESH_H`;
+  owner's call, 2026-10-29, BRIEFING §47), else 46232's
+  (`WATER_FRESH_H`), never a blend of the two; KNZY's air
   temperature, humidity and pressure, and rain — the last hour's and the
   rolling 24 hours', both shown when either is above zero, neither when
   not. Each with an arrow against an earlier reading and a sparkline of
@@ -94,6 +97,24 @@ WIND_FRESH_MIN = 90
 #: throttled schedule: measured over the week to 2026-10-22, the newest was
 #: a median 2.7 h old, ≤ 3 h 60% of the time and ≤ 6 h 99%.
 WATER_FRESH_H = 6.0
+
+#: The Water row reads a Coronado hub's receiver first (owner's call,
+#: 2026-10-29: 46232's water, 29 km out, is only the fallback), from
+#: collector.sharklab's archive. Measured (BRIEFING §47): the receiver's
+#: ambient_temperature is the water's at ~1-2 m, +0.6 °C against the lab's
+#: AquaMeasure sensors (n = 19,129, the 60 days to 29 Oct 2026) and -0.4 °C
+#: against 46232 at Coronado through Sept-Oct. One hub, Center's first
+#: (owner's call, same day), each hub's break from its own position.
+HUB_BREAK_ORDER = ("coronado_center", "coronado_south")
+
+#: The lab loads each UTC day the next day, so before the next night's load
+#: the newest reading is up to ~43 h old (probe runs 8-12, 22-29 Oct). To be
+#: re-measured on the archive's first_seen_utc.
+HUB_WATER_FRESH_H = 48.0
+
+#: A receiver tilted past this lies on its side on land, where "ambient" is
+#: the air (probe run 8: 77-94° on land, 2-19° in the water).
+HUB_UPRIGHT_DEG = 30.0
 
 #: The rolling precipitation total.
 PRECIP_DAY_H = 24
@@ -289,7 +310,58 @@ def weather_now(data_dir: Path, at: datetime) -> dict:
             "pressure_utc": _iso(last[0]) if last and last[1]["altimeter_inhg"] is not None else None}
 
 
-def water_now(data_dir: Path, at: datetime, station: str = "46232") -> dict | None:
+def water_now(data_dir: Path, at: datetime) -> dict | None:
+    """The Water row's reading: a Coronado hub's receiver, Center's first,
+    else 46232's standard met. Never a blend: the row, its arrow and its
+    sparkline are one source's."""
+
+    return hub_water_now(data_dir, at) or buoy_water_now(data_dir, at)
+
+
+def _hub_readings(data_dir: Path, receiver: str, start: datetime, end: datetime):
+    """A receiver's archived readings in (start, end], upright only, as
+    [(time, °C)] sorted; a reading on its side is the air, never the water."""
+
+    root = Path(data_dir) / "sharklab" / receiver
+    out = []
+    month = start.replace(day=1)
+    while month <= end:
+        path = root / f"{month:%Y-%m}.csv"
+        if path.exists():
+            with path.open(newline="", encoding="utf-8") as fh:
+                for row in csv.DictReader(fh):
+                    t = _utc(row["timestamp_utc"])
+                    try:
+                        temp, tilt = float(row["ambient_temperature"]), float(row["tilt"])
+                    except (TypeError, ValueError):
+                        continue
+                    if start < t <= end and tilt < HUB_UPRIGHT_DEG and temp == temp:
+                        out.append((t, temp))
+        month = (month + timedelta(days=32)).replace(day=1)
+    return sorted(out)
+
+
+def hub_water_now(data_dir: Path, at: datetime) -> dict | None:
+    """The newest upright reading, within HUB_WATER_FRESH_H, of the receiver
+    on the hub serving the first break in HUB_BREAK_ORDER that has one."""
+
+    path = Path(data_dir) / "sharklab" / "hubs.json"
+    if not path.exists():
+        return None
+    hubs = json.loads(path.read_text(encoding="utf-8"))
+    for brk in HUB_BREAK_ORDER:
+        for hub, v in sorted(hubs.items()):
+            if v.get("break") != brk or not v.get("receiver"):
+                continue
+            got = _hub_readings(data_dir, v["receiver"], at - timedelta(hours=HUB_WATER_FRESH_H), at)
+            if got:
+                t, c = got[-1]
+                return {"source": "sharklab", "hub": hub, "receiver": v["receiver"], "break": brk,
+                        "c": c, "observed_utc": _iso(t)}
+    return None
+
+
+def buoy_water_now(data_dir: Path, at: datetime, station: str = "46232") -> dict | None:
     """46232's newest water temperature (its standard met, WTMP)."""
 
     from collector.ndbc import is_missing
@@ -305,7 +377,7 @@ def water_now(data_dir: Path, at: datetime, station: str = "46232") -> dict | No
             if (token and not is_missing("WTMP", token) and t <= at
                     and at - t <= timedelta(hours=WATER_FRESH_H) and (best is None or t > best[0])):
                 best = (t, float(token))
-    return {"station": station, "c": best[1], "observed_utc": _iso(best[0])} if best else None
+    return {"source": "ndbc", "station": station, "c": best[1], "observed_utc": _iso(best[0])} if best else None
 
 
 # ------------------------------------------------------------------ trends
@@ -373,7 +445,11 @@ def trends(data_dir: Path, at: datetime, water: dict | None, weather: dict) -> d
     from collector.ndbc import is_missing
 
     out = {}
-    if water:
+    if water and water.get("source") == "sharklab":
+        newest = _utc(water["observed_utc"])
+        out["water"] = _trend("water", _hub_readings(
+            data_dir, water["receiver"], newest - timedelta(hours=SPARK_H["water"]), newest), TREND_BACK_H)
+    elif water:
         path = Path(data_dir) / "observations" / f"{water['station']}.csv"
         newest = _utc(water["observed_utc"])
         ser = {}

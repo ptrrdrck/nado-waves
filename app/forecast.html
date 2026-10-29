@@ -1975,9 +1975,14 @@ function briefConditions(B) {
     dir: tr ? tr.dir : null, was: tr ? tr.was_utc : null,
     trend: tr && tr.spark ? briefSpark(tr.spark, tr.window_h) : "",
     window: tr && tr.window_h ? briefWindow(tr.window_h) : "", ...extra});
+  // A Coronado hub's receiver first, 46232 only as the fallback (owner's
+  // call, 2026-10-29; BRIEFING §47), one source for the value, arrow and line.
   if (water && water.c != null) {
+    const hub = water.source === "sharklab";
     row("water", "Water", briefTemp(water.c, true), water.observed_utc,
-        feedName(water.station, water.station === B.station ? B.station_cdip : ""), T.water);
+        hub ? `Shark Lab hub, ${SHORT[water.break] || "Coronado"}`
+          : feedName(water.station, water.station === B.station ? B.station_cdip : ""),
+        T.water, hub ? {daysAgo: true} : {});
   }
   if (w.air_c != null) row("air", "Air", briefTemp(w.air_c), w.observed_utc, knzy, T.air);
   if (w.humidity_pct != null) {
@@ -1997,9 +2002,14 @@ function briefConditions(B) {
 }
 // A row's words, for docs/briefing_wording.md: its name, value and arrow.
 const briefCondText = (r) => `${r.label} ${r.value}${r.dir ? `, ${r.dir}` : ""}`;
+// A reading from the day before says so: the hubs' water arrives a day
+// late, as the lab loads it each night (owner's call, 2026-10-29: in the
+// tapped text only, never in the row).
+const briefAgo = (iso, B) => (coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc) - 864e5)
+  ? `yesterday, ${clock(iso)}`.replace(/ (AM|PM)$/, "\u00a0$1") : briefAt(iso, B));
 // What a tapped row says: when, by what, and against when.
-const briefRowWhen = (r, B) => r.when || [r.at ? briefAt(r.at, B) : null, r.src,
-  r.dir && r.was ? `${BRIEF_AGAINST[r.dir]} ${briefAt(r.was, B)}` : null].filter(Boolean).join(" · ");
+const briefRowWhen = (r, B, at = r.daysAgo ? briefAgo : briefAt) => r.when || [r.at ? at(r.at, B) : null, r.src,
+  r.dir && r.was ? `${BRIEF_AGAINST[r.dir]} ${at(r.was, B)}` : null].filter(Boolean).join(" · ");
 // Which rows are open, across a redraw (not a reload).
 const BRIEF_ROWS = new Set();
 function briefCondRow(r, B) {

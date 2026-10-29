@@ -3959,6 +3959,19 @@ class TestTheBriefing:
         assert "Precipitation" not in cond
         assert "const HPA_PER_INHG = 33.8639;" in SOURCE and SOURCE.count("HPA_PER_INHG = ") == 1
 
+    def test_the_water_is_a_coronado_hubs_with_the_buoy_only_as_fallback(self):
+        """Owner's calls, 2026-10-29 (BRIEFING §47): a hub's receiver first,
+        named as the lab's hub at its break; 46232 by its feed name only as the
+        fallback; "yesterday" in the tapped text alone, never in the row."""
+        cond = self.BLOCK[self.BLOCK.index("function briefConditions"):]
+        cond = cond[:cond.index("\n}\n")]
+        assert 'const hub = water.source === "sharklab";' in cond
+        assert "hub ? `Shark Lab hub, ${SHORT[water.break] || \"Coronado\"}`" in cond
+        assert "T.water, hub ? {daysAgo: true} : {});" in cond
+        assert "yesterday" not in cond
+        assert "const briefRowWhen = (r, B, at = r.daysAgo ? briefAgo : briefAt) =>" in self.BLOCK
+        assert "? `yesterday, ${clock(iso)}`" in self.BLOCK
+
     def test_the_arrow_is_an_ink_arrowhead_or_a_dash(self):
         assert ".brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}" in SOURCE
         arrows = self.BLOCK[self.BLOCK.index("const BRIEF_ARROW = "):self.BLOCK.index("const BRIEF_AGAINST")]
