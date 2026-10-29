@@ -751,6 +751,21 @@ def _fmt(t: datetime | None) -> str:
     return f"{t:%Y-%m-%d %H:%M}Z" if t else "-"
 
 
+def distinct_rows(rows: list[list[str]]) -> list[list[str]]:
+    """Each row once, in order. Run 12 found every Coronado status and
+    detection row stored twice, exactly (detections before the lab's
+    2026-10-29 refresh too): everything after the count reads each once."""
+
+    seen: set[tuple] = set()
+    out = []
+    for row in rows:
+        key = tuple(row)
+        if key not in seen:
+            seen.add(key)
+            out.append(row)
+    return out
+
+
 def duplicates(label: str, times: list[str], rows: list[tuple]) -> list[str]:
     """Rows against distinct rows and distinct stamps, per UTC month: run 10,
     after the lab's refresh, read ~1,440 fixes a day where run 9 read ~720,
@@ -803,6 +818,7 @@ def hub_history(hub: str, spots: list[geometry.Spot], tags: set[str]) -> list[st
         fixes.append((when, seaward_m(lat, lon, spots) > IN_WATER_M))
     lines += duplicates("Status", column(status, "device_time_utc"),
                         [tuple(r) for r in status.rows])
+    status.rows = distinct_rows(status.rows)
     runs = stretches(fixes)
     lines += [f"Status: {len(status.rows)} rows, {len(fixes)} placed fixes, "
               f"{_fmt(min(f[0] for f in fixes) if fixes else None)} to "
@@ -836,7 +852,8 @@ def hub_history(hub: str, spots: list[geometry.Spot], tags: set[str]) -> list[st
     receivers = sorted(set(column(det, "serial_number")))
     lines += duplicates("Detections", column(det, "device_time_utc"),
                         [tuple(r) for r in det.rows])
-    lines += [f"Detections: {len(det.rows)} rows, receiver(s) {', '.join(receivers)}.", ""]
+    det.rows = distinct_rows(det.rows)
+    lines += [f"Detections: {len(det.rows)} distinct rows, receiver(s) {', '.join(receivers)}.", ""]
 
     months: dict[str, dict] = {}
     sensors: dict[str, list[float]] = {}

@@ -138,3 +138,8 @@ def test_duplicates_counts_exact_repeats_not_repeated_stamps():
     text = "\n".join(p.duplicates("Status", times, rows))
     assert "4 rows, 3 distinct rows, 1 exact repeats." in text
     assert "| 4 | 3 | 2 |" in text
+
+
+def test_distinct_rows_keeps_first_of_each_in_order():
+    assert p.distinct_rows([["a", "1"], ["b", "2"], ["a", "1"], ["a", "2"]]) == [
+        ["a", "1"], ["b", "2"], ["a", "2"]]
