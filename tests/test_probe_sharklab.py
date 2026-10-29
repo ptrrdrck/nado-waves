@@ -118,3 +118,15 @@ def test_stretches_split_on_side_and_on_silence():
     fixes += [(t0 + timedelta(hours=52 + h), False) for h in range(2)]
     runs = p.stretches(fixes)
     assert [(r.in_water, r.fixes) for r in runs] == [(True, 3), (None, 0), (True, 2), (False, 2)]
+
+
+def test_coverage_names_missing_and_partial_days():
+    from datetime import datetime, timedelta, timezone
+
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    day0 = today - timedelta(days=3)
+    fixes = [(day0 + timedelta(minutes=2 * i), True) for i in range(720)]
+    fixes += [(day0 + timedelta(days=2, minutes=2 * i), False) for i in range(100)]
+    text = "\n".join(p.coverage(fixes))
+    assert f"Missing days since {day0.date()}: {day0 + timedelta(days=1):%m-%d}." in text
+    assert f"{day0 + timedelta(days=2):%m-%d} (100)" in text

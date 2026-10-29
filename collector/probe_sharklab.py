@@ -635,6 +635,56 @@ SILENT_H = 24.0
 
 HISTORY_TIMEOUT_S = 300.0
 
+#: The stretch table is printed for this many recent days only; the monthly
+#: coverage covers the rest (run 9's full table outran the readable log).
+RECENT_STRETCH_DAYS = 120
+
+#: A hub reports every 2 minutes since November 2025 (run 9: 720 a day), so
+#: a day with fewer fixes than this is partial.
+FULL_DAY_FIXES = 700
+
+
+def coverage(fixes: list[tuple[datetime, bool]]) -> list[str]:
+    """Per UTC month: days with any fix, of those full days, days with a fix in
+    the water and on land; then each missing day in the last
+    RECENT_STRETCH_DAYS. A day absent here is absent on the server."""
+
+    from collections import Counter
+
+    per_day = Counter(f[0].date() for f in fixes)
+    wet = {f[0].date() for f in fixes if f[1]}
+    dry = {f[0].date() for f in fixes if not f[1]}
+    if not per_day:
+        return ["No fixes.", ""]
+    first, last = min(per_day), max(per_day)
+    lines = ["| Month | Days with fixes | Full days | In the water | On land |",
+             "|---|---|---|---|---|"]
+    months: dict[str, list] = {}
+    day = first
+    while day <= last:
+        m = months.setdefault(f"{day:%Y-%m}", [0, 0, 0, 0, 0])
+        m[0] += 1
+        if day in per_day:
+            m[1] += 1
+            m[2] += per_day[day] >= FULL_DAY_FIXES
+            m[3] += day in wet
+            m[4] += day in dry
+        day += timedelta(days=1)
+    for key, (n, have, full, w, d) in months.items():
+        lines.append(f"| {key} | {have} / {n} | {full} | {w} | {d} |")
+    since = max(first, (utcnow() - timedelta(days=RECENT_STRETCH_DAYS)).date())
+    missing, day = [], since
+    while day <= last:
+        if day not in per_day:
+            missing.append(f"{day:%m-%d}")
+        day += timedelta(days=1)
+    partial = [f"{d:%m-%d} ({per_day[d]})" for d in sorted(per_day)
+               if d >= since and per_day[d] < FULL_DAY_FIXES]
+    lines += ["", f"Missing days since {since}: {', '.join(missing) or 'none'}.",
+              f"Partial days since {since} (fixes): {', '.join(partial) or 'none'}.",
+              f"Newest fix {_fmt(max(f[0] for f in fixes))}.", ""]
+    return lines
+
 
 def seaward_m(lat: float, lon: float, spots: list[geometry.Spot]) -> float:
     """Metres seaward of the nearest break's position along its normal;
@@ -729,8 +779,12 @@ def hub_history(hub: str, spots: list[geometry.Spot], tags: set[str]) -> list[st
               f"In the water = more than {IN_WATER_M:.0f} m seaward of the "
               f"nearest break's shoreline; a silence is over {SILENT_H:.0f} h "
               f"without a fix.", "",
+              ]
+    lines += coverage(fixes)
+    recent = [r for r in runs if r.end >= utcnow() - timedelta(days=RECENT_STRETCH_DAYS)]
+    lines += [f"Stretches in the last {RECENT_STRETCH_DAYS} days:", "",
               "| From | To | Days | State | Fixes |", "|---|---|---|---|---|"]
-    for r in runs:
+    for r in recent:
         state = {True: "in the water", False: "on land", None: "silent"}[r.in_water]
         days = (r.end - r.start).total_seconds() / 86400
         if r.in_water is not None and days < 0.5 and r.fixes < 20:
