@@ -24,7 +24,8 @@ try {
   --sea:#E3EBEF; --grid:#D4DEE2;
   --north:#2a78d6; --center:#eb6834; --south:#1baf7a;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
-  --r:10px; --side:280px;
+  --r:10px;
+  --edge:rgba(22,35,43,.30); --drop:rgba(22,35,43,.18);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -37,6 +38,7 @@ try {
     --sea:#112129; --grid:#1D313B;
     --north:#3987e5; --center:#d95926; --south:#199e70;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    --edge:rgba(160,185,195,.35); --drop:rgba(0,0,0,.5);
   }
 }
 :root[data-theme="light"]{color-scheme:light}
@@ -50,11 +52,12 @@ try {
   --sea:#112129; --grid:#1D313B;
   --north:#3987e5; --center:#d95926; --south:#199e70;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    --edge:rgba(160,185,195,.35); --drop:rgba(0,0,0,.5);
 }
 /* No double-tap zoom anywhere (owner's request, 2026-10-25): a page this
    dense in taps zoomed on two quick ones and left the layout off-screen.
    manipulation keeps pinch zoom and scrolling; set on every element, not
-   the root alone, because the menu, the tables and the code blocks scroll on their own: a scroller
+   the root alone, because the contents panel, the tables and the code blocks scroll on their own: a scroller
    ends the ancestors' say. Zero specificity, so the map's own none stands. */
 *{box-sizing:border-box;touch-action:manipulation}
 [hidden]{display:none!important}
@@ -64,33 +67,72 @@ body{background:var(--paper);color:var(--ink);margin:0;
   -webkit-text-size-adjust:100%}
 a{color:var(--surf)}
 a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
-h1,h2,h3,.lbl,.chip,.seg button,.side-head{font-family:"Barlow Condensed",Archivo,sans-serif}
+h1,h2,h3,.lbl,.chip,.seg button{font-family:"Barlow Condensed",Archivo,sans-serif}
 code,.mono,.math,td.num,.coord{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   font-variant-numeric:tabular-nums}
 code{font-size:.88em;background:var(--surf-wash);padding:1px 5px;border-radius:4px}
 
-/* ---------- shell: a menu column and the article ---------- */
-.shell{display:grid;grid-template-columns:var(--side) minmax(0,1fr);min-height:100vh}
-.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);
-  background:var(--card);padding:18px 14px 40px;display:flex;flex-direction:column;gap:12px}
-.side-head{display:flex;flex-direction:column;gap:2px;padding:0 6px}
-.side-head .lbl{font-size:12.5px}
-.side-head b{font-weight:700;font-size:22px;letter-spacing:.01em}
-.back{font-size:14px;text-decoration:none;font-weight:500;padding:0 6px}
+/* ---------- the contents pill (owner's design, 2026-10-29) ----------
+   One element. Closed, a clip shows only its row: the section the reader is
+   in and a search button. Open, the clip lets go and the contents and search
+   grow out of the pill itself, no wider than it. On a phone the row sits at
+   the bottom and the panel grows up to just under the top of the screen,
+   the search field at its top, where the keyboard never reaches; on a wide
+   screen the row sits at the top centre and the panel grows down. It
+   replaced the sidebar and the phone's top bar and drawer, whose buttons
+   shrank and wrapped beside a long section title. */
+.back{font-size:14px;text-decoration:none;font-weight:500;align-self:flex-start}
 .back:hover{text-decoration:underline}
-.search{position:relative}
-.search input{width:100%;font:inherit;font-size:14.5px;padding:8px 34px 8px 10px;border-radius:8px;
-  border:1px solid var(--line-strong);background:var(--paper);color:var(--ink)}
-.search input::placeholder{color:var(--faint)}
-.search kbd{position:absolute;right:8px;top:50%;transform:translateY(-50%);font:500 12px/1 "IBM Plex Mono",monospace;
-  color:var(--faint);border:1px solid var(--line-strong);border-radius:4px;padding:2px 5px;pointer-events:none}
-.search input:focus + kbd,.search input:not(:placeholder-shown) + kbd{display:none}
-.found{font-size:13.5px;color:var(--soft);padding:0 6px;margin:0}
+.scrim{position:fixed;inset:0;z-index:30;background:rgba(10,20,26,.45);opacity:0;pointer-events:none;transition:opacity .25s}
+.pill-open .scrim{opacity:1;pointer-events:auto}
+.pill-wrap{position:fixed;inset:0;z-index:40;pointer-events:none;
+  filter:drop-shadow(0 0 .6px var(--edge)) drop-shadow(0 6px 18px var(--drop))}
+.dock{--ph:52px;position:absolute;display:flex;flex-direction:column;background:var(--card);pointer-events:auto;
+  left:max(16px, env(safe-area-inset-left, 0px));right:max(16px, env(safe-area-inset-right, 0px));margin:0 auto;
+  transition:clip-path .34s cubic-bezier(.2,.8,.2,1)}
+.pill-panel{flex:1;min-height:0;display:flex;flex-direction:column;opacity:0;transition:opacity .2s}
+.pill-open .pill-panel{opacity:1;transition-delay:.06s}
+.pill-open .dock{clip-path:inset(0 0 0 0 round 20px)}
+.pill-row{flex:none;position:relative;display:flex;align-items:stretch;min-height:52px}
+.pill-main{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:10px 8px 12px 18px;text-align:left;
+  font:inherit;border:0;background:none;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pill-main .num{font:500 13px/1.35 "IBM Plex Mono",ui-monospace,monospace;color:var(--faint);flex:none;font-variant-numeric:tabular-nums}
+.pill-main .where{font-weight:600;font-size:14.5px;line-height:1.3;min-width:0;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pill-main:hover .where{color:var(--surf)}
+.pill-div{width:1px;background:var(--line);margin:11px 0;flex:none}
+.pill-icon{flex:none;width:52px;border:0;background:none;color:var(--soft);display:grid;place-items:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
+.pill-icon:hover{color:var(--surf)}
+.dock .ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
+.pill-icon .ic-x,.pill-open .pill-icon .ic-s{display:none}
+.pill-open .pill-icon .ic-x{display:block}
+.pill-prog{position:absolute;left:18px;right:18px;bottom:0;height:2px;pointer-events:none;transition:opacity .2s}
+.pill-prog i{display:block;height:100%;width:0;background:var(--surf);border-radius:1px}
+.pill-open .pill-prog{opacity:0}
+.search{flex:none;padding:12px 12px 10px}
+.sbox{display:flex;align-items:center;gap:8px;border:1px solid var(--line-strong);border-radius:12px;
+  background:var(--paper);padding:0 12px;color:var(--faint)}
+.sbox:focus-within{border-color:var(--surf)}
+.sbox .ic{width:17px;height:17px}
+.sbox input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:16px;padding:10px 0;color:var(--ink);outline:none}
+.sbox input::placeholder{color:var(--faint)}
+.sbox input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.sbox kbd{font:500 12px/1 "IBM Plex Mono",monospace;color:var(--faint);border:1px solid var(--line-strong);border-radius:4px;padding:2px 5px}
+.sbox input:focus ~ kbd,.sbox input:not(:placeholder-shown) ~ kbd{display:none}
+/* Clears the field and puts the keyboard away, back to the contents: not the
+   pill's own close button, which closes the panel (owner's request, 2026-10-29). */
+.sbox .clr{display:none;flex:none;width:34px;height:34px;margin-right:-8px;border:0;border-radius:8px;background:none;
+  color:var(--soft);place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sbox .clr .ic{width:16px;height:16px}
+.sbox .clr:hover{color:var(--ink);background:var(--surf-wash)}
+.sbox input:focus ~ .clr,.sbox.has .clr{display:grid}
+.pill-body{position:relative;flex:1;min-height:0;overflow-y:auto;padding:0 10px 12px;overscroll-behavior:contain}
+.found{font-size:13.5px;color:var(--soft);padding:2px 8px 4px;margin:0}
 .results{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
-.results a{display:flex;flex-direction:column;gap:2px;padding:7px 8px;border-radius:8px;text-decoration:none;color:var(--ink)}
+.results a{display:flex;flex-direction:column;gap:2px;padding:8px;border-radius:10px;text-decoration:none;color:var(--ink)}
 .results a:hover,.results a[aria-selected="true"]{background:var(--surf-wash)}
 .results .t{font-weight:600;font-size:14.5px;line-height:1.3}
-.results .t .num{color:var(--faint);font-weight:500;margin-right:6px}
 .results .s{font-size:13px;color:var(--soft);line-height:1.4}
 mark{background:#FFE58A;color:#16232B;border-radius:2px;padding:0 1px}
 mark.hit-now{outline:2px solid var(--surf)}
@@ -98,22 +140,31 @@ mark.hit-now{outline:2px solid var(--surf)}
 .toc > li{border-bottom:1px solid var(--line)}
 .toc > li:last-child{border-bottom:0}
 .toc .grp{display:flex;align-items:stretch}
-.toc .grp a{flex:1;font-weight:600;font-size:15px;padding:8px 6px;color:var(--ink);text-decoration:none}
-.toc .grp button{flex:none;width:36px;border:0;background:transparent;color:var(--soft);cursor:pointer;
-  font-size:13px;border-radius:6px}
-.toc .grp button span{display:inline-block;transition:transform .15s}
-.toc li[data-open="true"] .grp button span{transform:rotate(90deg)}
-.toc ul{padding:0 0 8px 10px;border-left:1px solid var(--line);margin-left:10px}
+.toc .grp a{flex:1;font-weight:600;font-size:15px;padding:11px 8px;color:var(--ink);text-decoration:none;border-radius:10px;line-height:1.3}
+.toc .grp button{flex:none;width:44px;border:0;background:transparent;color:var(--soft);cursor:pointer;
+  border-radius:10px;display:grid;place-items:center}
+.toc .grp button .ic{width:15px;height:15px;transition:transform .15s}
+.toc li[data-open="true"] .grp button .ic{transform:rotate(90deg)}
+.toc ul{padding:0 0 10px 10px;border-left:1px solid var(--line);margin-left:16px}
 .toc li[data-open="false"] > ul{display:none}
-.toc ul a{display:block;font-size:14px;padding:4px 8px;color:var(--soft);text-decoration:none;border-radius:6px;line-height:1.35}
+.toc ul a{display:block;font-size:14.5px;padding:7px 8px;color:var(--soft);text-decoration:none;border-radius:10px;line-height:1.35}
 .toc a:hover{color:var(--ink);background:var(--surf-wash)}
-.toc a[aria-current="true"]{color:var(--surf);font-weight:600;background:var(--surf-wash)}
-.toc .num{color:var(--faint);font-variant-numeric:tabular-nums;margin-right:6px;font-weight:500}
+.toc a[aria-current="true"]{color:var(--surf);background:var(--surf-wash)}
+.toc ul a[aria-current="true"]{font-weight:600}
+.toc .num,.results .num{color:var(--faint);font:500 12.5px/1 "IBM Plex Mono",ui-monospace,monospace;
+  font-variant-numeric:tabular-nums;margin-right:8px}
+/* Wide: the row on top, the panel growing down, the text fading out under it. */
+@media (min-width: 901px){
+  html{scroll-padding-top:84px}
+  .dock{top:calc(14px + env(safe-area-inset-top, 0px));bottom:24px;max-width:600px;
+    clip-path:inset(0 0 calc(100% - var(--ph)) 0 round 22px)}
+  .pill-row{order:-1}
+  .pill-open .pill-row{border-bottom:1px solid var(--line)}
+  body::before{content:"";position:fixed;left:0;right:0;top:0;z-index:20;pointer-events:none;
+    height:calc(84px + env(safe-area-inset-top, 0px));background:linear-gradient(var(--paper) 40%, transparent)}
+}
 
-.topbar{display:none}
-.scrim{display:none}
-
-main{padding:28px 32px 80px;min-width:0}
+main{padding:96px 32px 80px;min-width:0}
 article{max-width:46rem;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 article > section{display:flex;flex-direction:column;gap:14px;padding-top:30px;border-top:1px solid var(--line-strong)}
 article > section:first-of-type{border-top:0;padding-top:0}
@@ -246,53 +297,50 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
 .foot{font-size:13px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px}
 
-/* ---------- phone: the menu folds into a drawer ---------- */
+/* ---------- phone: the pill at the bottom, growing up ---------- */
 @media (max-width: 900px){
-  .shell{display:block}
-  .topbar{display:flex;position:sticky;top:0;z-index:20;align-items:center;gap:10px;
-    padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
-  .topbar button{font:600 14px/1 Archivo,sans-serif;display:inline-flex;align-items:center;gap:8px;
-    padding:8px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--paper);
-    color:var(--ink);cursor:pointer}
-  .topbar .where{font-size:14px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  .side{position:fixed;z-index:40;top:0;left:0;bottom:0;width:min(86vw,320px);height:auto;
-    transform:translateX(-102%);transition:transform .2s ease;box-shadow:var(--shadow)}
-  .shell[data-menu="open"] .side{transform:none}
-  .shell[data-menu="open"] .scrim{display:block;position:fixed;inset:0;z-index:30;background:rgba(10,20,26,.45)}
-  main{padding:20px 16px 64px}
-  html{scroll-padding-top:64px}
+  .dock{top:calc(52px + env(safe-area-inset-top, 0px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));max-width:420px;
+    clip-path:inset(calc(100% - var(--ph)) 0 0 0 round 22px)}
+  .pill-open .pill-row{border-top:1px solid var(--line)}
+  main{padding:20px 16px calc(120px + env(safe-area-inset-bottom, 0px))}
   .math{font-size:12px}
-  .search kbd{display:none}
+  .sbox kbd{display:none}
   dl.terms{grid-template-columns:1fr;gap:2px 0}
   dl.terms dd{margin-bottom:8px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 
-<div class="shell" id="shell" data-menu="closed">
-  <div class="topbar">
-    <button type="button" id="menu-open" aria-controls="side" aria-expanded="false">&#9776; Contents</button>
-    <button type="button" id="search-open" aria-controls="side" aria-label="Search the documentation">&#9906; Search</button>
-    <span class="where" id="where"></span>
-  </div>
-  <div class="scrim" id="scrim"></div>
-
-  <!-- The menu is built from the article's own h2 and h3, so it cannot list a
-       section the page does not have or miss one it does. -->
-  <nav class="side" id="side" aria-label="Documentation contents">
-    <a class="back" href="./">&larr; Back to the forecast</a>
-    <div class="side-head"><span class="lbl">Nado Waves</span><b>Documentation</b></div>
-    <div class="search" role="search">
-      <input id="search" type="search" placeholder="Search the documentation" aria-label="Search the documentation"
-             aria-controls="results" autocomplete="off" spellcheck="false"><kbd>/</kbd>
+<div class="scrim" id="scrim"></div>
+<!-- The contents are built from the article's own h2 and h3, so they cannot
+     list a section the page does not have or miss one it does. -->
+<div class="pill-wrap">
+  <nav class="dock" id="pill" aria-label="Documentation contents">
+    <div class="pill-panel" id="panel" inert>
+      <div class="search" role="search">
+        <label class="sbox"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.75" cy="8.75" r="5.25"/><path d="m12.6 12.6 4 4"/></svg>
+          <input id="search" type="search" placeholder="Search the documentation" aria-label="Search the documentation"
+                 aria-controls="results" autocomplete="off" spellcheck="false" enterkeyhint="go"><kbd>/</kbd>
+          <button type="button" class="clr" id="search-clear" aria-label="Clear the search"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 5.5 9 9M14.5 5.5l-9 9"/></svg></button></label>
+      </div>
+      <div class="pill-body" id="pill-body">
+        <p class="found" id="found" aria-live="polite" hidden></p>
+        <ol class="results" id="results" role="listbox" aria-label="Search results" hidden></ol>
+        <ul class="toc" id="toc"></ul>
+      </div>
     </div>
-    <p class="found" id="found" aria-live="polite" hidden></p>
-    <ol class="results" id="results" role="listbox" aria-label="Search results" hidden></ol>
-    <ul class="toc" id="toc"></ul>
+    <div class="pill-row" id="pill-row">
+      <button type="button" class="pill-main" id="menu-open" aria-controls="panel" aria-expanded="false" aria-label="Contents"><span class="num" id="where-num"></span><span class="where" id="where"></span></button>
+      <span class="pill-div" aria-hidden="true"></span>
+      <button type="button" class="pill-icon" id="search-open" aria-controls="panel" aria-label="Search the documentation"><svg class="ic ic-s" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.75" cy="8.75" r="5.25"/><path d="m12.6 12.6 4 4"/></svg><svg class="ic ic-x" viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 5.5 9 9M14.5 5.5l-9 9"/></svg></button>
+      <span class="pill-prog" aria-hidden="true"><i id="progress"></i></span>
+    </div>
   </nav>
+</div>
 
   <main>
   <article id="doc">
+  <a class="back" href="./">&larr; Back to the forecast</a>
 
   <!-- ================================================================ 1 -->
   <section id="start">
@@ -385,7 +433,6 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         <dl class="standing" id="standing-forecast"></dl>
         <p class="note" id="foot-forecast"></p>
       </div>
-      <div class="next"><a href="#chains">Next: Two tabs, two chains &rarr;</a></div>
     </section>
   </section>
 
@@ -429,7 +476,6 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         &ldquo;Observed at&rdquo; with its hour, never blended into the forecast figure above it.
         <a href="#time-observed">The blue line</a>.</p>
       <p>A refresh keeps the tab you chose. A new visit always opens on &ldquo;LIVE&rdquo;.</p>
-      <div class="next"><a href="#briefing">Next: The Briefing &rarr;</a></div>
     </section>
   </section>
 
@@ -567,7 +613,6 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         seen a forecast is no longer an independent witness, and the log is what will one day check
         this page, so the log comes first. That question is the one place the page links to the
         log. Turning it on after you have already looked starts it tomorrow.</p>
-      <div class="next"><a href="#settings">Next: Units and theme &rarr;</a></div>
     </section>
 
     <section id="settings">
@@ -585,7 +630,6 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       <p><b>The theme</b> is the half-lit circle at the end of the line. A tap gives the other
         theme, light or dark; switch back to whichever your phone is set to and the page forgets
         the choice and follows the phone again. This page follows the same choice.</p>
-      <div class="next"><a href="#aperture">Next: The aperture &rarr;</a></div>
     </section>
   </section>
 
@@ -718,7 +762,6 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       </div>
       <div class="mapbox full" id="fullmap"></div>
       <div class="legend" id="legend"></div>
-      <div class="next"><a href="#calc">Next: The swell calculation &rarr;</a></div>
     </section>
   </section>
 
@@ -1013,7 +1056,6 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         <li><b>Not checked.</b> Every step is physics and none has been compared against the sand.
           <a href="#confidence">Confidence and verification</a>.</li>
       </ul>
-      <div class="next"><a href="#swell">Next: The Swell card &rarr;</a></div>
     </section>
   </section>
 
@@ -1411,7 +1453,6 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         newer spectrum: the newest frame once it is past three hours, and a frame left that long
         before a gap. A frame replaced in time stays in its usual colours however old it grows in
         the loop.</p>
-      <div class="next"><a href="#wind">Next: The Wind card &rarr;</a></div>
     </section>
   </section>
 
@@ -1466,7 +1507,6 @@ South   normal 220.9°   −cos(49.1°) = −0.66   onshore</pre>
         at any break, so the break's line says why, &ldquo;no wind&rdquo; or &ldquo;no
         direction&rdquo;, rather than repeating the headline. The rule lives in one place on the page,
         so the card and both Shore direction charts change together.</p>
-      <div class="next"><a href="#tide">Next: The Tide card &rarr;</a></div>
     </section>
   </section>
 
@@ -1563,7 +1603,6 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
           the summary speaks of the day's two tides and quotes whichever pair differs more.</p></div>
       <p>None of this is a statement about waves. On these beach profiles the whole tide range
         moves where the waves break by tens of metres and their height by under 2%.</p>
-      <div class="next"><a href="#sun">Next: The Sun card &rarr;</a></div>
     </section>
   </section>
 
@@ -1629,7 +1668,6 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
         behind it earlier. Refraction near the horizon swings with the marine layer, a minute
         either way on a real evening. Two metres more or less of eye height move the sunset about
         six seconds.</p>
-      <div class="next"><a href="#time">Next: Moving through time &rarr;</a></div>
     </section>
   </section>
 
@@ -1670,7 +1708,6 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
         model's error at the buoy, carried in. It does not check the beach. Nothing has been
         fitted from it, and no difference or percentage is put on screen, because that would be a
         claim about the forecast without a verification series behind it.</p>
-      <div class="next"><a href="#charts">Next: Charts &rarr;</a></div>
     </section>
   </section>
 
@@ -1839,7 +1876,6 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
       <p>The Shore direction &ldquo;how often&rdquo; bars and the Departure view are the
         &ldquo;LIVE&rdquo; tab's only. Counting how often over a week of forecast would throw away
         which day, and a measured departure has no future hours.</p>
-      <div class="next"><a href="#sources">Next: Data sources &rarr;</a></div>
     </section>
   </section>
 
@@ -1886,7 +1922,6 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
         filled in. No other buoy can stand in: CDIP 191 is the only one in the array that sits
         inside Coronado's windows. If there is no current observation at all, the
         &ldquo;LIVE&rdquo; tab says so and points at the Forecast tab.</p>
-      <div class="next"><a href="#confidence">Next: Confidence and verification &rarr;</a></div>
     </section>
   </section>
 
@@ -1934,7 +1969,6 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
       </ul>
       <p>Until that record exists, no figure on the forecast page states how well it does, and none
         will without naming the observations it was compared against.</p>
-      <div class="next"><a href="#faq">Next: Troubleshooting &rarr;</a></div>
     </section>
   </section>
 
@@ -1984,7 +2018,6 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
           physics changes the past hours too. The Forecast tab is the opposite: a past hour shows
           what the page said at the time.</dd>
       </dl>
-      <div class="next"><a href="#glossary">Next: Glossary &rarr;</a></div>
     </section>
   </section>
 
@@ -2049,7 +2082,6 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
 
   </article>
   </main>
-</div>
 
 <!-- The worked hour, as the chain rebuilt it from the archive. Frozen here so
      the prose can quote it; tests/test_docs.py rebuilds the same hour and
@@ -2108,7 +2140,7 @@ const vbl = (x) => SHORT_BLOCKER[x] || x;
 // Degrees an edge swings when its vertex moves 100 m across the line of sight.
 const costs = (km) => (100 / 1000 / km) * 180 / Math.PI;
 
-// ================================================================ menu
+// ================================================================ contents
 // Built from the article's own headings: an h2 is a group, the h3s inside
 // its section are the group's entries. Numbered in reading order.
 const toc = $("toc");
@@ -2121,7 +2153,7 @@ groups.forEach((sec, gi) => {
   li.dataset.open = "false";
   const kids = [...sec.querySelectorAll(":scope > section[id]")];
   li.innerHTML = `<div class="grp"><a href="#${sec.id}"><span class="num">${gi + 1}</span>${label}</a>`
-    + (kids.length ? `<button type="button" aria-expanded="false" aria-label="Show ${label}"><span>&#9656;</span></button>` : "")
+    + (kids.length ? `<button type="button" aria-expanded="false" aria-label="Show ${label}"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg></button>` : "")
     + `</div>`;
   if (kids.length) {
     const ul = document.createElement("ul");
@@ -2148,6 +2180,7 @@ document.querySelectorAll("#doc section[id] > h2, #doc section[id] > h3").forEac
 });
 
 // Where the reader is: the last heading above a line a fifth of the way down.
+let PILL_OPEN = false;
 function spy() {
   const line = window.innerHeight * 0.2;
   const targets = [...document.querySelectorAll("#doc section[id]")];
@@ -2157,10 +2190,25 @@ function spy() {
   const a = toc.querySelector(`a[href="#${current.id}"]`);
   if (!a) return;
   a.setAttribute("aria-current", "true");
-  const li = a.closest(".toc > li");
-  toc.querySelectorAll(":scope > li").forEach((g) => setOpen(g, g === li));
-  $("where").textContent = a.textContent.replace(/^[\d.]+/, "").trim();
+  // A closed panel follows the page; an open one keeps the groups the reader opened.
+  if (!PILL_OPEN) {
+    const li = a.closest(".toc > li");
+    toc.querySelectorAll(":scope > li").forEach((g) => setOpen(g, g === li));
+  }
+  const num = a.querySelector(".num").textContent;
+  const title = a.textContent.slice(num.length).trim();
+  if ($("where").textContent !== title) {
+    $("where-num").textContent = num;
+    $("where").textContent = title;
+    fitPill();
+  }
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  $("progress").style.width = (max > 0 ? Math.min(100, 100 * window.scrollY / max) : 0) + "%";
 }
+// The closed pill shows its row alone, one line or two, so the clip is the row's height.
+function fitPill() { $("pill").style.setProperty("--ph", $("pill-row").offsetHeight + "px"); }
+addEventListener("resize", fitPill);
+if (document.fonts) document.fonts.ready.then(fitPill);
 let ticking = false;
 addEventListener("scroll", () => {
   if (ticking) return;
@@ -2228,9 +2276,11 @@ function showResults() {
   toc.hidden = on;
   $("results").hidden = !on;
   $("found").hidden = !on;
+  $("search").parentElement.classList.toggle("has", $("search").value.length > 0);
   if (!on) { clearMarks(); spy(); return; }
   HITS = search(q).slice(0, 40);
   PICK = 0;
+  $("pill-body").scrollTop = 0;
   $("found").textContent = HITS.length
     ? `${HITS.length} section${HITS.length === 1 ? "" : "s"} mention${HITS.length === 1 ? "s" : ""} that. Enter opens the first.`
     : "No section mentions that.";
@@ -2284,7 +2334,7 @@ function go(i) {
   if (!h) return;
   const sec = $(h.id);
   const first = markIn(sec, wordsOf($("search").value));
-  menu(false);
+  pill(false, {jumped: true});
   history.replaceState(null, "", "#" + h.id);
   (first || sec).scrollIntoView({block: first ? "center" : "start"});
   if (first) first.classList.add("hit-now");
@@ -2309,25 +2359,55 @@ addEventListener("keydown", (ev) => {
   if (ev.key !== "/" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
   if (ev.target.closest && ev.target.closest("input, textarea, select")) return;
   ev.preventDefault();
-  if (matchMedia("(max-width: 900px)").matches) menu(true);
-  $("search").focus();
-  $("search").select();
+  pill(true, {search: true});
 });
 
-// The phone drawer.
-const shell = $("shell");
-function menu(open) {
-  shell.dataset.menu = open ? "open" : "closed";
-  $("menu-open").setAttribute("aria-expanded", String(open));
-  // Not on a touch screen, where focusing the search would open the keyboard
-  // over the menu the reader asked for. The Search button asks for it.
-  if (open && matchMedia("(pointer: fine)").matches) $("search").focus({preventScroll: true});
+// The pill: its title opens the contents at the section the reader is in,
+// its magnifier opens search, and while open the magnifier is the close.
+// Neither focuses the search on a title tap, which would put a phone's
+// keyboard over the contents the reader asked for.
+const panel = $("panel");
+function currentLink() { return toc.hidden ? null : toc.querySelector('a[aria-current="true"]'); }
+function showCurrent() {
+  const a = currentLink();
+  if (a) $("pill-body").scrollTop = Math.max(0, a.offsetTop - $("pill-body").clientHeight / 3);
+  return a;
 }
-$("menu-open").onclick = () => menu(shell.dataset.menu !== "open");
-$("search-open").onclick = () => { menu(true); $("search").focus(); };
-$("scrim").onclick = () => menu(false);
-addEventListener("keydown", (ev) => { if (ev.key === "Escape") menu(false); });
-toc.addEventListener("click", (ev) => { if (ev.target.closest("a")) menu(false); });
+function pill(open, {search: wantSearch = false, jumped = false} = {}) {
+  if (open !== PILL_OPEN) {
+    if (open) spy();
+    PILL_OPEN = open;
+    document.documentElement.classList.toggle("pill-open", open);
+    panel.inert = !open;
+    $("menu-open").setAttribute("aria-expanded", String(open));
+    $("search-open").setAttribute("aria-label", open ? "Close the contents" : "Search the documentation");
+    if (open) showCurrent();
+    // A jump leaves focus where the reader landed; any other close returns it to the pill.
+    else if (panel.contains(document.activeElement)) {
+      if (jumped) document.activeElement.blur(); else $("menu-open").focus({preventScroll: true});
+    }
+  }
+  if (open && wantSearch) { $("search").focus({preventScroll: true}); $("search").select(); }
+}
+$("menu-open").onclick = () => {
+  if (PILL_OPEN) { pill(false); return; }
+  pill(true);
+  const a = currentLink();
+  if (a) a.focus({preventScroll: true});
+};
+$("search-open").onclick = () => pill(!PILL_OPEN, {search: true});
+$("scrim").onclick = () => pill(false);
+// Clears the search and puts the keyboard away, back to the contents; the
+// panel stays open (owner's request, 2026-10-29).
+$("search-clear").onclick = () => {
+  $("search").value = "";
+  showResults();
+  $("search").blur();
+  const a = showCurrent();
+  if (a) a.focus({preventScroll: true});
+};
+addEventListener("keydown", (ev) => { if (ev.key === "Escape") pill(false); });
+toc.addEventListener("click", (ev) => { if (ev.target.closest("a[href]")) pill(false, {jumped: true}); });
 
 // ================================================================ standing on
 // Each chain from its own file and nothing else, rendered from
@@ -2832,7 +2912,7 @@ function geoMap(box, opts = {}) {
     zin.onclick = () => { const [w, h] = size(); zoomAt(1.6, w / 2, h / 2); };
     zout.onclick = () => { const [w, h] = size(); zoomAt(1 / 1.6, w / 2, h / 2); };
   }
-  // Refit when the width changes (a rotated phone, the drawer), never on a
+  // Refit when the width changes (a rotated phone, a resized window), never on a
   // height-only change, which mobile browsers make while scrolling.
   let lastW = 0;
   new ResizeObserver(() => { const [w] = size(); if (w > 0 && Math.abs(w - lastW) > 2) { lastW = w; m.fit(); m.draw(); } }).observe(svg);
