@@ -98,9 +98,24 @@ class TestTheMenu:
         headed = re.findall(r'<section id="([^"]+)"[^>]*>\s*(?:<span class="lbl">[^<]*</span>\s*)?<h[123]', body)
         assert set(sections) == set(headed), set(sections) - set(headed)
 
-    def test_it_collapses_into_a_drawer_on_a_phone(self):
-        assert "@media (max-width: 900px)" in DOCS
-        assert 'aria-controls="side"' in DOCS and 'aria-expanded="false"' in DOCS
+    def test_the_contents_are_one_pill_at_every_width(self):
+        """The pill replaced the sidebar and the phone's drawer (owner's design,
+        2026-10-29): at the bottom on a phone, at the top on a wide screen,
+        and the panel grows out of it, closed until opened."""
+        assert "@media (max-width: 900px)" in DOCS and "@media (min-width: 901px)" in DOCS
+        assert 'aria-controls="panel" aria-expanded="false"' in DOCS
+        assert '<div class="pill-panel" id="panel" inert>' in DOCS
+        for gone in ('class="side"', 'class="topbar"', 'id="shell"'):
+            assert gone not in DOCS, gone
+
+    def test_no_link_only_steps_to_the_next_section(self):
+        """The page scrolls on, so a link to the section right below it is
+        noise; a link that jumps elsewhere stays (owner's call, 2026-10-29)."""
+        body = DOCS[DOCS.index('<article id="doc">'):DOCS.index("</article>")]
+        starts = [(m.start(), m.group(1)) for m in re.finditer(r'<section id="([^"]+)"', body)]
+        for m in re.finditer(r'<div class="next"><a href="#([^"]+)"', body):
+            following = next((sid for at, sid in starts if at > m.start()), None)
+            assert m.group(1) != following, m.group(1)
 
 
 class TestTheWordingFile:
@@ -128,13 +143,13 @@ class TestTheWordingFile:
 
 
 class TestSearch:
-    """Full text over every section, from the sidebar, with "/" to reach it
-    and a Search button on a phone."""
+    """Full text over every section, in the pill's panel, with "/" and the
+    pill's magnifier to reach it, and its own button to clear it."""
 
     def test_there_is_a_search_box_and_a_result_list(self):
         assert 'id="search" type="search"' in DOCS and 'role="search"' in DOCS
         assert 'id="results" role="listbox"' in DOCS
-        assert 'id="search-open"' in DOCS
+        assert 'id="search-open"' in DOCS and 'id="search-clear"' in DOCS
 
     def test_it_indexes_each_section_once(self):
         """A group's own text excludes its subsections, which are entries of
