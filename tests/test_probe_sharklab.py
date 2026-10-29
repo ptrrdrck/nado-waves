@@ -143,3 +143,17 @@ def test_duplicates_counts_exact_repeats_not_repeated_stamps():
 def test_distinct_rows_keeps_first_of_each_in_order():
     assert p.distinct_rows([["a", "1"], ["b", "2"], ["a", "1"], ["a", "2"]]) == [
         ["a", "1"], ["b", "2"], ["a", "2"]]
+
+
+def test_nearest_respects_the_window_and_picks_the_closer():
+    from datetime import datetime, timedelta, timezone
+
+    t0 = datetime(2026, 10, 28, tzinfo=timezone.utc)
+    series = [(t0, 20.0, ""), (t0 + timedelta(minutes=8), 21.0, "")]
+    assert p.nearest(series, t0 + timedelta(minutes=5), 10)[1] == 21.0
+    assert p.nearest(series, t0 + timedelta(minutes=30), 10) is None
+
+
+def test_diff_stats_reads_other_minus_reference():
+    text = p.diff_stats([(20.0, 20.4), (21.0, 21.4), (22.0, 22.5)])
+    assert text.startswith("n = 3, mean +0.43 °C") and "within 0.5 °C 100%" in text

@@ -26,6 +26,10 @@ on:
         description: "Hub serials, comma-separated: read their whole history instead"
         required: false
         default: ""
+      temps:
+        description: "Days: compare receivers' ambient_temperature with water temperature instead"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -49,6 +53,7 @@ jobs:
           BASE: ${{ inputs.base }}
           DATASET: ${{ inputs.dataset }}
           HUBS: ${{ inputs.hubs }}
+          TEMPS: ${{ inputs.temps }}
         run: |
           set -euo pipefail
           args=()
@@ -57,6 +62,9 @@ jobs:
           fi
           if [ -n "${DATASET:-}" ]; then
             args+=(--dataset "${DATASET}")
+          fi
+          if [ -n "${TEMPS:-}" ]; then
+            args+=(--temps "${TEMPS}")
           fi
           if [ -n "${HUBS:-}" ]; then
             args+=(--hubs "${HUBS}")

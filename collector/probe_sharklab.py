@@ -41,7 +41,7 @@ from datetime import datetime, timedelta, timezone
 from forecast import geometry
 from forecast.swell import great_circle_km
 
-from .common import utcnow, write_step_summary
+from .common import DEFAULT_DATA_DIR, utcnow, write_step_summary
 from .ndbc import USER_AGENT
 from .probe_mop import DENIAL_NOTE
 
@@ -912,6 +912,192 @@ def history(hubs: list[str]) -> tuple[list[str], int]:
     return lines, 0
 
 
+# --- Is a receiver's ambient_temperature the water's? (--temps) -------------
+#
+# The owner's question (2026-10-29): the Coronado receivers read 22.7 °C once
+# back in the water, and the field is named "ambient". Two comparisons, both
+# against an instrument that IS water temperature: each AquaMeasure reading
+# with the receiver that heard it, minutes apart, and the Coronado receivers
+# with 46232's standard-met water temperature (data/observations/46232.csv).
+# The owner puts the Coronado receivers at ~1-2 m.
+
+#: An AquaMeasure reading and a receiver reading this close in time are a pair.
+PAIR_WINDOW_MIN = 10.0
+
+#: 46232's standard met is stamped :26 and :56, so 20 minutes always reaches one.
+BUOY_PAIR_WINDOW_MIN = 20.0
+
+#: A receiver tilted past this is lying on its side, not hanging in the water
+#: (run 8: 77-94° on land, 2-19° deployed).
+UPRIGHT_TILT_DEG = 30.0
+
+CORONADO_RECEIVERS = ("667381", "667382")
+
+BUOY_WTMP = DEFAULT_DATA_DIR / "observations" / "46232.csv"
+
+
+def _time_constraint(info: "DatasetInfo", since: datetime) -> str:
+    value = f"{since.timestamp() * 1000:.0f}"
+    return (f'device_time_utc>="{value}"' if info.types.get("device_time_utc") == "String"
+            else f"device_time_utc>={value}")
+
+
+def _series(fetched: "Fetched", key: str, value: str, extra: str | None = None):
+    """{key: sorted [(time, value, extra)]}, each row once, unparseable left out."""
+
+    from collections import defaultdict
+
+    out: dict[str, list] = defaultdict(list)
+    cols = [column(fetched, n) for n in ("device_time_utc", key, value)]
+    ext = column(fetched, extra) if extra else [""] * len(fetched.rows)
+    for t, k, v, e in sorted(set(zip(*cols, ext))):
+        when = parse_time(t)
+        try:
+            out[k].append((when, float(v), e))
+        except (TypeError, ValueError):
+            continue
+    for k in out:
+        out[k] = sorted((x for x in out[k] if x[0] is not None and x[1] == x[1]),
+                        key=lambda x: x[0])
+    return out
+
+
+def nearest(series: list, when: datetime, window_min: float):
+    """The reading in a time-sorted series nearest `when`, if within the window."""
+
+    import bisect
+
+    stamps = [x[0] for x in series]
+    i = bisect.bisect_left(stamps, when)
+    best = None
+    for j in (i - 1, i):
+        if 0 <= j < len(series):
+            gap = abs((series[j][0] - when).total_seconds()) / 60
+            if gap <= window_min and (best is None or gap < best[0]):
+                best = (gap, series[j])
+    return best[1] if best else None
+
+
+def diff_stats(pairs: list[tuple[float, float]]) -> str:
+    """pairs of (reference, other): n, mean and SD of other - reference,
+    median |difference|, share within 0.5 °C, and the correlation."""
+
+    import statistics
+
+    if len(pairs) < 3:
+        return f"n = {len(pairs)}, too few to say anything."
+    d = [b - a for a, b in pairs]
+    xs, ys = [a for a, _ in pairs], [b for _, b in pairs]
+    try:
+        r = f"{statistics.correlation(xs, ys):.3f}"
+    except statistics.StatisticsError:
+        r = "undefined (one of them never changed)"
+    within = sum(abs(x) <= 0.5 for x in d) / len(d)
+    return (f"n = {len(d)}, mean {statistics.fmean(d):+.2f} °C, SD {statistics.stdev(d):.2f}, "
+            f"median |diff| {statistics.median(abs(x) for x in d):.2f}, "
+            f"within 0.5 °C {within:.0%}, r = {r}, reference "
+            f"{min(xs):.1f}-{max(xs):.1f} °C")
+
+
+def _local_hour(when: datetime) -> int:
+    from zoneinfo import ZoneInfo
+
+    return when.astimezone(ZoneInfo("America/Los_Angeles")).hour
+
+
+def temperature_comparison(days: int) -> tuple[list[str], int]:
+    lines = [f"## Receiver ambient_temperature against water temperature ({BASE})", "",
+             f"Run at {utcnow():%Y-%m-%d %H:%M}Z, the last {days} days.", ""]
+    reached, ok = reach()
+    lines += reached
+    if not ok:
+        return lines + ["Stopped: the server was not reached."], 1
+    since = utcnow() - timedelta(days=days)
+    dinfo, _ = dataset_info(DETECTIONS)
+    rinfo, _ = dataset_info(RECEIVER_STATUS)
+
+    aqua = fetch_csv(f"tabledap/{DETECTIONS}.csv",
+                     _q("device_time_utc,hub_serial,serial_number,full_id,sensor_value",
+                        _time_constraint(dinfo, since), 'sensor_type="Temperature"'),
+                     timeout=600)
+    if not aqua.ok:
+        return lines + [f"AquaMeasure temperatures failed: {aqua.error}"], 1
+    by_rx = _series(aqua, "serial_number", "sensor_value", "full_id")
+    lines += [f"AquaMeasure temperature rows: {len(aqua.rows)}, "
+              f"{sum(len(v) for v in by_rx.values())} distinct, heard by receivers "
+              f"{', '.join(sorted(by_rx)) or 'none'}.", ""]
+
+    wanted = sorted(set(by_rx) | set(CORONADO_RECEIVERS))
+    status = fetch_csv(f"tabledap/{RECEIVER_STATUS}.csv",
+                       _q("device_time_utc,serial_number,ambient_temperature,tilt",
+                          _time_constraint(rinfo, since),
+                          f'serial_number=~"({"|".join(wanted)})"'),
+                       timeout=600)
+    if not status.ok:
+        return lines + [f"receiver status failed: {status.error}"], 1
+    ambient = _series(status, "serial_number", "ambient_temperature", "tilt")
+    lines += [f"Receiver status rows: {len(status.rows)}, "
+              f"{sum(len(v) for v in ambient.values())} distinct.", ""]
+
+    lines += ["### 1. Each AquaMeasure reading against the receiver that heard it", "",
+              f"Paired within {PAIR_WINDOW_MIN:.0f} min; difference is receiver minus "
+              f"AquaMeasure. Day is 10 AM-4 PM Pacific, night 10 PM-4 AM.", ""]
+    all_pairs, day, night = [], [], []
+    for rx, readings in sorted(by_rx.items()):
+        for tag in sorted({x[2] for x in readings}):
+            pairs = []
+            for when, value, _ in (x for x in readings if x[2] == tag):
+                hit = nearest(ambient.get(rx, []), when, PAIR_WINDOW_MIN)
+                if hit is None:
+                    continue
+                pairs.append((value, hit[1]))
+                hour = _local_hour(when)
+                (day if 10 <= hour < 16 else night if hour >= 22 or hour < 4 else []).append(
+                    (value, hit[1]))
+            all_pairs += pairs
+            lines.append(f"- receiver {rx}, sensor {tag}: {diff_stats(pairs)}")
+    lines += ["", f"- **All**: {diff_stats(all_pairs)}",
+              f"- Day: {diff_stats(day)}", f"- Night: {diff_stats(night)}", ""]
+
+    lines += ["### 2. The Coronado receivers against 46232's water temperature", "",
+              f"46232 is ~29 km offshore; its standard met is read from the repository. "
+              f"Upright only (tilt under {UPRIGHT_TILT_DEG:.0f}°), paired within "
+              f"{BUOY_PAIR_WINDOW_MIN:.0f} min; difference is receiver minus 46232.", ""]
+    buoy = []
+    with open(BUOY_WTMP, newline="") as handle:
+        for row in csv.DictReader(handle):
+            when = parse_time(row.get("timestamp_utc", ""))
+            try:
+                value = float(row.get("wtmp") or "nan")
+            except ValueError:
+                continue
+            if when and value == value and when >= since:
+                buoy.append((when, value, ""))
+    buoy.sort(key=lambda x: x[0])
+    lines.append(f"46232 water temperatures in the window: {len(buoy)}.")
+    lines.append("")
+    from collections import defaultdict
+
+    for rx in CORONADO_RECEIVERS:
+        pairs, daily = [], defaultdict(list)
+        upright = [x for x in ambient.get(rx, [])
+                   if _is_number(x[2]) and float(x[2]) < UPRIGHT_TILT_DEG]
+        for when, value, _ in upright:
+            hit = nearest(buoy, when, BUOY_PAIR_WINDOW_MIN)
+            if hit is None:
+                continue
+            pairs.append((hit[1], value))
+            daily[f"{when:%Y-%m-%d}"].append((hit[1], value))
+        lines.append(f"- receiver {rx}: {len(upright)} upright readings; {diff_stats(pairs)}")
+        for key in sorted(daily):
+            ref = [a for a, _ in daily[key]]
+            rec = [b for _, b in daily[key]]
+            lines.append(f"  - {key}: receiver {min(rec):.1f}-{max(rec):.1f}, "
+                         f"46232 {min(ref):.1f}-{max(ref):.1f} °C ({len(rec)} pairs)")
+    lines.append("")
+    return lines, 0
+
+
 def main(argv: list[str] | None = None) -> int:
     global BASE
     parser = argparse.ArgumentParser(description="Probe CSULB Shark Lab's ERDDAP.")
@@ -919,6 +1105,9 @@ def main(argv: list[str] | None = None) -> int:
                         help=f"ERDDAP root URL, default {BASE}.")
     parser.add_argument("--dataset", action="append", default=None,
                         help="Only this datasetID (repeatable); default every one.")
+    parser.add_argument("--temps", type=int, default=0, metavar="DAYS",
+                        help="Compare receivers' ambient_temperature with water "
+                             "temperature over the last DAYS days instead.")
     parser.add_argument("--hubs", default="",
                         help="Comma-separated hub serials: read their whole history "
                              "instead of surveying the server.")
@@ -926,7 +1115,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.base:
         BASE = args.base.rstrip("/")
     hubs = [h.strip() for h in args.hubs.split(",") if h.strip()]
-    lines, code = history(hubs) if hubs else probe(args.dataset)
+    if args.temps:
+        lines, code = temperature_comparison(args.temps)
+    elif hubs:
+        lines, code = history(hubs)
+    else:
+        lines, code = probe(args.dataset)
     text = "\n".join(lines)
     print(text)
     write_step_summary(text if len(text) <= SUMMARY_LIMIT
