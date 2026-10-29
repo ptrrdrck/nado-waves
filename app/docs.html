@@ -25,7 +25,7 @@ try {
   --north:#2a78d6; --center:#eb6834; --south:#1baf7a;
   --shadow:0 1px 2px rgba(22,35,43,.08), 0 4px 14px rgba(22,35,43,.06);
   --r:10px;
-  --edge:rgba(22,35,43,.30); --drop:rgba(22,35,43,.18);
+  --pill-near:rgba(22,35,43,.16); --pill-far:rgba(22,35,43,.30);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -38,7 +38,7 @@ try {
     --sea:#112129; --grid:#1D313B;
     --north:#3987e5; --center:#d95926; --south:#199e70;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
-    --edge:rgba(160,185,195,.35); --drop:rgba(0,0,0,.5);
+    --pill-near:rgba(0,0,0,.55); --pill-far:rgba(0,0,0,.70);
   }
 }
 :root[data-theme="light"]{color-scheme:light}
@@ -52,7 +52,7 @@ try {
   --sea:#112129; --grid:#1D313B;
   --north:#3987e5; --center:#d95926; --south:#199e70;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
-    --edge:rgba(160,185,195,.35); --drop:rgba(0,0,0,.5);
+    --pill-near:rgba(0,0,0,.55); --pill-far:rgba(0,0,0,.70);
 }
 /* No double-tap zoom anywhere (owner's request, 2026-10-25): a page this
    dense in taps zoomed on two quick ones and left the layout off-screen.
@@ -96,10 +96,11 @@ code{font-size:.88em;background:var(--surf-wash);padding:1px 5px;border-radius:4
    the status bar from the topmost fixed element at the top of the screen,
    and a transparent one there kept the dimmed colour after the panel closed
    (owner's report, 2026-10-29). The shadow is drawn on it because the pill
-   itself is clipped. */
+   itself is clipped: no outline, a deeper, tighter shadow than the first,
+   whose 0.6 px edge Safari barely drew (owner's choice, 2026-10-29). */
 .pill-wrap{position:fixed;z-index:40;pointer-events:none;
   left:max(16px, env(safe-area-inset-left, 0px));right:max(16px, env(safe-area-inset-right, 0px));margin:0 auto;
-  filter:drop-shadow(0 0 .6px var(--edge)) drop-shadow(0 6px 18px var(--drop));transition:bottom .25s ease}
+  filter:drop-shadow(0 1px 2px var(--pill-near)) drop-shadow(0 8px 24px var(--pill-far));transition:bottom .25s ease}
 .dock{--ph:52px;position:absolute;inset:0;display:flex;flex-direction:column;background:var(--card);pointer-events:auto;
   transition:clip-path .34s cubic-bezier(.2,.8,.2,1)}
 /* While the keyboard is up the panel ends just above it, so every result can
