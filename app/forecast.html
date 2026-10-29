@@ -880,9 +880,11 @@ th{color:var(--soft);font-weight:600;font-size:12px}
 #warnings:not([hidden]){display:flex;align-items:flex-start;gap:8px}
 #warnings svg{flex:none;width:16px;height:16px;margin-top:.5px;color:var(--faint)}
 a{color:var(--surf)}
-/* The foot of the page (owner's design, 2026-10-28): ONE centred line,
-   Docs | Observer | Units | the theme glyph at its right end, short bars
-   between. Docs in ink at the line's weight, the page's one link. On a
+/* The foot of the page (owner's design, 2026-10-28): ONE line, Docs |
+   Observer | Units | the theme glyph at its right end, short bars between;
+   centred on a wide screen, and on a phone spread from edge to edge
+   (owner's call, 2026-10-29), Docs on the left edge and the glyph on the
+   right, the bars midway between their neighbours. Docs in ink at the line's weight, the page's one link. On a
    phone under 340 px the bars go and the gaps close, which keeps it one
    line at 320. Line height 1, so its words centre on their boxes as
    the chip's word does: at the page's 1.5 they read 1.25 px above it. */
@@ -892,6 +894,7 @@ a{color:var(--surf)}
 .links a{color:var(--ink);text-decoration:none}
 .links a:focus-visible,.links button:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
 .links .bar{width:1px;height:14px;background:var(--line-strong);flex:none}
+@media (max-width:600px){ .links{justify-content:space-between} }
 @media (max-width:340px){ .links{gap:10px} .links .bar{display:none} }
 /* Observer: a real checkbox, drawn as a small switch. */
 .links .logger{position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}

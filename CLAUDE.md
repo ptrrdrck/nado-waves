@@ -1001,8 +1001,9 @@ forecaster actually verifies against, Surfline included.
    formula and each case) and `docs/briefing_sentences.md` (every distinct
    line once, for the owner to edit; edits are carried into the page by
    hand) by `forecast/briefingwording.py`, both pinned by a test.
-   **The foot of the page** (owner's design, 2026-10-28): ONE centred
-   line, "Docs | Observer | Units [Both] | ◐" — Docs in ink at the line's
+   **The foot of the page** (owner's design, 2026-10-28): ONE line,
+   "Docs | Observer | Units [Both] | ◐", centred on a wide screen and
+   spread edge to edge on a phone (≤ 600 px; owner's call, 2026-10-29) — Docs in ink at the line's
    weight, Observer the gate's checkbox drawn as a switch, Units a bordered
    chip that shows its setting and cycles Both → Imperial → Metric on a tap
    (its word centred cap-to-baseline in the chip, measured at 4x; always as
