@@ -83,13 +83,24 @@ code{font-size:.88em;background:var(--surf-wash);padding:1px 5px;border-radius:4
    shrank and wrapped beside a long section title. */
 .back{font-size:14px;text-decoration:none;font-weight:500;align-self:flex-start}
 .back:hover{text-decoration:underline}
-.scrim{position:fixed;inset:0;z-index:30;background:rgba(10,20,26,.45);opacity:0;pointer-events:none;transition:opacity .25s}
-.pill-open .scrim{opacity:1;pointer-events:auto}
+/* Closed, the scrim is truly transparent and hidden, never a dark colour at
+   no opacity: Safari tints the status bar from a fixed element touching the
+   top of the screen, and read the faded scrim's colour there, leaving a dark
+   band over the clock after the panel first closed (owner's report,
+   2026-10-29, iPhone 15). */
+.scrim{position:fixed;inset:0;z-index:30;background-color:transparent;visibility:hidden;pointer-events:none;
+  transition:background-color .25s, visibility 0s linear .25s}
+.pill-open .scrim{background-color:rgba(10,20,26,.45);visibility:visible;pointer-events:auto;
+  transition:background-color .25s, visibility 0s}
 .pill-wrap{position:fixed;inset:0;z-index:40;pointer-events:none;
   filter:drop-shadow(0 0 .6px var(--edge)) drop-shadow(0 6px 18px var(--drop))}
 .dock{--ph:52px;position:absolute;display:flex;flex-direction:column;background:var(--card);pointer-events:auto;
   left:max(16px, env(safe-area-inset-left, 0px));right:max(16px, env(safe-area-inset-right, 0px));margin:0 auto;
-  transition:clip-path .34s cubic-bezier(.2,.8,.2,1)}
+  transition:clip-path .34s cubic-bezier(.2,.8,.2,1), bottom .2s ease}
+/* While the keyboard is up the panel ends just above it, so every result can
+   be scrolled into view; --kb is the keyboard's height, from the visual
+   viewport (owner's request, 2026-10-29). */
+.kb-up .dock{bottom:calc(var(--kb, 0px) + 8px)}
 .pill-panel{flex:1;min-height:0;display:flex;flex-direction:column;opacity:0;transition:opacity .2s}
 .pill-open .pill-panel{opacity:1;transition-delay:.06s}
 .pill-open .dock{clip-path:inset(0 0 0 0 round 20px)}
@@ -156,7 +167,7 @@ mark.hit-now{outline:2px solid var(--surf)}
 /* Wide: the row on top, the panel growing down, the text fading out under it. */
 @media (min-width: 901px){
   html{scroll-padding-top:84px}
-  .dock{top:calc(14px + env(safe-area-inset-top, 0px));bottom:24px;max-width:600px;
+  .dock{top:calc(14px + env(safe-area-inset-top, 0px) + var(--vvt, 0px));bottom:24px;max-width:600px;
     clip-path:inset(0 0 calc(100% - var(--ph)) 0 round 22px)}
   .pill-row{order:-1}
   .pill-open .pill-row{border-bottom:1px solid var(--line)}
@@ -299,7 +310,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
 /* ---------- phone: the pill at the bottom, growing up ---------- */
 @media (max-width: 900px){
-  .dock{top:calc(52px + env(safe-area-inset-top, 0px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));max-width:420px;
+  .dock{top:calc(52px + env(safe-area-inset-top, 0px) + var(--vvt, 0px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));max-width:420px;
     clip-path:inset(calc(100% - var(--ph)) 0 0 0 round 22px)}
   .pill-open .pill-row{border-top:1px solid var(--line)}
   main{padding:20px 16px calc(120px + env(safe-area-inset-bottom, 0px))}
@@ -2408,6 +2419,29 @@ $("search-clear").onclick = () => {
 };
 addEventListener("keydown", (ev) => { if (ev.key === "Escape") pill(false); });
 toc.addEventListener("click", (ev) => { if (ev.target.closest("a[href]")) pill(false, {jumped: true}); });
+// The keyboard. What is left of the screen above it is the visual viewport,
+// so its height is the layout viewport less what is visible; under 120 px is
+// a browser's own bar resizing, not a keyboard. The panel then ends just
+// above it, and moves down with the visible area if the browser pans.
+const vv = window.visualViewport;
+function keyboard() {
+  if (!vv) return;
+  const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  const up = kb > 120;
+  document.documentElement.classList.toggle("kb-up", up);
+  $("pill").style.setProperty("--kb", up ? kb + "px" : "0px");
+  $("pill").style.setProperty("--vvt", up ? vv.offsetTop + "px" : "0px");
+}
+if (vv) { vv.addEventListener("resize", keyboard); vv.addEventListener("scroll", keyboard); }
+// Dragging the results means reading has begun, so the keyboard goes away,
+// as it does in Messages and Mail; tapping the field brings it back. A
+// gesture, never a timer: a pause mid-word is still typing.
+let dragFrom = null;
+$("pill-body").addEventListener("touchstart", (ev) => { dragFrom = ev.touches[0].clientY; }, {passive: true});
+$("pill-body").addEventListener("touchmove", (ev) => {
+  if (dragFrom === null || document.activeElement !== $("search")) return;
+  if (Math.abs(ev.touches[0].clientY - dragFrom) > 10) { $("search").blur(); dragFrom = null; }
+}, {passive: true});
 
 // ================================================================ standing on
 // Each chain from its own file and nothing else, rendered from
