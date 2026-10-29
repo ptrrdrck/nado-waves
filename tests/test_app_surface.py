@@ -4076,9 +4076,10 @@ class TestTheLogFirstGate:
                 < links.index('id="theme"'))
         rule = SOURCE[SOURCE.index(".links{"):]
         rule = rule[:rule.index("}")]
-        assert "justify-content:center" in rule and "flex-wrap:nowrap" in rule
-        # On a phone, edge to edge (owner's call, 2026-10-29).
-        assert "@media (max-width:600px){ .links{justify-content:space-between} }" in SOURCE
+        # Over the Briefing line's width, no rule above (owner's calls, 2026-10-29).
+        assert "justify-content:space-between" in rule and "flex-wrap:nowrap" in rule
+        assert "padding:0 13px" in rule and "border-top" not in rule
+        assert ".briefing{display:flex;flex-direction:column;gap:6px;padding:0 13px}" in SOURCE
 
     def test_the_log_is_linked_from_the_gate_alone(self):
         assert SOURCE.count("nado-waves-log/") == 1
