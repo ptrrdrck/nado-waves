@@ -841,7 +841,9 @@ forecaster actually verifies against, Surfline included.
    triangle, the event linking to NWS's showsigwx page as the owner's link
    has it, a grey NWS tag, and tapped NWS's own `headline` — NWS's words,
    escaped, and exempt from the page's vocabulary test because "Rip Current
-   Statement" is NWS's name. Coast and ocean only (owner's choice): every
+   Statement" is NWS's name; the first alert as far under the Briefing's
+   line as the Forecast tab's under its date, ink to ink, in every layout
+   (owner's request, 2026-10-30). Coast and ocean only (owner's choice): every
    alert for PZZ750, and CAZ043's events in `COASTAL_EVENTS`, never heat,
    fire weather or wind on land, never a Test. In force is NWS's own times:
    onset (never before `sent`) to `ends` (`expires` without one); a later

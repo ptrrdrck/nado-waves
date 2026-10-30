@@ -270,7 +270,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .alert .tag{font:inherit;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;
             margin-left:3px;padding:0;border:0;background:none;cursor:pointer;white-space:nowrap}
 .alert-head{font-size:13px;color:var(--soft);padding-left:24px;overflow-wrap:anywhere}
-.brief-block.brief-alerts{gap:6px}
+/* The alerts sit as far under the Briefing's line as the Forecast tab's sit
+   under its date (owner's request, 2026-10-30), measured ink to ink: 26.5 px
+   on a phone and a tablet, where the fold's own spacing gave 16.5; the wide
+   layouts below set their own, the line having no caret there. */
+.brief-block.brief-alerts{gap:6px;margin-top:10px}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
@@ -1008,7 +1012,9 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 :root[data-layout="stack"] .briefing .fold-body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
   column-gap:28px}
 :root[data-layout="stack"] .briefing .brief-alerts{grid-column:1/-1;border-bottom:1px solid var(--line);
-  padding-bottom:9px;margin-bottom:8px}
+  padding-bottom:9px;margin-bottom:8px;margin-top:12px}
+/* As far under the line as the Forecast tab's under its date: 22.5 px here. */
+:root[data-layout="console"] .briefing .brief-alerts{margin-top:8px}
 :root[data-layout="stack"] .briefing .brief-block + .brief-block{border-top:0;padding-top:0;margin-top:0}
 /* Open on a wide screen: never cut to half of it. */
 :root[data-layout="stack"] .briefing .fold-body,
