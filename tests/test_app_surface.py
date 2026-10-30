@@ -1529,8 +1529,8 @@ class TestAnUpdateAnnouncesItself:
         # earlier run's hour, which carries only the measurement; and the
         # Sun card, one function for every tab; and on a wide screen the
         # swell again, with the buoys and the charts as cards of their own
-        assert SOURCE.count('data-card="') == 11
-        assert 'data-card="swell"' in SOURCE
+        assert SOURCE.count('data-card="') == 12
+        assert 'data-card="swell"' in SOURCE and 'data-card="week"' in SOURCE
         assert 'data-card="buoys"' in SOURCE and 'data-card="charts"' in SOURCE
 
     def test_the_flash_compares_either_side_of_the_same_render(self):
@@ -4336,3 +4336,93 @@ class TestTheWideLayouts:
         assert 'if (e.key === "Escape" && CHART_MAX) setChartMax(null);' in SOURCE
         assert '<div class="chart-body${CHART_MAX === id ? " maxed" : ""}" data-chart="${id}">' in SOURCE
         assert ".chart-body.maxed{position:fixed;" in self.WIDE_CSS
+
+
+class TestTheWeekStrip:
+    """Owner's request, 2026-10-30 (version C of the mock): on the Forecast
+    tab only, a cell a day and a break, the range of breaking heights over
+    the day's daylight steps; a day picks its biggest break's biggest
+    daylight hour, a cell its own break's. A carousel on a phone that picks
+    the day it settles on, every day in a row wider."""
+
+    @staticmethod
+    def fn(name: str) -> str:
+        start = SOURCE.index(f"function {name}(")
+        return SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+
+    def _node(self, script: str) -> str:
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        start = SOURCE.index("const COAST_TZ = ")
+        coast = SOURCE[start:SOURCE.index("const dayParts = ", start)]
+        start = SOURCE.index("const coastHour = ")
+        hour = SOURCE[start:SOURCE.index("const weekLabel = ", start)]
+        prelude = (UNITS_JS + "const FT_PER_M = 3.28084;\n"
+                   "const ORDER = ['coronado_north', 'coronado_center', 'coronado_south'];\n"
+                   "let WEEK_MEMO = null; let DATA = null; let STEPS = [];\n"
+                   "const cardsForForecast = (step) => ORDER.filter((id) => step.hs[id] !== undefined)"
+                   ".map((id) => ({id, hsWindow: step.hs[id]}));\n"
+                   + coast + hour + self.fn("weekDays") + self.fn("weekBest"))
+        return subprocess.run([node, "-e", prelude + script], capture_output=True, text=True,
+                              check=True).stdout.strip()
+
+    def test_a_day_is_its_daylight_steps_and_picks_its_biggest(self):
+        # 28 Oct 2026 at Coronado: sunrise 14:06Z, sunset 01:05Z the next day.
+        got = self._node(
+            "DATA = {sun: {days: {'2026-10-28': {sunrise_utc: '2026-10-28T14:06:00Z',"
+            " sunset_utc: '2026-10-29T01:05:00Z'}}}};\n"
+            "const at = (t, n, c, s) => ({valid_utc: t, hs: {coronado_north: n, coronado_center: c,"
+            " coronado_south: s}});\n"
+            "STEPS = [at('2026-10-28T12:00:00Z', 3.0, 3.0, 3.0),"   # 5 AM: dark, never counted
+            " at('2026-10-28T15:00:00Z', 0.6, 0.9, 0.5),"
+            " at('2026-10-28T18:00:00Z', 0.8, 0.7, 0.6),"
+            " at('2026-10-28T21:00:00Z', 0.7, 0.9, 0.8),"
+            " at('2026-10-29T00:00:00Z', 0.5, null, 0.4)];\n"
+            "const d = weekDays();\n"
+            "console.log(JSON.stringify([d.length, d[0].key, d[0].hours.map((h) => h.i),"
+            " weekBest(d[0]), weekBest(d[0], 'coronado_north'), weekBest(d[0], 'coronado_south')]));\n")
+        n_days, key, hours, best, north, south = json.loads(got)
+        assert n_days == 1 and key == "2026-10-28"
+        assert hours == [1, 2, 3, 4]                # the 5 AM step is before sunrise
+        assert best == 1                            # Center 0.9 at 8 AM; the earlier on a tie
+        assert north == 2 and south == 3
+
+    def test_a_day_without_its_sun_falls_back_to_six_to_six(self):
+        got = self._node(
+            "DATA = {sun: {days: {}}};\n"
+            "STEPS = [{valid_utc: '2026-10-28T12:00:00Z', hs: {coronado_north: 1}},"   # 5 AM
+            " {valid_utc: '2026-10-28T15:00:00Z', hs: {coronado_north: 1}},"   # 8 AM
+            " {valid_utc: '2026-10-29T03:00:00Z', hs: {coronado_north: 1}}];\n"   # 8 PM
+            "console.log(JSON.stringify(weekDays().map((d) => d.hours.map((h) => h.i))));\n")
+        assert json.loads(got) == [[1]]
+
+    def test_its_range_is_the_briefings_range(self):
+        card = self.fn("weekCard")
+        assert "const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));" in card
+        assert "dual(...range)" in card and "dualText(...range)" in card
+
+    def test_it_is_on_the_forecast_tab_only_above_the_swell_card(self):
+        now = SOURCE[SOURCE.index('if (MODE === "now") {'):]
+        now = now[:now.index("  } else {")]
+        assert "weekCard" not in now
+        fc = SOURCE[SOURCE.index("const week = weekCard(step);"):]
+        assert fc.index("if (!WIDE()) rows.push(week);") < fc.index("rows.push(swellCard({")
+        assert "lead: WIDE() ? week : \"\"," in fc
+        assert "`<div class=\"main-col\">${lead}${swell}" in SOURCE
+
+    def test_the_carousel_picks_where_it_settles_and_never_under_a_finger(self):
+        settle = self.fn("weekSettle")
+        assert "if (WEEK_TOUCH) return;" in settle
+        assert 'if (near.classList.contains("on")) return;' in settle
+        assert "choose(" in settle
+        assert "scroll-snap-type:x mandatory" in SOURCE and "scroll-snap-stop:always" in SOURCE
+        # A tap off the outline slides there first, and gently unless the
+        # reader asks for no motion.
+        assert 'behavior: still ? "auto" : "smooth"' in SOURCE
+        card = self.fn("weekCard")
+        assert 'const carousel = LAYOUT === "phone";' in card
+
+    def test_the_footer_keeps_a_phones_width_wider(self):
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert ':root[data-layout="tablet"] .links,:root[data-layout="stack"] .links{max-width:560px}' in css

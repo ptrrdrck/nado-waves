@@ -711,6 +711,14 @@ The survey is bare earth. The trees along the ridge, the lighthouse and the buil
 
 On the Forecast tab, the arrows step through the hours three at a time, and tapping the hour beside them opens the full list. It opens on the first hour not yet passed, never one that has.
 
+### [time-week] The week strip
+
+Above the Swell card on the Forecast tab, the **Week** card gives every day the run covers a cell for each break: the range of its breaking heights over that day's daylight hours, sunrise to sunset at the center break. The range is floored and ceiled to whole feet, at least a foot apart, as the [Briefing's](#briefing) headline range is. Days already gone are grey, and a break with no daylight figure that day shows a dash.
+
+The outlined day is the one the cards below are showing. Picking a day shows the biggest daylight hour at whichever break is biggest that day; tapping a cell shows the biggest daylight hour at that cell's break. Either is an hour the picker above offers, so the arrows carry on from it, and the strip follows the picker the other way.
+
+On a phone the days slide sideways under a fixed outline and settle one at a time. Whichever day settles in the outline is picked; tapping a day beside it slides it in first. Wider than a phone, every day sits in a row and the outline moves.
+
 ### [time-past] Past hours: what the page showed then
 
 The Forecast tab reaches 48 hours back. For each hour that has gone by, the forecast figure is what this page showed for that hour: the newest run that had been published before it, which is not always the run on screen now. A past hour is drawn as it was published, with the drawing and the calculation, from that build's own record. When an older build kept only the headline, the card says “The calculation for this hour was not kept” rather than borrowing another build's detail.

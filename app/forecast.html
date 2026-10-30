@@ -1026,6 +1026,53 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 :root[data-layout="console"] .wrap > *,:root[data-layout="console"] .conditions > *{grid-column:1;margin-bottom:14px}
 :root[data-layout="console"] .wrap > .links{margin-bottom:0}
 :root[data-layout="console"] .main-col{grid-column:2;grid-row:1/-1;margin-bottom:0}
+/* The foot of the page at a phone's width on a wide screen (owner's call,
+   2026-10-30): spread across the whole page its four controls drifted
+   apart. The console's sits in the rail, already that narrow. */
+:root[data-layout="tablet"] .links,:root[data-layout="stack"] .links{max-width:560px}
+
+/* THE WEEK STRIP (owner's request, 2026-10-30, version C of the mock), on
+   the Forecast tab only: a cell a day and a break, the range of breaking
+   heights over the day's daylight steps, floored and ceiled to whole feet
+   as the Briefing's headline is; one outline round the picked day's three.
+   On a phone the days are a carousel that snaps a day at a time under a
+   fixed outline, and the day that settles there is picked; wider, every
+   day sits in a row and the outline moves. */
+:root{--wk-col:88px;--wk-date:22px;--wk-cell:42px;--wk-gap:4px}
+.cond.week{gap:6px}
+.week-strip{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px}
+.week-names,.week-day{display:grid;grid-template-rows:var(--wk-date) repeat(3,var(--wk-cell));row-gap:var(--wk-gap)}
+.week-names{align-items:center;font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;color:var(--soft)}
+.week-date,.week-cell{font:inherit;margin:0;border:0;cursor:pointer;color:var(--ink);
+  -webkit-tap-highlight-color:transparent}
+.week-date{background:none;padding:0;font-size:12.5px;font-weight:600;color:var(--soft);white-space:nowrap}
+.week-day.on .week-date{color:var(--ink)}
+.week-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:7px;
+  background:var(--paper);padding:2px 4px;font-size:14.5px;font-weight:600;line-height:1.15;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.week-cell .unit{display:block;font-size:11.5px}
+.week-cell.none{color:var(--faint);font-weight:400;cursor:default}
+.week-day.past .week-cell,.week-day.past .week-cell .unit,.week-day.past .week-date{color:var(--faint)}
+.week-date:focus-visible,.week-cell:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* The carousel: the outline stays put and the days slide under it. */
+.week-view{position:relative;min-width:0}
+.week-days{position:relative;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+  overscroll-behavior-x:contain;scrollbar-width:none}
+.week-days::-webkit-scrollbar{display:none}
+.week-days > .week-day{flex:0 0 var(--wk-col);padding:0 3px;scroll-snap-align:center;scroll-snap-stop:always;
+  transform-origin:center 60%}
+.week-days > .week-pad{flex:0 0 calc(50% - var(--wk-col) / 2)}
+.week-frame{position:absolute;left:calc(50% - var(--wk-col) / 2);width:var(--wk-col);pointer-events:none;
+  top:calc(var(--wk-date) + var(--wk-gap) - 3px);height:calc(3 * var(--wk-cell) + 2 * var(--wk-gap) + 6px);
+  border:1.5px solid var(--ink);border-radius:9px}
+/* Every day in a row, the outline round the picked one. */
+.week-strip.row .week-days{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);column-gap:6px;
+  overflow:visible;scroll-snap-type:none}
+.week-strip.row .week-day{position:relative}
+.week-strip.row .week-day.on::after{content:"";position:absolute;pointer-events:none;left:-3px;right:-3px;
+  top:calc(var(--wk-date) + var(--wk-gap) - 3px);bottom:-3px;border:1.5px solid var(--ink);border-radius:9px}
+:root[data-layout="tablet"] .conditions > .week{grid-column:1/-1}
 </style>
 
 <div class="wrap">
@@ -6727,10 +6774,11 @@ function cardChart(id) {
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
-                    due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = ""}) {
+                    due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = "",
+                    lead = ""}) {
   if (WIDE()) {
     return swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
-                      origin, buoyRose, buoyAged});
+                      origin, buoyRose, buoyAged, lead});
   }
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
@@ -6778,7 +6826,7 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
 // reading. Origin is one block for the beach (`beachOrigin`), each arrival
 // once with the breaks it reaches.
 function swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
-                    origin, buoyRose, buoyAged}) {
+                    origin, buoyRose, buoyAged, lead = ""}) {
   const breaks = ORDER.map((id) => (cards || []).find((c) => c.id === id)).filter(Boolean);
   const cols = breaks.map((c) => `<div class="pane" data-break-col="${c.id}">
       <span class="col-lbl">${SHORT[c.id] || c.name}</span>${breakPanel(c)}</div>`).join("");
@@ -6814,7 +6862,7 @@ function swellWide({label, buoy, station, stationName, others, cards, source, du
       </div>
     </div>
   </div>`;
-  return `<div class="main-col">${swell}${buoys}${charts}</div>`;
+  return `<div class="main-col">${lead}${swell}${buoys}${charts}</div>`;
 }
 
 // Origin for the beach on a wide screen: every break's entries as each
@@ -6847,6 +6895,172 @@ function beachOrigin(breaks) {
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
     <div class="fold-body" id="origin-fold-beach"${ORIGIN_OPEN ? "" : " hidden"}>${body}</div>
   </div>`;
+}
+
+// THE WEEK STRIP (owner's request, 2026-10-30): the Forecast tab's days, a
+// cell a break, each the range of breaking heights over the day's daylight
+// steps -- sunrise to sunset at the center break, the Sun card's own times
+// (6 AM to 6 PM on a day without them) -- floored and ceiled to whole feet,
+// at least a foot apart, as the Briefing's headline range is, its metric
+// that range's bracket. The heights are the cards' own (`cardsForForecast`),
+// past hours as the page showed them. A day is picked by its biggest break's
+// biggest daylight hour; a cell picks its own break's. Each a step the hour
+// picker offers, so picking one is the picker's `choose`.
+let WEEK_MEMO = null;
+const coastHour = (ms) => Number(new Intl.DateTimeFormat("en-US",
+  {timeZone: COAST_TZ, hour: "numeric", hourCycle: "h23"}).format(new Date(ms)));
+const weekLabel = (ms) => ["weekday", "day"].map((k) => new Date(ms).toLocaleDateString("en-US",
+  {timeZone: COAST_TZ, [k]: k === "day" ? "numeric" : "short"})).join(" ");
+function weekDays() {
+  if (!DATA || !STEPS.length) return [];
+  if (WEEK_MEMO && WEEK_MEMO.data === DATA && WEEK_MEMO.steps === STEPS) return WEEK_MEMO.days;
+  const days = [];
+  STEPS.forEach((step, i) => {
+    const ms = Date.parse(step.valid_utc), key = coastDay(ms);
+    let day = days[days.length - 1];
+    if (!day || day.key !== key) days.push(day = {key, ms, hours: []});
+    const sun = DATA.sun && DATA.sun.days && DATA.sun.days[key];
+    const lit = sun ? ms >= Date.parse(sun.sunrise_utc) && ms <= Date.parse(sun.sunset_utc)
+      : coastHour(ms) >= 6 && coastHour(ms) <= 18;
+    if (!lit) return;
+    const hs = {};
+    for (const c of cardsForForecast(step)) if (c.hsWindow != null) hs[c.id] = c.hsWindow;
+    if (Object.keys(hs).length) day.hours.push({i, ms, hs});
+  });
+  const shown = days.filter((d) => d.hours.length);
+  WEEK_MEMO = {data: DATA, steps: STEPS, days: shown};
+  return shown;
+}
+// The step to show for a day: its biggest daylight hour at one break, or at
+// whichever break is biggest; the earlier hour on a tie.
+function weekBest(day, id = null) {
+  let best = null, top = -Infinity;
+  for (const h of day.hours) {
+    for (const [b, m] of Object.entries(h.hs)) {
+      if ((id == null || b === id) && m > top) { top = m; best = h.i; }
+    }
+  }
+  return best;
+}
+function weekCard(step) {
+  const days = weekDays();
+  if (!days.length) return "";
+  const on = coastDay(Date.parse(step.valid_utc));
+  const carousel = LAYOUT === "phone";
+  const now = Date.now();
+  const cols = days.map((d) => {
+    const name = new Date(d.ms).toLocaleDateString("en-US", {timeZone: COAST_TZ, weekday: "long", month: "short", day: "numeric"});
+    const cells = ORDER.map((id) => {
+      const ft = d.hours.map((h) => h.hs[id]).filter((m) => m != null).map((m) => m * FT_PER_M);
+      if (!ft.length) return `<span class="week-cell none">&mdash;</span>`;
+      const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
+      const range = [`${lo}–${hi} ft`, `${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)} m`];
+      return `<button type="button" class="week-cell" data-week-pick="${d.key}" data-week-break="${id}"`
+        + ` aria-label="${name}, ${SHORT[id]}: ${dualText(...range)} in daylight. Shows its biggest hour.">`
+        + `${dual(...range)}</button>`;
+    }).join("");
+    const past = d.hours.every((h) => h.ms < now);
+    return `<div class="week-day${d.key === on ? " on" : ""}${past ? " past" : ""}" data-week-day="${d.key}"`
+      + ` role="group" aria-label="${name}"><button type="button" class="week-date" data-week-pick="${d.key}"`
+      + ` aria-label="${name}: its biggest hour">${weekLabel(d.ms)}</button>${cells}</div>`;
+  }).join("");
+  const names = `<div class="week-names" aria-hidden="true"><span></span>`
+    + ORDER.map((id) => `<span>${SHORT[id]}</span>`).join("") + `</div>`;
+  const body = carousel
+    ? `<div class="week-view"><div class="week-days" data-week-scroll><span class="week-pad"></span>${cols}`
+      + `<span class="week-pad"></span></div><div class="week-frame" aria-hidden="true"></div></div>`
+    : `<div class="week-days">${cols}</div>`;
+  return `<div class="cond week" data-card="week">
+    <span class="lbl">Week</span>
+    <div class="week-strip${carousel ? "" : " row"}">${names}${body}</div>
+  </div>`;
+}
+// The carousel: the day under the outline, how far each day sits from it,
+// and the day there when the scroll settles. A tap on a day off the outline
+// slides it there first and picks when it lands.
+let WEEK_PENDING = null, WEEK_SETTLE = null, WEEK_TOUCH = false;
+const weekMid = (sc) => sc.scrollLeft + sc.clientWidth / 2;
+const weekCenterOf = (el) => el.offsetLeft + el.offsetWidth / 2;
+function weekUnder(sc) {
+  let near = null, gap = Infinity;
+  sc.querySelectorAll(".week-day").forEach((d) => {
+    const g = Math.abs(weekCenterOf(d) - weekMid(sc));
+    if (g < gap) { gap = g; near = d; }
+  });
+  return near;
+}
+// The days off the outline sit behind it: smaller and fainter the further.
+function weekFade(sc) {
+  sc.querySelectorAll(".week-day").forEach((d) => {
+    const k = Math.min(1, Math.abs(weekCenterOf(d) - weekMid(sc)) / d.offsetWidth);
+    d.style.opacity = String(1 - 0.5 * k);
+    d.style.transform = `scale(${(1 - 0.1 * k).toFixed(3)})`;
+  });
+}
+// After a render: the picked day under the outline, at once.
+function weekPlace() {
+  const sc = document.querySelector("#conditions [data-week-scroll]");
+  if (!sc) return;
+  const on = sc.querySelector(".week-day.on");
+  if (on) sc.scrollLeft = weekCenterOf(on) - sc.clientWidth / 2;
+  weekFade(sc);
+}
+function weekSettle(sc) {
+  clearTimeout(WEEK_SETTLE);
+  if (WEEK_TOUCH) return;
+  const near = weekUnder(sc);
+  if (!near) return;
+  const key = near.getAttribute("data-week-day");
+  // A tapped day is picked when it reaches the outline, as the tap asked.
+  if (WEEK_PENDING) {
+    if (WEEK_PENDING.key === key) { const i = WEEK_PENDING.i; WEEK_PENDING = null; choose(i); }
+    return;
+  }
+  if (near.classList.contains("on")) return;
+  const day = weekDays().find((d) => d.key === key);
+  const i = day && weekBest(day);
+  if (i != null) choose(i);
+}
+function wireWeek() {
+  const strip = $("conditions");
+  strip.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-week-pick]");
+    if (!btn) return;
+    const day = weekDays().find((d) => d.key === btn.getAttribute("data-week-pick"));
+    const i = day && weekBest(day, btn.getAttribute("data-week-break"));
+    if (i == null) return;
+    const sc = btn.closest("[data-week-scroll]");
+    const col = btn.closest(".week-day");
+    if (!sc || Math.abs(weekCenterOf(col) - weekMid(sc)) < 2) { choose(i); return; }
+    WEEK_PENDING = {key: day.key, i};
+    const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    sc.scrollTo({left: weekCenterOf(col) - sc.clientWidth / 2, behavior: still ? "auto" : "smooth"});
+  });
+  // Scroll does not bubble, so these capture.
+  strip.addEventListener("scroll", (e) => {
+    const sc = e.target;
+    if (!sc.matches || !sc.matches("[data-week-scroll]")) return;
+    weekFade(sc);
+    clearTimeout(WEEK_SETTLE);
+    WEEK_SETTLE = setTimeout(() => weekSettle(sc), 160);
+  }, {capture: true, passive: true});
+  strip.addEventListener("scrollend", (e) => {
+    if (e.target.matches && e.target.matches("[data-week-scroll]")) weekSettle(e.target);
+  }, {capture: true, passive: true});
+  // Never pick under a finger still on the strip.
+  const hold = (down) => (e) => {
+    if (!e.target.closest || !e.target.closest("[data-week-scroll]")) return;
+    WEEK_TOUCH = down;
+    if (down) WEEK_PENDING = null;
+    if (!down) {
+      const sc = e.target.closest("[data-week-scroll]");
+      clearTimeout(WEEK_SETTLE);
+      WEEK_SETTLE = setTimeout(() => weekSettle(sc), 160);
+    }
+  };
+  strip.addEventListener("touchstart", hold(true), {capture: true, passive: true});
+  strip.addEventListener("touchend", hold(false), {capture: true, passive: true});
+  strip.addEventListener("touchcancel", hold(false), {capture: true, passive: true});
 }
 
 // What the measured wind means at each break, on the Wind card, one line per
@@ -7116,7 +7330,12 @@ function renderConditions(step, cards) {
     // comparing like with like rather than two different presentations.
     const buoy = past ? ((detail && detail.buoy) || step.entry.buoy)
       : (DATA.buoy || []).find((b) => b.valid_utc === step.valid_utc);
+    // The week strip above the Swell card (owner's request, 2026-10-30):
+    // its own card on a phone or a tablet, the main column's first wider.
+    const week = weekCard(step);
+    if (!WIDE()) rows.push(week);
     rows.push(swellCard({
+      lead: WIDE() ? week : "",
       label: "Swell",
       buoy,
       station: DATA.station,
@@ -7152,6 +7371,7 @@ function renderConditions(step, cards) {
       $("conditions").innerHTML = rows.join("");
       restorePicks();
       tickDue();
+      weekPlace();
       laidOut();
       return;
     }
@@ -7195,6 +7415,7 @@ function renderConditions(step, cards) {
   // Fill the countdowns now rather than leaving them blank until the first
   // second's tick lands.
   tickDue();
+  weekPlace();
   laidOut();
 }
 
@@ -7711,6 +7932,7 @@ function boot(data, observed, measured, series, windtide) {
   $("tab-now").onclick = () => setMode("now");
   $("tab-forecast").onclick = () => setMode("forecast");
   wireSwellTabs();
+  wireWeek();
   wireRoses();
   wireDrawings();
   wireCharts();
