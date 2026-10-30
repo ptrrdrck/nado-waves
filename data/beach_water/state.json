@@ -1,0 +1,25 @@
+{
+  "current": {
+    "EH-050": {
+      "priority": "",
+      "status": "Open"
+    },
+    "EH-060": {
+      "priority": "",
+      "status": "Open"
+    },
+    "IB-079": {
+      "priority": "",
+      "status": "Open"
+    }
+  },
+  "last_fetch_utc": "2026-10-30T05:35:24Z",
+  "last_ok_utc": "2026-10-30T05:35:24Z",
+  "legend": {
+    "1": "Warning",
+    "2": "Open",
+    "3": "Advisory",
+    "4": "Closed"
+  },
+  "module_version": "10rl5hZKz_toNul98uklHQ"
+}
