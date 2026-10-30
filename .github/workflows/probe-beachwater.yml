@@ -71,3 +71,18 @@ jobs:
             args+=(--no-crawl)
           fi
           python -m collector.probe_beachwater "${args[@]}"
+
+      - name: Run the collector into a scratch directory
+        # collector.beachwater against the real site, writing nothing back:
+        # its archive files are printed, not committed.
+        if: ${{ !inputs.discover }}
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/data"
+          python -m collector.beachwater --data-dir "${out}"
+          for f in $(find "${out}/beach_water" -type f | sort); do
+            echo "=== ${f#${out}/} ($(wc -l < "${f}") lines)"
+            head -3 "${f}"
+            echo "..."
+            tail -4 "${f}"
+          done
