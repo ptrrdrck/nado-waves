@@ -22,6 +22,9 @@ It answers what the pages are made of and builds nothing on them:
   what a collector should read, rather than scraping HTML);
 - JSON responses, printed.
 
+Run 1 found an OutSystems Reactive app, whose HTML is an empty shell; its
+data is read from the screen services its own scripts name (`outsystems`).
+
 Every response is read in full, its byte count reported, and the head of its
 markup printed verbatim beside the parse. Exits 2 on a denial, 1 when the
 samples page did not parse to a table, 0 when it did.
@@ -219,13 +222,19 @@ class Fetched:
     error: str = ""
 
 
-def fetch(url: str, *, timeout: float = 60.0) -> Fetched:
-    """One response, read in full. Never retried (BRIEFING section 8)."""
+def fetch(url: str, *, timeout: float = 60.0, body: dict | None = None,
+          headers: dict | None = None) -> Fetched:
+    """One response, read in full; a POST of `body` as JSON when given.
+    Never retried (BRIEFING section 8)."""
 
     result = Fetched(url=url)
-    request = urllib.request.Request(
-        url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/json,*/*"}
-    )
+    head = {"User-Agent": USER_AGENT, "Accept": "text/html,application/json,*/*"}
+    data = None
+    if body is not None:
+        data = json.dumps(body).encode()
+        head["Content-Type"] = "application/json; charset=UTF-8"
+    head.update(headers or {})
+    request = urllib.request.Request(url, data=data, headers=head)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             result.status = response.status
@@ -234,7 +243,7 @@ def fetch(url: str, *, timeout: float = 60.0) -> Fetched:
             payload = response.read()
     except urllib.error.HTTPError as exc:
         result.status = exc.code
-        result.error = f"HTTP {exc.code} {exc.reason}: {exc.read()[:300]!r}"
+        result.error = f"HTTP {exc.code} {exc.reason}: {exc.read()[:1500]!r}"
         result.denied = exc.code == 403
         return result
     except (urllib.error.URLError, TimeoutError) as exc:
@@ -313,10 +322,146 @@ def report_page(f: Fetched, *, full: bool, out: list[str]) -> Page | None:
     return page
 
 
+# ------------------------------------------------------------- OutSystems
+#
+# Run 1 (2026-10-30): every page is the same 2 KB shell -- an OutSystems
+# Reactive app, "JavaScript is required" -- so the data is not in any HTML.
+# Such an app fetches it as JSON from "screen services": each screen's
+# `<module>.<Flow>.<Screen>.mvc.js` names its data actions,
+# `callDataAction("Name", "screenservices/...", "<apiVersion>", ...)`, and a
+# POST to that path with the module's version and the screen's variables
+# returns the screen's data. The module's scripts are listed in
+# `moduleservices/moduleinfo`.
+
+#: A data or server action call in a screen's script.
+OS_CALL = re.compile(
+    r"""call(Data|Server)Action\(\s*["']([^"']+)["']\s*,\s*["'](screenservices/[^"']+)["']\s*,\s*["']([^"']+)["']"""
+)
+
+#: A screen variable's declaration: AttributeInfo("Name", "nameVar", "Name", ...
+#: and the data type after it.
+OS_ATTR = re.compile(
+    r"""AttributeInfo\(\s*"(\w+)"\s*,\s*"(\w+)"\s*,\s*"(\w+)"\s*,\s*(true|false)\s*,\s*(true|false)\s*,\s*OS\.DataTypes\.DataTypes\.(\w+)"""
+)
+
+#: The anonymous CSRF token OutSystems Reactive apps fall back to; the
+#: runtime's own copy is searched for too, and each is tried.
+OS_CSRF_DEFAULT = "T6C+9iB49TLra4jEsMeSckDMNhQ="
+
+#: Never called: anything that could write (the site takes alert sign-ups).
+OS_WRITES = re.compile(r"subscri|save|create|update|delete|send|register|insert|remove|set|login|logout|feedback",
+                       re.IGNORECASE)
+
+#: Module scripts read, at most.
+OS_MAX_SCRIPTS = 160
+
+#: Characters of each JSON response printed.
+OS_SHOWN = 12000
+
+
+def module_url(key: str, version: str) -> str:
+    """A manifest key ("/sdbeachinfo/scripts/x.js") and its version as a URL."""
+
+    return urllib.parse.urljoin(f"https://{urllib.parse.urlsplit(BASE).netloc}", key) + version
+
+
+def outsystems(out: list[str], index_token: str, site_id: int) -> int:
+    """The module's scripts, their screen services, and each read-only data
+    action called. Returns how many answered with data."""
+
+    base = BASE.rstrip("/")
+    info = fetch(f"{base}/moduleservices/moduleinfo?{index_token}")
+    out.append(f"\n# OutSystems moduleinfo: {info.status} {info.error or ''}")
+    manifest = {}
+    if info.ok:
+        try:
+            manifest = json.loads(info.body).get("manifest", {})
+        except ValueError:
+            out.append(info.body[:2000])
+    urls = manifest.get("urlVersions", {}) or {}
+    out.append(f"  versionToken {manifest.get('versionToken')!r}, {len(urls)} urlVersions")
+    for key in sorted(urls):
+        out.append(f"    {key}{urls[key]}")
+    version = fetch(f"{base}/moduleservices/moduleversioninfo?{index_token}")
+    module_version = ""
+    if version.ok:
+        try:
+            module_version = json.loads(version.body).get("versionToken", "")
+        except ValueError:
+            pass
+    out.append(f"  moduleversioninfo: {version.status} {module_version!r} {version.error}")
+
+    # The runtime's own CSRF token, if it carries one.
+    tokens = [OS_CSRF_DEFAULT]
+    runtime = next((k for k in urls if k.endswith("/OutSystems.js")), None)
+    rt = fetch(module_url(runtime, urls[runtime])) if runtime else None
+    if rt and rt.ok:
+        for m in re.finditer(r"CSRF[^;]{0,200}", rt.body):
+            out.append(f"  runtime CSRF context: {m.group(0)[:200]!r}")
+        for tok in re.findall(r'"([A-Za-z0-9+/]{27}=)"', rt.body):
+            if tok not in tokens:
+                tokens.append(tok)
+    out.append(f"  CSRF tokens to try: {tokens}")
+
+    own = [k for k in sorted(urls) if re.search(r"/scripts/sdbeachinfo\.", k)]
+    out.append(f"\n# Module scripts: {len(own)} (reading {min(len(own), OS_MAX_SCRIPTS)})")
+    calls: list[tuple[str, str, str, str, str]] = []  # (script, kind, name, path, apiVersion)
+    for key in own[:OS_MAX_SCRIPTS]:
+        f = fetch(module_url(key, urls[key]))
+        if not f.ok:
+            out.append(f"  {key}: {f.error}")
+            continue
+        found = OS_CALL.findall(f.body)
+        attrs = OS_ATTR.findall(f.body)
+        if not found and not attrs:
+            continue
+        out.append(f"\n  {key}: {len(f.body)} chars, {len(found)} action calls, {len(attrs)} attributes")
+        for name, var, ext, mandatory, is_input, dtype in attrs[:120]:
+            out.append(f"    attr {name} ({var}, {dtype}{', mandatory' if mandatory == 'true' else ''})")
+        for kind, name, path, api in found:
+            out.append(f"    {kind}Action {name}: {path} api {api}")
+            calls.append((key, kind, name, path, api))
+            i = f.body.find(path)
+            out.append(f"      context: {f.body[max(0, i - 600):i + 900]!r}")
+        words = sorted(set(re.findall(r'"([^"]*(?:Advisory|Closure|Closed|Rain|Expire|Status)[^"]*)"', f.body)))
+        if words:
+            out.append(f"    strings: {words[:60]}")
+
+    answered = 0
+    out.append(f"\n# Calling read-only actions ({len(calls)} found)")
+    for key, kind, name, path, api in calls:
+        if OS_WRITES.search(name) and not name.startswith(("DataAction", "Get")):
+            out.append(f"  SKIP {kind}Action {name} (could write)")
+            continue
+        screen = re.sub(r"^.*/scripts/sdbeachinfo\.|\.mvc\.js$|\.controller\.js$", "", key)
+        variables = {"SiteId": site_id, "siteId": site_id, "_siteIdInDataFetchStatus": 1}
+        body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api},
+                "viewName": screen,
+                "screenData": {"variables": variables}}
+        if kind == "Server":
+            body = {"versionInfo": body["versionInfo"], "viewName": screen,
+                    "inputParameters": {"SiteId": site_id}}
+        for tok in tokens:
+            f = fetch(f"{base}/{path}", body=body, headers={"X-CSRFToken": tok})
+            out.append(f"  {kind}Action {name} ({screen}) token {tok[:6]}..: HTTP {f.status} {f.error[:600]}")
+            if f.ok:
+                answered += 1
+                try:
+                    text = json.dumps(json.loads(f.body), indent=1)
+                except ValueError:
+                    text = f.body
+                out.append(text[:OS_SHOWN])
+                break
+            if f.status not in (403,):
+                break
+    return answered
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--path", action="append", default=[],
                         help="extra path under the site, printed in full (repeatable)")
+    parser.add_argument("--site", type=int, default=7, help="SiteId passed to the screen services")
     parser.add_argument("--no-crawl", action="store_true",
                         help="only the root, the samples page and --path pages")
     args = parser.parse_args(argv)
@@ -384,11 +529,19 @@ def main(argv: list[str] | None = None) -> int:
             seen.add(url)
             report_page(fetch(url), full=False, out=out)
 
-    out.append(f"\nSamples page tables with rows: {samples_tables}")
+    token = ""
+    for page in pages.values():
+        for body in page.inline_scripts:
+            m = re.search(r'indexVersionToken\s*=\s*"([^"]+)"', body)
+            if m:
+                token = m.group(1)
+    answered = outsystems(out, token, args.site)
+
+    out.append(f"\nSamples page tables with rows: {samples_tables}; screen services answered: {answered}")
     text = "\n".join(out)
     print(text)
     write_step_summary("```\n" + text[:900_000] + "\n```")
-    return 0 if samples_tables else 1
+    return 0 if samples_tables or answered else 1
 
 
 if __name__ == "__main__":
