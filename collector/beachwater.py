@@ -115,7 +115,7 @@ class Client:
                 self.services[f"{m.group(1)}.{name.removeprefix('ScreenDataSet')}"] = (path, api)
         return self
 
-    def aggregate(self, service: str, variables: dict, max_records: int = 1000) -> dict:
+    def aggregate(self, service: str, variables: dict, max_records: int = 1000, start: int = 0) -> dict:
         """One aggregate's `data`, as the block's screen asks for it."""
 
         if service not in self.services:
@@ -124,7 +124,7 @@ class Client:
         body = {"versionInfo": {"moduleVersion": self.module_version, "apiVersion": api},
                 "viewName": BLOCKS[service.split(".")[0]],
                 "screenData": {"variables": variables},
-                "inputParameters": {"StartIndex": 0, "MaxRecords": max_records}}
+                "inputParameters": {"StartIndex": start, "MaxRecords": max_records}}
         req = urllib.request.Request(
             f"{self.base}/{path}", data=json.dumps(body).encode(),
             headers={"User-Agent": USER_AGENT, "Content-Type": "application/json; charset=UTF-8",

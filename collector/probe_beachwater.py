@@ -591,78 +591,80 @@ def _short(r: dict) -> str:
 
 
 def coronado(out: list[str]) -> int:
+    """Run 7: what run 6 left open. An ACTIVE event's shape (none at
+    Coronado on 30 Oct; Silver Strand's IB-068 and IB-070 were closed), the
+    advisory categories by id, the posting report paged past its 1000-row
+    cap, and North's and Center's samples (run 6's log lost its head)."""
+
     from . import beachwater as bw
 
     reg = bw.registry()
     client = bw.Client(reg["base"]).start()
     out.append(f"\n# Coronado through collector.beachwater: module {client.module_version}")
-    out.append(f"  services: {sorted(client.services)}")
-    ours = {v["station"]: (brk, v) for brk, v in reg["breaks"].items()}
+    ours = {v["station"] for v in reg["breaks"].values()}
     found = 0
 
     for brk, v in reg["breaks"].items():
-        for var in ("StationIdFilter", "SiteId"):
-            try:
-                got = bw.samples(client, v["site"], filter_var=var)
-            except bw.Refused as exc:
-                out.append(f"\n## {brk} {v['station']} samples by {var}: REFUSED {exc}")
-                continue
-            stations = sorted({(r.get("Site") or {}).get("StationID") for r in got})
-            dates = sorted((r.get("Sample") or {}).get("SampleDate", "") for r in got)
-            out.append(f"\n## {brk} {v['station']} (site {v['site']}) samples by {var}: {len(got)} rows, "
-                       f"stations {stations}, dates {dates[:1]}..{dates[-1:]}")
-            if stations == [v["station"]]:
-                found += 1
-                if got:
-                    out.append(f"  first row in full: {json.dumps(got[0], ensure_ascii=False)}")
-                for r in sorted(got, key=lambda r: ((r.get("Sample") or {}).get("SampleDate", ""),
-                                                    (r.get("Sample") or {}).get("SampleTime", ""))):
-                    sm = r.get("Sample") or {}
-                    out.append("  {id} {d} {t} {p} [{m}] {q}{res} {u} type={ty!r} cat={c} comments={co!r} "
-                               "other={o!r}".format(
-                                   id=sm.get("Id"), d=sm.get("SampleDate"), t=sm.get("SampleTime"),
-                                   p=(r.get("Parameter") or {}).get("Label"),
-                                   m=(r.get("AnalysisMethod") or {}).get("Label"), q=sm.get("Qualifier"),
-                                   res=sm.get("Result"), u=(r.get("Units") or {}).get("Label"),
-                                   ty=sm.get("SampleType"), c=sm.get("SampleCategory"), co=sm.get("Comments"),
-                                   o={k: x for k, x in sm.items() if k.endswith("Other") and x}))
-                break
+        got = bw.samples(client, v["site"])
+        stations = sorted({(r.get("Site") or {}).get("StationID") for r in got})
+        params = sorted({((r.get("Parameter") or {}).get("Label"), (r.get("AnalysisMethod") or {}).get("Label"),
+                          (r.get("Units") or {}).get("Label")) for r in got})
+        dates = sorted((r.get("Sample") or {}).get("SampleDate", "") for r in got)
+        found += stations == [v["station"]]
+        out.append(f"\n## {brk} {v['station']} samples: {len(got)}, stations {stations}, {params}, "
+                   f"{dates[:1]}..{dates[-1:]}, distinct dates {len(set(dates))}")
+        quals = sorted({(r.get("Sample") or {}).get("Qualifier") for r in got})
+        types = sorted({(r.get("Sample") or {}).get("SampleType") for r in got})
+        out.append(f"  qualifiers {quals}, sample types {types}")
+        for r in sorted(got, key=lambda r: ((r.get("Sample") or {}).get("SampleDate", ""),
+                                            (r.get("Sample") or {}).get("SampleTime", "")))[-8:]:
+            sm = r.get("Sample") or {}
+            out.append(f"  {sm.get('Id')} {sm.get('SampleDate')} {sm.get('SampleTime')} "
+                       f"{sm.get('Qualifier')}{sm.get('Result')} comments={sm.get('Comments')!r}")
 
-    for year in (0,):
-        try:
-            ev = bw.events(client, year)
-        except bw.Refused as exc:
-            out.append(f"\n## events: REFUSED {exc}")
+    total, page = 0, 0
+    keyed = set()
+    while page < 30:
+        got = bw.rows(client.aggregate("SamplePostingReportBlock.GetSites", bw.POSTING_VARS,
+                                       max_records=1000, start=page * 1000))
+        total += len(got)
+        for r in got:
+            keyed.add((r.get("StationID"), r.get("EventType"), r.get("IssueDateTime"), r.get("LiftedDateTime")))
+        out.append(f"\n## posting report page {page}: {len(got)} rows, first issued "
+                   f"{got[0].get('IssueDateTime') if got else None}, last {got[-1].get('IssueDateTime') if got else None}")
+        if len(got) < 1000:
+            break
+        page += 1
+    mine = sorted(k for k in keyed if k[0] in ours)
+    out.append(f"  {total} rows in all, {len(keyed)} distinct events, {len(mine)} at Coronado's three")
+    for year in (2026, 2025):
+        got = bw.rows(client.aggregate("SamplePostingReportBlock.GetSites", {**bw.POSTING_VARS, "YearFilter": year}))
+        out.append(f"  YearFilter {year}: {len(got)} rows")
+
+    for site, name in (("118", "Silver Strand - Guard Shack (IB-068)"), ("120", "Silver Strand N End (IB-070)"),
+                       ("7", "Center")):
+        for svc in ("BlockMarkup.GetEventsIsActive", "BlockMarkup.GetEvents"):
+            got = client.aggregate(svc, {"SiteId": site}, max_records=50)
+            out.append(f"\n## {svc} site {site} {name}: {len(bw.rows(got))} rows")
+            for r in bw.rows(got):
+                if "Site" in r:
+                    r = {**r, "Site": {k: r["Site"].get(k) for k in ("StationID", "LocationName")}}
+                out.append("  " + json.dumps(r, ensure_ascii=False)[:3000])
+
+    # The advisory categories: named in the module's model as static records.
+    base = reg["base"]
+    page_html = client._get(f"{base}/")
+    token = (re.search(r'indexVersionToken\s*=\s*"([^"]+)"', page_html) or [None, ""])[1]
+    manifest = json.loads(client._get(f"{base}/moduleservices/moduleinfo?{token}"))["manifest"]
+    root = "/".join(base.split("/", 3)[:3])
+    for key, ver in manifest["urlVersions"].items():
+        if not re.search(r"/scripts/(sdbeachinfo|CoSD_Beach_Water_C[SW])\.model\.js$", key):
             continue
-        out.append(f"\n## events (posting report, year {year}): {len(ev)} rows")
-        for key in ("EventType", "GroupName", "Reason", "IndicatorDetails", "PublicNotification", "District",
-                    "CompletedWithin3Hours"):
-            out.append(f"  distinct {key}: {sorted({str(r.get(key)) for r in ev})[:40]}")
-        issued = sorted(r.get("IssueDateTime", "") for r in ev)
-        out.append(f"  issued {issued[:1]}..{issued[-1:]}")
-        seen = set()
-        for r in sorted(ev, key=lambda r: (r.get("StationID", ""), r.get("IssueDateTime", ""))):
-            if r.get("StationID") not in ours:
-                continue
-            k = (r.get("StationID"), r.get("EventType"), r.get("IssueDateTime"), r.get("LiftedDateTime"))
-            out.append(("  " if k not in seen else "  (dup) ") + _short(r))
-            seen.add(k)
-
-    for name in ("BlockMarkup.GetEventsData", "BlockMarkup.GetEventsIsActive", "BlockMarkup.GetEvents",
-                 "BlockMarkup.GetEventsList"):
-        for brk, v in reg["breaks"].items():
-            try:
-                got = client.aggregate(name, {"SiteId": v["site"]}, max_records=50)
-            except bw.Refused as exc:
-                out.append(f"\n## {name} {brk}: REFUSED {exc}")
-                continue
-            out.append(f"\n## {name} {brk} (site {v['site']}): {len(bw.rows(got))} rows")
-            out.append("  " + json.dumps(got, ensure_ascii=False)[:2500])
-    try:
-        out.append("\n## BlockLegend.GetLegends: " + json.dumps(client.aggregate("BlockLegend.GetLegends", {}),
-                                                              ensure_ascii=False)[:3000])
-    except bw.Refused as exc:
-        out.append(f"\n## legends: REFUSED {exc}")
+        js = client._get(root + key + ver)
+        for word in ("generalRainAdvisory", "bacterialExceedanceAdvisory", "precautionaryAdvisory", "Closure",
+                     "CategoryId"):
+            for m in list(re.finditer(word, js))[:3]:
+                out.append(f"  {key} [{word}]: {js[max(0, m.start() - 400):m.start() + 400]!r}")
     return found
 
 
