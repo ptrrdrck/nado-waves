@@ -333,30 +333,44 @@ def report_page(f: Fetched, *, full: bool, out: list[str]) -> Page | None:
 # returns the screen's data. The module's scripts are listed in
 # `moduleservices/moduleinfo`.
 
-#: A data or server action call in a screen's script.
+#: A screen service call in a script: a data action, a server action, or an
+#: aggregate (`callAggregateWithStartIndexAndClientVars("ScreenDataSet...",
+#: "screenservices/...", "<apiVersion>", ...)`). Run 2 found the data behind
+#: no data action: the screens' blocks live in a second module,
+#: CoSD_Beach_Water_CW, and read by aggregates.
 OS_CALL = re.compile(
-    r"""call(Data|Server)Action\(\s*["']([^"']+)["']\s*,\s*["'](screenservices/[^"']+)["']\s*,\s*["']([^"']+)["']"""
+    r"""(call\w*)\(\s*["']([^"']+)["']\s*,\s*["'](screenservices/[^"']+)["']\s*,\s*["']([^"']+)["']"""
 )
 
-#: A screen variable's declaration: AttributeInfo("Name", "nameVar", "Name", ...
-#: and the data type after it.
+#: A variable or record attribute's declaration, either runtime's form:
+#: this.attr("Name", "nameIn", "Name", mandatory, isInput?, OS.Types.X ...
 OS_ATTR = re.compile(
-    r"""AttributeInfo\(\s*"(\w+)"\s*,\s*"(\w+)"\s*,\s*"(\w+)"\s*,\s*(true|false)\s*,\s*(true|false)\s*,\s*OS\.DataTypes\.DataTypes\.(\w+)"""
+    r"""(?:AttributeInfo|this\.attr|\battr)\(\s*"(\w+)"\s*,\s*"(\w+)"\s*,\s*"(\w+)"\s*,\s*(true|false)\s*,\s*(true|false)\s*,\s*OS\.(?:DataTypes\.DataTypes|Types)\.(\w+)"""
 )
 
-#: The anonymous CSRF token OutSystems Reactive apps fall back to; the
-#: runtime's own copy is searched for too, and each is tried.
+#: The anonymous CSRF token OutSystems Reactive apps fall back to (run 2:
+#: the runtime's `AnonymousCSRFToken`).
 OS_CSRF_DEFAULT = "T6C+9iB49TLra4jEsMeSckDMNhQ="
 
 #: Never called: anything that could write (the site takes alert sign-ups).
-OS_WRITES = re.compile(r"subscri|save|create|update|delete|send|register|insert|remove|set|login|logout|feedback",
-                       re.IGNORECASE)
+OS_WRITES = re.compile(r"subscri|suscri|save|create|update|delete|send|register|insert|remove|login|logout|"
+                       r"feedback|captcha", re.IGNORECASE)
 
-#: Module scripts read, at most.
-OS_MAX_SCRIPTS = 160
+#: The scripts read (run 2 listed the manifest): the samples and home
+#: screens and blocks, the legend, and the two modules' record types.
+OS_SCRIPTS = re.compile(
+    r"/scripts/(?:CoSD_Beach_Water_CW\.MainFlow\.(?:Sample\w*|HomeBlockNew|BlockLegend|BlockMarkup|"
+    r"HistoricalReportsBlock|ExportBlock|FieldShow)\.mvc|sdbeachinfo\.MainFlow\.(?:SamplesReport|Home|"
+    r"SamplePostingReport|HistoricalReports)\.mvc|CoSD_Beach_Water_C[SW]\.model|sdbeachinfo\.model)\.js$"
+)
 
 #: Characters of each JSON response printed.
-OS_SHOWN = 12000
+OS_SHOWN = 16000
+
+#: An empty value per OutSystems type, for a screen variable the probe does
+#: not set. Long integers and decimals travel as strings.
+OS_EMPTY = {"LongInteger": "0", "Integer": 0, "Decimal": "0", "Currency": "0", "Text": "", "Boolean": False,
+            "Date": "1900-01-01", "DateTime": "1900-01-01T00:00:00", "Time": "00:00:00"}
 
 
 def module_url(key: str, version: str) -> str:
@@ -366,8 +380,8 @@ def module_url(key: str, version: str) -> str:
 
 
 def outsystems(out: list[str], index_token: str, site_id: int) -> int:
-    """The module's scripts, their screen services, and each read-only data
-    action called. Returns how many answered with data."""
+    """The scripts behind the samples and home screens, their screen
+    services, and each read-only one called. Returns how many answered."""
 
     base = BASE.rstrip("/")
     info = fetch(f"{base}/moduleservices/moduleinfo?{index_token}")
@@ -379,9 +393,6 @@ def outsystems(out: list[str], index_token: str, site_id: int) -> int:
         except ValueError:
             out.append(info.body[:2000])
     urls = manifest.get("urlVersions", {}) or {}
-    out.append(f"  versionToken {manifest.get('versionToken')!r}, {len(urls)} urlVersions")
-    for key in sorted(urls):
-        out.append(f"    {key}{urls[key]}")
     version = fetch(f"{base}/moduleservices/moduleversioninfo?{index_token}")
     module_version = ""
     if version.ok:
@@ -389,61 +400,67 @@ def outsystems(out: list[str], index_token: str, site_id: int) -> int:
             module_version = json.loads(version.body).get("versionToken", "")
         except ValueError:
             pass
-    out.append(f"  moduleversioninfo: {version.status} {module_version!r} {version.error}")
+    out.append(f"  {len(urls)} urlVersions; moduleversioninfo {module_version!r} {version.error}")
 
-    # The runtime's own CSRF token, if it carries one.
-    tokens = [OS_CSRF_DEFAULT]
-    runtime = next((k for k in urls if k.endswith("/OutSystems.js")), None)
-    rt = fetch(module_url(runtime, urls[runtime])) if runtime else None
-    if rt and rt.ok:
-        for m in re.finditer(r"CSRF[^;]{0,200}", rt.body):
-            out.append(f"  runtime CSRF context: {m.group(0)[:200]!r}")
-        for tok in re.findall(r'"([A-Za-z0-9+/]{27}=)"', rt.body):
-            if tok not in tokens:
-                tokens.append(tok)
-    out.append(f"  CSRF tokens to try: {tokens}")
-
-    own = [k for k in sorted(urls) if re.search(r"/scripts/sdbeachinfo\.", k)]
-    out.append(f"\n# Module scripts: {len(own)} (reading {min(len(own), OS_MAX_SCRIPTS)})")
-    calls: list[tuple[str, str, str, str, str]] = []  # (script, kind, name, path, apiVersion)
-    for key in own[:OS_MAX_SCRIPTS]:
+    read = [k for k in sorted(urls) if OS_SCRIPTS.search(k)]
+    out.append(f"\n# Scripts read: {len(read)}")
+    calls: list[tuple[str, str, str, str, list]] = []  # (script, kind, name, path, api, attrs)
+    for key in read:
         f = fetch(module_url(key, urls[key]))
         if not f.ok:
             out.append(f"  {key}: {f.error}")
             continue
         found = OS_CALL.findall(f.body)
         attrs = OS_ATTR.findall(f.body)
-        if not found and not attrs:
+        out.append(f"\n## {key}: {len(f.body)} chars, {len(found)} screen services, {len(attrs)} attributes")
+        if key.endswith(".model.js"):
+            # Record types: each type's attributes, by the type they open.
+            for name, var, ext, mandatory, flag, dtype in attrs[:400]:
+                out.append(f"    {ext}: {dtype}")
+            names = sorted(set(re.findall(r'"(\w*(?:Sample|Site|Status|Advis|Closure|Result|Station|Beach)\w*)"',
+                                          f.body)))
+            out.append(f"    names: {names[:200]}")
             continue
-        out.append(f"\n  {key}: {len(f.body)} chars, {len(found)} action calls, {len(attrs)} attributes")
-        for name, var, ext, mandatory, is_input, dtype in attrs[:120]:
-            out.append(f"    attr {name} ({var}, {dtype}{', mandatory' if mandatory == 'true' else ''})")
+        for name, var, ext, mandatory, flag, dtype in attrs[:150]:
+            out.append(f"    attr {ext} ({var}, {dtype}, mandatory={mandatory}, {flag})")
         for kind, name, path, api in found:
-            out.append(f"    {kind}Action {name}: {path} api {api}")
-            calls.append((key, kind, name, path, api))
+            out.append(f"    {kind} {name}: {path} api {api}")
+            calls.append((key, kind, name, path, api, attrs))
             i = f.body.find(path)
-            out.append(f"      context: {f.body[max(0, i - 600):i + 900]!r}")
-        words = sorted(set(re.findall(r'"([^"]*(?:Advisory|Closure|Closed|Rain|Expire|Status)[^"]*)"', f.body)))
+            out.append(f"      before: {f.body[max(0, i - 2500):i]!r}")
+            out.append(f"      after: {f.body[i:i + 1500]!r}")
+        words = sorted(set(re.findall(r'"([^"]{0,80}(?:Advisory|Closure|Closed|Open|Rain|Expir|Status|Result|'
+                                      r'Enterococ|Coliform|Fecal)[^"]{0,80})"', f.body)))
         if words:
-            out.append(f"    strings: {words[:60]}")
+            out.append(f"    strings: {words[:120]}")
 
     answered = 0
-    out.append(f"\n# Calling read-only actions ({len(calls)} found)")
-    for key, kind, name, path, api in calls:
-        if OS_WRITES.search(name) and not name.startswith(("DataAction", "Get")):
-            out.append(f"  SKIP {kind}Action {name} (could write)")
+    out.append(f"\n# Calling read-only screen services ({len(calls)} found)")
+    for key, kind, name, path, api, attrs in calls:
+        if OS_WRITES.search(name):
+            out.append(f"  SKIP {kind} {name} (could write)")
             continue
-        screen = re.sub(r"^.*/scripts/sdbeachinfo\.|\.mvc\.js$|\.controller\.js$", "", key)
-        variables = {"SiteId": site_id, "siteId": site_id, "_siteIdInDataFetchStatus": 1}
-        body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api},
-                "viewName": screen,
-                "screenData": {"variables": variables}}
-        if kind == "Server":
-            body = {"versionInfo": body["versionInfo"], "viewName": screen,
-                    "inputParameters": {"SiteId": site_id}}
-        for tok in tokens:
-            f = fetch(f"{base}/{path}", body=body, headers={"X-CSRFToken": tok})
-            out.append(f"  {kind}Action {name} ({screen}) token {tok[:6]}..: HTTP {f.status} {f.error[:600]}")
+        parts = path.split("/")
+        views = [f"{parts[2]}.{parts[3]}"]
+        if "SamplesReport" not in views[0]:
+            views.append("MainFlow.SamplesReport")
+        variables = {}
+        for _, var, ext, _, _, dtype in attrs:
+            value = OS_EMPTY.get(dtype, "")
+            if "siteid" in ext.lower():
+                value = str(site_id) if dtype == "LongInteger" else site_id
+            variables[ext] = value
+        variables.setdefault("SiteId", site_id)
+        for view in views:
+            if kind.startswith("callServerAction"):
+                body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api},
+                        "viewName": view, "inputParameters": {"SiteId": site_id}}
+            else:
+                body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api},
+                        "viewName": view, "screenData": {"variables": variables}, "clientVariables": {}}
+            f = fetch(f"{base}/{path}", body=body, headers={"X-CSRFToken": OS_CSRF_DEFAULT})
+            out.append(f"\n  {kind} {name} as {view}: HTTP {f.status} {f.error[:800]}")
+            out.append(f"    sent variables: {json.dumps(variables)[:1500]}")
             if f.ok:
                 answered += 1
                 try:
@@ -451,8 +468,6 @@ def outsystems(out: list[str], index_token: str, site_id: int) -> int:
                 except ValueError:
                     text = f.body
                 out.append(text[:OS_SHOWN])
-                break
-            if f.status not in (403,):
                 break
     return answered
 
