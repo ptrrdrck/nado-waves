@@ -1527,9 +1527,11 @@ class TestAnUpdateAnnouncesItself:
 
         # swell, then wind/tide on both tabs, and wind/tide again for an
         # earlier run's hour, which carries only the measurement; and the
-        # Sun card, one function for every tab
-        assert SOURCE.count('data-card="') == 8
+        # Sun card, one function for every tab; and on a wide screen the
+        # swell again, with the buoys and the charts as cards of their own
+        assert SOURCE.count('data-card="') == 11
         assert 'data-card="swell"' in SOURCE
+        assert 'data-card="buoys"' in SOURCE and 'data-card="charts"' in SOURCE
 
     def test_the_flash_compares_either_side_of_the_same_render(self):
         """The snapshot and the comparison must straddle one re-render. Across
@@ -2321,7 +2323,9 @@ class TestTheWeekChart:
         body = self.SECTION[self.SECTION.index("function chartBody("):]
         body = body[:body.index("\n}\n")]
         assert '<select class="pick" data-chart-mode aria-label="Which chart">' in body
-        assert "<button" not in body
+        # The one button is full screen, and only wider than a phone.
+        assert body.count("<button") == 1 and 'class="chart-max"' in body
+        assert 'const max = LAYOUT === "phone" ? "" : `<button' in body
         assert 'strip.addEventListener("change"' in self.SECTION
 
     def test_each_tab_plots_its_own_line_in_ink(self):
@@ -3770,7 +3774,10 @@ class TestTheSunCard:
         if node is None:
             pytest.skip("node is not available")
         prelude = ('const clock = (iso) => iso.slice(11, 16);\n'
-                   'const BUOY_TAB = "buoy"; let SWELL_TAB = "coronado_center";\n')
+                   'const BUOY_TAB = "buoy"; let SWELL_TAB = "coronado_center";\n'
+                   'let LAYOUT = "phone"; const WIDE = () => LAYOUT === "stack" || LAYOUT === "console";\n'
+                   'const SHORT = {coronado_north: "North", coronado_center: "Center",'
+                   ' coronado_south: "South"};\n')
         payload = json.dumps({"sun": {
             "days": {"2026-10-16": {
                 "sunrise_utc": "2026-10-16T13:54:00Z", "sunset_utc": "2026-10-17T01:14:00Z",
@@ -3905,13 +3912,13 @@ class TestTheBriefing:
         """The provenance pills' green `.status`, while this device has not
         opened the fold since the update; opening it is reading it."""
         assert "const briefDot = '<i class=\"status\"" in self.BLOCK
-        assert 'const dot = BRIEF_OPEN || !briefUnseen(B) ? "" : briefDot;' in self.BLOCK
+        assert 'const dot = (BRIEF_OPEN && !wide) || !briefUnseen(B) ? "" : briefDot;' in self.BLOCK
         assert "const briefUnseen = (B) => Boolean(B && B.key) && stored(BRIEF_SEEN) !== B.key;" in self.BLOCK
         opened = self.BLOCK[self.BLOCK.index("function setBriefOpen"):]
         opened = opened[:opened.index("\n}\n")]
         assert "if (open) briefSeen();" in opened
         assert "store(BRIEF_SEEN, BRIEFING.key);" in self.BLOCK
-        assert "if (brief && BRIEF_OPEN) briefSeen();" in SOURCE
+        assert "if (brief && BRIEF_OPEN && !WIDE()) briefSeen();" in SOURCE
 
     def test_its_blocks_are_apart_by_the_cards_fold_rule(self):
         """Owner's call, 2026-10-23: the rule the cards draw between their
@@ -4198,3 +4205,134 @@ def test_a_double_tap_never_zooms_and_a_pinch_always_does(page):
     assert "*{box-sizing:border-box;touch-action:manipulation}" in css
     for source in (text, publish.HEAD):
         assert "user-scalable" not in source and "maximum-scale" not in source
+
+
+class TestTheWideLayouts:
+    """Owner's decision, 2026-10-29 (option B, "Console"): wider than a phone
+    the page takes another shape -- a tablet keeps the tabs with Wind and
+    Tide side by side; from 950 px the three breaks sit side by side, North
+    to South; from 1280 px a rail holds what the whole beach shares. The
+    phone page is untouched: every wide rule is keyed to the root's
+    `data-layout`, which the script sets, and a phone's charts are drawn at
+    the 320 units they always were."""
+
+    WIDE_CSS = SOURCE[SOURCE.index("/* THE WIDE LAYOUTS"):SOURCE.index("</style>")]
+
+    @staticmethod
+    def fn(name: str) -> str:
+        start = SOURCE.index(f"function {name}(")
+        return SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+
+    def _node(self, script: str) -> str:
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        return subprocess.run([node, "-e", script], capture_output=True, text=True,
+                              check=True).stdout.strip()
+
+    def test_the_layouts_and_their_widths(self):
+        assert 'const LAYOUTS = [["console", 1280], ["stack", 950], ["tablet", 700]];' in SOURCE
+        assert "window.matchMedia(`(min-width: ${px}px)`)" in SOURCE
+        # Every wide rule is keyed to the layout the script set, never to a
+        # width of its own: the markup and the styles cannot disagree, and
+        # nothing here can reach a phone.
+        assert "@media" not in self.WIDE_CSS
+        for rule in re.findall(r"(?m)^:root\[data-layout=\"(\w+)\"\]", self.WIDE_CSS):
+            assert rule in ("tablet", "stack", "console")
+        assert 'data-layout="phone"' not in self.WIDE_CSS
+
+    def test_a_phone_draws_every_chart_at_320_units(self):
+        dims = self.fn("chartDims")
+        assert dims.index('if (LAYOUT === "phone") return CHART;') < dims.index("querySelector")
+        assert 'if (LAYOUT === "phone") return;' in self.fn("refitCharts")
+        assert 'if (LAYOUT === "phone") return;' in self.fn("laidOut")
+
+    def test_the_breaks_are_north_to_south_never_ranked(self):
+        """A column's place is where its break is on the sand."""
+        wide = self.fn("swellWide")
+        assert "ORDER.map((id) =>" in wide and "rankByEnergy" not in wide
+        assert '<div class="break-cols" data-align>' in wide
+        # 46232's provenance under the breaks, as under every phone tab, and
+        # again under its own reading on the buoys' card.
+        assert wide.count("${srcLines(source, due)}") == 2
+
+    def test_origin_is_each_arrival_once_with_the_breaks_it_reaches(self):
+        got = self._node(
+            "const SHORT = {coronado_north: 'North', coronado_center: 'Center', coronado_south: 'South'};\n"
+            "let ORIGIN_OPEN = true;\n"
+            + SOURCE[SOURCE.index("const andList = "):SOURCE.index(";\n", SOURCE.index("const andList = ")) + 2]
+            + "const originEntries = (o) => o.entries;\n"
+            "const originCount = (o) => o.now;\n"
+            + self.fn("beachOrigin")
+            + "const b = [{id: 'coronado_north', origin: {entries: ['<p>Rachel</p>', '<p>Sea</p>'], now: 2}},"
+            " {id: 'coronado_center', origin: {entries: ['<p>Rachel</p>'], now: 1}},"
+            " {id: 'coronado_south', origin: {entries: ['<p>Rachel 12 s</p>'], now: 1}}];\n"
+            "console.log(beachOrigin(b).replace(/\\s+/g, ' '));\n"
+            "console.log(JSON.stringify(beachOrigin([{id: 'coronado_north', origin: null}])));\n")
+        html, empty = got.splitlines()
+        # An identical entry once, under every break that shows it; an entry
+        # that reads differently is its own, never reworded.
+        assert '<span class="sublbl">North and Center</span><p>Rachel</p>' in html
+        assert '<span class="sublbl">North</span><p>Sea</p>' in html
+        assert '<span class="sublbl">South</span><p>Rachel 12 s</p>' in html
+        assert html.count("<p>Rachel</p>") == 1
+        assert 'data-origin-count title="3 origins arriving now">(3)' in html
+        assert 'aria-controls="origin-fold-beach"' in html
+        assert empty == '""'
+
+    def test_the_wind_card_names_each_breaks_verdict(self):
+        """Still one verdict per break, against its own normal: on a wide
+        screen no tab picks one, so every break's is shown and named."""
+        script = (UNITS_JS
+                  + "const ORDER = ['coronado_north', 'coronado_center', 'coronado_south'];\n"
+                  "const SHORT = {coronado_north: 'North', coronado_center: 'Center', coronado_south: 'South'};\n"
+                  "const LIGHT_KT = 3; let SWELL_TAB = 'coronado_north';\n"
+                  + self.fn("sense") + self.fn("windAtBreaks")
+                  + "const cards = [{id: 'coronado_south', windOffshore: -0.6, windKt: 9},"
+                  " {id: 'coronado_north', windOffshore: 0.1, windKt: 9},"
+                  " {id: 'coronado_center', windKt: 0}];\n"
+                  "LAYOUT = 'console'; console.log(windAtBreaks(cards));\n"
+                  "LAYOUT = 'tablet'; console.log(windAtBreaks(cards));\n")
+        wide, tablet = self._node(script).splitlines()
+        assert wide.index("at North") < wide.index("at Center") < wide.index("at South")
+        assert "<b>cross-shore</b> at North" in wide and "<b>onshore</b> at South" in wide
+        assert "<b>no wind</b> at Center, so no side set" in wide
+        assert "hidden" not in wide and "data-wind-for" not in wide
+        # A tablet keeps the tabs, and so the phone's lines.
+        assert "at this break" in tablet and 'data-wind-for="coronado_center" hidden' in tablet
+
+    def test_the_sun_card_shows_every_breaks_sunset(self):
+        sun = TestTheSunCard()
+        card = sun.run('LAYOUT = "stack";\n'
+                       'console.log(sunCard(P, "2026-10-16").replace(/\\s+/g, " "));\n')[0]
+        assert " hidden" not in card
+        for name in ("North", "Center", "South", "Sea horizon"):
+            assert f'<span class="sublbl">{name}</span>' in card
+        assert card.index(">North<") < card.index(">Center<") < card.index(">South<") < card.index(">Sea horizon<")
+        assert "at the sea horizon" not in card     # its label says it
+
+    def test_the_briefing_stays_open_and_its_dot_waits_for_the_reader(self):
+        """Owner's call, 2026-10-29: open on a wide screen, no caret, and its
+        dot marks an update the reader has not been at the page since."""
+        fold = self.fn("briefingFold")
+        assert "const open = wide || BRIEF_OPEN;" in fold
+        assert '${wide ? "" : `<button' in fold
+        touched = self.fn("briefTouched")
+        assert "WIDE()" in touched and 'document.visibilityState === "visible"' in touched
+        for kind in ("pointerdown", "keydown", "wheel", "touchstart"):
+            assert f'"{kind}"' in SOURCE[SOURCE.index("for (const kind of"):][:120]
+        assert "if (!WIDE() && e.target.closest(\"[data-brief-head]\")" in SOURCE
+        assert "max-height:none;overflow:visible" in self.WIDE_CSS
+
+    def test_a_wide_tab_picks_only_whose_charts_are_drawn(self):
+        select = self.fn("selectSwellTab")
+        wide = select[:select.index("  if (id === BUOY_TAB")]
+        assert "if (WIDE()) {" in wide and "return;" in wide
+        # No pane, Origin, wind or sun line follows it: all are on screen.
+        for attr in ("[data-wind-for]", "[data-sun-for]", "[data-origin-tab]", "[data-after-tab]"):
+            assert attr not in wide
+
+    def test_full_screen_is_one_chart_and_escape_closes_it(self):
+        assert 'if (e.key === "Escape" && CHART_MAX) setChartMax(null);' in SOURCE
+        assert '<div class="chart-body${CHART_MAX === id ? " maxed" : ""}" data-chart="${id}">' in SOURCE
+        assert ".chart-body.maxed{position:fixed;" in self.WIDE_CSS

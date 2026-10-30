@@ -1026,6 +1026,39 @@ forecaster actually verifies against, Surfline included.
    gaps close, keeping one line at 320. The theme is applied before the
    first paint by a script at the top of the page (docs.html too, which
    follows the same saved choice) and sets `color-scheme` with it.
+   **Wider than a phone** (owner's decision, 2026-10-29: option B,
+   "Console", of three put to the owner, with the owner's picks on each
+   fold): the script sets the root's `data-layout` from `LAYOUTS` and every
+   wide rule is keyed to it, never to a width of its own. **The phone page
+   (< 700 px) is untouched**, and that was checked, not assumed: a layout
+   dump of every element at 320–698 px on both tabs, folds open and closed,
+   equal to master's, and pixels equal at 320–414. *tablet* (700–949) keeps
+   the tabs, Wind and Tide side by side. *stack* (950–1279) and *console*
+   (1280 up) are other markup (`swellWide`), redrawn on crossing a width:
+   the three breaks as columns NORTH TO SOUTH, never ranked (a column's
+   place is its break's), each column's headline, calculation rows (by
+   step name), trains and measured line held level by `alignCols`, one
+   caret opening all three calculations; the buoys a card of their own,
+   three across; Origin ONE block for the beach (`beachOrigin`): each
+   entry exactly as a break's fold words it, once, under the breaks that
+   show it, so nothing is reworded and an entry that differs by train or
+   period is two; the swell's charts a card of their own with the break
+   picked above the plot (`selectSwellTab` picks only that, there), and
+   every chart drawn at its own width (`chartDims`: 320 units on a phone,
+   its CSS pixels wider, so the text stays the phone's size) with a
+   full-screen button (`setChartMax`, Escape closes); the Wind card every
+   break's verdict, each naming its break, and the Sun card every break's
+   sunset. Console adds a rail: the tabs, the Briefing ALWAYS OPEN with no
+   caret, then Wind, Tide and Sun, the main column one grid item spanning
+   every row (`grid-template-rows: repeat(14, auto) 1fr`) so the rail
+   stacks on its own. On a wide screen the Briefing's dot marks an update
+   the reader has not been AT THE PAGE for (owner's call): it goes at their
+   next touch, click, key or scroll (`briefTouched`), not when drawn.
+   docs.html: its tables and worked math wider than the reading column
+   grow to fit, centred, up to 64rem, from 1100 px; the owner's contents
+   pill (same day) is the page's navigation, so no second one was added.
+   The Forecast tab's week strip (a row a break, breaking height by step)
+   was asked for as a MOCK first: not built.
    **The log-first gate** (owner's call, 2026-10-16): "Wave observer", the
    Observer switch, kept in localStorage (with the Briefing's last opened
    update and the Units and theme settings, its only uses, pinned). On such a device the page opens on "Logging the beach today?"

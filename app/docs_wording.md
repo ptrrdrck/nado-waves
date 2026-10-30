@@ -61,6 +61,16 @@ From the top of the forecast page down. The figures are a real hour, noon on Mon
 6. **Charts**, closed until opened, the last line of every card. [Charts](#charts).
 7. **Wind and Tide**, cards of their own because one station feeds all three breaks. [Wind](#wind), [Tide](#tide).
 
+### [start-wide] On a wider screen
+
+The page above is a phone's. Wider than a phone, the same cards are laid out to use the room; what they say does not change.
+
+- **A tablet held upright** (700 to 949 px wide) keeps the tabs, with Wind and Tide side by side under the Swell card.
+- **From 950 px**, the three breaks sit side by side: North, Center, South, in the order they sit on the sand, never ranked, so a column's place is its break's. Each column's headline, calculation rows, trains and drawing sit level with the same ones beside it, and one caret opens all three calculations. The buoys get a card of their own, three across. [Origin](#swell-origin) becomes one block for the beach. The swell's charts get a card of their own too, with the break or the buoys picked above the plot. The Wind card gives every break's offshore, cross-shore or onshore line, and the Sun card every break's sunset, each under its break's name.
+- **From 1280 px**, what the whole beach shares sits in a column at the left: the tabs, the Briefing, then Wind, Tide and Sun. The breaks, the buoys and the charts sit beside it.
+
+On a wide screen the [Briefing](#briefing) is always open. Its green dot then marks an update you have not been at the page for, and goes at your next touch, click, key or scroll anywhere on it. And every chart has a button beside its menu that opens it full screen; the same button, or Escape, closes it.
+
 ### [start-standing] What each tab is standing on, right now
 
 Each tab's file says which of the four confidence levels (geometry, model, calibration, observation) it has reached. These blocks are read from those files as the page loads, so they say what the forecast page is standing on at this moment. A level that reads none is one the project has not reached. [The four levels](#confidence-levels).
@@ -97,7 +107,7 @@ A refresh keeps the tab you chose. A new visit always opens on “LIVE”.
 
 ## [briefing] The Briefing
 
-Above the “LIVE” cards, a **Briefing** line folds out a short read of the beaches, so the cards need not be put together by hand. Closed, it says only “Briefing” and when it last updated, with a green dot while that update is one you have not opened on this device; opening it removes the dot. Nothing about the conditions shows until it is opened.
+Above the “LIVE” cards, a **Briefing** line folds out a short read of the beaches, so the cards need not be put together by hand. Closed, it says only “Briefing” and when it last updated, with a green dot while that update is one you have not opened on this device; opening it removes the dot. Nothing about the conditions shows until it is opened. On a wide screen it is always open, and the dot goes at your next touch, click, key or scroll on the page ([On a wider screen](#start-wide)).
 
 ### [briefing-stories] What it says
 
@@ -450,7 +460,7 @@ The Local chop row names the chop's period and the fetch it grew over: behind la
 
 ### [swell-tabs] Break tabs and the Buoys tab
 
-One tab per break, ranked by how much of the buoy's energy its windows let through, with the Buoys tab always last. It shows the swell at CDIP 191, 29 km offshore, with nothing in the way, so it is always the biggest number, and it is the one the breaks are measured from.
+One tab per break, ranked by how much of the buoy's energy its windows let through, with the Buoys tab always last. It shows the swell at CDIP 191, 29 km offshore, with nothing in the way, so it is always the biggest number, and it is the one the breaks are measured from. On a wide screen there are no break tabs: the breaks sit side by side, North to South, and the buoys are a card of their own ([On a wider screen](#start-wide)).
 
 On “LIVE”, each buoy's provenance is one line of joined pills, each growing out of the one before it: the station, with a dot, then how long ago its spectrum was taken, then the countdown to the next. The Wind and Tide cards' provenance is the same line: “METAR KNZY”, the age and the countdown; “NOAA 9410170”, the age and the countdown. On a narrow phone, where the pills do not all fit, one wraps to start the next row and stands on its own. Point Loma South's station reads “CDIP 191”: Scripps' Coastal Data Information Program runs the buoy, and its spectra reach this page through NDBC, which lists it as 46232. Tanner Banks' reads “NDBC 46047” and San Clemente Basin's “NDBC 46086”, as NDBC runs those buoys itself. This page names every buoy that way, in its charts and here. CDIP 191's line sits under every swell tab, the break tabs included, because every break's numbers come from its spectrum. The dot is green while that buoy's spectra arrive on time, fades in and out once the next one is due, and turns red once it is overdue. It changes exactly when the [countdown](#swell-countdown) beside it says “Update due” and “Overdue”, from the same two instants. With reduced motion on, a due dot holds at half strength instead of fading.
 
@@ -518,6 +528,8 @@ A rose is the direction-reading method's picture of four numbers per frequency, 
 
 ### [swell-origin] Origin: where the swell was born
 
+On a wide screen, where the breaks sit side by side, Origin is one block for the beach under them: each arrival once, under the names of the breaks it reaches. An arrival that reads differently at two breaks, another train or another period, is listed for each, in its own words. The rest of this section describes one break's.
+
 On “LIVE”, the **Origin** line folds out, like the charts, from its own line right above “Charts”. The number in parentheses beside its title counts the origins arriving at that tab now, named hurricanes and readings alike, and is not there when nothing is arriving; a last readable arrival is not counted. Under it, each train that came from a distant storm says where that storm was: a sea, about how far away and in which direction, and when the swell left it. It is read backwards off the buoy's own spectrum. It is not a forecast, and nothing observes the storm.
 
 Long-period waves travel faster than short ones. In deep water a wave group moves at *gT*/4π, so a 20-second swell outruns a 14-second one. A storm makes every period at once, and by the time the energy has crossed an ocean the long periods have pulled ahead. At the buoy they arrive in order, longest first, and the frequency rises in a straight line with time:
@@ -581,7 +593,7 @@ Three hours after a reading, if no newer one has come, the numbers made from it 
 
 ### [wind-sense] Offshore, cross-shore, onshore or light
 
-Whether a wind is offshore depends on which way the beach faces, and the three breaks face {{geo:normals}}. So the line is per break, shown for the break whose tab is open and hidden on the buoy's tab.
+Whether a wind is offshore depends on which way the beach faces, and the three breaks face {{geo:normals}}. So the line is per break, shown for the break whose tab is open and hidden on the buoy's tab. On a wide screen, with no tabs, every break's line is shown, each naming its break.
 
 ```
 offshore component = −cos(wind from − shore normal)     +1 straight off the land, −1 straight off the sea
@@ -664,7 +676,7 @@ None of this is a statement about waves. On these beach profiles the whole tide 
 
 ### [sun-point-loma] The Point Loma sunset
 
-Every published sunset is the moment the top of the sun meets a level sea horizon. From Coronado's sand the Point Loma peninsula stands between the breaks and that horizon for most of the year: its ridge is 4.5–8 km away and 90–130 m high, about 1° above the horizon. The sun goes behind it some 5–8 minutes before the published time. The card's headline is that sunset, at the open break: *behind Point Loma* and how many minutes before the sea-horizon time. On the Buoys tab there is no beach, so the headline is the sea-horizon time.
+Every published sunset is the moment the top of the sun meets a level sea horizon. From Coronado's sand the Point Loma peninsula stands between the breaks and that horizon for most of the year: its ridge is 4.5–8 km away and 90–130 m high, about 1° above the horizon. The sun goes behind it some 5–8 minutes before the published time. The card's headline is that sunset, at the open break: *behind Point Loma* and how many minutes before the sea-horizon time. On the Buoys tab there is no beach, so the headline is the sea-horizon time. On a wide screen every break's sunset is shown, each under its name, then the sea horizon's.
 
 Each break has its own skyline, traced from the break over the same USGS CoNED survey the seabed comes from: it is a topographic and bathymetric survey, so Point Loma's land is in it beside the seabed. Along each bearing, the highest angle any land stands above the eye, an eye 3 m above sea level, is the skyline there. The Earth's curvature lowers a distant hill and refraction lifts it back a little. The sunset is the last moment any of the sun's disc stands above whatever is in front of it, land or sea, with each part of the disc refracted at its own height.
 
@@ -745,7 +757,7 @@ On the same hours and the same window as the Swell charts. Both are read straigh
 - **Wind**
   The airfield's report taken in the hour up to each hour: its speed, a dot for any gust, and under it the direction it blows from, which a calm or a variable wind does not have. A report is never carried into the next hour. An hour with no report is a gap. The newest report is on the chart as soon as it is on the card, under the coming hour it stands for.
 - **Shore direction**
-  How often the airfield's wind has been offshore, cross-shore, onshore or light at the break whose tab is open, one bar for each hour of the day on your clock. Each bar is that hour on every day counted, one reading a day, by the [same rule](#wind-sense) as the card. The readout says “over N days”, because a bar is many days' readings, not one hour's.
+  How often the airfield's wind has been offshore, cross-shore, onshore or light at the break whose tab is open (on a wide screen, the break picked above the swell's charts), one bar for each hour of the day on your clock. Each bar is that hour on every day counted, one reading a day, by the [same rule](#wind-sense) as the card. The readout says “over N days”, because a bar is many days' readings, not one hour's.
 - **Tide**
   The gauge's sample at each hour exactly, carried to the open coast as the card's is. Past the present, the next 24 hours of harmonic prediction, dashed, with the measured departure added: the one modelled line on this tab, as the card's next turn is its one modelled number.
 - **Departure**
@@ -775,7 +787,7 @@ Hourly, over the same reach.
 - **Wind**
   The National Weather Service's forecast wind at Coronado (the card's Local wind), with a dot for any gust and its direction under it. Beside the hours that have passed, the airfield's measured wind in blue. In grey, GFS-Wave's own wind at the buoy, the one the model makes its wind sea from: hourly to five days and every third hour after, joined across the hours it does not give, never across a measured gap.
 - **Shore direction**
-  The local forecast's wind at the break whose tab is open, one row a day and one square an hour, so which mornings are offshore reads straight off it. An hour the forecast does not cover is an empty square.
+  The local forecast's wind at the break whose tab is open (on a wide screen, the break picked above the swell's charts), one row a day and one square an hour, so which mornings are offshore reads straight off it. An hour the forecast does not cover is an empty square.
 - **Tide**
   The harmonic tide at the open coast with the measured departure added, as the card's is, and the gauge's measured level in blue beside the hours that have passed.
 - **Daily range**
