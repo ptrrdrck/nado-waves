@@ -1,0 +1,9 @@
+{
+  "_comment": "The County of San Diego's Beach & Bay Water Quality Monitoring Program (DEHQ) stations at Coronado's three breaks, as the owner named them (2026-10-30). IDs only, never a coordinate: `site` is the county site's own record id (its SamplesReport?SiteId=), `station` its station code. Read by collector.beachwater; the county may renumber, and a station the site no longer lists is reported, never guessed.",
+  "base": "https://cosdapps.sandiegocounty.gov/sdbeachinfo",
+  "breaks": {
+    "coronado_north": {"station": "EH-060", "site": "10", "name": "Coronado North Beach"},
+    "coronado_center": {"station": "EH-050", "site": "7", "name": "Coronado Main Lifeguard Tower"},
+    "coronado_south": {"station": "IB-079", "site": "121", "name": "Avenida Lunar"}
+  }
+}

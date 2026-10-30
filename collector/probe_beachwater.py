@@ -577,16 +577,118 @@ def outsystems(out: list[str], index_token: str, site_id: int) -> int:
     return answered
 
 
+# ------------------------------------------------------------- Coronado
+#
+# Run 5: every aggregate answered once called as its host screen with its
+# paging. The samples aggregate ignored SiteId (it returned every station's
+# first results, from May 2026); the posting report lists each advisory,
+# closure and warning by station; the home screen's marker block reads one
+# site's status. Run 6 reads just Coronado's three, compactly, through the
+# collector's own client.
+
+def _short(r: dict) -> str:
+    return json.dumps(r, separators=(",", ":"), ensure_ascii=False)[:600]
+
+
+def coronado(out: list[str]) -> int:
+    from . import beachwater as bw
+
+    reg = bw.registry()
+    client = bw.Client(reg["base"]).start()
+    out.append(f"\n# Coronado through collector.beachwater: module {client.module_version}")
+    out.append(f"  services: {sorted(client.services)}")
+    ours = {v["station"]: (brk, v) for brk, v in reg["breaks"].items()}
+    found = 0
+
+    for brk, v in reg["breaks"].items():
+        for var in ("StationIdFilter", "SiteId"):
+            try:
+                got = bw.samples(client, v["site"], filter_var=var)
+            except bw.Refused as exc:
+                out.append(f"\n## {brk} {v['station']} samples by {var}: REFUSED {exc}")
+                continue
+            stations = sorted({(r.get("Site") or {}).get("StationID") for r in got})
+            dates = sorted((r.get("Sample") or {}).get("SampleDate", "") for r in got)
+            out.append(f"\n## {brk} {v['station']} (site {v['site']}) samples by {var}: {len(got)} rows, "
+                       f"stations {stations}, dates {dates[:1]}..{dates[-1:]}")
+            if stations == [v["station"]]:
+                found += 1
+                if got:
+                    out.append(f"  first row in full: {json.dumps(got[0], ensure_ascii=False)}")
+                for r in sorted(got, key=lambda r: ((r.get("Sample") or {}).get("SampleDate", ""),
+                                                    (r.get("Sample") or {}).get("SampleTime", ""))):
+                    sm = r.get("Sample") or {}
+                    out.append("  {id} {d} {t} {p} [{m}] {q}{res} {u} type={ty!r} cat={c} comments={co!r} "
+                               "other={o!r}".format(
+                                   id=sm.get("Id"), d=sm.get("SampleDate"), t=sm.get("SampleTime"),
+                                   p=(r.get("Parameter") or {}).get("Label"),
+                                   m=(r.get("AnalysisMethod") or {}).get("Label"), q=sm.get("Qualifier"),
+                                   res=sm.get("Result"), u=(r.get("Units") or {}).get("Label"),
+                                   ty=sm.get("SampleType"), c=sm.get("SampleCategory"), co=sm.get("Comments"),
+                                   o={k: x for k, x in sm.items() if k.endswith("Other") and x}))
+                break
+
+    for year in (0,):
+        try:
+            ev = bw.events(client, year)
+        except bw.Refused as exc:
+            out.append(f"\n## events: REFUSED {exc}")
+            continue
+        out.append(f"\n## events (posting report, year {year}): {len(ev)} rows")
+        for key in ("EventType", "GroupName", "Reason", "IndicatorDetails", "PublicNotification", "District",
+                    "CompletedWithin3Hours"):
+            out.append(f"  distinct {key}: {sorted({str(r.get(key)) for r in ev})[:40]}")
+        issued = sorted(r.get("IssueDateTime", "") for r in ev)
+        out.append(f"  issued {issued[:1]}..{issued[-1:]}")
+        seen = set()
+        for r in sorted(ev, key=lambda r: (r.get("StationID", ""), r.get("IssueDateTime", ""))):
+            if r.get("StationID") not in ours:
+                continue
+            k = (r.get("StationID"), r.get("EventType"), r.get("IssueDateTime"), r.get("LiftedDateTime"))
+            out.append(("  " if k not in seen else "  (dup) ") + _short(r))
+            seen.add(k)
+
+    for name in ("BlockMarkup.GetEventsData", "BlockMarkup.GetEventsIsActive", "BlockMarkup.GetEvents",
+                 "BlockMarkup.GetEventsList"):
+        for brk, v in reg["breaks"].items():
+            try:
+                got = client.aggregate(name, {"SiteId": v["site"]}, max_records=50)
+            except bw.Refused as exc:
+                out.append(f"\n## {name} {brk}: REFUSED {exc}")
+                continue
+            out.append(f"\n## {name} {brk} (site {v['site']}): {len(bw.rows(got))} rows")
+            out.append("  " + json.dumps(got, ensure_ascii=False)[:2500])
+    try:
+        out.append("\n## BlockLegend.GetLegends: " + json.dumps(client.aggregate("BlockLegend.GetLegends", {}),
+                                                              ensure_ascii=False)[:3000])
+    except bw.Refused as exc:
+        out.append(f"\n## legends: REFUSED {exc}")
+    return found
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--path", action="append", default=[],
                         help="extra path under the site, printed in full (repeatable)")
     parser.add_argument("--site", type=int, default=7, help="SiteId passed to the screen services")
+    parser.add_argument("--discover", action="store_true",
+                        help="the whole discovery (runs 1-5) instead of Coronado's records (run 6)")
     parser.add_argument("--no-crawl", action="store_true",
                         help="only the root, the samples page and --path pages")
     args = parser.parse_args(argv)
 
     out: list[str] = [f"# Beach water quality probe: {BASE}"]
+    if not args.discover:
+        try:
+            found = coronado(out)
+        except (urllib.error.URLError, TimeoutError) as exc:
+            out.append(f"FAILED: {exc}")
+            print("\n".join(out))
+            return 2 if is_denial(exc) else 1
+        text = "\n".join(out)
+        print(text)
+        write_step_summary("```\n" + text[:900_000] + "\n```")
+        return 0 if found else 1
     full_urls = [BASE, urllib.parse.urljoin(BASE, SAMPLES)]
     full_urls += [urllib.parse.urljoin(BASE, p) for p in args.path]
 

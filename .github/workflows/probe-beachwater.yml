@@ -20,15 +20,20 @@ on:
         required: false
         default: ""
       crawl:
-        description: "Follow one level of same-site links"
+        description: "Follow one level of same-site links (with discover)"
         type: boolean
         default: true
+      discover:
+        description: "The whole discovery of the site's scripts and services, not Coronado's records"
+        type: boolean
+        default: false
   # A probe branch can run it before it reaches the default branch, which
   # workflow_dispatch cannot: only a change to the probe itself triggers it.
   push:
     branches: ["claude/**"]
     paths:
       - collector/probe_beachwater.py
+      - collector/beachwater.py
       - .github/workflows/probe-beachwater.yml
 
 permissions:
@@ -52,12 +57,16 @@ jobs:
         env:
           PATHS: ${{ inputs.paths }}
           CRAWL: ${{ inputs.crawl }}
+          DISCOVER: ${{ inputs.discover }}
         run: |
           set -euo pipefail
           args=()
           for p in ${PATHS:-}; do
             args+=(--path "${p}")
           done
+          if [ "${DISCOVER:-false}" = "true" ]; then
+            args+=(--discover)
+          fi
           if [ "${CRAWL:-true}" = "false" ]; then
             args+=(--no-crawl)
           fi
