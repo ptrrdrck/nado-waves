@@ -1,0 +1,90 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.875cf786e7d19c79095a4921b4fa44b94843eb27.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.875cf786e7d19c79095a4921b4fa44b94843eb27.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.875cf786e7d19c79095a4921b4fa44b94843eb27.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [],
+        "sent": "2026-10-30T13:48:00-07:00",
+        "effective": "2026-10-30T13:48:00-07:00",
+        "onset": "2026-10-30T13:48:00-07:00",
+        "expires": "2026-10-30T15:00:00-07:00",
+        "ends": "2026-10-30T14:00:00-07:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Coastal Flood Advisory",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Coastal Flood Advisory issued October 30 at 1:48PM PDT until October 30 at 2:00PM PDT by NWS San Diego CA",
+        "description": "Tides will continue to decrease through the weekend.",
+        "instruction": null,
+        "response": "Monitor",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 302048"
+            ],
+            "NWSheadline": [
+                "COASTAL FLOOD ADVISORY WILL EXPIRE AT 2 PM PDT THIS AFTERNOON"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.EXP.KSGX.CF.Y.0008.000000T0000Z-261030T2100Z/"
+            ],
+            "eventEndingTime": [
+                "2026-10-30T14:00:00-07:00"
+            ],
+            "expiredReferences": [
+                "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.7a30d2ceef7008331c6f935d1317523db84729f6.001.2,2026-10-29T13:21:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ec117b5c530f88b9ecae892067e9f007c9a14a23.001.2,2026-10-29T01:44:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.03ae839a2cc6fe5be8fff168653f1958ad331364.001.2,2026-10-28T19:30:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.378c8923d52d755b3c93d52186b078c0f463b60d.001.2,2026-10-28T21:59:00-07:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.99285a02ab50a4f02123a282d35c7d88e5e08c08.001.1,2026-10-28T11:46:00-07:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "CFY"
+            ]
+        }
+    }
+}
