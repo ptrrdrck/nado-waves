@@ -217,6 +217,7 @@ SAMPLE_FIELDS = ("sample_id", "sample_date", "sample_time", "parameter", "method
                  "units", "comments", "first_seen_utc")
 EVENT_FIELDS = ("station", "event_type", "issued_utc", "lifted_utc", "distance", "indicator", "reason",
                 "public_notification", "first_seen_utc")
+EVENT_KEY = ("station", "event_type", "issued_utc", "lifted_utc")
 STATUS_FIELDS = ("first_seen_utc", "station", "priority", "status")
 
 #: The site changes when the county posts, not by the minute: a collection
@@ -298,18 +299,22 @@ def store_samples(data_dir: Path, station: str, got: list[dict], seen: str) -> t
 
 
 def store_events(data_dir: Path, got: list[dict], stations, seen: str) -> int:
-    """Append each of the stations' events not yet archived, the whole row
-    its key: the report lists a station once per beach group, read once; a
-    lift time set or moved later is a new row, and both are kept."""
+    """Append each of the stations' events not yet archived, keyed by
+    station, type, issue and lift time: the report lists an event once per
+    beach group it belongs to, and the groups' rows differ in their free
+    text (one Center closure read "1.5 Miles" in one group and "300 ft" in
+    another, probe run 8), so the first row seen is kept. A lift time set or
+    moved later is a new row, and both are kept."""
 
     path = Path(data_dir) / ARCHIVE / "events.csv"
-    key = lambda r: tuple(r[k] for k in EVENT_FIELDS[:-1])
+    key = lambda r: tuple(r[k] for k in EVENT_KEY)
     have = {key(r) for r in _read(path)}
     new = []
-    for r in sorted(got, key=lambda x: (x["station"], x["issued_utc"], x["lifted_utc"])):
+    for r in got:
         if r["station"] in stations and key(r) not in have:
             have.add(key(r))
             new.append({**r, "first_seen_utc": seen})
+    new.sort(key=lambda x: (x["station"], x["issued_utc"], x["lifted_utc"]))
     _append(path, EVENT_FIELDS, new)
     return len(new)
 

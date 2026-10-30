@@ -55,6 +55,10 @@ Water 67 °F (19.4 °C), up
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### B1: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
@@ -74,6 +78,10 @@ Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
 Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### C1: two sectors offshore, each still to reach the breaks; rain earlier in the day only
@@ -93,6 +101,10 @@ Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
 Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### M1: a mix: every swell train at the breaks at half the biggest's height or more, a line each, one a train at the buoy
@@ -111,6 +123,10 @@ Water 67 °F (19.4 °C), up
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### H1: the lead train has no heading, and no status yet: their slots drop with their words
@@ -129,6 +145,10 @@ Water 67 °F (19.4 °C), up
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### D1: 46232 dark: the swell says so and nothing else
@@ -147,6 +167,10 @@ Water 67 °F (19.4 °C), up
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### W1: the water from Center's hub, yesterday's (the lab loads it each night); 46232 only when no hub has a reading
@@ -165,6 +189,10 @@ Water 73 °F (22.7 °C), steady
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### K1: no water temperature, no KNZY report, a minus tide
@@ -176,6 +204,10 @@ Pressure 30.05 inHg (1018 hPa)
 
 AM low −0.7 ft (−0.21 m) at 6:40 AM
 PM high 5.6 ft (1.71 m) at 1:05 PM
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### A1: two NWS alerts in force, one with no end, and one that ended after the build, which drops
@@ -197,6 +229,76 @@ Water 67 °F (19.4 °C), up
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
+```
+
+### R1: a General Rain Advisory at all three, the county's end ahead: until when, and the samples from before it
+
+```text
+[Briefing updated 7:16 AM]
+
+3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
+
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
+
+North Advisory until 11 AM Sat · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Advisory until 11 AM Sat · Enterococcus 793 copies/100 mL on 21 Oct
+South Advisory until 11 AM Sat · Enterococcus <195 copies/100 mL on 22 Oct
+```
+
+### Z1: South closed with no end set, North's day of four results (the City of Coronado's lab), Center with no sample yet
+
+```text
+[Briefing updated 7:16 AM]
+
+3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
+
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
+
+North Open · Enterococcus 2,957 copies/100 mL on 20 Oct
+Center Open · no sample yet
+South Closed · Enterococcus <195 copies/100 mL on 22 Oct
+```
+
+### S1: the county's status last read too long ago: no status, when it was read, the samples kept
+
+```text
+[Briefing updated 7:16 AM]
+
+3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
+
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
+
+North Status not read since 2:35 AM · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Status not read since 2:35 AM · Enterococcus 793 copies/100 mL on 21 Oct
+South Status not read since 2:35 AM · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### Y1: yesterday's update, read this morning
@@ -215,6 +317,10 @@ Water 67 °F (19.4 °C), up
 Air 61 °F (16 °C), down
 Humidity 88%, steady
 Pressure 30.05 inHg (1018 hPa)
+
+North Open · Enterococcus 1,379 copies/100 mL on 21 Oct
+Center Open · Enterococcus 793 copies/100 mL on 21 Oct
+South Open · Enterococcus <195 copies/100 mL on 22 Oct
 ```
 
 ### X1: nothing built yet

@@ -596,3 +596,89 @@ def test_a_bin_mem_cannot_read_is_read_as_the_chain_reads_it():
     vals = (0.6, 0.4, 250.0, 250.0)
     assert abs(bf.fourier_sector(shipped(*vals), [0, 180]) + bf.fourier_sector(shipped(*vals), [180, 360]) - 1) < 0.02
     assert abs(bf.fourier_sector(shipped(*vals), [200, 300]) - mem_sector(*vals, 200.0, 300.0)) < 0.05
+
+
+# ------------------------------------------------------------------ water quality
+
+def _beach_water(tmp_path, *, read="2026-10-30T01:23:01Z", current=None, events=(), samples=None):
+    """data/beach_water as collector.beachwater writes it."""
+    from collector import beachwater as bw
+
+    root = tmp_path / "beach_water"
+    (root / "samples").mkdir(parents=True)
+    current = current or {st: {"priority": "", "status": "Open"} for st in ("EH-060", "EH-050", "IB-079")}
+    (root / "state.json").write_text(json.dumps({"last_fetch_utc": read, "last_ok_utc": read, "current": current}))
+    with (root / "events.csv").open("w") as fh:
+        w = bw.csv.DictWriter(fh, fieldnames=bw.EVENT_FIELDS)
+        w.writeheader()
+        for st, kind, issued, lifted, seen in events:
+            w.writerow({"station": st, "event_type": kind, "issued_utc": issued, "lifted_utc": lifted,
+                        "distance": "", "indicator": "", "reason": "", "public_notification": "",
+                        "first_seen_utc": seen})
+    for st, rows in (samples or {}).items():
+        with (root / "samples" / f"{st}.csv").open("w") as fh:
+            w = bw.csv.DictWriter(fh, fieldnames=bw.SAMPLE_FIELDS)
+            w.writeheader()
+            for sid, date, param, method, q, result, units, seen in rows:
+                w.writerow({"sample_id": sid, "sample_date": date, "sample_time": "06:28:00", "parameter": param,
+                            "method": method, "qualifier": q, "result": result, "units": units,
+                            "comments": "", "first_seen_utc": seen})
+
+
+def test_water_quality_is_none_before_the_first_collection(tmp_path):
+    assert bf.water_quality_story(tmp_path, _at("2026-10-30T02:00:00Z")) is None
+
+
+def test_water_quality_reads_each_breaks_status_newest_sample_and_open_since(tmp_path):
+    _beach_water(tmp_path, events=[
+        ("EH-060", "Closure", "2026-10-15T22:46:00Z", "2026-10-28T23:37:00Z", "2026-10-30T01:23:01Z")],
+        samples={"EH-060": [
+            ("7787", "2026-10-28", "Enterococcus", "ddPCR", "=", "1379", "Copies/100ml", "2026-10-30T01:23:01Z"),
+            ("7790", "2026-10-28", "Total Coliforms", "MTF", "=", "40", "MPN/100ml", "2026-10-30T01:23:01Z"),
+            ("7671", "2026-10-27", "Enterococcus", "ddPCR", "=", "2000", "Copies/100ml", "2026-10-30T01:23:01Z")]})
+    got = bf.water_quality_story(tmp_path, _at("2026-10-30T02:00:00Z"))
+    assert got["fresh"] and [b["id"] for b in got["breaks"]] == ["coronado_north", "coronado_center",
+                                                                "coronado_south"]
+    north = got["breaks"][0]
+    assert north["status"] == "Open" and north["event"] is None
+    assert north["open_since_utc"] == "2026-10-28T23:37:00Z"
+    assert north["sample"]["date"] == "2026-10-28"
+    assert [r["parameter"] for r in north["sample"]["results"]] == ["Enterococcus", "Total Coliforms"]
+    assert got["breaks"][1]["sample"] is None
+
+
+def test_an_advisory_carries_its_event_and_the_newest_lift_time_on_it(tmp_path):
+    """A lift time moved later is a later row of the same issue; the page
+    reads the newest."""
+    _beach_water(tmp_path, current={"IB-079": {"priority": "3", "status": "Advisory"}}, events=[
+        ("IB-079", "Advisory", "2026-10-23T18:00:00Z", "2026-10-26T18:00:00Z", "2026-10-23T18:30:00Z"),
+        ("IB-079", "Advisory", "2026-10-23T18:00:00Z", "2026-10-27T18:00:00Z", "2026-10-25T20:00:00Z")])
+    got = bf.water_quality_story(tmp_path, _at("2026-10-26T20:00:00Z") + timedelta(0))
+    south = got["breaks"][2]
+    # the state was read at 2026-10-30, after the moment asked about: not fresh, so no status
+    assert south["status"] is None
+    _beach_water(tmp_path / "b", read="2026-10-26T19:30:00Z",
+                 current={"IB-079": {"priority": "3", "status": "Advisory"}}, events=[
+        ("IB-079", "Advisory", "2026-10-23T18:00:00Z", "2026-10-26T18:00:00Z", "2026-10-23T18:30:00Z"),
+        ("IB-079", "Advisory", "2026-10-23T18:00:00Z", "2026-10-27T18:00:00Z", "2026-10-25T20:00:00Z")])
+    south = bf.water_quality_story(tmp_path / "b", _at("2026-10-26T20:00:00Z"))["breaks"][2]
+    assert south["status"] == "Advisory"
+    assert south["event"] == {"type": "Advisory", "issued_utc": "2026-10-23T18:00:00Z",
+                              "lifted_utc": "2026-10-27T18:00:00Z"}
+
+
+def test_a_status_read_too_long_ago_is_withheld_and_a_sample_is_not(tmp_path):
+    _beach_water(tmp_path, read="2026-10-30T01:23:01Z", samples={"IB-079": [
+        ("7953", "2026-10-29", "Enterococcus", "ddPCR", "=", "1150", "Copies/100ml", "2026-10-29T22:00:00Z")]})
+    later = _at("2026-10-30T01:23:01Z") + timedelta(hours=bf.WQ_FRESH_H, minutes=1)
+    got = bf.water_quality_story(tmp_path, later)
+    assert not got["fresh"] and all(b["status"] is None for b in got["breaks"])
+    assert got["breaks"][2]["sample"]["results"][0]["result"] == "1150"
+
+
+def test_a_sample_not_yet_seen_at_the_moment_is_not_read(tmp_path):
+    _beach_water(tmp_path, samples={"IB-079": [
+        ("7953", "2026-10-29", "Enterococcus", "ddPCR", "=", "1150", "Copies/100ml", "2026-10-29T22:00:00Z"),
+        ("7999", "2026-10-30", "Enterococcus", "ddPCR", "=", "300", "Copies/100ml", "2026-10-30T22:00:00Z")]})
+    got = bf.water_quality_story(tmp_path, _at("2026-10-30T02:00:00Z"))
+    assert got["breaks"][2]["sample"]["date"] == "2026-10-29"

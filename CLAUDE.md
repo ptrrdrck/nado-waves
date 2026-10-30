@@ -821,7 +821,7 @@ forecaster actually verifies against, Surfline included.
    update is unopened on this device (`BRIEF_SEEN` in localStorage, through
    the gate's `stored`/`store`); opening the fold, or an update drawn into
    an open one, removes it. **Built every collection; UPDATED only when its
-   alert, swell or tide words change** (owner's call, 2026-10-22, replacing the
+   alert, swell, tide or water quality words change** (owner's call, 2026-10-22, replacing the
    Morning / Midday issues): the build renders the page's own words
    (`briefingwording.render_issue`, Node) and `briefing.settle` compares the
    swell and tide lines with the newest kept line's, so a change below the
@@ -989,7 +989,26 @@ forecaster actually verifies against, Surfline included.
    (`fitBriefTide`, a ResizeObserver, as the fold opens); tapped,
    "Predicted · NOAA 9410170 · departure +1.5 ft (0.46 m)". The record
    keeps the turns, never the curve (`unsparked`). Each turn's words
-   (`briefTideText`) are the ledger's, so the curve was no update. **Every update is kept**:
+   (`briefTideText`) are the ledger's, so the curve was no update.
+   **Water quality**, the last block (owner's request, 2026-10-30;
+   `briefing.water_quality_story`, `briefWater`, BRIEFING §48): the County
+   of San Diego's Beach & Bay Water Quality Monitoring Program (DEHQ) at
+   each break's own station, North EH-060, Center EH-050, South IB-079
+   (`collector/beachwater.json`, the owner's), a ledger row each as the
+   conditions' (`.brief-water`, the name beside the value's first line):
+   the status the county's MAP draws, Open / Advisory / Warning / Closed
+   (`GetEvents`' PriorityMax by the legend's own ids; Closed verified on
+   Silver Strand 30 Oct, the rest by the legend), "until 11 AM Sat" while
+   the county's own lift time lies ahead (a General Rain Advisory is issued
+   with its end; never a computed one), then the newest sample's
+   Enterococcus result, ddPCR's where the day has both methods, else its
+   first, "<" kept, "=" dropped, and its day. A status read more than
+   `WQ_FRESH_H` (3 h) ago is not said: "Status not read since …". Tapped:
+   the station, the event's issue or "open since" the last lift, every
+   result of that day with its method, when it was read, "County of San
+   Diego DEHQ". Its words are an update. Not measured yet: how soon a
+   sample or an advisory reaches the site (first_seen_utc will say).
+   **Every update is kept**:
    `data/briefings/YYYY-MM.jsonl`, append-only, the build and its words; its
    one writer is collect-beach-inputs.yml's "Record the briefing", in a
    sparse worktree of the branch's NEWEST tip, re-appending on a rejected
@@ -1171,6 +1190,21 @@ forecaster actually verifies against, Surfline included.
   than overwriting it. It is plain http
   (`erddap-public.csulbsharklab.org`), denied from a session, and not in
   the staleness alert: a 48 h alert would fire every night.
+- **The county's beach water site is an OutSystems app read through its own
+  screen services** (BRIEFING §48, `collector.probe_beachwater` runs 1–8):
+  the pages are a 2 KB shell; `collector.beachwater` reads the module's
+  scripts from `moduleservices/moduleinfo` EVERY collection for each
+  aggregate's API version (they change when the county redeploys), and
+  calls each as the SCREEN its block is shown on (`BLOCKS`: a block's own
+  name is refused "No role validation found"), the paging as
+  `inputParameters`, the anonymous CSRF token; a refusal comes back inside
+  an HTTP 200, so the body is read. Samples filter by `StationIdFilter`
+  (SiteId is ignored and every station came back), and only a station's
+  own rows are filed under it; the posting report pages past 1,000 rows
+  and lists an event once per beach group, its free text differing.
+  Probe allow-list only: run 3's deny-list let a server action named
+  MigrateSample through (refused for want of a role). Denied from a
+  session; at most every 30 min; not in the staleness alert.
 - **A 404 that used to mean one thing can start meaning another.** NCEP dropped
   the per-station GFS-Wave bulletin files between 2026-09-15 and 2026-09-16;
   the data moved to `gfswave.tHHz.bull_tar` in the same directory. The archive
@@ -1291,6 +1325,18 @@ forecaster actually verifies against, Surfline included.
                         coordinate; plain http, Actions only),
                         probe_sharklab.py (what that ERDDAP serves; its
                         --hubs history and --temps comparison — BRIEFING §47),
+                        beachwater.py + beachwater.json (the county's beach
+                        water quality at each break's station, through the
+                        site's OutSystems screen services: samples, the
+                        posting report's advisories / closures / warnings,
+                        and the map's status, each kept once, at most every
+                        30 min -> data/beach_water/; the registry holds the
+                        county's station codes and site ids, never a
+                        coordinate; Actions only — BRIEFING §48),
+                        probe_beachwater.py (how that site serves its data,
+                        and Coronado's records through the collector's
+                        client; a push to a claude/ branch that changes it
+                        runs it),
                         nhcforecast.py (NHC's official forecast, the OFCL
                         lines of each live storm's a-deck, Actions only —
                         unverified against a live file until its first run),
@@ -1431,7 +1477,8 @@ forecaster actually verifies against, Surfline included.
                         and over which hours; the Briefing's top line and
                         the Forecast tab's, alerts.json             [built]
       briefing.py       the LIVE tab's Briefing: built every collection,
-                        updated when its swell or tide words change, each
+                        updated when its alert, swell, tide or water quality
+                        words change, each
                         update kept in data/briefings/             [built]
       trainmatch.py     a break's train to the buoy train it is, for the
                         Briefing's one line a swell; and the archive and
@@ -1475,6 +1522,13 @@ forecaster actually verifies against, Surfline included.
                         and the break its newest fix in the water serves;
                         state.json, the last fetch (collector.sharklab, its
                         one writer)
+    data/beach_water/   samples/<station>.csv, each sample once by the
+                        county's id (date and time Pacific, as given);
+                        events.csv, the three stations' advisories, closures
+                        and warnings, a moved lift time a new row;
+                        status.csv, each status change as first seen;
+                        state.json, the last read and each station's status
+                        (collector.beachwater, its one writer)
     data/briefings/     YYYY-MM.jsonl: every Briefing update, as built and as
                         worded (18–22 Oct: the Morning / Midday issues).
                         PERMANENT, append-only, one writer ("Record the

@@ -515,7 +515,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
     <section id="briefing-stories">
       <h3>What it says</h3>
       <p>When the National Weather Service has a coast or ocean alert in force, it comes first, a
-        line each (<a href="#briefing-alerts">below</a>). Then three blocks, always in the same
+        line each (<a href="#briefing-alerts">below</a>). Then four blocks, always in the same
         order:</p>
       <ul>
         <li><b>Swell</b>: two sources, never matched to each other. First the beach, from CDIP
@@ -574,13 +574,29 @@ svg text{font-family:Archivo,system-ui,sans-serif}
           recent readings, broken where one is missing: water over 14 days, air and humidity over
           24 hours, pressure over 3 days, and rain a bar a day for a week. Tap a row to see when it
           was read, by which station, and the reading it is compared with.</li>
+        <li><b>Water quality</b>: the County of San Diego's Beach &amp; Bay Water Quality Monitoring
+          Program (the Department of Environmental Health and Quality) samples each break: Coronado
+          North Beach (EH-060) for North, Coronado Main Lifeguard Tower (EH-050) for Center and
+          Avenida Lunar (IB-079) for South. A row each: the status the county's own map shows,
+          <i>Open</i>, <i>Advisory</i>, <i>Warning</i> or <i>Closed</i>, with the county's end when it
+          has set one (&ldquo;until 11&nbsp;AM Sat&rdquo;: a General Rain Advisory is issued with its
+          end, 72 hours after the rain), then the station's newest sample: its Enterococcus result
+          (the DNA count, ddPCR, where that day has both it and a culture count), else its first, and
+          the day it was taken. The county does not sample every day, and stops during a rain
+          advisory, so the newest sample can be a few days old; a missing day is never filled in.
+          Results are as the county posts them, &ldquo;&lt;195&rdquo; meaning below the lowest the test
+          reports. The status is read from the county's site at most every 30 minutes; if it has
+          not been read for 3 hours, the row says when it last was instead of a status. Tap a row for
+          the station, when the sample was taken, every result of that day, when an advisory or
+          closure was issued (or when the last one was lifted), and when the status was read. The
+          county's site, not this page, is where a closure is announced; this repeats it.</li>
       </ul>
     </section>
 
     <section id="briefing-words">
       <h3>When it updates</h3>
       <p>It is rebuilt with every collection, but it <i>updates</i> only when what it says about the
-        alerts, the swell or the tides changes, as printed: a change too small to show is no update. The
+        alerts, the swell, the tides or the water quality changes, as printed: a change too small to show is no update. The
         conditions refresh with each collection without counting as one. Each update is kept in
         the repository's record of briefings, words and numbers, with the conditions of that
         moment.</p>

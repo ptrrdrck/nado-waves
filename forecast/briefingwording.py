@@ -70,6 +70,22 @@ QUIET = {
                               "rain": {"days": [["2026-10-16", 0.0], ["2026-10-17", None], ["2026-10-18", 0.0],
                                                 ["2026-10-19", 0.0], ["2026-10-20", 0.0], ["2026-10-21", 0.15],
                                                 ["2026-10-22", 0.0]]}}},
+    "water_quality": {"checked_utc": "2026-10-22T14:05:00Z", "fresh": True, "breaks": [
+        {"id": N, "station": "EH-060", "name": "Coronado North Beach", "status": "Open", "event": None,
+         "open_since_utc": "2026-10-20T23:37:00Z",
+         "sample": {"date": "2026-10-21", "time": "06:28:00", "results": [
+             {"parameter": "Enterococcus", "method": "ddPCR", "qualifier": "=", "result": "1379",
+              "units": "Copies/100ml"}]}},
+        {"id": C, "station": "EH-050", "name": "Coronado Main Lifeguard Tower", "status": "Open", "event": None,
+         "open_since_utc": "2026-10-20T23:49:00Z",
+         "sample": {"date": "2026-10-21", "time": "06:49:00", "results": [
+             {"parameter": "Enterococcus", "method": "ddPCR", "qualifier": "=", "result": "793",
+              "units": "Copies/100ml"}]}},
+        {"id": S, "station": "IB-079", "name": "Avenida Lunar", "status": "Open", "event": None,
+         "open_since_utc": "2026-10-20T23:49:00Z",
+         "sample": {"date": "2026-10-22", "time": "07:06:00", "results": [
+             {"parameter": "Enterococcus", "method": "ddPCR", "qualifier": "<", "result": "195",
+              "units": "Copies/100ml"}]}}]},
     "tide": {"day": "2026-10-22", "departure_m": 0.31, "turns": [
         {"valid_utc": "2026-10-22T10:15:00Z", "height_m": 0.21, "event": "low"},
         {"valid_utc": "2026-10-22T16:32:00Z", "height_m": 1.62, "event": "high"},
@@ -107,6 +123,18 @@ SMALL_CRAFT = {**COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.example.002.1", "e
                "ends_utc": None}
 ENDED = {**COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.example.003.1", "event": "High Surf Advisory",
          "ends_utc": "2026-10-22T14:20:00Z"}
+
+RAIN = {"type": "Advisory", "issued_utc": "2026-10-21T18:00:00Z", "lifted_utc": "2026-10-24T18:00:00Z"}
+
+
+def _water(**per_break):
+    """QUIET's water quality with some breaks changed, by break id."""
+
+    w = copy.deepcopy(QUIET["water_quality"])
+    for b in w["breaks"]:
+        b.update(per_break.get(b["id"], {}))
+    return w
+
 
 #: (id, what it is, the briefing.json). One per branch the page can take.
 CASES = [
@@ -146,6 +174,28 @@ CASES = [
                         {"valid_utc": "2026-10-22T20:05:00Z", "height_m": 1.71, "event": "high"}])),
     ("A1", "two NWS alerts in force, one with no end, and one that ended after the build, which drops",
      _case(alerts=[COASTAL_FLOOD, SMALL_CRAFT, ENDED])),
+    ("R1", "a General Rain Advisory at all three, the county's end ahead: until when, and the samples "
+           "from before it",
+     _case(water_quality=_water(**{k: {"status": "Advisory", "event": RAIN, "open_since_utc": None}
+                                  for k in (N, C, S)}))),
+    ("Z1", "South closed with no end set, North's day of four results (the City of Coronado's lab), "
+           "Center with no sample yet",
+     _case(water_quality=_water(**{
+         S: {"status": "Closed", "open_since_utc": None,
+             "event": {"type": "Closure", "issued_utc": "2026-10-15T22:46:00Z", "lifted_utc": None}},
+         N: {"sample": {"date": "2026-10-20", "time": "08:16:00", "results": [
+             {"parameter": "Enterococcus", "method": "Enterolert", "qualifier": "<", "result": "10",
+              "units": "MPN/100ml"},
+             {"parameter": "Enterococcus", "method": "ddPCR", "qualifier": "=", "result": "2957",
+              "units": "Copies/100ml"},
+             {"parameter": "Fecal Coliforms", "method": "MTF", "qualifier": "<", "result": "20",
+              "units": "MPN/100ml"},
+             {"parameter": "Total Coliforms", "method": "MTF", "qualifier": "=", "result": "40",
+              "units": "MPN/100ml"}]}},
+         C: {"sample": None}}))),
+    ("S1", "the county's status last read too long ago: no status, when it was read, the samples kept",
+     _case(water_quality={**_water(**{k: {"status": None, "open_since_utc": None} for k in (N, C, S)}),
+                          "checked_utc": "2026-10-22T09:35:00Z", "fresh": False})),
     ("Y1", "yesterday's update, read this morning",
      _case(updated_utc="2026-10-21T19:06:00Z", key="2026-10-21T19:06:00Z")),
     ("X1", "nothing built yet", {"available": False, "why": "no briefing has been built yet"}),
@@ -208,12 +258,15 @@ def code(source: str) -> str:
 TEXT = r"""
 const text = (html) => html
   .replace(/ <span class="unit">(?!\()/g, " ")
-  .replace(/<[^>]+>/g, "").replace(/\u00a0/g, " ").trim();
+  .replace(/<[^>]+>/g, "").replace(/\u00a0/g, " ")
+  .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&")
+  .trim();
 const words = (B, readAt) => {
   const p = briefingParts(B, readAt);
   return p ? {line: text(briefLine(B, readAt)), alerts: p.alerts.map((a) => text(alertText(a, B.built_utc))), swell: p.swell.map((r) => text(briefSwellText(r))),
-              conditions: p.conditions.map((r) => text(briefCondText(r))), tides: p.tides.map((r) => text(briefTideText(r)))}
-           : {line: null, alerts: [], swell: [], conditions: [], tides: []};
+              conditions: p.conditions.map((r) => text(briefCondText(r))), tides: p.tides.map((r) => text(briefTideText(r))),
+              water_quality: p.water_quality.map((r) => text(briefWaterText(r)))}
+           : {line: null, alerts: [], swell: [], conditions: [], tides: [], water_quality: []};
 };
 """
 
@@ -253,7 +306,8 @@ console.log(JSON.stringify(words(B, Date.parse(B.built_utc))));
 
 #: The fold's order (owner's calls: the tide above the conditions, 2026-10-23;
 #: NWS's alerts the top line, 2026-10-24).
-BLOCKS = (("alerts", "Alerts"), ("swell", "Swell"), ("tides", "Tides"), ("conditions", "Conditions"))
+BLOCKS = (("alerts", "Alerts"), ("swell", "Swell"), ("tides", "Tides"), ("conditions", "Conditions"),
+          ("water_quality", "Water quality"))
 
 
 def permutations(rendered: dict[str, dict]) -> str:
@@ -288,7 +342,7 @@ the page will read as the page's again until that happens. The formula is in
 """
 
 #: Each line's number in the list, by its block.
-PREFIX = {"alerts": "AL", "swell": "SW", "conditions": "CO", "tides": "TI"}
+PREFIX = {"alerts": "AL", "swell": "SW", "conditions": "CO", "tides": "TI", "water_quality": "WQ"}
 
 
 def sentences(rendered: dict[str, dict]) -> str:

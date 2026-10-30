@@ -15,7 +15,7 @@ the page will read as the page's again until that happens. The formula is in
 
 ## The fold's line
 
-- Briefing updated 7:16 AM  (Q1, B1, C1, M1, H1, D1, W1, K1, A1)
+- Briefing updated 7:16 AM  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, R1, Z1, S1)
 - Briefing updated Oct 21, 12:06 PM  (Y1)
 
 ## Alerts
@@ -27,9 +27,9 @@ AL2. Small Craft Advisory in effect  (A1)
 
 ## Swell
 
-SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, H1, W1, K1, A1, Y1)
+SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, H1, W1, K1, A1, R1, Z1, S1, Y1)
 
-SW2. SSW at 13.3 s, holding.  (Q1, W1, K1, A1, Y1)
+SW2. SSW at 13.3 s, holding.  (Q1, W1, K1, A1, R1, Z1, S1, Y1)
 
 SW3. 2–5 ft (0.6–1.5 m).  (B1)
 
@@ -54,13 +54,13 @@ SW12. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
 
 ## Tides
 
-TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, H1, D1, W1, A1, Y1)
+TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, H1, D1, W1, A1, R1, Z1, S1, Y1)
 
-TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, H1, D1, W1, A1, Y1)
+TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, H1, D1, W1, A1, R1, Z1, S1, Y1)
 
-TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, H1, D1, W1, A1, Y1)
+TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, H1, D1, W1, A1, R1, Z1, S1, Y1)
 
-TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, H1, D1, W1, A1, Y1)
+TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, H1, D1, W1, A1, R1, Z1, S1, Y1)
 
 TI5. AM low −0.7 ft (−0.21 m) at 6:40 AM  (K1)
 
@@ -69,19 +69,46 @@ TI6. PM high 5.6 ft (1.71 m) at 1:05 PM  (K1)
 
 ## Conditions
 
-CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, H1, D1, A1, Y1)
+CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, H1, D1, A1, R1, Z1, S1, Y1)
 
-CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, H1, D1, W1, A1, Y1)
+CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, H1, D1, W1, A1, R1, Z1, S1, Y1)
 
-CO3. Humidity 88%, steady  (Q1, B1, C1, M1, H1, D1, W1, A1, Y1)
+CO3. Humidity 88%, steady  (Q1, B1, C1, M1, H1, D1, W1, A1, R1, Z1, S1, Y1)
 
-CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, H1, D1, W1, A1, Y1)
+CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, H1, D1, W1, A1, R1, Z1, S1, Y1)
 
 CO5. Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
 
 CO6. Rain 0.00 in (0.0 mm) in the last hour, 0.24 in (6.1 mm) in 24 h  (C1)
 
 CO7. Water 73 °F (22.7 °C), steady  (W1)
+
+
+## Water quality
+
+WQ1. North Open · Enterococcus 1,379 copies/100 mL on 21 Oct  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
+
+WQ2. Center Open · Enterococcus 793 copies/100 mL on 21 Oct  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
+
+WQ3. South Open · Enterococcus <195 copies/100 mL on 22 Oct  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
+
+WQ4. North Advisory until 11 AM Sat · Enterococcus 1,379 copies/100 mL on 21 Oct  (R1)
+
+WQ5. Center Advisory until 11 AM Sat · Enterococcus 793 copies/100 mL on 21 Oct  (R1)
+
+WQ6. South Advisory until 11 AM Sat · Enterococcus <195 copies/100 mL on 22 Oct  (R1)
+
+WQ7. North Open · Enterococcus 2,957 copies/100 mL on 20 Oct  (Z1)
+
+WQ8. Center Open · no sample yet  (Z1)
+
+WQ9. South Closed · Enterococcus <195 copies/100 mL on 22 Oct  (Z1)
+
+WQ10. North Status not read since 2:35 AM · Enterococcus 1,379 copies/100 mL on 21 Oct  (S1)
+
+WQ11. Center Status not read since 2:35 AM · Enterococcus 793 copies/100 mL on 21 Oct  (S1)
+
+WQ12. South Status not read since 2:35 AM · Enterococcus <195 copies/100 mL on 22 Oct  (S1)
 
 ## The cases
 
@@ -94,5 +121,8 @@ CO7. Water 73 °F (22.7 °C), steady  (W1)
 - **W1**: the water from Center's hub, yesterday's (the lab loads it each night); 46232 only when no hub has a reading
 - **K1**: no water temperature, no KNZY report, a minus tide
 - **A1**: two NWS alerts in force, one with no end, and one that ended after the build, which drops
+- **R1**: a General Rain Advisory at all three, the county's end ahead: until when, and the samples from before it
+- **Z1**: South closed with no end set, North's day of four results (the City of Coronado's lab), Center with no sample yet
+- **S1**: the county's status last read too long ago: no status, when it was read, the samples kept
 - **Y1**: yesterday's update, read this morning
 - **X1**: nothing built yet
