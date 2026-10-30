@@ -33,6 +33,7 @@ samples page did not parse to a table, 0 when it did.
 from __future__ import annotations
 
 import argparse
+import http.cookiejar
 import json
 import re
 import sys
@@ -64,6 +65,11 @@ SCRIPT_URL = re.compile(
     r"""(?:api|Api|API|Get[A-Z][A-Za-z]*|Report|Sample|Site|Beach|Status|"""
     r"""Advisor|Closure)[A-Za-z0-9_\-/.?=&{}$]*)["'`]"""
 )
+
+#: One cookie jar for the run: an OutSystems app sets its visitor cookies on
+#: the first page and reads them back on every screen service.
+JAR = http.cookiejar.CookieJar()
+OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(JAR))
 
 SHOWN_ROWS = 25
 RAW_HEAD = 6000
@@ -236,7 +242,7 @@ def fetch(url: str, *, timeout: float = 60.0, body: dict | None = None,
     head.update(headers or {})
     request = urllib.request.Request(url, data=data, headers=head)
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with OPENER.open(request, timeout=timeout) as response:
             result.status = response.status
             result.content_type = response.headers.get("Content-Type", "")
             result.final_url = response.geturl()
@@ -361,11 +367,20 @@ OS_WRITES = re.compile(r"subscri|suscri|save|create|update|delete|send|register|
 OS_SCRIPTS = re.compile(
     r"/scripts/(?:CoSD_Beach_Water_CW\.MainFlow\.(?:Sample\w*|HomeBlockNew|BlockLegend|BlockMarkup|"
     r"HistoricalReportsBlock|ExportBlock|FieldShow)\.mvc|sdbeachinfo\.MainFlow\.(?:SamplesReport|Home|"
-    r"SamplePostingReport|HistoricalReports)\.mvc|CoSD_Beach_Water_C[SW]\.model|sdbeachinfo\.model)\.js$"
+    r"SamplePostingReport|HistoricalReports)\.mvc)\.js$"
 )
 
 #: Characters of each JSON response printed.
 OS_SHOWN = 16000
+
+#: The screen each block is shown on: the server checks a request's
+#: `viewName` against the screens it knows ("No role validation found" for
+#: a block's own name, run 3).
+OS_HOSTS = {"SampleBlock": ["MainFlow.SamplesReport"],
+            "SamplePostingReportBlock": ["MainFlow.SamplePostingReport"],
+            "HomeBlockNew": ["MainFlow.Home"], "BlockMarkup": ["MainFlow.Home"],
+            "BlockLegend": ["MainFlow.Home"], "ExportBlock": ["MainFlow.Home"],
+            "HistoricalReportsBlock": ["MainFlow.HistoricalReports"]}
 
 #: An empty value per OutSystems type, for a screen variable the probe does
 #: not set. Long integers and decimals travel as strings.
@@ -427,47 +442,66 @@ def outsystems(out: list[str], index_token: str, site_id: int) -> int:
             out.append(f"    {kind} {name}: {path} api {api}")
             calls.append((key, kind, name, path, api, attrs))
             i = f.body.find(path)
-            out.append(f"      before: {f.body[max(0, i - 2500):i]!r}")
-            out.append(f"      after: {f.body[i:i + 1500]!r}")
+            out.append(f"      before: {f.body[max(0, i - 700):i]!r}")
         words = sorted(set(re.findall(r'"([^"]{0,80}(?:Advisory|Closure|Closed|Open|Rain|Expir|Status|Result|'
                                       r'Enterococ|Coliform|Fecal)[^"]{0,80})"', f.body)))
         if words:
             out.append(f"    strings: {words[:120]}")
 
+    # How the runtime builds an aggregate's request, and every header it sets.
+    runtime = next((k for k in urls if k.endswith("/OutSystems.js")), None)
+    rt = fetch(module_url(runtime, urls[runtime])) if runtime else None
+    if rt and rt.ok:
+        for pat in (r"callAggregateWithStartIndexAndClientVars\s*=\s*function", r"\.callAggregate\w*=function",
+                    r"viewName", r"screenData", r"No role validation", r"rolesInfo", r"setHeader\("):
+            hits = [m.start() for m in re.finditer(pat, rt.body)][:4]
+            for i in hits:
+                out.append(f"  runtime [{pat}]: {rt.body[max(0, i - 300):i + 500]!r}")
+    out.append(f"  cookies: {[c.name for c in JAR]}")
+
     answered = 0
     out.append(f"\n# Calling read-only screen services ({len(calls)} found)")
     for key, kind, name, path, api, attrs in calls:
-        if OS_WRITES.search(name):
-            out.append(f"  SKIP {kind} {name} (could write)")
+        # An allow-list (run 3 called a server action named MigrateSample on
+        # a deny-list, which the server refused for want of a role): only
+        # aggregates, data actions and server actions named Get...
+        reads = kind.startswith("callAggregate") or kind == "callDataAction" or name.startswith("Get")
+        if not reads or OS_WRITES.search(name) or "/FieldShow/" in path:
+            out.append(f"  SKIP {kind} {name}")
             continue
-        parts = path.split("/")
-        views = [f"{parts[2]}.{parts[3]}"]
-        if "SamplesReport" not in views[0]:
-            views.append("MainFlow.SamplesReport")
+        block = path.split("/")[3]
+        views = OS_HOSTS.get(block, []) + [f"MainFlow.{block}"]
         variables = {}
         for _, var, ext, _, _, dtype in attrs:
             value = OS_EMPTY.get(dtype, "")
+            if dtype in ("Record", "RecordList"):
+                continue
             if "siteid" in ext.lower():
                 value = str(site_id) if dtype == "LongInteger" else site_id
+            if ext == "MaxRecords":
+                value = 100
+            if ext == "isPublic":
+                value = True
             variables[ext] = value
-        variables.setdefault("SiteId", site_id)
         for view in views:
+            body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api}, "viewName": view}
             if kind.startswith("callServerAction"):
-                body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api},
-                        "viewName": view, "inputParameters": {"SiteId": site_id}}
+                body["inputParameters"] = {}
             else:
-                body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api},
-                        "viewName": view, "screenData": {"variables": variables}, "clientVariables": {}}
+                body["screenData"] = {"variables": variables}
+                body["clientVariables"] = {}
             f = fetch(f"{base}/{path}", body=body, headers={"X-CSRFToken": OS_CSRF_DEFAULT})
-            out.append(f"\n  {kind} {name} as {view}: HTTP {f.status} {f.error[:800]}")
-            out.append(f"    sent variables: {json.dumps(variables)[:1500]}")
-            if f.ok:
+            got = {}
+            try:
+                got = json.loads(f.body) if f.ok else {}
+            except ValueError:
+                pass
+            err = (got.get("exception") or {}).get("message", "")
+            out.append(f"\n  {kind} {name} as {view}: HTTP {f.status} {f.error[:500]} {err}")
+            if f.ok and not err:
                 answered += 1
-                try:
-                    text = json.dumps(json.loads(f.body), indent=1)
-                except ValueError:
-                    text = f.body
-                out.append(text[:OS_SHOWN])
+                out.append(f"    sent variables: {json.dumps(variables)[:1500]}")
+                out.append(json.dumps(got, indent=1)[:OS_SHOWN])
                 break
     return answered
 
