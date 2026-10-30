@@ -248,6 +248,13 @@ ol.pins li{display:flex;gap:10px}
 
 /* tables */
 .tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+/* Wide (owner's decision, 2026-10-29): a table or a block of working wider
+   than the reading column grows to fit it, centred on the column, up to
+   64rem, rather than scrolling inside it; the prose keeps its measure. */
+@media (min-width: 1100px){
+  article .tablebox,article pre{width:max-content;min-width:100%;max-width:min(64rem,calc(100vw - 96px));
+    align-self:center}
+}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
   letter-spacing:.07em;font-size:13px;color:var(--soft);text-align:left;padding:9px 12px;
@@ -438,6 +445,31 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       </ol>
     </section>
 
+    <section id="start-wide">
+      <h3>On a wider screen</h3>
+      <p>The page above is a phone's. Wider than a phone, the same cards are laid out to use the
+        room; what they say does not change.</p>
+      <ul>
+        <li><b>A tablet held upright</b> (700 to 949 px wide) keeps the tabs, with Wind and Tide
+          side by side under the Swell card.</li>
+        <li><b>From 950 px</b>, the three breaks sit side by side: North, Center, South, in the
+          order they sit on the sand, never ranked, so a column's place is its break's. Each
+          column's headline, calculation rows, trains and drawing sit level with the same ones
+          beside it, and one caret opens all three calculations. The buoys get a card of their
+          own, three across. <a href="#swell-origin">Origin</a> becomes one block for the beach.
+          The swell's charts get a card of their own too, with the break or the buoys picked
+          above the plot. The Wind card gives every break's offshore, cross-shore or onshore
+          line, and the Sun card every break's sunset, each under its break's name.</li>
+        <li><b>From 1280 px</b>, what the whole beach shares sits in a column at the left: the
+          tabs, the Briefing, then Wind, Tide and Sun. The breaks, the buoys and the charts sit
+          beside it.</li>
+      </ul>
+      <p>On a wide screen the <a href="#briefing">Briefing</a> is always open. Its green dot then
+        marks an update you have not been at the page for, and goes at your next touch, click,
+        key or scroll anywhere on it. And every chart has a button beside its menu that opens it
+        full screen; the same button, or Escape, closes it.</p>
+    </section>
+
     <section id="start-standing">
       <h3>What each tab is standing on, right now</h3>
       <p>Each tab's file says which of the four confidence levels (geometry, model, calibration,
@@ -510,7 +542,8 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       beaches, so the cards need not be put together by hand. Closed, it says only
       &ldquo;Briefing&rdquo; and when it last updated, with a green dot while that update is one you
       have not opened on this device; opening it removes the dot. Nothing about the conditions
-      shows until it is opened.</p>
+      shows until it is opened. On a wide screen it is always open, and the dot goes at your next
+      touch, click, key or scroll on the page (<a href="#start-wide">On a wider screen</a>).</p>
 
     <section id="briefing-stories">
       <h3>What it says</h3>
@@ -1118,7 +1151,9 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
       <p>One tab per break, ranked by how much of the buoy's energy its windows let through, with
         the Buoys tab always last. It shows the swell at CDIP 191, 29 km offshore, with nothing in
         the way, so it is always the biggest number, and it is the one the breaks are measured
-        from.</p>
+        from. On a wide screen there are no break tabs: the breaks sit side by side, North to
+        South, and the buoys are a card of their own (<a href="#start-wide">On a wider
+        screen</a>).</p>
       <p>On &ldquo;LIVE&rdquo;, each buoy's provenance is one line of joined pills, each
         growing out of the one before it: the station, with a dot, then how long ago its spectrum
         was taken, then the countdown to the next. The Wind and Tide cards' provenance is the
@@ -1334,6 +1369,10 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
 
     <section id="swell-origin">
       <h3>Origin: where the swell was born</h3>
+      <p>On a wide screen, where the breaks sit side by side, Origin is one block for the beach
+        under them: each arrival once, under the names of the breaks it reaches. An arrival that
+        reads differently at two breaks, another train or another period, is listed for each, in
+        its own words. The rest of this section describes one break's.</p>
       <p>On &ldquo;LIVE&rdquo;, the <b>Origin</b> line folds out, like the charts, from its own
         line right above &ldquo;Charts&rdquo;. The number in parentheses beside its title counts the
         origins arriving at that tab now, named hurricanes and readings alike, and is not there
@@ -1531,7 +1570,8 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
       <h3>Offshore, cross-shore, onshore or light</h3>
       <p>Whether a wind is offshore depends on which way the beach faces, and the three breaks
         face <span data-geo="normals">—</span>. So the line is per break, shown for the break
-        whose tab is open and hidden on the buoy's tab.</p>
+        whose tab is open and hidden on the buoy's tab. On a wide screen, with no tabs, every
+        break's line is shown, each naming its break.</p>
 <pre class="math">offshore component = −cos(wind from − shore normal)     <span class="c">+1 straight off the land, −1 straight off the sea</span>
   &gt; +0.3   offshore          <span class="c">within 72.5° of straight off the land</span>
   &lt; −0.3   onshore           <span class="c">within 72.5° of straight off the sea</span>
@@ -1668,7 +1708,8 @@ declination  (K1 − O1 Greenwich phase) / (K1 − O1 speed) = +14.4 h</pre>
         above the horizon. The sun goes behind it some 5&ndash;8 minutes before the published
         time. The card's headline is that sunset, at the open break: <em>behind Point Loma</em>
         and how many minutes before the sea-horizon time. On the Buoys tab there is no beach, so
-        the headline is the sea-horizon time.</p>
+        the headline is the sea-horizon time. On a wide screen every break's sunset is shown, each
+        under its name, then the sea horizon's.</p>
       <p>Each break has its own skyline, traced from the break over the same USGS CoNED survey the
         seabed comes from: it is a topographic and bathymetric survey, so Point Loma's land is in
         it beside the seabed. Along each bearing, the highest angle any land stands above the
@@ -1730,6 +1771,23 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
       <p>On the Forecast tab, the arrows step through the hours three at a time, and tapping the
         hour beside them opens the full list. It opens on the first hour not yet passed, never one
         that has.</p>
+    </section>
+
+    <section id="time-week">
+      <h3>The week strip</h3>
+      <p>Above the Swell card on the Forecast tab, the <b>Week</b> card gives every day the run
+        covers a cell for each break: the range of its breaking heights over that day's daylight
+        hours, sunrise to sunset at the center break. The range is floored and ceiled to whole
+        feet, at least a foot apart, as the <a href="#briefing">Briefing's</a> headline range
+        is. Days already gone are grey, and a break with no daylight figure that day shows a
+        dash.</p>
+      <p>The outlined day is the one the cards below are showing. Picking a day shows the
+        biggest daylight hour at whichever break is biggest that day; tapping a cell shows the
+        biggest daylight hour at that cell's break. Either is an hour the picker above offers,
+        so the arrows carry on from it, and the strip follows the picker the other way.</p>
+      <p>On a phone the days slide sideways under a fixed outline and settle one at a time.
+        Whichever day settles in the outline is picked; tapping a day beside it slides it in
+        first. Wider than a phone, every day sits in a row and the outline moves.</p>
     </section>
 
     <section id="time-past" data-from="info: past hours">
@@ -1853,7 +1911,8 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
           gap. The newest report is on the chart as soon as it is on the card, under the coming
           hour it stands for.</dd>
         <dt>Shore direction</dt><dd>How often the airfield's wind has been offshore, cross-shore,
-          onshore or light at the break whose tab is open, one bar for each hour of the day on your
+          onshore or light at the break whose tab is open (on a wide screen, the break picked above
+          the swell's charts), one bar for each hour of the day on your
           clock. Each bar is that hour on every day counted, one reading a day, by the
           <a href="#wind-sense">same rule</a> as the card. The readout says &ldquo;over N
           days&rdquo;, because a bar is many days' readings, not one hour's.</dd>
@@ -1912,8 +1971,8 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
           have passed, the airfield's measured wind in blue. In grey, GFS-Wave's own wind at the
           buoy, the one the model makes its wind sea from: hourly to five days and every third hour
           after, joined across the hours it does not give, never across a measured gap.</dd>
-        <dt>Shore direction</dt><dd>The local forecast's wind at the break whose tab is open, one
-          row a day and one square an hour, so which mornings are offshore reads straight off it.
+        <dt>Shore direction</dt><dd>The local forecast's wind at the break whose tab is open (on a
+          wide screen, the break picked above the swell's charts), one row a day and one square an hour, so which mornings are offshore reads straight off it.
           An hour the forecast does not cover is an empty square.</dd>
         <dt>Tide</dt><dd>The harmonic tide at the open coast with the measured departure added, as
           the card's is, and the gauge's measured level in blue beside the hours that have

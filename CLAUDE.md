@@ -841,7 +841,9 @@ forecaster actually verifies against, Surfline included.
    triangle, the event linking to NWS's showsigwx page as the owner's link
    has it, a grey NWS tag, and tapped NWS's own `headline` — NWS's words,
    escaped, and exempt from the page's vocabulary test because "Rip Current
-   Statement" is NWS's name. Coast and ocean only (owner's choice): every
+   Statement" is NWS's name; the first alert as far under the Briefing's
+   line as the Forecast tab's under its date, ink to ink, in every layout
+   (owner's request, 2026-10-30). Coast and ocean only (owner's choice): every
    alert for PZZ750, and CAZ043's events in `COASTAL_EVENTS`, never heat,
    fire weather or wind on land, never a Test. In force is NWS's own times:
    onset (never before `sent`) to `ends` (`expires` without one); a later
@@ -1034,7 +1036,8 @@ forecaster actually verifies against, Surfline included.
    hand) by `forecast/briefingwording.py`, both pinned by a test.
    **The foot of the page** (owner's design, 2026-10-28): ONE line,
    "Docs | Observer | Units [Both] | ◐", spread over the Briefing line's
-   width at every size, Docs under its words and the glyph's ink under its
+   width (at most a phone's 560 px on a tablet or a stack layout, owner's
+   call 2026-10-30; the console's sits in its rail), Docs under its words and the glyph's ink under its
    caret's, with no rule above (owner's calls, 2026-10-29) — Docs in ink at the line's
    weight, Observer the gate's checkbox drawn as a switch, Units a bordered
    chip that shows its setting and cycles Both → Imperial → Metric on a tap
@@ -1045,6 +1048,56 @@ forecaster actually verifies against, Surfline included.
    gaps close, keeping one line at 320. The theme is applied before the
    first paint by a script at the top of the page (docs.html too, which
    follows the same saved choice) and sets `color-scheme` with it.
+   **Wider than a phone** (owner's decision, 2026-10-29: option B,
+   "Console", of three put to the owner, with the owner's picks on each
+   fold): the script sets the root's `data-layout` from `LAYOUTS` and every
+   wide rule is keyed to it, never to a width of its own. **The phone page
+   (< 700 px) is untouched**, and that was checked, not assumed: a layout
+   dump of every element at 320–698 px on both tabs, folds open and closed,
+   equal to master's, and pixels equal at 320–414. *tablet* (700–949) keeps
+   the tabs, Wind and Tide side by side. *stack* (950–1279) and *console*
+   (1280 up) are other markup (`swellWide`), redrawn on crossing a width:
+   the three breaks as columns NORTH TO SOUTH, never ranked (a column's
+   place is its break's), each column's headline, calculation rows (by
+   step name), trains and measured line held level by `alignCols`, one
+   caret opening all three calculations; the buoys a card of their own,
+   three across; Origin ONE block for the beach (`beachOrigin`): each
+   entry exactly as a break's fold words it, once, under the breaks that
+   show it, so nothing is reworded and an entry that differs by train or
+   period is two; the swell's charts a card of their own with the break
+   picked above the plot (`selectSwellTab` picks only that, there), and
+   every chart drawn at its own width (`chartDims`: 320 units on a phone,
+   its CSS pixels wider, so the text stays the phone's size) with a
+   full-screen button (`setChartMax`, Escape closes); the Wind card every
+   break's verdict, each naming its break, and the Sun card every break's
+   sunset. Console adds a rail: the tabs, the Briefing ALWAYS OPEN with no
+   caret, then Wind, Tide and Sun, the main column one grid item spanning
+   every row (`grid-template-rows: repeat(14, auto) 1fr`) so the rail
+   stacks on its own. On a wide screen the Briefing's dot marks an update
+   the reader has not been AT THE PAGE for (owner's call): it goes at their
+   next touch, click, key or scroll (`briefTouched`), not when drawn.
+   docs.html: its tables and worked math wider than the reading column
+   grow to fit, centred, up to 64rem, from 1100 px; the owner's contents
+   pill (same day) is the page's navigation, so no second one was added.
+   **The week strip** (owner's request, 2026-10-30, version C of three
+   mocked; `weekCard`): on the Forecast tab only, above the Swell card (a
+   card of its own on a phone or tablet, the main column's first wider), a
+   cell a day and a break, the range of breaking heights over the day's
+   DAYLIGHT steps -- sunrise to sunset at the center break from
+   forecast.json's `sun` (6 AM–6 PM only for a day without it; the mock
+   said 6–6, and the 5 PM step is after dark in winter) -- floored and
+   ceiled to whole feet as the Briefing's headline range is, the cards' own
+   heights (`cardsForForecast`), past hours as shown then. A day picks its
+   biggest break's biggest daylight hour, a cell its own break's
+   (`weekBest`, the earlier on a tie), through the picker's `choose`, and
+   the strip follows the picker. On a phone a carousel under ONE fixed
+   outline round the three cells, snapping a day at a time
+   (`scroll-snap-stop: always`), the days off it smaller and fainter, the
+   day that settles there picked -- never under a finger (`WEEK_TOUCH`); a
+   tap on a day beside it slides it in, then picks. Wider, every day in a
+   row, the outline on the picked one. The phone's Forecast tab was checked
+   to change by that card alone: every other element as master's, moved
+   down by its height.
    **The log-first gate** (owner's call, 2026-10-16): "Wave observer", the
    Observer switch, kept in localStorage (with the Briefing's last opened
    update and the Units and theme settings, its only uses, pinned). On such a device the page opens on "Logging the beach today?"
