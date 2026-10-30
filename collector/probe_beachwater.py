@@ -388,6 +388,65 @@ OS_EMPTY = {"LongInteger": "0", "Integer": 0, "Decimal": "0", "Currency": "0", "
             "Date": "1900-01-01", "DateTime": "1900-01-01T00:00:00", "Time": "00:00:00"}
 
 
+#: Rows an aggregate is asked for.
+OS_MAX_RECORDS = 200
+
+
+def xlsx_rows(data: bytes, limit: int = 400) -> list[list[str]]:
+    """An .xlsx file's first sheet as rows of text, by the standard library
+    alone (the runner has no openpyxl)."""
+
+    import io
+    import xml.etree.ElementTree as ET
+    import zipfile
+
+    ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        names = z.namelist()
+        shared = []
+        if "xl/sharedStrings.xml" in names:
+            for si in ET.fromstring(z.read("xl/sharedStrings.xml")).findall("m:si", ns):
+                shared.append("".join(t.text or "" for t in si.iter(f"{{{ns['m']}}}t")))
+        sheet = min(n for n in names if n.startswith("xl/worksheets/sheet"))
+        rows = []
+        for row in ET.fromstring(z.read(sheet)).iter(f"{{{ns['m']}}}row"):
+            cells = []
+            for c in row.findall("m:c", ns):
+                v = c.find("m:v", ns)
+                text = v.text if v is not None else "".join(t.text or "" for t in c.iter(f"{{{ns['m']}}}t"))
+                if c.get("t") == "s" and text is not None:
+                    text = shared[int(text)]
+                cells.append(f"{c.get('r')}={text}")
+            rows.append(cells)
+            if len(rows) >= limit:
+                break
+        return rows
+
+
+def binaries(node):
+    """A response with every base64 file in it read: an .xlsx as its rows,
+    anything else as its first bytes."""
+
+    import base64
+
+    if isinstance(node, dict):
+        return {k: binaries(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [binaries(v) for v in node]
+    if isinstance(node, str) and len(node) > 200 and re.fullmatch(r"[A-Za-z0-9+/=\s]+", node):
+        try:
+            raw = base64.b64decode(node)
+        except ValueError:
+            return node[:200]
+        if raw[:2] == b"PK":
+            try:
+                return {"xlsx_rows": xlsx_rows(raw)}
+            except Exception as exc:  # noqa: BLE001 - report it
+                return f"(zip, {len(raw)} bytes, unread: {exc})"
+        return f"({len(raw)} bytes: {raw[:300]!r})"
+    return node
+
+
 def module_url(key: str, version: str) -> str:
     """A manifest key ("/sdbeachinfo/scripts/x.js") and its version as a URL."""
 
@@ -466,15 +525,17 @@ def outsystems(out: list[str], index_token: str, site_id: int) -> int:
         # a deny-list, which the server refused for want of a role): only
         # aggregates, data actions and server actions named Get...
         reads = kind.startswith("callAggregate") or kind == "callDataAction" or name.startswith("Get")
-        if not reads or OS_WRITES.search(name) or "/FieldShow/" in path:
+        if not reads or OS_WRITES.search(name) or "/FieldShow/" in path or "StormDrain" in name:
             out.append(f"  SKIP {kind} {name}")
             continue
         block = path.split("/")[3]
         views = OS_HOSTS.get(block, []) + [f"MainFlow.{block}"]
-        variables = {}
+        variables, lists = {}, {}
         for _, var, ext, _, _, dtype in attrs:
             value = OS_EMPTY.get(dtype, "")
             if dtype in ("Record", "RecordList"):
+                if not var.endswith(("Aggr", "DataAct")):
+                    lists[ext] = [] if dtype == "RecordList" else {}
                 continue
             if "siteid" in ext.lower():
                 value = str(site_id) if dtype == "LongInteger" else site_id
@@ -483,25 +544,35 @@ def outsystems(out: list[str], index_token: str, site_id: int) -> int:
             if ext == "isPublic":
                 value = True
             variables[ext] = value
+        done = False
         for view in views:
-            body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api}, "viewName": view}
-            if kind.startswith("callServerAction"):
-                body["inputParameters"] = {}
-            else:
-                body["screenData"] = {"variables": variables}
-                body["clientVariables"] = {}
-            f = fetch(f"{base}/{path}", body=body, headers={"X-CSRFToken": OS_CSRF_DEFAULT})
-            got = {}
-            try:
-                got = json.loads(f.body) if f.ok else {}
-            except ValueError:
-                pass
-            err = (got.get("exception") or {}).get("message", "")
-            out.append(f"\n  {kind} {name} as {view}: HTTP {f.status} {f.error[:500]} {err}")
-            if f.ok and not err:
-                answered += 1
-                out.append(f"    sent variables: {json.dumps(variables)[:1500]}")
-                out.append(json.dumps(got, indent=1)[:OS_SHOWN])
+            # Run 4: an aggregate without its paging answered "Failed to parse
+            # JSON request content"; the runtime sends it as inputParameters.
+            for screen_vars in (variables, {**variables, **lists}):
+                body = {"versionInfo": {"moduleVersion": module_version, "apiVersion": api}, "viewName": view}
+                if kind.startswith("callServerAction"):
+                    body["inputParameters"] = {}
+                else:
+                    body["screenData"] = {"variables": screen_vars}
+                    if kind.startswith("callAggregate"):
+                        body["inputParameters"] = {"StartIndex": 0, "MaxRecords": OS_MAX_RECORDS}
+                f = fetch(f"{base}/{path}", body=body, headers={"X-CSRFToken": OS_CSRF_DEFAULT})
+                got = {}
+                try:
+                    got = json.loads(f.body if f.ok else f.error.split(": ", 1)[-1].strip("b'"))
+                except ValueError:
+                    pass
+                err = (got.get("exception") or {}).get("message", "") or (f.error[:300] if not f.ok else "")
+                out.append(f"\n  {kind} {name} as {view}: HTTP {f.status} {err}")
+                if f.ok and not err:
+                    answered += 1
+                    done = True
+                    out.append(f"    sent variables: {json.dumps(screen_vars)[:2000]}")
+                    out.append(json.dumps(binaries(got), indent=1)[:OS_SHOWN])
+                    break
+                if kind.startswith("callServerAction") or "parse" not in err:
+                    break
+            if done:
                 break
     return answered
 
