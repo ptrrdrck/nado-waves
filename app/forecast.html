@@ -939,6 +939,140 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
   /* Four tabs in 290 px, and the fallback font is wider than Barlow. */
   .subtabs button{font-size:13px;letter-spacing:.02em;padding:6px 2px}
 }
+
+/* THE WIDE LAYOUTS (owner's decision, 2026-10-29: option B, "Console",
+   from three put to the owner). The script sets `data-layout` on the root
+   from the same widths these rules read (`LAYOUTS`), and every rule here is
+   keyed to it, so the phone page below 700 px is untouched -- a layout dump
+   at 320-698 px is compared against master's, element by element.
+     tablet  700-949   the phone's card, tabs kept, Wind and Tide side by side
+     stack   950-1279  the three breaks side by side, the rest stacked
+     console 1280 up   a rail for what the whole beach shares -- the
+                       Briefing, always open, then Wind, Tide and Sun -- and
+                       the three breaks, the buoys and the charts beside it
+   North to south along the sand in the columns, never ranked: the order is
+   where each break is. */
+:root[data-layout="tablet"] .wrap{max-width:760px}
+:root[data-layout="tablet"] .conditions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:start}
+:root[data-layout="tablet"] .conditions > .cond.swell{grid-column:1/-1}
+
+.main-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+/* Each break a column, each column a phone card's width or more: 262 px is
+   a 320 px phone's, and the console's narrowest (1280) leaves ~283. */
+.break-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:28px;align-items:start}
+.break-cols > .pane{min-width:0}
+.break-cols .col-lbl{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
+  letter-spacing:.08em;font-size:13px;color:var(--ink)}
+.break-cols .pane > .col-lbl + *{margin-top:-6px}
+/* One context buoy's block starts with its own headline, no rule. */
+.buoys-card .break-cols .pane > hr:first-child{display:none}
+/* Origin for the beach: each arrival once, with the breaks it reaches over
+   it, apart by the card's centred dot. */
+.cond .origin-group{display:flex;flex-direction:column;gap:2px}
+.cond .origin-group + .origin-group{margin-top:10px;padding-top:12px;position:relative}
+.cond .origin-group + .origin-group::before{content:"";position:absolute;top:-2px;left:calc(50% - 2px);
+  width:4px;height:4px;border-radius:50%;background:var(--soft)}
+.cond .origin-group > .sublbl{margin-bottom:2px}
+/* The swell charts' own card on a wide screen, the break they draw picked
+   above the plot as the phone's tabs pick it. */
+.cond.charts-card > .chart{border-top:0;padding-top:0;margin-top:0}
+.charts-card .subtabs{align-self:flex-start;min-width:min(100%,420px)}
+.chart-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chart-max{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 0;padding:0;
+  border:0;border-radius:6px;background:transparent;color:var(--soft);cursor:pointer}
+.chart-max:hover{color:var(--ink)}
+.chart-max:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.chart-max svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;
+  stroke-linejoin:round}
+/* A chart opened full screen: the chart alone, over the page dimmed. */
+.chart-body.maxed{position:fixed;z-index:30;top:max(16px,env(safe-area-inset-top,0px));bottom:16px;
+  left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:14px 18px;overflow:auto}
+body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
+  background:color-mix(in srgb,var(--paper) 78%,transparent)}
+/* The Wind card's verdict at each break, and the Sun card's sunset at each,
+   one under another: on a wide screen no swell tab picks one. */
+.cond .at-break{display:flex;flex-direction:column;gap:1px}
+.cond .at-break + .at-break{margin-top:6px}
+
+:root[data-layout="stack"] .wrap,:root[data-layout="console"] .wrap{max-width:1500px}
+:root[data-layout="stack"] .wrap{max-width:1180px}
+/* The cards after the breaks share a row, however many the tab has. */
+:root[data-layout="stack"] .conditions{flex-direction:row;flex-wrap:wrap;align-items:flex-start}
+:root[data-layout="stack"] .conditions > *{flex:1 1 300px;min-width:0}
+:root[data-layout="stack"] .conditions > .main-col{flex-basis:100%}
+/* The Briefing open in a band: alerts across it, then the swell, the day's
+   tide and the conditions side by side. */
+:root[data-layout="stack"] .briefing .fold-body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  column-gap:28px}
+:root[data-layout="stack"] .briefing .brief-alerts{grid-column:1/-1;border-bottom:1px solid var(--line);
+  padding-bottom:9px;margin-bottom:8px}
+:root[data-layout="stack"] .briefing .brief-block + .brief-block{border-top:0;padding-top:0;margin-top:0}
+/* Open on a wide screen: never cut to half of it. */
+:root[data-layout="stack"] .briefing .fold-body,
+:root[data-layout="console"] .briefing .fold-body{max-height:none;overflow:visible}
+
+/* The console. One grid: the rail's items each take a row of the first
+   column, in the page's order, and the main column spans every row, the
+   last of them 1fr so its height lands there and never pulls the rail's
+   rows apart. The panel and the strip of cards are boxes the grid sees
+   through, so Wind, Tide and Sun stack in the rail while the swell stays
+   one rendered strip, its delegated handlers where they were. */
+:root[data-layout="console"] .wrap{display:grid;grid-template-columns:clamp(300px,24vw,360px) minmax(0,1fr);
+  grid-template-rows:repeat(14,auto) 1fr;column-gap:24px;row-gap:0;align-items:start}
+:root[data-layout="console"] #panel,:root[data-layout="console"] .conditions{display:contents}
+:root[data-layout="console"] .wrap > *,:root[data-layout="console"] .conditions > *{grid-column:1;margin-bottom:14px}
+:root[data-layout="console"] .wrap > .links{margin-bottom:0}
+:root[data-layout="console"] .main-col{grid-column:2;grid-row:1/-1;margin-bottom:0}
+/* The foot of the page at a phone's width on a wide screen (owner's call,
+   2026-10-30): spread across the whole page its four controls drifted
+   apart. The console's sits in the rail, already that narrow. */
+:root[data-layout="tablet"] .links,:root[data-layout="stack"] .links{max-width:560px}
+
+/* THE WEEK STRIP (owner's request, 2026-10-30, version C of the mock), on
+   the Forecast tab only: a cell a day and a break, the range of breaking
+   heights over the day's daylight steps, floored and ceiled to whole feet
+   as the Briefing's headline is; one outline round the picked day's three.
+   On a phone the days are a carousel that snaps a day at a time under a
+   fixed outline, and the day that settles there is picked; wider, every
+   day sits in a row and the outline moves. */
+:root{--wk-col:88px;--wk-date:22px;--wk-cell:42px;--wk-gap:4px}
+.cond.week{gap:6px}
+.week-strip{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px}
+.week-names,.week-day{display:grid;grid-template-rows:var(--wk-date) repeat(3,var(--wk-cell));row-gap:var(--wk-gap)}
+.week-names{align-items:center;font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;color:var(--soft)}
+.week-date,.week-cell{font:inherit;margin:0;border:0;cursor:pointer;color:var(--ink);
+  -webkit-tap-highlight-color:transparent}
+.week-date{background:none;padding:0;font-size:12.5px;font-weight:600;color:var(--soft);white-space:nowrap}
+.week-day.on .week-date{color:var(--ink)}
+.week-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:7px;
+  background:var(--paper);padding:2px 4px;font-size:14.5px;font-weight:600;line-height:1.15;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.week-cell .unit{display:block;font-size:11.5px}
+.week-cell.none{color:var(--faint);font-weight:400;cursor:default}
+.week-day.past .week-cell,.week-day.past .week-cell .unit,.week-day.past .week-date{color:var(--faint)}
+.week-date:focus-visible,.week-cell:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* The carousel: the outline stays put and the days slide under it. */
+.week-view{position:relative;min-width:0}
+.week-days{position:relative;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+  overscroll-behavior-x:contain;scrollbar-width:none}
+.week-days::-webkit-scrollbar{display:none}
+.week-days > .week-day{flex:0 0 var(--wk-col);padding:0 3px;scroll-snap-align:center;scroll-snap-stop:always;
+  transform-origin:center 60%}
+.week-days > .week-pad{flex:0 0 calc(50% - var(--wk-col) / 2)}
+.week-frame{position:absolute;left:calc(50% - var(--wk-col) / 2);width:var(--wk-col);pointer-events:none;
+  top:calc(var(--wk-date) + var(--wk-gap) - 3px);height:calc(3 * var(--wk-cell) + 2 * var(--wk-gap) + 6px);
+  border:1.5px solid var(--ink);border-radius:9px}
+/* Every day in a row, the outline round the picked one. */
+.week-strip.row .week-days{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);column-gap:6px;
+  overflow:visible;scroll-snap-type:none}
+.week-strip.row .week-day{position:relative}
+.week-strip.row .week-day.on::after{content:"";position:absolute;pointer-events:none;left:-3px;right:-3px;
+  top:calc(var(--wk-date) + var(--wk-gap) - 3px);bottom:-3px;border:1.5px solid var(--ink);border-radius:9px}
+:root[data-layout="tablet"] .conditions > .week{grid-column:1/-1}
 </style>
 
 <div class="wrap">
@@ -1065,6 +1199,37 @@ const BUOYS_ALL_SOURCE = PARAM.get("buoys_all") || "../data/live/buoys_all.json"
 // tie-break; the swell card's tabs are ranked by window energy (`rankByEnergy`).
 const ORDER = ["coronado_north", "coronado_center", "coronado_south"];
 const SHORT = {coronado_north: "North", coronado_center: "Center", coronado_south: "South"};
+
+// THE LAYOUT (owner's decision, 2026-10-29): which of the page's shapes
+// the screen gets, by its width, widest first. The stylesheet keys every
+// wide rule to the root's `data-layout`, which this sets, so the markup and
+// the styles always agree; a phone (under 700 px) gets the page exactly as
+// it was. "stack" and "console" draw the three breaks side by side, North
+// to South, where the phone and the tablet keep the tabs.
+const LAYOUTS = [["console", 1280], ["stack", 950], ["tablet", 700]];
+const LAYOUT_MQ = window.matchMedia
+  ? LAYOUTS.map(([name, px]) => [name, window.matchMedia(`(min-width: ${px}px)`)]) : [];
+function readLayout() {
+  const hit = LAYOUT_MQ.find(([, mq]) => mq.matches);
+  LAYOUT = hit ? hit[0] : "phone";
+  document.documentElement.dataset.layout = LAYOUT;
+}
+function wireLayout() {
+  readLayout();
+  // Crossing a width redraws, because the wide shapes are other markup, not
+  // the same markup restyled; a full-screen chart closes with it.
+  LAYOUT_MQ.forEach(([, mq]) => {
+    const changed = () => {
+      const was = LAYOUT;
+      readLayout();
+      if (LAYOUT === was) return;
+      if (LAYOUT === "phone") setChartMax(null, {redraw: false});
+      if (DATA) show();
+    };
+    if (mq.addEventListener) mq.addEventListener("change", changed);
+    else if (mq.addListener) mq.addListener(changed);
+  });
+}
 // A buoy's NDBC name without its state: "Tanner Banks, CA" is "Tanner Banks".
 const bareName = (name) => name.replace(/, [A-Z]{2}$/, "");
 
@@ -1103,6 +1268,11 @@ const dualText = (imp, met) => (UNITS === "imperial" ? imp : UNITS === "metric" 
 // A gust beside its wind, one unit as it always was: mph, or knots on metric.
 const gustSpeed = (kt) => (UNITS === "metric" ? `${Math.round(kt)} kt` : `${Math.round(kt * MPH_PER_KT)} mph`);
 
+// Beside the units, the layout the screen's width gives (`readLayout`): "phone",
+// "tablet", "stack" or "console". WIDE is the two that draw the breaks side
+// by side.
+let LAYOUT = "phone";
+const WIDE = () => LAYOUT === "stack" || LAYOUT === "console";
 const height = (m) => (m == null ? "\u2014" : dual(`${(m * FT_PER_M).toFixed(1)} ft`, `${m.toFixed(2)} m`));
 const speed = (kt) => (kt == null ? "\u2014" : dual(`${Math.round(kt * MPH_PER_KT)} mph`, `${Math.round(kt)} kt`));
 
@@ -1734,34 +1904,45 @@ function sunCard(payload, key, {tagged = false, live = false} = {}) {
   // [the day's entry, its key, the words after the time] for an event read by `at`.
   const pick = (at) => (live && tomorrow && Date.now() > Date.parse(at(today))
     ? [tomorrow, nextKey, " tomorrow"] : [today, key, ""]);
-  const shown = (id) => (id === SWELL_TAB ? "" : " hidden");
-  const heads = [], lines = [];
+  // On a wide screen every break's sunset is shown, each under its name,
+  // North to South, then the sea horizon's: no swell tab picks one.
+  const wide = WIDE();
+  const shown = (id) => (wide || id === SWELL_TAB ? "" : " hidden");
+  // Each break's headline and its lines, kept together; the phone shows
+  // every headline, then every line, each hidden but the open tab's.
+  const groups = [];
   for (const b of SUN_TABS(payload)) {
     if (!(today.breaks || {})[b]) continue;
     const [day, dayKey, when] = pick((d) => ((d.breaks || {})[b] || {}).seen_utc);
     const s = (day.breaks || {})[b];
     if (!s) continue;
-    heads.push(`<span class="val" data-sun-for="${b}"${shown(b)}>${clock(s.seen_utc)} <span class="unit">sunset${when}</span></span>`);
+    const g = {id: b, name: SHORT[b] || b, lines: []};
+    g.head = `<span class="val" data-sun-for="${b}"${shown(b)}>${clock(s.seen_utc)} <span class="unit">sunset${when}</span></span>`;
     const season = sunSeason(sun, b, dayKey);
     if (s.kind === "sea") {
-      lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}><b>in the sea</b>, left of the point`
+      g.lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}><b>in the sea</b>, left of the point`
         + (season ? `, ${season}` : "") + `</span>`);
     } else {
       // The minutes are the two clocks' own difference, so they never
       // disagree with the times they compare.
-      lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}><b>behind Point Loma</b>, `
+      g.lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}><b>behind Point Loma</b>, `
         + `${Math.round((Date.parse(day.sunset_utc) - Date.parse(s.seen_utc)) / 60000)} min early</span>`);
-      if (season) lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}>${season}</span>`);
+      if (season) g.lines.push(`<span class="turn" data-sun-for="${b}"${shown(b)}>${season}</span>`);
     }
+    groups.push(g);
   }
   const [sea, , seaWhen] = pick((d) => d.sunset_utc);
-  heads.push(`<span class="val" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>${clock(sea.sunset_utc)} <span class="unit">sunset${seaWhen}</span></span>`);
-  lines.push(`<span class="turn" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>at the sea horizon</span>`);
+  groups.push({id: BUOY_TAB, name: "Sea horizon",
+    head: `<span class="val" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>${clock(sea.sunset_utc)} <span class="unit">sunset${seaWhen}</span></span>`,
+    lines: wide ? [] : [`<span class="turn" data-sun-for="${BUOY_TAB}"${shown(BUOY_TAB)}>at the sea horizon</span>`]});
   const [rise, , riseWhen] = pick((d) => d.sunrise_utc);
+  const body = wide
+    ? groups.map((g) => `<div class="at-break"><span class="sublbl">${g.name}</span>${g.head}${g.lines.join("")}</div>`).join("")
+    : `${groups.map((g) => g.head).join("")}
+      ${groups.map((g) => g.lines.join("")).join("")}`;
   return `<div class="cond" data-card="sun">
       <span class="lbl">Sun</span>
-      ${heads.join("")}
-      ${lines.join("")}
+      ${body}
       <span class="turn">Sunrise ${clock(rise.sunrise_utc)}${riseWhen}${tagged ? ' <span class="tag">computed</span>' : ""}</span>
     </div>`;
 }
@@ -2249,6 +2430,10 @@ function setBriefOpen(open) {
   if (body) body.hidden = !open;
   if (open) briefSeen();
 }
+function briefTouched() {
+  if (WIDE() && MODE === "now" && document.visibilityState === "visible"
+      && document.querySelector("[data-brief-head] .status")) briefSeen();
+}
 function briefSeen() {
   if (!BRIEFING || !BRIEFING.key) return;
   store(BRIEF_SEEN, BRIEFING.key);
@@ -2262,12 +2447,18 @@ function briefingFold(B) {
   // the conditions (owner's call, 2026-10-23).
   const blocks = [parts.alerts, parts.swell, parts.tides, parts.conditions].filter((b) => b.length);
   if (!blocks.length) return "";
-  const dot = BRIEF_OPEN || !briefUnseen(B) ? "" : briefDot;
-  return `<div class="chart-head" data-brief-head><span>${briefLine(B)}${dot}</span><button
+  // On a wide screen it stays open, with no caret (owner's call,
+  // 2026-10-29), and its dot marks an update the reader has not been at the
+  // page since: it goes at their next touch, click, key or scroll there
+  // (`briefTouched`), not when it is drawn.
+  const wide = WIDE();
+  const open = wide || BRIEF_OPEN;
+  const dot = (BRIEF_OPEN && !wide) || !briefUnseen(B) ? "" : briefDot;
+  return `<div class="chart-head" data-brief-head><span>${briefLine(B)}${dot}</span>${wide ? "" : `<button
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
-      aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
-    <div class="fold-body" id="brief-body"${BRIEF_OPEN ? "" : " hidden"}>
+      aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`}</div>
+    <div class="fold-body" id="brief-body"${open ? "" : " hidden"}>
       ${blocks.map((b) => (b === parts.alerts
         ? `<div class="brief-block brief-alerts">${b.map((a) => alertRow(a, B.built_utc)).join("")}</div>`
         : b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
@@ -2995,14 +3186,17 @@ function readingEntry(a, o, past = false) {
 
 // What folds out under the "Origin" line: the entries, and nothing under them.
 function originBody(o) {
+  return originEntries(o).join("");
+}
+// The same, an entry each, for the wide screen's one block (`beachOrigin`).
+function originEntries(o) {
   const now = o.hurricanes.length || o.current.length;
   const {storm, reading} = now ? {} : lastArrival(o);
   return now
-    ? o.hurricanes.map((h) => hurricaneEntry(h, o)).join("")
-      + o.current.map((a) => readingEntry(a, o)).join("")
-    : storm ? hurricaneEntry(storm, o, true)
+    ? [...o.hurricanes.map((h) => hurricaneEntry(h, o)), ...o.current.map((a) => readingEntry(a, o))]
+    : [storm ? hurricaneEntry(storm, o, true)
       : reading ? readingEntry(reading, o, true)
-        : `<span class="val"><span class="unit">No readable swell in the last ${o.lookback} days.</span></span>`;
+        : `<span class="val"><span class="unit">No readable swell in the last ${o.lookback} days.</span></span>`];
 }
 
 // Whether Origin is folded out. One state for every tab, like the charts',
@@ -3183,6 +3377,7 @@ function setCalcOpen(open) {
     const fold = $(btn.getAttribute("aria-controls"));
     if (fold) fold.hidden = !open;
   });
+  if (WIDE()) alignCols();
 }
 
 // Larger than the first version (r 124 -> 140 in the same 320 box): the
@@ -4244,6 +4439,7 @@ function setChartOpen(open) {
     const fold = $(btn.getAttribute("aria-controls"));
     if (fold) fold.hidden = !open;
   });
+  if (open) requestAnimationFrame(refitCharts);
 }
 // The hour the reader picked, by valid_utc, or null for the newest reading.
 // Shared by every break, so flipping tabs keeps the same hour under the line.
@@ -5263,8 +5459,8 @@ function laneDomain(values, a, z) {
 }
 
 function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)) {
-  const {w, l, r, t, b} = CHART;
-  const h = CHART.h + (spec.lane ? LANE.gap + LANE.h : 0);
+  const {w, h: tall, l, r, t, b} = chartDims(id);
+  const h = tall + (spec.lane ? LANE.gap + LANE.h : 0);
   const n = steps.length;
   const {v0, v1} = view;
   const plotW = w - l - r;
@@ -5274,7 +5470,7 @@ function chartPlot(id, spec, at, steps = chartSteps(id), view = chartView(steps)
   const [lo, hi] = domain;
   // The main plot keeps its height; the direction strip, when there is one,
   // sits under it on the same hours, and the time labels go under both.
-  const bottom = CHART.h - b;
+  const bottom = tall - b;
   const floor = h - b;
   const Y = (v) => t + (bottom - t) * (hi - Math.max(lo, Math.min(hi, v))) / (hi - lo);
   const f = (v) => v.toFixed(1);
@@ -5513,8 +5709,14 @@ function chartBody(id) {
       + `${m.label}</option>`).join("") + `</select></span>`;
   // The readout sits ABOVE the plot, so a finger swiping along the lines
   // never covers the values it is reading.
-  return `<div class="chart-body" data-chart="${id}">
-    ${modes}
+  // Wider than a phone, a button beside the menu opens the chart full screen.
+  const max = LAYOUT === "phone" ? "" : `<button type="button" class="chart-max" data-chart-max="${id}"`
+    + ` aria-pressed="${CHART_MAX === id}" aria-label="${CHART_MAX === id ? "Close full screen" : "Full screen"}">`
+    + `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${CHART_MAX === id
+      ? "M6.5 2.5v4h-4M9.5 13.5v-4h4M6.5 6.5l-4-4M9.5 9.5l4 4"
+      : "M2.5 6.5v-4h4M13.5 9.5v4h-4M2.5 2.5l4 4M13.5 13.5l-4-4"}"/></svg></button>`;
+  return `<div class="chart-body${CHART_MAX === id ? " maxed" : ""}" data-chart="${id}">
+    ${max ? `<div class="chart-top">${modes || "<span></span>"}${max}</div>` : modes}
     <div class="readout" aria-live="polite">${moving.readout}</div>
     <div class="plot">${moving.plot}</div>
     <div class="under">${moving.under}</div>
@@ -5533,14 +5735,100 @@ function chartUpdate(body, at) {
   body.querySelector(".under").innerHTML = moving.under;
 }
 
-// A point's x in the plot's own units, and the hour nearest it.
+// A point's x in the plot's own units, and the hour nearest it. A plot's
+// units are its drawing's width: 320 on a phone, its own width in CSS
+// pixels on a wider screen (`chartDims`).
+function plotUnits(plot) {
+  const svg = plot && plot.querySelector("svg");
+  const box = svg && svg.viewBox && svg.viewBox.baseVal;
+  return box && box.width ? box.width : CHART.w;
+}
 function plotX(plot, clientX) {
   const box = plot.getBoundingClientRect();
-  return box.width ? (clientX - box.left) / box.width * CHART.w : CHART.l;
+  return box.width ? (clientX - box.left) / box.width * plotUnits(plot) : CHART.l;
 }
-function hourAtX(x, view, n) {
-  const at = view.v0 + (x - CHART.l) / (CHART.w - CHART.l - CHART.r) * (view.v1 - view.v0);
+function hourAtX(x, view, n, w = CHART.w) {
+  const at = view.v0 + (x - CHART.l) / (w - CHART.l - CHART.r) * (view.v1 - view.v0);
   return Math.max(0, Math.min(n - 1, Math.round(at)));
+}
+
+// How big a chart is drawn. On a phone always 320 x 150 units, scaled to the
+// card. Wider, the plot is drawn at its own width in CSS pixels, so its text
+// stays the phone's size rather than growing with the card, and taller in
+// proportion up to 1.6x; full screen, it takes the screen's height too. The
+// width is measured off the chart already on screen, and `refitCharts`
+// redraws any chart whose drawing no longer matches its box.
+const CHART_SIZE = {};
+let CHART_MAX = null;
+function chartDims(id) {
+  if (LAYOUT === "phone") return CHART;
+  const plot = document.querySelector(`#conditions .chart-body[data-chart="${id}"] .plot`);
+  const px = plot && plot.getClientRects().length ? plot.clientWidth : 0;
+  if (!px) return CHART_SIZE[id] || CHART;
+  const w = Math.max(CHART.w, Math.round(px));
+  const h = CHART_MAX === id
+    ? Math.round(Math.max(CHART.h, Math.min(w * 0.6, window.innerHeight - 300)))
+    : Math.round(CHART.h * Math.min(1.6, Math.max(1, w / CHART.w * 0.75)));
+  return (CHART_SIZE[id] = {...CHART, w, h});
+}
+function refitCharts() {
+  if (LAYOUT === "phone") return;
+  document.querySelectorAll("#conditions .chart-body[data-chart]").forEach((body) => {
+    const id = body.getAttribute("data-chart");
+    const svg = body.querySelector(".plot > svg[data-series]");
+    if (!svg || !body.getClientRects().length) return;
+    if (Math.abs(svg.viewBox.baseVal.width - chartDims(id).w) < 2) return;
+    const steps = chartSteps(id);
+    if (steps && steps.length > 1) chartUpdate(body, chartIndex(steps));
+  });
+}
+const chartResize = typeof ResizeObserver === "undefined" ? null
+  : new ResizeObserver(() => requestAnimationFrame(() => { alignCols(); refitCharts(); }));
+
+// The three breaks' columns line up row for row (owner's call, 2026-10-29):
+// the headline, each of the calculation's steps by its name, the trains and
+// the measured line each take the tallest column's height, so a drawing, a
+// row or a figure sits level with the same one beside it.
+function alignCols() {
+  document.querySelectorAll("#conditions .break-cols[data-align]").forEach((grid) => {
+    const slots = new Map();
+    const add = (key, el) => (slots.get(key) || slots.set(key, []).get(key)).push(el);
+    for (const pane of grid.children) {
+      for (const el of pane.children) {
+        el.style.minHeight = "";
+        const key = el.matches(".val-row, .val") ? "head" : el.matches(".calc-fold") ? "calc"
+          : el.matches(".trains, .quiet") ? "trains" : el.matches(".measured") ? "measured" : null;
+        if (key) add(key, el);
+      }
+      pane.querySelectorAll(".calc-table tr").forEach((tr) => {
+        tr.style.height = "";
+        const th = tr.querySelector("th");
+        add(`row:${tr.parentElement.tagName}:${th && th.firstChild ? th.firstChild.textContent.trim() : ""}`, tr);
+      });
+    }
+    // Every height read before any is set.
+    const plan = [...slots.values()].filter((els) => els.length > 1)
+      .map((els) => [els, Math.max(...els.map((el) => el.getBoundingClientRect().height))]);
+    // Rows first: the folds' own heights follow from them.
+    plan.sort(([a], [b]) => (b[0].tagName === "TR") - (a[0].tagName === "TR"));
+    for (const [els, tallest] of plan) {
+      if (els[0].tagName === "TR") els.forEach((el) => { el.style.height = `${tallest}px`; });
+    }
+    for (const [els] of plan) {
+      if (els[0].tagName === "TR") continue;
+      const tallest = Math.max(...els.map((el) => el.getBoundingClientRect().height));
+      els.forEach((el) => { el.style.minHeight = `${tallest}px`; });
+    }
+  });
+}
+// Full screen: one chart at a time, over the page (owner's choice,
+// 2026-10-29, wide screens only), Escape or its button closing it.
+function setChartMax(id, {redraw = true} = {}) {
+  CHART_MAX = id;
+  document.body.classList.toggle("chart-maxed", !!id);
+  if (redraw) { show(); requestAnimationFrame(refitCharts); }
+  const btn = id && document.querySelector(`.chart-body[data-chart="${id}"] [data-chart-max]`);
+  if (btn) btn.focus();
 }
 
 // Re-render, then put focus back where it was: the strip is rebuilt whole.
@@ -5568,11 +5856,18 @@ let WHEEL_SETTLE = null;
 // arrows step an hour, plus and minus zoom, shift and an arrow pans.
 function wireCharts() {
   const strip = $("conditions");
-  const plotW = CHART.w - CHART.l - CHART.r;
+  // The plot's own width less its margins, in its own units (`plotUnits`).
+  const widthOf = (plot) => plotUnits(plot) - CHART.l - CHART.r;
   // Which chart an element belongs to: a break, the buoy, the wind or the tide.
   const idOf = (el) => el.closest("[data-chart]").getAttribute("data-chart");
 
   strip.addEventListener("click", (e) => {
+    const max = e.target.closest("[data-chart-max]");
+    if (max) {
+      const id = max.getAttribute("data-chart-max");
+      setChartMax(CHART_MAX === id ? null : id);
+      return;
+    }
     // The caret, or anywhere else on its "Charts" line.
     const head = e.target.closest(".chart-head");
     const pick = (sel) => e.target.closest(sel) || (head && head.querySelector(sel));
@@ -5634,7 +5929,7 @@ function wireCharts() {
       g.pinch0 = {d: Math.max(8, Math.hypot(p.x - q.x, p.y - q.y)), c: plotX(plot, (p.x + q.x) / 2)};
     } else if (e.pointerType !== "mouse") {
       // A finger down reads the hour under it at once.
-      g.at = hourAtX(plotX(plot, e.clientX), g.view0, steps.length);
+      g.at = hourAtX(plotX(plot, e.clientX), g.view0, steps.length, plotUnits(plot));
       chartUpdate(g.body, g.at);
     }
     if (e.pointerType === "mouse") e.preventDefault();
@@ -5649,7 +5944,7 @@ function wireCharts() {
     const g = GESTURE && GESTURE.plot === plot ? GESTURE : null;
     if (!g) {
       if (e.pointerType === "mouse") {
-        chartUpdate(plot.closest("[data-chart]"), hourAtX(plotX(plot, e.clientX), chartView(steps), steps.length));
+        chartUpdate(plot.closest("[data-chart]"), hourAtX(plotX(plot, e.clientX), chartView(steps), steps.length, plotUnits(plot)));
       }
       return;
     }
@@ -5666,6 +5961,7 @@ function wireCharts() {
       const d = Math.max(8, Math.hypot(a1.x - b1.x, a1.y - b1.y));
       const c = plotX(plot, (a1.x + b1.x) / 2);
       const s0 = g.view0.v1 - g.view0.v0;
+      const plotW = widthOf(plot);
       const under = g.view0.v0 + (g.pinch0.c - CHART.l) / plotW * s0;
       const span = s0 * g.pinch0.d / d;
       const v0 = under - (c - CHART.l) / plotW * span;
@@ -5675,13 +5971,13 @@ function wireCharts() {
       return;
     }
     if (g.kind === "pan") {
-      const shift = -(plotX(plot, p.x) - plotX(plot, p.x0)) / plotW * (g.view0.v1 - g.view0.v0);
+      const shift = -(plotX(plot, p.x) - plotX(plot, p.x0)) / widthOf(plot) * (g.view0.v1 - g.view0.v0);
       setChartView(steps, g.view0.v0 + shift, g.view0.v1 + shift);
       chartUpdate(g.body, chartIndex(chartSteps(idOf(plot))));
       return;
     }
     if (g.kind === "scrub" || (!g.kind && p.type !== "mouse")) {
-      g.at = hourAtX(plotX(plot, p.x), chartView(steps), steps.length);
+      g.at = hourAtX(plotX(plot, p.x), chartView(steps), steps.length, plotUnits(plot));
       chartUpdate(g.body, g.at);
     }
   });
@@ -5702,7 +5998,7 @@ function wireCharts() {
       if (g.kind === "scrub" && g.at != null) {
         CHART_AT = steps[g.at].valid_utc;
       } else if (!g.kind && steps.length > 1) {
-        const hour = steps[hourAtX(plotX(g.plot, p.x), chartView(steps), steps.length)].valid_utc;
+        const hour = steps[hourAtX(plotX(g.plot, p.x), chartView(steps), steps.length, plotUnits(g.plot))].valid_utc;
         CHART_AT = CHART_AT === hour ? null : hour;
       }
     }
@@ -5735,12 +6031,12 @@ function wireCharts() {
     const view = chartView(steps);
     const span = view.v1 - view.v0;
     if (zoom) {
-      const frac = (plotX(plot, e.clientX) - CHART.l) / plotW;
+      const frac = (plotX(plot, e.clientX) - CHART.l) / widthOf(plot);
       const under = view.v0 + frac * span;
       const next = span * Math.exp(Math.max(-1, Math.min(1, e.deltaY * 0.01)));
       setChartView(steps, under - frac * next, under - frac * next + next);
     } else {
-      const shift = e.deltaX / Math.max(1, plot.getBoundingClientRect().width) * CHART.w / plotW * span;
+      const shift = e.deltaX / Math.max(1, plot.getBoundingClientRect().width) * plotUnits(plot) / widthOf(plot) * span;
       setChartView(steps, view.v0 + shift, view.v1 + shift);
     }
     chartUpdate(plot.closest("[data-chart]"), chartIndex(chartSteps(idOf(plot))));
@@ -6453,6 +6749,7 @@ function setCardChartOpen(id, open) {
     const fold = $(btn.getAttribute("aria-controls"));
     if (fold) fold.hidden = !open;
   });
+  if (open) requestAnimationFrame(refitCharts);
 }
 function cardChart(id) {
   const open = !!CARD_CHART_OPEN[id];
@@ -6477,7 +6774,12 @@ function cardChart(id) {
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
-                    due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = ""}) {
+                    due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = "",
+                    lead = ""}) {
+  if (WIDE()) {
+    return swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
+                      origin, buoyRose, buoyAged, lead});
+  }
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
     origin: c.origin || null,
@@ -6513,6 +6815,254 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   </div>`;
 }
 
+// The swell on a wide screen (owner's decision, 2026-10-29): the three
+// breaks side by side, North to South as they sit on the sand -- never
+// ranked, because a column's place is the break's -- then the buoys as a
+// card of their own, three across, then the swell's charts in a card with
+// the break they draw picked above the plot. One column of the main grid,
+// so the console's rail stacks beside it. The provenance under the breaks
+// is 46232's, as it is under every phone tab: every break's numbers are
+// that one spectrum; the buoys' card carries it again under 46232's own
+// reading. Origin is one block for the beach (`beachOrigin`), each arrival
+// once with the breaks it reaches.
+function swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
+                    origin, buoyRose, buoyAged, lead = ""}) {
+  const breaks = ORDER.map((id) => (cards || []).find((c) => c.id === id)).filter(Boolean);
+  const cols = breaks.map((c) => `<div class="pane" data-break-col="${c.id}">
+      <span class="col-lbl">${SHORT[c.id] || c.name}</span>${breakPanel(c)}</div>`).join("");
+  const swell = `<div class="cond swell" data-card="swell">
+    <span class="lbl">${label}</span>
+    <div class="break-cols" data-align>${cols}</div>
+    ${srcLines(source, due)}
+    ${beachOrigin(breaks)}
+  </div>`;
+  const anchor = `<div class="pane">${buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged)}`
+    + `${srcLines(source, due)}</div>`;
+  const buoys = `<div class="cond swell buoys-card" data-card="buoys">
+    <span class="lbl">Buoys</span>
+    <div class="break-cols">${anchor}${others.map((b) => `<div class="pane">${contextBuoy(b)}</div>`).join("")}</div>
+    ${origin ? originFold(BUOY_TAB, origin) : ""}
+  </div>`;
+  // The charts: one fold, the break picked inside it, each break's charts
+  // kept as on the phone's tabs and shown by `selectSwellTab`.
+  const picks = [...breaks.map((c) => [c.id, SHORT[c.id] || c.name]), [BUOY_TAB, "Buoys"]];
+  const chosen = picks.some(([id]) => id === SWELL_TAB) ? SWELL_TAB : picks[0][0];
+  SWELL_TAB = chosen;
+  const charts = !chart ? "" : `<div class="cond charts-card" data-card="charts">
+    <div class="chart">
+      <div class="chart-head"><span>Charts</span>${chartToggle("swell")}</div>
+      <div class="chart-fold" id="chart-fold-swell"${CHART_OPEN ? "" : " hidden"}>
+        <div class="subtabs" role="tablist" aria-label="Whose charts">
+          ${picks.map(([id, name]) => `<button type="button" role="tab" id="swell-tab-${id}"
+            data-swell-tab="${id}" aria-controls="swell-chart-${id}" aria-selected="${id === chosen}"
+            tabindex="${id === chosen ? 0 : -1}">${name}</button>`).join("")}
+        </div>
+        ${picks.map(([id]) => `<div class="chart-fold" role="tabpanel" id="swell-chart-${id}" data-chart-tab="${id}"
+          aria-labelledby="swell-tab-${id}"${id === chosen ? "" : " hidden"}>${chartBody(id)}</div>`).join("")}
+      </div>
+    </div>
+  </div>`;
+  return `<div class="main-col">${lead}${swell}${buoys}${charts}</div>`;
+}
+
+// Origin for the beach on a wide screen: every break's entries as each
+// break's own fold would show them, each distinct entry once, under the
+// breaks it is shown at ("North and Center"). Nothing is reworded: an entry
+// that reads differently at two breaks -- another train, another period --
+// is two entries. The count is the arrivals now, each once.
+function beachOrigin(breaks) {
+  const groups = [];
+  const now = new Set();
+  for (const c of breaks) {
+    const o = c.origin;
+    if (!o) continue;
+    for (const html of originEntries(o)) {
+      const got = groups.find((g) => g.html === html);
+      if (got) got.ids.push(c.id); else groups.push({html, ids: [c.id]});
+      if (originCount(o)) now.add(html);
+    }
+  }
+  if (!groups.length) return "";
+  const n = now.size;
+  const said = `${n} origin${n === 1 ? "" : "s"} arriving now`;
+  const body = groups.map((g) => `<div class="origin-group"><span class="sublbl">`
+    + `${andList(g.ids.map((id) => SHORT[id]))}</span>${g.html}</div>`).join("");
+  return `<div class="origin-fold">
+    <div class="chart-head" data-origin-head><span>Origin${n ? ` <span class="count"
+      data-origin-count title="${said}">(${n})</span>` : ""}</span><button type="button"
+      class="calc-toggle" data-origin-toggle aria-controls="origin-fold-beach"
+      aria-expanded="${ORIGIN_OPEN}" aria-label="Origin${n ? `, ${said}` : ""}"><svg viewBox="0 0 16 16"
+      aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
+    <div class="fold-body" id="origin-fold-beach"${ORIGIN_OPEN ? "" : " hidden"}>${body}</div>
+  </div>`;
+}
+
+// THE WEEK STRIP (owner's request, 2026-10-30): the Forecast tab's days, a
+// cell a break, each the range of breaking heights over the day's daylight
+// steps -- sunrise to sunset at the center break, the Sun card's own times
+// (6 AM to 6 PM on a day without them) -- floored and ceiled to whole feet,
+// at least a foot apart, as the Briefing's headline range is, its metric
+// that range's bracket. The heights are the cards' own (`cardsForForecast`),
+// past hours as the page showed them. A day is picked by its biggest break's
+// biggest daylight hour; a cell picks its own break's. Each a step the hour
+// picker offers, so picking one is the picker's `choose`.
+let WEEK_MEMO = null;
+const coastHour = (ms) => Number(new Intl.DateTimeFormat("en-US",
+  {timeZone: COAST_TZ, hour: "numeric", hourCycle: "h23"}).format(new Date(ms)));
+const weekLabel = (ms) => ["weekday", "day"].map((k) => new Date(ms).toLocaleDateString("en-US",
+  {timeZone: COAST_TZ, [k]: k === "day" ? "numeric" : "short"})).join(" ");
+function weekDays() {
+  if (!DATA || !STEPS.length) return [];
+  if (WEEK_MEMO && WEEK_MEMO.data === DATA && WEEK_MEMO.steps === STEPS) return WEEK_MEMO.days;
+  const days = [];
+  STEPS.forEach((step, i) => {
+    const ms = Date.parse(step.valid_utc), key = coastDay(ms);
+    let day = days[days.length - 1];
+    if (!day || day.key !== key) days.push(day = {key, ms, hours: []});
+    const sun = DATA.sun && DATA.sun.days && DATA.sun.days[key];
+    const lit = sun ? ms >= Date.parse(sun.sunrise_utc) && ms <= Date.parse(sun.sunset_utc)
+      : coastHour(ms) >= 6 && coastHour(ms) <= 18;
+    if (!lit) return;
+    const hs = {};
+    for (const c of cardsForForecast(step)) if (c.hsWindow != null) hs[c.id] = c.hsWindow;
+    if (Object.keys(hs).length) day.hours.push({i, ms, hs});
+  });
+  const shown = days.filter((d) => d.hours.length);
+  WEEK_MEMO = {data: DATA, steps: STEPS, days: shown};
+  return shown;
+}
+// The step to show for a day: its biggest daylight hour at one break, or at
+// whichever break is biggest; the earlier hour on a tie.
+function weekBest(day, id = null) {
+  let best = null, top = -Infinity;
+  for (const h of day.hours) {
+    for (const [b, m] of Object.entries(h.hs)) {
+      if ((id == null || b === id) && m > top) { top = m; best = h.i; }
+    }
+  }
+  return best;
+}
+function weekCard(step) {
+  const days = weekDays();
+  if (!days.length) return "";
+  const on = coastDay(Date.parse(step.valid_utc));
+  const carousel = LAYOUT === "phone";
+  const now = Date.now();
+  const cols = days.map((d) => {
+    const name = new Date(d.ms).toLocaleDateString("en-US", {timeZone: COAST_TZ, weekday: "long", month: "short", day: "numeric"});
+    const cells = ORDER.map((id) => {
+      const ft = d.hours.map((h) => h.hs[id]).filter((m) => m != null).map((m) => m * FT_PER_M);
+      if (!ft.length) return `<span class="week-cell none">&mdash;</span>`;
+      const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
+      const range = [`${lo}–${hi} ft`, `${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)} m`];
+      return `<button type="button" class="week-cell" data-week-pick="${d.key}" data-week-break="${id}"`
+        + ` aria-label="${name}, ${SHORT[id]}: ${dualText(...range)} in daylight. Shows its biggest hour.">`
+        + `${dual(...range)}</button>`;
+    }).join("");
+    const past = d.hours.every((h) => h.ms < now);
+    return `<div class="week-day${d.key === on ? " on" : ""}${past ? " past" : ""}" data-week-day="${d.key}"`
+      + ` role="group" aria-label="${name}"><button type="button" class="week-date" data-week-pick="${d.key}"`
+      + ` aria-label="${name}: its biggest hour">${weekLabel(d.ms)}</button>${cells}</div>`;
+  }).join("");
+  const names = `<div class="week-names" aria-hidden="true"><span></span>`
+    + ORDER.map((id) => `<span>${SHORT[id]}</span>`).join("") + `</div>`;
+  const body = carousel
+    ? `<div class="week-view"><div class="week-days" data-week-scroll><span class="week-pad"></span>${cols}`
+      + `<span class="week-pad"></span></div><div class="week-frame" aria-hidden="true"></div></div>`
+    : `<div class="week-days">${cols}</div>`;
+  return `<div class="cond week" data-card="week">
+    <span class="lbl">Week</span>
+    <div class="week-strip${carousel ? "" : " row"}">${names}${body}</div>
+  </div>`;
+}
+// The carousel: the day under the outline, how far each day sits from it,
+// and the day there when the scroll settles. A tap on a day off the outline
+// slides it there first and picks when it lands.
+let WEEK_PENDING = null, WEEK_SETTLE = null, WEEK_TOUCH = false;
+const weekMid = (sc) => sc.scrollLeft + sc.clientWidth / 2;
+const weekCenterOf = (el) => el.offsetLeft + el.offsetWidth / 2;
+function weekUnder(sc) {
+  let near = null, gap = Infinity;
+  sc.querySelectorAll(".week-day").forEach((d) => {
+    const g = Math.abs(weekCenterOf(d) - weekMid(sc));
+    if (g < gap) { gap = g; near = d; }
+  });
+  return near;
+}
+// The days off the outline sit behind it: smaller and fainter the further.
+function weekFade(sc) {
+  sc.querySelectorAll(".week-day").forEach((d) => {
+    const k = Math.min(1, Math.abs(weekCenterOf(d) - weekMid(sc)) / d.offsetWidth);
+    d.style.opacity = String(1 - 0.5 * k);
+    d.style.transform = `scale(${(1 - 0.1 * k).toFixed(3)})`;
+  });
+}
+// After a render: the picked day under the outline, at once.
+function weekPlace() {
+  const sc = document.querySelector("#conditions [data-week-scroll]");
+  if (!sc) return;
+  const on = sc.querySelector(".week-day.on");
+  if (on) sc.scrollLeft = weekCenterOf(on) - sc.clientWidth / 2;
+  weekFade(sc);
+}
+function weekSettle(sc) {
+  clearTimeout(WEEK_SETTLE);
+  if (WEEK_TOUCH) return;
+  const near = weekUnder(sc);
+  if (!near) return;
+  const key = near.getAttribute("data-week-day");
+  // A tapped day is picked when it reaches the outline, as the tap asked.
+  if (WEEK_PENDING) {
+    if (WEEK_PENDING.key === key) { const i = WEEK_PENDING.i; WEEK_PENDING = null; choose(i); }
+    return;
+  }
+  if (near.classList.contains("on")) return;
+  const day = weekDays().find((d) => d.key === key);
+  const i = day && weekBest(day);
+  if (i != null) choose(i);
+}
+function wireWeek() {
+  const strip = $("conditions");
+  strip.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-week-pick]");
+    if (!btn) return;
+    const day = weekDays().find((d) => d.key === btn.getAttribute("data-week-pick"));
+    const i = day && weekBest(day, btn.getAttribute("data-week-break"));
+    if (i == null) return;
+    const sc = btn.closest("[data-week-scroll]");
+    const col = btn.closest(".week-day");
+    if (!sc || Math.abs(weekCenterOf(col) - weekMid(sc)) < 2) { choose(i); return; }
+    WEEK_PENDING = {key: day.key, i};
+    const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    sc.scrollTo({left: weekCenterOf(col) - sc.clientWidth / 2, behavior: still ? "auto" : "smooth"});
+  });
+  // Scroll does not bubble, so these capture.
+  strip.addEventListener("scroll", (e) => {
+    const sc = e.target;
+    if (!sc.matches || !sc.matches("[data-week-scroll]")) return;
+    weekFade(sc);
+    clearTimeout(WEEK_SETTLE);
+    WEEK_SETTLE = setTimeout(() => weekSettle(sc), 160);
+  }, {capture: true, passive: true});
+  strip.addEventListener("scrollend", (e) => {
+    if (e.target.matches && e.target.matches("[data-week-scroll]")) weekSettle(e.target);
+  }, {capture: true, passive: true});
+  // Never pick under a finger still on the strip.
+  const hold = (down) => (e) => {
+    if (!e.target.closest || !e.target.closest("[data-week-scroll]")) return;
+    WEEK_TOUCH = down;
+    if (down) WEEK_PENDING = null;
+    if (!down) {
+      const sc = e.target.closest("[data-week-scroll]");
+      clearTimeout(WEEK_SETTLE);
+      WEEK_SETTLE = setTimeout(() => weekSettle(sc), 160);
+    }
+  };
+  strip.addEventListener("touchstart", hold(true), {capture: true, passive: true});
+  strip.addEventListener("touchend", hold(false), {capture: true, passive: true});
+  strip.addEventListener("touchcancel", hold(false), {capture: true, passive: true});
+}
+
 // What the measured wind means at each break, on the Wind card, one line per
 // break and only the one whose swell tab is open. The measurement is hoisted;
 // the interpretation is not, because it is made against each break's own
@@ -6524,6 +7074,21 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
 // GFS-Wave's at the buoy, 29 km offshore, which is not the wind KNZY measures
 // at the beach, and a verdict against the shore normal needs the local one.
 function windAtBreaks(cards, aged = "") {
+  // On a wide screen no swell tab picks a break, so every break's verdict
+  // is shown, North to South, each naming its break: still one verdict per
+  // break against that break's own normal.
+  if (WIDE()) {
+    return ORDER.map((id) => (cards || []).find((c) => c.id === id)).filter(Boolean).map((c) => {
+      const why = c.windKt === 0 ? "no wind" : c.windVariable ? "no direction" : null;
+      const s = why ? null : sense(c.windOffshore, c.windKt);
+      if (!why && !s) return "";
+      const at = SHORT[c.id] || c.name;
+      return `<span class="turn"${aged}>`
+        + (why ? `<b>${why}</b> at ${at}, so no side set`
+          : `<b>${s}</b> at ${at}` + (c.windNote ? ` <span class="tag">${c.windNote}</span>` : ""))
+        + `</span>`;
+    }).join("");
+  }
   return (cards || []).map((c) => {
     // A calm or a variable wind has no side at any break. The line says why
     // rather than leaving the line out, or repeating the headline's Calm or
@@ -6542,6 +7107,24 @@ function windAtBreaks(cards, aged = "") {
 // Switching tabs flips attributes rather than re-rendering, so focus stays on
 // the tab the reader is on and the countdowns keep their place.
 function selectSwellTab(id, {focus = false} = {}) {
+  // On a wide screen the tabs pick only whose charts are drawn: every break
+  // and buoy is already on screen, so nothing else follows the pick.
+  if (WIDE()) {
+    SWELL_TAB = id;
+    remember(KEEP.swell, id);
+    const shore = $("chart-fold-wind");
+    if (shore && ["shore", "week"].includes(chartModeFor("wind"))) shore.innerHTML = chartBody("wind");
+    document.querySelectorAll("[data-swell-tab]").forEach((btn) => {
+      const on = btn.getAttribute("data-swell-tab") === id;
+      btn.setAttribute("aria-selected", String(on));
+      btn.tabIndex = on ? 0 : -1;
+      const pane = $(btn.getAttribute("aria-controls"));
+      if (pane) pane.hidden = !on;
+      if (on && focus) btn.focus();
+    });
+    refitCharts();
+    return;
+  }
   if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) {
     roseShown();
     // Selecting the Buoys tab opens the anchor buoy's headline, 46232's, the
@@ -6747,7 +7330,12 @@ function renderConditions(step, cards) {
     // comparing like with like rather than two different presentations.
     const buoy = past ? ((detail && detail.buoy) || step.entry.buoy)
       : (DATA.buoy || []).find((b) => b.valid_utc === step.valid_utc);
+    // The week strip above the Swell card (owner's request, 2026-10-30):
+    // its own card on a phone or a tablet, the main column's first wider.
+    const week = weekCard(step);
+    if (!WIDE()) rows.push(week);
     rows.push(swellCard({
+      lead: WIDE() ? week : "",
       label: "Swell",
       buoy,
       station: DATA.station,
@@ -6783,6 +7371,8 @@ function renderConditions(step, cards) {
       $("conditions").innerHTML = rows.join("");
       restorePicks();
       tickDue();
+      weekPlace();
+      laidOut();
       return;
     }
 
@@ -6825,6 +7415,20 @@ function renderConditions(step, cards) {
   // Fill the countdowns now rather than leaving them blank until the first
   // second's tick lands.
   tickDue();
+  weekPlace();
+  laidOut();
+}
+
+// After a render wider than a phone: the columns lined up and the charts
+// drawn at their own width, then kept so as the screen or a fold changes.
+function laidOut() {
+  if (LAYOUT === "phone") return;
+  alignCols();
+  refitCharts();
+  if (chartResize) {
+    chartResize.disconnect();
+    document.querySelectorAll("#conditions .break-cols, #conditions .chart-body").forEach((el) => chartResize.observe(el));
+  }
 }
 
 function renderBreaks(step) {
@@ -6855,8 +7459,9 @@ function show() {
   // 2026-10-24: every refresh put it back at its top).
   const briefBody = $("brief-body");
   if (briefBody && BRIEF_SCROLL > 0) briefBody.scrollTop = BRIEF_SCROLL;
-  // An update drawn into an open fold has been read.
-  if (brief && BRIEF_OPEN) briefSeen();
+  // An update drawn into an open fold has been read; on a wide screen, where
+  // it is always open, not until the reader is back at the page.
+  if (brief && BRIEF_OPEN && !WIDE()) briefSeen();
   $("tab-now").setAttribute("aria-selected", String(!forecasting));
   $("tab-forecast").setAttribute("aria-selected", String(forecasting));
 
@@ -7327,6 +7932,7 @@ function boot(data, observed, measured, series, windtide) {
   $("tab-now").onclick = () => setMode("now");
   $("tab-forecast").onclick = () => setMode("forecast");
   wireSwellTabs();
+  wireWeek();
   wireRoses();
   wireDrawings();
   wireCharts();
@@ -7339,7 +7945,7 @@ function boot(data, observed, measured, series, windtide) {
   }, {capture: true, passive: true});
   $("fc-alerts").addEventListener("click", toggleAlert);
   $("briefing").addEventListener("click", (e) => {
-    if (e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
+    if (!WIDE() && e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
     toggleAlert(e);
     const row = e.target.closest("[data-brief-row]");
     if (row) {
@@ -7349,6 +7955,13 @@ function boot(data, observed, measured, series, windtide) {
       if (open) BRIEF_ROWS.add(row.dataset.briefRow); else BRIEF_ROWS.delete(row.dataset.briefRow);
     }
   });
+
+  // The wide screen's Briefing is read when the reader is at the page.
+  for (const kind of ["pointerdown", "keydown", "wheel", "touchstart"]) {
+    document.addEventListener(kind, briefTouched, {capture: true, passive: true});
+  }
+  // And a full-screen chart closes on Escape.
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && CHART_MAX) setChartMax(null); });
 
   if (!adoptForecast(data, null)) return;
   refreshOrigins();
@@ -7424,6 +8037,8 @@ function boot(data, observed, measured, series, windtide) {
 // Before the data: the foot of the page works whether or not it loads, and
 // the Units setting is read before the first number is drawn.
 wireSettings();
+// And the layout, so the first render is drawn for the screen it lands on.
+wireLayout();
 
 Promise.all([
   fetch(fresh(SOURCE), {cache: "no-store"})
