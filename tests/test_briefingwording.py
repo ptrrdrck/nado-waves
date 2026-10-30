@@ -31,7 +31,7 @@ def test_the_sentence_list_is_what_the_page_prints(cases):
 def _all(got):
     """The page's own words: NWS's alerts are NWS's names, quoted with their
     tag, so a "Rip Current Statement" is NWS calling it that."""
-    return " ".join([got["line"] or ""] + got["swell"] + got["conditions"] + got["tides"])
+    return " ".join([got["line"] or ""] + got["swell"] + got["conditions"] + got["tides"] + got["water_quality"])
 
 
 def test_the_line_names_the_update_and_no_condition(cases):
@@ -129,7 +129,8 @@ def test_the_model_never_appears(cases):
 
 
 def test_nothing_built_draws_no_fold(cases):
-    assert cases["X1"] == {"line": None, "alerts": [], "swell": [], "conditions": [], "tides": []}
+    assert cases["X1"] == {"line": None, "alerts": [], "swell": [], "conditions": [], "tides": [],
+                           "water_quality": []}
 
 
 def test_nws_alerts_are_the_top_line_by_nws_name_and_end(cases):
@@ -151,6 +152,39 @@ def test_an_alert_is_an_update():
     assert briefing.with_text({**briefingwording.QUIET, "alerts": [moved]})["update_words"] != alerted["update_words"]
     resent = {**briefingwording.COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.other.001.1"}
     assert briefing.with_text({**briefingwording.QUIET, "alerts": [resent]})["update_words"] == alerted["update_words"]
+
+
+def test_water_quality_is_a_row_a_break_with_its_status_and_newest_sample(cases):
+    assert cases["Q1"]["water_quality"] == [
+        "North Open · Enterococcus 1,379 copies/100 mL on 21 Oct",
+        "Center Open · Enterococcus 793 copies/100 mL on 21 Oct",
+        "South Open · Enterococcus <195 copies/100 mL on 22 Oct"]        # "<" kept, "=" dropped
+
+
+def test_an_advisory_says_the_countys_end_and_a_closure_with_none_says_none(cases):
+    assert cases["R1"]["water_quality"][0] == "North Advisory until 11 AM Sat · Enterococcus 1,379 copies/100 mL on 21 Oct"
+    south = cases["Z1"]["water_quality"][2]
+    assert south.startswith("South Closed · ") and "until" not in south
+
+
+def test_a_day_of_several_results_leads_with_ddpcr_enterococcus(cases):
+    north, center = cases["Z1"]["water_quality"][:2]
+    assert north == "North Open · Enterococcus 2,957 copies/100 mL on 20 Oct"
+    assert center == "Center Open · no sample yet"
+
+
+def test_a_status_read_too_long_ago_is_not_said_and_when_it_was_read_is(cases):
+    for row in cases["S1"]["water_quality"]:
+        assert "Open" not in row and "Status not read since 2:35 AM" in row and "copies/100 mL on" in row
+
+
+def test_water_quality_words_are_an_update():
+    from forecast import briefing
+
+    quiet = briefing.with_text(briefingwording.QUIET)
+    rain = briefing.with_text(next(b for cid, _, b in briefingwording.CASES if cid == "R1"))
+    assert quiet["update_words"][-3:] == quiet["text"]["water_quality"]
+    assert rain["update_words"] != quiet["update_words"]
 
 
 def test_one_build_renders_for_the_record():

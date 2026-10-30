@@ -1,0 +1,88 @@
+# Probe the County of San Diego's beach water quality site -- run on demand.
+#
+# cosdapps.sandiegocounty.gov is denied at CONNECT from a Claude session
+# (BRIEFING section 8), so "what does the samples page serve, and where are
+# the stations' status and advisories" can only be answered here. The owner's
+# request, 2026-10-30: DEHQ's samples at Coronado's three stations (EH-050
+# Center, EH-060 North, IB-079 South) and each one's status.
+#
+# Not scheduled, writes nothing back. Exits 2 on a denial, 1 when the samples
+# page held no table, 0 when it did; the report is in the step summary and
+# the log.
+
+name: Probe beach water quality
+
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: "Extra paths under /sdbeachinfo/, space-separated, printed in full"
+        required: false
+        default: ""
+      crawl:
+        description: "Follow one level of same-site links (with discover)"
+        type: boolean
+        default: true
+      discover:
+        description: "The whole discovery of the site's scripts and services, not Coronado's records"
+        type: boolean
+        default: false
+  # A probe branch can run it before it reaches the default branch, which
+  # workflow_dispatch cannot: only a change to the probe itself triggers it.
+  push:
+    branches: ["claude/**"]
+    paths:
+      - collector/probe_beachwater.py
+      - collector/beachwater.py
+      - .github/workflows/probe-beachwater.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Probe the site
+        # Dispatch inputs go through the environment, never interpolated into
+        # the shell command.
+        env:
+          PATHS: ${{ inputs.paths }}
+          CRAWL: ${{ inputs.crawl }}
+          DISCOVER: ${{ inputs.discover }}
+        run: |
+          set -euo pipefail
+          args=()
+          for p in ${PATHS:-}; do
+            args+=(--path "${p}")
+          done
+          if [ "${DISCOVER:-false}" = "true" ]; then
+            args+=(--discover)
+          fi
+          if [ "${CRAWL:-true}" = "false" ]; then
+            args+=(--no-crawl)
+          fi
+          python -m collector.probe_beachwater "${args[@]}"
+
+      - name: Run the collector into a scratch directory
+        # collector.beachwater against the real site, writing nothing back:
+        # its archive files are printed, not committed.
+        if: ${{ !inputs.discover }}
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/data"
+          python -m collector.beachwater --data-dir "${out}"
+          for f in $(find "${out}/beach_water" -type f | sort); do
+            echo "=== ${f#${out}/} ($(wc -l < "${f}") lines)"
+            head -3 "${f}"
+            echo "..."
+            tail -4 "${f}"
+          done

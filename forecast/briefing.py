@@ -44,10 +44,17 @@ NWS's alerts do:
 - **Tides**: the day's predicted turns, AM / PM, with the gauge's measured
   departure as the card's turns carry it, and the day's curve the page
   draws them on (`tide_story`; owner's choices, 2026-10-23).
+- **Water quality** (owner's request, 2026-10-30; BRIEFING §48): the County
+  of San Diego's status at each break's station as its map draws it, the
+  event in force behind it with the county's own issue and lift times, and
+  the station's newest sample (`water_quality_story`, from
+  collector.beachwater's archive). A status read more than `WQ_FRESH_H`
+  ago is withheld; a sample is dated and stands.
 
 An update is a change in the words the page prints for the alerts, the
-swell or the tides (`briefingwording.render_issue`, Node, the page's own code), so a
-change below the page's precision is no update. Each update is kept in
+swell, the tides or the water quality (`briefingwording.render_issue`,
+Node, the page's own code), so a change below the page's precision is no
+update. Each update is kept in
 `data/briefings/YYYY-MM.jsonl`, append-only, with the conditions of that
 moment; the page shows the newest build with the newest update's time, and
 a green dot until the reader has opened the fold since.
@@ -859,6 +866,77 @@ def tide_story(now: dict, data_dir: Path, at: datetime) -> dict:
             "nights": nights(start, end)}
 
 
+# ------------------------------------------------------------------ water quality
+
+#: The county's status is read this long after the collector last read it
+#: and no longer: past it the page says when it was read, never a status
+#: (owner's request, 2026-10-30). The collector reads at most every 30 min
+#: (collector.beachwater.MIN_INTERVAL_MIN), so this is six missed reads.
+WQ_FRESH_H = 3.0
+
+#: The county's event types by the legend's label for the same status.
+WQ_EVENT_STATUS = {"Advisory": "Advisory", "Closure": "Closed", "Warning": "Warning"}
+
+
+def _csv(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    with path.open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
+
+
+def water_quality_story(data_dir: Path, at: datetime) -> dict | None:
+    """Each break's water quality as the county posts it (owner's request,
+    2026-10-30; collector.beachwater): the status its map draws, the event
+    in force behind it with the county's issue and lift times, and the
+    station's newest sample, every result of that day. None before the
+    first collection. A status read more than WQ_FRESH_H ago is withheld;
+    a sample is dated and stands."""
+
+    from collector.beachwater import ARCHIVE, registry
+
+    root = Path(data_dir) / ARCHIVE
+    state = _read(root / "state.json")
+    if not state:
+        return None
+    checked = _utc(state.get("last_ok_utc"))
+    fresh = checked is not None and timedelta(0) <= at - checked <= timedelta(hours=WQ_FRESH_H)
+    events = _csv(root / "events.csv")
+    out = []
+    for brk, v in registry()["breaks"].items():
+        st = v["station"]
+        current = (state.get("current") or {}).get(st) or {}
+        status = current.get("status") if fresh else None
+        mine = [e for e in events if e["station"] == st and e["issued_utc"] and _utc(e["issued_utc"]) <= at]
+        # The newest word on each event: a lift time set or moved later is a
+        # later row of the same issue.
+        latest: dict[tuple, dict] = {}
+        for e in sorted(mine, key=lambda e: e["first_seen_utc"]):
+            latest[(e["event_type"], e["issued_utc"])] = e
+        in_force = [e for e in latest.values() if not e["lifted_utc"] or _utc(e["lifted_utc"]) > at]
+        event = None
+        if status and status != "Open":
+            match = [e for e in in_force if WQ_EVENT_STATUS.get(e["event_type"]) == status]
+            if match:
+                e = max(match, key=lambda e: e["issued_utc"])
+                event = {"type": e["event_type"], "issued_utc": e["issued_utc"], "lifted_utc": e["lifted_utc"] or None}
+        lifted = [e["lifted_utc"] for e in latest.values() if e["lifted_utc"] and _utc(e["lifted_utc"]) <= at]
+        samples = [r for r in _csv(root / "samples" / f"{st}.csv")
+                   if r["sample_date"] and _utc(r["first_seen_utc"]) <= at]
+        sample = None
+        if samples:
+            day = max(r["sample_date"] for r in samples)
+            todays = sorted((r for r in samples if r["sample_date"] == day),
+                            key=lambda r: (r["parameter"], r["method"], r["sample_time"]))
+            sample = {"date": day, "time": min(r["sample_time"] for r in todays),
+                      "results": [{k: r[k] for k in ("parameter", "method", "qualifier", "result", "units")}
+                                  for r in todays]}
+        out.append({"id": brk, "station": st, "name": v["name"], "status": status,
+                    "event": event, "open_since_utc": max(lifted) if status == "Open" and lifted else None,
+                    "sample": sample})
+    return {"checked_utc": _iso(checked), "fresh": fresh, "breaks": out}
+
+
 # ------------------------------------------------------------------ build
 
 def build(*, data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None,
@@ -881,6 +959,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None,
         "swell": swell_story(now, _read(live / "buoys.json"), at, Path(data_dir), _read(live / "series.json")),
         "conditions": _conditions(Path(data_dir), at),
         "tide": tide_story(now, Path(data_dir), at),
+        "water_quality": water_quality_story(Path(data_dir), at),
     }
 
 
@@ -901,7 +980,8 @@ def with_text(built: dict) -> dict:
     except Exception as exc:  # noqa: BLE001 -- the payload stands without its words
         print(f"briefing: words not rendered ({type(exc).__name__}: {exc})", file=sys.stderr)
         return {**built, "text": None, "update_words": None}
-    return {**built, "text": text, "update_words": text["alerts"] + text["swell"] + text["tides"]}
+    return {**built, "text": text,
+            "update_words": text["alerts"] + text["swell"] + text["tides"] + text["water_quality"]}
 
 
 def main(argv: list[str] | None = None) -> int:
