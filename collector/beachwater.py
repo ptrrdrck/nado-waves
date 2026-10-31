@@ -200,14 +200,64 @@ def legend(client: Client) -> dict[int, str]:
 
 
 def priority(client: Client, site: str) -> int | None:
-    """A site's status as the county's map draws it: the PriorityMax of its
-    events in force, an id of the legend's (Silver Strand's two closed
-    stations read 4, Closed, on 30 Oct 2026). None when nothing is in force,
-    which the map draws as Open."""
+    """The PriorityMax the county's map reads for a site's events in force,
+    None when nothing is. A cross-check only (`status_of`): it is NOT the
+    legend's id, as was first assumed -- South read 2, the legend's Open,
+    under an Advisory issued 30 Oct 2026 22:42Z, and Silver Strand's closed
+    stations read 4 (PRIORITY_SEEN)."""
 
     got = rows(client.aggregate("BlockMarkup.GetEvents", {"SiteId": site}, max_records=50))
     values = [int(r.get("PriorityMax") or 0) for r in got]
     return max(values) if values else None
+
+
+# ------------------------------------------------------------------ the status
+
+#: The county's event types by the status the page says.
+EVENT_STATUS = {"Advisory": "Advisory", "Closure": "Closed", "Warning": "Warning"}
+
+#: Most severe last: a station with two events in force says the worse.
+SEVERITY = ("Open", "Advisory", "Warning", "Closed")
+
+#: The map's PriorityMax as seen beside an event in force: 2 at South under
+#: an Advisory (30 Oct 2026, 22:42Z), 4 at Silver Strand's IB-068 and IB-070
+#: under closures (29 Oct). 1 and 3 have not been seen.
+PRIORITY_SEEN = {2: "Advisory", 4: "Closed"}
+
+
+def in_force(events: list[dict], station: str, now) -> list[dict]:
+    """A station's events in force at `now`, from the posting report as just
+    read: issued by then, and not lifted, or lifted later (a General Rain
+    Advisory is posted with its end)."""
+
+    out = []
+    for e in events:
+        issued, lifted = parse_iso(e["issued_utc"]), parse_iso(e["lifted_utc"])
+        if e["station"] == station and issued is not None and issued <= now and (lifted is None or lifted > now):
+            out.append(e)
+    return out
+
+
+def status_of(events: list[dict], priority_max: int | None) -> tuple[str, str | None]:
+    """A station's status and, when the map's PriorityMax disagrees, why.
+    The county's own events in force decide it, the worst of them (Open with
+    none); a PriorityMax seen to mean a worse status than they say wins,
+    because the map may be ahead of the report. One never seen is reported,
+    never guessed (owner's report, 2026-10-31: South showed Open under an
+    Advisory, its 2 read as the legend's Open)."""
+
+    labels = [EVENT_STATUS[e["event_type"]] for e in events if e["event_type"] in EVENT_STATUS]
+    label = max(labels, key=SEVERITY.index, default="Open")
+    note = None
+    if priority_max is not None and priority_max not in PRIORITY_SEEN:
+        note = f"map priority {priority_max} not yet seen beside an event; the posting report says {label}"
+    elif priority_max is not None and PRIORITY_SEEN[priority_max] != label:
+        seen = PRIORITY_SEEN[priority_max]
+        note = f"map priority {priority_max} ({seen}) against the posting report's {label}"
+        label = max(label, seen, key=SEVERITY.index)
+    elif priority_max is None and label != "Open":
+        note = f"the map has nothing in force; the posting report says {label}"
+    return label, note
 
 
 # ------------------------------------------------------------------ the archive
@@ -367,7 +417,9 @@ def collect(data_dir: Path = DEFAULT_DATA_DIR, min_interval_min: float = 0) -> t
         client = Client(reg["base"]).start()
         labels = legend(client)
         stations = {v["station"] for v in reg["breaks"].values()}
+        ev = [event_row(r) for r in events(client)]
         current: dict[str, tuple] = {}
+        notes: dict[str, str] = {}
         for brk, v in reg["breaks"].items():
             raw = samples(client, v["site"])
             # Only the station's own rows: a filter the county changes must
@@ -377,14 +429,18 @@ def collect(data_dir: Path = DEFAULT_DATA_DIR, min_interval_min: float = 0) -> t
             got = [sample_row(r) for r in raw if (r.get("Site") or {}).get("StationID") == v["station"]]
             added, conflicts = store_samples(data_dir, v["station"], got, seen)
             p = priority(client, v["site"])
-            label = labels.get(p, f"priority {p}") if p is not None else labels.get(2, "Open")
+            label, note = status_of(in_force(ev, v["station"], now), p)
             current[v["station"]] = (str(p) if p is not None else "", label)
+            if note:
+                notes[v["station"]] = note
+                print(f"::warning title=Beach water status, {v['station']}::{note}", file=sys.stderr)
             newest = max((r["sample_date"] for r in got), default="none")
             lines.append(f"- {brk} {v['station']} (site {v['site']}): {label}; {len(got)} samples, {added} new, "
                          f"{conflicts} changed since archived (kept as first seen), newest {newest}")
             if foreign:
                 lines.append(f"  - rows from other stations: {foreign}")
-        ev = [event_row(r) for r in events(client)]
+            if note:
+                lines.append(f"  - **status cross-check**: {note}")
         added = store_events(data_dir, ev, stations, seen)
         changed = store_status(data_dir, current, seen)
         lines.append(f"- posting report: {len(ev)} rows, {added} new event rows at the three")
@@ -397,7 +453,8 @@ def collect(data_dir: Path = DEFAULT_DATA_DIR, min_interval_min: float = 0) -> t
         return lines + [f"FAILED: {type(exc).__name__}: {exc}"], 2 if denied else 1
     state.update({"last_ok_utc": seen, "module_version": client.module_version,
                   "legend": {str(k): v for k, v in sorted(labels.items())},
-                  "current": {st: {"priority": p, "status": label} for st, (p, label) in sorted(current.items())}})
+                  "current": {st: {"priority": p, "status": label, **({"note": notes[st]} if st in notes else {})}
+                              for st, (p, label) in sorted(current.items())}})
     state.pop("last_error", None)
     write_state(data_dir, state)
     return lines, 0
