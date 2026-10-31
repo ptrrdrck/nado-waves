@@ -66,14 +66,17 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          args=()
+          # 46232 is collect-beach-inputs.yml's, fetched every collection for
+          # the Briefing's water (owner's call, 2026-10-31); it stays in the
+          # status file, which reads the archive.
+          args=(--exclude 46232)
           if [ -n "${STATIONS:-}" ]; then
             args+=(--stations "${STATIONS}")
           fi
           if [ "${DRY_RUN:-false}" = "true" ]; then
             args+=(--dry-run)
           fi
-          python -m collector.run ${args[@]+"${args[@]}"}
+          python -m collector.run "${args[@]}"
 
       # Directional spectra for the context buoys not collected hourly: 46258.
       # 46047 and 46086 moved to collect-beach-inputs.yml on 2026-10-02, because

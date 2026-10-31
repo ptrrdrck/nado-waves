@@ -3979,6 +3979,18 @@ class TestTheBriefing:
         assert "const briefRowWhen = (r, B, at = r.daysAgo ? briefAgo : briefAt) =>" in self.BLOCK
         assert "? `yesterday, ${clock(iso)}`" in self.BLOCK
 
+    def test_with_no_current_water_the_row_says_so_and_never_a_lapsed_value(self):
+        """Owner's call, 2026-10-31: neither source current reads "No current
+        reading", tapped when each last read; water_last carries no value."""
+        cond = self.BLOCK[self.BLOCK.index("function briefConditions"):]
+        cond = cond[:cond.index("\n}\n")]
+        lapsed = cond[cond.index("} else if (c.water_last) {"):cond.index("if (w.air_c != null)")]
+        assert 'value: "No current reading"' in lapsed
+        assert "last read ${briefAgo(hub.observed_utc, B)}" in lapsed
+        assert ".c" not in lapsed.replace("c.water_last", "")
+        from forecast import briefing as bf
+        assert f"const BRIEF_WATER_LOOKBACK_D = {bf.WATER_LAST_LOOKBACK_D};" in self.BLOCK
+
     def test_the_arrow_is_an_ink_arrowhead_or_a_dash(self):
         assert ".brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}" in SOURCE
         arrows = self.BLOCK[self.BLOCK.index("const BRIEF_ARROW = "):self.BLOCK.index("const BRIEF_AGAINST")]

@@ -115,6 +115,18 @@ def main(argv: list[str] | None = None) -> int:
         "--stations",
         help="Comma-separated station ids. Default: every station in the registry.",
     )
+    parser.add_argument(
+        "--exclude",
+        help="Comma-separated station ids NOT fetched here, because another "
+        "workflow is their one writer (46232: collect-beach-inputs.yml). "
+        "They stay in the status file, which reads the archive.",
+    )
+    parser.add_argument(
+        "--no-status",
+        action="store_true",
+        help="Do not rewrite the status file: for a run that fetches only "
+        "some stations, whose status would otherwise drop the rest.",
+    )
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--retries", type=int, default=3)
@@ -129,6 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         load_stations(), args.stations.split(",") if args.stations else None
     )
     now = utcnow_iso()
+    excluded = set(args.exclude.split(",")) if args.exclude else set()
 
     outcomes = [
         collect_station(
@@ -140,9 +153,10 @@ def main(argv: list[str] | None = None) -> int:
             now=now,
         )
         for station in stations
+        if station.id not in excluded
     ]
 
-    if not args.dry_run:
+    if not args.dry_run and not args.no_status:
         # The app reads this to decide which buoys can take a call today, and
         # what to tell a player whose home buoy has gone dark.
         # The status file says what each buoy is FOR, not just whether it is

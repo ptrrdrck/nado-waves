@@ -36,7 +36,8 @@ NWS's alerts do:
   update: the water temperature at a Coronado hub's receiver, Center's
   first, yesterday's as the lab loads it nightly (`HUB_WATER_FRESH_H`;
   owner's call, 2026-10-29, BRIEFING §47), else 46232's
-  (`WATER_FRESH_H`), never a blend of the two; KNZY's air
+  (`WATER_FRESH_H`), never a blend of the two, and with neither, when
+  each last read (`water_last`, never a value); KNZY's air
   temperature, humidity and pressure, and rain — the last hour's and the
   rolling 24 hours', both shown when either is above zero, neither when
   not. Each with an arrow against an earlier reading and a sparkline of
@@ -100,10 +101,17 @@ RECORD_DIR = "briefings"
 WIND_FRESH_MIN = 90
 
 #: 46232's water temperature older than this is not "current". Its
-#: standard met reports every 30 min but reaches the archive on collect.yml's
-#: throttled schedule: measured over the week to 2026-10-22, the newest was
-#: a median 2.7 h old, ≤ 3 h 60% of the time and ≤ 6 h 99%.
+#: standard met reports every 30 min. Until 2026-10-31 it reached the
+#: archive on collect.yml's throttled schedule (the week to 2026-10-22: a
+#: median 2.7 h old, ≤ 6 h 99%), and on 30-31 Oct, with the hubs' water
+#: lapsed, that left the row empty twice; since then collect-beach-inputs.yml
+#: fetches it every collection (owner's call), so 6 h is an outage.
 WATER_FRESH_H = 6.0
+
+#: How far back the row looks for each source's LAST reading when neither is
+#: current, to say why it has none (owner's call, 2026-10-31). Never a value:
+#: only when each source last read.
+WATER_LAST_LOOKBACK_D = 30
 
 #: The Water row reads a Coronado hub's receiver first (owner's call,
 #: 2026-10-29: 46232's water, 29 km out, is only the fallback), from
@@ -325,6 +333,18 @@ def water_now(data_dir: Path, at: datetime) -> dict | None:
     return hub_water_now(data_dir, at) or buoy_water_now(data_dir, at)
 
 
+def water_last(data_dir: Path, at: datetime) -> dict:
+    """When neither source is current, when each last read (owner's call,
+    2026-10-31): the hub the row would read, within WATER_LAST_LOOKBACK_D,
+    and 46232's newest in its archive. Times and names only, never a value:
+    a lapsed reading is not the water now."""
+
+    hub = hub_water_now(data_dir, at, within_h=WATER_LAST_LOOKBACK_D * 24.0)
+    buoy = buoy_water_now(data_dir, at, within_h=None)
+    return {"hub": {k: hub[k] for k in ("hub", "break", "observed_utc")} if hub else None,
+            "buoy": {k: buoy[k] for k in ("station", "observed_utc")} if buoy else None}
+
+
 def _hub_readings(data_dir: Path, receiver: str, start: datetime, end: datetime):
     """A receiver's archived readings in (start, end], upright only, as
     [(time, °C)] sorted; a reading on its side is the air, never the water."""
@@ -348,9 +368,9 @@ def _hub_readings(data_dir: Path, receiver: str, start: datetime, end: datetime)
     return sorted(out)
 
 
-def hub_water_now(data_dir: Path, at: datetime) -> dict | None:
-    """The newest upright reading, within HUB_WATER_FRESH_H, of the receiver
-    on the hub serving the first break in HUB_BREAK_ORDER that has one."""
+def hub_water_now(data_dir: Path, at: datetime, within_h: float = HUB_WATER_FRESH_H) -> dict | None:
+    """The newest upright reading, within `within_h`, of the receiver on the
+    hub serving the first break in HUB_BREAK_ORDER that has one."""
 
     path = Path(data_dir) / "sharklab" / "hubs.json"
     if not path.exists():
@@ -360,7 +380,7 @@ def hub_water_now(data_dir: Path, at: datetime) -> dict | None:
         for hub, v in sorted(hubs.items()):
             if v.get("break") != brk or not v.get("receiver"):
                 continue
-            got = _hub_readings(data_dir, v["receiver"], at - timedelta(hours=HUB_WATER_FRESH_H), at)
+            got = _hub_readings(data_dir, v["receiver"], at - timedelta(hours=within_h), at)
             if got:
                 t, c = got[-1]
                 return {"source": "sharklab", "hub": hub, "receiver": v["receiver"], "break": brk,
@@ -368,8 +388,10 @@ def hub_water_now(data_dir: Path, at: datetime) -> dict | None:
     return None
 
 
-def buoy_water_now(data_dir: Path, at: datetime, station: str = "46232") -> dict | None:
-    """46232's newest water temperature (its standard met, WTMP)."""
+def buoy_water_now(data_dir: Path, at: datetime, station: str = "46232",
+                   within_h: float | None = WATER_FRESH_H) -> dict | None:
+    """46232's newest water temperature (its standard met, WTMP), within
+    `within_h` (None: any age)."""
 
     from collector.ndbc import is_missing
 
@@ -382,7 +404,8 @@ def buoy_water_now(data_dir: Path, at: datetime, station: str = "46232") -> dict
             token = row.get("wtmp") or ""
             t = _utc(row["timestamp_utc"])
             if (token and not is_missing("WTMP", token) and t <= at
-                    and at - t <= timedelta(hours=WATER_FRESH_H) and (best is None or t > best[0])):
+                    and (within_h is None or at - t <= timedelta(hours=within_h))
+                    and (best is None or t > best[0])):
                 best = (t, float(token))
     return {"source": "ndbc", "station": station, "c": best[1], "observed_utc": _iso(best[0])} if best else None
 
@@ -1024,7 +1047,10 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None,
 
 def _conditions(data_dir: Path, at: datetime) -> dict:
     water, weather = water_now(data_dir, at), weather_now(data_dir, at)
-    return {"water": water, "weather": weather, "trends": trends(data_dir, at, water, weather)}
+    out = {"water": water, "weather": weather, "trends": trends(data_dir, at, water, weather)}
+    if water is None:
+        out["water_last"] = water_last(data_dir, at)
+    return out
 
 
 def with_text(built: dict) -> dict:

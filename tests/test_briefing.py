@@ -284,6 +284,28 @@ def test_the_waters_arrow_and_line_are_its_own_sources(tmp_path):
     assert [v for _, v in got["spark"]] == [22.5, 22.7]
 
 
+def test_with_neither_source_current_the_row_says_when_each_last_read(tmp_path):
+    """Owner's call, 2026-10-31: no current reading is said, with each
+    source's last time and never its value."""
+    _hubs(tmp_path, HUBS, {"667382": [("2026-10-28T23:58:00Z", 22.7, 5)],
+                           "667381": [("2026-10-28T23:58:00Z", 22.9, 6)]})
+    (tmp_path / "observations").mkdir()
+    (tmp_path / "observations" / "46232.csv").write_text(
+        "timestamp_utc,first_seen_utc,wtmp\n2026-10-31T00:26:00Z,2026-10-31T00:40:00Z,25.0\n")
+    at = _at("2026-10-31T06:30:00Z")
+    got = bf._conditions(tmp_path, at)
+    assert got["water"] is None
+    assert got["water_last"] == {
+        "hub": {"hub": "660495", "break": "coronado_center", "observed_utc": "2026-10-28T23:58:00Z"},
+        "buoy": {"station": "46232", "observed_utc": "2026-10-31T00:26:00Z"}}
+
+
+def test_a_current_water_reading_carries_no_last_reading(tmp_path):
+    _hubs(tmp_path, HUBS, {"667382": [("2026-10-28T23:58:00Z", 22.7, 5)]})
+    got = bf._conditions(tmp_path, _at("2026-10-29T19:00:00Z"))
+    assert got["water"]["source"] == "sharklab" and "water_last" not in got
+
+
 # ------------------------------------------------------------------ tide
 
 def test_the_tides_are_the_pacific_days_turns():

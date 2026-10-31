@@ -188,6 +188,20 @@ jobs:
           set -euo pipefail
           python -m collector.tide
 
+      # 46232's standard met, for the Briefing's water when no hub reading is
+      # current (owner's call, 2026-10-31: on collect.yml's throttled
+      # schedule it went past 6 h twice on 30-31 Oct, with the hubs' water
+      # lapsed, and the row went empty). This job is its one writer; collect.yml
+      # excludes it and still lists it in the status file, which reads the
+      # archive. One try: the file holds 45 days, and the next collection
+      # fetches it again. --no-status, or the status file would list 46232 alone.
+      - name: Standard met (46232)
+        id: stdmet
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python -m collector.run --stations 46232 --no-status --retries 1 --timeout 20
+
       # The Coronado shark-monitoring buoys' receivers: their temperature is
       # the Briefing's water (owner's call, 2026-10-29; BRIEFING §47). The lab
       # loads each day the next night, so a trailing 72 h is re-read and each
@@ -319,6 +333,7 @@ jobs:
           WIND: ${{ steps.wind.outcome }}
           TIDE: ${{ steps.tide.outcome }}
           SHARKLAB: ${{ steps.sharklab.outcome }}
+          STDMET: ${{ steps.stdmet.outcome }}
           BEACHWATER: ${{ steps.beachwater.outcome }}
         run: |
           set -euo pipefail
@@ -326,7 +341,7 @@ jobs:
           # only turns the outcomes into a headline, because "the job went red"
           # does not say which of three sources failed.
           failed=""
-          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "best-tracks:${TRACKS}" "nws-alerts:${ALERTS}" "wind:${WIND}" "tide:${TIDE}" "shark-lab:${SHARKLAB}" "beach-water:${BEACHWATER}"; do
+          for pair in "spectra:${SPECTRA}" "bearing-spectra:${BEARING}" "best-tracks:${TRACKS}" "nws-alerts:${ALERTS}" "wind:${WIND}" "tide:${TIDE}" "stdmet-46232:${STDMET}" "shark-lab:${SHARKLAB}" "beach-water:${BEACHWATER}"; do
             name="${pair%%:*}"; outcome="${pair##*:}"
             if [ "${outcome}" != "success" ]; then
               failed="${failed} ${name}"
@@ -354,6 +369,9 @@ jobs:
           git add data/nhcforecasts 2>/dev/null || true
           # Likewise: it does not exist until the first alert is seen.
           git add data/alerts 2>/dev/null || true
+          # 46232's standard met alone: every other station is collect.yml's.
+          git add data/observations/46232.csv 2>/dev/null || true
+          git add data/revisions/46232.csv 2>/dev/null || true
           # Likewise: until the first Shark Lab collection.
           git add data/sharklab 2>/dev/null || true
           # Likewise: until the first county water quality collection.
@@ -364,7 +382,7 @@ jobs:
             exit 0
           fi
 
-          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts data/alerts data/sharklab data/beach_water \
+          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts data/alerts data/observations/46232.csv data/revisions/46232.csv data/sharklab data/beach_water \
             | awk '{sum += $1} END {print sum + 0}')
 
           git commit \

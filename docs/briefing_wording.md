@@ -195,6 +195,28 @@ Center Open; 793 copies/100 mL on Oct 21, up
 South Open; <195 copies/100 mL on Oct 22, down
 ```
 
+### W2: neither source current: the row says so, and tapped, when each last read, never a value
+
+```text
+[Briefing updated 7:16 AM]
+
+3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
+
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water No current reading
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
+
+North Open; 1,379 copies/100 mL on Oct 21, steady
+Center Open; 793 copies/100 mL on Oct 21, up
+South Open; <195 copies/100 mL on Oct 22, down
+```
+
 ### K1: no water temperature, no KNZY report, a minus tide
 
 ```text

@@ -952,10 +952,14 @@ forecaster actually verifies against, Surfline included.
    the air); ≤ 48 h (`HUB_WATER_FRESH_H`), because the lab loads each UTC
    day the next night, so it is normally yesterday's, which the TAPPED row
    says ("yesterday, 4:58 PM", `briefAgo`) and the row never does (owner's
-   call, same day). Else 46232's (≤ 6 h: its standard met reaches the
-   archive on collect.yml's throttled schedule, a median 2.7 h old), the
-   fallback only; never a blend, the row's value, arrow and sparkline one
-   source's (14 d), KNZY's air temperature and humidity (≤ 90 min; the T
+   call, same day). Else 46232's (≤ 6 h; its standard met is fetched every
+   collection by collect-beach-inputs.yml, its one writer since 2026-10-31,
+   collect.yml excluding it: on collect.yml's throttled schedule it lapsed
+   past 6 h twice on 30–31 Oct while the hubs' water had lapsed too, and
+   the row went empty), the fallback only; never a blend, the row's value,
+   arrow and sparkline one source's (14 d). With neither current the row
+   says "No current reading", and tapped, when each last read
+   (`water_last`, owner's call, 2026-10-31) -- never a lapsed value, KNZY's air temperature and humidity (≤ 90 min; the T
    group's tenths, Magnus; 24 h), its PRESSURE (the body's A group, inHg
    as published, hPa in brackets; 3 d; owner's request, same day), and RAIN
    only when the last hour's (the newest routine report's P group) or the

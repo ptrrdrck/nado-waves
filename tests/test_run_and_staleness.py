@@ -210,3 +210,43 @@ class TestSpectraStaleness:
         assert staleness_module.main(
             ["--data-dir", str(tmp_path), "--stations", "46222", "--output", str(output)]) == 1
         assert "46047" in output.read_text() and "Directional spectra" in output.read_text()
+
+
+def test_an_excluded_station_is_not_fetched_but_stays_in_the_status(tmp_path, monkeypatch):
+    """46232 is collect-beach-inputs.yml's (owner's call, 2026-10-31):
+    collect.yml leaves it out of the fetch and still reports its status."""
+    fetched, status = [], []
+    def fake_collect(station, data_dir, **kw):
+        fetched.append(station.id)
+        out = run_module.StationOutcome(station)
+        out.error = "not fetched in a test"
+        return out
+    monkeypatch.setattr(run_module, "collect_station", fake_collect)
+    monkeypatch.setattr(run_module, "write_status", lambda d, doc: status.append(doc))
+    monkeypatch.setattr(run_module, "build_status",
+                        lambda d, stations, **kw: [s.id for s in stations])
+    run_module.main(["--data-dir", str(tmp_path), "--exclude", "46232"])
+    assert "46232" not in fetched and fetched
+    assert "46232" in status[0]
+
+
+def test_a_single_station_run_leaves_the_status_alone(tmp_path, monkeypatch):
+    fetched, status = [], []
+    def fake_collect(station, data_dir, **kw):
+        fetched.append(station.id)
+        return run_module.StationOutcome(station)
+    monkeypatch.setattr(run_module, "collect_station", fake_collect)
+    monkeypatch.setattr(run_module, "write_status", lambda d, doc: status.append(doc))
+    monkeypatch.setattr(run_module, "format_summary", lambda outcomes, now: "")
+    run_module.main(["--data-dir", str(tmp_path), "--stations", "46232", "--no-status"])
+    assert fetched == ["46232"] and status == []
+
+
+def test_46232s_standard_met_has_one_writer_the_ten_minute_collection():
+    root = Path(__file__).resolve().parents[1] / ".github" / "workflows"
+    collect = (root / "collect.yml").read_text(encoding="utf-8")
+    beach = (root / "collect-beach-inputs.yml").read_text(encoding="utf-8")
+    assert "args=(--exclude 46232)" in collect
+    assert "python -m collector.run --stations 46232 --no-status" in beach
+    assert "git add data/observations/46232.csv" in beach
+    assert "git add data/revisions/46232.csv" in beach

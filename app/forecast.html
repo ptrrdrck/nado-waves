@@ -2166,6 +2166,8 @@ function briefBars(days) {
         + ` width="${(bw - 2).toFixed(1)}" height="${h.toFixed(1)}"/>` : "");
   }).join("") + "</svg>";
 }
+// briefing.WATER_LAST_LOOKBACK_D: how far back water_last looks for a hub.
+const BRIEF_WATER_LOOKBACK_D = 30;
 function briefConditions(B) {
   const c = B.conditions || {};
   const water = c.water, w = c.weather || {}, T = c.trends || {};
@@ -2183,6 +2185,16 @@ function briefConditions(B) {
         hub ? `Shark Lab hub, ${SHORT[water.break] || "Coronado"}`
           : feedName(water.station, water.station === B.station ? B.station_cdip : ""),
         T.water, hub ? {daysAgo: true} : {});
+  } else if (c.water_last) {
+    // Neither current: the row says so, and tapped, when each source last
+    // read (owner's call, 2026-10-31) -- never a lapsed value.
+    const {hub, buoy} = c.water_last;
+    out.push({key: "water", label: "Water", value: "No current reading", dir: null, was: null,
+      trend: "", window: "", when: [
+        hub ? `Shark Lab hub, ${SHORT[hub.break] || "Coronado"}, last read ${briefAgo(hub.observed_utc, B)}`
+          : `No Shark Lab hub reading in ${BRIEF_WATER_LOOKBACK_D} days`,
+        buoy ? `${feedName(buoy.station, buoy.station === B.station ? B.station_cdip : "")} last read `
+          + briefAt(buoy.observed_utc, B) : null].filter(Boolean).join(" · ")});
   }
   if (w.air_c != null) row("air", "Air", briefTemp(w.air_c), w.observed_utc, knzy, T.air);
   if (w.humidity_pct != null) {
