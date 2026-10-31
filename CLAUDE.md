@@ -1303,7 +1303,14 @@ forecaster actually verifies against, Surfline included.
   and lists an event once per beach group, its free text differing.
   Probe allow-list only: run 3's deny-list let a server action named
   MigrateSample through (refused for want of a role). Denied from a
-  session; at most every 30 min; not in the staleness alert.
+  session; not in the staleness alert. **Read EVERY collection** (owner's
+  request, 2026-10-31, after colleagues saw South's advisory before the
+  page did): at the old 30 min floor reads landed 30–40 min apart, and the
+  site itself showed the 30 Oct advisory 23–53 min after its own issue
+  time (absent at the 23:05Z read, there at 23:35Z; BRIEFING §48b). The
+  block scripts are fetched again only when their manifest version changes
+  (`Client.start`'s cache, `scripts` in state.json): a read is ~12
+  requests and ~3 s.
 - **A 404 that used to mean one thing can start meaning another.** NCEP dropped
   the per-station GFS-Wave bulletin files between 2026-09-15 and 2026-09-16;
   the data moved to `gfswave.tHHz.bull_tar` in the same directory. The archive
@@ -1429,8 +1436,8 @@ forecaster actually verifies against, Surfline included.
                         site's OutSystems screen services: samples, the
                         posting report's advisories / closures / warnings,
                         and each station's status from the events in force
-                        (the map's PriorityMax a cross-check), each kept once, at most every
-                        30 min -> data/beach_water/; the registry holds the
+                        (the map's PriorityMax a cross-check), each kept once, every
+                        collection -> data/beach_water/; the registry holds the
                         county's station codes and site ids, never a
                         coordinate; Actions only — BRIEFING §48),
                         probe_beachwater.py (how that site serves its data,

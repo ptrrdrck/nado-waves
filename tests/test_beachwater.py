@@ -93,12 +93,53 @@ def test_a_status_is_logged_when_it_changes_and_only_then(tmp_path):
     assert bw.store_status(tmp_path, {"IB-079": ("4", "Closed"), "EH-050": ("", "Open")}, seen) == ["IB-079"]
 
 
-def test_a_collection_fetches_at_most_every_half_hour():
+def test_every_collection_reads_the_site():
+    """Owner's request, 2026-10-31: colleagues saw South's advisory before
+    the page did. A collection ten minutes after the last still reads."""
     now = datetime(2026, 10, 30, 2, 0, tzinfo=timezone.utc)
+    assert bw.MIN_INTERVAL_MIN == 0
     assert bw.due({}, now, bw.MIN_INTERVAL_MIN)
-    assert not bw.due({"last_fetch_utc": "2026-10-30T01:45:00Z"}, now, bw.MIN_INTERVAL_MIN)
-    assert bw.due({"last_fetch_utc": (now - timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")}, now,
-                  bw.MIN_INTERVAL_MIN)
+    assert bw.due({"last_fetch_utc": "2026-10-30T01:50:00Z"}, now, bw.MIN_INTERVAL_MIN)
+    assert not bw.due({"last_fetch_utc": "2026-10-30T01:45:00Z"}, now, 30)     # the gate still works
+
+
+def test_the_collection_step_reads_every_collection():
+    from pathlib import Path
+
+    wf = (Path(__file__).resolve().parent.parent / ".github/workflows/collect-beach-inputs.yml").read_text()
+    step = wf[wf.index("python -m collector.beachwater"):].splitlines()[0]
+    assert "--min-interval-min" not in step
+
+
+def test_a_block_script_is_fetched_again_only_when_its_version_changes(monkeypatch):
+    key = "/sdbeachinfo/scripts/CoSD_Beach_Water_CW.MainFlow.BlockLegend.mvc.js"
+    script = ('controller.callAggregateWithStartIndexAndClientVars("ScreenDataSetGetLegends", '
+              '"screenservices/CoSD_Beach_Water_CW/MainFlow/BlockLegend/ScreenDataSetGetLegends", "API1", m')
+    version = ["?v1"]
+    fetched = []
+
+    def get(self, url):
+        fetched.append(url)
+        if url.endswith("/sdbeachinfo/"):
+            return 'OSManifestLoader.indexVersionToken = "tok";'
+        if "moduleinfo" in url:
+            return json.dumps({"manifest": {"urlVersions": {key: version[0]}}})
+        if "moduleversioninfo" in url:
+            return json.dumps({"versionToken": "mod"})
+        return script
+
+    monkeypatch.setattr(bw.Client, "_get", get)
+    first = bw.Client("https://example.invalid/sdbeachinfo").start()
+    assert first.services == {"BlockLegend.GetLegends": (
+        "screenservices/CoSD_Beach_Water_CW/MainFlow/BlockLegend/ScreenDataSetGetLegends", "API1")}
+    cache = json.loads(json.dumps(first.scripts))                        # as state.json keeps it
+    fetched.clear()
+    again = bw.Client("https://example.invalid/sdbeachinfo").start(cache)
+    assert again.services == first.services and not any(u.endswith(key + "?v1") for u in fetched)
+    version[0] = "?v2"                                                   # the county redeployed
+    fetched.clear()
+    bw.Client("https://example.invalid/sdbeachinfo").start(cache)
+    assert any(u.endswith(key + "?v2") for u in fetched)
 
 
 class _Fake(bw.Client):
@@ -111,7 +152,8 @@ class _Fake(bw.Client):
         self.module_version = "v"
         self.calls = []
 
-    def start(self):
+    def start(self, cache=None):
+        self.scripts = {}
         return self
 
     def aggregate(self, service, variables, max_records=1000, start=0):

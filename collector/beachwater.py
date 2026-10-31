@@ -102,7 +102,15 @@ class Client:
         with self.opener.open(req, timeout=self.timeout) as r:
             return r.read().decode("utf-8", errors="replace")
 
-    def start(self) -> Client:
+    def start(self, cache: dict | None = None) -> Client:
+        """Read the module's version and every block's aggregates. A block
+        script whose manifest version is the one in `cache` is not fetched
+        again: its services are taken from the cache, which `scripts` hands
+        back for the next collection (~330 KB of scripts a read, now every
+        collection; they change only when the county redeploys)."""
+
+        cache = cache or {}
+        self.scripts = {}
         page = self._get(f"{self.base}/")
         m = re.search(r'indexVersionToken\s*=\s*"([^"]+)"', page)
         token = m.group(1) if m else ""
@@ -114,9 +122,15 @@ class Client:
             m = re.search(rf"/scripts/{MODULE}\.MainFlow\.(\w+)\.mvc\.js$", key)
             if not m or m.group(1) not in BLOCKS:
                 continue
-            script = self._get("/".join(root) + key + version)
-            for name, path, api in CALL.findall(script):
-                self.services[f"{m.group(1)}.{name.removeprefix('ScreenDataSet')}"] = (path, api)
+            kept = cache.get(key)
+            if kept and kept.get("version") == version:
+                found = {k: tuple(v) for k, v in kept["services"].items()}
+            else:
+                script = self._get("/".join(root) + key + version)
+                found = {f"{m.group(1)}.{name.removeprefix('ScreenDataSet')}": (path, api)
+                         for name, path, api in CALL.findall(script)}
+            self.services.update(found)
+            self.scripts[key] = {"version": version, "services": {k: list(v) for k, v in found.items()}}
         return self
 
     def aggregate(self, service: str, variables: dict, max_records: int = 1000, start: int = 0) -> dict:
@@ -270,11 +284,15 @@ EVENT_FIELDS = ("station", "event_type", "issued_utc", "lifted_utc", "distance",
 EVENT_KEY = ("station", "event_type", "issued_utc", "lifted_utc")
 STATUS_FIELDS = ("first_seen_utc", "station", "priority", "status")
 
-#: The site changes when the county posts, not by the minute: a collection
-#: fetches only when the last fetch is at least this old. Each fetch is ~15
-#: requests (the scripts, three stations' samples, the posting report's
-#: pages, three statuses and the legend).
-MIN_INTERVAL_MIN = 30
+#: A collection fetches only when the last fetch is at least this old: 0,
+#: every collection (owner's request, 2026-10-31, after colleagues saw a
+#: South advisory before the page did). At 30 min, reads landed 30-40 min
+#: apart on the 10-minute collection cycle; the site itself showed the
+#: 30 Oct advisory between 23 and 53 min after its own issue time (nothing
+#: at the 23:05Z read, there at 23:35Z). A read is ~12 requests and ~3 s:
+#: the block scripts are fetched only when their version changes
+#: (`Client.start`'s cache, kept in state.json).
+MIN_INTERVAL_MIN = 0
 
 STATE = "state.json"
 
@@ -414,7 +432,7 @@ def collect(data_dir: Path = DEFAULT_DATA_DIR, min_interval_min: float = 0) -> t
     lines = [f"## Beach water quality ({reg['base']})", "", f"Run at {seen}.", ""]
     state["last_fetch_utc"] = seen
     try:
-        client = Client(reg["base"]).start()
+        client = Client(reg["base"]).start(state.get("scripts"))
         labels = legend(client)
         stations = {v["station"] for v in reg["breaks"].values()}
         ev = [event_row(r) for r in events(client)]
@@ -451,7 +469,7 @@ def collect(data_dir: Path = DEFAULT_DATA_DIR, min_interval_min: float = 0) -> t
         write_state(data_dir, state)
         denied = "Tunnel connection failed" in str(exc) and "403" in str(exc)
         return lines + [f"FAILED: {type(exc).__name__}: {exc}"], 2 if denied else 1
-    state.update({"last_ok_utc": seen, "module_version": client.module_version,
+    state.update({"last_ok_utc": seen, "module_version": client.module_version, "scripts": client.scripts,
                   "legend": {str(k): v for k, v in sorted(labels.items())},
                   "current": {st: {"priority": p, "status": label, **({"note": notes[st]} if st in notes else {})}
                               for st, (p, label) in sorted(current.items())}})

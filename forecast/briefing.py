@@ -893,8 +893,9 @@ def tide_story(now: dict, data_dir: Path, at: datetime) -> dict:
 
 #: The county's status is read this long after the collector last read it
 #: and no longer: past it the page says when it was read, never a status
-#: (owner's request, 2026-10-30). The collector reads at most every 30 min
-#: (collector.beachwater.MIN_INTERVAL_MIN), so this is six missed reads.
+#: (owner's request, 2026-10-30). The collector reads every collection
+#: (collector.beachwater.MIN_INTERVAL_MIN, 0 since 2026-10-31), so this is
+#: some eighteen missed reads.
 WQ_FRESH_H = 3.0
 
 #: The county's event types by the legend's label for the same status.

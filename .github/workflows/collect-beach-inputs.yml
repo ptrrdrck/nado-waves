@@ -227,13 +227,15 @@ jobs:
       # advisories, closures and warnings it posts, each kept once
       # (collector.beachwater, its one writer). The site is an OutSystems
       # app read through its own screen services, denied from a session;
-      # its data changes when the county posts, so read at most every 30 min.
+      # read every collection (owner's request, 2026-10-31: an advisory must
+      # reach the page as soon as the county shows it), the block scripts
+      # only when the county redeploys them.
       - name: Beach water quality (county)
         id: beachwater
         continue-on-error: true
         run: |
           set -euo pipefail
-          python -m collector.beachwater --min-interval-min 30
+          python -m collector.beachwater
 
       # NOAA's harmonic constants for 9410170, which the Tide card's phase line
       # reads (forecast.tidephase). They change only when NOAA re-analyses the
