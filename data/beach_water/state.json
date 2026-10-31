@@ -1,25 +1,99 @@
 {
   "current": {
     "EH-050": {
-      "priority": "",
-      "status": "Open"
+      "priority": "2",
+      "status": "Advisory"
     },
     "EH-060": {
-      "priority": "",
-      "status": "Open"
+      "priority": "2",
+      "status": "Advisory"
     },
     "IB-079": {
       "priority": "2",
       "status": "Advisory"
     }
   },
-  "last_fetch_utc": "2026-10-31T23:25:56Z",
-  "last_ok_utc": "2026-10-31T23:25:56Z",
+  "last_fetch_utc": "2026-10-31T23:35:35Z",
+  "last_ok_utc": "2026-10-31T23:35:35Z",
   "legend": {
     "1": "Warning",
     "2": "Open",
     "3": "Advisory",
     "4": "Closed"
   },
-  "module_version": "10rl5hZKz_toNul98uklHQ"
+  "module_version": "10rl5hZKz_toNul98uklHQ",
+  "scripts": {
+    "/sdbeachinfo/scripts/CoSD_Beach_Water_CW.MainFlow.BlockLegend.mvc.js": {
+      "services": {
+        "BlockLegend.GetLegends": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/BlockLegend/ScreenDataSetGetLegends",
+          "3Il17kJ4AhPms0g8mqlCwA"
+        ]
+      },
+      "version": "?qsXIkwwue4jfg5XrLbqrkA"
+    },
+    "/sdbeachinfo/scripts/CoSD_Beach_Water_CW.MainFlow.BlockMarkup.mvc.js": {
+      "services": {
+        "BlockMarkup.GetEvents": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/BlockMarkup/ScreenDataSetGetEvents",
+          "H5PztJIL1RO+bhKUXHVfxA"
+        ],
+        "BlockMarkup.GetEventsData": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/BlockMarkup/ScreenDataSetGetEventsData",
+          "ENIt31tGwyBuuctjxDQvmQ"
+        ],
+        "BlockMarkup.GetEventsIsActive": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/BlockMarkup/ScreenDataSetGetEventsIsActive",
+          "Uy4000taU4f2ehEbKmD_Bw"
+        ],
+        "BlockMarkup.GetEventsList": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/BlockMarkup/ScreenDataSetGetEventsList",
+          "JqlpdF6Psvnxe_pXo1Jjtw"
+        ]
+      },
+      "version": "?8bbb1SlOBxHotfwhfFnnbQ"
+    },
+    "/sdbeachinfo/scripts/CoSD_Beach_Water_CW.MainFlow.SampleBlock.mvc.js": {
+      "services": {
+        "SampleBlock.GetSamples": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/SampleBlock/ScreenDataSetGetSamples",
+          "L1afk6NDVnwatxTYNUtNLA"
+        ],
+        "SampleBlock.GetSiteById": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/SampleBlock/ScreenDataSetGetSiteById",
+          "krFSYXLy3XgXiYwskL+iJA"
+        ],
+        "SampleBlock.GetSites": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/SampleBlock/ScreenDataSetGetSites",
+          "wtlABZBkKj24a1aiWhH3oQ"
+        ]
+      },
+      "version": "?MI4xADHHiXMyTVzSZCNCdg"
+    },
+    "/sdbeachinfo/scripts/CoSD_Beach_Water_CW.MainFlow.SamplePostingReportBlock.mvc.js": {
+      "services": {
+        "SamplePostingReportBlock.GetBeachGroups": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/SamplePostingReportBlock/ScreenDataSetGetBeachGroups",
+          "zNHU8bkT1+7kSA5r_F_fKA"
+        ],
+        "SamplePostingReportBlock.GetBeachName": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/SamplePostingReportBlock/ScreenDataSetGetBeachName",
+          "_bKMBDaNwHnbl6GICxuEbw"
+        ],
+        "SamplePostingReportBlock.GetEventTypes": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/SamplePostingReportBlock/ScreenDataSetGetEventTypes",
+          "uu2xJdCPtAeDYonfLDRXBQ"
+        ],
+        "SamplePostingReportBlock.GetEvents": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/SamplePostingReportBlock/ScreenDataSetGetEvents",
+          "2EIgIkPA2KH3+X0FQxM1BQ"
+        ],
+        "SamplePostingReportBlock.GetSites": [
+          "screenservices/CoSD_Beach_Water_CW/MainFlow/SamplePostingReportBlock/ScreenDataSetGetSites",
+          "inooOMd8qK_VvoYnLzzhaw"
+        ]
+      },
+      "version": "?gpEi1Pg5uxuSQTceFYbXaQ"
+    }
+  }
 }
