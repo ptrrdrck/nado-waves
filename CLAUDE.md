@@ -826,6 +826,10 @@ forecaster actually verifies against, Surfline included.
    at rest (`BRIEF_INK_PX`: 23 px below the line's text with or without an
    alert, measured in painted pixels while frozen mid-close). Never under
    reduced motion or on a wide screen.
+   A tapped row's detail that folds out below what it shows scrolls into
+   view (`briefReveal`; owner's request, same day, after the South water
+   row's line opened out of sight): clear of the fade, or to its new end,
+   where the fade clears; smoothly, unless reduced motion.
    Its line
    reads "Briefing updated 7:16 AM" (the day too when not today's) and names
    no condition, with the provenance pills' green `.status` dot while that

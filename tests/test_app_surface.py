@@ -3885,6 +3885,16 @@ class TestTheBriefing:
         assert "padding-bottom:var(--brief-reach);margin-bottom:calc(-1 * var(--brief-reach));" in rule
         assert ".briefing .fold-body.more-below{--brief-fade:44px}" in SOURCE
 
+    def test_a_detail_tapped_open_below_the_fold_scrolls_into_view(self):
+        """Owner's request, 2026-10-31: the last row's detail opened out of
+        sight, so the fold scrolls to it, clear of the fade, at most to its end."""
+        assert "if (open) briefReveal(row.nextElementSibling);" in SOURCE
+        reveal = self.BLOCK[self.BLOCK.index("function briefReveal"):]
+        reveal = reveal[:reveal.index("\n}\n")]
+        assert "Math.min(end, body.scrollTop + below)" in reveal and "WIDE()" in reveal
+        assert "const BRIEF_FADE_PX = 44;" in self.BLOCK
+        assert ".briefing .fold-body.more-below{--brief-fade:44px}" in SOURCE
+
     def test_it_slides_open_and_shut_with_the_owners_settings(self):
         """Owner's settings, 2026-10-31, from the mock: 240 ms, a quick start
         and a soft stop, the contents rising a third of the fold's height as

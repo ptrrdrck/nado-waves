@@ -199,7 +199,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    takes back the gap it covers, so it is still half a screen. */
 .briefing{--brief-reach:18px}
 @property --brief-fade{syntax:"<length>";inherits:false;initial-value:0px}
-.briefing .fold-body.more-below{--brief-fade:44px}
+.briefing .fold-body.more-below{--brief-fade:44px}  /* BRIEF_FADE_PX */
 /* Opening and closing it slides (owner's settings, same day): `slideBrief`
    grows or shrinks it from its bottom edge only, so the space under the
    line never closes up, and nothing that slides is drawn above where the
@@ -2588,6 +2588,22 @@ function slideBrief(body, open) {
     if (!open) body.hidden = true;
     briefEdges(true);
   };
+}
+// A tapped row's detail folded out below what the fold shows scrolls into
+// view (owner's request, 2026-10-31: the South water row's line, the last
+// thing in it, opened out of sight). Only as far as it needs: clear of the
+// fade at the foot, or to the fold's end, where the fade clears; smoothly,
+// unless the reader asks for reduced motion. A wide screen's fold does not
+// scroll inside itself.
+const BRIEF_FADE_PX = 44;
+function briefReveal(el) {
+  const body = $("brief-body");
+  if (!el || !body || body.hidden || WIDE()) return;
+  const end = body.scrollHeight - body.clientHeight;
+  const below = el.getBoundingClientRect().bottom - (body.getBoundingClientRect().bottom - BRIEF_FADE_PX);
+  if (below <= 0 || end <= body.scrollTop) return;
+  const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  body.scrollTo({top: Math.min(end, body.scrollTop + below), behavior: still ? "auto" : "smooth"});
 }
 // The fade at the fold's foot while more lies below it. `still` sets it
 // without its transition: a redraw makes a new fold, and the fade must not
@@ -8130,6 +8146,7 @@ function boot(data, observed, measured, series, windtide) {
       row.setAttribute("aria-expanded", String(open));
       row.nextElementSibling.hidden = !open;
       if (open) BRIEF_ROWS.add(row.dataset.briefRow); else BRIEF_ROWS.delete(row.dataset.briefRow);
+      if (open) briefReveal(row.nextElementSibling);
     }
   });
 
