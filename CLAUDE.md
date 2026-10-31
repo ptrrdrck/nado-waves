@@ -1049,6 +1049,10 @@ forecaster actually verifies against, Surfline included.
    wording, same day). Its words are an update. Not measured yet: how soon
    a sample or an advisory reaches the site (each result's `first_seen_utc`
    is in the payload for that).
+   **Its spacing** (owner's settings, 2026-10-31, from a mock of options):
+   18 px above each section's rule and 16 px below it (the stack layout's
+   alerts rule the same), rows 6 px apart at a line height of 1.4, and 4 px
+   more between the water breaks' two-line rows.
    **Every name, arrowhead and sparkline of the Briefing's ledgers sits
    beside its value's FIRST line** when the value wraps (owner's request,
    same day: `.brief-row > :not(.brief-val)` one value line tall).
