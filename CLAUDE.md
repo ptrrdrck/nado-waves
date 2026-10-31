@@ -822,10 +822,12 @@ forecaster actually verifies against, Surfline included.
    It slides open and shut (`slideBrief`; owner's settings 2026-10-31, from
    a mock): 240 ms, a quick start and a soft stop, its contents rising a
    third of its height as they fade, growing and shrinking from its bottom
-   edge only, and drawing nothing nearer the line than its first line's ink
-   at rest (`BRIEF_INK_PX`: 23 px below the line's text with or without an
-   alert, measured in painted pixels while frozen mid-close). Never under
-   reduced motion or on a wide screen.
+   edge only. Nothing in it is ever drawn nearer the line than its first
+   line's ink at rest, sliding OR scrolled (owner's reports, same day): its
+   own top edge is a clip `--brief-ink` into its contents, 23 px below the
+   line's text with or without an alert, measured in painted pixels frozen
+   mid-close and scrolled 0–35 px. No slide under reduced motion or on a
+   wide screen.
    A tapped row's detail that folds out below what it shows scrolls into
    view (`briefReveal`; owner's request, same day, after the South water
    row's line opened out of sight): clear of the fade, or to its new end,
@@ -1013,7 +1015,9 @@ forecaster actually verifies against, Surfline included.
    "Predicted · NOAA 9410170 · departure +1.5 ft (0.46 m)". The record
    keeps the turns, never the curve (`unsparked`). Each turn's words
    (`briefTideText`) are the ledger's, so the curve was no update.
-   **Water quality**, the last block (owner's request, 2026-10-30;
+   **Water quality** (owner's request, 2026-10-30; since 2026-10-31 under
+   the water temperature row as ONE water block, and air, humidity,
+   pressure and rain a block of their own below it, owner's request;
    `briefing.water_quality_story`, `briefWater`, BRIEFING §48): the County
    of San Diego's Beach & Bay Water Quality Monitoring Program (DEHQ) at
    each break's own station, North EH-060, Center EH-050, South IB-079

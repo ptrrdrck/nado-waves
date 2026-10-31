@@ -3879,7 +3879,7 @@ class TestTheBriefing:
         wrap = SOURCE[SOURCE.index(".wrap{max-width:560px;"):]
         wrap = wrap[:wrap.index("}")]
         assert "gap:18px" in wrap
-        assert ".briefing{--brief-reach:18px}" in SOURCE
+        assert ".briefing{--brief-reach:18px;" in SOURCE
         rule = SOURCE[SOURCE.index(".briefing .fold-body{"):]
         rule = rule[:rule.index("}")]
         assert "padding-bottom:var(--brief-reach);margin-bottom:calc(-1 * var(--brief-reach));" in rule
@@ -3900,11 +3900,28 @@ class TestTheBriefing:
         and a soft stop, the contents rising a third of the fold's height as
         they fade; never under reduced motion or on a wide screen."""
         assert 'const BRIEF_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)", rise: 0.35};' in self.BLOCK
-        assert "const BRIEF_INK_PX = 3.5;" in self.BLOCK
         slide = self.BLOCK[self.BLOCK.index("function slideBrief"):]
         slide = slide[:slide.index("\n}\n")]
         assert "prefers-reduced-motion: reduce" in slide and "WIDE()" in slide
-        assert 'body.style.clipPath = `inset(${top + BRIEF_INK_PX}px 0 0 0)`;' in slide
+
+    def test_nothing_is_drawn_nearer_its_line_than_its_first_lines_ink(self):
+        """Owner's reports, 2026-10-31: sliding, and then scrolled, its
+        contents came right up under the line. Its own top edge sits where
+        its first line's ink does at rest, and everything passes under it."""
+        assert ".briefing{--brief-reach:18px;--brief-top:12px;--brief-ink:3.5px}" in SOURCE
+        rule = SOURCE[SOURCE.index(".briefing .fold-body{"):]
+        rule = rule[:rule.index("}")]
+        assert "padding-top:var(--brief-top);" in rule
+        assert "clip-path:inset(calc(var(--brief-top) + var(--brief-ink)) 0 0 0);" in rule
+
+    def test_the_water_is_one_section_and_the_other_conditions_another(self):
+        """Owner's request, 2026-10-31: the county's water quality under the
+        water temperature, and air, humidity, pressure and rain below them."""
+        fold = self.BLOCK[self.BLOCK.index("function briefingFold"):]
+        fold = fold[:fold.index("\n}\n")]
+        water, other = fold.index("brief-cond brief-water"), fold.index('<div class="brief-block brief-cond">')
+        assert fold.index("brief-tides") < water < other
+        assert 'parts.conditions.filter((r) => r.key === "water")' in fold
 
     def test_at_either_end_its_scroll_carries_on_to_the_page(self):
         """Owner's requests, 2026-10-23 and -24: pull-to-refresh from its top,
@@ -3934,6 +3951,7 @@ class TestTheBriefing:
         """Owner's request, 2026-10-22: "Briefing" and when it last updated,
         the day too when not today's, and nothing else."""
         head = self.BLOCK[self.BLOCK.index("function briefingFold"):]
+        head = head[head.index("data-brief-head><span>"):]
         head = head[:head.index("</div>")]
         assert "<span>${briefLine(B)}${dot}</span>" in head
         line = self.BLOCK[self.BLOCK.index("function briefLine"):]
@@ -4067,7 +4085,7 @@ class TestTheBriefing:
         assert "y=\"${(high ? y - 9 : y + 17).toFixed(1)}\"" in chart
         assert '<text class="time${gone ? " gone" : ""}"' in chart
         assert "p[0] - curve[i - 1][0] > 3600" in chart                  # a missing stamp is a gap
-        assert '${briefTideBlock(b, B)}' in self.BLOCK
+        assert '${briefTideBlock(parts.tides, B)}' in self.BLOCK
         assert 'data-brief-row="tide" data-brief-tide' in self.BLOCK
         assert ".brief-tide .night{fill:var(--ink);opacity:.04}" in SOURCE
         assert "  $(\"briefing\").innerHTML = brief;\n  fitBriefTide();" in SOURCE

@@ -184,7 +184,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    (owner's requests, 2026-10-30 and -31), measured ink to ink: 26.5 px on a
    phone and a tablet, where 2 px gave 16.5; the wide layouts set their own
    below, the line having no caret there. */
-.briefing .fold-body{display:flex;flex-direction:column;gap:2px;padding-top:12px;
+.briefing .fold-body{display:flex;flex-direction:column;gap:2px;padding-top:var(--brief-top);
+                     clip-path:inset(calc(var(--brief-top) + var(--brief-ink)) 0 0 0);
                      max-height:calc(50vh + var(--brief-reach));max-height:calc(50dvh + var(--brief-reach));
                      overflow-y:auto;overscroll-behavior-y:auto;
                      padding-bottom:var(--brief-reach);margin-bottom:calc(-1 * var(--brief-reach));
@@ -197,7 +198,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    and while more lies below, its last 44 px fade out. Scrolled to the end,
    the fade clears (`briefEdges`). The cards sit where they did: the reach
    takes back the gap it covers, so it is still half a screen. */
-.briefing{--brief-reach:18px}
+.briefing{--brief-reach:18px;--brief-top:12px;--brief-ink:3.5px}
+/* Nothing in it is ever drawn nearer its line than its first line's ink
+   sits at rest, --brief-ink into its contents: 23 px under the line's text
+   with or without an alert, measured in painted pixels. Scrolled, or
+   sliding open or shut, its contents pass under that edge, so the space
+   under the line holds (owner's reports, 2026-10-31). */
 @property --brief-fade{syntax:"<length>";inherits:false;initial-value:0px}
 .briefing .fold-body.more-below{--brief-fade:44px}  /* BRIEF_FADE_PX */
 /* Opening and closing it slides (owner's settings, same day): `slideBrief`
@@ -1051,7 +1057,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 /* Open on a wide screen: never cut to half of it. */
 :root[data-layout="stack"] .briefing .fold-body,
 :root[data-layout="console"] .briefing .fold-body{max-height:none;overflow:visible;
-  padding-bottom:0;margin-bottom:0;-webkit-mask-image:none;mask-image:none}
+  padding-bottom:0;margin-bottom:0;-webkit-mask-image:none;mask-image:none;clip-path:none}
 
 /* The console. One grid: the rail's items each take a row of the first
    column, in the page's order, and the main column spans every row, the
@@ -2547,17 +2553,14 @@ function setBriefOpen(open) {
 // start and a soft stop, the contents rising a third of the fold's height
 // as they fade. The fold keeps the space under its line and shrinks from
 // its bottom edge; shut, a negative margin takes that space back, so the
-// last frame is the closed page exactly. Nothing that slides is drawn above
-// BRIEF_INK_PX into its contents, where the first line's ink sits at rest
-// (an alert's and the swell headline's alike, measured in painted pixels).
+// last frame is the closed page exactly. What slides passes under the
+// fold's own top edge (--brief-ink), as what scrolls does.
 const BRIEF_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)", rise: 0.35};
-const BRIEF_INK_PX = 3.5;
 let BRIEF_MOVES = [];
 function slideBrief(body, open) {
   BRIEF_MOVES.forEach((a) => a.cancel());
   BRIEF_MOVES = [];
   body.classList.remove("moving");
-  body.style.clipPath = "";
   if (open) body.hidden = false;
   briefEdges(true);
   const still = WIDE() || typeof body.animate !== "function"
@@ -2572,7 +2575,6 @@ function slideBrief(body, open) {
   const low = {transform: `translateY(${-h * BRIEF_SLIDE.rise}px)`, opacity: 0};
   const up = {transform: "none", opacity: 1};
   body.classList.add("moving");
-  body.style.clipPath = `inset(${top + BRIEF_INK_PX}px 0 0 0)`;
   BRIEF_MOVES.push(body.animate(open ? [shut, full] : [full, shut], timing));
   for (const block of body.children) {
     BRIEF_MOVES.push(block.animate(open ? [{transform: low.transform}, {transform: up.transform}]
@@ -2584,7 +2586,6 @@ function slideBrief(body, open) {
     BRIEF_MOVES.forEach((a) => a.cancel());
     BRIEF_MOVES = [];
     body.classList.remove("moving");
-    body.style.clipPath = "";
     if (!open) body.hidden = true;
     briefEdges(true);
   };
@@ -2631,10 +2632,22 @@ function briefingFold(B) {
   const parts = briefingParts(B);
   if (!parts) return "";
   // NWS's alerts the top line (owner's call, 2026-10-24); the tide above
-  // the conditions (owner's call, 2026-10-23); the county's water quality
-  // last, its own block (owner's request, 2026-10-30).
-  const blocks = [parts.alerts, parts.swell, parts.tides, parts.conditions, parts.water_quality]
-    .filter((b) => b.length);
+  // the conditions (owner's call, 2026-10-23); then the water, its
+  // temperature over the county's water quality at each break, and the
+  // other conditions under it, a block of their own (owner's request,
+  // 2026-10-31, replacing water quality last).
+  const waterRows = parts.conditions.filter((r) => r.key === "water");
+  const otherRows = parts.conditions.filter((r) => r.key !== "water");
+  const blocks = [
+    parts.alerts.length
+      && `<div class="brief-block brief-alerts">${parts.alerts.map((a) => alertRow(a, B.built_utc)).join("")}</div>`,
+    parts.swell.length && `<div class="brief-block brief-swell">${parts.swell.map(briefSwellRow).join("")}</div>`,
+    parts.tides.length && `<div class="brief-block brief-tides">${briefTideBlock(parts.tides, B)}</div>`,
+    (waterRows.length || parts.water_quality.length)
+      && `<div class="brief-block brief-cond brief-water">${waterRows.map((r) => briefCondRow(r, B)).join("")}`
+       + `${parts.water_quality.map((r) => briefWaterRow(r, B)).join("")}</div>`,
+    otherRows.length && `<div class="brief-block brief-cond">${otherRows.map((r) => briefCondRow(r, B)).join("")}</div>`,
+  ].filter(Boolean);
   if (!blocks.length) return "";
   // On a wide screen it stays open, with no caret (owner's call,
   // 2026-10-29), and its dot marks an update the reader has not been at the
@@ -2648,14 +2661,7 @@ function briefingFold(B) {
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`}</div>
     <div class="fold-body" id="brief-body"${open ? "" : " hidden"}>
-      ${blocks.map((b) => (b === parts.alerts
-        ? `<div class="brief-block brief-alerts">${b.map((a) => alertRow(a, B.built_utc)).join("")}</div>`
-        : b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
-        : b === parts.water_quality
-        ? `<div class="brief-block brief-cond brief-water">${b.map((r) => briefWaterRow(r, B)).join("")}</div>`
-        : b === parts.conditions
-        ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
-        : `<div class="brief-block brief-swell">${b.map(briefSwellRow).join("")}</div>`)).join("")}
+      ${blocks.join("")}
     </div>`;
 }
 // End of the briefing.
