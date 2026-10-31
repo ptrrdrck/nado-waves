@@ -940,7 +940,7 @@ def _csv(path: Path) -> list[dict]:
 
 def water_quality_story(data_dir: Path, at: datetime) -> dict | None:
     """Each break's water quality as the county posts it (owner's request,
-    2026-10-30; collector.beachwater): the status its map draws, the event
+    2026-10-30; collector.beachwater): the status it has posted, the event
     in force behind it with the county's issue and lift times, and the
     station's newest sample, every result of that day. None before the
     first collection. A status read more than WQ_FRESH_H ago is withheld;

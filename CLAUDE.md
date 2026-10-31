@@ -1000,9 +1000,15 @@ forecaster actually verifies against, Surfline included.
    each break's own station, North EH-060, Center EH-050, South IB-079
    (`collector/beachwater.json`, the owner's), a ledger row each as the
    conditions' on TWO grid lines (owner's calls, 2026-10-30; `briefWaterRow`):
-   the status the county's MAP draws, Open / Advisory / Warning / Closed
-   (`GetEvents`' PriorityMax by the legend's own ids; Closed verified on
-   Silver Strand 30 Oct, the rest by the legend), "until 11 AM Sat" while
+   the status the county has POSTED, Open / Advisory / Warning / Closed: the
+   worst of its events in force in the posting report as just read
+   (`beachwater.in_force`, `status_of`), else Open. **The map's PriorityMax
+   is NOT the legend's id** (owner's report, 2026-10-31: South showed Open
+   for a day under an Advisory issued 30 Oct 22:42Z, its PriorityMax 2 read
+   as the legend's 2, Open; Closed is 4 in both, which is why it passed); it
+   is a cross-check, `PRIORITY_SEEN` {2: Advisory, 4: Closed}, a worse seen
+   value winning and any disagreement a workflow warning and a `note` in
+   state.json. "until 11 AM Sat" while
    the county's own lift time lies ahead (a General Rain Advisory is issued
    with its end; never a computed one); then "1,379 copies/100 mL on
    Oct 28", the newest sample's Enterococcus (ddPCR's where the day has both
@@ -1395,7 +1401,8 @@ forecaster actually verifies against, Surfline included.
                         water quality at each break's station, through the
                         site's OutSystems screen services: samples, the
                         posting report's advisories / closures / warnings,
-                        and the map's status, each kept once, at most every
+                        and each station's status from the events in force
+                        (the map's PriorityMax a cross-check), each kept once, at most every
                         30 min -> data/beach_water/; the registry holds the
                         county's station codes and site ids, never a
                         coordinate; Actions only — BRIEFING §48),

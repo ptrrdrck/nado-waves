@@ -125,12 +125,14 @@ def test_a_collection_files_only_a_stations_own_samples_and_pages_the_report(tmp
     sites = {v["site"]: v["station"] for v in bw.registry()["breaks"].values()}
     report = [_event("IB-079", "Closure", f"2026-06-{d:02d}T17:37:00Z", f"2026-06-{d:02d}T23:00:00Z")
               for d in range(1, 29)] * 40                                   # 1,120 rows: two pages
+    # South's of 30 Oct 2026: an Advisory with no end, the map reading 2.
+    report.append(_event("IB-079", "Advisory", "2026-10-30T22:42:00Z", distance="300ft"))
     fake = _Fake({
         "SampleBlock.GetSamples": lambda v: [_sample("1", "2026-10-28", "420", station=sites[v["StationIdFilter"]]),
                                              _sample("2", "2026-10-28", "999", station="IB-050")],
         "SamplePostingReportBlock.GetSites": report,
         "BlockLegend.GetLegends": [{"Legend": {"Id": 2, "Label": "Open"}}, {"Legend": {"Id": 4, "Label": "Closed"}}],
-        "BlockMarkup.GetEvents": lambda v: [{"PriorityMax": 4}] if v["SiteId"] == "121" else [],
+        "BlockMarkup.GetEvents": lambda v: [{"PriorityMax": 2}] if v["SiteId"] == "121" else [],
     })
     monkeypatch.setattr(bw, "Client", lambda base: fake)
     lines, code = bw.collect(tmp_path)
@@ -141,11 +143,11 @@ def test_a_collection_files_only_a_stations_own_samples_and_pages_the_report(tmp
     assert any("rows from other stations: ['IB-050']" in line for line in lines)
     assert [c[2] for c in fake.calls if c[0] == "SamplePostingReportBlock.GetSites"] == [0, 1000]
     with (tmp_path / "beach_water" / "events.csv").open() as fh:
-        assert len(list(csv.DictReader(fh))) == 28
+        assert len(list(csv.DictReader(fh))) == 29
     state = json.loads((tmp_path / "beach_water" / "state.json").read_text())
     assert state["current"] == {"EH-050": {"priority": "", "status": "Open"},
                                 "EH-060": {"priority": "", "status": "Open"},
-                                "IB-079": {"priority": "4", "status": "Closed"}}
+                                "IB-079": {"priority": "2", "status": "Advisory"}}
     assert state["last_ok_utc"] == state["last_fetch_utc"]
 
 
@@ -159,3 +161,37 @@ def test_a_refusal_keeps_the_archive_and_says_so(tmp_path, monkeypatch):
     assert code == 1 and "No role validation found" in lines[-1]
     state = json.loads((tmp_path / "beach_water" / "state.json").read_text())
     assert "last_ok_utc" not in state and "No role validation found" in state["last_error"]
+
+
+NOW = datetime(2026, 10, 31, 18, 0, tzinfo=timezone.utc)
+
+
+def test_the_status_is_the_countys_events_in_force_not_the_legends_id():
+    """Owner's report, 2026-10-31: South showed Open under the Advisory
+    issued 30 Oct 22:42Z, because the map's PriorityMax 2 was read as the
+    legend's id 2, Open."""
+    ev = [bw.event_row(_event("IB-079", "Advisory", "2026-10-30T22:42:00Z", distance="300ft")),
+          bw.event_row(_event("IB-079", "Closure", "2026-10-15T22:46:00Z", "2026-10-27T23:49:00Z"))]
+    held = bw.in_force(ev, "IB-079", NOW)
+    assert [e["event_type"] for e in held] == ["Advisory"]
+    assert bw.status_of(held, 2) == ("Advisory", None)
+    assert bw.status_of([], None) == ("Open", None)
+
+
+def test_an_advisory_posted_with_its_end_is_in_force_until_it_and_not_after():
+    rain = bw.event_row(_event("EH-050", "Advisory", "2026-10-23T18:00:00Z", "2026-10-26T18:00:00Z"))
+    assert bw.in_force([rain], "EH-050", datetime(2026, 10, 25, tzinfo=timezone.utc)) == [rain]
+    assert bw.in_force([rain], "EH-050", datetime(2026, 10, 26, 18, tzinfo=timezone.utc)) == []
+    assert bw.in_force([rain], "EH-050", datetime(2026, 10, 23, 17, tzinfo=timezone.utc)) == []
+
+
+def test_the_worst_in_force_wins_and_a_disagreeing_map_is_said():
+    adv = bw.event_row(_event("IB-079", "Advisory", "2026-10-30T22:42:00Z"))
+    shut = bw.event_row(_event("IB-079", "Closure", "2026-10-31T01:00:00Z"))
+    assert bw.status_of([adv, shut], 4) == ("Closed", None)
+    label, note = bw.status_of([adv], 4)                  # the map ahead of the report: the worse
+    assert label == "Closed" and "posting report's Advisory" in note
+    label, note = bw.status_of([], 3)                     # never seen: said, not guessed
+    assert label == "Open" and "not yet seen" in note
+    label, note = bw.status_of([adv], None)
+    assert label == "Advisory" and "nothing in force" in note

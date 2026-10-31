@@ -2223,8 +2223,9 @@ function briefCondRow(r, B) {
 
 // The county's beach water quality (owner's request, 2026-10-30;
 // `briefing.water_quality_story`): a row a break, set as the conditions'
-// ledger, on two lines (owner's calls, same day). The first, its status as
-// the county's map draws it -- Open, Advisory, Warning or Closed -- with
+// ledger, on two lines (owner's calls, same day). The first, its status --
+// the county's posted advisory, warning or closure in force, else Open
+// (`collector.beachwater.status_of`; owner's report, 2026-10-31) -- with
 // the county's own lift time while it lies ahead ("until 11 AM Mon": a
 // General Rain Advisory is issued with its end). The second, the station's
 // newest sample, "1,379 copies/100 mL on Oct 28": the result in ink --
