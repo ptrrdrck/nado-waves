@@ -815,6 +815,17 @@ forecaster actually verifies against, Surfline included.
    pull-to-refresh works from inside it, one up at its bottom scrolls on
    down the page; owner's requests, 2026-10-23 and -24; and a redraw keeps
    the reader's place in it, `BRIEF_SCROLL`, owner's request, 2026-10-24).
+   Open, it reaches across the 18 px gap above the Swell card to that
+   card's top edge, and while more lies below, its last 44 px fade out
+   there, a hint that it scrolls (cleared at the end of its scroll,
+   `briefEdges`); it takes that gap back, so the cards sit where they did.
+   It slides open and shut (`slideBrief`; owner's settings 2026-10-31, from
+   a mock): 240 ms, a quick start and a soft stop, its contents rising a
+   third of its height as they fade, growing and shrinking from its bottom
+   edge only, and drawing nothing nearer the line than its first line's ink
+   at rest (`BRIEF_INK_PX`: 23 px below the line's text with or without an
+   alert, measured in painted pixels while frozen mid-close). Never under
+   reduced motion or on a wide screen.
    Its line
    reads "Briefing updated 7:16 AM" (the day too when not today's) and names
    no condition, with the provenance pills' green `.status` dot while that

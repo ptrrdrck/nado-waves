@@ -3869,8 +3869,32 @@ class TestTheBriefing:
         own height; longer, it scrolls within itself, cut at the cards."""
         rule = SOURCE[SOURCE.index(".briefing .fold-body{"):]
         rule = rule[:rule.index("}")]
-        assert "max-height:50dvh" in rule and "overflow-y:auto" in rule
+        assert "max-height:calc(50dvh + var(--brief-reach))" in rule and "overflow-y:auto" in rule
         assert "height:" not in rule.replace("max-height:", "")
+
+    def test_its_reach_is_the_gap_it_covers(self):
+        """Owner's request, 2026-10-31: open, it reaches across the gap above
+        the Swell card to show the next line fading, and takes that gap back,
+        so the cards sit where they did: the reach is the .wrap's own gap."""
+        wrap = SOURCE[SOURCE.index(".wrap{max-width:560px;"):]
+        wrap = wrap[:wrap.index("}")]
+        assert "gap:18px" in wrap
+        assert ".briefing{--brief-reach:18px}" in SOURCE
+        rule = SOURCE[SOURCE.index(".briefing .fold-body{"):]
+        rule = rule[:rule.index("}")]
+        assert "padding-bottom:var(--brief-reach);margin-bottom:calc(-1 * var(--brief-reach));" in rule
+        assert ".briefing .fold-body.more-below{--brief-fade:44px}" in SOURCE
+
+    def test_it_slides_open_and_shut_with_the_owners_settings(self):
+        """Owner's settings, 2026-10-31, from the mock: 240 ms, a quick start
+        and a soft stop, the contents rising a third of the fold's height as
+        they fade; never under reduced motion or on a wide screen."""
+        assert 'const BRIEF_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)", rise: 0.35};' in self.BLOCK
+        assert "const BRIEF_INK_PX = 3.5;" in self.BLOCK
+        slide = self.BLOCK[self.BLOCK.index("function slideBrief"):]
+        slide = slide[:slide.index("\n}\n")]
+        assert "prefers-reduced-motion: reduce" in slide and "WIDE()" in slide
+        assert 'body.style.clipPath = `inset(${top + BRIEF_INK_PX}px 0 0 0)`;' in slide
 
     def test_at_either_end_its_scroll_carries_on_to_the_page(self):
         """Owner's requests, 2026-10-23 and -24: pull-to-refresh from its top,
@@ -3879,7 +3903,7 @@ class TestTheBriefing:
         rule = rule[:rule.index("}")]
         assert "overscroll-behavior-y:auto" in rule and "contain" not in rule
         assert ".fold-body.at-top" not in SOURCE
-        assert ('if (e.target.id === "brief-body") BRIEF_SCROLL = e.target.scrollTop;\n'
+        assert ('if (e.target.id === "brief-body") { BRIEF_SCROLL = e.target.scrollTop; briefEdges(false); }\n'
                 '  }, {capture: true, passive: true});') in SOURCE
 
     def test_a_redraw_keeps_the_readers_place(self):

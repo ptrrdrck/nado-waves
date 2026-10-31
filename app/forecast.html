@@ -185,7 +185,26 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    phone and a tablet, where 2 px gave 16.5; the wide layouts set their own
    below, the line having no caret there. */
 .briefing .fold-body{display:flex;flex-direction:column;gap:2px;padding-top:12px;
-                     max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior-y:auto}
+                     max-height:calc(50vh + var(--brief-reach));max-height:calc(50dvh + var(--brief-reach));
+                     overflow-y:auto;overscroll-behavior-y:auto;
+                     padding-bottom:var(--brief-reach);margin-bottom:calc(-1 * var(--brief-reach));
+                     -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - var(--brief-fade)), transparent 100%);
+                             mask-image:linear-gradient(to bottom, #000 calc(100% - var(--brief-fade)), transparent 100%);
+                     transition:--brief-fade .18s ease}
+/* A hint that it scrolls (owner's request and settings, 2026-10-31, from a
+   mock): open, it reaches down across the gap above the Swell card -- the
+   .wrap's 18 px -- to that card's top edge, so the next line shows there,
+   and while more lies below, its last 44 px fade out. Scrolled to the end,
+   the fade clears (`briefEdges`). The cards sit where they did: the reach
+   takes back the gap it covers, so it is still half a screen. */
+.briefing{--brief-reach:18px}
+@property --brief-fade{syntax:"<length>";inherits:false;initial-value:0px}
+.briefing .fold-body.more-below{--brief-fade:44px}
+/* Opening and closing it slides (owner's settings, same day): `slideBrief`
+   grows or shrinks it from its bottom edge only, so the space under the
+   line never closes up, and nothing that slides is drawn above where the
+   first line's ink sits at rest. */
+.briefing .fold-body.moving{overflow:hidden;box-sizing:border-box}
 .brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
 .brief-block .unit{color:inherit}
 /* The swell's sentences a line each, a little apart (owner's request,
@@ -1031,7 +1050,8 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 :root[data-layout="stack"] .briefing .brief-block + .brief-block{border-top:0;padding-top:0;margin-top:0}
 /* Open on a wide screen: never cut to half of it. */
 :root[data-layout="stack"] .briefing .fold-body,
-:root[data-layout="console"] .briefing .fold-body{max-height:none;overflow:visible}
+:root[data-layout="console"] .briefing .fold-body{max-height:none;overflow:visible;
+  padding-bottom:0;margin-bottom:0;-webkit-mask-image:none;mask-image:none}
 
 /* The console. One grid: the rail's items each take a row of the first
    column, in the page's order, and the main column spans every row, the
@@ -2520,8 +2540,66 @@ function setBriefOpen(open) {
   const btn = document.querySelector("[data-brief-toggle]");
   if (btn) btn.setAttribute("aria-expanded", String(open));
   const body = $("brief-body");
-  if (body) body.hidden = !open;
+  if (body) slideBrief(body, open);
   if (open) briefSeen();
+}
+// The slide (owner's settings, 2026-10-31, from the mock): 240 ms, a quick
+// start and a soft stop, the contents rising a third of the fold's height
+// as they fade. The fold keeps the space under its line and shrinks from
+// its bottom edge; shut, a negative margin takes that space back, so the
+// last frame is the closed page exactly. Nothing that slides is drawn above
+// BRIEF_INK_PX into its contents, where the first line's ink sits at rest
+// (an alert's and the swell headline's alike, measured in painted pixels).
+const BRIEF_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)", rise: 0.35};
+const BRIEF_INK_PX = 3.5;
+let BRIEF_MOVES = [];
+function slideBrief(body, open) {
+  BRIEF_MOVES.forEach((a) => a.cancel());
+  BRIEF_MOVES = [];
+  body.classList.remove("moving");
+  body.style.clipPath = "";
+  if (open) body.hidden = false;
+  briefEdges(true);
+  const still = WIDE() || typeof body.animate !== "function"
+    || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (still) { body.hidden = !open; return; }
+  const cs = getComputedStyle(body), h = body.getBoundingClientRect().height;
+  const top = parseFloat(cs.paddingTop) || 0;
+  const gap = parseFloat(getComputedStyle($("briefing")).rowGap) || 0;
+  const shut = {height: top + "px", paddingBottom: "0px", marginBottom: -(top + gap) + "px"};
+  const full = {height: h + "px", paddingBottom: cs.paddingBottom, marginBottom: cs.marginBottom};
+  const timing = {duration: BRIEF_SLIDE.ms, easing: BRIEF_SLIDE.ease};
+  const low = {transform: `translateY(${-h * BRIEF_SLIDE.rise}px)`, opacity: 0};
+  const up = {transform: "none", opacity: 1};
+  body.classList.add("moving");
+  body.style.clipPath = `inset(${top + BRIEF_INK_PX}px 0 0 0)`;
+  BRIEF_MOVES.push(body.animate(open ? [shut, full] : [full, shut], timing));
+  for (const block of body.children) {
+    BRIEF_MOVES.push(block.animate(open ? [{transform: low.transform}, {transform: up.transform}]
+                                        : [{transform: up.transform}, {transform: low.transform}], timing));
+    BRIEF_MOVES.push(block.animate(open ? [{opacity: 0}, {opacity: 1}] : [{opacity: 1}, {opacity: 0}],
+                                   {duration: BRIEF_SLIDE.ms, easing: "linear"}));
+  }
+  BRIEF_MOVES[0].onfinish = () => {
+    BRIEF_MOVES.forEach((a) => a.cancel());
+    BRIEF_MOVES = [];
+    body.classList.remove("moving");
+    body.style.clipPath = "";
+    if (!open) body.hidden = true;
+    briefEdges(true);
+  };
+}
+// The fade at the fold's foot while more lies below it. `still` sets it
+// without its transition: a redraw makes a new fold, and the fade must not
+// grow in again on every one.
+function briefEdges(still) {
+  const body = $("brief-body");
+  if (!body || body.hidden) return;
+  const more = body.scrollHeight - body.clientHeight - body.scrollTop > 1;
+  if (more === body.classList.contains("more-below")) return;
+  if (still) body.style.transition = "none";
+  body.classList.toggle("more-below", more);
+  if (still) { body.offsetHeight; body.style.transition = ""; }
 }
 function briefTouched() {
   if (WIDE() && MODE === "now" && document.visibilityState === "visible"
@@ -7556,6 +7634,7 @@ function show() {
   // 2026-10-24: every refresh put it back at its top).
   const briefBody = $("brief-body");
   if (briefBody && BRIEF_SCROLL > 0) briefBody.scrollTop = BRIEF_SCROLL;
+  briefEdges(true);
   // An update drawn into an open fold has been read; on a wide screen, where
   // it is always open, not until the reader is back at the page.
   if (brief && BRIEF_OPEN && !WIDE()) briefSeen();
@@ -8038,8 +8117,9 @@ function boot(data, observed, measured, series, windtide) {
   // The place a redraw returns the open Briefing to (`BRIEF_SCROLL`).
   // Scroll does not bubble, so the listener captures.
   $("briefing").addEventListener("scroll", (e) => {
-    if (e.target.id === "brief-body") BRIEF_SCROLL = e.target.scrollTop;
+    if (e.target.id === "brief-body") { BRIEF_SCROLL = e.target.scrollTop; briefEdges(false); }
   }, {capture: true, passive: true});
+  window.addEventListener("resize", () => briefEdges(true), {passive: true});
   $("fc-alerts").addEventListener("click", toggleAlert);
   $("briefing").addEventListener("click", (e) => {
     if (!WIDE() && e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
