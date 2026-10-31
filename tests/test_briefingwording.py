@@ -154,23 +154,25 @@ def test_an_alert_is_an_update():
     assert briefing.with_text({**briefingwording.QUIET, "alerts": [resent]})["update_words"] == alerted["update_words"]
 
 
-def test_water_quality_is_a_row_a_break_with_its_status_and_newest_sample(cases):
+def test_water_quality_is_a_row_a_break_its_status_then_its_newest_sample(cases):
+    """Two lines (owner's call, 2026-10-30): the status, then the sample
+    with no "Enterococcus", its arrow's word kept for the record."""
     assert cases["Q1"]["water_quality"] == [
-        "North Open · Enterococcus 1,379 copies/100 mL on 21 Oct",
-        "Center Open · Enterococcus 793 copies/100 mL on 21 Oct",
-        "South Open · Enterococcus <195 copies/100 mL on 22 Oct"]        # "<" kept, "=" dropped
+        "North Open; 1,379 copies/100 mL on Oct 21, steady",
+        "Center Open; 793 copies/100 mL on Oct 21, up",
+        "South Open; <195 copies/100 mL on Oct 22, down"]        # "<" kept, "=" dropped
 
 
 def test_an_advisory_says_the_countys_end_and_a_closure_with_none_says_none(cases):
-    assert cases["R1"]["water_quality"][0] == "North Advisory until 11 AM Sat · Enterococcus 1,379 copies/100 mL on 21 Oct"
+    assert cases["R1"]["water_quality"][0] == "North Advisory until 11 AM Sat; 1,379 copies/100 mL on Oct 21, steady"
     south = cases["Z1"]["water_quality"][2]
-    assert south.startswith("South Closed · ") and "until" not in south
+    assert south.startswith("South Closed; ") and "until" not in south
 
 
-def test_a_day_of_several_results_leads_with_ddpcr_enterococcus(cases):
+def test_a_day_of_several_results_leads_with_the_one_the_story_picked(cases):
     north, center = cases["Z1"]["water_quality"][:2]
-    assert north == "North Open · Enterococcus 2,957 copies/100 mL on 20 Oct"
-    assert center == "Center Open · no sample yet"
+    assert north == "North Open; 2,957 copies/100 mL on Oct 20"           # no previous sample: no arrow
+    assert center == "Center Open; no sample yet"
 
 
 def test_a_status_read_too_long_ago_is_not_said_and_when_it_was_read_is(cases):

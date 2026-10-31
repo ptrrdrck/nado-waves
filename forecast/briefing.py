@@ -878,6 +878,59 @@ WQ_FRESH_H = 3.0
 WQ_EVENT_STATUS = {"Advisory": "Advisory", "Closure": "Closed", "Warning": "Warning"}
 
 
+#: A sample within this factor of the station's previous one is steady
+#: (owner's request, 2026-10-30: the arrow beside the newest result).
+#: Measured on the archive to 30 Oct 2026 (ddPCR Enterococcus, consecutive
+#: samples, both above the reporting limit): the median day-to-day change
+#: is x1.9 (0.28 log10) at all three stations, and x1.5 calls 30-34% of
+#: changes steady, leaving up and down about a third each; x2 would call
+#: 53-55% steady, x1.25 19-20%. The county posts no duplicate samples, so
+#: the test's own repeatability is NOT measured here.
+WQ_STEADY_RATIO = 1.5
+
+
+def wq_lead(results: list[dict]) -> int:
+    """The result a row shows: Enterococcus by ddPCR, else any Enterococcus,
+    else the first."""
+
+    for want in (lambda r: r["parameter"] == "Enterococcus" and r["method"] == "ddPCR",
+                 lambda r: r["parameter"] == "Enterococcus"):
+        for i, r in enumerate(results):
+            if want(r):
+                return i
+    return 0
+
+
+def wq_change(new: dict, old: dict | None) -> str | None:
+    """"up", "down" or "steady" against the previous sample of the same
+    parameter and method, WQ_STEADY_RATIO either side. A result below the
+    reporting limit ("<") is only that: against a measured one it is a
+    change only when the limit itself is beyond the ratio, else none is
+    said; two below the limit are steady."""
+
+    if old is None:
+        return None
+    try:
+        a, b = float(old["result"]), float(new["result"])
+    except (TypeError, ValueError):
+        return None
+    qa, qb = old["qualifier"], new["qualifier"]
+    if a <= 0 or b <= 0 or not {qa, qb} <= {"=", "<"}:
+        return None
+    ratio = b / a
+    if qa == qb == "<":
+        return "steady"
+    if qb == "<":           # the new one is at most b
+        return "down" if ratio <= 1 / WQ_STEADY_RATIO else None
+    if qa == "<":           # the old one was at most a
+        return "up" if ratio >= WQ_STEADY_RATIO else None
+    if ratio >= WQ_STEADY_RATIO:
+        return "up"
+    if ratio <= 1 / WQ_STEADY_RATIO:
+        return "down"
+    return "steady"
+
+
 def _csv(path: Path) -> list[dict]:
     if not path.exists():
         return []
@@ -928,9 +981,15 @@ def water_quality_story(data_dir: Path, at: datetime) -> dict | None:
             day = max(r["sample_date"] for r in samples)
             todays = sorted((r for r in samples if r["sample_date"] == day),
                             key=lambda r: (r["parameter"], r["method"], r["sample_time"]))
-            sample = {"date": day, "time": min(r["sample_time"] for r in todays),
-                      "results": [{k: r[k] for k in ("parameter", "method", "qualifier", "result", "units")}
-                                  for r in todays]}
+            lead = wq_lead(todays)
+            earlier = [r for r in samples if r["sample_date"] < day
+                       and (r["parameter"], r["method"]) == (todays[lead]["parameter"], todays[lead]["method"])]
+            before = max(earlier, key=lambda r: (r["sample_date"], r["sample_time"])) if earlier else None
+            sample = {"date": day, "time": min(r["sample_time"] for r in todays), "lead": lead,
+                      "change": wq_change(todays[lead], before),
+                      "previous": {k: before[k] for k in ("sample_date", "qualifier", "result")} if before else None,
+                      "results": [{k: r[k] for k in ("parameter", "method", "qualifier", "result", "units",
+                                                     "first_seen_utc")} for r in todays]}
         out.append({"id": brk, "station": st, "name": v["name"], "status": status,
                     "event": event, "open_since_utc": max(lifted) if status == "Open" and lifted else None,
                     "sample": sample})

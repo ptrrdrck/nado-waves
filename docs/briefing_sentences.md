@@ -86,29 +86,29 @@ CO7. Water 73 °F (22.7 °C), steady  (W1)
 
 ## Water quality
 
-WQ1. North Open · Enterococcus 1,379 copies/100 mL on 21 Oct  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
+WQ1. North Open; 1,379 copies/100 mL on Oct 21, steady  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
 
-WQ2. Center Open · Enterococcus 793 copies/100 mL on 21 Oct  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
+WQ2. Center Open; 793 copies/100 mL on Oct 21, up  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
 
-WQ3. South Open · Enterococcus <195 copies/100 mL on 22 Oct  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
+WQ3. South Open; <195 copies/100 mL on Oct 22, down  (Q1, B1, C1, M1, H1, D1, W1, K1, A1, Y1)
 
-WQ4. North Advisory until 11 AM Sat · Enterococcus 1,379 copies/100 mL on 21 Oct  (R1)
+WQ4. North Advisory until 11 AM Sat; 1,379 copies/100 mL on Oct 21, steady  (R1)
 
-WQ5. Center Advisory until 11 AM Sat · Enterococcus 793 copies/100 mL on 21 Oct  (R1)
+WQ5. Center Advisory until 11 AM Sat; 793 copies/100 mL on Oct 21, up  (R1)
 
-WQ6. South Advisory until 11 AM Sat · Enterococcus <195 copies/100 mL on 22 Oct  (R1)
+WQ6. South Advisory until 11 AM Sat; <195 copies/100 mL on Oct 22, down  (R1)
 
-WQ7. North Open · Enterococcus 2,957 copies/100 mL on 20 Oct  (Z1)
+WQ7. North Open; 2,957 copies/100 mL on Oct 20  (Z1)
 
-WQ8. Center Open · no sample yet  (Z1)
+WQ8. Center Open; no sample yet  (Z1)
 
-WQ9. South Closed · Enterococcus <195 copies/100 mL on 22 Oct  (Z1)
+WQ9. South Closed; <195 copies/100 mL on Oct 22, down  (Z1)
 
-WQ10. North Status not read since 2:35 AM · Enterococcus 1,379 copies/100 mL on 21 Oct  (S1)
+WQ10. North Status not read since 2:35 AM; 1,379 copies/100 mL on Oct 21, steady  (S1)
 
-WQ11. Center Status not read since 2:35 AM · Enterococcus 793 copies/100 mL on 21 Oct  (S1)
+WQ11. Center Status not read since 2:35 AM; 793 copies/100 mL on Oct 21, up  (S1)
 
-WQ12. South Status not read since 2:35 AM · Enterococcus <195 copies/100 mL on 22 Oct  (S1)
+WQ12. South Status not read since 2:35 AM; <195 copies/100 mL on Oct 22, down  (S1)
 
 ## The cases
 
