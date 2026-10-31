@@ -73,19 +73,19 @@ QUIET = {
     "water_quality": {"checked_utc": "2026-10-22T14:05:00Z", "fresh": True, "breaks": [
         {"id": N, "station": "EH-060", "name": "Coronado North Beach", "status": "Open", "event": None,
          "open_since_utc": "2026-10-20T23:37:00Z",
-         "sample": {"date": "2026-10-21", "time": "06:28:00", "results": [
+         "sample": {"date": "2026-10-21", "time": "06:28:00", "lead": 0, "change": "steady", "results": [
              {"parameter": "Enterococcus", "method": "ddPCR", "qualifier": "=", "result": "1379",
-              "units": "Copies/100ml"}]}},
+              "units": "Copies/100ml", "first_seen_utc": "2026-10-21T20:32:00Z"}]}},
         {"id": C, "station": "EH-050", "name": "Coronado Main Lifeguard Tower", "status": "Open", "event": None,
          "open_since_utc": "2026-10-20T23:49:00Z",
-         "sample": {"date": "2026-10-21", "time": "06:49:00", "results": [
+         "sample": {"date": "2026-10-21", "time": "06:49:00", "lead": 0, "change": "up", "results": [
              {"parameter": "Enterococcus", "method": "ddPCR", "qualifier": "=", "result": "793",
-              "units": "Copies/100ml"}]}},
+              "units": "Copies/100ml", "first_seen_utc": "2026-10-21T20:32:00Z"}]}},
         {"id": S, "station": "IB-079", "name": "Avenida Lunar", "status": "Open", "event": None,
          "open_since_utc": "2026-10-20T23:49:00Z",
-         "sample": {"date": "2026-10-22", "time": "07:06:00", "results": [
+         "sample": {"date": "2026-10-22", "time": "07:06:00", "lead": 0, "change": "down", "results": [
              {"parameter": "Enterococcus", "method": "ddPCR", "qualifier": "<", "result": "195",
-              "units": "Copies/100ml"}]}}]},
+              "units": "Copies/100ml", "first_seen_utc": "2026-10-22T14:05:00Z"}]}}]},
     "tide": {"day": "2026-10-22", "departure_m": 0.31, "turns": [
         {"valid_utc": "2026-10-22T10:15:00Z", "height_m": 0.21, "event": "low"},
         {"valid_utc": "2026-10-22T16:32:00Z", "height_m": 1.62, "event": "high"},
@@ -183,15 +183,15 @@ CASES = [
      _case(water_quality=_water(**{
          S: {"status": "Closed", "open_since_utc": None,
              "event": {"type": "Closure", "issued_utc": "2026-10-15T22:46:00Z", "lifted_utc": None}},
-         N: {"sample": {"date": "2026-10-20", "time": "08:16:00", "results": [
+         N: {"sample": {"date": "2026-10-20", "time": "08:16:00", "lead": 1, "change": None, "results": [
              {"parameter": "Enterococcus", "method": "Enterolert", "qualifier": "<", "result": "10",
-              "units": "MPN/100ml"},
+              "units": "MPN/100ml", "first_seen_utc": "2026-10-20T21:40:00Z"},
              {"parameter": "Enterococcus", "method": "ddPCR", "qualifier": "=", "result": "2957",
-              "units": "Copies/100ml"},
+              "units": "Copies/100ml", "first_seen_utc": "2026-10-20T21:40:00Z"},
              {"parameter": "Fecal Coliforms", "method": "MTF", "qualifier": "<", "result": "20",
-              "units": "MPN/100ml"},
+              "units": "MPN/100ml", "first_seen_utc": "2026-10-20T21:40:00Z"},
              {"parameter": "Total Coliforms", "method": "MTF", "qualifier": "=", "result": "40",
-              "units": "MPN/100ml"}]}},
+              "units": "MPN/100ml", "first_seen_utc": "2026-10-20T21:40:00Z"}]}},
          C: {"sample": None}}))),
     ("S1", "the county's status last read too long ago: no status, when it was read, the samples kept",
      _case(water_quality={**_water(**{k: {"status": None, "open_since_utc": None} for k in (N, C, S)}),

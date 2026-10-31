@@ -997,19 +997,30 @@ forecaster actually verifies against, Surfline included.
    of San Diego's Beach & Bay Water Quality Monitoring Program (DEHQ) at
    each break's own station, North EH-060, Center EH-050, South IB-079
    (`collector/beachwater.json`, the owner's), a ledger row each as the
-   conditions' (`.brief-water`, the name beside the value's first line):
+   conditions' on TWO grid lines (owner's calls, 2026-10-30; `briefWaterRow`):
    the status the county's MAP draws, Open / Advisory / Warning / Closed
    (`GetEvents`' PriorityMax by the legend's own ids; Closed verified on
    Silver Strand 30 Oct, the rest by the legend), "until 11 AM Sat" while
    the county's own lift time lies ahead (a General Rain Advisory is issued
-   with its end; never a computed one), then the newest sample's
-   Enterococcus result, ddPCR's where the day has both methods, else its
-   first, "<" kept, "=" dropped, and its day. A status read more than
+   with its end; never a computed one); then "1,379 copies/100 mL on
+   Oct 28", the newest sample's Enterococcus (ddPCR's where the day has both
+   methods, `briefing.wq_lead`; named only when not Enterococcus) in ink,
+   "<" kept, "=" dropped, its arrowhead in the conditions' arrow column
+   against the previous sample of the same parameter and method
+   (`briefing.wq_change`): steady within `WQ_STEADY_RATIO` x1.5 either side,
+   MEASURED on the archive to 30 Oct (median day-to-day change x1.9 at all
+   three; x1.5 calls 30-34% steady, a third each way; the county posts no
+   duplicates, so the test's own repeatability is not measured), a "<" a
+   change only when its limit is beyond the ratio. A status read more than
    `WQ_FRESH_H` (3 h) ago is not said: "Status not read since …". Tapped:
-   the station, the event's issue or "open since" the last lift, every
-   result of that day with its method, when it was read, "County of San
-   Diego DEHQ". Its words are an update. Not measured yet: how soon a
-   sample or an advisory reaches the site (first_seen_utc will say).
+   "Open since Oct 28, 4:37 PM · Coronado North Beach (EH-060) · sampled
+   Oct 28, 6:28 AM: Enterococcus (ddPCR) · County of San Diego DEHQ" (owner's
+   wording, same day). Its words are an update. Not measured yet: how soon
+   a sample or an advisory reaches the site (each result's `first_seen_utc`
+   is in the payload for that).
+   **Every name, arrowhead and sparkline of the Briefing's ledgers sits
+   beside its value's FIRST line** when the value wraps (owner's request,
+   same day: `.brief-row > :not(.brief-val)` one value line tall).
    **Every update is kept**:
    `data/briefings/YYYY-MM.jsonl`, append-only, the build and its words; its
    one writer is collect-beach-inputs.yml's "Record the briefing", in a

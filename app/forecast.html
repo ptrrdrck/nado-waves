@@ -208,13 +208,18 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    page's small caps, an ink arrowhead, the value, a sparkline and its
    window, each row a button that shows when it was read. */
 .brief-block.brief-cond{gap:6px}
-.brief-row{display:grid;grid-template-columns:62px 9px minmax(0,1fr) auto;column-gap:6px;align-items:center;
+.brief-row{display:grid;grid-template-columns:62px 9px minmax(0,1fr) auto;column-gap:6px;align-items:start;
            width:100%;padding:0;margin:0;border:0;background:none;font:inherit;color:inherit;
            text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .brief-key{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;font-size:12.5px;
            letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}
 .brief-val{min-width:0;line-height:1.35}
+/* A row's name, arrowhead and sparkline sit beside the value's FIRST line
+   when the value wraps (owner's request, 2026-10-30): each as tall as one
+   line of the value (15 px at 1.35) and centred in it, as a one-line row
+   always drew them. */
+.brief-row > :not(.brief-val){display:flex;align-items:center;height:20.25px}
 .brief-val .unit{white-space:nowrap}
 .brief-trend{display:flex;align-items:center;justify-content:flex-end;gap:5px}
 .brief-spark{display:block;width:64px;height:18px;overflow:visible;fill:none;stroke:var(--faint);
@@ -228,8 +233,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-window:empty{display:none}
 .brief-when{font-size:12px;color:var(--faint);padding-left:83px;margin-top:-3px}
 /* The county's water quality (owner's request, 2026-10-30): the ledger's
-   rows, a break's name beside the first line of a value that wraps. */
-.brief-water .brief-row{align-items:first baseline}
+   rows on two grid lines, the status on the first and the newest sample on
+   the second, its arrowhead in the conditions' arrow column beside it. */
+.brief-row.brief-wq .brief-key{grid-column:1;grid-row:1}
+.brief-row.brief-wq .wq-status{grid-column:3;grid-row:1}
+.brief-row.brief-wq .wq-dir{grid-column:2;grid-row:2}
+.brief-row.brief-wq .wq-sample{grid-column:3;grid-row:2}
 /* The day's tide as a curve (owner's choice, 2026-10-23): greys and ink,
    the hours gone grey, nights shaded as the Tide card's charts are. */
 .brief-tide{display:block;width:100%;height:151px;padding:0;margin:0;border:0;background:none;font:inherit;
@@ -2213,26 +2222,30 @@ function briefCondRow(r, B) {
 
 // The county's beach water quality (owner's request, 2026-10-30;
 // `briefing.water_quality_story`): a row a break, set as the conditions'
-// ledger, its status as the county's map draws it -- Open, Advisory,
-// Warning or Closed -- with the county's own lift time while it lies ahead
-// ("until 11 AM Mon": a General Rain Advisory is issued with its end), then
-// the station's newest sample: its Enterococcus result (ddPCR's where the
-// day has both methods), else its first, and the day it was taken. A
-// status read more than the build's limit ago is not said; when it was
-// read is. Tapped: the station, the sample's time and every result of that
-// day, and when the status was read. Results as the county gives them,
-// "<" kept, "=" dropped.
+// ledger, on two lines (owner's calls, same day). The first, its status as
+// the county's map draws it -- Open, Advisory, Warning or Closed -- with
+// the county's own lift time while it lies ahead ("until 11 AM Mon": a
+// General Rain Advisory is issued with its end). The second, the station's
+// newest sample, "1,379 copies/100 mL on Oct 28": the result in ink --
+// Enterococcus by ddPCR where the day has both methods, named only when it
+// is not Enterococcus -- and the day it was taken, with an arrowhead in the
+// conditions' arrow column against the sample before it
+// (`briefing.wq_change`, steady within x1.5 either side). A status read
+// more than the build's limit ago is not said; when it was read is.
+// Tapped: since when, the station, when the sample was taken and what the
+// result is, and whose it is. Results as the county gives them, "<" kept,
+// "=" dropped.
 const WQ_UNITS = {"Copies/100ml": "copies/100 mL", "MPN/100ml": "MPN/100 mL", "CFU/100ml": "CFU/100 mL"};
 const wqNumber = (x) => (/^\d+$/.test(x) ? Number(x).toLocaleString("en-US") : x);
 const wqResult = (r) => `${r.qualifier && r.qualifier !== "=" ? esc(r.qualifier) : ""}${esc(wqNumber(r.result))}`
   + `\u00a0${esc(WQ_UNITS[r.units] || r.units)}`;
-// The sample's own wall-clock time, as the county gives it (Pacific): "6:28 AM".
+// The sample's own date and wall-clock time, as the county gives them
+// (Pacific): "Oct 28", "6:28 AM".
+const wqDay = (key) => dayParts(key).toLocaleString("en-US", {month: "short", day: "numeric", timeZone: "UTC"});
 const wqClock = (hms) => {
   const [h, m] = hms.split(":").map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, "0")}\u00a0${h < 12 ? "AM" : "PM"}`;
 };
-const wqLead = (rs) => rs.find((r) => r.parameter === "Enterococcus" && r.method === "ddPCR")
-  || rs.find((r) => r.parameter === "Enterococcus") || rs[0];
 function briefWater(B) {
   const W = B.water_quality;
   if (!W) return [];
@@ -2242,19 +2255,30 @@ function briefWater(B) {
     const until = e && e.lifted_utc && Date.parse(e.lifted_utc) > built ? ` until ${alertClock(e.lifted_utc)}` : "";
     const status = b.status ? `${briefNum(b.status)}${until}`
       : W.checked_utc ? `Status not read since ${briefAt(W.checked_utc, B)}` : "Status not read yet";
-    const lead = s && s.results.length ? wqLead(s.results) : null;
-    const sample = lead ? `${esc(lead.parameter)} ${briefNum(wqResult(lead))} on ${dayText(s.date)}` : "no sample yet";
-    const when = [`${esc(b.name)} (${esc(b.station)})`,
-      e ? `${e.type} issued ${briefAt(e.issued_utc, B)}` : null,
-      b.open_since_utc ? `open since ${briefAt(b.open_since_utc, B)}` : null,
-      s ? `sampled ${dayText(s.date)}, ${wqClock(s.time)}: `
-        + s.results.map((r) => `${esc(r.parameter)} ${wqResult(r)} (${esc(r.method)})`).join(", ") : null,
-      W.checked_utc ? `read ${briefAt(W.checked_utc, B)}` : null, "County of San Diego DEHQ"];
-    return {key: `wq-${b.id}`, label: SHORT[b.id] || b.id, value: `${status} · ${sample}`, dir: null,
-            trend: "", window: "", when: when.filter(Boolean).join(" · ")};
+    const lead = s && s.results.length ? s.results[s.lead || 0] : null;
+    const sample = lead ? `${lead.parameter === "Enterococcus" ? "" : `${esc(lead.parameter)} `}`
+      + `${briefNum(wqResult(lead))} on\u00a0${wqDay(s.date).replace(" ", "\u00a0")}` : "no sample yet";
+    const since = b.status === "Open" ? b.open_since_utc : e ? e.issued_utc : null;
+    const when = [since ? `${b.status} since ${briefAt(since, B)}` : null,
+      `${esc(b.name)} (${esc(b.station)})`,
+      lead ? `sampled ${wqDay(s.date)}, ${wqClock(s.time)}: ${esc(lead.parameter)} (${esc(lead.method)})` : null,
+      "County of San Diego DEHQ"];
+    return {key: `wq-${b.id}`, label: SHORT[b.id] || b.id, status, sample, dir: lead ? s.change || null : null,
+            when: when.filter(Boolean).join(" · ")};
   });
 }
-const briefWaterText = (r) => `${r.label} ${r.value}`;
+// A row: its name and status on the first grid line, the sample and its
+// arrowhead on the second; tapped, what it says.
+function briefWaterRow(r, B) {
+  const open = BRIEF_ROWS.has(r.key);
+  return `<button type="button" class="brief-row brief-wq" data-brief-row="${r.key}" aria-expanded="${open}">`
+    + `<span class="brief-key">${r.label}</span><span class="brief-val wq-status">${r.status}</span>`
+    + `<span class="brief-dir wq-dir">${briefArrow(r.dir)}</span><span class="brief-val wq-sample">${r.sample}</span>`
+    + `</button><div class="brief-when"${open ? "" : " hidden"}>${briefRowWhen(r, B)}</div>`;
+}
+// A row's words, for the record and docs/briefing_wording.md: the status,
+// then the sample and its arrow's word.
+const briefWaterText = (r) => `${r.label} ${r.status}; ${r.sample}${r.dir ? `, ${r.dir}` : ""}`;
 
 // The day's turns, AM / PM by each turn's own clock (predicted, with the
 // gauge's departure, as the card's). Drawn as the day's curve (owner's
@@ -2519,9 +2543,10 @@ function briefingFold(B) {
       ${blocks.map((b) => (b === parts.alerts
         ? `<div class="brief-block brief-alerts">${b.map((a) => alertRow(a, B.built_utc)).join("")}</div>`
         : b === parts.tides ? `<div class="brief-block brief-tides">${briefTideBlock(b, B)}</div>`
-        : b === parts.conditions || b === parts.water_quality
-        ? `<div class="brief-block brief-cond${b === parts.water_quality ? " brief-water" : ""}">`
-          + `${b.map((r) => briefCondRow(r, B)).join("")}</div>`
+        : b === parts.water_quality
+        ? `<div class="brief-block brief-cond brief-water">${b.map((r) => briefWaterRow(r, B)).join("")}</div>`
+        : b === parts.conditions
+        ? `<div class="brief-block brief-cond">${b.map((r) => briefCondRow(r, B)).join("")}</div>`
         : `<div class="brief-block brief-swell">${b.map(briefSwellRow).join("")}</div>`)).join("")}
     </div>`;
 }

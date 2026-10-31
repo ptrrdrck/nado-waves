@@ -682,3 +682,35 @@ def test_a_sample_not_yet_seen_at_the_moment_is_not_read(tmp_path):
         ("7999", "2026-10-30", "Enterococcus", "ddPCR", "=", "300", "Copies/100ml", "2026-10-30T22:00:00Z")]})
     got = bf.water_quality_story(tmp_path, _at("2026-10-30T02:00:00Z"))
     assert got["breaks"][2]["sample"]["date"] == "2026-10-29"
+
+
+def test_a_samples_change_is_steady_within_the_ratio_either_side():
+    row = lambda q, x: {"qualifier": q, "result": str(x)}
+    assert bf.wq_change(row("=", 1379), None) is None
+    assert bf.wq_change(row("=", 1379), row("=", 2000)) == "steady"      # x0.69
+    assert bf.wq_change(row("=", 1150), row("=", 420)) == "up"           # x2.7
+    assert bf.wq_change(row("=", 590), row("=", 14410)) == "down"
+    r = bf.WQ_STEADY_RATIO
+    assert bf.wq_change(row("=", 100 * r), row("=", 100)) == "up"
+    assert bf.wq_change(row("=", 100 * r * 0.99), row("=", 100)) == "steady"
+
+
+def test_a_result_below_the_limit_is_a_change_only_past_the_ratio():
+    row = lambda q, x: {"qualifier": q, "result": str(x)}
+    assert bf.wq_change(row("<", 195), row("=", 420)) == "down"          # at most 195, from 420
+    assert bf.wq_change(row("<", 195), row("=", 250)) is None            # could be either
+    assert bf.wq_change(row("=", 1150), row("<", 195)) == "up"
+    assert bf.wq_change(row("=", 250), row("<", 195)) is None
+    assert bf.wq_change(row("<", 195), row("<", 195)) == "steady"
+    assert bf.wq_change(row(">", 24196), row("=", 100)) is None
+
+
+def test_the_sample_carries_its_lead_its_change_and_when_it_was_first_read(tmp_path):
+    _beach_water(tmp_path, samples={"EH-060": [
+        ("7671", "2026-10-27", "Enterococcus", "ddPCR", "=", "2000", "Copies/100ml", "2026-10-27T21:00:00Z"),
+        ("7680", "2026-10-28", "Enterococcus", "Enterolert", "<", "10", "MPN/100ml", "2026-10-28T23:10:00Z"),
+        ("7787", "2026-10-28", "Enterococcus", "ddPCR", "=", "1379", "Copies/100ml", "2026-10-28T20:32:00Z")]})
+    s = bf.water_quality_story(tmp_path, _at("2026-10-30T02:00:00Z"))["breaks"][0]["sample"]
+    assert s["results"][s["lead"]]["method"] == "ddPCR"
+    assert s["results"][s["lead"]]["first_seen_utc"] == "2026-10-28T20:32:00Z"
+    assert s["change"] == "steady" and s["previous"]["result"] == "2000"
