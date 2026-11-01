@@ -2641,42 +2641,51 @@ function slideBrief(body, open) {
 // the gap below are its own: the owner wants neither here. Shut, a
 // negative bottom margin takes back the fold's gap in its parent, so the
 // last frame is the closed page; every length moves on one easing, so what
-// lies below moves one way only. Never on a wide screen or under reduced
-// motion. A fold in a hidden tab flips at once. Tapped again mid-slide, it
-// turns back from where it is. `before` runs once the folds are shown and
-// before they are measured: what they draw on opening (a chart refitted to
-// its width, a rose shown) is drawn first, so the height is the drawn one.
+// lies below moves one way only. On every layout, the stack and console
+// too (owner's call, 2026-11-01); never under reduced motion. A fold in a
+// hidden tab flips at once. Tapped again mid-slide, it turns back from
+// where it is. `before` runs once the folds are shown and before they are
+// measured: what they draw on opening (a chart refitted to its width, a
+// rose shown, the wide calculations' rows lined up) is drawn first, so the
+// height is the drawn one. `after` runs as each slide ends, and once at
+// once if nothing slid. Min-height moves with the height: `alignCols` sets
+// one on each wide calculation, and it would hold the fold open.
 const FOLD_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)"};
 const FOLD_MOVES = new WeakMap();
-function slideFolds(folds, open, before) {
+function slideFolds(folds, open, before, after) {
   const fresh = folds.filter((fold) => {
     if (!fold) return false;
     const run = FOLD_MOVES.get(fold);
     if (!run) return true;
+    if (after) run.after = after;
     if (run.open !== open) { run.open = open; run.anims.forEach((a) => a.reverse()); }
     return false;
   });
   const shut = fresh.filter((fold) => fold.hidden);
   if (open) fresh.forEach((fold) => { fold.hidden = false; });
   if (open && before) before();
-  const still = WIDE() || typeof Element.prototype.animate !== "function"
+  const still = typeof Element.prototype.animate !== "function"
     || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  let slid = false;
   for (const fold of fresh) {
     const shown = open ? shut.includes(fold) : !fold.hidden;
     if (still || !shown || !fold.getClientRects().length) { fold.hidden = !open; continue; }
-    slideFold(fold, open);
+    slideFold(fold, open, after);
+    slid = true;
   }
+  if (!slid && after) after();
 }
-function slideFold(fold, open) {
+function slideFold(fold, open, after) {
   const cs = getComputedStyle(fold), parent = fold.parentElement, ps = getComputedStyle(parent);
   const h = fold.getBoundingClientRect().height;
   const others = [...parent.children].some((el) => el !== fold && el.getClientRects().length);
   const gap = others && /flex|grid/.test(ps.display) ? (parseFloat(ps.rowGap) || 0) : 0;
   const top = parseFloat(cs.paddingTop) || 0;
-  const shut = {height: top + "px", paddingBottom: "0px",
+  const shut = {height: top + "px", minHeight: "0px", paddingBottom: "0px",
     marginBottom: -(gap + (parseFloat(cs.marginTop) || 0) + top) + "px"};
-  const full = {height: h + "px", paddingBottom: cs.paddingBottom, marginBottom: cs.marginBottom};
-  const run = {open, anims: []};
+  const full = {height: h + "px", minHeight: h + "px", paddingBottom: cs.paddingBottom,
+    marginBottom: cs.marginBottom};
+  const run = {open, after, anims: []};
   fold.classList.add("fold-moving");
   run.anims.push(fold.animate(open ? [shut, full] : [full, shut],
     {duration: FOLD_SLIDE.ms, easing: FOLD_SLIDE.ease}));
@@ -2690,6 +2699,7 @@ function slideFold(fold, open) {
     FOLD_MOVES.delete(fold);
     fold.classList.remove("fold-moving");
     fold.hidden = !run.open;
+    if (run.after) run.after();
   };
 }
 
@@ -3676,8 +3686,10 @@ function setCalcOpen(open) {
     btn.setAttribute("aria-expanded", String(open));
     return $(btn.getAttribute("aria-controls"));
   });
-  slideFolds(folds, open);
-  if (WIDE()) alignCols();
+  // Wide, the three columns' rows are lined up before the folds are
+  // measured, and again once they have landed (shut, the slots below close up).
+  const align = () => { if (WIDE()) alignCols(); };
+  slideFolds(folds, open, align, align);
 }
 
 // Larger than the first version (r 124 -> 140 in the same 320 box): the
@@ -6088,6 +6100,9 @@ const chartResize = typeof ResizeObserver === "undefined" ? null
 // the measured line each take the tallest column's height, so a drawing, a
 // row or a figure sits level with the same one beside it.
 function alignCols() {
+  // Not while a calculation slides: it would read a height mid-slide and
+  // keep it. Its slide lines the columns up again as it lands.
+  if (document.querySelector("#conditions .break-cols .fold-moving")) return;
   document.querySelectorAll("#conditions .break-cols[data-align]").forEach((grid) => {
     const slots = new Map();
     const add = (key, el) => (slots.get(key) || slots.set(key, []).get(key)).push(el);

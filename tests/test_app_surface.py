@@ -4171,7 +4171,7 @@ class TestTheFoldsSlide:
     def test_it_grows_from_its_bottom_edge_and_ends_on_the_closed_page(self):
         """The top padding is kept, and shut, a negative margin takes back the
         fold's gap in its parent, so the last frame is the closed page."""
-        assert 'const shut = {height: top + "px", paddingBottom: "0px",' in self.HELPER
+        assert 'const shut = {height: top + "px", minHeight: "0px", paddingBottom: "0px",' in self.HELPER
         assert "marginBottom: -(gap + (parseFloat(cs.marginTop) || 0) + top)" in self.HELPER
         assert ".fold-moving{overflow:hidden;box-sizing:border-box}" in SOURCE
 
@@ -4180,10 +4180,21 @@ class TestTheFoldsSlide:
             assert word not in self.HELPER
         assert ".fold-moving{" in SOURCE and "mask" not in SOURCE[SOURCE.index(".fold-moving{"):][:80]
 
-    def test_never_on_a_wide_screen_or_under_reduced_motion(self):
-        """The Briefing does not slide wide either; the stack and console
-        layouts open all three calculations from one caret (`alignCols`)."""
-        assert "WIDE()" in self.HELPER and "prefers-reduced-motion: reduce" in self.HELPER
+    def test_on_every_layout_but_never_under_reduced_motion(self):
+        """Owner's call, 2026-11-01: the stack and console slide too."""
+        assert "WIDE()" not in self.HELPER
+        assert "prefers-reduced-motion: reduce" in self.HELPER
+
+    def test_the_wide_calculations_stay_lined_up(self):
+        """`alignCols` sets a min-height on each wide calculation, which would
+        hold a closing fold open, so min-height moves with the height; it
+        lines the rows up before the folds are measured and once they land,
+        and never reads a height mid-slide."""
+        assert 'minHeight: "0px"' in self.HELPER and 'minHeight: h + "px"' in self.HELPER
+        assert "slideFolds(folds, open, align, align);" in self.body("setCalcOpen")
+        assert "if (run.after) run.after();" in self.HELPER
+        assert ('if (document.querySelector("#conditions .break-cols .fold-moving")) return;'
+                in self.body("alignCols"))
 
     def test_a_tap_mid_slide_turns_it_back(self):
         assert "run.anims.forEach((a) => a.reverse())" in self.HELPER

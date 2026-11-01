@@ -851,9 +851,16 @@ forecaster actually verifies against, Surfline included.
    the device grid). What a fold draws on opening (`refitCharts` on a
    tablet, `roseShown`) is drawn before it is measured; a tap mid-slide
    turns it back from where it is; a redraw mid-slide rebuilds the fold in
-   its open state. Not on a wide screen (stack and console: one caret opens
-   all three calculations, `alignCols`) or under reduced motion; a fold in a
-   hidden tab flips at once. No WebKit in a session: unchecked on the
+   its open state. On every layout, the stack and console too (owner's call,
+   2026-11-01), where one caret opens all three calculations and
+   `alignCols` holds their rows level: min-height moves with the height (its
+   min-height would hold a closing fold open), the rows are lined up before
+   the folds are measured and again as they land, and `alignCols` never
+   reads a height mid-slide — the three columns level in every frozen frame
+   at 1000 and 1300 px, after turns mid-slide and a redraw. Every fold ends
+   exactly on the closed and open page there too. Never under reduced
+   motion; a fold in a hidden tab flips at once. The Briefing still does not
+   slide wide: it has no caret there. No WebKit in a session: unchecked on the
    owner's iPhone, and it uses only height, padding, margin and opacity
    through the Web Animations API, which the Briefing's slide already runs
    there.
