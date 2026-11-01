@@ -1123,6 +1123,18 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 .week-strip.row .week-day.on::after{content:"";position:absolute;pointer-events:none;left:-3px;right:-3px;
   top:calc(var(--wk-date) + var(--wk-gap) - 3px);bottom:-3px;border:1.5px solid var(--ink);border-radius:9px}
 :root[data-layout="tablet"] .conditions > .week{grid-column:1/-1}
+/* Back to the opening hour (owner's request and choice, 2026-10-31: the
+   clock turning back, drawn light): in the Week label's row over the
+   opening hour's day, there whenever the cards are on another hour. Placed
+   by `weekTodayAt`; on a phone it rides with that day and stops at the
+   strip's edge. The rose's play button's chip. */
+.cond.week{position:relative}
+.week-today{position:absolute;left:0;top:0;z-index:1;display:grid;place-items:center;width:28px;height:22px;
+  padding:0;border:0;border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
+.week-today svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;
+  stroke-linejoin:round}
+.week-today:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 </style>
 
 <div class="wrap">
@@ -7172,8 +7184,14 @@ function weekCard(step) {
     ? `<div class="week-view"><div class="week-days" data-week-scroll><span class="week-pad"></span>${cols}`
       + `<span class="week-pad"></span></div><div class="week-frame" aria-hidden="true"></div></div>`
     : `<div class="week-days">${cols}</div>`;
+  // Back to the hour the tab opens on, whenever the cards are on another.
+  const opening = firstUpcoming();
+  const back = `<button type="button" class="week-today" data-week-today`
+    + ` aria-label="Back to ${when(STEPS[opening].valid_utc)}"${CURSOR === opening ? " hidden" : ""}>`
+    + `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.1 5.6A5.4 5.4 0 1 1 2.6 8.6"/>`
+    + `<path d="M2.7 3.2v2.6h2.6"/><path d="M8 5.8V8l1.5 1"/></svg></button>`;
   return `<div class="cond week" data-card="week">
-    <span class="lbl">Week</span>
+    <span class="lbl">Week</span>${back}
     <div class="week-strip${carousel ? "" : " row"}">${names}${body}</div>
   </div>`;
 }
@@ -7193,25 +7211,75 @@ function weekUnder(sc) {
 }
 // The days off the outline sit behind it: smaller and fainter the further.
 function weekFade(sc) {
+  const card = sc.closest(".cond.week");
+  if (card) weekTodayAt(card);
   sc.querySelectorAll(".week-day").forEach((d) => {
     const k = Math.min(1, Math.abs(weekCenterOf(d) - weekMid(sc)) / d.offsetWidth);
     d.style.opacity = String(1 - 0.5 * k);
     d.style.transform = `scale(${(1 - 0.1 * k).toFixed(3)})`;
   });
 }
-// After a render: the picked day under the outline, at once.
+// After a render: the picked day under the outline, at once -- or, back
+// from the button, slid there from where the strip was.
+let WEEK_FROM = null, WEEK_SLIDING = false, WEEK_SLIDE_END = null;
 function weekPlace() {
+  const card = document.querySelector("#conditions .cond.week");
+  const sc = card && card.querySelector("[data-week-scroll]");
+  if (sc) {
+    const on = sc.querySelector(".week-day.on");
+    const to = on ? weekCenterOf(on) - sc.clientWidth / 2 : sc.scrollLeft;
+    const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (WEEK_FROM != null && !still) {
+      // The strip's own slide: nothing is picked on the way (`weekSettle`).
+      WEEK_SLIDING = true;
+      clearTimeout(WEEK_SLIDE_END);
+      WEEK_SLIDE_END = setTimeout(() => { WEEK_SLIDING = false; }, 1500);
+      sc.scrollLeft = WEEK_FROM;
+      sc.scrollTo({left: to, behavior: "smooth"});
+    } else {
+      sc.scrollLeft = to;
+    }
+    weekFade(sc);
+  }
+  WEEK_FROM = null;
+  if (card) weekTodayAt(card);
+}
+// The button's place: over the opening hour's day, in the label's row,
+// kept inside the strip when that day is out of view.
+function weekTodayAt(card) {
+  const btn = card.querySelector("[data-week-today]");
+  if (!btn || btn.hidden) return;
+  const step = STEPS[firstUpcoming()];
+  const col = step && card.querySelector(`.week-day[data-week-day="${coastDay(Date.parse(step.valid_utc))}"]`);
+  const box = (card.querySelector(".week-view") || card.querySelector(".week-days")).getBoundingClientRect();
+  const c = card.getBoundingClientRect(), lbl = card.querySelector(".lbl").getBoundingClientRect();
+  const r = col && col.getBoundingClientRect();
+  const x = Math.max(box.left, Math.min(box.right - btn.offsetWidth,
+    r ? r.left + r.width / 2 - btn.offsetWidth / 2 : box.left));
+  btn.style.left = `${(x - c.left - card.clientLeft).toFixed(1)}px`;
+  btn.style.top = `${(lbl.top + lbl.height / 2 - btn.offsetHeight / 2 - c.top - card.clientTop).toFixed(1)}px`;
+}
+// Back to the hour the tab opens on: no longer the reader's pick, so it
+// moves on as hours pass, as an untouched page does.
+function weekBack() {
   const sc = document.querySelector("#conditions [data-week-scroll]");
-  if (!sc) return;
-  const on = sc.querySelector(".week-day.on");
-  if (on) sc.scrollLeft = weekCenterOf(on) - sc.clientWidth / 2;
-  weekFade(sc);
+  WEEK_PENDING = null;
+  WEEK_FROM = sc ? sc.scrollLeft : null;
+  CHOSEN = null;
+  CURSOR = firstUpcoming();
+  show();
+  const day = document.querySelector("#conditions .week-day.on .week-date");
+  if (day) day.focus({preventScroll: true});
 }
 function weekSettle(sc) {
   clearTimeout(WEEK_SETTLE);
   if (WEEK_TOUCH) return;
   const near = weekUnder(sc);
   if (!near) return;
+  if (WEEK_SLIDING) {
+    if (near.classList.contains("on")) WEEK_SLIDING = false;
+    return;
+  }
   const key = near.getAttribute("data-week-day");
   // A tapped day is picked when it reaches the outline, as the tap asked.
   if (WEEK_PENDING) {
@@ -7226,6 +7294,7 @@ function weekSettle(sc) {
 function wireWeek() {
   const strip = $("conditions");
   strip.addEventListener("click", (e) => {
+    if (e.target.closest("[data-week-today]")) { weekBack(); return; }
     const btn = e.target.closest("[data-week-pick]");
     if (!btn) return;
     const day = weekDays().find((d) => d.key === btn.getAttribute("data-week-pick"));
@@ -7253,7 +7322,7 @@ function wireWeek() {
   const hold = (down) => (e) => {
     if (!e.target.closest || !e.target.closest("[data-week-scroll]")) return;
     WEEK_TOUCH = down;
-    if (down) WEEK_PENDING = null;
+    if (down) { WEEK_PENDING = null; WEEK_SLIDING = false; }
     if (!down) {
       const sc = e.target.closest("[data-week-scroll]");
       clearTimeout(WEEK_SETTLE);
@@ -7263,6 +7332,11 @@ function wireWeek() {
   strip.addEventListener("touchstart", hold(true), {capture: true, passive: true});
   strip.addEventListener("touchend", hold(false), {capture: true, passive: true});
   strip.addEventListener("touchcancel", hold(false), {capture: true, passive: true});
+  // A row of days changes width with the window; the button follows its day.
+  window.addEventListener("resize", () => requestAnimationFrame(() => {
+    const card = document.querySelector("#conditions .cond.week");
+    if (card) weekTodayAt(card);
+  }));
 }
 
 // What the measured wind means at each break, on the Wind card, one line per

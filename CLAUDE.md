@@ -1143,7 +1143,16 @@ forecaster actually verifies against, Surfline included.
    tap on a day beside it slides it in, then picks. Wider, every day in a
    row, the outline on the picked one. The phone's Forecast tab was checked
    to change by that card alone: every other element as master's, moved
-   down by its height.
+   down by its height. **Back to the opening hour** (owner's request and
+   choice, 2026-10-31: C2 of six mocked versions of a clock turning back,
+   drawn at a 1.4 stroke; `weekBack`): a chip in the Week label's row over
+   the opening hour's day (`firstUpcoming`), there whenever the cards are
+   on any other hour however the reader got there, on every layout; on a
+   phone it rides with that day and waits at the strip's edge
+   (`weekTodayAt`). A tap restores the UNPICKED state (`CHOSEN = null`, so
+   it moves on as hours pass) and slides the day back under the outline;
+   nothing is picked during that slide (`WEEK_SLIDING`: restoring the
+   strip's old position fires a scroll end mid-slide).
    **The log-first gate** (owner's call, 2026-10-16): "Wave observer", the
    Observer switch, kept in localStorage (with the Briefing's last opened
    update and the Units and theme settings, its only uses, pinned). On such a device the page opens on "Logging the beach today?"

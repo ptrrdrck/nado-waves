@@ -4487,6 +4487,37 @@ class TestTheWeekStrip:
         card = self.fn("weekCard")
         assert 'const carousel = LAYOUT === "phone";' in card
 
+    def test_a_button_goes_back_to_the_opening_hour(self):
+        """Owner's request and choice, 2026-10-31 (C2 of the mocks): the clock
+        turning back, drawn light, there whenever the cards are on any hour
+        but the one the tab opens on, on every layout."""
+        card = self.fn("weekCard")
+        assert "const opening = firstUpcoming();" in card
+        assert '${CURSOR === opening ? " hidden" : ""}' in card
+        assert 'stroke-width:1.4' in SOURCE[SOURCE.index(".week-today svg{"):][:200]
+        assert '<path d="M3.1 5.6A5.4 5.4 0 1 1 2.6 8.6"/>' in card
+        assert "carousel" not in card[card.index("const opening"):card.index("const back")]  # every layout
+        back = self.fn("weekBack")
+        # Back to the opening hour is no longer the reader's pick, so it moves
+        # on as hours pass, as an untouched page does.
+        assert "CHOSEN = null;" in back and "CURSOR = firstUpcoming();" in back
+        assert back.index("CHOSEN = null;") < back.index("show();")
+
+    def test_the_strips_own_slide_picks_nothing_on_the_way(self):
+        settle = self.fn("weekSettle")
+        assert settle.index("if (WEEK_SLIDING) {") < settle.index("choose(")
+        place = self.fn("weekPlace")
+        assert place.index("WEEK_SLIDING = true;") < place.index('behavior: "smooth"')
+        # A finger on the strip takes over from the slide.
+        assert "if (down) { WEEK_PENDING = null; WEEK_SLIDING = false; }" in SOURCE
+
+    def test_the_button_rides_over_the_opening_day_inside_the_strip(self):
+        at = self.fn("weekTodayAt")
+        assert "STEPS[firstUpcoming()]" in at
+        assert "Math.max(box.left, Math.min(box.right - btn.offsetWidth," in at
+        fade = self.fn("weekFade")
+        assert "weekTodayAt(card)" in fade        # it moves with the days
+
     def test_the_footer_keeps_a_phones_width_wider(self):
         css = SOURCE[:SOURCE.index("</style>")]
         assert ':root[data-layout="tablet"] .links,:root[data-layout="stack"] .links{max-width:560px}' in css

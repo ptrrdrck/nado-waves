@@ -720,6 +720,8 @@ The outlined day is the one the cards below are showing. Picking a day shows the
 
 On a phone the days slide sideways under a fixed outline and settle one at a time. Whichever day settles in the outline is picked; tapping a day beside it slides it in first. Wider than a phone, every day sits in a row and the outline moves.
 
+Whenever the cards are on any hour but the one the tab opens on, the first hour not yet passed, a small clock turning back sits beside the card's title, over that hour's day. Tapping it goes back to that hour, puts its day under the outline, and the clock goes away. On a phone it rides along with its day as the days slide, and waits at the strip's edge when the day is out of view.
+
 ### [time-past] Past hours: what the page showed then
 
 The Forecast tab reaches 48 hours back. For each hour that has gone by, the forecast figure is what this page showed for that hour: the newest run that had been published before it, which is not always the run on screen now. A past hour is drawn as it was published, with the drawing and the calculation, from that build's own record. When an older build kept only the headline, the card says “The calculation for this hour was not kept” rather than borrowing another build's detail.
