@@ -3897,9 +3897,10 @@ class TestTheBriefing:
 
     def test_it_slides_open_and_shut_with_the_owners_settings(self):
         """Owner's settings, 2026-10-31, from the mock: 240 ms, a quick start
-        and a soft stop, the contents rising a third of the fold's height as
-        they fade; never under reduced motion or on a wide screen."""
-        assert 'const BRIEF_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)", rise: 0.35};' in self.BLOCK
+        and a soft stop, the contents fading as it grows; never under reduced
+        motion or on a wide screen. Their rise (a third of the fold's height)
+        came off 2026-11-01, the owner's call with the other folds' slide."""
+        assert 'const BRIEF_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)", rise: 0};' in self.BLOCK
         slide = self.BLOCK[self.BLOCK.index("function slideBrief"):]
         slide = slide[:slide.index("\n}\n")]
         assert "prefers-reduced-motion: reduce" in slide and "WIDE()" in slide
@@ -4143,6 +4144,64 @@ class TestTheBriefing:
     def test_it_is_closed_until_opened_and_kept_across_a_refresh(self):
         assert "let BRIEF_OPEN = false;" in SOURCE
         assert 'BRIEF_OPEN = recall(KEEP.briefOpen) === "open";' in SOURCE
+
+
+class TestTheFoldsSlide:
+    """Owner's settings, 2026-11-01, from a mock built on the real page: the
+    calculation, the swell's and the Wind and Tide cards' Charts, Origin, the
+    tide's Phase, each buoy's headline and an alert's NWS headline open and
+    shut as the Briefing does -- 240 ms, its quick start and soft stop -- with
+    NO RISE, and without the Briefing's fade at its foot or its reach below."""
+
+    HELPER = SOURCE[SOURCE.index("const FOLD_SLIDE"):SOURCE.index("// A tapped row's detail folded out")]
+
+    def body(self, name):
+        start = SOURCE.index(f"function {name}(")
+        return SOURCE[start:SOURCE.index("\n}\n", start)]
+
+    def test_the_owners_settings(self):
+        assert 'const FOLD_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)"};' in SOURCE
+
+    def test_contents_fade_in_place_and_nothing_rises(self):
+        """No rise, so nothing passes the fold's line and no clip at its first
+        line's ink is needed: the contents fade, the fold grows."""
+        assert "translate" not in self.HELPER and "transform" not in self.HELPER
+        assert "{opacity: 0}, {opacity: 1}" in self.HELPER
+
+    def test_it_grows_from_its_bottom_edge_and_ends_on_the_closed_page(self):
+        """The top padding is kept, and shut, a negative margin takes back the
+        fold's gap in its parent, so the last frame is the closed page."""
+        assert 'const shut = {height: top + "px", paddingBottom: "0px",' in self.HELPER
+        assert "marginBottom: -(gap + (parseFloat(cs.marginTop) || 0) + top)" in self.HELPER
+        assert ".fold-moving{overflow:hidden;box-sizing:border-box}" in SOURCE
+
+    def test_none_of_the_briefings_fade_or_reach(self):
+        for word in ("mask", "brief-reach", "brief-fade", "briefEdges"):
+            assert word not in self.HELPER
+        assert ".fold-moving{" in SOURCE and "mask" not in SOURCE[SOURCE.index(".fold-moving{"):][:80]
+
+    def test_never_on_a_wide_screen_or_under_reduced_motion(self):
+        """The Briefing does not slide wide either; the stack and console
+        layouts open all three calculations from one caret (`alignCols`)."""
+        assert "WIDE()" in self.HELPER and "prefers-reduced-motion: reduce" in self.HELPER
+
+    def test_a_tap_mid_slide_turns_it_back(self):
+        assert "run.anims.forEach((a) => a.reverse())" in self.HELPER
+
+    def test_every_fold_goes_through_the_one_helper(self):
+        for name in ("setCalcOpen", "setChartOpen", "setCardChartOpen", "setOriginOpen",
+                     "setPhaseOpen", "setBuoyOpen", "toggleAlert"):
+            body = self.body(name)
+            assert "slideFolds(" in body, name
+            assert ".hidden = !open" not in body, name
+
+    def test_what_a_fold_draws_on_opening_is_drawn_before_it_is_measured(self):
+        """A chart refitted to its width (tablet) and a rose shown, so the
+        height the slide runs to is the drawn one."""
+        assert "slideFolds(folds, open, refitCharts);" in self.body("setChartOpen")
+        assert "slideFolds(folds, open, refitCharts);" in self.body("setCardChartOpen")
+        assert "slideFolds(folds, open, roseShown);" in self.body("setBuoyOpen")
+        assert "if (open && before) before();" in self.HELPER
 
 
 class TestTheLogFirstGate:

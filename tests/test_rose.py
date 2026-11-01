@@ -145,7 +145,10 @@ class TestOnThePage:
         assert "ROSE_PHASE >= ROSE_PLAY_MS ? span.t1" in PAGE     # that phase is the newest
         assert 'if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) {\n    roseShown();' in PAGE
         assert 'if (mode === "now" && MODE !== "now") roseShown();' in PAGE
-        assert "if (open) roseShown();" in PAGE
+        # On unfolding: run by the fold's slide once it is shown, before it
+        # is measured (`slideFolds` calls `before` only when opening).
+        assert "slideFolds(folds, open, roseShown);" in PAGE
+        assert "if (open && before) before();" in PAGE
 
     def test_each_buoys_scale_is_its_own_largest_petal_rounded_up(self):
         """Each buoy's own loop sets its scale (shared across both, 46232's

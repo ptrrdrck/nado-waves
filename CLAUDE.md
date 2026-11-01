@@ -820,14 +820,43 @@ forecaster actually verifies against, Surfline included.
    there, a hint that it scrolls (cleared at the end of its scroll,
    `briefEdges`); it takes that gap back, so the cards sit where they did.
    It slides open and shut (`slideBrief`; owner's settings 2026-10-31, from
-   a mock): 240 ms, a quick start and a soft stop, its contents rising a
-   third of its height as they fade, growing and shrinking from its bottom
+   a mock): 240 ms, a quick start and a soft stop, its contents fading in
+   place (they rose a third of its height as they faded until 2026-11-01,
+   the owner's call), growing and shrinking from its bottom
    edge only. Nothing in it is ever drawn nearer the line than its first
    line's ink at rest, sliding OR scrolled (owner's reports, same day): its
    own top edge is a clip `--brief-ink` into its contents, 23 px below the
    line's text with or without an alert, measured in painted pixels frozen
    mid-close and scrolled 0–35 px. No slide under reduced motion or on a
    wide screen.
+   **Every other fold slides the same way** (owner's settings, 2026-11-01,
+   from a mock built on the real page's rendered DOM; `slideFolds`,
+   `FOLD_SLIDE`): the calculation, the swell's and the Wind and Tide cards'
+   Charts, Origin, the tide's Phase, each buoy's headline and an alert's NWS
+   headline (the Briefing's and the Forecast tab's) — 240 ms, the same
+   easing, NO RISE, and none of the Briefing's fade at its foot or reach
+   below (owner's call). One helper, each fold's open state and storage
+   untouched: it grows from its bottom edge, its top padding kept, and shut
+   a negative bottom margin takes back its gap in the parent, so the last
+   frame is the closed page; every length on one easing, so what lies below
+   moves one way only. Checked in Chromium by freezing each slide at 21
+   points both ways and tracking the next element's top: monotonic, and
+   ending exactly on the closed and open page for all nine folds and the
+   Briefing at 390 and 800 px (the Briefing's Swell card 126.5 → 482.5 px).
+   With no rise nothing passes a fold's line, so it has no ink clip; if a
+   rise comes back, so must one — measured at rest at 390 px, the first ink
+   sits 8.5 px into the calculation, 5.5 into Origin, 4 into the Phase, 7.5
+   into a buoy's fold, 3.5 into the NWS headline and 0 into the Charts, and
+   a clip edge between device pixels antialiases a row nearer (snap it to
+   the device grid). What a fold draws on opening (`refitCharts` on a
+   tablet, `roseShown`) is drawn before it is measured; a tap mid-slide
+   turns it back from where it is; a redraw mid-slide rebuilds the fold in
+   its open state. Not on a wide screen (stack and console: one caret opens
+   all three calculations, `alignCols`) or under reduced motion; a fold in a
+   hidden tab flips at once. No WebKit in a session: unchecked on the
+   owner's iPhone, and it uses only height, padding, margin and opacity
+   through the Web Animations API, which the Briefing's slide already runs
+   there.
    A tapped row's detail that folds out below what it shows scrolls into
    view (`briefReveal`; owner's request, same day, after the South water
    row's line opened out of sight): clear of the fade, or to its new end,

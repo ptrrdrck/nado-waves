@@ -211,6 +211,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    line never closes up, and nothing that slides is drawn above where the
    first line's ink sits at rest. */
 .briefing .fold-body.moving{overflow:hidden;box-sizing:border-box}
+/* The other folds slide too (owner's settings, 2026-11-01, from a mock):
+   `slideFolds`, with the Briefing's timing and no fade at the foot. */
+.fold-moving{overflow:hidden;box-sizing:border-box}
 .brief-block{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--soft)}
 .brief-block .unit{color:inherit}
 /* The swell's sentences a line each, a little apart (owner's request,
@@ -1895,11 +1898,11 @@ let PHASE_OPEN = false;
 function setPhaseOpen(open) {
   PHASE_OPEN = open;
   remember(KEEP.phaseOpen, open ? "open" : "closed");
-  document.querySelectorAll("[data-phase-toggle]").forEach((btn) => {
+  const folds = [...document.querySelectorAll("[data-phase-toggle]")].map((btn) => {
     btn.setAttribute("aria-expanded", String(open));
-    const fold = $(btn.getAttribute("aria-controls"));
-    if (fold) fold.hidden = !open;
+    return $(btn.getAttribute("aria-controls"));
   });
+  slideFolds(folds, open);
 }
 // The fold for the coast day `key`, or nothing when the payload has none.
 // `tagged` marks the line as a prediction on LIVE, as the turn line is.
@@ -2567,12 +2570,14 @@ function setBriefOpen(open) {
   if (open) briefSeen();
 }
 // The slide (owner's settings, 2026-10-31, from the mock): 240 ms, a quick
-// start and a soft stop, the contents rising a third of the fold's height
-// as they fade. The fold keeps the space under its line and shrinks from
+// start and a soft stop, the contents fading in place -- they rose a third
+// of the fold's height until 2026-11-01, when the owner took the rise off
+// with the other folds' (`slideFolds`). The fold keeps the space under its
+// line and shrinks from
 // its bottom edge; shut, a negative margin takes that space back, so the
 // last frame is the closed page exactly. What slides passes under the
 // fold's own top edge (--brief-ink), as what scrolls does.
-const BRIEF_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)", rise: 0.35};
+const BRIEF_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)", rise: 0};
 let BRIEF_MOVES = [];
 function slideBrief(body, open) {
   BRIEF_MOVES.forEach((a) => a.cancel());
@@ -2607,6 +2612,68 @@ function slideBrief(body, open) {
     briefEdges(true);
   };
 }
+// EVERY OTHER FOLD SLIDES THE SAME WAY (owner's settings, 2026-11-01, from
+// a mock of the real page): the calculation, the Charts lines, Origin, the
+// tide's Phase, each buoy's headline and an alert's NWS headline. 240 ms,
+// the Briefing's quick start and soft stop, and NO RISE: the contents fade
+// in place while the fold grows from its bottom edge, so nothing passes the
+// fold's line and no clip at its first line's ink is needed (one is, if a
+// rise ever comes back). The Briefing's fade at its foot and its reach into
+// the gap below are its own: the owner wants neither here. Shut, a
+// negative bottom margin takes back the fold's gap in its parent, so the
+// last frame is the closed page; every length moves on one easing, so what
+// lies below moves one way only. Never on a wide screen or under reduced
+// motion. A fold in a hidden tab flips at once. Tapped again mid-slide, it
+// turns back from where it is. `before` runs once the folds are shown and
+// before they are measured: what they draw on opening (a chart refitted to
+// its width, a rose shown) is drawn first, so the height is the drawn one.
+const FOLD_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)"};
+const FOLD_MOVES = new WeakMap();
+function slideFolds(folds, open, before) {
+  const fresh = folds.filter((fold) => {
+    if (!fold) return false;
+    const run = FOLD_MOVES.get(fold);
+    if (!run) return true;
+    if (run.open !== open) { run.open = open; run.anims.forEach((a) => a.reverse()); }
+    return false;
+  });
+  const shut = fresh.filter((fold) => fold.hidden);
+  if (open) fresh.forEach((fold) => { fold.hidden = false; });
+  if (open && before) before();
+  const still = WIDE() || typeof Element.prototype.animate !== "function"
+    || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  for (const fold of fresh) {
+    const shown = open ? shut.includes(fold) : !fold.hidden;
+    if (still || !shown || !fold.getClientRects().length) { fold.hidden = !open; continue; }
+    slideFold(fold, open);
+  }
+}
+function slideFold(fold, open) {
+  const cs = getComputedStyle(fold), parent = fold.parentElement, ps = getComputedStyle(parent);
+  const h = fold.getBoundingClientRect().height;
+  const others = [...parent.children].some((el) => el !== fold && el.getClientRects().length);
+  const gap = others && /flex|grid/.test(ps.display) ? (parseFloat(ps.rowGap) || 0) : 0;
+  const top = parseFloat(cs.paddingTop) || 0;
+  const shut = {height: top + "px", paddingBottom: "0px",
+    marginBottom: -(gap + (parseFloat(cs.marginTop) || 0) + top) + "px"};
+  const full = {height: h + "px", paddingBottom: cs.paddingBottom, marginBottom: cs.marginBottom};
+  const run = {open, anims: []};
+  fold.classList.add("fold-moving");
+  run.anims.push(fold.animate(open ? [shut, full] : [full, shut],
+    {duration: FOLD_SLIDE.ms, easing: FOLD_SLIDE.ease}));
+  for (const child of fold.children) {
+    run.anims.push(child.animate(open ? [{opacity: 0}, {opacity: 1}] : [{opacity: 1}, {opacity: 0}],
+      {duration: FOLD_SLIDE.ms, easing: "linear"}));
+  }
+  FOLD_MOVES.set(fold, run);
+  run.anims[0].onfinish = () => {
+    run.anims.forEach((a) => a.cancel());
+    FOLD_MOVES.delete(fold);
+    fold.classList.remove("fold-moving");
+    fold.hidden = !run.open;
+  };
+}
+
 // A tapped row's detail folded out below what the fold shows scrolls into
 // view (owner's request, 2026-10-31: the South water row's line, the last
 // thing in it, opened out of sight). Only as far as it needs: clear of the
@@ -3439,11 +3506,11 @@ function originFold(id, o, hidden = false) {
 function setOriginOpen(open) {
   ORIGIN_OPEN = open;
   remember(KEEP.originOpen, open ? "open" : "closed");
-  document.querySelectorAll("[data-origin-toggle]").forEach((btn) => {
+  const folds = [...document.querySelectorAll("[data-origin-toggle]")].map((btn) => {
     btn.setAttribute("aria-expanded", String(open));
-    const fold = $(btn.getAttribute("aria-controls"));
-    if (fold) fold.hidden = !open;
+    return $(btn.getAttribute("aria-controls"));
   });
+  slideFolds(folds, open);
 }
 
 // A depth for a label: whole feet, metres to one decimal below ten.
@@ -3586,11 +3653,11 @@ function calcToggle(id) {
 function setCalcOpen(open) {
   CALC_OPEN = open;
   remember(KEEP.calc, open ? "open" : "closed");
-  document.querySelectorAll("[data-calc-toggle]").forEach((btn) => {
+  const folds = [...document.querySelectorAll("[data-calc-toggle]")].map((btn) => {
     btn.setAttribute("aria-expanded", String(open));
-    const fold = $(btn.getAttribute("aria-controls"));
-    if (fold) fold.hidden = !open;
+    return $(btn.getAttribute("aria-controls"));
   });
+  slideFolds(folds, open);
   if (WIDE()) alignCols();
 }
 
@@ -4044,12 +4111,11 @@ function buoyToggle(id, open) {
 function setBuoyOpen(id, open) {
   BUOY_OPEN[id] = open;
   remember(KEEP.buoyOpen, Object.keys(BUOY_OPEN).filter((k) => BUOY_OPEN[k]).join(","));
-  document.querySelectorAll(`[data-buoy-toggle="${id}"]`).forEach((btn) => {
+  const folds = [...document.querySelectorAll(`[data-buoy-toggle="${id}"]`)].map((btn) => {
     btn.setAttribute("aria-expanded", String(open));
-    const fold = $(btn.getAttribute("aria-controls"));
-    if (fold) fold.hidden = !open;
+    return $(btn.getAttribute("aria-controls"));
   });
-  if (open) roseShown();
+  slideFolds(folds, open, roseShown);
 }
 
 // Joined pills, each after the first growing out of the one before it
@@ -4648,12 +4714,11 @@ function chartToggle(id) {
 function setChartOpen(open) {
   CHART_OPEN = open;
   remember(KEEP.chartOpen, open ? "open" : "closed");
-  document.querySelectorAll("[data-chart-toggle]").forEach((btn) => {
+  const folds = [...document.querySelectorAll("[data-chart-toggle]")].map((btn) => {
     btn.setAttribute("aria-expanded", String(open));
-    const fold = $(btn.getAttribute("aria-controls"));
-    if (fold) fold.hidden = !open;
+    return $(btn.getAttribute("aria-controls"));
   });
-  if (open) requestAnimationFrame(refitCharts);
+  slideFolds(folds, open, refitCharts);
 }
 // The hour the reader picked, by valid_utc, or null for the newest reading.
 // Shared by every break, so flipping tabs keeps the same hour under the line.
@@ -6958,12 +7023,11 @@ const CARD_CHART_OPEN = {wind: false, tide: false};
 function setCardChartOpen(id, open) {
   CARD_CHART_OPEN[id] = open;
   remember(id === "wind" ? KEEP.windChart : KEEP.tideChart, open ? "open" : "closed");
-  document.querySelectorAll(`[data-card-chart-toggle="${id}"]`).forEach((btn) => {
+  const folds = [...document.querySelectorAll(`[data-card-chart-toggle="${id}"]`)].map((btn) => {
     btn.setAttribute("aria-expanded", String(open));
-    const fold = $(btn.getAttribute("aria-controls"));
-    if (fold) fold.hidden = !open;
+    return $(btn.getAttribute("aria-controls"));
   });
-  if (open) requestAnimationFrame(refitCharts);
+  slideFolds(folds, open, refitCharts);
 }
 function cardChart(id) {
   const open = !!CARD_CHART_OPEN[id];
@@ -7820,7 +7884,7 @@ function toggleAlert(e) {
   const btn = row.querySelector("[data-alert-toggle]");
   if (btn) btn.setAttribute("aria-expanded", String(open));
   const head = row.nextElementSibling;
-  if (head && head.classList.contains("alert-head")) head.hidden = !open;
+  if (head && head.classList.contains("alert-head")) slideFolds([head], open);
 }
 
 // The banner: forecast.json's notes on the Forecast tab alone -- on LIVE a
