@@ -4085,6 +4085,13 @@ class TestTheBriefing:
         assert "(T.nights || []).map(" in chart
         assert "y=\"${(high ? y - 9 : y + 17).toFixed(1)}\"" in chart
         assert '<text class="time${gone ? " gone" : ""}"' in chart
+        # The turns' times packed as the sun's are, never each centred alone
+        # (2026-11-01: close turns printed over each other), with a tick
+        # under every turn at the shading's foot.
+        assert "briefRow(rows.map((r) => ({r, x: X(Date.parse(r.at) / 1000), w: 6.6 * r.time.length})), W)" in chart
+        assert 'x="${timeX.get(r).toFixed(1)}" y="${timeBase}"' in chart
+        assert "inside(x, 6.6 * r.time.length)" not in chart
+        assert '<path class="tick${gone ? " gone" : ""}" d="M${x.toFixed(1)},${shadeBot}v${BRIEF_TICK}"/>' in chart and "const BRIEF_TICK = 4;" in SOURCE
         assert "p[0] - curve[i - 1][0] > 3600" in chart                  # a missing stamp is a gap
         assert '${briefTideBlock(parts.tides, B)}' in self.BLOCK
         assert 'data-brief-row="tide" data-brief-tide' in self.BLOCK
