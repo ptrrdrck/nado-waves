@@ -521,6 +521,9 @@ def test_the_record_keeps_the_arrows_not_the_sparklines():
     assert kept["conditions"]["trends"] == {"air": {"dir": "up"}, "rain": {}}
     assert kept["swell"] == {"trend": "building", "window_h": 24}
     assert kept["tide"] == {"day": "2026-10-23", "turns": []}
+    wq = bf.unsparked({"water_quality": {"breaks": [{"sample": {"date": "d", "spark": [[1, 2.0]], "window_h": 720}},
+                                                    {"sample": None}]}})
+    assert wq["water_quality"]["breaks"] == [{"sample": {"date": "d"}}, {"sample": None}]
     assert line["conditions"]["trends"]["air"]["spark"]                  # the page's copy is untouched
 
 
@@ -736,3 +739,20 @@ def test_the_sample_carries_its_lead_its_change_and_when_it_was_first_read(tmp_p
     assert s["results"][s["lead"]]["method"] == "ddPCR"
     assert s["results"][s["lead"]]["first_seen_utc"] == "2026-10-28T20:32:00Z"
     assert s["change"] == "steady" and s["previous"]["result"] == "2000"
+
+
+def test_the_sample_sparkline_is_its_lead_results_samples_over_30_days(tmp_path):
+    """Owner's request, 2026-11-01: every sample of the newest one's
+    parameter and method over WQ_SPARK_D days to its date, at its Pacific
+    time; never another method's, never a day it did not have."""
+    rows = [(str(100 + d), f"2026-10-{d:02d}", "Enterococcus", "ddPCR", "=", str(1000 + d), "Copies/100ml",
+             f"2026-10-{d:02d}T20:00:00Z") for d in (1, 2, 3, 4, 5, 9, 28)]
+    rows += [("90", "2026-09-29", "Enterococcus", "ddPCR", "=", "5", "Copies/100ml", "2026-09-29T20:00:00Z"),
+             ("200", "2026-10-28", "Enterococcus", "Enterolert", "<", "10", "MPN/100ml", "2026-10-28T20:00:00Z"),
+             ("201", "2026-10-29", "Enterococcus", "ddPCR", "<", "195", "Copies/100ml", "2026-10-29T20:00:00Z")]
+    _beach_water(tmp_path, samples={"EH-060": rows})
+    s = bf.water_quality_story(tmp_path, _at("2026-10-30T02:00:00Z"))["breaks"][0]["sample"]
+    assert bf.WQ_SPARK_D == 30 and s["window_h"] == 720
+    assert [v for _, v in s["spark"]] == [1001, 1002, 1003, 1004, 1005, 1009, 1028, 195]   # 29 Sep is day 31 to 29 Oct
+    first = datetime.fromtimestamp(s["spark"][0][0], bf.LOCAL_TZ)
+    assert (first.date().isoformat(), first.strftime("%H:%M")) == ("2026-10-01", "06:28")

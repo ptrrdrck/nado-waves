@@ -4053,9 +4053,27 @@ class TestTheBriefing:
     def test_a_sparkline_never_draws_across_a_missing_hour(self):
         spark = self.BLOCK[self.BLOCK.index("function briefSpark"):]
         spark = spark[:spark.index("\n}\n")]
-        assert "if (i && p[0] - points[i - 1][0] > 1.5 * 3600) runs.push([]);" in spark
+        assert "{gapH = 1.5, log = false, dots = false} = {}" in spark      # an hour, unless a row says
+        assert "if (i && p[0] - points[i - 1][0] > gapH * 3600) runs.push([]);" in spark
         bars = self.BLOCK[self.BLOCK.index("function briefBars"):]
         assert 'if (d[1] == null) return "";' in bars[:bars.index("\n}\n")]
+
+    def test_each_water_quality_row_has_its_samples_sparkline_beside_the_sample(self):
+        """Owner's request, 2026-11-01: the station's samples over 30 days, in
+        the conditions' sparkline column on the row's first line, the sample
+        across it on the second; on a log scale, joined only on consecutive
+        days, a sample between two skipped days a dot."""
+        water = self.BLOCK[self.BLOCK.index("function briefWater(B)"):]
+        water = water[:water.index("\n}\n")]
+        assert "briefSpark(s.spark, s.window_h || 720, {gapH: 36, log: true, dots: true})" in water
+        row = self.BLOCK[self.BLOCK.index("function briefWaterRow"):]
+        assert '<span class="brief-trend wq-trend">${r.trend}<span class="brief-window">${r.window}</span></span>' \
+            in row[:row.index("\n}\n")]
+        assert ".brief-row.brief-wq .wq-trend{grid-column:4;grid-row:1}" in SOURCE
+        assert ".brief-row.brief-wq .wq-sample{grid-column:3 / 5;grid-row:2}" in SOURCE
+        spark = self.BLOCK[self.BLOCK.index("function briefSpark"):]
+        spark = spark[:spark.index("\n}\n")]
+        assert "Math.log10(Math.max(v, 1))" in spark and 'class="lone"' in spark
 
     def test_the_tides_are_the_days_curve_whose_words_are_unchanged(self):
         """Owner's choices, 2026-10-23: the day's curve, strictly today, each

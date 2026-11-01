@@ -522,6 +522,10 @@ def unsparked(line: dict) -> dict:
             t.pop("spark", None)
             t.pop("days", None)
     (line.get("swell") or {}).pop("spark", None)
+    for b in (line.get("water_quality") or {}).get("breaks") or []:
+        if isinstance(b.get("sample"), dict):
+            b["sample"].pop("spark", None)
+            b["sample"].pop("window_h", None)
     for key in ("curve", "nights"):
         (line.get("tide") or {}).pop(key, None)
     return line
@@ -912,6 +916,13 @@ WQ_EVENT_STATUS = {"Advisory": "Advisory", "Closure": "Closed", "Warning": "Warn
 #: the test's own repeatability is NOT measured here.
 WQ_STEADY_RATIO = 1.5
 
+#: The sample sparkline's window (owner's request, 2026-11-01): 30 days to
+#: the newest sample. Samples are daily at best and the county skips days
+#: (a rain advisory's 72 h, a failed sample): the 30 days to 31 Oct 2026
+#: held 13 at North and Center and 23 at South, the 14 days to then 9, 9
+#: and 11.
+WQ_SPARK_D = 30
+
 
 def wq_lead(results: list[dict]) -> int:
     """The result a row shows: Enterococcus by ddPCR, else any Enterococcus,
@@ -953,6 +964,28 @@ def wq_change(new: dict, old: dict | None) -> str | None:
     if ratio <= 1 / WQ_STEADY_RATIO:
         return "down"
     return "steady"
+
+
+def wq_spark(samples: list[dict], lead: dict, day: str) -> list[list]:
+    """The sparkline's points: every sample of the lead result's parameter
+    and method over the WQ_SPARK_D days to `day`, as [epoch s, result] at
+    its Pacific date and time, one a sample id. A "<" result is drawn at its
+    limit, as the row states it; a day with no sample has no point."""
+
+    first = (date.fromisoformat(day) - timedelta(days=WQ_SPARK_D - 1)).isoformat()
+    pts = {}
+    for r in samples:
+        if ((r["parameter"], r["method"]) != (lead["parameter"], lead["method"])
+                or not first <= r["sample_date"] <= day):
+            continue
+        try:
+            v = float(r["result"])
+        except ValueError:
+            continue
+        t = datetime.combine(date.fromisoformat(r["sample_date"]),
+                             time.fromisoformat(r["sample_time"] or "00:00:00"), tzinfo=LOCAL_TZ)
+        pts[r["sample_id"]] = [int(t.timestamp()), v]
+    return sorted(pts.values())
 
 
 def _csv(path: Path) -> list[dict]:
@@ -1011,6 +1044,7 @@ def water_quality_story(data_dir: Path, at: datetime) -> dict | None:
             before = max(earlier, key=lambda r: (r["sample_date"], r["sample_time"])) if earlier else None
             sample = {"date": day, "time": min(r["sample_time"] for r in todays), "lead": lead,
                       "change": wq_change(todays[lead], before),
+                      "spark": wq_spark(samples, todays[lead], day), "window_h": WQ_SPARK_D * 24,
                       "previous": {k: before[k] for k in ("sample_date", "qualifier", "result")} if before else None,
                       "results": [{k: r[k] for k in ("parameter", "method", "qualifier", "result", "units",
                                                      "first_seen_utc")} for r in todays]}

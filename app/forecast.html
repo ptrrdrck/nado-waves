@@ -261,6 +261,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-spark{display:block;width:64px;height:18px;overflow:visible;fill:none;stroke:var(--faint);
              stroke-width:1.2;stroke-linejoin:round}
 .brief-spark circle{fill:var(--ink);stroke:none}
+.brief-spark circle.lone{fill:var(--faint)}
 @media (max-width:360px){.brief-spark{width:44px}}
 .brief-bars rect{fill:var(--faint);stroke:none}
 .brief-bars rect.base{fill:var(--line)}
@@ -270,13 +271,18 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-when{font-size:12px;color:var(--faint);padding-left:83px;margin-top:-3px}
 /* The county's water quality (owner's request, 2026-10-30): the ledger's
    rows on two grid lines, the status on the first and the newest sample on
-   the second, its arrowhead in the conditions' arrow column beside it. */
+   the second, its arrowhead in the conditions' arrow column beside it,
+   and the samples' 30 days a sparkline in the conditions' sparkline column
+   on the FIRST line, as every ledger row's is (owner's request, 2026-11-01):
+   beside the sample it took the line's width and pushed the date onto a
+   third line at 390 px, and ran into the result at 320. */
 .brief-row.brief-wq + .brief-row.brief-wq,
 .brief-row.brief-wq + .brief-when + .brief-row.brief-wq{margin-top:4px}
 .brief-row.brief-wq .brief-key{grid-column:1;grid-row:1}
 .brief-row.brief-wq .wq-status{grid-column:3;grid-row:1}
+.brief-row.brief-wq .wq-trend{grid-column:4;grid-row:1}
 .brief-row.brief-wq .wq-dir{grid-column:2;grid-row:2}
-.brief-row.brief-wq .wq-sample{grid-column:3;grid-row:2}
+.brief-row.brief-wq .wq-sample{grid-column:3 / 5;grid-row:2}
 /* The day's tide as a curve (owner's choice, 2026-10-23): greys and ink,
    the hours gone grey, nights shaded as the Tide card's charts are. */
 .brief-tide{display:block;width:100%;height:151px;padding:0;margin:0;border:0;background:none;font:inherit;
@@ -2204,20 +2210,25 @@ const briefArrow = (dir) => (dir ? `<svg class="brief-arrow" viewBox="0 0 9 9" a
 // "14 d", "3 d", "24 h": a sparkline's window.
 const briefWindow = (h) => (h >= 48 ? `${Math.round(h / 24)} d` : `${h} h`);
 // A sparkline: the window ending at its newest reading, a faint line broken
-// wherever an hour is missing (never drawn across a gap), the newest an ink dot.
-function briefSpark(points, windowH) {
+// wherever a reading is missing (never drawn across a gap: an hour, or
+// `gapH`), the newest an ink dot. `log` scales the values by their
+// logarithm, for a quantity that spans decades; `dots` marks a reading the
+// line cannot join, between two gaps, with a small faint dot.
+function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false} = {}) {
   if (!points || points.length < 2) return "";
   const W = 64, H = 18, t1 = points[points.length - 1][0], t0 = t1 - windowH * 3600;
-  const ys = points.map((p) => p[1]), lo = Math.min(...ys), hi = Math.max(...ys);
-  const X = (t) => 1 + (t - t0) / (t1 - t0) * (W - 4), Y = (v) => H - 2 - (hi > lo ? (v - lo) / (hi - lo) : 0.5) * (H - 4);
+  const val = log ? (v) => Math.log10(Math.max(v, 1)) : (v) => v;
+  const ys = points.map((p) => val(p[1])), lo = Math.min(...ys), hi = Math.max(...ys);
+  const X = (t) => 1 + (t - t0) / (t1 - t0) * (W - 4), Y = (v) => H - 2 - (hi > lo ? (val(v) - lo) / (hi - lo) : 0.5) * (H - 4);
   const runs = [[]];
   points.forEach((p, i) => {
-    if (i && p[0] - points[i - 1][0] > 1.5 * 3600) runs.push([]);
-    runs[runs.length - 1].push(`${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`);
+    if (i && p[0] - points[i - 1][0] > gapH * 3600) runs.push([]);
+    runs[runs.length - 1].push([X(p[0]).toFixed(1), Y(p[1]).toFixed(1)]);
   });
   const last = points[points.length - 1];
   return `<svg class="brief-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
-    + runs.map((r) => (r.length > 1 ? `<polyline points="${r.join(" ")}"/>` : "")).join("")
+    + runs.map((r) => (r.length > 1 ? `<polyline points="${r.map((q) => q.join(",")).join(" ")}"/>`
+      : dots ? `<circle class="lone" cx="${r[0][0]}" cy="${r[0][1]}" r="1"/>` : "")).join("")
     + `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="2.2"/></svg>`;
 }
 // Rain's week: a bar a Pacific day, today's in ink; a day with no reports
@@ -2344,7 +2355,13 @@ function briefWater(B) {
       `${esc(b.name)} (${esc(b.station)})`,
       lead ? `sampled ${wqDay(s.date)}, ${wqClock(s.time)}: ${esc(lead.parameter)} (${esc(lead.method)})` : null,
       "County of San Diego DEHQ"];
+    // The station's samples of the same result over 30 days (owner's
+    // request, 2026-11-01; `briefing.wq_spark`), on a log scale -- they span
+    // 195 to 835,168 copies -- joined only on consecutive days, a sample
+    // between two skipped days a dot.
+    const spark = lead ? briefSpark(s.spark, s.window_h || 720, {gapH: 36, log: true, dots: true}) : "";
     return {key: `wq-${b.id}`, label: SHORT[b.id] || b.id, status, sample, dir: lead ? s.change || null : null,
+            trend: spark, window: spark ? briefWindow(s.window_h || 720) : "",
             when: when.filter(Boolean).join(" · ")};
   });
 }
@@ -2355,6 +2372,7 @@ function briefWaterRow(r, B) {
   return `<button type="button" class="brief-row brief-wq" data-brief-row="${r.key}" aria-expanded="${open}">`
     + `<span class="brief-key">${r.label}</span><span class="brief-val wq-status">${r.status}</span>`
     + `<span class="brief-dir wq-dir">${briefArrow(r.dir)}</span><span class="brief-val wq-sample">${r.sample}</span>`
+    + `<span class="brief-trend wq-trend">${r.trend}<span class="brief-window">${r.window}</span></span>`
     + `</button><div class="brief-when"${open ? "" : " hidden"}>${briefRowWhen(r, B)}</div>`;
 }
 // A row's words, for the record and docs/briefing_wording.md: the status,
