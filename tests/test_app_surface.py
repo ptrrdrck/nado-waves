@@ -4609,6 +4609,11 @@ class TestTheWeekStrip:
         assert "margin-left" not in rule
         assert ".week-back::before{content:\"\";flex:none;width:calc(50cqw + var(--wk-i) * var(--wk-col) - 14px)}" in css
         assert "container-type:inline-size" in css[css.index(".week-view{"):][:80]
+        # The button's row is as wide as the days by arithmetic, never by a
+        # max-content Safari can size from the days' text alone.
+        assert 'data-week-scroll style="--wk-n:${days.length}"' in card
+        assert "grid-template-columns:calc(100cqw + (var(--wk-n) - 1) * var(--wk-col))" in css
+        assert "grid-template-columns:max-content" not in css
 
     def test_the_footer_keeps_a_phones_width_wider(self):
         css = SOURCE[:SOURCE.index("</style>")]

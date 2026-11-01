@@ -1187,8 +1187,11 @@ forecaster actually verifies against, Surfline included.
    the days, lifted into the label's line by `--wk-lift`), sticky at the
    strip's edges, so the browser moves it with the days in the same frame
    (owner's report, 2026-11-01: placed by script after each scroll it
-   trailed them; measured since, 0 px apart on every frame); wider, in its
-   day's column. A tap restores the UNPICKED state (`CHOSEN = null`, so
+   trailed them; measured since, 0 px apart on every frame), that row as
+   wide as the days by arithmetic (`--wk-n`), never max-content, which
+   Safari can size from the days' text alone and so end the row, and the
+   button with it, by the third day (owner's report, same day); wider, in
+   its day's column. A tap restores the UNPICKED state (`CHOSEN = null`, so
    it moves on as hours pass) and slides the day back under the outline;
    nothing is picked during that slide (`WEEK_SLIDING`: restoring the
    strip's old position fires a scroll end mid-slide).

@@ -1114,7 +1114,13 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
   overscroll-behavior-x:contain;scrollbar-width:none}
 /* The carousel's scroll area reaches up into the label's line (--wk-lift)
    for the back button's row, so the days sit where they would without it. */
-.week-view > .week-days{display:grid;grid-template-columns:max-content;margin-top:calc(-1 * var(--wk-lift))}
+/* Its one column the days' own width, worked out rather than measured
+   (owner's report, 2026-11-01: on a phone the button scrolled away past the
+   third day). As max-content, Safari can size it from the days' text and
+   not their flex basis, narrower than the row, and the button's sticky row
+   ended with it. Two pads of 50cqw less half a day, and the days. */
+.week-view > .week-days{display:grid;margin-top:calc(-1 * var(--wk-lift));
+  grid-template-columns:calc(100cqw + (var(--wk-n) - 1) * var(--wk-col))}
 /* The button is placed by a spacer before it, never its own margin: sticky
    cannot carry an element's margin out of its container, so a margin held
    it from the strip's right edge when its day lay off to the right. */
@@ -7290,7 +7296,8 @@ function weekCard(step) {
   // days in the same frame; sticky, it waits at the strip's edge when its
   // day is out of view. Wider, it sits in its day's column.
   const body = carousel
-    ? `<div class="week-view"><div class="week-days" data-week-scroll><div class="week-back" style="--wk-i:${backAt}">${back}</div>`
+    ? `<div class="week-view"><div class="week-days" data-week-scroll style="--wk-n:${days.length}">`
+      + `<div class="week-back" style="--wk-i:${backAt}">${back}</div>`
       + `<div class="week-row"><span class="week-pad"></span>${cols}<span class="week-pad"></span></div></div>`
       + `<div class="week-frame" aria-hidden="true"></div></div>`
     : `<div class="week-days">${cols}</div>`;
