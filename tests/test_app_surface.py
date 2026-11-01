@@ -4570,12 +4570,21 @@ class TestTheWeekStrip:
         # A finger on the strip takes over from the slide.
         assert "if (down) { WEEK_PENDING = null; WEEK_SLIDING = false; }" in SOURCE
 
-    def test_the_button_rides_over_the_opening_day_inside_the_strip(self):
-        at = self.fn("weekTodayAt")
-        assert "STEPS[firstUpcoming()]" in at
-        assert "Math.max(box.left, Math.min(box.right - btn.offsetWidth," in at
-        fade = self.fn("weekFade")
-        assert "weekTodayAt(card)" in fade        # it moves with the days
+    def test_the_button_rides_with_the_opening_day_in_the_strips_own_scroll(self):
+        """Owner's report, 2026-11-01: placed by script after each scroll it
+        trailed the day. On a phone it is in the strip's scroll area, so the
+        browser moves it with the days, and sticky at the strip's edges;
+        wider, it sits in its day's column. No script places it."""
+        card = self.fn("weekCard")
+        assert '<div class="week-back">${back}</div>' in card
+        assert '${!carousel && j === backAt ? back : ""}' in card
+        assert "function weekTodayAt" not in SOURCE
+        css = SOURCE[:SOURCE.index("</style>")]
+        rule = css[css.index(".week-back > .week-today{"):]
+        rule = rule[:rule.index("}")]
+        assert "position:sticky" in rule and "left:4px" in rule and "right:4px" in rule
+        assert "calc(50cqw + var(--wk-i) * var(--wk-col) - 14px)" in rule
+        assert "container-type:inline-size" in css[css.index(".week-view{"):][:80]
 
     def test_the_footer_keeps_a_phones_width_wider(self):
         css = SOURCE[:SOURCE.index("</style>")]

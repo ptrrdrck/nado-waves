@@ -1091,7 +1091,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    On a phone the days are a carousel that snaps a day at a time under a
    fixed outline, and the day that settles there is picked; wider, every
    day sits in a row and the outline moves. */
-:root{--wk-col:88px;--wk-date:22px;--wk-cell:42px;--wk-gap:4px}
+:root{--wk-col:88px;--wk-date:22px;--wk-cell:42px;--wk-gap:4px;--wk-lift:28px}
 .cond.week{gap:6px}
 .week-strip{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px}
 .week-names,.week-day{display:grid;grid-template-rows:var(--wk-date) repeat(3,var(--wk-cell));row-gap:var(--wk-gap)}
@@ -1109,13 +1109,18 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 .week-day.past .week-cell,.week-day.past .week-cell .unit,.week-day.past .week-date{color:var(--faint)}
 .week-date:focus-visible,.week-cell:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* The carousel: the outline stays put and the days slide under it. */
-.week-view{position:relative;min-width:0}
+.week-view{position:relative;min-width:0;container-type:inline-size}
 .week-days{position:relative;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
   overscroll-behavior-x:contain;scrollbar-width:none}
+/* The carousel's scroll area reaches up into the label's line (--wk-lift)
+   for the back button's row, so the days sit where they would without it. */
+.week-view > .week-days{display:grid;grid-template-columns:max-content;margin-top:calc(-1 * var(--wk-lift))}
+.week-back{height:var(--wk-lift)}
 .week-days::-webkit-scrollbar{display:none}
-.week-days > .week-day{flex:0 0 var(--wk-col);padding:0 3px;scroll-snap-align:center;scroll-snap-stop:always;
+.week-row{display:flex}
+.week-row > .week-day{flex:0 0 var(--wk-col);padding:0 3px;scroll-snap-align:center;scroll-snap-stop:always;
   transform-origin:center 60%}
-.week-days > .week-pad{flex:0 0 calc(50% - var(--wk-col) / 2)}
+.week-row > .week-pad{flex:0 0 calc(50cqw - var(--wk-col) / 2)}
 .week-frame{position:absolute;left:calc(50% - var(--wk-col) / 2);width:var(--wk-col);pointer-events:none;
   top:calc(var(--wk-date) + var(--wk-gap) - 3px);height:calc(3 * var(--wk-cell) + 2 * var(--wk-gap) + 6px);
   border:1.5px solid var(--ink);border-radius:9px}
@@ -1128,16 +1133,21 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 :root[data-layout="tablet"] .conditions > .week{grid-column:1/-1}
 /* Back to the opening hour (owner's request and choice, 2026-10-31: the
    clock turning back, drawn light): in the Week label's row over the
-   opening hour's day, there whenever the cards are on another hour. Placed
-   by `weekTodayAt`; on a phone it rides with that day and stops at the
-   strip's edge. The rose's play button's chip. */
-.cond.week{position:relative}
-.week-today{position:absolute;left:0;top:0;z-index:1;display:grid;place-items:center;width:28px;height:22px;
+   opening hour's day, there whenever the cards are on another hour. On a
+   phone it sits in the strip's own scroll area, so it moves with the days
+   in the same frame (owner's report, 2026-11-01: placed by script it
+   trailed them), and is sticky at the strip's edges; wider, it sits in its
+   day's column. The rose's play button's chip. */
+.week-today{position:absolute;z-index:1;display:grid;place-items:center;width:28px;height:22px;
   padding:0;border:0;border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;
   -webkit-tap-highlight-color:transparent}
 .week-today svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;
   stroke-linejoin:round}
 .week-today:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* Centred on the label's line: its 18.75 px line box, the card's 6 px gap. */
+.week-back > .week-today{position:sticky;left:4px;right:4px;
+  margin:calc(var(--wk-lift) - 26.375px) 0 0 calc(50cqw + var(--wk-i) * var(--wk-col) - 14px)}
+.week-strip.row .week-day > .week-today{top:-26.375px;left:calc(50% - 14px)}
 </style>
 
 <div class="wrap">
@@ -7226,7 +7236,17 @@ function weekCard(step) {
   const on = coastDay(Date.parse(step.valid_utc));
   const carousel = LAYOUT === "phone";
   const now = Date.now();
-  const cols = days.map((d) => {
+  // Back to the hour the tab opens on, whenever the cards are on another,
+  // over that hour's day (or the next day the strip has).
+  const opening = firstUpcoming();
+  const openKey = coastDay(Date.parse(STEPS[opening].valid_utc));
+  const openAt = days.findIndex((d) => d.key >= openKey);
+  const backAt = openAt >= 0 ? openAt : days.length - 1;
+  const back = `<button type="button" class="week-today" data-week-today style="--wk-i:${backAt}"`
+    + ` aria-label="Back to ${when(STEPS[opening].valid_utc)}"${CURSOR === opening ? " hidden" : ""}>`
+    + `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.1 5.6A5.4 5.4 0 1 1 2.6 8.6"/>`
+    + `<path d="M2.7 3.2v2.6h2.6"/><path d="M8 5.8V8l1.5 1"/></svg></button>`;
+  const cols = days.map((d, j) => {
     const name = new Date(d.ms).toLocaleDateString("en-US", {timeZone: COAST_TZ, weekday: "long", month: "short", day: "numeric"});
     const cells = ORDER.map((id) => {
       const ft = d.hours.map((h) => h.hs[id]).filter((m) => m != null).map((m) => m * FT_PER_M);
@@ -7240,22 +7260,22 @@ function weekCard(step) {
     const past = d.hours.every((h) => h.ms < now);
     return `<div class="week-day${d.key === on ? " on" : ""}${past ? " past" : ""}" data-week-day="${d.key}"`
       + ` role="group" aria-label="${name}"><button type="button" class="week-date" data-week-pick="${d.key}"`
-      + ` aria-label="${name}: its biggest hour">${weekLabel(d.ms)}</button>${cells}</div>`;
+      + ` aria-label="${name}: its biggest hour">${weekLabel(d.ms)}</button>${cells}`
+      + `${!carousel && j === backAt ? back : ""}</div>`;
   }).join("");
   const names = `<div class="week-names" aria-hidden="true"><span></span>`
     + ORDER.map((id) => `<span>${SHORT[id]}</span>`).join("") + `</div>`;
+  // On a phone the button rides in the strip's own scroll area, a row above
+  // the days lifted into the label's line, so the browser moves it with the
+  // days in the same frame; sticky, it waits at the strip's edge when its
+  // day is out of view. Wider, it sits in its day's column.
   const body = carousel
-    ? `<div class="week-view"><div class="week-days" data-week-scroll><span class="week-pad"></span>${cols}`
-      + `<span class="week-pad"></span></div><div class="week-frame" aria-hidden="true"></div></div>`
+    ? `<div class="week-view"><div class="week-days" data-week-scroll><div class="week-back">${back}</div>`
+      + `<div class="week-row"><span class="week-pad"></span>${cols}<span class="week-pad"></span></div></div>`
+      + `<div class="week-frame" aria-hidden="true"></div></div>`
     : `<div class="week-days">${cols}</div>`;
-  // Back to the hour the tab opens on, whenever the cards are on another.
-  const opening = firstUpcoming();
-  const back = `<button type="button" class="week-today" data-week-today`
-    + ` aria-label="Back to ${when(STEPS[opening].valid_utc)}"${CURSOR === opening ? " hidden" : ""}>`
-    + `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.1 5.6A5.4 5.4 0 1 1 2.6 8.6"/>`
-    + `<path d="M2.7 3.2v2.6h2.6"/><path d="M8 5.8V8l1.5 1"/></svg></button>`;
   return `<div class="cond week" data-card="week">
-    <span class="lbl">Week</span>${back}
+    <span class="lbl">Week</span>
     <div class="week-strip${carousel ? "" : " row"}">${names}${body}</div>
   </div>`;
 }
@@ -7275,8 +7295,6 @@ function weekUnder(sc) {
 }
 // The days off the outline sit behind it: smaller and fainter the further.
 function weekFade(sc) {
-  const card = sc.closest(".cond.week");
-  if (card) weekTodayAt(card);
   sc.querySelectorAll(".week-day").forEach((d) => {
     const k = Math.min(1, Math.abs(weekCenterOf(d) - weekMid(sc)) / d.offsetWidth);
     d.style.opacity = String(1 - 0.5 * k);
@@ -7306,22 +7324,6 @@ function weekPlace() {
     weekFade(sc);
   }
   WEEK_FROM = null;
-  if (card) weekTodayAt(card);
-}
-// The button's place: over the opening hour's day, in the label's row,
-// kept inside the strip when that day is out of view.
-function weekTodayAt(card) {
-  const btn = card.querySelector("[data-week-today]");
-  if (!btn || btn.hidden) return;
-  const step = STEPS[firstUpcoming()];
-  const col = step && card.querySelector(`.week-day[data-week-day="${coastDay(Date.parse(step.valid_utc))}"]`);
-  const box = (card.querySelector(".week-view") || card.querySelector(".week-days")).getBoundingClientRect();
-  const c = card.getBoundingClientRect(), lbl = card.querySelector(".lbl").getBoundingClientRect();
-  const r = col && col.getBoundingClientRect();
-  const x = Math.max(box.left, Math.min(box.right - btn.offsetWidth,
-    r ? r.left + r.width / 2 - btn.offsetWidth / 2 : box.left));
-  btn.style.left = `${(x - c.left - card.clientLeft).toFixed(1)}px`;
-  btn.style.top = `${(lbl.top + lbl.height / 2 - btn.offsetHeight / 2 - c.top - card.clientTop).toFixed(1)}px`;
 }
 // Back to the hour the tab opens on: no longer the reader's pick, so it
 // moves on as hours pass, as an untouched page does.
@@ -7396,11 +7398,6 @@ function wireWeek() {
   strip.addEventListener("touchstart", hold(true), {capture: true, passive: true});
   strip.addEventListener("touchend", hold(false), {capture: true, passive: true});
   strip.addEventListener("touchcancel", hold(false), {capture: true, passive: true});
-  // A row of days changes width with the window; the button follows its day.
-  window.addEventListener("resize", () => requestAnimationFrame(() => {
-    const card = document.querySelector("#conditions .cond.week");
-    if (card) weekTodayAt(card);
-  }));
 }
 
 // What the measured wind means at each break, on the Wind card, one line per

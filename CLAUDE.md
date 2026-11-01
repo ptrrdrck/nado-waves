@@ -1177,8 +1177,12 @@ forecaster actually verifies against, Surfline included.
    drawn at a 1.4 stroke; `weekBack`): a chip in the Week label's row over
    the opening hour's day (`firstUpcoming`), there whenever the cards are
    on any other hour however the reader got there, on every layout; on a
-   phone it rides with that day and waits at the strip's edge
-   (`weekTodayAt`). A tap restores the UNPICKED state (`CHOSEN = null`, so
+   phone it rides with that day IN THE STRIP'S OWN SCROLL AREA (a row above
+   the days, lifted into the label's line by `--wk-lift`), sticky at the
+   strip's edges, so the browser moves it with the days in the same frame
+   (owner's report, 2026-11-01: placed by script after each scroll it
+   trailed them; measured since, 0 px apart on every frame); wider, in its
+   day's column. A tap restores the UNPICKED state (`CHOSEN = null`, so
    it moves on as hours pass) and slides the day back under the outline;
    nothing is picked during that slide (`WEEK_SLIDING`: restoring the
    strip's old position fires a scroll end mid-slide).
