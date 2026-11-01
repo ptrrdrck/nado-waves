@@ -714,7 +714,7 @@ On the Forecast tab, the arrows step through the hours three at a time, and tapp
 
 ### [time-week] The week strip
 
-Above the Swell card on the Forecast tab, the **Week** card gives every day the run covers a cell for each break: the range of its breaking heights over that day's daylight hours, sunrise to sunset at the center break. The range is floored and ceiled to whole feet, at least a foot apart, as the [Briefing's](#briefing) headline range is. Days already gone are grey, and a break with no daylight figure that day shows a dash.
+Above the Swell card on the Forecast tab, the **Week** card gives every day the run covers a cell for each break: the range of its breaking heights over that day's daylight hours, sunrise to sunset at the center break. The range is floored and ceiled to whole feet, at least a foot apart, as the [Briefing's](#briefing) headline range is. Days already gone are grey, and a break with no daylight figure that day shows a dash. The tab reaches 48 hours back, which usually starts part-way through a day; that day keeps the range the page showed for it, from the forecasts that were on screen for its earlier hours, though those hours are no longer offered. If none of its daylight hours is left to offer, picking it shows its first offered hour.
 
 The outlined day is the one the cards below are showing. Picking a day shows the biggest daylight hour at whichever break is biggest that day; tapping a cell shows the biggest daylight hour at that cell's break. Either is an hour the picker above offers, so the arrows carry on from it, and the strip follows the picker the other way.
 

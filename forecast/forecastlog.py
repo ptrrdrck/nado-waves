@@ -36,6 +36,7 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from collector.common import DEFAULT_DATA_DIR, ISO
 
@@ -338,6 +339,35 @@ def past_hours(logged: list[dict], generated_utc: str, *,
             "breaks": {site: _entry(r) for site, r in shown.items() if site != BUOY},
         })
     return out
+
+
+#: Coronado's day, for the week strip's earliest one.
+LOCAL_TZ = ZoneInfo("America/Los_Angeles")
+
+
+def day_before(logged: list[dict], generated_utc: str, *,
+               hours: int = PAST_HOURS, step: int = HOUR_STEP) -> list[dict]:
+    """The earliest past hour's own day, before the `hours` window opens.
+
+    The week strip gives a day the range of its daylight breaking heights
+    (owner's request, 2026-11-01): the 48 h window starts part-way through a
+    day, often after its daylight, and the day kept losing the range the page
+    had shown for it. So for that day's hours from Coronado's midnight to the
+    window, what the page SHOWED for each, by `past_hours`' own rule: the
+    latest build generated at or before the hour. Each break's headline
+    alone; never offered as an hour, and nothing filled.
+    """
+
+    since = _parse(generated_utc) - timedelta(hours=hours)
+    start = since.astimezone(LOCAL_TZ).replace(hour=0, minute=0, second=0,
+                                               microsecond=0).astimezone(timezone.utc)
+    if start >= since:
+        return []
+    span = int((since - start).total_seconds() // 3600) + 1
+    return [{"valid_utc": e["valid_utc"],
+             "breaks": {site: {"hs_m": b.get("hs_m")} for site, b in e["breaks"].items()}}
+            for e in past_hours(logged, since.strftime(ISO), hours=span, step=step)
+            if _parse(e["valid_utc"]) >= start]
 
 
 #: How many earlier model runs the Forecast tab's Runs chart draws beside the

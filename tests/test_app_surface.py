@@ -4511,6 +4511,27 @@ class TestTheWeekStrip:
         assert best == 1                            # Center 0.9 at 8 AM; the earlier on a tie
         assert north == 2 and south == 3
 
+    def test_the_earliest_day_keeps_its_range_and_picks_its_first_hour(self):
+        """Owner's request, 2026-11-01: a day whose daylight has gone out of
+        the 48 h keeps the range the page showed (`day_before`), and a day
+        with no daylight hour left to offer picks its first offered hour."""
+        got = self._node(
+            "DATA = {sun: {days: {'2026-10-29': {sunrise_utc: '2026-10-29T14:07:00Z',"
+            " sunset_utc: '2026-10-30T01:04:00Z'}}},"
+            " day_before: [{valid_utc: '2026-10-29T15:00:00Z', breaks: {coronado_north: {hs_m: 0.9}}},"
+            " {valid_utc: '2026-10-29T21:00:00Z', breaks: {coronado_north: {hs_m: 1.2},"
+            " coronado_south: {hs_m: null}}},"
+            " {valid_utc: '2026-10-29T12:00:00Z', breaks: {coronado_north: {hs_m: 9}}}]};\n"   # dark
+            "STEPS = [{valid_utc: '2026-10-30T03:00:00Z', hs: {coronado_north: 0.5}},"   # 8 PM
+            " {valid_utc: '2026-10-30T06:00:00Z', hs: {coronado_north: 0.5}}];\n"
+            "const d = weekDays();\n"
+            "console.log(JSON.stringify([d.map((x) => x.key), d[0].hours.map((h) => [h.i, h.hs]),"
+            " weekBest(d[0]), weekBest(d[0], 'coronado_north')]));\n")
+        keys, hours, best, north = json.loads(got)
+        assert keys == ["2026-10-29"]
+        assert hours == [[None, {"coronado_north": 0.9}], [None, {"coronado_north": 1.2}]]
+        assert best == 0 and north == 0       # its first offered hour, 8 PM
+
     def test_a_day_without_its_sun_falls_back_to_six_to_six(self):
         got = self._node(
             "DATA = {sun: {days: {}}};\n"
@@ -4576,14 +4597,17 @@ class TestTheWeekStrip:
         browser moves it with the days, and sticky at the strip's edges;
         wider, it sits in its day's column. No script places it."""
         card = self.fn("weekCard")
-        assert '<div class="week-back">${back}</div>' in card
+        assert '<div class="week-back" style="--wk-i:${backAt}">${back}</div>' in card
         assert '${!carousel && j === backAt ? back : ""}' in card
         assert "function weekTodayAt" not in SOURCE
         css = SOURCE[:SOURCE.index("</style>")]
         rule = css[css.index(".week-back > .week-today{"):]
         rule = rule[:rule.index("}")]
         assert "position:sticky" in rule and "left:4px" in rule and "right:4px" in rule
-        assert "calc(50cqw + var(--wk-i) * var(--wk-col) - 14px)" in rule
+        # Placed by a spacer, never its own margin: sticky cannot carry a
+        # margin past its container, so the right edge could not hold it.
+        assert "margin-left" not in rule
+        assert ".week-back::before{content:\"\";flex:none;width:calc(50cqw + var(--wk-i) * var(--wk-col) - 14px)}" in css
         assert "container-type:inline-size" in css[css.index(".week-view{"):][:80]
 
     def test_the_footer_keeps_a_phones_width_wider(self):

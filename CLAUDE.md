@@ -1170,7 +1170,13 @@ forecaster actually verifies against, Surfline included.
    (`scroll-snap-stop: always`), the days off it smaller and fainter, the
    day that settles there picked -- never under a finger (`WEEK_TOUCH`); a
    tap on a day beside it slides it in, then picks. Wider, every day in a
-   row, the outline on the picked one. The phone's Forecast tab was checked
+   row, the outline on the picked one. **Every day the hour picker offers
+   has a column, with the range the page showed** (owner's call,
+   2026-11-01, after Thursday vanished: the 48 h started at its 8 PM, after
+   its daylight): forecast.json's `day_before` is the earliest day's hours
+   from its midnight to the window, by `past_hours`' own rule, each break's
+   headline only, counted in that day's range and never offered; a day
+   with no daylight hour left to offer picks its first offered hour. The phone's Forecast tab was checked
    to change by that card alone: every other element as master's, moved
    down by its height. **Back to the opening hour** (owner's request and
    choice, 2026-10-31: C2 of six mocked versions of a clock turning back,

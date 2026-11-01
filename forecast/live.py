@@ -281,6 +281,10 @@ class Forecast:
     #: hour, the latest build generated at or before it. Headline numbers only
     #: -- the log does not keep the detail an earlier card carried.
     past: list[dict] = field(default_factory=list)
+    #: The earliest past hour's day before the 48 h: what the page showed for
+    #: each of its hours, each break's headline only (`forecastlog.day_before`),
+    #: so the week strip keeps that day's range. Never offered as an hour.
+    day_before: list[dict] = field(default_factory=list)
     #: What each of the last few model runs said, from the same log, for the
     #: Forecast tab's Runs chart (`forecastlog.recent_runs`): one line per run,
     #: never merged into a range or a band.
@@ -617,6 +621,7 @@ def build(
     forecast.past = forecastlog.past_hours(
         logged, generated,
         shown=forecastlog.read_shown(forecastlog.shown_dir(data_dir), since=since))
+    forecast.day_before = forecastlog.day_before(logged, generated)
     # The earlier runs, never this one: a rebuild of the same cycle is this run.
     forecast.runs = forecastlog.recent_runs(logged, forecast.cycle_utc or generated)
     # The ensemble at the buoy, from the archive the workflow has just topped

@@ -131,6 +131,42 @@ class TestPastHours:
                                       stamp(GENERATED)) == []
 
 
+class TestDayBefore:
+    """The week strip's earliest day keeps its range (owner's request,
+    2026-11-01): the earliest past hour's day, from Coronado's midnight to
+    where the 48 h window opens, as the page showed each hour then."""
+
+    def rows(self, tmp_path):
+        build = forecast(datetime(2026, 10, 27, 18, tzinfo=timezone.utc),
+                         datetime(2026, 10, 27, 23, 40, tzinfo=timezone.utc), hours=96)
+        forecastlog.append(build, tmp_path)
+        return forecastlog.read(tmp_path)
+
+    def test_the_day_up_to_the_window_by_the_same_rule(self, tmp_path):
+        rows = self.rows(tmp_path)
+        # Built 30 Oct 6 PM PDT: the window opens 28 Oct 6 PM, so 28 Oct from
+        # its midnight (07Z) is what is kept.
+        generated = "2026-10-31T01:00:00Z"
+        before = forecastlog.day_before(rows, generated)
+        assert [e["valid_utc"] for e in before] == [
+            "2026-10-28T09:00:00Z", "2026-10-28T12:00:00Z", "2026-10-28T15:00:00Z",
+            "2026-10-28T18:00:00Z", "2026-10-28T21:00:00Z", "2026-10-29T00:00:00Z"]
+        # Each break's headline alone, as past_hours reads it.
+        past = forecastlog.past_hours(rows, "2026-10-29T03:00:00Z", hours=24)
+        same = {p["valid_utc"]: p for p in past}
+        for e in before:
+            assert set(e["breaks"]) == set(BREAKS)
+            for site, b in e["breaks"].items():
+                assert b == {"hs_m": same[e["valid_utc"]]["breaks"][site]["hs_m"]}
+        # Never an hour the window already offers.
+        window = {p["valid_utc"] for p in forecastlog.past_hours(rows, generated)}
+        assert window and not window & {e["valid_utc"] for e in before}
+
+    def test_a_window_opening_at_midnight_adds_nothing(self, tmp_path):
+        # 30 Oct 07Z is 30 Oct midnight PDT; 48 h later the window opens there.
+        assert forecastlog.day_before(self.rows(tmp_path), "2026-11-01T07:00:00Z") == []
+
+
 class TestTheShownLog:
     """Past cards are drawn from what their own build showed, in full."""
 

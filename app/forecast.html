@@ -1115,7 +1115,11 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 /* The carousel's scroll area reaches up into the label's line (--wk-lift)
    for the back button's row, so the days sit where they would without it. */
 .week-view > .week-days{display:grid;grid-template-columns:max-content;margin-top:calc(-1 * var(--wk-lift))}
-.week-back{height:var(--wk-lift)}
+/* The button is placed by a spacer before it, never its own margin: sticky
+   cannot carry an element's margin out of its container, so a margin held
+   it from the strip's right edge when its day lay off to the right. */
+.week-back{display:flex;align-items:flex-start;height:var(--wk-lift)}
+.week-back::before{content:"";flex:none;width:calc(50cqw + var(--wk-i) * var(--wk-col) - 14px)}
 .week-days::-webkit-scrollbar{display:none}
 .week-row{display:flex}
 .week-row > .week-day{flex:0 0 var(--wk-col);padding:0 3px;scroll-snap-align:center;scroll-snap-stop:always;
@@ -1145,8 +1149,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
   stroke-linejoin:round}
 .week-today:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* Centred on the label's line: its 18.75 px line box, the card's 6 px gap. */
-.week-back > .week-today{position:sticky;left:4px;right:4px;
-  margin:calc(var(--wk-lift) - 26.375px) 0 0 calc(50cqw + var(--wk-i) * var(--wk-col) - 14px)}
+.week-back > .week-today{position:sticky;left:4px;right:4px;flex:none;margin-top:calc(var(--wk-lift) - 26.375px)}
 .week-strip.row .week-day > .week-today{top:-26.375px;left:calc(50% - 14px)}
 </style>
 
@@ -7203,32 +7206,49 @@ function weekDays() {
   if (!DATA || !STEPS.length) return [];
   if (WEEK_MEMO && WEEK_MEMO.data === DATA && WEEK_MEMO.steps === STEPS) return WEEK_MEMO.days;
   const days = [];
+  const lit = (key, ms) => {
+    const sun = DATA.sun && DATA.sun.days && DATA.sun.days[key];
+    return sun ? ms >= Date.parse(sun.sunrise_utc) && ms <= Date.parse(sun.sunset_utc)
+      : coastHour(ms) >= 6 && coastHour(ms) <= 18;
+  };
   STEPS.forEach((step, i) => {
     const ms = Date.parse(step.valid_utc), key = coastDay(ms);
     let day = days[days.length - 1];
-    if (!day || day.key !== key) days.push(day = {key, ms, hours: []});
-    const sun = DATA.sun && DATA.sun.days && DATA.sun.days[key];
-    const lit = sun ? ms >= Date.parse(sun.sunrise_utc) && ms <= Date.parse(sun.sunset_utc)
-      : coastHour(ms) >= 6 && coastHour(ms) <= 18;
-    if (!lit) return;
+    if (!day || day.key !== key) days.push(day = {key, ms, first: i, hours: []});
+    if (!lit(key, ms)) return;
     const hs = {};
     for (const c of cardsForForecast(step)) if (c.hsWindow != null) hs[c.id] = c.hsWindow;
     if (Object.keys(hs).length) day.hours.push({i, ms, hs});
   });
+  // The earliest day's hours from before the 48 h, as the page showed them
+  // (`day_before`, owner's request, 2026-11-01): they keep the range that
+  // day had, and are never picked -- no hour the picker does not offer is.
+  for (const e of DATA.day_before || []) {
+    const ms = Date.parse(e.valid_utc), key = coastDay(ms);
+    const day = days.find((d) => d.key === key);
+    if (!day || !lit(key, ms)) continue;
+    const hs = {};
+    for (const [id, b] of Object.entries(e.breaks || {})) if (b && b.hs_m != null) hs[id] = b.hs_m;
+    if (Object.keys(hs).length) day.hours.push({i: null, ms, hs});
+  }
+  for (const d of days) d.hours.sort((a, b) => a.ms - b.ms);
   const shown = days.filter((d) => d.hours.length);
   WEEK_MEMO = {data: DATA, steps: STEPS, days: shown};
   return shown;
 }
 // The step to show for a day: its biggest daylight hour at one break, or at
-// whichever break is biggest; the earlier hour on a tie.
+// whichever break is biggest; the earlier hour on a tie. Only an hour the
+// picker offers: a day whose daylight has all gone out of the 48 h shows its
+// first offered hour.
 function weekBest(day, id = null) {
   let best = null, top = -Infinity;
   for (const h of day.hours) {
+    if (h.i == null) continue;
     for (const [b, m] of Object.entries(h.hs)) {
       if ((id == null || b === id) && m > top) { top = m; best = h.i; }
     }
   }
-  return best;
+  return best != null ? best : day.first;
 }
 function weekCard(step) {
   const days = weekDays();
@@ -7270,7 +7290,7 @@ function weekCard(step) {
   // days in the same frame; sticky, it waits at the strip's edge when its
   // day is out of view. Wider, it sits in its day's column.
   const body = carousel
-    ? `<div class="week-view"><div class="week-days" data-week-scroll><div class="week-back">${back}</div>`
+    ? `<div class="week-view"><div class="week-days" data-week-scroll><div class="week-back" style="--wk-i:${backAt}">${back}</div>`
       + `<div class="week-row"><span class="week-pad"></span>${cols}<span class="week-pad"></span></div></div>`
       + `<div class="week-frame" aria-hidden="true"></div></div>`
     : `<div class="week-days">${cols}</div>`;
