@@ -1,0 +1,87 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b83582d452ab08d3844a916a30337f6bf518353f.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b83582d452ab08d3844a916a30337f6bf518353f.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.b83582d452ab08d3844a916a30337f6bf518353f.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [],
+        "sent": "2026-11-01T10:01:00-08:00",
+        "effective": "2026-11-01T10:01:00-08:00",
+        "onset": "2026-11-01T12:00:00-08:00",
+        "expires": "2026-11-02T05:15:00-08:00",
+        "ends": "2026-11-02T18:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Beach Hazards Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Beach Hazards Statement issued November 1 at 10:01AM PST until November 2 at 6:00PM PST by NWS San Diego CA",
+        "description": "* WHAT...Onshore winds this afternoon with maximum wind gusts 20\nto 25 mph, combined with elevated surf of 3-6 ft, and an\nafternoon high tide near 6.5 ft will result in minor tidal\noverflow.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...Through Monday afternoon.\n\n* IMPACTS...Minor tidal overflow and dangerous rip currents.\n\n* ADDITIONAL DETAILS...Winds will decrease Sunday evening, but\nelevated surf will continue Monday with high tides close to 6\nft. High tide 11/1 will occur around 2 PM and high tide 11/2\nwill occur around 3:30 PM. Tides are expected to increase for\nthe end of the week, with tides reaching 7 ft as early as\nFriday. Tides will peak over the weekend into early next week\naround 7.5 ft. Reminder, tides mentioned have been corrected to\nreflect the current trends in actual tide observations.",
+        "instruction": "Remain out of the water to avoid hazardous swimming conditions.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 011801"
+            ],
+            "NWSheadline": [
+                "BEACH HAZARDS STATEMENT IN EFFECT THROUGH MONDAY AFTERNOON"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.NEW.KSGX.BH.S.0016.261101T2000Z-261103T0200Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-02T18:00:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "BHS"
+            ]
+        }
+    }
+}
