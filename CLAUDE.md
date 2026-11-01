@@ -1101,7 +1101,19 @@ forecaster actually verifies against, Surfline included.
    MEASURED on the archive to 30 Oct (median day-to-day change x1.9 at all
    three; x1.5 calls 30-34% steady, a third each way; the county posts no
    duplicates, so the test's own repeatability is not measured), a "<" a
-   change only when its limit is beyond the ratio. A status read more than
+   change only when its limit is beyond the ratio. **Its samples' sparkline**
+   (owner's request, 2026-11-01; `briefing.wq_spark`, `WQ_SPARK_D`): every
+   result of the lead's parameter and method over 30 days to the newest
+   sample, on a LOG scale (195 to 835,168 copies since May), joined only
+   between consecutive days, a sample with a day skipped either side a
+   faint dot, a "<" at its limit; on the row's FIRST line, in the
+   conditions' sparkline column, with "30 d". Beside the sample it took
+   that line's width and put the date on a third line at 390 px; on the
+   first line, "Advisory until 6 PM Tue" wraps instead (at 320 and 390),
+   which happens only while a lift time is set. 30 days, not 14: the 30 days
+   to 31 Oct held 13 samples at North and Center and 23 at South, the 14
+   days 9, 9 and 11. Nothing to backfill: the county's site serves samples from 21 May
+   2026, when its records begin, and the first collection took them all. A status read more than
    `WQ_FRESH_H` (3 h) ago is not said: "Status not read since …". Tapped:
    "Open since Oct 28, 4:37 PM · Coronado North Beach (EH-060) · sampled
    Oct 28, 6:28 AM: Enterococcus (ddPCR) · County of San Diego DEHQ" (owner's
