@@ -3964,6 +3964,7 @@ class TestTheBriefing:
         said = said[:said.index("\n}\n")]
         for text in (head, line, said):
             assert "height(" not in text and "speed(" not in text and "briefTemp(" not in text
+        assert "(B.said || []).map(said)" in said
         # Every kind the line says is one the build ranks, and no other.
         from forecast.briefing import SHOWN
         assert sorted(re.findall(r'case "([a-z.]+)":', said)) == sorted(SHOWN)

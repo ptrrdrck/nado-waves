@@ -79,15 +79,41 @@ def test_an_update_keeps_what_it_changed_and_a_build_that_is_none_keeps_the_upda
     """Owner's request, 2026-11-01: what changed is saved with each update,
     so the record can be filtered by kind."""
     kept, _ = bf.settle(None, _built("2026-10-22T14:16:00Z", swell=_sw("SW at 13.3 s, holding.")))
-    assert kept["changes"] == [{"kind": "first"}]
-    page, update = bf.settle(kept, _built("2026-10-22T15:16:00Z", swell=_sw("SW at 13.3 s, holding.",
-                                                                            head="3–5 ft (0.9–1.5 m).")))
-    assert update and page["changes"] == [{"kind": "surf.up", "from": [3, 4], "to": [3, 5]}]
-    again, update = bf.settle(page, _built("2026-10-22T16:16:00Z", swell=_sw("SW at 13.3 s, holding.",
-                                                                             head="3–5 ft (0.9–1.5 m)."), water=20))
-    assert not update and again["changes"] == page["changes"]
-    assert bf.settle(kept, {**_built("2026-10-22T15:16:00Z"), "update_words": None})[0]["changes"] == [
+    assert kept["changes"] == kept["said"] == [{"kind": "first"}] and kept["announced"]
+    page, keep = bf.settle(kept, _built("2026-10-22T15:16:00Z", swell=_sw("SW at 13.3 s, holding.",
+                                                                          head="3–5 ft (0.9–1.5 m).")))
+    assert keep and page["announced"] and page["key"] == "2026-10-22T15:16:00Z"
+    assert page["changes"] == page["said"] == [{"kind": "surf.up", "from": [3, 4], "to": [3, 5]}]
+    again, keep = bf.settle(page, _built("2026-10-22T16:16:00Z", swell=_sw("SW at 13.3 s, holding.",
+                                                                           head="3–5 ft (0.9–1.5 m)."), water=20))
+    assert not keep and again["said"] == page["said"] and again["key"] == page["key"]
+    assert bf.settle(kept, {**_built("2026-10-22T15:16:00Z"), "update_words": None})[0]["said"] == [
         {"kind": "unknown"}]
+
+
+def test_a_change_the_line_names_none_of_is_kept_but_is_no_update():
+    """Owner's call, 2026-11-01: kept in the record, `announced` false, under
+    the last announced update's key, time and words; the next comparison is
+    against it."""
+    line = "W 10–12 s, building offshore; due at Point Loma South around {}, and at the breaks 39–53 min later."
+    first, _ = bf.settle(None, _built("2026-10-22T14:16:00Z", swell=_sw(line.format("1:33 PM"))))
+    quiet, keep = bf.settle(first, _built("2026-10-22T15:16:00Z", swell=_sw(line.format("1:48 PM"))))
+    assert keep and quiet["announced"] is False
+    assert quiet["changes"] == [{"kind": "offshore.changed.due", "point": "W", "from": "due at Point Loma South "
+                                 "around 1:33 PM, and at the breaks 39–53 min later.",
+                                 "to": "due at Point Loma South around 1:48 PM, and at the breaks 39–53 min later."}]
+    assert (quiet["key"], quiet["updated_utc"], quiet["said"]) == (first["key"], first["updated_utc"], first["said"])
+    # The same words again are no line at all; a named change after it is.
+    assert not bf.settle(quiet, _built("2026-10-22T16:16:00Z", swell=_sw(line.format("1:48 PM"))))[1]
+    named, _ = bf.settle(quiet, _built("2026-10-22T16:16:00Z", swell=_sw(line.format("1:48 PM"),
+                                                                         head="3–5 ft (0.9–1.5 m).")))
+    assert named["announced"] and named["key"] == "2026-10-22T16:16:00Z" and named["said"][0]["kind"] == "surf.up"
+
+
+def test_a_line_kept_before_changes_were_named_is_read_as_said_nothing():
+    old = {**_built("2026-10-22T14:16:00Z"), "key": "2026-10-22T14:16:00Z", "updated_utc": "2026-10-22T14:16:00Z"}
+    page, keep = bf.settle(old, _built("2026-10-22T15:16:00Z"))
+    assert not keep and page["said"] is None
 
 
 def test_the_surf_range_is_up_down_or_only_wider():
@@ -115,8 +141,10 @@ def test_an_offshore_line_is_new_changed_by_part_or_passed():
     old = _built("t", swell=_sw(line.format("10–12", "building ", "1:33 PM")))
     assert _kinds(_built("t", swell=_sw()), old) == ["offshore.new"]
     got = _kinds(old, _built("t", swell=_sw(line.format("12–14", "peaking ", "2:10 PM"))))
-    assert got == ["offshore.changed.band", "offshore.changed.due", "offshore.changed.trend"]
+    assert got == ["offshore.changed.band", "offshore.changed.trend", "offshore.changed.due"]
     assert _kinds(old, _built("t", swell=_sw())) == ["offshore.passed"]
+    assert "offshore.changed.due" not in bf.SHOWN
+    assert {"offshore.passed", "offshore.changed.band", "offshore.changed.trend"} <= set(bf.SHOWN)
 
 
 def test_the_same_trains_in_a_new_order_are_said_as_nothing():
@@ -127,7 +155,7 @@ def test_the_same_trains_in_a_new_order_are_said_as_nothing():
 def test_the_tides_are_a_new_day_or_heights_alone():
     old = {**_built("t", tides=("AM low 0.7 ft (0.21 m) at 3:15 AM",)), "tide": {"day": "2026-10-22"}}
     new = {**_built("t", tides=("AM low 0.8 ft (0.24 m) at 3:15 AM",)), "tide": {"day": "2026-10-22"}}
-    assert _kinds(old, new) == ["tide.heights"]
+    assert _kinds(old, new) == ["tide.heights"] and "tide.heights" in bf.SHOWN
     assert _kinds(old, {**new, "tide": {"day": "2026-10-23"}}) == ["tide.day"]
     assert _kinds(old, {**new, "text": {**new["text"], "tides": ["AM low 0.8 ft (0.24 m) at 3:21 AM"]}}) == [
         "tide.turns"]
@@ -179,7 +207,7 @@ def test_the_record_keeps_updates_only_and_the_page_gets_every_build(tmp_path):
     built = tmp_path / "built.json"
     for stamp, water, period in (("2026-10-22T14:16:00Z", 19.4, "13.3"), ("2026-10-22T15:16:00Z", 19.9, "13.3"),
                                  ("2026-10-22T16:16:00Z", 20.1, "14.3")):
-        swell = (f"3–4 ft (0.9–1.2 m) SSW at {period} s, holding.",)
+        swell = ("3–4 ft (0.9–1.2 m).", f"SSW at {period} s, holding.")
         built.write_text(json.dumps(_built(stamp, swell=swell, water=water)))
         assert bf.main(["--data-dir", str(tmp_path), "--record", str(built), "--out", str(out)]) == 0
         page = json.loads(out.read_text())

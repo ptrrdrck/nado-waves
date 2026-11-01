@@ -220,21 +220,28 @@ LINE_CASES = [
     ("L8", "a train's status", [{"kind": "swell.status", "point": "SW", "period_s": 14.3, "from": "holding",
                                  "to": "building"}]),
     ("L9", "a swell first said offshore", [{"kind": "offshore.new", "point": "W"}]),
-    ("L10", "an NWS alert starts", [{"kind": "alert.new", "event": "Rip Current Statement"}]),
-    ("L11", "an alert's end moved later", [{"kind": "alert.extended", "event": "Rip Current Statement"}]),
-    ("L12", "an alert's end moved earlier", [{"kind": "alert.shortened", "event": "Rip Current Statement"}]),
-    ("L13", "an alert ended", [{"kind": "alert.ended", "event": "Rip Current Statement"}]),
-    ("L14", "two breaks' water quality status changed: said once",
+    ("L10", "a swell offshore passed", [{"kind": "offshore.passed", "point": "NW"}]),
+    ("L11", "an offshore swell's next band", [{"kind": "offshore.changed.band", "point": "NW", "from": "14–17",
+                                              "to": "12–14"}]),
+    ("L12", "an offshore swell's trend", [{"kind": "offshore.changed.trend", "point": "NW", "from": "building",
+                                          "to": "peaking"}]),
+    ("L13", "CDIP 191 dark", [{"kind": "swell.dark"}]),
+    ("L14", "CDIP 191 back", [{"kind": "swell.back"}]),
+    ("L15", "an NWS alert starts", [{"kind": "alert.new", "event": "Rip Current Statement"}]),
+    ("L16", "an alert's end moved later", [{"kind": "alert.extended", "event": "Rip Current Statement"}]),
+    ("L17", "an alert's end moved earlier", [{"kind": "alert.shortened", "event": "Rip Current Statement"}]),
+    ("L18", "an alert ended", [{"kind": "alert.ended", "event": "Rip Current Statement"}]),
+    ("L19", "two breaks' water quality status changed: said once",
      [{"kind": "water.status", "break": S, "from": "Open", "to": "Advisory"},
       {"kind": "water.status", "break": C, "from": "Open", "to": "Advisory"}]),
-    ("L15", "midnight's tides", [{"kind": "tide.day"}]),
-    ("L16", "only kinds the line never says", [{"kind": "tide.heights"}, {"kind": "offshore.changed.due", "point": "W"},
-                                                 {"kind": "water.sample", "break": S}]),
-    ("L17", "the surf up, a new train and a new offshore swell, with room for all three",
+    ("L20", "midnight's tides", [{"kind": "tide.day"}]),
+    ("L21", "a tide height moved with the gauge's departure", [{"kind": "tide.heights"}]),
+    ("L22", "the surf up, a new train and a new offshore swell, with room for all three",
      [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW", "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}]),
-    ("L18", "the same three, with room for one", [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW",
+    ("L23", "the same three, with room for one", [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW",
                                                   "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}], 1),
-    ("L19", "the first update of this design, or one built without its words", [{"kind": "first"}]),
+    ("L24", "the first update of this design, or one built without its words", [{"kind": "first"}]),
+    ("L25", "an update kept before the line named its changes", None),
 ]
 
 
@@ -325,7 +332,7 @@ const out = {{}};
 for (const [id, B] of {cases}) out[id] = words(B, Date.parse("{READ_AT}"));
 const quiet = {json.dumps(QUIET)};
 for (const [id, changes, n] of {lines}) {{
-  const B = {{...quiet, changes}};
+  const B = {{...quiet, said: changes}};
   out[id] = {{...words(B, Date.parse("{READ_AT}")), line: text(briefLine(B, Date.parse("{READ_AT}"), n ?? Infinity))}};
 }}
 console.log(JSON.stringify(out));

@@ -2581,8 +2581,9 @@ function briefingParts(B, nowMs = Date.now()) {
 }
 
 // What the update changed, as the line says it (owner's copy, 2026-11-01):
-// `briefing.changes`' kinds in their order, the ones the record keeps and
-// the line never says dropped, and a word said twice said once.
+// the last ANNOUNCED update's kinds (`said`; a change the line names none
+// of is no update, `briefing.settle`) in `briefing.SHOWN`'s order, and a
+// word said twice said once.
 function briefChanges(B) {
   const said = (c) => {
     const s = (p) => `${p.toFixed(1)}\u00a0s`;
@@ -2593,6 +2594,8 @@ function briefChanges(B) {
       case "alert.shortened": return "alert shortened";
       case "alert.ended": return "alert ended";
       case "water.status": return "quality status";
+      case "swell.dark": return "buoy dark";
+      case "swell.back": return "buoy back";
       case "surf.up": return "surf up";
       case "surf.down": return "surf down";
       case "swell.new": return `new ${name(c)}`;
@@ -2601,11 +2604,15 @@ function briefChanges(B) {
         .filter(Boolean).join(" at ")}`;
       case "swell.status": return c.to ? `${name(c)} ${c.to}` : "";
       case "offshore.new": return `new ${c.point} offshore`;
+      case "offshore.passed": return `${c.point} offshore passed`;
+      case "offshore.changed.band": return `${c.point} offshore now ${c.to}\u00a0s`;
+      case "offshore.changed.trend": return c.to ? `${c.point} offshore ${c.to}` : "";
       case "tide.day": return "today's tides";
+      case "tide.heights": return "tide height";
       default: return "";
     }
   };
-  return [...new Set((B.changes || []).map(said).filter(Boolean))];
+  return [...new Set((B.said || []).map(said).filter(Boolean))];
 }
 // The fold's line: "Briefing", what the update changed, as many as fit on
 // the line and then "+N" (`fitBriefLine`), or "updated" when it names

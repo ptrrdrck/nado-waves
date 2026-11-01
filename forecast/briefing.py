@@ -57,8 +57,9 @@ swell, the tides or the water quality (`briefingwording.render_issue`,
 Node, the page's own code), so a change below the page's precision is no
 update. Each update is kept in
 `data/briefings/YYYY-MM.jsonl`, append-only, with the conditions of that
-moment and what it changed (`changes`, the line's words: owner's copy,
-2026-11-01); the page shows the newest build with the newest update's time, and
+moment and what it changed (`changes`); only a change the line names is
+ANNOUNCED, a new time and the dot (owner's calls, 2026-11-01), and the rest
+are kept with `announced` false; the page shows the newest build with the newest update's time, and
 a green dot until the reader has opened the fold since.
 
 **Never the model.** GFS-Wave and its ensemble are the Forecast tab's.
@@ -213,36 +214,50 @@ def newest(data_dir: Path) -> dict | None:
 
 
 def settle(kept: dict | None, built: dict) -> tuple[dict, bool]:
-    """`built` as the page shows it, and whether it is an update: an update
-    when its swell or tide words differ from the newest kept line's (a line
-    of the 2026-10-17 design never matches), else the kept update's key and
-    time on this build's conditions."""
+    """`built` as the page shows it, and whether the record keeps it: kept
+    when its alert, swell, tide or water quality words differ from the newest
+    kept line's (a line of the 2026-10-17 design never matches), with what
+    they changed (`changes`). An ANNOUNCED update -- a new key and time, and
+    the dot -- only when the line names one of them (`SHOWN`), or there is
+    nothing to compare (owner's call, 2026-11-01); a change it does not name
+    is kept, `announced` false, under the last announced update's key, time
+    and words (`said`), while the page shows the build's own words as it
+    shows its conditions."""
 
     words = built.get("update_words")
-    same = (kept is not None and words is not None and kept.get("update_words") == words)
-    if same:
-        return {**built, "key": kept["key"], "updated_utc": kept["updated_utc"],
-                "changes": kept.get("changes")}, False
-    return {**built, "key": built["built_utc"], "updated_utc": built["built_utc"],
-            "changes": changes(kept, built)}, True
+    last = {"key": kept.get("key"), "updated_utc": kept.get("updated_utc"),
+            "said": kept.get("said", kept.get("changes"))} if kept else {}
+    if kept is not None and words is not None and kept.get("update_words") == words:
+        return {**built, **last}, False
+    got = changes(kept, built)
+    if kept is not None and not announced(got):
+        return {**built, **last, "changes": got, "announced": False}, True
+    return {**built, "key": built["built_utc"], "updated_utc": built["built_utc"], "said": got,
+            "changes": got, "announced": True}, True
+
+
+def announced(got: list[dict]) -> bool:
+    """Whether changes are an update the reader is told of: one the line
+    names, or none to compare against."""
+
+    return any(c["kind"] in SHOWN or c["kind"] in ("first", "unknown") for c in got)
 
 
 # ------------------------------------------------------------------ what changed
 
 #: What an update changed, as its kinds (owner's calls, 2026-11-01): every
-#: kind is kept with the update, so the record can be filtered by it, and
-#: the page's line names these, in this order, as many as fit, then "+N".
-#: Every other kind is kept and never said: the range only widening or
-#: narrowing (`surf.range`), a new sample (`water.sample`), an offshore
-#: line's band, due time or trend (`offshore.changed.*`) or its going
-#: (`offshore.passed`), the day's tide heights or times moving
-#: (`tide.heights`, `tide.turns`), 46232 going dark or coming back
-#: (`swell.dark`, `swell.back`), the same trains in a new order
+#: kind is kept with the line, so the record can be filtered by it, and the
+#: page's line names these, in this order, as many as fit, then "+N". A
+#: change none of them names is no update (`settle`): kept, never said --
+#: the range only widening or narrowing (`surf.range`), a new sample
+#: (`water.sample`), an offshore line's due time (`offshore.changed.due`),
+#: the day's turn times (`tide.turns`), the same trains in a new order
 #: (`swell.order`), and a section whose words changed in a way none of
 #: these names (`<section>.other`).
 SHOWN = ("alert.new", "alert.extended", "alert.shortened", "alert.ended", "water.status",
-         "surf.up", "surf.down", "swell.new", "swell.dropped", "swell.shifted", "swell.status",
-         "offshore.new", "tide.day")
+         "swell.dark", "swell.back", "surf.up", "surf.down", "swell.new", "swell.dropped",
+         "swell.shifted", "swell.status", "offshore.new", "offshore.passed", "offshore.changed.band",
+         "offshore.changed.trend", "tide.day", "tide.heights")
 
 #: The compass points the page names a heading by, in order round the circle.
 POINTS = ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
@@ -1271,7 +1286,8 @@ def main(argv: list[str] | None = None) -> int:
         page, update = settle(newest(args.data_dir), built)
         if update:
             append(args.data_dir, unsparked(page))
-        print(f"{'Updated' if update else 'No change'}: {page['key']}")
+        print(f"{('Updated' if page.get('announced') else 'Kept, not announced') if update else 'No change'}: "
+              f"{page['key']}")
     else:
         at = _utc(args.at) if args.at else utcnow()
         built = build(data_dir=args.data_dir, at=at, live_dir=live)
