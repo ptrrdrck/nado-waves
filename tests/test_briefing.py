@@ -65,6 +65,115 @@ def test_a_build_without_words_is_always_an_update():
     assert bf.settle(kept, {**_built("2026-10-22T15:16:00Z"), "update_words": None})[1]
 
 
+# ------------------------------------------------------------------ what changed
+
+def _kinds(old, new):
+    return [c["kind"] for c in bf.changes(old, new)]
+
+
+def _sw(*lines, head="3–4 ft (0.9–1.2 m)."):
+    return (head,) + lines
+
+
+def test_an_update_keeps_what_it_changed_and_a_build_that_is_none_keeps_the_updates():
+    """Owner's request, 2026-11-01: what changed is saved with each update,
+    so the record can be filtered by kind."""
+    kept, _ = bf.settle(None, _built("2026-10-22T14:16:00Z", swell=_sw("SW at 13.3 s, holding.")))
+    assert kept["changes"] == [{"kind": "first"}]
+    page, update = bf.settle(kept, _built("2026-10-22T15:16:00Z", swell=_sw("SW at 13.3 s, holding.",
+                                                                            head="3–5 ft (0.9–1.5 m).")))
+    assert update and page["changes"] == [{"kind": "surf.up", "from": [3, 4], "to": [3, 5]}]
+    again, update = bf.settle(page, _built("2026-10-22T16:16:00Z", swell=_sw("SW at 13.3 s, holding.",
+                                                                             head="3–5 ft (0.9–1.5 m)."), water=20))
+    assert not update and again["changes"] == page["changes"]
+    assert bf.settle(kept, {**_built("2026-10-22T15:16:00Z"), "update_words": None})[0]["changes"] == [
+        {"kind": "unknown"}]
+
+
+def test_the_surf_range_is_up_down_or_only_wider():
+    old = _built("t", swell=_sw(head="3–4 ft (0.9–1.2 m)."))
+    assert _kinds(old, _built("t", swell=_sw(head="3–5 ft (0.9–1.5 m)."))) == ["surf.up"]
+    assert _kinds(old, _built("t", swell=_sw(head="2–4 ft (0.6–1.2 m)."))) == ["surf.down"]
+    assert _kinds(old, _built("t", swell=_sw(head="2–5 ft (0.6–1.5 m)."))) == ["surf.range"]
+
+
+def test_trains_pair_by_point_then_one_point_and_one_bin_else_dropped_and_new():
+    old = _built("t", swell=_sw("SW at 13.3 s, holding.", "W at 9.1 s, holding."))
+    got = bf.changes(old, _built("t", swell=_sw("SW at 14.3 s, building.", "WSW at 9.1 s, holding.")))
+    assert {(c["kind"], c.get("point"), c.get("to_point"), c.get("to_period_s")) for c in got} == {
+        ("swell.shifted", "SW", None, 14.3), ("swell.status", "SW", None, None),
+        ("swell.shifted", "W", "WSW", None)}
+    # Two points round, or more than one bin apart: one dropped, one new.
+    got = _kinds(old, _built("t", swell=_sw("SW at 13.3 s, holding.", "SSW at 9.1 s, holding.")))
+    assert got == ["swell.new", "swell.dropped"]
+    got = _kinds(old, _built("t", swell=_sw("SW at 13.3 s, holding.", "WSW at 11.1 s, holding.")))
+    assert got == ["swell.new", "swell.dropped"]
+
+
+def test_an_offshore_line_is_new_changed_by_part_or_passed():
+    line = "W {} s, {}offshore; due at Point Loma South around {}, and at the breaks 39–53 min later."
+    old = _built("t", swell=_sw(line.format("10–12", "building ", "1:33 PM")))
+    assert _kinds(_built("t", swell=_sw()), old) == ["offshore.new"]
+    got = _kinds(old, _built("t", swell=_sw(line.format("12–14", "peaking ", "2:10 PM"))))
+    assert got == ["offshore.changed.band", "offshore.changed.due", "offshore.changed.trend"]
+    assert _kinds(old, _built("t", swell=_sw())) == ["offshore.passed"]
+
+
+def test_the_same_trains_in_a_new_order_are_said_as_nothing():
+    old = _built("t", swell=_sw("SW at 13.3 s, building.", "W at 8.3 s, holding."))
+    assert _kinds(old, _built("t", swell=_sw("W at 8.3 s, holding.", "SW at 13.3 s, building."))) == ["swell.order"]
+
+
+def test_the_tides_are_a_new_day_or_heights_alone():
+    old = {**_built("t", tides=("AM low 0.7 ft (0.21 m) at 3:15 AM",)), "tide": {"day": "2026-10-22"}}
+    new = {**_built("t", tides=("AM low 0.8 ft (0.24 m) at 3:15 AM",)), "tide": {"day": "2026-10-22"}}
+    assert _kinds(old, new) == ["tide.heights"]
+    assert _kinds(old, {**new, "tide": {"day": "2026-10-23"}}) == ["tide.day"]
+    assert _kinds(old, {**new, "text": {**new["text"], "tides": ["AM low 0.8 ft (0.24 m) at 3:21 AM"]}}) == [
+        "tide.turns"]
+
+
+def test_alerts_and_water_quality_are_read_off_the_build():
+    def b(alerts=(), status="Open", fresh=True, sample="2026-10-28"):
+        return {**_built("t"), "alerts": list(alerts),
+                "text": {**_built("t")["text"], "alerts": [a["event"] + a["ends_utc"] for a in alerts],
+                         "water_quality": [status, sample, str(fresh)]},
+                "water_quality": {"fresh": fresh, "breaks": [{"id": "coronado_south", "status": status,
+                                                               "sample": {"date": sample, "time": "08:00:00"}}]}}
+    rip = {"event": "Rip Current Statement", "ends_utc": "2026-10-23T03:00:00Z"}
+    assert _kinds(b(), b([rip])) == ["alert.new"]
+    assert _kinds(b([rip]), b([{**rip, "ends_utc": "2026-10-23T09:00:00Z"}])) == ["alert.extended"]
+    assert _kinds(b([rip]), b()) == ["alert.ended"]
+    assert bf.changes(b(), b(status="Advisory")) == [
+        {"kind": "water.status", "break": "coronado_south", "from": "Open", "to": "Advisory"}]
+    assert _kinds(b(), b(fresh=False)) == ["water.status"]
+    assert _kinds(b(), b(sample="2026-10-30")) == ["water.sample"]
+
+
+def test_the_shown_kinds_come_first_in_the_lines_order():
+    old = {**_built("t", swell=_sw("SW at 13.3 s, holding."), tides=("a",)), "tide": {"day": "1"}}
+    new = {**_built("t", swell=_sw("SW at 13.3 s, holding.", "W at 9.1 s, holding.", head="3–5 ft (0.9–1.5 m)."),
+                    tides=("b",)), "tide": {"day": "2"}}
+    assert _kinds(old, new) == ["surf.up", "swell.new", "tide.day"]
+    assert bf.SHOWN.index("alert.new") < bf.SHOWN.index("water.status") < bf.SHOWN.index("surf.up")
+
+
+def test_every_kept_update_names_its_changes_and_none_is_unexplained_since_the_wording_settled():
+    """Recomputed over the record (the record is never rewritten): from 25
+    Oct, when the swell's wording reached its present shape, every update's
+    words are explained by a kind."""
+    lines = [json.loads(x) for p in sorted((bf.DEFAULT_DATA_DIR / bf.RECORD_DIR).glob("*.jsonl"))
+             for x in p.read_text(encoding="utf-8").splitlines() if x.strip()]
+    lines = [x for x in lines if x.get("update_words") is not None]
+    other = []
+    for a, b in zip(lines, lines[1:]):
+        if b["built_utc"] >= "2026-10-25T00:00:00Z":
+            got = bf.changes(a, b)
+            assert got and all(c["kind"] not in ("first", "unknown") for c in got)
+            other += [b["built_utc"] for c in got if c["kind"].endswith(".other")]
+    assert other == ["2026-10-31T18:26:00Z"]      # the water quality line's own rewording that day
+
+
 def test_the_record_keeps_updates_only_and_the_page_gets_every_build(tmp_path):
     out = tmp_path / "live" / "briefing.json"
     built = tmp_path / "built.json"

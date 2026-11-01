@@ -107,7 +107,7 @@ A refresh keeps the tab you chose. A new visit always opens on “LIVE”.
 
 ## [briefing] The Briefing
 
-Above the “LIVE” cards, a **Briefing** line folds out a short read of the beaches, so the cards need not be put together by hand. Closed, it says only “Briefing” and when it last updated, with a green dot while that update is one you have not opened on this device; opening it removes the dot. Nothing about the conditions shows until it is opened. On a wide screen it is always open, and the dot goes at your next touch, click, key or scroll on the page ([On a wider screen](#start-wide)).
+Above the “LIVE” cards, a **Briefing** line folds out a short read of the beaches, so the cards need not be put together by hand. Closed, it says “Briefing”, what its last update changed and when: “Briefing surf up, new W offshore, 9:16 PM”, as many changes as fit on the line and then how many more (“+2”). It names the surf range going up or down, a swell train new, dropped, moved to another point or period, or changing its status, a swell newly seen offshore at Tanner Banks, an NWS alert starting, moving its end or ending, a break's water quality status, and the new day's tides; an update that changed none of those (a tide height a tenth of a foot different, say) reads “Briefing updated 9:16 PM”. A green dot sits beside it while that update is one you have not opened on this device; opening it removes the dot. Nothing about the conditions shows until it is opened. On a wide screen it is always open, and the dot goes at your next touch, click, key or scroll on the page ([On a wider screen](#start-wide)).
 
 ### [briefing-stories] What it says
 

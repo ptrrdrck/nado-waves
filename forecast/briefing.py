@@ -57,7 +57,8 @@ swell, the tides or the water quality (`briefingwording.render_issue`,
 Node, the page's own code), so a change below the page's precision is no
 update. Each update is kept in
 `data/briefings/YYYY-MM.jsonl`, append-only, with the conditions of that
-moment; the page shows the newest build with the newest update's time, and
+moment and what it changed (`changes`, the line's words: owner's copy,
+2026-11-01); the page shows the newest build with the newest update's time, and
 a green dot until the reader has opened the fold since.
 
 **Never the model.** GFS-Wave and its ensemble are the Forecast tab's.
@@ -220,8 +221,183 @@ def settle(kept: dict | None, built: dict) -> tuple[dict, bool]:
     words = built.get("update_words")
     same = (kept is not None and words is not None and kept.get("update_words") == words)
     if same:
-        return {**built, "key": kept["key"], "updated_utc": kept["updated_utc"]}, False
-    return {**built, "key": built["built_utc"], "updated_utc": built["built_utc"]}, True
+        return {**built, "key": kept["key"], "updated_utc": kept["updated_utc"],
+                "changes": kept.get("changes")}, False
+    return {**built, "key": built["built_utc"], "updated_utc": built["built_utc"],
+            "changes": changes(kept, built)}, True
+
+
+# ------------------------------------------------------------------ what changed
+
+#: What an update changed, as its kinds (owner's calls, 2026-11-01): every
+#: kind is kept with the update, so the record can be filtered by it, and
+#: the page's line names these, in this order, as many as fit, then "+N".
+#: Every other kind is kept and never said: the range only widening or
+#: narrowing (`surf.range`), a new sample (`water.sample`), an offshore
+#: line's band, due time or trend (`offshore.changed.*`) or its going
+#: (`offshore.passed`), the day's tide heights or times moving
+#: (`tide.heights`, `tide.turns`), 46232 going dark or coming back
+#: (`swell.dark`, `swell.back`), the same trains in a new order
+#: (`swell.order`), and a section whose words changed in a way none of
+#: these names (`<section>.other`).
+SHOWN = ("alert.new", "alert.extended", "alert.shortened", "alert.ended", "water.status",
+         "surf.up", "surf.down", "swell.new", "swell.dropped", "swell.shifted", "swell.status",
+         "offshore.new", "tide.day")
+
+#: The compass points the page names a heading by, in order round the circle.
+POINTS = ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
+#: A train whose point moved one step and whose period moved at most one of
+#: 46232's frequency bins (0.005 Hz) is the same train read across a
+#: boundary, "SW now WSW"; past either, one train dropped and another came.
+#: Measured on the record to 1 Nov: of 100 unmatched old/new pairs, 25 kept
+#: the period and moved one point, all a heading across a sector edge.
+SHIFT_STEPS, SHIFT_HZ = 1, 0.0051
+
+_RANGE = re.compile(r"(\d+)–(\d+) ft")
+_TRAIN = re.compile(r"^(?:([NESW]{1,3}) )?[Aa]t ([\d.]+) s(?:, (\w+))?\.$")
+_OFF = re.compile(r"^([NESW]{1,3}) ([\d–]+) s, (?:(\w+) )?offshore; (due at .*)$")
+
+
+def changes(kept: dict | None, built: dict) -> list[dict]:
+    """What `built` changed against the kept update before it, each a
+    `{"kind": ...}` with what the page needs to say it, the shown kinds
+    first in `SHOWN`'s order. Read off the page's own words, which are what
+    decide an update; NWS's alerts and the county's statuses off the build."""
+
+    if built.get("update_words") is None:
+        return [{"kind": "unknown"}]
+    if kept is None or kept.get("update_words") is None:
+        return [{"kind": "first"}]
+    a, b = kept.get("text") or {}, built.get("text") or {}
+    out = []
+    if a.get("alerts") != b.get("alerts"):
+        out += _alert_changes(kept.get("alerts") or [], built.get("alerts") or []) or [{"kind": "alert.other"}]
+    if a.get("water_quality") != b.get("water_quality"):
+        out += _water_changes(kept.get("water_quality") or {}, built.get("water_quality") or {}) \
+            or [{"kind": "water.other"}]
+    if a.get("swell") != b.get("swell"):
+        out += _swell_changes(a.get("swell") or [], b.get("swell") or []) or [{"kind": "swell.other"}]
+    if a.get("tides") != b.get("tides"):
+        out.append(_tide_change(kept, built, a.get("tides") or [], b.get("tides") or []))
+    rank = {k: i for i, k in enumerate(SHOWN)}
+    return sorted(out, key=lambda c: rank.get(c["kind"], len(SHOWN)))
+
+
+def _alert_changes(old: list, new: list) -> list[dict]:
+    was, now = {a.get("event"): a for a in old}, {a.get("event"): a for a in new}
+    out = [{"kind": "alert.new", "event": e} for e in now if e not in was]
+    for e in now:
+        if e in was and now[e].get("ends_utc") != was[e].get("ends_utc"):
+            later = (now[e].get("ends_utc") or "9") > (was[e].get("ends_utc") or "9")
+            out.append({"kind": "alert.extended" if later else "alert.shortened", "event": e})
+    return out + [{"kind": "alert.ended", "event": e} for e in was if e not in now]
+
+
+def _water_status(w: dict) -> dict:
+    """Each break's status as the line shows it: none past `WQ_FRESH_H`."""
+
+    return {r.get("id"): (r.get("status") if w.get("fresh") else None) for r in w.get("breaks") or []}
+
+
+def _water_changes(old: dict, new: dict) -> list[dict]:
+    out = []
+    was, now = _water_status(old), _water_status(new)
+    for brk in now:
+        if brk in was and was[brk] != now[brk]:
+            out.append({"kind": "water.status", "break": brk, "from": was[brk], "to": now[brk]})
+    samples = {r.get("id"): r.get("sample") for r in old.get("breaks") or []}
+    for r in new.get("breaks") or []:
+        s, t = samples.get(r.get("id")), r.get("sample")
+        if t and (not s or (s.get("date"), s.get("time")) != (t.get("date"), t.get("time"))):
+            out.append({"kind": "water.sample", "break": r.get("id"), "date": t.get("date")})
+    return out
+
+
+def _swell_changes(old: list[str], new: list[str]) -> list[dict]:
+    ra, rb = (_RANGE.search(old[0]) if old else None), (_RANGE.search(new[0]) if new else None)
+    if not rb:
+        return [{"kind": "swell.dark"}] if ra else []
+    if not ra:
+        return [{"kind": "swell.back"}]
+    out = []
+    lo, hi = int(ra[1]), int(ra[2])
+    lo2, hi2 = int(rb[1]), int(rb[2])
+    if (lo, hi) != (lo2, hi2):
+        kind = "surf.up" if lo2 >= lo and hi2 >= hi else "surf.down" if lo2 <= lo and hi2 <= hi else "surf.range"
+        out.append({"kind": kind, "from": [lo, hi], "to": [lo2, hi2]})
+    trains = [[m.groups() for m in map(_TRAIN.match, lines[1:]) if m] for lines in (old, new)]
+    out += _train_changes(*trains)
+    out += _offshore_changes([m.groups() for m in map(_OFF.match, old[1:]) if m],
+                             [m.groups() for m in map(_OFF.match, new[1:]) if m])
+    if not out and trains[0] != trains[1] and sorted(trains[0]) == sorted(trains[1]):
+        out.append({"kind": "swell.order"})     # the same trains, the biggest first in a new order
+    return out
+
+
+def _steps(p: str | None, q: str | None) -> int:
+    if p not in POINTS or q not in POINTS:
+        return 99
+    d = abs(POINTS.index(p) - POINTS.index(q)) % len(POINTS)
+    return min(d, len(POINTS) - d)
+
+
+def _train_changes(old: list[tuple], new: list[tuple]) -> list[dict]:
+    """Old and new train lines paired: on the same point (the nearest
+    period), then across one point and one bin (`SHIFT_STEPS`, `SHIFT_HZ`);
+    nothing follows a train between spectra, so anything further apart is
+    one dropped and one new."""
+
+    left, pairs, fresh = list(old), [], []
+    for n in new:
+        same = [o for o in left if o[0] == n[0]]
+        if same:
+            o = min(same, key=lambda o: abs(float(o[1]) - float(n[1])))
+            left.remove(o)
+            pairs.append((o, n))
+        else:
+            fresh.append(n)
+    for n in list(fresh):
+        near = [o for o in left if _steps(o[0], n[0]) <= SHIFT_STEPS
+                and abs(1 / float(o[1]) - 1 / float(n[1])) <= SHIFT_HZ]
+        if near:
+            o = min(near, key=lambda o: abs(1 / float(o[1]) - 1 / float(n[1])))
+            left.remove(o)
+            fresh.remove(n)
+            pairs.append((o, n))
+    out = [{"kind": "swell.new", "point": n[0], "period_s": float(n[1])} for n in fresh]
+    out += [{"kind": "swell.dropped", "point": o[0], "period_s": float(o[1])} for o in left]
+    for o, n in pairs:
+        if (o[0], o[1]) != (n[0], n[1]):
+            c = {"kind": "swell.shifted", "point": o[0], "period_s": float(o[1])}
+            if n[0] != o[0]:
+                c["to_point"] = n[0]
+            if n[1] != o[1]:
+                c["to_period_s"] = float(n[1])
+            out.append(c)
+        if o[2] != n[2]:
+            out.append({"kind": "swell.status", "point": n[0], "period_s": float(n[1]), "from": o[2], "to": n[2]})
+    return out
+
+
+def _offshore_changes(old: list[tuple], new: list[tuple]) -> list[dict]:
+    was = {o[0]: o for o in old}
+    out = []
+    for n in new:
+        o = was.pop(n[0], None)
+        if o is None:
+            out.append({"kind": "offshore.new", "point": n[0]})
+            continue
+        for i, part in ((1, "band"), (3, "due"), (2, "trend")):
+            if o[i] != n[i]:
+                out.append({"kind": f"offshore.changed.{part}", "point": n[0], "from": o[i], "to": n[i]})
+    return out + [{"kind": "offshore.passed", "point": p} for p in was]
+
+
+def _tide_change(kept: dict, built: dict, old: list[str], new: list[str]) -> dict:
+    if (kept.get("tide") or {}).get("day") != (built.get("tide") or {}).get("day"):
+        return {"kind": "tide.day"}
+    bare = lambda lines: [re.sub(r"[-\u2212]?[\d.]+ ft \([-\u2212]?[\d.]+ m\)", "", s) for s in lines]  # noqa: E731
+    return {"kind": "tide.heights" if bare(old) == bare(new) else "tide.turns"}
 
 
 def append(data_dir: Path, line: dict) -> None:

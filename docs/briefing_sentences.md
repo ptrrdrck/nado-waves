@@ -18,6 +18,28 @@ the page will read as the page's again until that happens. The formula is in
 - Briefing updated 7:16 AM  (Q1, B1, C1, M1, H1, D1, W1, W2, K1, A1, R1, Z1, S1)
 - Briefing updated Oct 21, 12:06 PM  (Y1)
 
+By what the update changed, as many as fit and then +N:
+
+- Briefing surf up, 7:16 AM  (L1: the surf up)
+- Briefing surf down, 7:16 AM  (L2: the surf down)
+- Briefing new SW, 7:16 AM  (L3: a new train)
+- Briefing W dropped, 7:16 AM  (L4: a train dropped)
+- Briefing SW now 14.3 s, 7:16 AM  (L5: a train's period moved)
+- Briefing SW now WSW, 7:16 AM  (L6: a train's point moved)
+- Briefing SW now WSW at 14.3 s, 7:16 AM  (L7: both)
+- Briefing SW building, 7:16 AM  (L8: a train's status)
+- Briefing new W offshore, 7:16 AM  (L9: a swell first said offshore)
+- Briefing new alert, 7:16 AM  (L10: an NWS alert starts)
+- Briefing alert extended, 7:16 AM  (L11: an alert's end moved later)
+- Briefing alert shortened, 7:16 AM  (L12: an alert's end moved earlier)
+- Briefing alert ended, 7:16 AM  (L13: an alert ended)
+- Briefing quality status, 7:16 AM  (L14: two breaks' water quality status changed: said once)
+- Briefing today's tides, 7:16 AM  (L15: midnight's tides)
+- Briefing updated 7:16 AM  (L16: only kinds the line never says)
+- Briefing surf up, new SW, new W offshore, 7:16 AM  (L17: the surf up, a new train and a new offshore swell, with room for all three)
+- Briefing surf up +2, 7:16 AM  (L18: the same three, with room for one)
+- Briefing updated 7:16 AM  (L19: the first update of this design, or one built without its words)
+
 ## Alerts
 
 AL1. Coastal Flood Warning until 2 PM Sun  (A1)

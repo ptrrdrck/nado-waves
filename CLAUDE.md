@@ -869,8 +869,23 @@ forecaster actually verifies against, Surfline included.
    row's line opened out of sight): clear of the fade, or to its new end,
    where the fade clears; smoothly, unless reduced motion.
    Its line
-   reads "Briefing updated 7:16 AM" (the day too when not today's) and names
-   no condition, with the provenance pills' green `.status` dot while that
+   reads "Briefing surf up, new W offshore, 9:16 PM" (the day too when not
+   today's): WHAT THE UPDATE CHANGED (owner's copy, 2026-11-01;
+   `briefing.changes`, kept with each update as `changes` so the record
+   can be filtered by kind), in `SHOWN`'s order, as many as fit on one
+   line and then "+N" (`fitBriefLine`, measured), "updated" when it names
+   none — new alert / alert extended / shortened / ended, quality status
+   (any break's, said once), surf up / down, new SW, SW dropped, SW now
+   14.3 s / now WSW / now WSW at 14.3 s, SW building, new W offshore,
+   today's tides. Kept and never said: the range only widening or
+   narrowing, a new sample, an offshore line's band, due time or trend
+   (`offshore.changed.band` / `.due` / `.trend`) or its passing, the day's
+   tide heights. A train is paired across updates on its point, else one
+   point and one 46232 bin away (`SHIFT_STEPS`, `SHIFT_HZ`: nothing follows
+   a train between spectra, so anything further is one dropped and one
+   new). Over the record from 25 Oct to 1 Nov, 68 of 274 updates named
+   nothing (39 a tide height alone). It names no condition, with the
+   provenance pills' green `.status` dot while that
    update is unopened on this device (`BRIEF_SEEN` in localStorage, through
    the gate's `stored`/`store`); opening the fold, or an update drawn into
    an open one, removes it. **Built every collection; UPDATED only when its
