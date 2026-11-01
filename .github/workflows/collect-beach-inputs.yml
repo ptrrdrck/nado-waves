@@ -411,10 +411,12 @@ jobs:
       # the checkout: a queued run checked out before the last run pushed would
       # not see that run's update, and would keep it twice. Sparse, so only
       # data/briefings is written out. A line is added only when the build's
-      # swell or tide words differ from the newest kept line's
-      # (briefing.settle); a rejected push re-appends on the new tip and never
+      # alert, swell, tide or water quality words differ from the newest kept
+      # line's (briefing.settle), announced only when the Briefing's line names
+      # the change; a rejected push re-appends on the new tip and never
       # rebases (CLAUDE.md). Every collection, update or not, then rewrites the
-      # page's briefing.json: this build's conditions, the newest update's time.
+      # page's briefing.json: this build's words, the last announced update's
+      # time.
       - name: Record the briefing
         if: ${{ !inputs.skip_commit }}
         continue-on-error: true

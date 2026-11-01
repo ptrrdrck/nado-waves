@@ -3,10 +3,19 @@
 The LIVE tab's Briefing (owner's requests, 2026-10-16, -17 and -22). It sits
 above the LIVE cards in a fold of its own on the page's backdrop, not a card.
 It is built every collection and UPDATES only when what it says about NWS's
-alerts, the swell or the tides changes; the conditions refresh without an update. Its
-line reads "Briefing updated {time}" (the day too when the update is not
-today's) and nothing else, with the provenance pills' green dot while that
-update is unopened on this device. Opening the fold removes the dot.
+alerts, the swell, the tides or the water quality changes in a way its line
+names; the conditions refresh without an update. Its line reads "Briefing
+{what changed}, {time}" (the day too when the update is not today's): what
+the update changed, in the order of the list at the end, as many as fit on
+the line and then "+N" (owner's copy, 2026-11-01; `forecast.briefing.changes`,
+each kept with the update so the record can be filtered by it). A change
+the line names none of (an offshore swell's due time, a new sample, the
+range only widening) is kept in the record, not announced, and is no
+update: the line and its time stay on the last one, while the fold shows
+the new words. "Briefing updated {time}" is the first update, one built
+without its words, or one kept before the line named its changes. The provenance pills' green dot sits
+beside it while that update is unopened on this device. Opening the fold
+removes the dot.
 
 The section at the end lists every permutation, and
 `docs/briefing_sentences.md` every distinct line once, for editing. Neither
@@ -349,4 +358,34 @@ South Open; <195 copies/100 mL on Oct 22, down
 
 ```text
 (no Briefing: the fold is not drawn)
+```
+
+### The fold's line, by what the update changed
+
+```text
+L1   Briefing surf up, 7:16 AM                                the surf up
+L2   Briefing surf down, 7:16 AM                              the surf down
+L3   Briefing new SW, 7:16 AM                                 a new train
+L4   Briefing W dropped, 7:16 AM                              a train dropped
+L5   Briefing SW now 14.3 s, 7:16 AM                          a train's period moved
+L6   Briefing SW now WSW, 7:16 AM                             a train's point moved
+L7   Briefing SW now WSW at 14.3 s, 7:16 AM                   both
+L8   Briefing SW building, 7:16 AM                            a train's status
+L9   Briefing new W offshore, 7:16 AM                         a swell first said offshore
+L10  Briefing NW offshore passed, 7:16 AM                     a swell offshore passed
+L11  Briefing NW offshore now 12–14 s, 7:16 AM                an offshore swell's next band
+L12  Briefing NW offshore peaking, 7:16 AM                    an offshore swell's trend
+L13  Briefing buoy dark, 7:16 AM                              CDIP 191 dark
+L14  Briefing buoy back, 7:16 AM                              CDIP 191 back
+L15  Briefing new alert, 7:16 AM                              an NWS alert starts
+L16  Briefing alert extended, 7:16 AM                         an alert's end moved later
+L17  Briefing alert shortened, 7:16 AM                        an alert's end moved earlier
+L18  Briefing alert ended, 7:16 AM                            an alert ended
+L19  Briefing quality status, 7:16 AM                         two breaks' water quality status changed: said once
+L20  Briefing today's tides, 7:16 AM                          midnight's tides
+L21  Briefing tide height, 7:16 AM                            a tide height moved with the gauge's departure
+L22  Briefing surf up, new SW, new W offshore, 7:16 AM        the surf up, a new train and a new offshore swell, with room for all three
+L23  Briefing surf up +2, 7:16 AM                             the same three, with room for one
+L24  Briefing updated 7:16 AM                                 the first update of this design, or one built without its words
+L25  Briefing updated 7:16 AM                                 an update kept before the line named its changes
 ```

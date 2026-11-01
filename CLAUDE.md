@@ -869,8 +869,28 @@ forecaster actually verifies against, Surfline included.
    row's line opened out of sight): clear of the fade, or to its new end,
    where the fade clears; smoothly, unless reduced motion.
    Its line
-   reads "Briefing updated 7:16 AM" (the day too when not today's) and names
-   no condition, with the provenance pills' green `.status` dot while that
+   reads "Briefing surf up, new W offshore, 9:16 PM" (the day too when not
+   today's): WHAT THE UPDATE CHANGED (owner's copy, 2026-11-01;
+   `briefing.changes`, kept with each update as `changes` so the record
+   can be filtered by kind), in `SHOWN`'s order, as many as fit on one
+   line and then "+N" (`fitBriefLine`, measured) — new alert / alert
+   extended / shortened / ended, quality status (any break's, said once),
+   buoy dark / back, surf up / down, new SW, SW dropped, SW now 14.3 s /
+   now WSW / now WSW at 14.3 s, SW building, new W offshore, NW offshore
+   passed / now 12–14 s / peaking, today's tides, tide height. **Only those
+   are an update** (owner's call, same day): any other change to the words
+   — an offshore line's due time, a new sample, the range only widening,
+   the turns' times, a reordering — is kept in the record with
+   `announced` false under the last announced update's key, time and words
+   (`said`, what the page's line reads), and the fold shows the new words
+   as it shows the conditions. Over the record from 25 Oct to 1 Nov, 10 of
+   274 would have been quiet. "updated" is the first, one built without
+   its words, or one kept before the line named changes. A train is
+   paired across updates on its point, else one point and one 46232 bin
+   away (`SHIFT_STEPS`, `SHIFT_HZ`: nothing follows a train between
+   spectra, so anything further is one dropped and one new). It names no
+   condition, with the
+   provenance pills' green `.status` dot while that
    update is unopened on this device (`BRIEF_SEEN` in localStorage, through
    the gate's `stored`/`store`); opening the fold, or an update drawn into
    an open one, removes it. **Built every collection; UPDATED only when its

@@ -693,6 +693,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .chart-head:hover .calc-toggle{color:var(--ink)}
 .origin-fold .chart-head:hover .calc-toggle{color:var(--ink)}
 .chart-head .count{margin-left:2px;color:var(--soft);font-weight:400;font-variant-numeric:tabular-nums}
+/* The Briefing's line is one line: it fills the row beside its caret, and
+   `fitBriefLine` says as many of the update's changes as fit there. */
+.chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden}
 /* The "Charts" line is the last thing on every card, below the provenance,
    under a rule (owner's call, 2026-10-02): 8 px of margin on the card's 2 px
    gap above it, 9 px below. The swell card's gap is wider, so it takes less
@@ -2595,11 +2598,68 @@ function briefingParts(B, nowMs = Date.now()) {
           water_quality: briefWater(B)};
 }
 
-// The fold's line: "Briefing", when it last updated (the day too when not
-// today's), and the dot while that update is unopened on this device.
-function briefLine(B, nowMs = Date.now()) {
+// What the update changed, as the line says it (owner's copy, 2026-11-01):
+// the last ANNOUNCED update's kinds (`said`; a change the line names none
+// of is no update, `briefing.settle`) in `briefing.SHOWN`'s order, and a
+// word said twice said once.
+function briefChanges(B) {
+  const said = (c) => {
+    const s = (p) => `${p.toFixed(1)}\u00a0s`;
+    const name = (c) => c.point || s(c.period_s);
+    switch (c.kind) {
+      case "alert.new": return "new alert";
+      case "alert.extended": return "alert extended";
+      case "alert.shortened": return "alert shortened";
+      case "alert.ended": return "alert ended";
+      case "water.status": return "quality status";
+      case "swell.dark": return "buoy dark";
+      case "swell.back": return "buoy back";
+      case "surf.up": return "surf up";
+      case "surf.down": return "surf down";
+      case "swell.new": return `new ${name(c)}`;
+      case "swell.dropped": return `${name(c)} dropped`;
+      case "swell.shifted": return `${name(c)} now ${[c.to_point, c.to_period_s != null ? s(c.to_period_s) : ""]
+        .filter(Boolean).join(" at ")}`;
+      case "swell.status": return c.to ? `${name(c)} ${c.to}` : "";
+      case "offshore.new": return `new ${c.point} offshore`;
+      case "offshore.passed": return `${c.point} offshore passed`;
+      case "offshore.changed.band": return `${c.point} offshore now ${c.to}\u00a0s`;
+      case "offshore.changed.trend": return c.to ? `${c.point} offshore ${c.to}` : "";
+      case "tide.day": return "today's tides";
+      case "tide.heights": return "tide height";
+      default: return "";
+    }
+  };
+  return [...new Set((B.said || []).map(said).filter(Boolean))];
+}
+// The fold's line: "Briefing", what the update changed, as many as fit on
+// the line and then "+N" (`fitBriefLine`), or "updated" when it names
+// none, and when (the day too when not today's): "Briefing surf up, new W
+// offshore, 9:16 PM" (owner's design, 2026-11-01); and the dot while that
+// update is unopened on this device.
+function briefLine(B, nowMs = Date.now(), shown = Infinity) {
   const day = coastDay(Date.parse(B.updated_utc)) === coastDay(nowMs) ? "" : `${onDay(B.updated_utc)}, `;
-  return `Briefing <span class="count">updated ${day}${clock(B.updated_utc)}</span>`;
+  const words = briefChanges(B), n = Math.min(shown, words.length);
+  const what = n ? `${words.slice(0, n).join(", ")}${words.length > n ? ` +${words.length - n}` : ""}, ` : "updated ";
+  return `Briefing <span class="count">${what}${day}${clock(B.updated_utc)}</span>`;
+}
+// As many of the update's changes as the line holds without wrapping,
+// measured on the laid-out line, again whenever its width changes.
+function fitBriefLine() {
+  const el = document.querySelector("[data-brief-line]");
+  if (!el || !BRIEFING) return;
+  const dot = el.querySelector(".status") ? briefDot : "";
+  for (let n = briefChanges(BRIEFING).length; n >= 0; n--) {
+    el.innerHTML = briefLine(BRIEFING, Date.now(), n) + dot;
+    if (!n || el.scrollWidth <= el.clientWidth) return;
+  }
+}
+const briefLineResize = typeof ResizeObserver === "undefined" ? null
+  : new ResizeObserver(() => fitBriefLine());
+// And again once the page's font has loaded: fitted in the fallback font,
+// wider, the line said fewer than it had room for.
+if (typeof document !== "undefined" && document.fonts && document.fonts.addEventListener) {
+  document.fonts.addEventListener("loadingdone", () => fitBriefLine());
 }
 const briefUnseen = (B) => Boolean(B && B.key) && stored(BRIEF_SEEN) !== B.key;
 const briefDot = '<i class="status" style="margin-left:6px;vertical-align:1px" role="img"'
@@ -2800,7 +2860,7 @@ function briefingFold(B) {
   const wide = WIDE();
   const open = wide || BRIEF_OPEN;
   const dot = (BRIEF_OPEN && !wide) || !briefUnseen(B) ? "" : briefDot;
-  return `<div class="chart-head" data-brief-head><span>${briefLine(B)}${dot}</span>${wide ? "" : `<button
+  return `<div class="chart-head" data-brief-head><span data-brief-line>${briefLine(B)}${dot}</span>${wide ? "" : `<button
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`}</div>
@@ -7865,6 +7925,11 @@ function show() {
   $("briefing").hidden = !brief;
   $("briefing").innerHTML = brief;
   fitBriefTide();
+  fitBriefLine();
+  if (briefLineResize) {
+    briefLineResize.disconnect();
+    if (brief) briefLineResize.observe(document.querySelector("[data-brief-line]"));
+  }
   // A redraw keeps the reader's place in the open fold (owner's request,
   // 2026-10-24: every refresh put it back at its top).
   const briefBody = $("brief-body");

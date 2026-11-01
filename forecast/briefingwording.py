@@ -205,6 +205,45 @@ CASES = [
     ("X1", "nothing built yet", {"available": False, "why": "no briefing has been built yet"}),
 ]
 
+#: The fold's line by what the update changed (owner's copy, 2026-11-01;
+#: `forecast.briefing.changes`): each made-up update's kinds, and how many
+#: of its words the line has room for (`fitBriefLine` measures that on the
+#: page; here it is given).
+LINE_CASES = [
+    ("L1", "the surf up", [{"kind": "surf.up", "from": [2, 4], "to": [3, 5]}]),
+    ("L2", "the surf down", [{"kind": "surf.down", "from": [3, 5], "to": [2, 4]}]),
+    ("L3", "a new train", [{"kind": "swell.new", "point": "SW", "period_s": 14.3}]),
+    ("L4", "a train dropped", [{"kind": "swell.dropped", "point": "W", "period_s": 9.1}]),
+    ("L5", "a train's period moved", [{"kind": "swell.shifted", "point": "SW", "period_s": 13.3, "to_period_s": 14.3}]),
+    ("L6", "a train's point moved", [{"kind": "swell.shifted", "point": "SW", "period_s": 14.3, "to_point": "WSW"}]),
+    ("L7", "both", [{"kind": "swell.shifted", "point": "SW", "period_s": 13.3, "to_point": "WSW", "to_period_s": 14.3}]),
+    ("L8", "a train's status", [{"kind": "swell.status", "point": "SW", "period_s": 14.3, "from": "holding",
+                                 "to": "building"}]),
+    ("L9", "a swell first said offshore", [{"kind": "offshore.new", "point": "W"}]),
+    ("L10", "a swell offshore passed", [{"kind": "offshore.passed", "point": "NW"}]),
+    ("L11", "an offshore swell's next band", [{"kind": "offshore.changed.band", "point": "NW", "from": "14–17",
+                                              "to": "12–14"}]),
+    ("L12", "an offshore swell's trend", [{"kind": "offshore.changed.trend", "point": "NW", "from": "building",
+                                          "to": "peaking"}]),
+    ("L13", "CDIP 191 dark", [{"kind": "swell.dark"}]),
+    ("L14", "CDIP 191 back", [{"kind": "swell.back"}]),
+    ("L15", "an NWS alert starts", [{"kind": "alert.new", "event": "Rip Current Statement"}]),
+    ("L16", "an alert's end moved later", [{"kind": "alert.extended", "event": "Rip Current Statement"}]),
+    ("L17", "an alert's end moved earlier", [{"kind": "alert.shortened", "event": "Rip Current Statement"}]),
+    ("L18", "an alert ended", [{"kind": "alert.ended", "event": "Rip Current Statement"}]),
+    ("L19", "two breaks' water quality status changed: said once",
+     [{"kind": "water.status", "break": S, "from": "Open", "to": "Advisory"},
+      {"kind": "water.status", "break": C, "from": "Open", "to": "Advisory"}]),
+    ("L20", "midnight's tides", [{"kind": "tide.day"}]),
+    ("L21", "a tide height moved with the gauge's departure", [{"kind": "tide.heights"}]),
+    ("L22", "the surf up, a new train and a new offshore swell, with room for all three",
+     [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW", "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}]),
+    ("L23", "the same three, with room for one", [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW",
+                                                  "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}], 1),
+    ("L24", "the first update of this design, or one built without its words", [{"kind": "first"}]),
+    ("L25", "an update kept before the line named its changes", None),
+]
+
 
 def _lift(source: str, start: str, end: str) -> str:
     a = source.index(start)
@@ -287,9 +326,15 @@ def _node(script: str) -> dict:
 def render(source: str | None = None) -> dict[str, dict]:
     source = PAGE.read_text(encoding="utf-8") if source is None else source
     cases = json.dumps([[cid, block] for cid, _, block in CASES])
+    lines = json.dumps([[c[0], c[2], c[3] if len(c) > 3 else None] for c in LINE_CASES])
     return _node(code(source) + TEXT + f"""
 const out = {{}};
 for (const [id, B] of {cases}) out[id] = words(B, Date.parse("{READ_AT}"));
+const quiet = {json.dumps(QUIET)};
+for (const [id, changes, n] of {lines}) {{
+  const B = {{...quiet, said: changes}};
+  out[id] = {{...words(B, Date.parse("{READ_AT}")), line: text(briefLine(B, Date.parse("{READ_AT}"), n ?? Infinity))}};
+}}
 console.log(JSON.stringify(out));
 """)
 
@@ -326,6 +371,9 @@ def permutations(rendered: dict[str, dict]) -> str:
             for k, (block) in enumerate(blocks):
                 body += ([" ".join(block)] if block is got["swell"] else block) + ([""] if k < len(blocks) - 1 else [])
         parts += [f"### {cid}: {title}", "", "```text", *body, "```", ""]
+    parts += ["### The fold's line, by what the update changed", "", "```text"]
+    parts += [f"{c[0]:<4} {rendered[c[0]]['line']:<56} {c[1]}" for c in LINE_CASES]
+    parts += ["```", ""]
     return "\n".join(parts)
 
 
@@ -364,6 +412,8 @@ def sentences(rendered: dict[str, dict]) -> str:
     tag = lambda ids: "every case" if ids == every else ", ".join(ids)
     parts = [SENTENCES_HEAD, "## The fold's line", ""]
     parts += [f"- {line}  ({tag(ids)})" for line, ids in seen["line"].items()]
+    parts += ["", "By what the update changed, as many as fit and then +N:", ""]
+    parts += [f"- {rendered[c[0]]['line']}  ({c[0]}: {c[1]})" for c in LINE_CASES]
     for k, title in BLOCKS:
         parts += ["", f"## {title}", ""]
         for n, (line, ids) in enumerate(seen[k].items(), 1):

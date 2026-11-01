@@ -3950,16 +3950,33 @@ class TestTheBriefing:
 
     def test_its_closed_line_names_no_condition(self):
         """Owner's request, 2026-10-22: "Briefing" and when it last updated,
-        the day too when not today's, and nothing else."""
+        the day too when not today's, and no condition; since 2026-11-01
+        (owner's copy) what the update changed, as many as fit and then +N."""
         head = self.BLOCK[self.BLOCK.index("function briefingFold"):]
-        head = head[head.index("data-brief-head><span>"):]
+        head = head[head.index("data-brief-head><span"):]
         head = head[:head.index("</div>")]
-        assert "<span>${briefLine(B)}${dot}</span>" in head
+        assert "<span data-brief-line>${briefLine(B)}${dot}</span>" in head
         line = self.BLOCK[self.BLOCK.index("function briefLine"):]
         line = line[:line.index("\n}\n")]
-        assert 'Briefing <span class="count">updated ${day}${clock(B.updated_utc)}</span>' in line
-        for text in (head, line):
+        assert 'Briefing <span class="count">${what}${day}${clock(B.updated_utc)}</span>' in line
+        assert '` +${words.length - n}`' in line and ': "updated "' in line
+        said = self.BLOCK[self.BLOCK.index("function briefChanges"):]
+        said = said[:said.index("\n}\n")]
+        for text in (head, line, said):
             assert "height(" not in text and "speed(" not in text and "briefTemp(" not in text
+        assert "(B.said || []).map(said)" in said
+        # Every kind the line says is one the build ranks, and no other.
+        from forecast.briefing import SHOWN
+        assert sorted(re.findall(r'case "([a-z.]+)":', said)) == sorted(SHOWN)
+
+    def test_its_line_says_as_many_changes_as_fit_on_one_line(self):
+        fit = self.BLOCK[self.BLOCK.index("function fitBriefLine"):]
+        fit = fit[:fit.index("\n}\n")]
+        assert "for (let n = briefChanges(BRIEFING).length; n >= 0; n--)" in fit
+        assert "if (!n || el.scrollWidth <= el.clientWidth) return;" in fit
+        assert ".chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden}" in SOURCE
+        assert "  fitBriefTide();\n  fitBriefLine();" in SOURCE
+        assert 'document.fonts.addEventListener("loadingdone", () => fitBriefLine());' in SOURCE
 
     def test_the_dot_is_the_pills_and_shows_only_on_an_unopened_update(self):
         """The provenance pills' green `.status`, while this device has not
