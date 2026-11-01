@@ -1032,7 +1032,10 @@ forecaster actually verifies against, Surfline included.
    prediction at the open coast with the departure every 30 min
    (`TIDE_CURVE_MIN`), Coronado's midnight to midnight and STRICTLY TODAY —
    no next day's turn at the edge — each turn's height by its dot (above a
-   high, below a low) and its time on the axis under it, the hours gone and
+   high, below a low) and its time on the axis under it — the times packed
+   in order as the sun row's are, `briefRow`, each under a 4 px tick at its
+   turn (owner's choice, 2026-11-01: close turns printed over each other on
+   15 of 48 days at 320 px) — the hours gone and
    their turns grey, the rest ink, now an open dot on the curve alone (no
    line, no word) with a ring rippling out of it — to 3× over 2.6 s as it
    fades, then 2 s of rest (`BRIEF_RING`), none under reduced motion

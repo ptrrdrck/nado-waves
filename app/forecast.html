@@ -306,6 +306,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-tide .level .m{fill:var(--faint)}
 .brief-tide .time{font-size:11.5px;font-weight:600;fill:var(--ink)}
 .brief-tide .time.gone{font-weight:400;fill:var(--faint)}
+.brief-tide .tick{stroke:var(--ink);stroke-width:1.2}
+.brief-tide .tick.gone{stroke:var(--faint)}
 .brief-when.brief-when-tide{padding-left:0;margin-top:2px}
 /* NWS's coast and ocean alerts (owner's calls, 2026-10-24): a line each,
    the triangle in ink, the event a link, an NWS tag; tapped, NWS's own
@@ -2409,6 +2411,8 @@ function ringNow(el) {
 // the shading and the times on both sides of it, the sun row's above and
 // the turns' below (owner's request, 2026-10-25).
 const BRIEF_TIME_CAP = 8, BRIEF_TIME_GAP = 7;
+// The tick under each turn at the shading's foot, inside the gap above its time.
+const BRIEF_TICK = 4;
 // A smooth line through the curve's points (Catmull-Rom as cubic Béziers):
 // the half-hourly prediction drawn as a tide, not as a polyline.
 function briefSmooth(pts) {
@@ -2514,6 +2518,14 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
       + `<text class="time${gone ? " gone" : ""}" x="${(x0 + BRIEF_SUN_ICON + 4).toFixed(1)}" y="${sunBase}"`
       + ` style="text-anchor:start">${l.time}</text>`;
   }
+  // The turns' times on one row as the sun's are (`briefRow`: in order,
+  // apart, each as near its turn as it can sit), so two turns close in
+  // time never print over each other, and a tick at the shading's foot
+  // under every turn, so a time slid aside still points at its own turn
+  // (owner's choice, 2026-11-01: A2 of five mocked; close pairs touched on
+  // 15 of 48 days at a 320 px phone).
+  const timeX = new Map(briefRow(rows.map((r) => ({r, x: X(Date.parse(r.at) / 1000), w: 6.6 * r.time.length})), W)
+    .map((l) => [l.r, l.cx]));
   for (const r of rows) {
     const t = Date.parse(r.at) / 1000, x = X(t), y = Y(r.m), gone = t < now, high = r.event === "high";
     // The leading value in ink, a bracketed metric after it only on "both".
@@ -2522,7 +2534,8 @@ function briefTideChart(B, rows, W, nowMs = Date.now()) {
     s += `<circle class="turn${gone ? " gone" : ""}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3"/>`
       + `<text class="level${gone ? " gone" : ""}" x="${inside(x, 6.6 * (ft.length + (m ? m.length + 1 : 0))).toFixed(1)}"`
       + ` y="${(high ? y - 9 : y + 17).toFixed(1)}"><tspan class="ft">${ft}</tspan>${m ? ` <tspan class="m">${m}</tspan>` : ""}</text>`
-      + `<text class="time${gone ? " gone" : ""}" x="${inside(x, 6.6 * r.time.length).toFixed(1)}" y="${timeBase}">${r.time}</text>`;
+      + `<path class="tick${gone ? " gone" : ""}" d="M${x.toFixed(1)},${shadeBot}v${BRIEF_TICK}"/>`
+      + `<text class="time${gone ? " gone" : ""}" x="${timeX.get(r).toFixed(1)}" y="${timeBase}">${r.time}</text>`;
   }
   return s + "</svg>";
 }
