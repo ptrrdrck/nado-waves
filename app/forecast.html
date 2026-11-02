@@ -2658,7 +2658,23 @@ function briefChanges(B) {
       default: return "";
     }
   };
-  return [...new Set((B.said || []).map(said).filter(Boolean))];
+  // A train's shift and its new status are one phrase, "SSW now SW holding"
+  // (owner's request, 2026-11-02): the two items of one pair, by its
+  // `train` tag, or on an update kept before the tag by the status sitting
+  // at the shift's new point and period, which is the same train.
+  const items = B.said || [];
+  const same = (s, u) => (s.train != null && u.train != null ? s.train === u.train
+    : u.point === (s.to_point || s.point) && u.period_s === (s.to_period_s ?? s.period_s));
+  const joined = new Set();
+  const words = items.map((c) => {
+    if (joined.has(c)) return "";
+    if (c.kind !== "swell.shifted") return said(c);
+    const st = items.find((u) => u.kind === "swell.status" && u.to && !joined.has(u) && same(c, u));
+    if (!st) return said(c);
+    joined.add(st);
+    return `${said(c)} ${st.to}`;
+  });
+  return [...new Set(words.filter(Boolean))];
 }
 // The fold's line: "Briefing", what the update changed, as many as fit on
 // the line and then "+N" (`fitBriefLine`), or "updated" when it names

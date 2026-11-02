@@ -3968,7 +3968,10 @@ class TestTheBriefing:
         said = said[:said.index("\n}\n")]
         for text in (head, line, said):
             assert "height(" not in text and "speed(" not in text and "briefTemp(" not in text
-        assert "(B.said || []).map(said)" in said
+        assert "const items = B.said || [];" in said
+        # A train's shift and its status are one phrase (owner's request,
+        # 2026-11-02): by the pair's tag, else the same new point and period.
+        assert "return `${said(c)} ${st.to}`;" in said and "s.train === u.train" in said
         # Every kind the line says is one the build ranks, and no other.
         from forecast.briefing import SHOWN
         assert sorted(re.findall(r'case "([a-z.]+)":', said)) == sorted(SHOWN)

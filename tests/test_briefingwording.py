@@ -44,9 +44,9 @@ def test_the_line_names_the_update_and_no_condition(cases):
 def test_a_line_too_long_breaks_off_and_carries_on_in_the_open_fold(cases):
     """Owner's design, 2026-11-02: the ellipsis closed up to its comma, the
     rest the open fold's first line; nothing carried on when it all fits."""
-    assert cases["L23"]["line"] == "Briefing surf up,\u2026 7:16 AM"
-    assert cases["L23"]["cont"] == "\u2026new SW, new W offshore"
-    assert cases["L22"]["cont"] is None and "+" not in " ".join(c["line"] for c in cases.values() if c["line"])
+    assert cases["L24"]["line"] == "Briefing surf up,\u2026 7:16 AM"
+    assert cases["L24"]["cont"] == "\u2026new SW, new W offshore"
+    assert cases["L23"]["cont"] is None and "+" not in " ".join(c["line"] for c in cases.values() if c["line"])
 
 
 def test_the_swell_reads_as_the_owner_wrote_it(cases):

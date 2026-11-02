@@ -136,6 +136,15 @@ def test_trains_pair_by_point_then_one_point_and_one_bin_else_dropped_and_new():
     assert got == ["swell.new", "swell.dropped"]
 
 
+def test_a_trains_shift_and_its_status_carry_the_pair_they_came_from():
+    """Owner's request, 2026-11-02: the page says them as one phrase."""
+    old = _built("t", swell=_sw("SSW at 15.4 s, building.", "W at 9.1 s, fading."))
+    got = bf.changes(old, _built("t", swell=_sw("SW at 15.4 s, holding.", "W at 9.1 s, holding.")))
+    by = {(c["kind"], c["point"]): c.get("train") for c in got}
+    assert by[("swell.shifted", "SSW")] == by[("swell.status", "SW")] == 0
+    assert by[("swell.status", "W")] == 1
+
+
 def test_an_offshore_line_is_new_changed_by_part_or_passed():
     line = "W {} s, {}offshore; due at Point Loma South around {}, and at the breaks 39–53 min later."
     old = _built("t", swell=_sw(line.format("10–12", "building ", "1:33 PM")))
