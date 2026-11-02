@@ -3968,10 +3968,16 @@ class TestTheBriefing:
         said = said[:said.index("\n}\n")]
         for text in (head, line, said):
             assert "height(" not in text and "speed(" not in text and "briefTemp(" not in text
-        assert "const items = B.said || [];" in said
-        # A train's shift and its status are one phrase (owner's request,
-        # 2026-11-02): by the pair's tag, else the same new point and period.
-        assert "return `${said(c)} ${st.to}`;" in said and "s.train === u.train" in said
+        assert "const items = (B.said || []).filter((c) => parts(c));" in said
+        # One phrase per thing that changed (owner's request, 2026-11-02):
+        # grouped by what each change is about, then each thing's pairs said
+        # as one -- a train by the pair's tag, else its new point and period.
+        assert "`train ${c.train ?? `${c.to_point || c.point} ${c.to_period_s ?? c.period_s}`}`" in said
+        assert '["swell.shifted", "swell.status", (a, b) => `${said(a)} ${b.to}`]' in said
+        assert '["offshore.changed.band", "offshore.changed.trend", (a, b) => `${said(a)} ${b.to}`]' in said
+        assert '["alert.ended", "alert.new", (a, b) => briefHandover(a.event, b.event)]' in said
+        # Then alike changes share their words, joined by "&" (owner's choice).
+        assert 'w.names.join(BRIEF_AND)' in said and 'const BRIEF_AND = " & ";' in self.BLOCK
         # Every kind the line says is one the build ranks, and no other.
         from forecast.briefing import SHOWN
         assert sorted(re.findall(r'case "([a-z.]+)":', said)) == sorted(SHOWN)

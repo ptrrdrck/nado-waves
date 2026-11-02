@@ -41,12 +41,37 @@ def test_the_line_names_the_update_and_no_condition(cases):
         assert not got["line"] or (" ft" not in got["line"] and "°" not in got["line"])
 
 
+def _line(start):
+    """A line case's id by the start of its description."""
+    (cid,) = [c[0] for c in briefingwording.LINE_CASES if c[1].startswith(start)]
+    return cid
+
+
+def test_one_phrase_per_thing_that_changed(cases):
+    """Owner's requests and choices, 2026-11-02: a thing's changes as one
+    phrase, alike changes sharing their words by "&", and an alert's
+    hand-over eased or raised, every other alert as it was."""
+    said = lambda start: cases[_line(start)]["line"].removeprefix("Briefing ").removesuffix(", 7:16 AM")
+    assert said("a train's point moved and its status changed") == "SSW now SW holding"
+    assert said("a train's shift and its status, with another") == "SSW now SW holding, W holding"
+    assert said("two trains' status alike") == "SW & W holding"
+    assert said("a new train and two dropped") == "new SSW, SW & WSW dropped"
+    assert said("two new trains") == "new WSW & SW"
+    assert said("an offshore swell's next band and its trend") == "W offshore now 12–14 s peaking"
+    assert said("an alert ending as a lower") == "alert eased"
+    assert said("an alert ending as a higher") == "alert raised"
+    assert said("a Watch ending as an Advisory") == "alert changed"
+    assert said("a hand-over beside another hazard") == "alert eased, new alert"
+    assert said("an alert ended") == "alert ended" and said("an NWS alert starts") == "new alert"
+
+
 def test_a_line_too_long_breaks_off_and_carries_on_in_the_open_fold(cases):
     """Owner's design, 2026-11-02: the ellipsis closed up to its comma, the
     rest the open fold's first line; nothing carried on when it all fits."""
-    assert cases["L24"]["line"] == "Briefing surf up,\u2026 7:16 AM"
-    assert cases["L24"]["cont"] == "\u2026new SW, new W offshore"
-    assert cases["L23"]["cont"] is None and "+" not in " ".join(c["line"] for c in cases.values() if c["line"])
+    full, short = _line("the surf up, a new train and a new offshore swell"), _line("the same three, with room for one")
+    assert cases[short]["line"] == "Briefing surf up,\u2026 7:16 AM"
+    assert cases[short]["cont"] == "\u2026new SW, new W offshore"
+    assert cases[full]["cont"] is None and "+" not in " ".join(c["line"] for c in cases.values() if c["line"])
 
 
 def test_the_swell_reads_as_the_owner_wrote_it(cases):

@@ -891,12 +891,25 @@ forecaster actually verifies against, Surfline included.
    extended / shortened / ended, quality status (any break's, said once),
    buoy dark / back, surf up / down, new SW, SW dropped, SW now 14.3 s /
    now WSW / now WSW at 14.3 s, SW building, new W offshore, NW offshore
-   passed / now 12–14 s / peaking, today's tides, tide height; a train's
-   shift and its new status are ONE phrase, "SSW now SW holding" (owner's
-   request, 2026-11-02: the status is read on the train's own band, which
-   moves with it, so they came together on 70 of 159 shifts, 25 Oct–2 Nov),
-   joined by the pair's `train` tag, else on older lines by the status at
-   the shift's new point and period. **Only those
+   passed / now 12–14 s / peaking, today's tides, tide height. **ONE
+   PHRASE PER THING THAT CHANGED** (owner's requests and choices,
+   2026-11-02; `briefChanges`): the changes grouped by what each is about,
+   then each thing's pair said as one — a train's shift and new status,
+   "SSW now SW holding" (the status is read on the train's own band, which
+   moves with it: together on 70 of 159 shifts, 25 Oct–2 Nov), joined by
+   the pair's `train` tag, else on older lines by the status at the
+   shift's new point and period; an offshore swell's band and trend, "W
+   offshore now 12–14 s peaking"; an alert ending as another of its
+   HAZARD starts (the event less its level word), "alert eased" / "alert
+   raised" by Warning > Watch, Advisory > Statement, "alert changed"
+   between a Watch and an Advisory, every other alert "new alert" / "alert
+   ended" since several can be in force. Then alike changes share their
+   words by "&", "SW & WSW dropped", "new WSW & SW", "SW & W holding" (a
+   comma ran them into the line's own list). Never two things in one
+   phrase: "surf up, SW building" stays two (nothing measures that one
+   drove the other), and "SW dropped, new SSW" stays two however close
+   (`SHIFT_STEPS` decides a shift). Replayed over the record, 16 of 376
+   announced lines changed. **Only those
    are an update** (owner's call, same day): any other change to the words
    — an offshore line's due time, a new sample, the range only widening,
    the turns' times, a reordering — is kept in the record with
