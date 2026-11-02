@@ -2631,51 +2631,117 @@ function briefingParts(B, nowMs = Date.now()) {
 // of is no update, `briefing.settle`) in `briefing.SHOWN`'s order, and a
 // word said twice said once.
 function briefChanges(B) {
-  const said = (c) => {
-    const s = (p) => `${p.toFixed(1)}\u00a0s`;
-    const name = (c) => c.point || s(c.period_s);
+  const s = (p) => `${p.toFixed(1)} s`;
+  // Each change as its words, split where another change like it can share
+  // them: [head, name, tail], "new " + "SW" + "", "" + "SW" + " dropped".
+  const parts = (c) => {
+    const name = c.point || (c.period_s != null ? s(c.period_s) : "");
     switch (c.kind) {
-      case "alert.new": return "new alert";
-      case "alert.extended": return "alert extended";
-      case "alert.shortened": return "alert shortened";
-      case "alert.ended": return "alert ended";
-      case "water.status": return "quality status";
-      case "swell.dark": return "buoy dark";
-      case "swell.back": return "buoy back";
-      case "surf.up": return "surf up";
-      case "surf.down": return "surf down";
-      case "swell.new": return `new ${name(c)}`;
-      case "swell.dropped": return `${name(c)} dropped`;
-      case "swell.shifted": return `${name(c)} now ${[c.to_point, c.to_period_s != null ? s(c.to_period_s) : ""]
-        .filter(Boolean).join(" at ")}`;
-      case "swell.status": return c.to ? `${name(c)} ${c.to}` : "";
-      case "offshore.new": return `new ${c.point} offshore`;
-      case "offshore.passed": return `${c.point} offshore passed`;
-      case "offshore.changed.band": return `${c.point} offshore now ${c.to}\u00a0s`;
-      case "offshore.changed.trend": return c.to ? `${c.point} offshore ${c.to}` : "";
-      case "tide.day": return "today's tides";
-      case "tide.heights": return "tide height";
-      default: return "";
+      case "alert.new": return ["", "", "new alert"];
+      case "alert.extended": return ["", "", "alert extended"];
+      case "alert.shortened": return ["", "", "alert shortened"];
+      case "alert.ended": return ["", "", "alert ended"];
+      case "water.status": return ["", "", "quality status"];
+      case "swell.dark": return ["", "", "buoy dark"];
+      case "swell.back": return ["", "", "buoy back"];
+      case "surf.up": return ["", "", "surf up"];
+      case "surf.down": return ["", "", "surf down"];
+      case "swell.new": return ["new ", name, ""];
+      case "swell.dropped": return ["", name, " dropped"];
+      case "swell.shifted": return ["", "", `${name} now ${[c.to_point, c.to_period_s != null ? s(c.to_period_s) : ""]
+        .filter(Boolean).join(" at ")}`];
+      case "swell.status": return c.to ? ["", name, ` ${c.to}`] : null;
+      case "offshore.new": return ["new ", c.point, " offshore"];
+      case "offshore.passed": return ["", c.point, " offshore passed"];
+      case "offshore.changed.band": return ["", c.point, ` offshore now ${c.to} s`];
+      case "offshore.changed.trend": return c.to ? ["", c.point, ` offshore ${c.to}`] : null;
+      case "tide.day": return ["", "", "today's tides"];
+      case "tide.heights": return ["", "", "tide height"];
+      default: return null;
     }
   };
-  // A train's shift and its new status are one phrase, "SSW now SW holding"
-  // (owner's request, 2026-11-02): the two items of one pair, by its
-  // `train` tag, or on an update kept before the tag by the status sitting
-  // at the shift's new point and period, which is the same train.
-  const items = B.said || [];
-  const same = (s, u) => (s.train != null && u.train != null ? s.train === u.train
-    : u.point === (s.to_point || s.point) && u.period_s === (s.to_period_s ?? s.period_s));
-  const joined = new Set();
-  const words = items.map((c) => {
-    if (joined.has(c)) return "";
-    if (c.kind !== "swell.shifted") return said(c);
-    const st = items.find((u) => u.kind === "swell.status" && u.to && !joined.has(u) && same(c, u));
-    if (!st) return said(c);
-    joined.add(st);
-    return `${said(c)} ${st.to}`;
+  const said = (c) => (parts(c) || []).join("");
+  // ONE PHRASE PER THING THAT CHANGED (owner's request, 2026-11-02): the
+  // changes grouped by what they are about, each thing said once, and
+  // never two things in one phrase as though they were one.
+  //   A train: its shift and its new status, "SSW now SW holding" -- the
+  //   pair's `train` tag, or on an update kept before the tag the status
+  //   at the shift's new point and period, which is the same train.
+  //   An offshore swell (its point): its next band and its trend, "W
+  //   offshore now 12–14 s peaking".
+  //   An alert's hazard (its event less the level, "Coastal Flood"): one
+  //   ending as another of it starts is "alert eased" or "alert raised"
+  //   (`briefHandover`); every other alert keeps "new alert" and "alert
+  //   ended", since several can be in force at once (owner's calls, same day).
+  const subject = (c) => {
+    const k = c.kind || "";
+    if (k === "swell.shifted") return `train ${c.train ?? `${c.to_point || c.point} ${c.to_period_s ?? c.period_s}`}`;
+    if (k === "swell.status") return `train ${c.train ?? `${c.point} ${c.period_s}`}`;
+    if (k.startsWith("offshore.")) return `offshore ${c.point}`;
+    if (k === "alert.new" || k === "alert.ended") return `alert ${briefHazard(c.event)}`;
+    return null;
+  };
+  const items = (B.said || []).filter((c) => parts(c));
+  const groups = [];
+  for (const c of items) {
+    const key = subject(c), g = key && groups.find((h) => h.key === key);
+    if (g) g.items.push(c); else groups.push({key, items: [c]});
+  }
+  // Each pair a thing's phrase is made of, and how it is said: the two
+  // changes it takes, and the rest of that thing's changes said as they are.
+  const PAIRS = [
+    ["swell.shifted", "swell.status", (a, b) => `${said(a)} ${b.to}`],
+    ["offshore.changed.band", "offshore.changed.trend", (a, b) => `${said(a)} ${b.to}`],
+    ["alert.ended", "alert.new", (a, b) => briefHandover(a.event, b.event)],
+  ];
+  const phrases = groups.flatMap((g) => {
+    const rest = [...g.items], out = [];
+    for (const [ka, kb, say] of PAIRS) {
+      const a = rest.find((c) => c.kind === ka), b = rest.find((c) => c.kind === kb);
+      if (!a || !b) continue;
+      rest.splice(rest.indexOf(a), 1);
+      rest.splice(rest.indexOf(b), 1);
+      out.push(["", "", say(a, b)]);
+    }
+    return [...out, ...rest.map(parts)];
   });
-  return [...new Set(words.filter(Boolean))];
+  // Then things that changed alike share their words, "SW, WSW dropped",
+  // "new WSW, SW", "SW, W holding" (owner's request, same day): the phrase
+  // of one change with a name and the same words round it, at the first's
+  // place. A phrase made of two changes keeps its own.
+  const words = [];
+  const shared = new Map();
+  for (const [head, name, tail] of phrases) {
+    const key = `${head}\u0000${tail}`;
+    if (name && shared.has(key)) { shared.get(key).names.push(name); continue; }
+    const w = {head, tail, names: name ? [name] : []};
+    if (name) shared.set(key, w);
+    words.push(w);
+  }
+  return [...new Set(words.map((w) => `${w.head}${w.names.join(BRIEF_AND)}${w.tail}`))];
 }
+// The names that share a phrase, "SW & WSW dropped" (owner's choice,
+// 2026-11-02): a comma would run them into the line's own list, "new SSW,
+// SW, WSW dropped" not saying whether SW is new or dropped. A bare "&"
+// before a space is plain text in HTML, so it reads the same on the line
+// (innerHTML) and on its continuation (textContent).
+const BRIEF_AND = " & ";
+// An alert's hazard and its level: NWS's event less its level word, "Coastal
+// Flood Warning" and "Coastal Flood Advisory" both "Coastal Flood".
+const BRIEF_LEVELS = /\s(Warning|Watch|Advisory|Statement)$/;
+const briefHazard = (event) => String(event || "").replace(BRIEF_LEVELS, "");
+// The levels by how much they ask of a reader: a Warning above a Watch or an
+// Advisory, which are not above each other (one is a hazard possible, the
+// other one happening and lesser), and both above a Statement.
+const BRIEF_RANK = {Warning: 3, Watch: 2, Advisory: 2, Statement: 1};
+// One alert ending as another of its hazard starts: "alert raised" to a
+// higher level, "alert eased" to a lower, "alert changed" between a Watch
+// and an Advisory (owner's choice, 2026-11-02).
+const briefHandover = (was, now) => {
+  const rank = (e) => BRIEF_RANK[(String(e || "").match(BRIEF_LEVELS) || [])[1]];
+  const a = rank(was), b = rank(now);
+  return a == null || b == null || a === b ? "alert changed" : b > a ? "alert raised" : "alert eased";
+};
 // The fold's line: "Briefing", what the update changed, as many as fit on
 // the line and then "+N" (`fitBriefLine`), or "updated" when it names
 // none, and when (the day too when not today's): "Briefing surf up, new W
