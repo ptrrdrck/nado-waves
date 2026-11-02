@@ -381,16 +381,23 @@ def _train_changes(old: list[tuple], new: list[tuple]) -> list[dict]:
             pairs.append((o, n))
     out = [{"kind": "swell.new", "point": n[0], "period_s": float(n[1])} for n in fresh]
     out += [{"kind": "swell.dropped", "point": o[0], "period_s": float(o[1])} for o in left]
+    # A train's shift and its status are tagged with the pair they came
+    # from (`train`, its place in the new lines), so the page says them as
+    # one, "SSW now SW holding" (owner's request, 2026-11-02): the status is
+    # read on the train's own band, which moves when the train does, so the
+    # two come together often (70 of 159 shifts, 25 Oct to 2 Nov).
     for o, n in pairs:
+        train = new.index(n)
         if (o[0], o[1]) != (n[0], n[1]):
-            c = {"kind": "swell.shifted", "point": o[0], "period_s": float(o[1])}
+            c = {"kind": "swell.shifted", "point": o[0], "period_s": float(o[1]), "train": train}
             if n[0] != o[0]:
                 c["to_point"] = n[0]
             if n[1] != o[1]:
                 c["to_period_s"] = float(n[1])
             out.append(c)
         if o[2] != n[2]:
-            out.append({"kind": "swell.status", "point": n[0], "period_s": float(n[1]), "from": o[2], "to": n[2]})
+            out.append({"kind": "swell.status", "point": n[0], "period_s": float(n[1]), "from": o[2], "to": n[2],
+                        "train": train})
     return out
 
 

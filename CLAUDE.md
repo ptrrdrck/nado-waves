@@ -891,7 +891,12 @@ forecaster actually verifies against, Surfline included.
    extended / shortened / ended, quality status (any break's, said once),
    buoy dark / back, surf up / down, new SW, SW dropped, SW now 14.3 s /
    now WSW / now WSW at 14.3 s, SW building, new W offshore, NW offshore
-   passed / now 12–14 s / peaking, today's tides, tide height. **Only those
+   passed / now 12–14 s / peaking, today's tides, tide height; a train's
+   shift and its new status are ONE phrase, "SSW now SW holding" (owner's
+   request, 2026-11-02: the status is read on the train's own band, which
+   moves with it, so they came together on 70 of 159 shifts, 25 Oct–2 Nov),
+   joined by the pair's `train` tag, else on older lines by the status at
+   the shift's new point and period. **Only those
    are an update** (owner's call, same day): any other change to the words
    — an offshore line's due time, a new sample, the range only widening,
    the turns' times, a reordering — is kept in the record with

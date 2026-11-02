@@ -374,23 +374,24 @@ L4   Briefing W dropped, 7:16 AM                              a train dropped
 L5   Briefing SW now 14.3 s, 7:16 AM                          a train's period moved
 L6   Briefing SW now WSW, 7:16 AM                             a train's point moved
 L7   Briefing SW now WSW at 14.3 s, 7:16 AM                   both
-L8   Briefing SW building, 7:16 AM                            a train's status
-L9   Briefing new W offshore, 7:16 AM                         a swell first said offshore
-L10  Briefing NW offshore passed, 7:16 AM                     a swell offshore passed
-L11  Briefing NW offshore now 12–14 s, 7:16 AM                an offshore swell's next band
-L12  Briefing NW offshore peaking, 7:16 AM                    an offshore swell's trend
-L13  Briefing buoy dark, 7:16 AM                              CDIP 191 dark
-L14  Briefing buoy back, 7:16 AM                              CDIP 191 back
-L15  Briefing new alert, 7:16 AM                              an NWS alert starts
-L16  Briefing alert extended, 7:16 AM                         an alert's end moved later
-L17  Briefing alert shortened, 7:16 AM                        an alert's end moved earlier
-L18  Briefing alert ended, 7:16 AM                            an alert ended
-L19  Briefing quality status, 7:16 AM                         two breaks' water quality status changed: said once
-L20  Briefing today's tides, 7:16 AM                          midnight's tides
-L21  Briefing tide height, 7:16 AM                            a tide height moved with the gauge's departure
-L22  Briefing surf up, new SW, new W offshore, 7:16 AM        the surf up, a new train and a new offshore swell, with room for all three
-L23  Briefing surf up,… 7:16 AM                               the same three, with room for one: the rest carries on under it, open
+L8   Briefing SSW now SW holding, 7:16 AM                     a train's point moved and its status changed: one phrase
+L9   Briefing SW building, 7:16 AM                            a train's status
+L10  Briefing new W offshore, 7:16 AM                         a swell first said offshore
+L11  Briefing NW offshore passed, 7:16 AM                     a swell offshore passed
+L12  Briefing NW offshore now 12–14 s, 7:16 AM                an offshore swell's next band
+L13  Briefing NW offshore peaking, 7:16 AM                    an offshore swell's trend
+L14  Briefing buoy dark, 7:16 AM                              CDIP 191 dark
+L15  Briefing buoy back, 7:16 AM                              CDIP 191 back
+L16  Briefing new alert, 7:16 AM                              an NWS alert starts
+L17  Briefing alert extended, 7:16 AM                         an alert's end moved later
+L18  Briefing alert shortened, 7:16 AM                        an alert's end moved earlier
+L19  Briefing alert ended, 7:16 AM                            an alert ended
+L20  Briefing quality status, 7:16 AM                         two breaks' water quality status changed: said once
+L21  Briefing today's tides, 7:16 AM                          midnight's tides
+L22  Briefing tide height, 7:16 AM                            a tide height moved with the gauge's departure
+L23  Briefing surf up, new SW, new W offshore, 7:16 AM        the surf up, a new train and a new offshore swell, with room for all three
+L24  Briefing surf up,… 7:16 AM                               the same three, with room for one: the rest carries on under it, open
               …new SW, new W offshore                         (the open fold's first line)
-L24  Briefing updated 7:16 AM                                 the first update of this design, or one built without its words
-L25  Briefing updated 7:16 AM                                 an update kept before the line named its changes
+L25  Briefing updated 7:16 AM                                 the first update of this design, or one built without its words
+L26  Briefing updated 7:16 AM                                 an update kept before the line named its changes
 ```
