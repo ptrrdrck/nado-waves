@@ -918,7 +918,11 @@ forecaster actually verifies against, Surfline included.
    swell headline -- as far under the Briefing's line as the Forecast tab's
    under its date, ink to ink, in every layout (owner's requests,
    2026-10-30 and -31: the fold body's own top padding, so it holds
-   whatever comes first). Coast and ocean only (owner's choice): every
+   whatever comes first). Its line wraps 6 px short of the fold's edge
+   (`.briefing .alert-line`; owner's report, 2026-11-02: on an iPhone at
+   393 px Safari set "… until 6 PM Mon NWS" on one line, ~3 px wider than
+   it measured, and the fold's clip cut the tag; Chromium wraps it, and no
+   WebKit runs in a session). Coast and ocean only (owner's choice): every
    alert for PZZ750, and CAZ043's events in `COASTAL_EVENTS`, never heat,
    fire weather or wind on land, never a Test. In force is NWS's own times:
    onset (never before `sent`) to `ends` (`expires` without one); a later

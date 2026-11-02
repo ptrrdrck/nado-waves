@@ -209,6 +209,11 @@ class TestThePage:
         row = row[:row.index("\n};\n")]
         assert "esc(a.event)" in row and "esc(a.headline)" in row and "esc(a.url)" in row
 
+    def test_the_briefings_alert_wraps_short_of_the_folds_clipped_edge(self):
+        """Owner's report, 2026-11-02: the NWS tag painted past the open
+        fold on an iPhone, which clips what overflows it."""
+        assert ".briefing .alert-line{padding-right:6px}" in PAGE
+
     def test_published_with_the_page(self):
         from forecast import publish
 

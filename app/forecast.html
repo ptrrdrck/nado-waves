@@ -329,6 +329,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
             margin-left:3px;padding:0;border:0;background:none;cursor:pointer;white-space:nowrap}
 .alert-head{font-size:13px;color:var(--soft);padding-left:24px;overflow-wrap:anywhere}
 .brief-block.brief-alerts{gap:6px}
+/* Wrapped 6 px short of the fold's edge (owner's report, 2026-11-02): on an
+   iPhone at 393 px, "Beach Hazards Statement until 6 PM Mon NWS" was laid
+   out on one line where Chromium wraps it (it needs ~338 px of 335), and
+   its NWS tag painted ~3 px past the fold, which clips its overflow. Safari
+   measured the line a few px narrower than it drew it; the margin is twice
+   that, so the tag lands inside it rather than under the clip. */
+.briefing .alert-line{padding-right:6px}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
