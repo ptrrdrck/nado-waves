@@ -1,0 +1,94 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b036baeb128e424dcfbc599b8eb358f79e44b729.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b036baeb128e424dcfbc599b8eb358f79e44b729.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.b036baeb128e424dcfbc599b8eb358f79e44b729.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b83582d452ab08d3844a916a30337f6bf518353f.001.1",
+                "identifier": "urn:oid:2.49.0.1.840.0.b83582d452ab08d3844a916a30337f6bf518353f.001.1",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-01T10:01:00-08:00"
+            }
+        ],
+        "sent": "2026-11-02T02:43:00-08:00",
+        "effective": "2026-11-02T02:43:00-08:00",
+        "onset": "2026-11-02T02:43:00-08:00",
+        "expires": "2026-11-02T18:00:00-08:00",
+        "ends": "2026-11-02T18:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Update",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Beach Hazards Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Beach Hazards Statement issued November 2 at 2:43AM PST until November 2 at 6:00PM PST by NWS San Diego CA",
+        "description": "* WHAT...Elevated surf of 3-6 ft, and an afternoon high tide just\nover 6 feet will result in minor tidal overflow.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...Through this afternoon.\n\n* IMPACTS...Minor tidal overflow and dangerous rip currents.\n\n* ADDITIONAL DETAILS...Today's high tide will occur around 3:30\nPM. Tides are expected to increase for the end of the week, with\ntides reaching 7 ft as early as Friday. Tides will peak over\nthe weekend into early next week around 7.5 ft. Reminder, tides\nmentioned have been corrected to reflect the current trends in\nactual tide observations.",
+        "instruction": "Remain out of the water to avoid hazardous swimming conditions.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 021043"
+            ],
+            "NWSheadline": [
+                "BEACH HAZARDS STATEMENT REMAINS IN EFFECT THROUGH THIS AFTERNOON"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.CON.KSGX.BH.S.0016.000000T0000Z-261103T0200Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-02T18:00:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "BHS"
+            ]
+        }
+    }
+}
