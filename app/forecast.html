@@ -567,9 +567,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 
 /* The Forecast tab's hour line, set as LIVE's Briefing line is (owner's
    choice, 2026-10-23): on the backdrop with no box, the day in ink and the
-   rest of the hour in the count's grey, a small caret saying the hour opens
-   a list, and earlier / later as the fold carets' chevrons at the right end
-   where the Briefing's caret sits. The same 24 px row, so the cards start
+   date in the count's grey, a small caret beside it saying the hour opens a
+   list, the time apart at the right in the same grey (owner's request,
+   2026-11-02), and earlier / later as the fold carets' chevrons at the
+   right end where the Briefing's caret sits. The same 24 px row, so the cards start
    at the same height under the tabs on both, and switching does not move
    them. */
 .seek{display:flex;align-items:center;gap:4px;min-height:24px;padding:0 13px;
@@ -585,14 +586,24 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .seek-when{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:4px;
            border-radius:6px;cursor:pointer}
 .seek-when .count{color:var(--soft);font-weight:400}
-/* The time in ink and weight, as the weekday is (owner's request, 2026-10-24). */
-.seek-when .when-time{color:var(--ink);font-weight:600}
-/* One line at every width, or the row grows and the cards move: the
-   longest hour, "Wednesday Sep 30, 12:00 PM", is 197 px and a 320 px phone
-   leaves it 179, so under 340 px the weekday is the short one. */
+/* The time apart at the right end, in the date's grey (owner's request,
+   2026-11-02, replacing 2026-10-24's ink and weight): its ink as far from
+   the earlier chevron's as the Briefing's time (or its dot) is from its
+   caret's -- that chevron's path starts 2 px further into its button than
+   the caret's does, and the row's 4 px gap is in the sum. The select still
+   covers the whole label, the time too. */
+.seek-when .when-time{margin-left:auto;padding-left:var(--when-gap);white-space:nowrap;
+                      margin-right:calc(var(--caret-gap) - 6px)}
+/* The date as far from the weekday as the Briefing's changes are from its
+   name: the space and 2 px (owner's request, 2026-11-02). */
+#when-label .count{margin-left:2px}
+/* One line at every width, or the time runs over the arrows: the widest
+   hour of a year, "Wednesday Dec 30 ⌄ 12:00 AM" with the time apart, needs
+   224.2 px and the row takes 124 px around it, so up to 348 px the weekday
+   is the short one (measured 2026-11-02; 340 px before the time moved). */
 #when-label{white-space:nowrap}
 .seek-when .wd-short{display:none}
-@media (max-width:340px){.seek-when .wd-long{display:none}.seek-when .wd-short{display:inline}}
+@media (max-width:348px){.seek-when .wd-long{display:none}.seek-when .wd-short{display:inline}}
 .seek-when svg{flex:none;width:13px;height:13px;color:var(--soft)}
 /* The real control, invisible but on top, so a tap opens the native list. */
 .seek-when select{position:absolute;inset:0;width:100%;height:100%;opacity:0;
@@ -705,7 +716,18 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .chart-head .count{margin-left:2px;color:var(--soft);font-weight:400;font-variant-numeric:tabular-nums}
 /* The Briefing's line is one line: it fills the row beside its caret, and
    `fitBriefLine` says as many of the update's changes as fit there. */
-.chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden}
+.chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;
+                              display:flex;align-items:baseline}
+/* The changes fill the line up to the time, which keeps the right end
+   against the caret, the dot after it (owner's request and settings,
+   2026-11-02, from a mock): `--caret-gap` from the caret's 32 px box,
+   never into its tap target, and at least `--when-gap` after the changes.
+   Once read, the dot goes and the time closes up to the caret. */
+.briefing, .seek{--caret-gap:6px;--when-gap:12px}
+.chart-head[data-brief-head]{gap:var(--caret-gap)}
+.chart-head [data-brief-line] .brief-name{flex:none}
+.chart-head [data-brief-line] .brief-what{flex:0 1 auto;min-width:0;overflow:hidden}
+.chart-head [data-brief-line] .brief-at{flex:none;margin-left:auto;padding-left:var(--when-gap)}
 /* The line carried on (owner's design, 2026-11-02): set as the line's own
    words, padded as the line's 24 px row centres its text, and pulled up
    over the column's gap so its text sits one line below the line's, as a
@@ -1225,7 +1247,8 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
   <nav class="seek" id="seek" aria-label="Forecast hour" hidden>
     <span class="seek-when">
       <span id="when-label">&hellip;</span><svg viewBox="0 0 16 16"
-        aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>
+        aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg><span class="count when-time"
+        id="when-time"></span>
       <select id="when" aria-label="Choose forecast hour"></select>
     </span>
     <button type="button" id="earlier" aria-label="Earlier"><svg viewBox="0 0 16 16"
@@ -1526,8 +1549,12 @@ function whenLine(iso) {
   const date = d.toLocaleString(undefined, {month: "short", day: "numeric"});
   const time = d.toLocaleString(undefined, {hour: "numeric", minute: "2-digit"});
   return `<span class="wd-long">${day("long")}</span><span class="wd-short">${day("short")}</span>`
-    + ` <span class="count">${date}, <b class="when-time">${time}</b></span>`;
+    + ` <span class="count">${date}</span>`;
 }
+// The hour's time, apart at the row's right end beside earlier / later, as
+// far from them as the Briefing's time is from its caret, and in its grey
+// (owner's request, 2026-11-02).
+const whenTime = (iso) => new Date(iso).toLocaleString(undefined, {hour: "numeric", minute: "2-digit"});
 
 // The build stamps an age into now.json and that number freezes the instant
 // the file is written — a page left open kept reporting the age it had at
@@ -2743,22 +2770,27 @@ const briefHandover = (was, now) => {
   return a == null || b == null || a === b ? "alert changed" : b > a ? "alert raised" : "alert eased";
 };
 // The fold's line: "Briefing", what the update changed, as many as fit on
-// the line and then "+N" (`fitBriefLine`), or "updated" when it names
-// none, and when (the day too when not today's): "Briefing surf up, new W
-// offshore, 9:16 PM" (owner's design, 2026-11-01); and the dot while that
-// update is unopened on this device.
+// the line (`fitBriefLine`), or "updated" when it names none, and at the
+// right end when (the day too when not today's): "Briefing surf up, new W
+// offshore · 9:16 PM" (owner's design, 2026-11-01; the time apart since
+// 2026-11-02); and the dot after it while that update is unopened on this
+// device.
 // When it holds fewer than the update named, it breaks off on an ellipsis
-// closed up to its comma, "Briefing surf up, SW building,… 6:17 PM", and
+// closed up to its comma, "Briefing surf up, SW building,… · 6:17 PM", and
 // the open fold's first line carries the rest on, "…tide height, today's
 // tides" (`briefCont`; owner's design, 2026-11-02, replacing "+N").
 const BRIEF_BREAK = ",\u2026";
-function briefLine(B, nowMs = Date.now(), shown = Infinity) {
+// The time sits at the line's right end, against the caret, the dot after it
+// (owner's request and settings, 2026-11-02, from a mock), so the changes end
+// on their last word, with no comma before the time.
+function briefLine(B, nowMs = Date.now(), shown = Infinity, dot = "") {
   const day = coastDay(Date.parse(B.updated_utc)) === coastDay(nowMs) ? "" : `${onDay(B.updated_utc)}, `;
   const words = briefChanges(B), n = Math.min(shown, words.length);
-  const what = !words.length ? "updated "
-    : n === words.length ? `${words.join(", ")}, `
-    : n ? `${words.slice(0, n).join(", ")}${BRIEF_BREAK} ` : "\u2026 ";
-  return `Briefing <span class="count">${what}${day}${clock(B.updated_utc)}</span>`;
+  const what = !words.length ? "updated"
+    : n === words.length ? words.join(", ")
+    : n ? `${words.slice(0, n).join(", ")}${BRIEF_BREAK}` : "\u2026";
+  return `<span class="brief-name">Briefing\u00a0</span><span class="count brief-what">${what}</span>`
+    + `<span class="count brief-at">${day}${clock(B.updated_utc)}${dot}</span>`;
 }
 // The changes the line had no room for, carried on under it.
 const briefRest = (B, shown) => briefChanges(B).slice(shown);
@@ -2770,9 +2802,10 @@ function fitBriefLine() {
   if (!el || !BRIEFING) return;
   const dot = el.querySelector(".status") ? briefDot : "";
   for (let n = briefChanges(BRIEFING).length; n >= 0; n--) {
-    el.innerHTML = briefLine(BRIEFING, Date.now(), n) + dot;
+    el.innerHTML = briefLine(BRIEFING, Date.now(), n, dot);
     BRIEF_SHOWN = n;
-    if (!n || el.scrollWidth <= el.clientWidth) break;
+    const what = el.querySelector(".brief-what");
+    if (!n || what.scrollWidth <= what.clientWidth) break;
   }
   fillBriefCont();
 }
@@ -3026,7 +3059,7 @@ function briefingFold(B) {
   const wide = WIDE();
   const open = wide || BRIEF_OPEN;
   const dot = (BRIEF_OPEN && !wide) || !briefUnseen(B) ? "" : briefDot;
-  return `<div class="chart-head" data-brief-head><span data-brief-line>${briefLine(B)}${dot}</span>${wide ? "" : `<button
+  return `<div class="chart-head" data-brief-head><span data-brief-line>${briefLine(B, Date.now(), Infinity, dot)}</span>${wide ? "" : `<button
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`}</div>
@@ -8115,6 +8148,7 @@ function show() {
   if (forecasting) {
     const step = STEPS[CURSOR];
     $("when-label").innerHTML = whenLine(step.valid_utc);
+    $("when-time").textContent = whenTime(step.valid_utc);
     $("when").value = String(CURSOR);
     $("earlier").disabled = CURSOR === 0;
     $("later").disabled = CURSOR === STEPS.length - 1;

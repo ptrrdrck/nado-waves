@@ -331,9 +331,12 @@ const text = (html) => html
   .replace(/<[^>]+>/g, "").replace(/\u00a0/g, " ")
   .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&")
   .trim();
+// The line, its time after a " · ": on the page it sits apart at the line's
+// right end, against the caret (owner's request, 2026-11-02).
+const lineText = (html) => text(html.replace(/<span class="count brief-at">([\s\S]*)<\/span>$/, " · $1"));
 const words = (B, readAt) => {
   const p = briefingParts(B, readAt);
-  return p ? {line: text(briefLine(B, readAt)), alerts: p.alerts.map((a) => text(alertText(a, B.built_utc))), swell: p.swell.map((r) => text(briefSwellText(r))),
+  return p ? {line: lineText(briefLine(B, readAt)), alerts: p.alerts.map((a) => text(alertText(a, B.built_utc))), swell: p.swell.map((r) => text(briefSwellText(r))),
               conditions: p.conditions.map((r) => text(briefCondText(r))), tides: p.tides.map((r) => text(briefTideText(r))),
               water_quality: p.water_quality.map((r) => text(briefWaterText(r)))}
            : {line: null, alerts: [], swell: [], conditions: [], tides: [], water_quality: []};
@@ -361,7 +364,7 @@ const quiet = {json.dumps(QUIET)};
 for (const [id, changes, n] of {lines}) {{
   const B = {{...quiet, said: changes}};
   const rest = n == null ? [] : briefRest(B, n);
-  out[id] = {{...words(B, Date.parse("{READ_AT}")), line: text(briefLine(B, Date.parse("{READ_AT}"), n ?? Infinity)),
+  out[id] = {{...words(B, Date.parse("{READ_AT}")), line: lineText(briefLine(B, Date.parse("{READ_AT}"), n ?? Infinity)),
              cont: rest.length ? text(`\u2026${{rest.join(", ")}}`) : null}};
 }}
 console.log(JSON.stringify(out));

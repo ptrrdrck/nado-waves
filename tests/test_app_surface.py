@@ -586,6 +586,25 @@ class TestTheSeekBar:
         assert '<select id="when"' in SOURCE
         assert ".seek-when select" in SOURCE and "opacity:0" in SOURCE
 
+    def test_the_time_sits_apart_by_the_arrows_and_the_select_covers_it(self):
+        """Owner's request, 2026-11-02: the date and its caret, no comma, then
+        the time in the date's grey at the right, as far from ‹ as the
+        Briefing's time (or dot) is from its caret, ink to ink; the select
+        still lies over all of it."""
+
+        when = SOURCE[SOURCE.index('<span class="seek-when">'):SOURCE.index("</nav>", SOURCE.index('id="seek"'))]
+        assert when.index('id="when-label"') < when.index("<svg") < when.index('id="when-time"') < when.index("<select")
+        line = SOURCE[SOURCE.index("function whenLine"):SOURCE.index("\n}\n", SOURCE.index("function whenLine"))]
+        assert "+ ` <span class=\"count\">${date}</span>`;" in line and ", <b" not in line
+        assert '$("when-time").textContent = whenTime(step.valid_utc);' in SOURCE
+        # The ‹ chevron's path starts 2 px further into its button than the
+        # caret's, and the row's gap is 4 px: 6 px in all.
+        assert "margin-right:calc(var(--caret-gap) - 6px)" in SOURCE
+        assert ".seek-when .when-time{color:var(--ink)" not in SOURCE
+        # The date as far from the weekday as the changes from "Briefing".
+        assert "#when-label .count{margin-left:2px}" in SOURCE
+        assert ".chart-head .count{margin-left:2px;" in SOURCE
+
     def test_the_ends_disable_rather_than_wrap(self):
         assert '$("earlier").disabled' in SOURCE and '$("later").disabled' in SOURCE
 
@@ -3955,14 +3974,21 @@ class TestTheBriefing:
         head = self.BLOCK[self.BLOCK.index("function briefingFold"):]
         head = head[head.index("data-brief-head><span"):]
         head = head[:head.index("</div>")]
-        assert "<span data-brief-line>${briefLine(B)}${dot}</span>" in head
+        assert "<span data-brief-line>${briefLine(B, Date.now(), Infinity, dot)}</span>" in head
         line = self.BLOCK[self.BLOCK.index("function briefLine"):]
         line = line[:line.index("\n}\n")]
-        assert 'Briefing <span class="count">${what}${day}${clock(B.updated_utc)}</span>' in line
+        # The time apart at the right end, against the caret, the dot after
+        # it, and no comma before it (owner's request and settings, 2026-11-02).
+        assert '`<span class="brief-name">Briefing\\u00a0</span><span class="count brief-what">${what}</span>`' in line
+        assert '`<span class="count brief-at">${day}${clock(B.updated_utc)}${dot}</span>`' in line
+        assert ".briefing, .seek{--caret-gap:6px;--when-gap:12px}" in SOURCE
+        assert ".chart-head[data-brief-head]{gap:var(--caret-gap)}" in SOURCE
+        assert ".chart-head [data-brief-line] .brief-at{flex:none;margin-left:auto;padding-left:var(--when-gap)}" in SOURCE
         # Too many to fit, it breaks off on an ellipsis closed up to its comma
         # (owner's call, 2026-11-02, replacing "+N").
         assert 'const BRIEF_BREAK = ",\\u2026";' in self.BLOCK
-        assert '`${words.slice(0, n).join(", ")}${BRIEF_BREAK} `' in line and '!words.length ? "updated "' in line
+        assert '`${words.slice(0, n).join(", ")}${BRIEF_BREAK}`' in line and '!words.length ? "updated"' in line
+        assert 'n === words.length ? words.join(", ")' in line
         assert "+${" not in line
         said = self.BLOCK[self.BLOCK.index("function briefChanges"):]
         said = said[:said.index("\n}\n")]
@@ -4010,8 +4036,9 @@ class TestTheBriefing:
         fit = self.BLOCK[self.BLOCK.index("function fitBriefLine"):]
         fit = fit[:fit.index("\n}\n")]
         assert "for (let n = briefChanges(BRIEFING).length; n >= 0; n--)" in fit
-        assert "if (!n || el.scrollWidth <= el.clientWidth) break;" in fit and "fillBriefCont();" in fit
-        assert ".chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden}" in SOURCE
+        assert "if (!n || what.scrollWidth <= what.clientWidth) break;" in fit and "fillBriefCont();" in fit
+        assert ".chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;" in SOURCE
+        assert ".chart-head [data-brief-line] .brief-what{flex:0 1 auto;min-width:0;overflow:hidden}" in SOURCE
         assert "  fitBriefTide();\n  fitBriefLine();" in SOURCE
         assert 'document.fonts.addEventListener("loadingdone", () => fitBriefLine());' in SOURCE
 

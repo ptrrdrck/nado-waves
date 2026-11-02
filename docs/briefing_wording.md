@@ -5,12 +5,14 @@ above the LIVE cards in a fold of its own on the page's backdrop, not a card.
 It is built every collection and UPDATES only when what it says about NWS's
 alerts, the swell, the tides or the water quality changes in a way its line
 names; the conditions refresh without an update. Its line reads "Briefing
-{what changed}, {time}" (the day too when the update is not today's): what
+{what changed}" with {time} apart at its right end, against the caret, the
+unread dot after it (owner's request and settings, 2026-11-02; below, the
+time follows a " · "), the day too when the update is not today's: what
 the update changed, in the order of the list at the end, as many as fit on
 the line (owner's copy, 2026-11-01; `forecast.briefing.changes`, each kept
 with the update so the record can be filtered by it). When they do not all
 fit, the line breaks off on an ellipsis closed up to its comma, "Briefing
-surf up, SW building,… 6:17 PM", and the open fold's first line carries the
+surf up, SW building,… · 6:17 PM", and the open fold's first line carries the
 rest on, level with the changes, "…tide height, today's tides" (owner's
 design, 2026-11-02, replacing "+N"). Each THING that changed is said
 once (owner's requests and choices, 2026-11-02): a train's shift and its
@@ -62,7 +64,7 @@ below the page's precision is none. Each update is kept in
 ### Q1: a quiet morning: one range, nothing coming, no rain
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
@@ -84,7 +86,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### B1: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 2–5 ft (0.6–1.5 m). S at 18.2 s, building. W 10–12 s, building offshore; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.
 
@@ -107,7 +109,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### C1: two sectors offshore, each still to reach the breaks; rain earlier in the day only
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, peaking. NW 14–17 s, fading offshore; due at Point Loma South around 9:50 AM, and at the breaks 39–53 min later. W 10–12 s, building offshore; due at Point Loma South around 1:32 PM, and at the breaks 39–53 min later.
 
@@ -130,7 +132,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### M1: a mix: every swell train at the breaks at half the biggest's height or more, a line each, one a train at the buoy
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 15.4 s, fading. SSW at 14.3 s, holding. W at 10.0 s, building.
 
@@ -152,7 +154,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### H1: the lead train has no heading, and no status yet: their slots drop with their words
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). At 13.3 s.
 
@@ -174,7 +176,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### D1: 46232 dark: the swell says so and nothing else
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 No spectrum from CDIP 191 since Oct 21, 3:00 PM.
 
@@ -196,7 +198,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### W1: the water from Center's hub, yesterday's (the lab loads it each night); 46232 only when no hub has a reading
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
@@ -218,7 +220,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### W2: neither source current: the row says so, and tapped, when each last read, never a value
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
@@ -240,7 +242,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### K1: no water temperature, no KNZY report, a minus tide
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
@@ -255,7 +257,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### A1: two NWS alerts in force, one with no end, and one that ended after the build, which drops
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 Coastal Flood Warning until 2 PM Sun
 Small Craft Advisory in effect
@@ -280,7 +282,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### R1: a General Rain Advisory at all three, the county's end ahead: until when, and the samples from before it
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
@@ -302,7 +304,7 @@ South Advisory until 11 AM Sat; <195 copies/100 mL on Oct 22, down
 ### Z1: South closed with no end set, North's day of four results (the City of Coronado's lab), Center with no sample yet
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
@@ -324,7 +326,7 @@ South Closed; <195 copies/100 mL on Oct 22, down
 ### S1: the county's status last read too long ago: no status, when it was read, the samples kept
 
 ```text
-[Briefing updated 7:16 AM]
+[Briefing updated · 7:16 AM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
@@ -346,7 +348,7 @@ South Status not read since 2:35 AM; <195 copies/100 mL on Oct 22, down
 ### Y1: yesterday's update, read this morning
 
 ```text
-[Briefing updated Oct 21, 12:06 PM]
+[Briefing updated · Oct 21, 12:06 PM]
 
 3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
 
@@ -374,40 +376,40 @@ South Open; <195 copies/100 mL on Oct 22, down
 ### The fold's line, by what the update changed
 
 ```text
-L1   Briefing surf up, 7:16 AM                                the surf up
-L2   Briefing surf down, 7:16 AM                              the surf down
-L3   Briefing new SW, 7:16 AM                                 a new train
-L4   Briefing W dropped, 7:16 AM                              a train dropped
-L5   Briefing SW now 14.3 s, 7:16 AM                          a train's period moved
-L6   Briefing SW now WSW, 7:16 AM                             a train's point moved
-L7   Briefing SW now WSW at 14.3 s, 7:16 AM                   both
-L8   Briefing SSW now SW holding, 7:16 AM                     a train's point moved and its status changed: one phrase
-L9   Briefing SW building, 7:16 AM                            a train's status
-L10  Briefing SSW now SW holding, W holding, 7:16 AM          a train's shift and its status, with another train's status: that one said alone
-L11  Briefing SW & W holding, 7:16 AM                         two trains' status alike: their words shared
-L12  Briefing new SSW, SW & WSW dropped, 7:16 AM              a new train and two dropped: the two dropped share their words
-L13  Briefing new WSW & SW, 7:16 AM                           two new trains: their words shared
-L14  Briefing new W offshore, 7:16 AM                         a swell first said offshore
-L15  Briefing NW offshore passed, 7:16 AM                     a swell offshore passed
-L16  Briefing NW offshore now 12–14 s, 7:16 AM                an offshore swell's next band
-L17  Briefing NW offshore peaking, 7:16 AM                    an offshore swell's trend
-L18  Briefing W offshore now 12–14 s peaking, 7:16 AM         an offshore swell's next band and its trend: one phrase
-L19  Briefing buoy dark, 7:16 AM                              CDIP 191 dark
-L20  Briefing buoy back, 7:16 AM                              CDIP 191 back
-L21  Briefing new alert, 7:16 AM                              an NWS alert starts
-L22  Briefing alert extended, 7:16 AM                         an alert's end moved later
-L23  Briefing alert shortened, 7:16 AM                        an alert's end moved earlier
-L24  Briefing alert ended, 7:16 AM                            an alert ended
-L25  Briefing alert eased, 7:16 AM                            an alert ending as a lower one of its hazard starts
-L26  Briefing alert raised, 7:16 AM                           an alert ending as a higher one of its hazard starts
-L27  Briefing alert changed, 7:16 AM                          a Watch ending as an Advisory of its hazard starts: neither above the other
-L28  Briefing alert eased, new alert, 7:16 AM                 a hand-over beside another hazard's new alert: that one said as it is
-L29  Briefing quality status, 7:16 AM                         two breaks' water quality status changed: said once
-L30  Briefing today's tides, 7:16 AM                          midnight's tides
-L31  Briefing tide height, 7:16 AM                            a tide height moved with the gauge's departure
-L32  Briefing surf up, new SW, new W offshore, 7:16 AM        the surf up, a new train and a new offshore swell, with room for all three
-L33  Briefing surf up,… 7:16 AM                               the same three, with room for one: the rest carries on under it, open
+L1   Briefing surf up · 7:16 AM                               the surf up
+L2   Briefing surf down · 7:16 AM                             the surf down
+L3   Briefing new SW · 7:16 AM                                a new train
+L4   Briefing W dropped · 7:16 AM                             a train dropped
+L5   Briefing SW now 14.3 s · 7:16 AM                         a train's period moved
+L6   Briefing SW now WSW · 7:16 AM                            a train's point moved
+L7   Briefing SW now WSW at 14.3 s · 7:16 AM                  both
+L8   Briefing SSW now SW holding · 7:16 AM                    a train's point moved and its status changed: one phrase
+L9   Briefing SW building · 7:16 AM                           a train's status
+L10  Briefing SSW now SW holding, W holding · 7:16 AM         a train's shift and its status, with another train's status: that one said alone
+L11  Briefing SW & W holding · 7:16 AM                        two trains' status alike: their words shared
+L12  Briefing new SSW, SW & WSW dropped · 7:16 AM             a new train and two dropped: the two dropped share their words
+L13  Briefing new WSW & SW · 7:16 AM                          two new trains: their words shared
+L14  Briefing new W offshore · 7:16 AM                        a swell first said offshore
+L15  Briefing NW offshore passed · 7:16 AM                    a swell offshore passed
+L16  Briefing NW offshore now 12–14 s · 7:16 AM               an offshore swell's next band
+L17  Briefing NW offshore peaking · 7:16 AM                   an offshore swell's trend
+L18  Briefing W offshore now 12–14 s peaking · 7:16 AM        an offshore swell's next band and its trend: one phrase
+L19  Briefing buoy dark · 7:16 AM                             CDIP 191 dark
+L20  Briefing buoy back · 7:16 AM                             CDIP 191 back
+L21  Briefing new alert · 7:16 AM                             an NWS alert starts
+L22  Briefing alert extended · 7:16 AM                        an alert's end moved later
+L23  Briefing alert shortened · 7:16 AM                       an alert's end moved earlier
+L24  Briefing alert ended · 7:16 AM                           an alert ended
+L25  Briefing alert eased · 7:16 AM                           an alert ending as a lower one of its hazard starts
+L26  Briefing alert raised · 7:16 AM                          an alert ending as a higher one of its hazard starts
+L27  Briefing alert changed · 7:16 AM                         a Watch ending as an Advisory of its hazard starts: neither above the other
+L28  Briefing alert eased, new alert · 7:16 AM                a hand-over beside another hazard's new alert: that one said as it is
+L29  Briefing quality status · 7:16 AM                        two breaks' water quality status changed: said once
+L30  Briefing today's tides · 7:16 AM                         midnight's tides
+L31  Briefing tide height · 7:16 AM                           a tide height moved with the gauge's departure
+L32  Briefing surf up, new SW, new W offshore · 7:16 AM       the surf up, a new train and a new offshore swell, with room for all three
+L33  Briefing surf up,… · 7:16 AM                             the same three, with room for one: the rest carries on under it, open
               …new SW, new W offshore                         (the open fold's first line)
-L34  Briefing updated 7:16 AM                                 the first update of this design, or one built without its words
-L35  Briefing updated 7:16 AM                                 an update kept before the line named its changes
+L34  Briefing updated · 7:16 AM                               the first update of this design, or one built without its words
+L35  Briefing updated · 7:16 AM                               an update kept before the line named its changes
 ```

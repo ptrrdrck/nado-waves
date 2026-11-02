@@ -869,12 +869,23 @@ forecaster actually verifies against, Surfline included.
    row's line opened out of sight): clear of the fade, or to its new end,
    where the fade clears; smoothly, unless reduced motion.
    Its line
-   reads "Briefing surf up, new W offshore, 9:16 PM" (the day too when not
-   today's): WHAT THE UPDATE CHANGED (owner's copy, 2026-11-01;
+   reads "Briefing surf up, new W offshore" with "9:16 PM" (the day too
+   when not today's) APART AT ITS RIGHT END, against the caret, the unread
+   dot after it, and no comma before it (owner's request and settings,
+   2026-11-02, from a mock: the time's box 6 px from the caret's 32 px tap
+   target, never in it, at least 12 px after the changes, `--caret-gap` /
+   `--when-gap`; once read the dot goes and the time closes up). **The
+   Forecast tab's hour line matches**: "Monday Nov 2 ⌄" (no comma, the caret
+   by the date), the time in the date's grey at the right, its ink as far
+   from ‹ as LIVE's dot from its caret (17.5 px), the select still over the
+   whole row; the date as far from the weekday as the changes from
+   "Briefing" (4.91 px). The short weekday now runs to 348 px: "Wednesday
+   Dec 30 ⌄ 12:00 AM", the year's widest, needs 224.2 px of a row that
+   takes 124. The line says WHAT THE UPDATE CHANGED (owner's copy, 2026-11-01;
    `briefing.changes`, kept with each update as `changes` so the record
    can be filtered by kind), in `SHOWN`'s order, as many as fit on one
    line (`fitBriefLine`, measured); too many, it breaks off on an ellipsis
-   CLOSED UP to its comma, "Briefing surf up, SW building,… 6:17 PM", and
+   CLOSED UP to its comma, "Briefing surf up, SW building,…", and
    the open fold's first line carries the rest on, "…tide height, today's
    tides" (owner's design and calls, 2026-11-02, replacing "+N";
    `fillBriefCont`), level with the changes (measured), there only when

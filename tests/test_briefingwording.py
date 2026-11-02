@@ -35,8 +35,8 @@ def _all(got):
 
 
 def test_the_line_names_the_update_and_no_condition(cases):
-    assert cases["Q1"]["line"] == "Briefing updated 7:16 AM"
-    assert cases["Y1"]["line"] == "Briefing updated Oct 21, 12:06 PM"
+    assert cases["Q1"]["line"] == "Briefing updated · 7:16 AM"
+    assert cases["Y1"]["line"] == "Briefing updated · Oct 21, 12:06 PM"
     for got in cases.values():
         assert not got["line"] or (" ft" not in got["line"] and "°" not in got["line"])
 
@@ -51,7 +51,7 @@ def test_one_phrase_per_thing_that_changed(cases):
     """Owner's requests and choices, 2026-11-02: a thing's changes as one
     phrase, alike changes sharing their words by "&", and an alert's
     hand-over eased or raised, every other alert as it was."""
-    said = lambda start: cases[_line(start)]["line"].removeprefix("Briefing ").removesuffix(", 7:16 AM")
+    said = lambda start: cases[_line(start)]["line"].removeprefix("Briefing ").removesuffix(" · 7:16 AM")
     assert said("a train's point moved and its status changed") == "SSW now SW holding"
     assert said("a train's shift and its status, with another") == "SSW now SW holding, W holding"
     assert said("two trains' status alike") == "SW & W holding"
@@ -69,7 +69,7 @@ def test_a_line_too_long_breaks_off_and_carries_on_in_the_open_fold(cases):
     """Owner's design, 2026-11-02: the ellipsis closed up to its comma, the
     rest the open fold's first line; nothing carried on when it all fits."""
     full, short = _line("the surf up, a new train and a new offshore swell"), _line("the same three, with room for one")
-    assert cases[short]["line"] == "Briefing surf up,\u2026 7:16 AM"
+    assert cases[short]["line"] == "Briefing surf up,\u2026 · 7:16 AM"
     assert cases[short]["cont"] == "\u2026new SW, new W offshore"
     assert cases[full]["cont"] is None and "+" not in " ".join(c["line"] for c in cases.values() if c["line"])
 
