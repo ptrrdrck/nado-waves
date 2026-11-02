@@ -918,8 +918,10 @@ forecaster actually verifies against, Surfline included.
    swell headline -- as far under the Briefing's line as the Forecast tab's
    under its date, ink to ink, in every layout (owner's requests,
    2026-10-30 and -31: the fold body's own top padding, so it holds
-   whatever comes first). It is capped at the fold's width (`.briefing
-   .brief-alerts, .alert, .alert-line` max-width 100%; owner's report,
+   whatever comes first). It is capped at its box's width on BOTH tabs
+   (`.brief-alerts, .alerts, .alert, .alert-line` min-width 0, max-width
+   100%; the Forecast tab's since the same day, owner's call, after its
+   screenshot showed the line ~2 px past its box, unclipped; owner's report,
    2026-11-02: on an iPhone at 393 px "… until 6 PM Mon NWS" ran on one line
    past the scrolling fold's clip by about its own excess width, where the
    Forecast tab's copy wrapped, so Safari sized it to its one-line width

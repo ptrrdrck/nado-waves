@@ -335,8 +335,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    what the line is wider than the fold, while the same alert on the
    Forecast tab, outside a scrolling box, wrapped. So Safari sized it to its
    own one-line width inside the scrolling fold; capped at the fold's width
-   it wraps where the Forecast tab's does. Chromium was already so. */
-.briefing .brief-alerts, .briefing .alert, .briefing .alert-line{min-width:0;max-width:100%}
+   it wraps where the Forecast tab's does. Chromium was already so.
+   And the Forecast tab's too (owner's call, same day): its screenshot showed
+   the same line run ~2 px past its box at 393 px, unclipped there, where it
+   needs ~313 px of a 311 px column; capped, both wrap alike. */
+.brief-alerts, .alerts, .alert, .alert-line{min-width:0;max-width:100%}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
