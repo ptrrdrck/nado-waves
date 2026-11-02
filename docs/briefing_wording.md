@@ -14,7 +14,13 @@ with the update so the record can be filtered by it). When they do not all
 fit, the line breaks off on an ellipsis closed up to its comma, "Briefing
 surf up, SW building,… · 6:17 PM", and the open fold's first line carries the
 rest on, level with the changes, "…tide height, today's tides" (owner's
-design, 2026-11-02, replacing "+N"). Each THING that changed is said
+design, 2026-11-02, replacing "+N"). A change too long for what is left of
+the line is passed over for later, shorter ones that fit; when none fits
+whole, the first starts on the line and breaks at its last space that fits,
+never after "now", "at", "new" or "&", ending the line on a bare ellipsis,
+"Briefing SW now SSW… · 7:16 AM" over "…at 15.4 s building" (owner's
+request, 2026-11-02). Below, a case's room is in characters; the page
+measures the line. Each THING that changed is said
 once (owner's requests and choices, 2026-11-02): a train's shift and its
 status, "SSW now SW holding"; an offshore swell's band and trend, "W
 offshore now 12–14 s peaking"; an alert ending as another of its hazard
@@ -408,8 +414,12 @@ L29  Briefing quality status · 7:16 AM                        two breaks' water
 L30  Briefing today's tides · 7:16 AM                         midnight's tides
 L31  Briefing tide height · 7:16 AM                           a tide height moved with the gauge's departure
 L32  Briefing surf up, new SW, new W offshore · 7:16 AM       the surf up, a new train and a new offshore swell, with room for all three
-L33  Briefing surf up,… · 7:16 AM                             the same three, with room for one: the rest carries on under it, open
+L33  Briefing surf up,… · 7:16 AM                             the same three, with room for 10 characters: the rest carries on under it, open
               …new SW, new W offshore                         (the open fold's first line)
-L34  Briefing updated · 7:16 AM                               the first update of this design, or one built without its words
-L35  Briefing updated · 7:16 AM                               an update kept before the line named its changes
+L34  Briefing tide height,… · 7:16 AM                         a first change too long for the line: a shorter one moves ahead of it
+              …SW now SSW at 15.4 s building                  (the open fold's first line)
+L35  Briefing SW now SSW… · 7:16 AM                           one change too long for the line, and nothing shorter: broken at its last space that fits, never after a joining word
+              …at 15.4 s building                             (the open fold's first line)
+L36  Briefing updated · 7:16 AM                               the first update of this design, or one built without its words
+L37  Briefing updated · 7:16 AM                               an update kept before the line named its changes
 ```

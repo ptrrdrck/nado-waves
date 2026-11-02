@@ -65,10 +65,22 @@ def test_one_phrase_per_thing_that_changed(cases):
     assert said("an alert ended") == "alert ended" and said("an NWS alert starts") == "new alert"
 
 
+def test_a_change_too_long_for_the_line_never_leaves_it_empty(cases):
+    """Owner's request, 2026-11-02, after "Briefing …" sat over "…SW now SSW
+    at 15.4 s building": a shorter change moves ahead of it, and with none,
+    it starts on the line and breaks at a space, never after "now" or "at"."""
+    ahead = cases[_line("a first change too long for the line")]
+    assert ahead["line"] == "Briefing tide height,\u2026 · 7:16 AM"
+    assert ahead["cont"] == "\u2026SW now SSW at 15.4 s building"
+    broken = cases[_line("one change too long for the line")]
+    assert broken["line"] == "Briefing SW now SSW\u2026 · 7:16 AM"
+    assert broken["cont"] == "\u2026at 15.4 s building"
+
+
 def test_a_line_too_long_breaks_off_and_carries_on_in_the_open_fold(cases):
     """Owner's design, 2026-11-02: the ellipsis closed up to its comma, the
     rest the open fold's first line; nothing carried on when it all fits."""
-    full, short = _line("the surf up, a new train and a new offshore swell"), _line("the same three, with room for one")
+    full, short = _line("the surf up, a new train and a new offshore swell"), _line("the same three, with room for 10")
     assert cases[short]["line"] == "Briefing surf up,\u2026 · 7:16 AM"
     assert cases[short]["cont"] == "\u2026new SW, new W offshore"
     assert cases[full]["cont"] is None and "+" not in " ".join(c["line"] for c in cases.values() if c["line"])

@@ -265,10 +265,14 @@ LINE_CASES = [
     ("L31", "a tide height moved with the gauge's departure", [{"kind": "tide.heights"}]),
     ("L32", "the surf up, a new train and a new offshore swell, with room for all three",
      [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW", "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}]),
-    ("L33", "the same three, with room for one: the rest carries on under it, open", [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW",
-                                                  "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}], 1),
-    ("L34", "the first update of this design, or one built without its words", [{"kind": "first"}]),
-    ("L35", "an update kept before the line named its changes", None),
+    ("L33", "the same three, with room for 10 characters: the rest carries on under it, open", [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW",
+                                                  "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}], 10),
+    ("L34", "a first change too long for the line: a shorter one moves ahead of it",
+     [{"kind": "swell.shifted", "point": "SW", "period_s": 14.3, "to_point": "SSW", "to_period_s": 15.4, "train": 0}, {"kind": "swell.status", "point": "SSW", "period_s": 15.4, "from": "holding", "to": "building", "train": 0}, {"kind": "tide.heights"}], 16),
+    ("L35", "one change too long for the line, and nothing shorter: broken at its last space that fits, never after a joining word",
+     [{"kind": "swell.shifted", "point": "SW", "period_s": 14.3, "to_point": "SSW", "to_period_s": 15.4, "train": 0}, {"kind": "swell.status", "point": "SSW", "period_s": 15.4, "from": "holding", "to": "building", "train": 0}], 12),
+    ("L36", "the first update of this design, or one built without its words", [{"kind": "first"}]),
+    ("L37", "an update kept before the line named its changes", None),
 ]
 
 
@@ -361,10 +365,14 @@ def render(source: str | None = None) -> dict[str, dict]:
 const out = {{}};
 for (const [id, B] of {cases}) out[id] = words(B, Date.parse("{READ_AT}"));
 const quiet = {json.dumps(QUIET)};
-for (const [id, changes, n] of {lines}) {{
+// A case's room is the characters its changes may take on the line, the
+// page's measured width standing in for, through the page's own briefFit.
+const what = (B, fit) => text(briefLine(B, Date.parse("{READ_AT}"), fit).match(/<span class="count brief-what">(.*?)<\\/span>/)[1]);
+for (const [id, changes, room] of {lines}) {{
   const B = {{...quiet, said: changes}};
-  const rest = n == null ? [] : briefRest(B, n);
-  out[id] = {{...words(B, Date.parse("{READ_AT}")), line: lineText(briefLine(B, Date.parse("{READ_AT}"), n ?? Infinity)),
+  const fit = room == null ? null : briefFit(briefChanges(B), (f) => what(B, f).length <= room);
+  const rest = briefRest(B, fit);
+  out[id] = {{...words(B, Date.parse("{READ_AT}")), line: lineText(briefLine(B, Date.parse("{READ_AT}"), fit)),
              cont: rest.length ? text(`\u2026${{rest.join(", ")}}`) : null}};
 }}
 console.log(JSON.stringify(out));

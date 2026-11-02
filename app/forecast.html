@@ -2778,35 +2778,70 @@ const briefHandover = (was, now) => {
 // When it holds fewer than the update named, it breaks off on an ellipsis
 // closed up to its comma, "Briefing surf up, SW building,… · 6:17 PM", and
 // the open fold's first line carries the rest on, "…tide height, today's
-// tides" (`briefCont`; owner's design, 2026-11-02, replacing "+N").
+// tides" (`briefCont`; owner's design, 2026-11-02, replacing "+N"); a
+// change broken across the two ends the line on a bare ellipsis,
+// "Briefing SW now SSW…" over "…at 15.4 s building" (`briefFit`).
 const BRIEF_BREAK = ",\u2026";
 // The time sits at the line's right end, against the caret, the dot after it
 // (owner's request and settings, 2026-11-02, from a mock), so the changes end
 // on their last word, with no comma before the time.
-function briefLine(B, nowMs = Date.now(), shown = Infinity, dot = "") {
+// `fit` is what the line holds (`briefFit`): null for every change, else the
+// changes on it by their place (`on`) and a change broken across the line and
+// the fold (`split`), ending the line on a bare ellipsis.
+function briefLine(B, nowMs = Date.now(), fit = null, dot = "") {
   const day = coastDay(Date.parse(B.updated_utc)) === coastDay(nowMs) ? "" : `${onDay(B.updated_utc)}, `;
-  const words = briefChanges(B), n = Math.min(shown, words.length);
+  const words = briefChanges(B), on = fit ? fit.on.map((i) => words[i]) : words;
   const what = !words.length ? "updated"
-    : n === words.length ? words.join(", ")
-    : n ? `${words.slice(0, n).join(", ")}${BRIEF_BREAK}` : "\u2026";
+    : !fit ? words.join(", ")
+    : fit.split ? `${[...on, fit.split.head].join(", ")}\u2026`
+    : on.length ? `${on.join(", ")}${BRIEF_BREAK}` : "\u2026";
   return `<span class="brief-name">Briefing\u00a0</span><span class="count brief-what">${what}</span>`
     + `<span class="count brief-at">${day}${clock(B.updated_utc)}${dot}</span>`;
 }
-// The changes the line had no room for, carried on under it.
-const briefRest = (B, shown) => briefChanges(B).slice(shown);
-let BRIEF_SHOWN = Infinity;
-// As many of the update's changes as the line holds without wrapping,
-// measured on the laid-out line, again whenever its width changes.
+// The changes the line had no room for, carried on under it in their own
+// order, a broken change's rest first.
+const briefRest = (B, fit) => (!fit ? [] : briefChanges(B)
+  .map((w, i) => (fit.split && i === fit.split.i ? fit.split.tail : w))
+  .filter((_, i) => !fit.on.includes(i)));
+// What the line holds (owner's request, 2026-11-02, after "Briefing …" sat
+// over "…SW now SSW at 15.4 s building"): the changes in order while they
+// fit, one that does not passed over for later, shorter ones that do; and
+// when none fits whole, the first starts on the line and breaks at its last
+// space that fits -- never after a joining word, so a line never ends on
+// "now", "at", "new" or "&" -- and the fold's first line finishes it. Pure:
+// `fits(fit)` says whether the line holds `fit`, measured on the page and by
+// a character budget in docs/briefing_wording.md.
+const BRIEF_NO_END = /(?:^|\s)(?:now|at|new|&)$/;
+function briefFit(words, fits) {
+  if (!words.length || fits(null)) return null;
+  const on = [];
+  words.forEach((_, i) => { if (fits({on: [...on, i]})) on.push(i); });
+  let fit = {on};
+  if (on.length) return fit;
+  const w = words[0];
+  for (let p = w.indexOf(" "); p > 0; p = w.indexOf(" ", p + 1)) {
+    const head = w.slice(0, p);
+    if (BRIEF_NO_END.test(head)) continue;
+    const f = {on, split: {i: 0, head, tail: w.slice(p + 1)}};
+    if (!fits(f)) break;
+    fit = f;
+  }
+  return fit;
+}
+let BRIEF_FIT = null;
+// What the line holds, measured on the laid-out line, again whenever its
+// width changes.
 function fitBriefLine() {
   const el = document.querySelector("[data-brief-line]");
   if (!el || !BRIEFING) return;
   const dot = el.querySelector(".status") ? briefDot : "";
-  for (let n = briefChanges(BRIEFING).length; n >= 0; n--) {
-    el.innerHTML = briefLine(BRIEFING, Date.now(), n, dot);
-    BRIEF_SHOWN = n;
+  const fits = (fit) => {
+    el.innerHTML = briefLine(BRIEFING, Date.now(), fit, dot);
     const what = el.querySelector(".brief-what");
-    if (!n || what.scrollWidth <= what.clientWidth) break;
-  }
+    return what.scrollWidth <= what.clientWidth;
+  };
+  BRIEF_FIT = briefFit(briefChanges(BRIEFING), fits);
+  el.innerHTML = briefLine(BRIEFING, Date.now(), BRIEF_FIT, dot);
   fillBriefCont();
 }
 // The line carried on: the open fold's first line, under the changes and
@@ -2817,7 +2852,7 @@ function fillBriefCont() {
   const cont = document.querySelector("[data-brief-cont]");
   const count = document.querySelector("[data-brief-line] .count");
   if (!cont || !count || !BRIEFING) return;
-  const rest = briefRest(BRIEFING, BRIEF_SHOWN);
+  const rest = briefRest(BRIEFING, BRIEF_FIT);
   cont.querySelector(".count").textContent = rest.length ? `\u2026${rest.join(", ")}` : "";
   const head = cont.previousElementSibling;
   cont.style.paddingLeft = `${count.getBoundingClientRect().left - head.getBoundingClientRect().left}px`;
@@ -2831,7 +2866,7 @@ function slideBriefCont(open) {
   const cont = document.querySelector("[data-brief-cont]");
   if (!cont || !BRIEFING) return;
   if (BRIEF_CONT_MOVE) { BRIEF_CONT_MOVE.forEach((a) => a.cancel()); BRIEF_CONT_MOVE = null; }
-  const want = open && briefRest(BRIEFING, BRIEF_SHOWN).length > 0;
+  const want = open && briefRest(BRIEFING, BRIEF_FIT).length > 0;
   const still = WIDE() || typeof cont.animate !== "function"
     || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   if (still || want === !cont.hidden) { cont.hidden = !want; return; }
@@ -3059,7 +3094,7 @@ function briefingFold(B) {
   const wide = WIDE();
   const open = wide || BRIEF_OPEN;
   const dot = (BRIEF_OPEN && !wide) || !briefUnseen(B) ? "" : briefDot;
-  return `<div class="chart-head" data-brief-head><span data-brief-line>${briefLine(B, Date.now(), Infinity, dot)}</span>${wide ? "" : `<button
+  return `<div class="chart-head" data-brief-head><span data-brief-line>${briefLine(B, Date.now(), null, dot)}</span>${wide ? "" : `<button
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`}</div>

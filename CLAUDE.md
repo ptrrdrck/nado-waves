@@ -884,8 +884,14 @@ forecaster actually verifies against, Surfline included.
    takes 124. The line says WHAT THE UPDATE CHANGED (owner's copy, 2026-11-01;
    `briefing.changes`, kept with each update as `changes` so the record
    can be filtered by kind), in `SHOWN`'s order, as many as fit on one
-   line (`fitBriefLine`, measured); too many, it breaks off on an ellipsis
-   CLOSED UP to its comma, "Briefing surf up, SW building,…", and
+   line (`fitBriefLine`, measured, through the pure `briefFit` the wording
+   docs run with a character budget): one too long for what is left is
+   PASSED OVER for later, shorter ones that fit, and when none fits whole
+   the first starts on the line and breaks at its last space that fits,
+   never after "now", "at", "new" or "&", on a bare ellipsis, "Briefing SW
+   now SSW…" over "…at 15.4 s building" (owner's request, 2026-11-02,
+   after "Briefing …" sat over the whole change); too many, it breaks off
+   on an ellipsis CLOSED UP to its comma, "Briefing surf up, SW building,…", and
    the open fold's first line carries the rest on, "…tide height, today's
    tides" (owner's design and calls, 2026-11-02, replacing "+N";
    `fillBriefCont`), level with the changes (measured), there only when

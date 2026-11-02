@@ -3974,7 +3974,7 @@ class TestTheBriefing:
         head = self.BLOCK[self.BLOCK.index("function briefingFold"):]
         head = head[head.index("data-brief-head><span"):]
         head = head[:head.index("</div>")]
-        assert "<span data-brief-line>${briefLine(B, Date.now(), Infinity, dot)}</span>" in head
+        assert "<span data-brief-line>${briefLine(B, Date.now(), null, dot)}</span>" in head
         line = self.BLOCK[self.BLOCK.index("function briefLine"):]
         line = line[:line.index("\n}\n")]
         # The time apart at the right end, against the caret, the dot after
@@ -3987,8 +3987,11 @@ class TestTheBriefing:
         # Too many to fit, it breaks off on an ellipsis closed up to its comma
         # (owner's call, 2026-11-02, replacing "+N").
         assert 'const BRIEF_BREAK = ",\\u2026";' in self.BLOCK
-        assert '`${words.slice(0, n).join(", ")}${BRIEF_BREAK}`' in line and '!words.length ? "updated"' in line
-        assert 'n === words.length ? words.join(", ")' in line
+        assert '`${on.join(", ")}${BRIEF_BREAK}`' in line and '!words.length ? "updated"' in line
+        assert '!fit ? words.join(", ")' in line
+        # A change broken across the line and the fold ends the line on a
+        # bare ellipsis (owner's request, 2026-11-02).
+        assert '`${[...on, fit.split.head].join(", ")}\\u2026`' in line
         assert "+${" not in line
         said = self.BLOCK[self.BLOCK.index("function briefChanges"):]
         said = said[:said.index("\n}\n")]
@@ -4035,8 +4038,18 @@ class TestTheBriefing:
     def test_its_line_says_as_many_changes_as_fit_on_one_line(self):
         fit = self.BLOCK[self.BLOCK.index("function fitBriefLine"):]
         fit = fit[:fit.index("\n}\n")]
-        assert "for (let n = briefChanges(BRIEFING).length; n >= 0; n--)" in fit
-        assert "if (!n || what.scrollWidth <= what.clientWidth) break;" in fit and "fillBriefCont();" in fit
+        # Measured on the laid-out line, through the one pure briefFit the
+        # wording docs run too (owner's request, 2026-11-02).
+        assert "return what.scrollWidth <= what.clientWidth;" in fit and "fillBriefCont();" in fit
+        assert "BRIEF_FIT = briefFit(briefChanges(BRIEFING), fits);" in fit
+        pick = self.BLOCK[self.BLOCK.index("function briefFit"):]
+        pick = pick[:pick.index("\n}\n")]
+        # In order while they fit; one that does not is passed over for
+        # later ones that do; with none on the line, the first is broken at
+        # its last space that fits, never after a joining word.
+        assert "words.forEach((_, i) => { if (fits({on: [...on, i]})) on.push(i); });" in pick
+        assert "if (BRIEF_NO_END.test(head)) continue;" in pick
+        assert "const BRIEF_NO_END = /(?:^|\\s)(?:now|at|new|&)$/;" in self.BLOCK
         assert ".chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;" in SOURCE
         assert ".chart-head [data-brief-line] .brief-what{flex:0 1 auto;min-width:0;overflow:hidden}" in SOURCE
         assert "  fitBriefTide();\n  fitBriefLine();" in SOURCE

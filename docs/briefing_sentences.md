@@ -52,9 +52,11 @@ By what the update changed: as many as fit, and the rest carried on in the open 
 - Briefing today's tides · 7:16 AM  (L30: midnight's tides)
 - Briefing tide height · 7:16 AM  (L31: a tide height moved with the gauge's departure)
 - Briefing surf up, new SW, new W offshore · 7:16 AM  (L32: the surf up, a new train and a new offshore swell, with room for all three)
-- Briefing surf up,… · 7:16 AM / …new SW, new W offshore  (L33: the same three, with room for one: the rest carries on under it, open)
-- Briefing updated · 7:16 AM  (L34: the first update of this design, or one built without its words)
-- Briefing updated · 7:16 AM  (L35: an update kept before the line named its changes)
+- Briefing surf up,… · 7:16 AM / …new SW, new W offshore  (L33: the same three, with room for 10 characters: the rest carries on under it, open)
+- Briefing tide height,… · 7:16 AM / …SW now SSW at 15.4 s building  (L34: a first change too long for the line: a shorter one moves ahead of it)
+- Briefing SW now SSW… · 7:16 AM / …at 15.4 s building  (L35: one change too long for the line, and nothing shorter: broken at its last space that fits, never after a joining word)
+- Briefing updated · 7:16 AM  (L36: the first update of this design, or one built without its words)
+- Briefing updated · 7:16 AM  (L37: an update kept before the line named its changes)
 
 ## Alerts
 
