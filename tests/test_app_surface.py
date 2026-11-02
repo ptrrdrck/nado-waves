@@ -3959,7 +3959,11 @@ class TestTheBriefing:
         line = self.BLOCK[self.BLOCK.index("function briefLine"):]
         line = line[:line.index("\n}\n")]
         assert 'Briefing <span class="count">${what}${day}${clock(B.updated_utc)}</span>' in line
-        assert '` +${words.length - n}`' in line and ': "updated "' in line
+        # Too many to fit, it breaks off on an ellipsis closed up to its comma
+        # (owner's call, 2026-11-02, replacing "+N").
+        assert 'const BRIEF_BREAK = ",\\u2026";' in self.BLOCK
+        assert '`${words.slice(0, n).join(", ")}${BRIEF_BREAK} `' in line and '!words.length ? "updated "' in line
+        assert "+${" not in line
         said = self.BLOCK[self.BLOCK.index("function briefChanges"):]
         said = said[:said.index("\n}\n")]
         for text in (head, line, said):
@@ -3969,11 +3973,35 @@ class TestTheBriefing:
         from forecast.briefing import SHOWN
         assert sorted(re.findall(r'case "([a-z.]+)":', said)) == sorted(SHOWN)
 
+    def test_the_rest_carries_on_under_the_line_only_while_open(self):
+        """Owner's design, 2026-11-02: what did not fit is the open fold's
+        first line, "…tide height, today's tides", level with the changes,
+        outside the scrolling body (whose top edge clips), coming and going
+        on the fold's slide; tapped, it shuts the fold as the line does."""
+        head = self.BLOCK[self.BLOCK.index("function briefingFold"):]
+        assert ('<div class="brief-cont" data-brief-cont hidden><span class="count"></span></div>\n'
+                '    <div class="fold-body" id="brief-body"') in head
+        cont = self.BLOCK[self.BLOCK.index("function fillBriefCont"):]
+        cont = cont[:cont.index("\n}\n")]
+        assert 'rest.length ? `\\u2026${rest.join(", ")}` : ""' in cont
+        assert "count.getBoundingClientRect().left - head.getBoundingClientRect().left" in cont
+        assert "const want = rest.length > 0 && (WIDE() || BRIEF_OPEN);" in cont
+        assert "slideBriefCont(open);" in self.BLOCK[self.BLOCK.index("function setBriefOpen"):]
+        assert 'e.target.closest("[data-brief-head], [data-brief-cont]")' in SOURCE
+        assert ".brief-cont{padding:1.125px 0;font-size:14.5px;font-weight:600;" in SOURCE
+
+    def test_the_closed_line_takes_taps_from_around_it_without_moving_anything(self):
+        """Owner's request, 2026-11-02: an empty layer, only while closed,
+        8 px up and 14 px down into the 18 px gaps and out to the cards."""
+        assert ".briefing:has(> #brief-body[hidden]) > [data-brief-head]{position:relative}" in SOURCE
+        assert ('.briefing:has(> #brief-body[hidden]) > [data-brief-head]::after{content:"";position:absolute;'
+                'inset:-8px -13px -14px}') in SOURCE
+
     def test_its_line_says_as_many_changes_as_fit_on_one_line(self):
         fit = self.BLOCK[self.BLOCK.index("function fitBriefLine"):]
         fit = fit[:fit.index("\n}\n")]
         assert "for (let n = briefChanges(BRIEFING).length; n >= 0; n--)" in fit
-        assert "if (!n || el.scrollWidth <= el.clientWidth) return;" in fit
+        assert "if (!n || el.scrollWidth <= el.clientWidth) break;" in fit and "fillBriefCont();" in fit
         assert ".chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden}" in SOURCE
         assert "  fitBriefTide();\n  fitBriefLine();" in SOURCE
         assert 'document.fonts.addEventListener("loadingdone", () => fitBriefLine());' in SOURCE
@@ -4497,7 +4525,7 @@ class TestTheWideLayouts:
         assert "WIDE()" in touched and 'document.visibilityState === "visible"' in touched
         for kind in ("pointerdown", "keydown", "wheel", "touchstart"):
             assert f'"{kind}"' in SOURCE[SOURCE.index("for (const kind of"):][:120]
-        assert "if (!WIDE() && e.target.closest(\"[data-brief-head]\")" in SOURCE
+        assert "if (!WIDE() && e.target.closest(\"[data-brief-head], [data-brief-cont]\")" in SOURCE
         assert "max-height:none;overflow:visible" in self.WIDE_CSS
 
     def test_a_wide_tab_picks_only_whose_charts_are_drawn(self):

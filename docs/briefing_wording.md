@@ -7,8 +7,12 @@ alerts, the swell, the tides or the water quality changes in a way its line
 names; the conditions refresh without an update. Its line reads "Briefing
 {what changed}, {time}" (the day too when the update is not today's): what
 the update changed, in the order of the list at the end, as many as fit on
-the line and then "+N" (owner's copy, 2026-11-01; `forecast.briefing.changes`,
-each kept with the update so the record can be filtered by it). A change
+the line (owner's copy, 2026-11-01; `forecast.briefing.changes`, each kept
+with the update so the record can be filtered by it). When they do not all
+fit, the line breaks off on an ellipsis closed up to its comma, "Briefing
+surf up, SW building,… 6:17 PM", and the open fold's first line carries the
+rest on, level with the changes, "…tide height, today's tides" (owner's
+design, 2026-11-02, replacing "+N"). A change
 the line names none of (an offshore swell's due time, a new sample, the
 range only widening) is kept in the record, not announced, and is no
 update: the line and its time stay on the last one, while the fold shows
@@ -385,7 +389,8 @@ L19  Briefing quality status, 7:16 AM                         two breaks' water 
 L20  Briefing today's tides, 7:16 AM                          midnight's tides
 L21  Briefing tide height, 7:16 AM                            a tide height moved with the gauge's departure
 L22  Briefing surf up, new SW, new W offshore, 7:16 AM        the surf up, a new train and a new offshore swell, with room for all three
-L23  Briefing surf up +2, 7:16 AM                             the same three, with room for one
+L23  Briefing surf up,… 7:16 AM                               the same three, with room for one: the rest carries on under it, open
+              …new SW, new W offshore                         (the open fold's first line)
 L24  Briefing updated 7:16 AM                                 the first update of this design, or one built without its words
 L25  Briefing updated 7:16 AM                                 an update kept before the line named its changes
 ```

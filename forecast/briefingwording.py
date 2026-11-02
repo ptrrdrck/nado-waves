@@ -238,7 +238,7 @@ LINE_CASES = [
     ("L21", "a tide height moved with the gauge's departure", [{"kind": "tide.heights"}]),
     ("L22", "the surf up, a new train and a new offshore swell, with room for all three",
      [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW", "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}]),
-    ("L23", "the same three, with room for one", [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW",
+    ("L23", "the same three, with room for one: the rest carries on under it, open", [{"kind": "surf.up"}, {"kind": "swell.new", "point": "SW",
                                                   "period_s": 14.3}, {"kind": "offshore.new", "point": "W"}], 1),
     ("L24", "the first update of this design, or one built without its words", [{"kind": "first"}]),
     ("L25", "an update kept before the line named its changes", None),
@@ -333,7 +333,9 @@ for (const [id, B] of {cases}) out[id] = words(B, Date.parse("{READ_AT}"));
 const quiet = {json.dumps(QUIET)};
 for (const [id, changes, n] of {lines}) {{
   const B = {{...quiet, said: changes}};
-  out[id] = {{...words(B, Date.parse("{READ_AT}")), line: text(briefLine(B, Date.parse("{READ_AT}"), n ?? Infinity))}};
+  const rest = n == null ? [] : briefRest(B, n);
+  out[id] = {{...words(B, Date.parse("{READ_AT}")), line: text(briefLine(B, Date.parse("{READ_AT}"), n ?? Infinity)),
+             cont: rest.length ? text(`\u2026${{rest.join(", ")}}`) : null}};
 }}
 console.log(JSON.stringify(out));
 """)
@@ -372,7 +374,11 @@ def permutations(rendered: dict[str, dict]) -> str:
                 body += ([" ".join(block)] if block is got["swell"] else block) + ([""] if k < len(blocks) - 1 else [])
         parts += [f"### {cid}: {title}", "", "```text", *body, "```", ""]
     parts += ["### The fold's line, by what the update changed", "", "```text"]
-    parts += [f"{c[0]:<4} {rendered[c[0]]['line']:<56} {c[1]}" for c in LINE_CASES]
+    for c in LINE_CASES:
+        got = rendered[c[0]]
+        parts.append(f"{c[0]:<4} {got['line']:<56} {c[1]}")
+        if got.get("cont"):
+            parts.append(f"{'':<4} {'':<9}{got['cont']:<47} (the open fold's first line)")
     parts += ["```", ""]
     return "\n".join(parts)
 
@@ -412,8 +418,9 @@ def sentences(rendered: dict[str, dict]) -> str:
     tag = lambda ids: "every case" if ids == every else ", ".join(ids)
     parts = [SENTENCES_HEAD, "## The fold's line", ""]
     parts += [f"- {line}  ({tag(ids)})" for line, ids in seen["line"].items()]
-    parts += ["", "By what the update changed, as many as fit and then +N:", ""]
-    parts += [f"- {rendered[c[0]]['line']}  ({c[0]}: {c[1]})" for c in LINE_CASES]
+    parts += ["", "By what the update changed: as many as fit, and the rest carried on in the open fold:", ""]
+    parts += [f"- {rendered[c[0]]['line']}" + (f" / {rendered[c[0]]['cont']}" if rendered[c[0]].get("cont") else "")
+              + f"  ({c[0]}: {c[1]})" for c in LINE_CASES]
     for k, title in BLOCKS:
         parts += ["", f"## {title}", ""]
         for n, (line, ids) in enumerate(seen[k].items(), 1):
