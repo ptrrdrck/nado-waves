@@ -209,10 +209,12 @@ class TestThePage:
         row = row[:row.index("\n};\n")]
         assert "esc(a.event)" in row and "esc(a.headline)" in row and "esc(a.url)" in row
 
-    def test_the_briefings_alert_wraps_short_of_the_folds_clipped_edge(self):
+    def test_the_briefings_alert_is_never_wider_than_its_fold(self):
         """Owner's report, 2026-11-02: the NWS tag painted past the open
-        fold on an iPhone, which clips what overflows it."""
-        assert ".briefing .alert-line{padding-right:6px}" in PAGE
+        fold on an iPhone, which clips what overflows it, where the Forecast
+        tab's copy wrapped; it wraps as that one does, with no margin of its own."""
+        assert ".briefing .brief-alerts, .briefing .alert, .briefing .alert-line{min-width:0;max-width:100%}" in PAGE
+        assert ".briefing .alert-line{padding-right" not in PAGE
 
     def test_published_with_the_page(self):
         from forecast import publish
