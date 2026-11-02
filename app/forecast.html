@@ -2807,8 +2807,8 @@ const briefRest = (B, fit) => (!fit ? [] : briefChanges(B)
 // over "…SW now SSW at 15.4 s building"): the changes in order while they
 // fit, one that does not passed over for later, shorter ones that do; and
 // when none fits whole, the first starts on the line and breaks at its last
-// space that fits -- never after a joining word, so a line never ends on
-// "now", "at", "new" or "&" -- and the fold's first line finishes it. Pure:
+// space that fits -- never after a joining word ("now", "at", "new", "&")
+// unless no other break fits -- and the fold's first line finishes it. Pure:
 // `fits(fit)` says whether the line holds `fit`, measured on the page and by
 // a character budget in docs/briefing_wording.md.
 const BRIEF_NO_END = /(?:^|\s)(?:now|at|new|&)$/;
@@ -2818,13 +2818,19 @@ function briefFit(words, fits) {
   words.forEach((_, i) => { if (fits({on: [...on, i]})) on.push(i); });
   let fit = {on};
   if (on.length) return fit;
+  // A joining word ends the line only when no other break fits: "new
+  // alert" breaks after "new" rather than leaving the line empty (owner's
+  // call, 2026-11-02).
   const w = words[0];
-  for (let p = w.indexOf(" "); p > 0; p = w.indexOf(" ", p + 1)) {
-    const head = w.slice(0, p);
-    if (BRIEF_NO_END.test(head)) continue;
-    const f = {on, split: {i: 0, head, tail: w.slice(p + 1)}};
-    if (!fits(f)) break;
-    fit = f;
+  for (const strict of [true, false]) {
+    for (let p = w.indexOf(" "); p > 0; p = w.indexOf(" ", p + 1)) {
+      const head = w.slice(0, p);
+      if (strict && BRIEF_NO_END.test(head)) continue;
+      const f = {on, split: {i: 0, head, tail: w.slice(p + 1)}};
+      if (!fits(f)) break;
+      fit = f;
+    }
+    if (fit.split) break;
   }
   return fit;
 }

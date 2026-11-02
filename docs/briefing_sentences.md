@@ -55,8 +55,9 @@ By what the update changed: as many as fit, and the rest carried on in the open 
 - Briefing surf up,… · 7:16 AM / …new SW, new W offshore  (L33: the same three, with room for 10 characters: the rest carries on under it, open)
 - Briefing tide height,… · 7:16 AM / …SW now SSW at 15.4 s building  (L34: a first change too long for the line: a shorter one moves ahead of it)
 - Briefing SW now SSW… · 7:16 AM / …at 15.4 s building  (L35: one change too long for the line, and nothing shorter: broken at its last space that fits, never after a joining word)
-- Briefing updated · 7:16 AM  (L36: the first update of this design, or one built without its words)
-- Briefing updated · 7:16 AM  (L37: an update kept before the line named its changes)
+- Briefing new… · 7:16 AM / …alert  (L36: one change whose only break is after a joining word: broken there rather than leaving the line empty)
+- Briefing updated · 7:16 AM  (L37: the first update of this design, or one built without its words)
+- Briefing updated · 7:16 AM  (L38: an update kept before the line named its changes)
 
 ## Alerts
 

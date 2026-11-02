@@ -271,8 +271,10 @@ LINE_CASES = [
      [{"kind": "swell.shifted", "point": "SW", "period_s": 14.3, "to_point": "SSW", "to_period_s": 15.4, "train": 0}, {"kind": "swell.status", "point": "SSW", "period_s": 15.4, "from": "holding", "to": "building", "train": 0}, {"kind": "tide.heights"}], 16),
     ("L35", "one change too long for the line, and nothing shorter: broken at its last space that fits, never after a joining word",
      [{"kind": "swell.shifted", "point": "SW", "period_s": 14.3, "to_point": "SSW", "to_period_s": 15.4, "train": 0}, {"kind": "swell.status", "point": "SSW", "period_s": 15.4, "from": "holding", "to": "building", "train": 0}], 12),
-    ("L36", "the first update of this design, or one built without its words", [{"kind": "first"}]),
-    ("L37", "an update kept before the line named its changes", None),
+    ("L36", "one change whose only break is after a joining word: broken there rather than leaving the line empty",
+     [{"kind": "alert.new", "event": "Rip Current Statement"}], 6),
+    ("L37", "the first update of this design, or one built without its words", [{"kind": "first"}]),
+    ("L38", "an update kept before the line named its changes", None),
 ]
 
 

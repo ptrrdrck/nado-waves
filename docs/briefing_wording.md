@@ -17,7 +17,8 @@ rest on, level with the changes, "…tide height, today's tides" (owner's
 design, 2026-11-02, replacing "+N"). A change too long for what is left of
 the line is passed over for later, shorter ones that fit; when none fits
 whole, the first starts on the line and breaks at its last space that fits,
-never after "now", "at", "new" or "&", ending the line on a bare ellipsis,
+never after "now", "at", "new" or "&" unless no other break fits ("new…"
+over "…alert"), ending the line on a bare ellipsis,
 "Briefing SW now SSW… · 7:16 AM" over "…at 15.4 s building" (owner's
 request, 2026-11-02). Below, a case's room is in characters; the page
 measures the line. Each THING that changed is said
@@ -420,6 +421,8 @@ L34  Briefing tide height,… · 7:16 AM                         a first change 
               …SW now SSW at 15.4 s building                  (the open fold's first line)
 L35  Briefing SW now SSW… · 7:16 AM                           one change too long for the line, and nothing shorter: broken at its last space that fits, never after a joining word
               …at 15.4 s building                             (the open fold's first line)
-L36  Briefing updated · 7:16 AM                               the first update of this design, or one built without its words
-L37  Briefing updated · 7:16 AM                               an update kept before the line named its changes
+L36  Briefing new… · 7:16 AM                                  one change whose only break is after a joining word: broken there rather than leaving the line empty
+              …alert                                          (the open fold's first line)
+L37  Briefing updated · 7:16 AM                               the first update of this design, or one built without its words
+L38  Briefing updated · 7:16 AM                               an update kept before the line named its changes
 ```

@@ -888,7 +888,8 @@ forecaster actually verifies against, Surfline included.
    docs run with a character budget): one too long for what is left is
    PASSED OVER for later, shorter ones that fit, and when none fits whole
    the first starts on the line and breaks at its last space that fits,
-   never after "now", "at", "new" or "&", on a bare ellipsis, "Briefing SW
+   never after "now", "at", "new" or "&" unless no other break fits ("new…"
+   over "…alert", owner's call, same day), on a bare ellipsis, "Briefing SW
    now SSW…" over "…at 15.4 s building" (owner's request, 2026-11-02,
    after "Briefing …" sat over the whole change); too many, it breaks off
    on an ellipsis CLOSED UP to its comma, "Briefing surf up, SW building,…", and

@@ -75,6 +75,10 @@ def test_a_change_too_long_for_the_line_never_leaves_it_empty(cases):
     broken = cases[_line("one change too long for the line")]
     assert broken["line"] == "Briefing SW now SSW\u2026 · 7:16 AM"
     assert broken["cont"] == "\u2026at 15.4 s building"
+    # Its only break after a joining word: taken rather than an empty line
+    # (owner's call, same day).
+    only = cases[_line("one change whose only break")]
+    assert only["line"] == "Briefing new\u2026 · 7:16 AM" and only["cont"] == "\u2026alert"
 
 
 def test_a_line_too_long_breaks_off_and_carries_on_in_the_open_fold(cases):

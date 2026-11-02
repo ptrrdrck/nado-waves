@@ -4048,7 +4048,8 @@ class TestTheBriefing:
         # later ones that do; with none on the line, the first is broken at
         # its last space that fits, never after a joining word.
         assert "words.forEach((_, i) => { if (fits({on: [...on, i]})) on.push(i); });" in pick
-        assert "if (BRIEF_NO_END.test(head)) continue;" in pick
+        assert "if (strict && BRIEF_NO_END.test(head)) continue;" in pick
+        assert "for (const strict of [true, false]) {" in pick
         assert "const BRIEF_NO_END = /(?:^|\\s)(?:now|at|new|&)$/;" in self.BLOCK
         assert ".chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;" in SOURCE
         assert ".chart-head [data-brief-line] .brief-what{flex:0 1 auto;min-width:0;overflow:hidden}" in SOURCE
