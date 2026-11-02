@@ -707,6 +707,24 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* The Briefing's line is one line: it fills the row beside its caret, and
    `fitBriefLine` says as many of the update's changes as fit there. */
 .chart-head [data-brief-line]{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden}
+/* The line carried on (owner's design, 2026-11-02): set as the line's own
+   words, padded as the line's 24 px row centres its text, and pulled up
+   over the column's gap so its text sits one line below the line's, as a
+   wrapped line would, however many lines it takes. */
+.brief-cont{padding:1.125px 0;font-size:14.5px;font-weight:600;
+            margin-top:calc(-1 * var(--brief-cont-up, 8.25px))}
+.brief-cont .count{margin-left:0;color:var(--soft);font-weight:400}
+/* Tapped, it shuts the fold as the line does, and lights the caret as the
+   line's hover does (owner's request, 2026-11-02). */
+.brief-cont{cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.chart-head:has(+ .brief-cont:hover) .calc-toggle{color:var(--ink)}
+/* Closed, the line takes taps from the space around it too (owner's
+   request, 2026-11-02, after missing it below): an empty layer reaching
+   8 px up and 14 px down into the 18 px gaps above and below it, and out to
+   the cards' edges, 46 px tall in all, so nothing on screen moves. Open,
+   the space below is the fold's, so it is not taken. */
+.briefing:has(> #brief-body[hidden]) > [data-brief-head]{position:relative}
+.briefing:has(> #brief-body[hidden]) > [data-brief-head]::after{content:"";position:absolute;inset:-8px -13px -14px}
 /* The "Charts" line is the last thing on every card, below the provenance,
    under a rule (owner's call, 2026-10-02): 8 px of margin on the card's 2 px
    gap above it, 9 px below. The swell card's gap is wider, so it takes less
@@ -2648,12 +2666,22 @@ function briefChanges(B) {
 // none, and when (the day too when not today's): "Briefing surf up, new W
 // offshore, 9:16 PM" (owner's design, 2026-11-01); and the dot while that
 // update is unopened on this device.
+// When it holds fewer than the update named, it breaks off on an ellipsis
+// closed up to its comma, "Briefing surf up, SW building,… 6:17 PM", and
+// the open fold's first line carries the rest on, "…tide height, today's
+// tides" (`briefCont`; owner's design, 2026-11-02, replacing "+N").
+const BRIEF_BREAK = ",\u2026";
 function briefLine(B, nowMs = Date.now(), shown = Infinity) {
   const day = coastDay(Date.parse(B.updated_utc)) === coastDay(nowMs) ? "" : `${onDay(B.updated_utc)}, `;
   const words = briefChanges(B), n = Math.min(shown, words.length);
-  const what = n ? `${words.slice(0, n).join(", ")}${words.length > n ? ` +${words.length - n}` : ""}, ` : "updated ";
+  const what = !words.length ? "updated "
+    : n === words.length ? `${words.join(", ")}, `
+    : n ? `${words.slice(0, n).join(", ")}${BRIEF_BREAK} ` : "\u2026 ";
   return `Briefing <span class="count">${what}${day}${clock(B.updated_utc)}</span>`;
 }
+// The changes the line had no room for, carried on under it.
+const briefRest = (B, shown) => briefChanges(B).slice(shown);
+let BRIEF_SHOWN = Infinity;
 // As many of the update's changes as the line holds without wrapping,
 // measured on the laid-out line, again whenever its width changes.
 function fitBriefLine() {
@@ -2662,8 +2690,53 @@ function fitBriefLine() {
   const dot = el.querySelector(".status") ? briefDot : "";
   for (let n = briefChanges(BRIEFING).length; n >= 0; n--) {
     el.innerHTML = briefLine(BRIEFING, Date.now(), n) + dot;
-    if (!n || el.scrollWidth <= el.clientWidth) return;
+    BRIEF_SHOWN = n;
+    if (!n || el.scrollWidth <= el.clientWidth) break;
   }
+  fillBriefCont();
+}
+// The line carried on: the open fold's first line, under the changes and
+// level with them (owner's design, 2026-11-02), there only when the line
+// broke off; on a wide screen, where the fold is always open, whenever it
+// did.
+function fillBriefCont() {
+  const cont = document.querySelector("[data-brief-cont]");
+  const count = document.querySelector("[data-brief-line] .count");
+  if (!cont || !count || !BRIEFING) return;
+  const rest = briefRest(BRIEFING, BRIEF_SHOWN);
+  cont.querySelector(".count").textContent = rest.length ? `\u2026${rest.join(", ")}` : "";
+  const head = cont.previousElementSibling;
+  cont.style.paddingLeft = `${count.getBoundingClientRect().left - head.getBoundingClientRect().left}px`;
+  const want = rest.length > 0 && (WIDE() || BRIEF_OPEN);
+  if (!BRIEF_CONT_MOVE && cont.hidden === want) cont.hidden = !want;
+}
+// It comes and goes with the fold, on the fold's slide: grown from nothing
+// to its line as its words fade in, so what lies below moves one way only.
+let BRIEF_CONT_MOVE = null;
+function slideBriefCont(open) {
+  const cont = document.querySelector("[data-brief-cont]");
+  if (!cont || !BRIEFING) return;
+  if (BRIEF_CONT_MOVE) { BRIEF_CONT_MOVE.forEach((a) => a.cancel()); BRIEF_CONT_MOVE = null; }
+  const want = open && briefRest(BRIEFING, BRIEF_SHOWN).length > 0;
+  const still = WIDE() || typeof cont.animate !== "function"
+    || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (still || want === !cont.hidden) { cont.hidden = !want; return; }
+  cont.hidden = false;
+  const cs = getComputedStyle(cont), h = cont.getBoundingClientRect().height;
+  const gap = parseFloat(getComputedStyle($("briefing")).rowGap) || 0;
+  const shut = {height: "0px", paddingTop: "0px", paddingBottom: "0px", marginTop: -gap + "px", opacity: 0};
+  const full = {height: h + "px", paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom,
+                marginTop: cs.marginTop, opacity: 1};
+  const timing = {duration: BRIEF_SLIDE.ms, easing: BRIEF_SLIDE.ease};
+  cont.style.overflow = "hidden";
+  const a = cont.animate(want ? [shut, full] : [full, shut], timing);
+  BRIEF_CONT_MOVE = [a];
+  a.onfinish = () => {
+    BRIEF_CONT_MOVE = null;
+    a.cancel();
+    cont.style.overflow = "";
+    cont.hidden = !want;
+  };
 }
 const briefLineResize = typeof ResizeObserver === "undefined" ? null
   : new ResizeObserver(() => fitBriefLine());
@@ -2688,6 +2761,7 @@ function setBriefOpen(open) {
   if (btn) btn.setAttribute("aria-expanded", String(open));
   const body = $("brief-body");
   if (body) slideBrief(body, open);
+  slideBriefCont(open);
   if (open) briefSeen();
 }
 // The slide (owner's settings, 2026-10-31, from the mock): 240 ms, a quick
@@ -2875,6 +2949,7 @@ function briefingFold(B) {
       type="button" class="calc-toggle" data-brief-toggle aria-controls="brief-body"
       aria-expanded="${BRIEF_OPEN}" aria-label="Briefing"><svg viewBox="0 0 16 16"
       aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>`}</div>
+    <div class="brief-cont" data-brief-cont hidden><span class="count"></span></div>
     <div class="fold-body" id="brief-body"${open ? "" : " hidden"}>
       ${blocks.join("")}
     </div>`;
@@ -8433,7 +8508,9 @@ function boot(data, observed, measured, series, windtide) {
   window.addEventListener("resize", () => briefEdges(true), {passive: true});
   $("fc-alerts").addEventListener("click", toggleAlert);
   $("briefing").addEventListener("click", (e) => {
-    if (!WIDE() && e.target.closest("[data-brief-head]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
+    // The line carried on is the line's, so it opens and shuts the fold
+    // as the line does (owner's request, 2026-11-02).
+    if (!WIDE() && e.target.closest("[data-brief-head], [data-brief-cont]") && !e.target.closest("a")) setBriefOpen(!BRIEF_OPEN);
     toggleAlert(e);
     const row = e.target.closest("[data-brief-row]");
     if (row) {

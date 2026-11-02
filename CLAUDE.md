@@ -873,7 +873,21 @@ forecaster actually verifies against, Surfline included.
    today's): WHAT THE UPDATE CHANGED (owner's copy, 2026-11-01;
    `briefing.changes`, kept with each update as `changes` so the record
    can be filtered by kind), in `SHOWN`'s order, as many as fit on one
-   line and then "+N" (`fitBriefLine`, measured) — new alert / alert
+   line (`fitBriefLine`, measured); too many, it breaks off on an ellipsis
+   CLOSED UP to its comma, "Briefing surf up, SW building,… 6:17 PM", and
+   the open fold's first line carries the rest on, "…tide height, today's
+   tides" (owner's design and calls, 2026-11-02, replacing "+N";
+   `fillBriefCont`), level with the changes (measured), there only when
+   the line broke off and the fold is open (always, wide, while needed),
+   outside the scrolling body, whose top-edge clip would cut it, its text
+   one line below the line's as a wrapped line's, and the first ink below
+   it as far as below the line without it (22.87 px at 390, measured). It
+   comes and goes on the fold's own slide (`slideBriefCont`), and a tap
+   on it shuts the fold as the line does. CLOSED, the line takes taps from
+   around it (owner's request, same day, after missing it below): an
+   empty `::after` 8 px up and 14 px down into the 18 px gaps and out to
+   the cards' edges, 46 px tall, pixels unchanged (checked at 320 and
+   393), off while open — new alert / alert
    extended / shortened / ended, quality status (any break's, said once),
    buoy dark / back, surf up / down, new SW, SW dropped, SW now 14.3 s /
    now WSW / now WSW at 14.3 s, SW building, new W offshore, NW offshore

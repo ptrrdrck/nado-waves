@@ -18,7 +18,7 @@ the page will read as the page's again until that happens. The formula is in
 - Briefing updated 7:16 AM  (Q1, B1, C1, M1, H1, D1, W1, W2, K1, A1, R1, Z1, S1)
 - Briefing updated Oct 21, 12:06 PM  (Y1)
 
-By what the update changed, as many as fit and then +N:
+By what the update changed: as many as fit, and the rest carried on in the open fold:
 
 - Briefing surf up, 7:16 AM  (L1: the surf up)
 - Briefing surf down, 7:16 AM  (L2: the surf down)
@@ -42,7 +42,7 @@ By what the update changed, as many as fit and then +N:
 - Briefing today's tides, 7:16 AM  (L20: midnight's tides)
 - Briefing tide height, 7:16 AM  (L21: a tide height moved with the gauge's departure)
 - Briefing surf up, new SW, new W offshore, 7:16 AM  (L22: the surf up, a new train and a new offshore swell, with room for all three)
-- Briefing surf up +2, 7:16 AM  (L23: the same three, with room for one)
+- Briefing surf up,… 7:16 AM / …new SW, new W offshore  (L23: the same three, with room for one: the rest carries on under it, open)
 - Briefing updated 7:16 AM  (L24: the first update of this design, or one built without its words)
 - Briefing updated 7:16 AM  (L25: an update kept before the line named its changes)
 
