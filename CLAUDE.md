@@ -932,16 +932,17 @@ forecaster actually verifies against, Surfline included.
    swell headline -- as far under the Briefing's line as the Forecast tab's
    under its date, ink to ink, in every layout (owner's requests,
    2026-10-30 and -31: the fold body's own top padding, so it holds
-   whatever comes first). It is capped at its box's width on BOTH tabs
-   (`.brief-alerts, .alerts, .alert, .alert-line` min-width 0, max-width
-   100%; the Forecast tab's since the same day, owner's call, after its
-   screenshot showed the line ~2 px past its box, unclipped; owner's report,
-   2026-11-02: on an iPhone at 393 px "… until 6 PM Mon NWS" ran on one line
-   past the scrolling fold's clip by about its own excess width, where the
-   Forecast tab's copy wrapped, so Safari sized it to its one-line width
-   inside the scroller), so the two wrap alike; a 6 px margin tried first
-   was taken out, as it could not fix that and made the two differ. No
-   WebKit runs in a session: the owner's iPhone is the check. Coast and ocean only (owner's choice): every
+   whatever comes first). Every alert line wraps 6 px short of its box,
+   on BOTH tabs (`.alert-line` padding-right; owner's reports, 2026-11-02):
+   at 393 px "… until 6 PM Mon NWS" needs ~313 px of a 311 px column, and
+   Safari measured it a few px narrower than it drew it, kept it on one
+   line and drew the NWS tag ~2 px past the box (unseen on the Forecast
+   tab, cut by the open Briefing's clip). The margin made it wrap on the
+   iPhone. A width cap (min-width 0, max-width 100%) tried in its place
+   changed nothing there — the screenshot that seemed to prove it showed
+   the margin, still loaded in an open tab (the page's HTML reloads only
+   with the tab; its data refreshes) — and was taken out. No WebKit runs
+   in a session: the owner's iPhone is the check, after a reload. Coast and ocean only (owner's choice): every
    alert for PZZ750, and CAZ043's events in `COASTAL_EVENTS`, never heat,
    fire weather or wind on land, never a Test. In force is NWS's own times:
    onset (never before `sent`) to `ends` (`expires` without one); a later

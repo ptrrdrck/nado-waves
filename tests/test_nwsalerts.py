@@ -210,11 +210,12 @@ class TestThePage:
         assert "esc(a.event)" in row and "esc(a.headline)" in row and "esc(a.url)" in row
 
     def test_an_alert_is_never_wider_than_its_box_on_either_tab(self):
-        """Owner's report, 2026-11-02: the NWS tag painted past the open
-        fold on an iPhone, which clips what overflows it, where the Forecast
-        tab's copy wrapped; it wraps as that one does, with no margin of its own."""
-        assert ".brief-alerts, .alerts, .alert, .alert-line{min-width:0;max-width:100%}" in PAGE
-        assert ".briefing .alert-line{padding-right" not in PAGE
+        """Owner's reports, 2026-11-02: Safari drew the line a few px wider
+        than it measured it, its NWS tag past its box on both tabs, cut by the
+        open Briefing's clip; a 6 px margin made it wrap there, a width cap
+        did not. Both tabs carry the same margin, so they wrap alike."""
+        assert ".alert-line{padding-right:6px}" in PAGE
+        assert "max-width:100%}" not in PAGE[PAGE.index("/* Every alert line wraps"):PAGE.index(".alert-line{padding-right:6px}")]
 
     def test_published_with_the_page(self):
         from forecast import publish

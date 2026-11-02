@@ -329,17 +329,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
             margin-left:3px;padding:0;border:0;background:none;cursor:pointer;white-space:nowrap}
 .alert-head{font-size:13px;color:var(--soft);padding-left:24px;overflow-wrap:anywhere}
 .brief-block.brief-alerts{gap:6px}
-/* Never wider than the fold (owner's report, 2026-11-02): on an iPhone at
-   393 px the Briefing's "Beach Hazards Statement until 6 PM Mon NWS" ran
-   on one line past the open fold, which clips what overflows it, by about
-   what the line is wider than the fold, while the same alert on the
-   Forecast tab, outside a scrolling box, wrapped. So Safari sized it to its
-   own one-line width inside the scrolling fold; capped at the fold's width
-   it wraps where the Forecast tab's does. Chromium was already so.
-   And the Forecast tab's too (owner's call, same day): its screenshot showed
-   the same line run ~2 px past its box at 393 px, unclipped there, where it
-   needs ~313 px of a 311 px column; capped, both wrap alike. */
-.brief-alerts, .alerts, .alert, .alert-line{min-width:0;max-width:100%}
+/* Every alert line wraps 6 px short of its box, on both tabs alike
+   (owner's reports, 2026-11-02). On an iPhone at 393 px, "Beach Hazards
+   Statement until 6 PM Mon NWS" needs ~313 px of a 311 px column; Safari
+   measured it a few px narrower than it drew it and kept it on one line,
+   its NWS tag ~2 px past the box: unseen on the Forecast tab, cut by the
+   open Briefing's clip. With this margin the Briefing wrapped on the
+   iPhone. A width cap (max-width 100%) tried in its place changed nothing
+   there: the wrap that seemed to prove it came from this margin, still
+   loaded in an open tab. Chromium wraps it anyway. */
+.alert-line{padding-right:6px}
 /* The log-first gate (owner's call, 2026-10-16): on a device whose reader
    logs the beach, the page opens on this and nothing else until today's
    log is done or declined, so an observer reaches the log before any
