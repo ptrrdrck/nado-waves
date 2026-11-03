@@ -975,6 +975,8 @@ class TestItMatchesTheLiveOutput:
         from forecast.nearshore import train_dicts
         from forecast.transform import Train
         known |= set(train_dicts([Train(1.0, 12.0, 250.0, 1.0)])[0])  # a break's, 5 m heading too
+        one = [Train(1.0, 12.0, 250.0, 0.5, buoy=0), Train(0.5, 16.0, 200.0, 0.5, buoy=0)]
+        known |= set(train_dicts(one, [Train(1.1, 14.0, 230.0, 1.0)])[0])  # one swell's rows (§49)
         known |= {"peak_period_s", "peak_direction_deg", "frequency_bins"}  # buoy
         known |= {"age_hours", "observed_utc", "trains", "height_m", "kind"}
         known |= {"detail"}  # `past` entries: forecastlog.past_hours
@@ -1195,6 +1197,50 @@ class TestWaveTrainsOnScreen:
                   "console.log(pointsText({from_deg: 234, lobes: [[258, 0.48], [180, 0.28]]}));")
         out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
         assert out.stdout.splitlines() == ["WSW 258° & S 180°", "SSW 202°", "SSW 202°", "WSW and S"]
+
+    def test_one_swells_rows_sit_together_and_a_tap_picks_them_all(self):
+        """Owner's call, 2026-11-03 (A1 with E, BRIEFING §49): rows of one
+        swell the windows divided are put together under a bracket, the
+        swells in order of their biggest row, each row keeping its index for
+        its arrows; and a tap on one picks every row and arrow of it."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        start = SOURCE.index("function swellGroups(")
+        fns = SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+        start = SOURCE.index("const pickMatch = ")
+        fns += SOURCE[start:SOURCE.index(";\n", start) + 2]
+        start = SOURCE.index("const pickRows = ")
+        fns += SOURCE[start:SOURCE.index(");\n", start) + 3]
+        script = fns + """
+const order = (ts) => JSON.stringify(swellGroups(ts).map((g) => g.map((r) => r.i)));
+console.log(order([{swell: 1}, {swell: 0}, {swell: 1}, {local: true}]));
+console.log(order([{swell: 0}, {swell: 1}, {swell: 2}]));
+console.log(order([{swell: 1}, {}, {swell: 1}]));
+console.log(order([{hs_m: 1}, {hs_m: 0.5}]));
+const hit = pickMatch("G0.2");
+console.log(["t0", "t2-1", "g0.2", "t1", "t20", "g0"].map(hit).join(" "));
+console.log(["0", "1", "2"].map((n) => pickRows("G0.2", n)).join(" "), pickRows("T1", "1"), pickRows("t2-1", "2"));
+"""
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        assert out.stdout.splitlines() == [
+            "[[0,2],[1],[3]]", "[[0],[1],[2]]", "[[0,2],[1]]", "[[0],[1]]",
+            "true true true false false false", "true false true true true"]
+        rows = SOURCE[SOURCE.index("function trainList("):]
+        rows = rows[:rows.index("\n}\n")]
+        assert "swellGroups(trains.slice(0, limit))" in rows and 'data-group="${of}"' in rows
+        assert ".swell-group::before{" in SOURCE
+        assert "reaching this break as ${n} trains" in SOURCE
+
+    def test_a_picked_row_is_padded_as_much_as_above_and_below(self):
+        """Owner's call, 2026-11-03: the highlight's sides match its top and
+        foot (5 px, measured at 4x), and the height column gives the width
+        back (96 px holds a 10 ft height, 95.5 px, so periods stay in line)."""
+
+        assert ".trains{--row-pad:5px;--bracket-lane:9px;padding-left:var(--bracket-lane)}" in SOURCE
+        assert "padding:0 var(--row-pad)}" in SOURCE
+        assert ".train .ht{font-weight:600;min-width:96px}" in SOURCE
 
     def test_a_train_is_one_line_at_any_phone_width(self):
         """Owner's calls, 2026-10-06 and -07: never a second line, never past

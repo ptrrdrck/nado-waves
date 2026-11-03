@@ -173,6 +173,9 @@ class Nearshore:
     #: sea the buoy already carried in, which open-water chop grows on from
     #: rather than beside (`local_sea`).
     hs_short: float = 0.0
+    #: The buoy's own split it was handed (`buoy_split`), which each train's
+    #: `buoy` indexes; empty when it was handed none.
+    buoy: list = field(default_factory=list)
 
 
 #: A break's train is divided by the buoy's own trains when a second one of
@@ -412,6 +415,7 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
         hs(e_fric),
         trains,
         hs(e_short),
+        list(buoy or ()),
     )
 
 
@@ -605,7 +609,27 @@ def local_sea(table: Table, normal_deg: float, wind_kt: float | None,
 
 # ------------------------------------------------------------------ surfaces
 
-def train_dicts(trains) -> list[dict]:
+def train_dicts(trains, buoy: list | None = None) -> list[dict]:
+    """The rows a surface shows. With `buoy`, the split the trains were
+    divided by (`Nearshore.buoy`), each row also carries `swell`, the buoy
+    train that carried most of it (`Train.buoy`), so a page can show that
+    two of a break's rows are ONE swell the windows divided (owner's call,
+    2026-11-03, BRIEFING §49: bracketed together, tapped together); and the
+    rows that share one carry `swell_at_buoy`, what that swell was at the
+    buoy, for the drawing's caption. Only those: it is the rows' business,
+    not every row's."""
+
+    shared = {k for k in (t.buoy for t in trains)
+              if k is not None and sum(1 for u in trains if u.buoy == k) > 1}
+
+    def at_buoy(k):
+        if not buoy or k not in shared or not 0 <= k < len(buoy):
+            return {}
+        b = buoy[k]
+        return {"swell_at_buoy": {"period_s": round(b.period_s, 1),
+                                  "from_deg": None if math.isnan(b.from_deg) else round(b.from_deg),
+                                  "lobes": lobes_payload(b)}}
+
     return [
         {
             "hs_m": round(t.hs_m, 3),
@@ -618,6 +642,8 @@ def train_dicts(trains) -> list[dict]:
             # break drawing's inner arrow, never a train row.
             "near_from_deg": None if math.isnan(t.near_from_deg) else round(t.near_from_deg) % 360,
             "near_lobes": [None if math.isnan(d) else round(d) % 360 for d in t.near_lobes],
+            **({"swell": t.buoy} if buoy and t.buoy is not None else {}),
+            **at_buoy(t.buoy),
         }
         for t in trains
     ]
@@ -647,7 +673,7 @@ def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
 
     local_hs = local.hs_m if local else 0.0
     total = math.sqrt(near.hs_ref ** 2 + local_hs ** 2)
-    trains = train_dicts(near.trains[:3])
+    trains = train_dicts(near.trains[:3], near.buoy)
     if local:
         trains.append({"hs_m": round(local.hs_m, 3), "period_s": round(local.tp_s, 1),
                        "from_deg": round(local.from_deg), "share": None,

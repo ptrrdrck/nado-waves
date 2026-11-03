@@ -424,10 +424,23 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* Wave trains. A spectrum is two or three swells plus a wind sea, and which
    one leads at a break need not be the one leading at the buoy — so they are
    listed rather than collapsed into a single "dominant". */
+/* Every row sits in a bracket lane (owner's call, 2026-11-03: one swell the
+   windows divided is bracketed, A1), and a picked row's background reaches
+   past its text by as much as it does above and below: measured at 4x in
+   Archivo, the digits stand 5.0 px under the row's top and the baseline
+   6.25 px over its foot, so 5 px each side. The height column gives the
+   width back: heights render 87.4 px wide under 10 ft and 95.5 px from 10 ft
+   (Both), so 96 px keeps the periods in one column at every height. */
 .trains{display:flex;flex-direction:column;gap:3px;margin-top:3px}
+.trains{--row-pad:5px;--bracket-lane:9px;padding-left:var(--bracket-lane)}
 .train{display:flex;align-items:baseline;gap:8px;font-size:14px;
-       font-variant-numeric:tabular-nums}
-.train .ht{font-weight:600;min-width:112px}
+       font-variant-numeric:tabular-nums;padding:0 var(--row-pad)}
+.train .ht{font-weight:600;min-width:96px}
+/* One swell's rows, bracketed in the lane: from the first row's digits to
+   the last row's baseline, in the faintest grey the rows use. */
+.swell-group{display:flex;flex-direction:column;gap:3px;position:relative}
+.swell-group::before{content:"";position:absolute;left:calc(1px - var(--bracket-lane));top:5px;bottom:6px;
+  width:5px;border:1.5px solid var(--faint);border-right:0;border-radius:2px 0 0 2px}
 .train .tp{color:var(--soft);min-width:48px}
 .train .dr{color:var(--soft);flex:1;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 /* "wind sea" and "local chop" in the heading's own grey (owner's call,
@@ -3355,16 +3368,27 @@ function cardsForForecast(step) {
 // One line per train, always (owner's calls, 2026-10-06 and -07). The row
 // carries every form of its heading (`trainForms`), the longest shown, and
 // `fitTrains` steps down to the first that fits the row once it is laid out.
+//
+// One swell the windows divided is two rows (owner's call, 2026-11-03,
+// BRIEFING §49): rows carrying the same `swell` -- the buoy train that carried
+// most of each -- sit together under a bracket (option A1 of the owner's
+// mock): the rows are chosen by height as before, then each swell's rows are
+// put together, the swells in order of their biggest row, so the lead row is
+// still the first. A row keeps its index in `trains` (`data-train`), which is
+// how the drawing's arrows know it; a grouped row's `data-group` names every
+// row of its swell, and a tap picks them all (option E; `pickMatch`).
 function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = ""} = {}) {
   if (!trains || !trains.length) return "";
-  return `<div class="trains"${aged}>` + trains.slice(0, limit).map((t, i) => {
+  const row = ({t, i}, group) => {
     const tag = t.local ? "chop" : t.wind_sea ? "ws" : "";
     const forms = trainForms(t, !!tag);
     // On the Buoys tab a row lights its period range on the rose below.
     const onRose = rose && roseTrainOK(rose, i);
+    const of = group ? group.map((r) => r.i).sort((a, b) => a - b).join(".") : "";
     return `
     <div class="train${i === 0 ? " lead" : ""}"${drawn(i)
-      ? ` data-train="${i}" tabindex="0" role="button" aria-pressed="false" aria-label="Show this train on the drawing"`
+      ? ` data-train="${i}" tabindex="0" role="button"${of ? ` data-group="${of}"` : ""} aria-pressed="false"`
+        + ` aria-label="${of ? "Show this swell's trains on the drawing" : "Show this train on the drawing"}"`
       : onRose ? ` data-rose-train="${i}" data-rose-for="${rose}" tabindex="0" role="button"`
         + ` aria-pressed="${ROSE_TRAIN[rose] === i}" aria-label="Show this period range on the rose"` : ""}>
       <span class="ht">${height(t.hs_m)}</span>
@@ -3373,7 +3397,37 @@ function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = 
       ${tag === "chop" ? '<span class="tag">local chop</span>'
         : tag === "ws" ? '<span class="tag">wind sea</span>' : ""}
     </div>`;
-  }).join("") + `</div>`;
+  };
+  return `<div class="trains"${aged}>` + swellGroups(trains.slice(0, limit)).map((g) => (g.length > 1
+    ? `<div class="swell-group" role="group" aria-label="One swell, ${g.length} trains">`
+      + `${g.map((r) => row(r, g)).join("")}</div>`
+    : row(g[0], null))).join("") + `</div>`;
+}
+// The drawing's caption for one swell divided into rows: what it was at the
+// buoy (the rows' `swell_at_buoy`), and how many trains reach the break.
+function swellCaption(group) {
+  const at = group.map((r) => r.t.swell_at_buoy).find(Boolean);
+  const n = ["", "", "two", "three", "four"][group.length] || String(group.length);
+  return (at ? `One swell at the buoy, ${pointsText(at)} at ${at.period_s.toFixed(1)} s,`
+    : "One swell at the buoy,") + `\nreaching this break as ${n} trains`;
+}
+// A list's rows as A1 orders them: [[{t, i}, ...], ...], one array a swell,
+// in order of each swell's first (biggest) row; rows of no shared swell, and
+// local chop, alone where they fall. The drawing groups by the same call.
+function swellGroups(trains) {
+  const rows = trains.map((t, i) => ({t, i}));
+  const of = ({t}) => (!t.local && Number.isInteger(t.swell) ? t.swell : null);
+  const count = new Map();
+  rows.forEach((r) => { const k = of(r); if (k != null) count.set(k, (count.get(k) || 0) + 1); });
+  const out = [], placed = new Set();
+  for (const r of rows) {
+    if (placed.has(r.i)) continue;
+    const k = of(r);
+    const g = k != null && count.get(k) > 1 ? rows.filter((s) => of(s) === k) : [r];
+    g.forEach((s) => placed.add(s.i));
+    out.push(g);
+  }
+  return out;
 }
 
 // Show each row's longest heading that fits beside its height, period and
@@ -4178,6 +4232,13 @@ function windowDrawing(c, aged = "") {
   // is picked -- drawn for every train at once they would knot at the break.
   // A payload from before it, or a train no ray carried, has none.
   const nears = [];
+  // A swell the windows divided into rows (BRIEFING §49) has one caption of
+  // its own (`swellCaption`), shown when one of its rows is tapped and all of
+  // its arrows light. Pushed before the trains' captions: a pick shows only
+  // the first caption it lights.
+  for (const g of swellGroups((c.trains || []).slice(0, 4)).filter((g) => g.length > 1)) {
+    captions.push(caption(swellCaption(g), `g${g.map((r) => r.i).sort((a, b) => a - b).join(".")}`));
+  }
   // A train from two directions gets an arrow from each (`headings`).
   const arrows = (c.trains || [])
     .flatMap((t, i) => headings(t).map((deg, j) => ({t, i, j, deg, a: rel(deg)})))
@@ -4254,9 +4315,16 @@ const PICKED = {};
 // Which keys a pick lights. A section or one arrow is its own key; a train
 // picked from the list ("T2") is every arrow it has, one per direction it
 // arrives from ("t2", "t2-1").
+// A row of a swell the windows divided ("G0.2", BRIEFING §49) is every
+// arrow of every row of that swell, and the swell's own caption ("g0.2").
 const pickMatch = (key) => (key && /^T\d+$/.test(key)
   ? (k) => k === `t${key.slice(1)}` || k.startsWith(`t${key.slice(1)}-`)
-  : (k) => k === key);
+  : key && /^G[\d.]+$/.test(key)
+    ? (k) => k === `g${key.slice(1)}` || key.slice(1).split(".").some((n) => k === `t${n}` || k.startsWith(`t${n}-`))
+    : (k) => k === key);
+// The rows a key presses: a train's own, or every row of its swell.
+const pickRows = (key, n) => !!key && (key === `T${n}` || key === `t${n}` || key.startsWith(`t${n}-`)
+  || (key[0] === "G" && key.slice(1).split(".").includes(n)));
 const pickDrawn = (svg, key) => !!key
   && [...svg.querySelectorAll("[data-pick]")].some((el) => pickMatch(key)(el.getAttribute("data-pick")));
 
@@ -4269,9 +4337,7 @@ function showPick(svg, key) {
   const pane = svg.closest(".pane");
   if (pane) {
     pane.querySelectorAll(".train[data-train]").forEach((row) => {
-      const n = row.getAttribute("data-train");
-      row.setAttribute("aria-pressed", String(!!key
-        && (key === `T${n}` || key === `t${n}` || key.startsWith(`t${n}-`))));
+      row.setAttribute("aria-pressed", String(pickRows(key, row.getAttribute("data-train"))));
     });
   }
   svg.querySelectorAll("[data-pick]").forEach((el) =>
@@ -4339,7 +4405,8 @@ function wireDrawings() {
     const row = e.target.closest(".train[data-train]");
     const pane = row && row.closest(".pane");
     const svg = pane && pane.querySelector("svg.aperture");
-    const key = row && `T${row.getAttribute("data-train")}`;
+    const key = row && (row.hasAttribute("data-group") ? `G${row.getAttribute("data-group")}`
+      : `T${row.getAttribute("data-train")}`);
     return svg && pickDrawn(svg, key) ? {row, svg, key} : null;
   };
   const settle = (svg) => showPick(svg, PICKED[svg.getAttribute("data-break")] || null);

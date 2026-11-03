@@ -866,7 +866,8 @@ def trains_builder(spectra, by_id: dict, blockers, tables: dict):
         split = buoy_split(past, grids) if tables else []
         for break_id in BREAKS:
             if break_id in tables:
-                out[break_id] = train_dicts(carry(past, tables[break_id], grids, split).trains[:3])
+                near = carry(past, tables[break_id], grids, split)
+                out[break_id] = train_dicts(near.trains[:3], near.buoy)
             else:
                 out[break_id] = as_trains(through(past, by_id[break_id], blockers).trains)
         return out

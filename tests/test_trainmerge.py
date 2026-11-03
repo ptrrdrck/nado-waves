@@ -118,3 +118,22 @@ def test_the_control_still_reads_as_measured():
     # Where the buoy did not part them, there is nothing to divide by.
     other = "3 s or more and 60° or more apart, the buoy did not"
     assert dict(S[(other, "whole")]) == dict(S[(other, "divided at 20%")])
+
+
+def test_rows_of_one_swell_carry_it_and_what_it_was_at_the_buoy():
+    """For the page's bracket and tap (owner's call, 2026-11-03): every row
+    names its swell, and only rows that share one say what it was at the
+    buoy. Center at 3 Nov 15Z: the W 18.2 s reaches it as two rows."""
+
+    from forecast.nearshore import train_dicts
+
+    sp, grids, split = _at(datetime(2026, 11, 3, 15, tzinfo=timezone.utc))
+    near = carry(sp, _tables()["coronado_center"], grids, split)
+    rows = train_dicts(near.trains[:3], near.buoy)
+    swells = [r["swell"] for r in rows]
+    assert len(rows) == 3 and swells[0] == swells[2] != swells[1]
+    shared = [r for r in rows if "swell_at_buoy" in r]
+    assert shared == [rows[0], rows[2]]
+    assert shared[0]["swell_at_buoy"] == {"period_s": 18.2, "from_deg": 273, "lobes": []}
+    # Without the buoy's split, nothing is said.
+    assert all("swell" not in r for r in train_dicts(carry(sp, _tables()["coronado_center"], grids).trains))

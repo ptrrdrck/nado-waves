@@ -2042,8 +2042,25 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   two of a break's windows (the Baja–islands gap and the main window) is
   two rows, because the windows really did divide its energy — 48% of
   hours at South, 23% at Center, 14% at North, and 53% of single narrow
-  synthetic swells at some break. How the page shows that two rows are
-  one swell is the owner's to choose.
+  synthetic swells at some break. **On the page, one swell's rows sit
+  together under a bracket, and a tap on either picks them all** (owner's
+  choice, 2026-11-03: A1 with E of a mock of five): each row carries
+  `swell`, the buoy train that carried most of it, and rows sharing one
+  carry `swell_at_buoy` (`nearshore.train_dicts`, both chains); the three
+  rows are chosen by height, then each swell's rows put together, the
+  swells in order of their biggest row (`swellGroups`), so the lead row is
+  still first and a smaller piece can sit above another swell — the A·B·A
+  case, 13–19% of a break's split hours over the archive. Each row keeps
+  its index for its arrows; a grouped row's key `G0.2` lights every row
+  and arrow of its swell, under one caption, "One swell at the buoy, W at
+  18.2 s, / reaching this break as two trains" (`swellCaption`); an arrow
+  tap is still its own train. Every Swell-card train list, the Buoys tab's
+  too, has the bracket's 9 px lane, and every row 5 px either side, so a
+  picked row's background stands as far past its text as above and below
+  it (measured at 4x in Archivo: the digits 5.0 px under its top, the
+  baseline 6.25 px over its foot); the height column went 112 → 96 px to
+  pay for it (heights are 87.4 px wide, 95.5 from 10 ft), so a heading lost
+  3 px net.
   **A train is one line at every phone width, and keeps its degrees
   wherever they fit** (owner's calls, 2026-10-06 and -07): never a second
   line, never past the card, never shorter than the row needs. Each row
