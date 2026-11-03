@@ -258,7 +258,8 @@ def _buoy_owner(buoy: list[Train]):
 
 
 def _divide_by_buoy(trains: list[Train], buoy: list[Train], frequencies, hists, near_sin,
-                    near_cos, total: float, share: float = BUOY_DIVIDE_SHARE) -> list[Train]:
+                    near_cos, total: float, share: float = BUOY_DIVIDE_SHARE,
+                    need_two: bool = False, own_heading: bool = False) -> list[Train]:
     """Each break train as the buoy's trains carried it: kept whole, its
     `buoy` the one carrying most of it, unless a second carries at least
     BUOY_DIVIDE_SHARE -- then one train per buoy train, each its own energy
@@ -293,6 +294,29 @@ def _divide_by_buoy(trains: list[Train], buoy: list[Train], frequencies, hists, 
             t.buoy = ranked[0]
             out.append(t)
             continue
+        if own_heading:
+            # The back-check against the buoy: a piece is the second swell's
+            # only if its own heading sits nearer that swell's heading at the
+            # buoy than the row's lead swell's. Otherwise it is read as the
+            # lead swell's spread across the buoy's dividing line, and its
+            # energy goes back to the lead.
+            lead = ranked[0]
+            for n in ranked[1:]:
+                sn = sum(v * math.sin(math.radians(k + 0.5)) for d in parts[n].values() for k, v in d.items())
+                cs = sum(v * math.cos(math.radians(k + 0.5)) for d in parts[n].values() for k, v in d.items())
+                h = math.degrees(math.atan2(sn, cs)) % 360.0
+                off = lambda b: abs((h - buoy[b].from_deg + 180.0) % 360.0 - 180.0)
+                if off(n) >= off(lead):
+                    for i, by_k in parts.pop(n).items():
+                        into = parts[lead].setdefault(i, {})
+                        for k, v in by_k.items():
+                            into[k] = into.get(k, 0.0) + v
+                    sums[lead] += sums.pop(n)
+            ranked = sorted((n for n in sums if n >= 0), key=lambda n: -sums[n])
+            if len(ranked) < 2 or sums[ranked[1]] < share * whole:
+                t.buoy = ranked[0]
+                out.append(t)
+                continue
         pieces = []
         for n in ranked:
             per = parts[n]
@@ -325,13 +349,21 @@ def _divide_by_buoy(trains: list[Train], buoy: list[Train], frequencies, hists, 
             _arrive(piece, m_bin, m_sin, m_cos)
             piece.held = _held(piece, m_hists)
             pieces.append(piece)
-        out.extend(floor_trains(pieces))
+        kept = floor_trains(pieces)
+        if need_two and len(kept) < 2:
+            # Only one piece would be listed: dividing would only drop the
+            # rest of the row's energy from it, so it stays whole.
+            t.buoy = ranked[0]
+            out.append(t)
+            continue
+        out.extend(kept)
     out.sort(key=lambda t: -t.hs_m)
     return out
 
 
 def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
-          buoy: list[Train] | None = None, divide_share: float = BUOY_DIVIDE_SHARE) -> Nearshore:
+          buoy: list[Train] | None = None, divide_share: float = BUOY_DIVIDE_SHARE,
+          divide_need_two: bool = False, divide_own_heading: bool = False) -> Nearshore:
     """Integrate S_off(f, θ0)·gain over the nearshore headings, per frequency.
 
     With `buoy`, the buoy's own split of the same spectrum (`buoy_split`),
@@ -405,7 +437,8 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
         train.held = _held(train, hists)
     if buoy and trains:
         trains = _divide_by_buoy(trains, buoy, spectrum.frequencies, hists, near_sin, near_cos,
-                                 sum(e for _, e in per_bin), divide_share)
+                                 sum(e for _, e in per_bin), divide_share, divide_need_two,
+                                 divide_own_heading)
     return Nearshore(
         table.break_id, hs(e10), hs(e_eq), hs(e_hard),
         math.degrees(math.atan2(sn, cn)) % 360 if e10 > 0 else float("nan"),
