@@ -912,7 +912,9 @@ def listed_trains(sites: list[dict]) -> list[dict]:
     and ONE LINE A BUOY TRAIN (owner's call, 2026-10-24, replacing one a
     compass point, which listed one W swell twice either side of the W / WSW
     boundary): trains at two breaks that are the same train at 46232
-    (`buoy_train`, `forecast.trainmatch`) are one line, the biggest's. A
+    (`buoy_train`: since 2026-11-03 the buoy train that carried most of the
+    row, a row two carried being divided first -- `nearshore.carry`,
+    BRIEFING §49) are one line, the biggest's. A
     train with no buoy train is its own line. Never wind sea or local chop;
     with no swell train at all, the biggest break's lead as its row gives it.
     Each with its offshore heading as its row names it, and its band at the

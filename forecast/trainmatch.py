@@ -10,6 +10,14 @@ see that. Each break's train is now matched to the BUOY's train it belongs to
 that band by direction (BRIEFING §40), the one whose headings hold its own,
 else the nearest. Trains of one buoy train are one line (`briefing.listed_trains`).
 
+**Since 2026-11-03 (BRIEFING §49) the chains name it by energy instead**:
+`nearshore.carry`, handed the buoy's own split, credits every row to the buoy
+trains that carried it, divides a row two of them carried, and sets
+`Train.buoy` to the one that carried most of it (`forecast.trainmerge`
+measured why: a break's own split had made one row of two buoy trains on
+4-12% of rows). `buoy_train` below is the fallback for a row with no such
+credit, and this report measures the rule as it was built.
+
 **Measured before it was built, and this is the report that measured it.**
 Every archived 46232 spectrum, by maximum entropy as the page reads it,
 through the three breaks; each pair of trains at two breaks joined or kept

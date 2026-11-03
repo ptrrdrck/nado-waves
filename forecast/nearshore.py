@@ -39,7 +39,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .transform import WIND_SEA_PERIOD_S, Spectrum, load_spectra, lobes_payload, through
+from .transform import (TRAIN_LOBE_SHARE, WIND_SEA_PERIOD_S, Spectrum, Train, load_spectra,
+                        lobes_payload, through)
 
 ROOT = Path(__file__).resolve().parent.parent
 TABLE_DIR = ROOT / "data" / "nearshore"
@@ -174,8 +175,167 @@ class Nearshore:
     hs_short: float = 0.0
 
 
-def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -> Nearshore:
-    """Integrate S_off(f, θ0)·gain over the nearshore headings, per frequency."""
+#: A break's train is divided by the buoy's own trains when a second one of
+#: them carries at least this share of its energy (owner's decision,
+#: 2026-11-03; BRIEFING §49): the share that already divides a band by
+#: direction, so no new constant. Measured before it was built
+#: (`forecast.trainmerge`): with the buoy's split as reference, a swell
+#: carrying ≥ 20% of a break's energy had no row of its own on 11-24% of
+#: hours, 0.3-0.8% after (a third instead: 7-8%); in the known-answer
+#: control, where the buoy itself parted two swells ≥ 60° and ≥ 3 s apart,
+#: 21% -> 3.7% (a third: 13%), and where it did not, nothing changes.
+BUOY_DIVIDE_SHARE = TRAIN_LOBE_SHARE
+
+
+def buoy_split(spectrum, grids: dict[int, list[float]] | None = None) -> list[Train]:
+    """The buoy's own trains, from the 1° grid `carry` reads: `transform.at_buoy`'s
+    split to the bin, but with NO share or height floor, so a swell too small
+    to name at the buoy can still own the energy it carries behind the
+    windows. `transform.floor_trains` of it is `at_buoy(spectrum).trains`
+    (a test pins it). Computed once per spectrum and handed to `carry` for
+    each break."""
+
+    from .transform import split_trains
+
+    grids = density_grids(spectrum) if grids is None else grids
+    rad = math.radians(1.0)
+    per_bin: list[tuple[int, float]] = []
+    sins: dict[int, float] = {}
+    coss: dict[int, float] = {}
+    hists: dict[int, list[float]] = {}
+    for i in sorted(grids):
+        width = spectrum.bin_width(i)
+        hist = hists[i] = [0.0] * 360
+        total = sn = cs = 0.0
+        for n, density in enumerate(grids[i]):
+            e = density * rad * width
+            if e <= 0.0:
+                continue
+            hist[n] = e
+            total += e
+            t = math.radians(n + 0.5)
+            sn += e * math.sin(t); cs += e * math.cos(t)
+        per_bin.append((i, total))
+        sins[i], coss[i] = sn, cs
+    return split_trains(per_bin, spectrum.frequencies, sins, coss, hists=hists,
+                        min_share=0.0, min_hs=0.0)
+
+
+def _arc_degrees(arc: tuple) -> list[int]:
+    lo, hi = arc or (0, 360)
+    return [k % 360 for k in range(lo, hi if hi > lo else hi + 360)]
+
+
+def _buoy_owner(buoy: list[Train]):
+    """`owner(i, k)`: the index of the buoy train holding bin `i` at offshore
+    degree `k`, or -1. A bin one train holds is that train's at every degree;
+    a band the buoy divided by direction is its trains' by their arcs."""
+
+    holds: dict[int, list[int]] = {}
+    for n, t in enumerate(buoy):
+        for i in t.bins:
+            holds.setdefault(i, []).append(n)
+    by_deg: dict[int, list[int]] = {}
+    for i, ns in holds.items():
+        if len(ns) > 1 or buoy[ns[0]].arc:
+            row = [-1] * 360
+            for n in ns:
+                for k in _arc_degrees(buoy[n].arc):
+                    row[k] = n
+            by_deg[i] = row
+
+    def owner(i: int, k: int) -> int:
+        row = by_deg.get(i)
+        if row is not None:
+            return row[k]
+        ns = holds.get(i)
+        return ns[0] if ns else -1
+
+    return owner
+
+
+def _divide_by_buoy(trains: list[Train], buoy: list[Train], frequencies, hists, near_sin,
+                    near_cos, total: float, share: float = BUOY_DIVIDE_SHARE) -> list[Train]:
+    """Each break train as the buoy's trains carried it: kept whole, its
+    `buoy` the one carrying most of it, unless a second carries at least
+    BUOY_DIVIDE_SHARE -- then one train per buoy train, each its own energy
+    only (its band, heading, peak period, lobes, 5 m heading and held arc),
+    under the same floors as any train. Energy is never moved: what a piece
+    below the floors carried leaves the list, as a band below them does."""
+
+    from .transform import _real_lobes, floor_trains
+
+    owner = _buoy_owner(buoy)
+    out: list[Train] = []
+    for t in trains:
+        degrees = _arc_degrees(t.arc)
+        # parts[n][i][k]: energy at 5 m of bin i, offshore degree k, that
+        # buoy train n carried.
+        parts: dict[int, dict[int, dict[int, float]]] = {}
+        for i in t.bins:
+            h = hists.get(i)
+            if not h:
+                continue
+            for k in degrees:
+                v = h[k]
+                if v > 0:
+                    parts.setdefault(owner(i, k), {}).setdefault(i, {})[k] = v
+        sums = {n: sum(sum(d.values()) for d in per.values()) for n, per in parts.items()}
+        whole = sum(sums.values())
+        ranked = sorted((n for n in sums if n >= 0), key=lambda n: -sums[n])
+        if not ranked or whole <= 0:
+            out.append(t)
+            continue
+        if len(ranked) < 2 or sums[ranked[1]] < share * whole:
+            t.buoy = ranked[0]
+            out.append(t)
+            continue
+        pieces = []
+        for n in ranked:
+            per = parts[n]
+            e = sums[n]
+            dist = [0.0] * 360
+            m_hists, m_sin, m_cos, m_bin = {}, {}, {}, {}
+            for i, by_k in per.items():
+                hist = m_hists[i] = [0.0] * 360
+                ms, mc = m_sin[i], m_cos[i] = [0.0] * 360, [0.0] * 360
+                for k, v in by_k.items():
+                    hist[k] = v
+                    dist[k] += v
+                    ms[k], mc[k] = near_sin[i][k], near_cos[i][k]
+                m_bin[i] = (sum(ms), sum(mc))
+            top = max(per, key=lambda i: sum(per[i].values()))
+            sn = sum(v * math.sin(math.radians(k + 0.5)) for k, v in enumerate(dist))
+            cs = sum(v * math.cos(math.radians(k + 0.5)) for k, v in enumerate(dist))
+            piece = Train(
+                hs_m=4.0 * math.sqrt(e),
+                period_s=1.0 / frequencies[top] if frequencies[top] > 0 else float("nan"),
+                from_deg=math.degrees(math.atan2(sn, cs)) % 360.0,
+                share=e / total,
+                lobes=_real_lobes(dist),
+                bins=tuple(sorted(per)),
+                # Its headings are its parent's arc AND its buoy train's:
+                # `arc` keeps the first, `buoy` names the second.
+                arc=t.arc,
+                buoy=n,
+            )
+            _arrive(piece, m_bin, m_sin, m_cos)
+            piece.held = _held(piece, m_hists)
+            pieces.append(piece)
+        out.extend(floor_trains(pieces))
+    out.sort(key=lambda t: -t.hs_m)
+    return out
+
+
+def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
+          buoy: list[Train] | None = None, divide_share: float = BUOY_DIVIDE_SHARE) -> Nearshore:
+    """Integrate S_off(f, θ0)·gain over the nearshore headings, per frequency.
+
+    With `buoy`, the buoy's own split of the same spectrum (`buoy_split`),
+    each train is credited to the buoy trains that carried it and divided
+    where a second carried `divide_share` of it (`_divide_by_buoy`, BRIEFING
+    §49; any other share is for `forecast.trainmerge` to measure). The
+    heights are the same either way: only the rows change."""
 
     from .transform import split_trains
 
@@ -240,6 +400,9 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None) -
     for train in trains:
         _arrive(train, near_bin, near_sin, near_cos)
         train.held = _held(train, hists)
+    if buoy and trains:
+        trains = _divide_by_buoy(trains, buoy, spectrum.frequencies, hists, near_sin, near_cos,
+                                 sum(e for _, e in per_bin), divide_share)
     return Nearshore(
         table.break_id, hs(e10), hs(e_eq), hs(e_hard),
         math.degrees(math.atan2(sn, cn)) % 360 if e10 > 0 else float("nan"),

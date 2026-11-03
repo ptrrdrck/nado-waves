@@ -1028,7 +1028,12 @@ forecaster actually verifies against, Surfline included.
    (17 of 18 a 15 s SSW + 12 s from 250–270° the buoy itself reads as one
    train, §40) and 25% at 1–2 s, catching 97% of duplicates where the
    compass point was wrong on 34% and caught 46%; pairs with a train no
-   swell carries ⅔ of are counted, not scored. each its row's
+   swell carries ⅔ of are counted, not scored. **Since 2026-11-03 a row's
+   `buoy_train` is the buoy train that CARRIED MOST OF IT** (`Train.buoy`,
+   set by `nearshore.carry`; owner's decision, BRIEFING §49), a row two
+   buoy trains carried being divided first (below, "The leading wave
+   train"); the peak-period rule is the fallback for a row with no such
+   credit, and None is a buoy train under the buoy's own floors. each its row's
    OFFSHORE heading (the larger direction of a two-direction train, never
    its 5 m one) and period, and ITS OWN STATUS (owner's call, same day):
    its band at 46232 -- the bins it holds in the newest spectrum and the
@@ -1743,6 +1748,10 @@ forecaster actually verifies against, Surfline included.
       trainmatch.py     a break's train to the buoy train it is, for the
                         Briefing's one line a swell; and the archive and
                         known-answer control that chose it; reports  [built]
+      trainmerge.py     a break's row that is two buoy trains: how often,
+                        and what dividing it at 20% / a third does, on the
+                        archive and a known-answer control (BRIEFING §49);
+                        reports, never edits                       [built]
       briefingreport.py its thresholds, measured; reports, never edits
       briefingwording.py its wording, run from the page's own code into
                         docs/briefing_wording.md; --check           [built]
@@ -2004,6 +2013,37 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   both (§38a), "WSW 258° & S 180°" where the row has room and "WSW & S"
   where it does not (below), an arrow from each. `from_deg` is the mean of
   the train's own energy; no height reads a direction.
+  **At a break, then, a row two of the buoy's trains carried is divided
+  into them** (owner's decision, 2026-11-03; BRIEFING §49;
+  `nearshore._divide_by_buoy`, on both chains): the windows trim each buoy
+  train differently, and what is left of two can sit side by side with no
+  dip and no second lobe for the break's own split to find — North on
+  3 Nov read one row, 16.7 s from 228°, that was the buoy's SSW 14.3 s and
+  30% of its W 18.2 s, neither swell's period or heading. Every ray's
+  energy at 5 m is credited to the buoy train holding its (bin, offshore
+  heading) in the buoy's own split with NO floor (`nearshore.buoy_split`,
+  from the same 1° grid; floored, it is `at_buoy`'s list, a test pins
+  it), which is exact because the chain is linear to 5 m; a row whose
+  second buoy train carries ≥ `BUOY_DIVIDE_SHARE` (20%, the lobe share)
+  of it becomes one row per buoy train, each its own height, peak period,
+  heading, lobes, 5 m heading and held arc, under the same floors.
+  **Heights never change; only rows.** MEASURED first
+  (`python -m forecast.trainmerge`, ~4 min): with the buoy's split as
+  reference, a swell carrying ≥ 20% of a break's energy had no row of its
+  own on 11–24% of hours, 0.3–0.8% after (a third instead: 7–8%); the
+  Briefing missed a swell ≥ half the biggest on 123 of 1,812 hours, 45
+  after, and 344 of its 2,699 lines were two buoy trains, 7 after. In the
+  known-answer control, where the buoy parted two swells ≥ 60° and ≥ 3 s
+  apart, 21% → 3.7%; where it did not part them NOTHING changes, and
+  nothing at a break can. Inheriting the buoy's split outright was
+  measured and rejected: it merges a swell that came through two windows
+  into one row headed between them, North's fault reversed. **That
+  reverse is kept on purpose** (owner's call, same day): one swell through
+  two of a break's windows (the Baja–islands gap and the main window) is
+  two rows, because the windows really did divide its energy — 48% of
+  hours at South, 23% at Center, 14% at North, and 53% of single narrow
+  synthetic swells at some break. How the page shows that two rows are
+  one swell is the owner's to choose.
   **A train is one line at every phone width, and keeps its degrees
   wherever they fit** (owner's calls, 2026-10-06 and -07): never a second
   line, never past the card, never shorter than the row needs. Each row
