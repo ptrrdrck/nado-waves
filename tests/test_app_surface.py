@@ -1200,7 +1200,7 @@ class TestWaveTrainsOnScreen:
 
     def test_one_swells_rows_sit_together_and_a_tap_picks_them_all(self):
         """Owner's call, 2026-11-03 (A1 with E, BRIEFING §49): rows of one
-        swell the windows divided are put together under a bracket, the
+        buoy swell the break shows as two rows are put together under a bracket, the
         swells in order of their biggest row, each row keeping its index for
         its arrows; and a tap on one picks every row and arrow of it."""
 

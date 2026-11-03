@@ -2038,11 +2038,17 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   nothing at a break can. Inheriting the buoy's split outright was
   measured and rejected: it merges a swell that came through two windows
   into one row headed between them, North's fault reversed. **That
-  reverse is kept on purpose** (owner's call, same day): one swell through
-  two of a break's windows (the Baja–islands gap and the main window) is
-  two rows, because the windows really did divide its energy — 48% of
-  hours at South, 23% at Center, 14% at North, and 53% of single narrow
-  synthetic swells at some break. **On the page, one swell's rows sit
+  reverse is kept on purpose** (owner's call, same day): one buoy swell
+  that a break's own split makes two rows stays two rows — 52% of hours
+  at South, 30% at Center, 17% at North, and 53% of single narrow
+  synthetic swells at some break. **What made the two rows is NOT
+  measured, so nothing says it** (owner's call, 2026-11-03): two windows
+  (South 12 Oct 06Z: 190° through the Baja–islands gap, 259° through the
+  main window), one window and the energy bent or diffracted past its
+  edge (Center 3 Nov 15Z: 243° inside the main window, 277° past Point
+  Loma's 250° edge), or a dip the aperture and seabed left in its periods.
+  The caption reads "reaching this break as two trains", never the
+  mock's "through two windows". **On the page, one swell's rows sit
   together under a bracket, and a tap on either picks them all** (owner's
   choice, 2026-11-03: A1 with E of a mock of five): each row carries
   `swell`, the buoy train that carried most of it, and rows sharing one

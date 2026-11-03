@@ -43,8 +43,8 @@ Measured 2026-11-03 (1,811 spectra, 4 Aug - 3 Nov 2026; 30 trials a case):
         1-2 s apart 52.2% -> 2.2% (25.6%)
     control, the buoy did not part them: no rule changes anything
     the cost: one swell as two rows a little more often (South 48% -> 52%
-        of hours, mostly a swell through two windows, which was already
-        so); swells 30° apart that the buoy parted: mixed rows 23.9% ->
+        of hours; most were two rows already, and what makes a break show
+        one swell as two rows is not measured here); swells 30° apart that the buoy parted: mixed rows 23.9% ->
         26.4%, a hidden swell 5.6% -> 4.5%; one broad 35° swell as two
         rows 5.6% -> 7.8%
 

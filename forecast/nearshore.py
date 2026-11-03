@@ -613,7 +613,7 @@ def train_dicts(trains, buoy: list | None = None) -> list[dict]:
     """The rows a surface shows. With `buoy`, the split the trains were
     divided by (`Nearshore.buoy`), each row also carries `swell`, the buoy
     train that carried most of it (`Train.buoy`), so a page can show that
-    two of a break's rows are ONE swell the windows divided (owner's call,
+    two of a break's rows are ONE swell at the buoy (owner's call,
     2026-11-03, BRIEFING §49: bracketed together, tapped together); and the
     rows that share one carry `swell_at_buoy`, what that swell was at the
     buoy, for the drawing's caption. Only those: it is the rows' business,

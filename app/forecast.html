@@ -3369,7 +3369,7 @@ function cardsForForecast(step) {
 // carries every form of its heading (`trainForms`), the longest shown, and
 // `fitTrains` steps down to the first that fits the row once it is laid out.
 //
-// One swell the windows divided is two rows (owner's call, 2026-11-03,
+// One swell a break shows as two rows stays two rows (owner's call, 2026-11-03,
 // BRIEFING §49): rows carrying the same `swell` -- the buoy train that carried
 // most of each -- sit together under a bracket (option A1 of the owner's
 // mock): the rows are chosen by height as before, then each swell's rows are
@@ -4232,7 +4232,7 @@ function windowDrawing(c, aged = "") {
   // is picked -- drawn for every train at once they would knot at the break.
   // A payload from before it, or a train no ray carried, has none.
   const nears = [];
-  // A swell the windows divided into rows (BRIEFING §49) has one caption of
+  // A swell the break shows as two rows (BRIEFING §49) has one caption of
   // its own (`swellCaption`), shown when one of its rows is tapped and all of
   // its arrows light. Pushed before the trains' captions: a pick shows only
   // the first caption it lights.
@@ -4315,7 +4315,7 @@ const PICKED = {};
 // Which keys a pick lights. A section or one arrow is its own key; a train
 // picked from the list ("T2") is every arrow it has, one per direction it
 // arrives from ("t2", "t2-1").
-// A row of a swell the windows divided ("G0.2", BRIEFING §49) is every
+// A row of a swell the break shows as two rows ("G0.2", BRIEFING §49) is every
 // arrow of every row of that swell, and the swell's own caption ("g0.2").
 const pickMatch = (key) => (key && /^T\d+$/.test(key)
   ? (k) => k === `t${key.slice(1)}` || k.startsWith(`t${key.slice(1)}-`)
