@@ -64,8 +64,8 @@ from .live import (
 from .tideturns import read_turns, turns_between
 from . import origin
 from . import sunset, tidephase
-from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea, summarise,
-                        train_dicts)
+from .nearshore import (buoy_offset, buoy_split, carry, density_grids, load_tables, local_sea,
+                        summarise, train_dicts)
 from .siting import load_coordinates
 from .stormtrack import GATE_STATIONS
 from .surfzone import load_profiles
@@ -740,6 +740,12 @@ def build(
             tables = {}
             reading.warnings.append(f"nearshore tables unavailable ({exc}); showing window energy")
     grids = density_grids(spectrum) if tables else {}
+    # The buoy's own trains with no floor: each break's trains are divided
+    # by them where two carried one (BRIEFING §49), and each names the one
+    # that carried most of it. Floored, it is `raw.trains` (a test pins it).
+    split = buoy_split(spectrum, grids) if tables else []
+    shown_at = {n: m for n, t in enumerate(split) for m, r in enumerate(raw.trains)
+                if t.bins == r.bins and t.arc == r.arc}
 
     # The depth the waves break in needs the tide at the open coast, now. A
     # stale gauge is not now, and no gauge is no breaking: the 5 m figure is
@@ -770,7 +776,7 @@ def build(
         near_hs, near = None, {}
         if break_id in tables:
             table = tables[break_id]
-            carried = carry(spectrum, table, grids)
+            carried = carry(spectrum, table, grids, split)
             # KNZY's wind on the water off the break: fresh over a closed
             # fetch, grown on from the carried wind sea over an open one.
             chop = local_sea(table, spot.normal, reading.wind.speed_kt, reading.wind.from_deg,
@@ -786,13 +792,17 @@ def build(
             # train (owner's call, 2026-10-23), and which of the buoy's own
             # trains it is, so one swell read at two breaks is one line of
             # the Briefing (owner's call, 2026-10-24; `forecast.trainmatch`):
-            # its index in the buoy's train list above. The local chop has none.
+            # its index in the buoy's train list above: the buoy train that
+            # carried most of its energy (since 2026-11-03, BRIEFING §49; the
+            # one holding its peak period before), None when that train is
+            # under the buoy's own floors. The local chop has none.
             for row, train in zip(near["trains"], carried.trains[:3]):
                 if train.bins:
                     freqs = [spectrum.frequencies[i] for i in train.bins]
                     row["band_hz"] = [round(min(freqs), 5), round(max(freqs), 5)]
                     row["held_deg"] = list(train.held)
-                    row["buoy_train"] = buoy_train(train, raw.trains, spectrum.frequencies)
+                    row["buoy_train"] = (shown_at.get(train.buoy) if train.buoy is not None
+                                         else buoy_train(train, raw.trains, spectrum.frequencies))
         reading.breaks.append(NowBreak(
             id=spot.id,
             name=spot.name,
@@ -853,9 +863,11 @@ def trains_builder(spectra, by_id: dict, blockers, tables: dict):
         past = past.with_spread("mem")
         out = {"buoy": as_trains(at_buoy(past).trains)}
         grids = density_grids(past) if tables else {}
+        split = buoy_split(past, grids) if tables else []
         for break_id in BREAKS:
             if break_id in tables:
-                out[break_id] = train_dicts(carry(past, tables[break_id], grids).trains[:3])
+                near = carry(past, tables[break_id], grids, split)
+                out[break_id] = train_dicts(near.trains[:3], near.buoy)
             else:
                 out[break_id] = as_trains(through(past, by_id[break_id], blockers).trains)
         return out

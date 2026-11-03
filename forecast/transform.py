@@ -999,6 +999,12 @@ class Train:
     #: it. With `bins`, its band at the buoy, for the Briefing's status of a
     #: train (owner's call, 2026-10-23); not its identity.
     held: tuple = field(default=(), compare=False, repr=False)
+    #: At a break only, when `nearshore.carry` is handed the buoy's own split
+    #: (`nearshore.buoy_split`): the index, in that split, of the buoy train
+    #: carrying the most of this train's energy -- by construction the only
+    #: one, for a train divided by the buoy's trains (owner's decision,
+    #: 2026-11-03; BRIEFING §49). None otherwise; not its identity.
+    buoy: int | None = field(default=None, compare=False, repr=False)
 
     @property
     def is_wind_sea(self) -> bool:
@@ -1253,9 +1259,17 @@ def split_trains(
                 arc=arc,
             ))
 
-    trains = [t for t in trains if t.share >= min_share and t.hs_m >= min_hs]
     trains.sort(key=lambda t: -t.hs_m)
-    return trains
+    return floor_trains(trains, min_share=min_share, min_hs=min_hs)
+
+
+def floor_trains(trains: list[Train], *, min_share: float = MIN_TRAIN_SHARE,
+                 min_hs: float = MIN_TRAIN_HS_M) -> list[Train]:
+    """The trains a surface names: share and height at least the floors, in
+    the order given. `split_trains`' own floors, factored out so a split made
+    without them (`nearshore.buoy_split`) floors to exactly its list."""
+
+    return [t for t in trains if t.share >= min_share and t.hs_m >= min_hs]
 
 
 def _real_lobes(dist: list[float]) -> tuple:

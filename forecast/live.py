@@ -57,7 +57,7 @@ from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, pa
 from . import ensemble, forecastlog, sunset, tidephase
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
-from .nearshore import (buoy_offset, carry, density_grids, load_tables, local_sea,
+from .nearshore import (buoy_offset, buoy_split, carry, density_grids, load_tables, local_sea,
                         spectrum_from_partitions,
                         summarise, table_frequencies)
 from .units import height as fmt_height, speed as fmt_speed
@@ -810,7 +810,10 @@ def build(
                          for p in row.partitions]
                 sp = spectrum_from_partitions(parts, row.valid_utc, freqs)
                 wind = (None, None)
-            carried_input[row.valid_utc] = (sp, density_grids(sp), wind)
+            grids = density_grids(sp)
+            # The buoy's own trains in this spectrum, which each break's are
+            # divided by where two of them carried one (BRIEFING §49).
+            carried_input[row.valid_utc] = (sp, grids, wind, buoy_split(sp, grids))
     # Where the buoy sits from each break: how much water the buoy's spectrum
     # has not seen, along a given wind (`nearshore.local_sea`).
     buoy_offsets = {b: buoy_offset(by_id[b].position) for b in BREAKS}
@@ -887,7 +890,7 @@ def build(
             ]
             near: dict = {}
             if row.valid_utc in carried_input:
-                sp, grids, _ = carried_input[row.valid_utc]
+                sp, grids, _, split = carried_input[row.valid_utc]
                 table = tables[break_id]
                 # Local chop grows on the water off the break, so it takes the
                 # LOCAL forecast wind (the NWS grid at Coronado), as the observed
@@ -896,7 +899,7 @@ def build(
                 # wind is 29 km offshore, too strong for Point Loma's lee and
                 # blind to the near-shore wind the open-water growth is for.
                 here = local_hours.get(row.valid_utc.strftime(ISO))
-                carried = carry(sp, table, grids)
+                carried = carry(sp, table, grids, split)
                 chop = (local_sea(table, spot.normal, here["speed_kt"], here["from_deg"],
                                   carried_short_hs=carried.hs_short,
                                   buoy=buoy_offsets.get(break_id), wind="NWS forecast")

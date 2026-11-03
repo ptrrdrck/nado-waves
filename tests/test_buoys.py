@@ -613,10 +613,16 @@ class TestBreakRowsLightToo:
         """Owner's request, 2026-10-09: a break tab's train row lights like a
         Buoys tab row, picked from the list or by its arrow."""
 
-        assert 'data-train="${i}" tabindex="0" role="button" aria-pressed="false"' in PAGE
+        assert 'data-train="${i}" tabindex="0" role="button"' in PAGE
+        assert ' aria-pressed="false"`' in PAGE
         show = _fn("showPick")
         assert '.train[data-train]' in show and 'setAttribute("aria-pressed"' in show
-        assert "key === `T${n}` || key === `t${n}` || key.startsWith(`t${n}-`)" in show
+        assert 'pickRows(key, row.getAttribute("data-train"))' in show
+        # A train's own row; and since 2026-11-03 every row of its swell (§49).
+        rows = PAGE[PAGE.index("const pickRows = "):]
+        rows = rows[:rows.index(");\n") + 3]
+        assert "key === `T${n}` || key === `t${n}` || key.startsWith(`t${n}-`)" in rows
+        assert 'key[0] === "G" && key.slice(1).split(".").includes(n)' in rows
         assert ('.train[data-rose-train][aria-pressed="true"],.train[data-train][aria-pressed="true"]'
                 '{background:var(--paper);opacity:1}') in PAGE
 
