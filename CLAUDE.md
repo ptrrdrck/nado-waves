@@ -1705,6 +1705,9 @@ forecaster actually verifies against, Surfline included.
       units.py          ft/mph first, m/kt in parentheses -- display only
       tideturns.py      the next high/low, and why its direction is not
                         differenced from the measured level      [built]
+      tiderate.py       the LIVE tide's measured rate: the gauge's last
+                        30 min, slack under 0.10 m/h or across a predicted
+                        turn; and its measurements (BRIEFING §50)  [built]
       trainsplit.py     how a spectrum is split into trains: a synthetic
                         control with a known answer (buoy noise, maximum
                         entropy, as the chain reads it) and the archive,
@@ -2148,6 +2151,27 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   departure IS measured minus predicted. The Now/Forecast split is about the reader always knowing
   which chain they are looking at, not about a tab being chemically pure; an
   unlabelled turn would have broken it, a labelled one demonstrates it.
+- **Beside the LIVE tide's height, its MEASURED rate** (owner's choice,
+  2026-11-04: B of a mock of five; `forecast/tiderate.py`, BRIEFING §50):
+  the least-squares slope through the gauge's last six samples (30 min),
+  ×0.944 to the coast, as the Briefing's arrowhead and "0.9 ft/h
+  (0.27 m/h)", or its dash and "slack". **It is the last 30 minutes, never
+  "now"**: a trailing fit describes its window's middle, and read as the
+  rate at its newest sample its sign disagreed with the prediction's on
+  7–9% of readings. Slack when under `SLACK_M_H` (0.10 m/h, 5 cm in the
+  window, ~2.3× the 2.2 cm rms between the window's change and the
+  prediction's; 29% of readings, the prediction 30%), OR when a predicted
+  turn lies inside the window — a line across a high or a low measures no
+  direction, and 31 of the 35 readings that ran against the next turn in
+  47 days lay within 24 min after one. The 4 left are bay seiches 1–10 h
+  from any turn, shown as measured, never overruled; forcing slack BEFORE a
+  turn removes none of them and relabels hundreds of moving readings. A
+  missing sample in the window is no rate, never a shorter fit. The page
+  only shows `motion` / `rate_m_h`; it still never differences the level.
+  **With it, LIVE's turn line NAMES the turn** — "next low 1.8 ft (0.53 m)
+  at 7:18 AM", tagged predicted — and never says rising or falling, so the
+  card's one direction is the measured one (`turnLine`'s `named`). The
+  Forecast tab keeps "falling to": nothing measured sits beside it.
 - **The shore normal is the highest-leverage input to the wind reading.**
   Measured 2026-09-20 (BRIEFING §20): the verdict
   boundaries sit at fixed angles from the normal, which puts six of the nine

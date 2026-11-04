@@ -408,6 +408,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    (owner's call, 2026-10-28: --faint read too dim, in dark mode most). */
 .cond .turn .tag{font-size:11px;color:var(--soft);text-transform:uppercase;
                  letter-spacing:.06em;margin-left:5px;white-space:nowrap}
+/* The tide's MEASURED rate beside its height on "LIVE" (owner's choice,
+   2026-11-04: B of a mock of five): the Briefing's arrowhead, or its dash
+   for slack, then the speed at the value's 15 px in ink, metric grey. It is
+   the gauge's last 30 minutes (forecast.tiderate, BRIEFING §50), so it greys
+   with the height it was measured beside. */
+.cond .val .rate{display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:15px;
+                 white-space:nowrap;vertical-align:1px}
+.cond .val .rate .unit{font-size:15px}
+.rate-arr{display:block;flex:none;width:9px;height:9px;fill:var(--ink)}
+#conditions [data-aged-at].aged .rate-arr{fill:var(--faint)}
 /* THE TIDE PHASE folds out like Origin, from its own line under a rule of
    its own, right above "Charts" (owner's request, 2026-10-11): the line is
    a fixed title, the fold paragraphs set as Origin's entries are, never
@@ -1855,6 +1865,25 @@ function departurePill(tide) {
   return `Departure ${d < 0 ? "\u2212" : "+"}${heightText(Math.abs(d))}`;
 }
 
+// The tide's MEASURED rate on "LIVE" (owner's choice, 2026-11-04): how fast
+// the level moved over the gauge's last 30 minutes, worked out by the build
+// (`forecast.tiderate`, BRIEFING §50) and only shown here -- the page never
+// differences the level itself. An arrowhead up or down and the speed, or a
+// dash and "slack": under 0.10 m/h, or a predicted turn inside the window.
+// None across a gap in the gauge's samples, and nothing is put in its place.
+function tideRate(tide) {
+  if (!tide || !tide.motion || tide.rate_m_h == null) return "";
+  const title = ' title="Over the gauge\u2019s last 30 minutes"';
+  if (tide.motion === "slack") {
+    return `<span class="rate"${title}><svg class="rate-arr" viewBox="0 0 9 9" aria-hidden="true">`
+      + `${BRIEF_ARROW.steady}</svg>slack</span>`;
+  }
+  const r = Math.abs(tide.rate_m_h);
+  return `<span class="rate"${title}><svg class="rate-arr" viewBox="0 0 9 9" role="img" `
+    + `aria-label="${tide.motion}">${BRIEF_ARROW[tide.motion]}</svg>`
+    + `${dual(`${(r * FT_PER_M).toFixed(1)} ft/h`, `${r.toFixed(2)} m/h`)}</span>`;
+}
+
 // The tide's next turning point, and which way it is running into it.
 //
 // The direction is read off the TURN, never differenced from the water level.
@@ -1871,10 +1900,18 @@ function nextTurn(turns, afterIso) {
 // `tagged` marks the line as a prediction, which is needed on the observed tab
 // and not on the forecast tab, where the whole card is already a model and its
 // provenance says so.
-function turnLine(turns, afterIso, {tagged = false} = {}) {
+//
+// `named` (LIVE, owner's choice 2026-11-04) names the turn -- "next low 0.7 ft
+// at 3:15 AM" -- and never says rising or falling: there the only direction
+// on the card is the gauge's own measured rate beside the height (`tideRate`),
+// so a predicted word cannot sit against a measured mark. The Forecast tab
+// keeps "falling to": nothing measured is beside it.
+function turnLine(turns, afterIso, {tagged = false, named = false} = {}) {
   const turn = nextTurn(turns, afterIso);
   if (!turn || !turn.direction || turn.height_m == null) return "";
-  return `<span class="turn"><b>${turn.direction}</b> to ${height(turn.height_m)}`
+  const lead = named ? `next <b>${turn.event}</b> ${height(turn.height_m)}`
+    : `<b>${turn.direction}</b> to ${height(turn.height_m)}`;
+  return `<span class="turn">${lead}`
     + ` at ${turnClock(turn.valid_utc, afterIso)}`
     + (tagged ? ` <span class="tag">predicted</span>` : "")
     + `</span>`;
@@ -8072,9 +8109,9 @@ function renderConditions(step, cards) {
     rows.push(`<div class="cond" data-card="tide">
       <span class="lbl">Tide</span>
       <span class="val"${tide.height_m != null ? agedAttr(tide.observed_utc) : ""}>${tide.height_m != null
-        ? height(tide.height_m)
+        ? height(tide.height_m) + tideRate(tide)
         : '<span class="unit">not collected</span>'}</span>
-      ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true})}
+      ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true, named: true})}
       ${tide.height_m != null
         // In pills, as the swell card's (owner's request, 2026-10-11): the
         // place the numbers are carried to, then the gauge in the feed pill.

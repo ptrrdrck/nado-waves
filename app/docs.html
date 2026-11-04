@@ -1671,19 +1671,45 @@ breaking  −0.024 + 0.944 × (2.005 − 0.897) = +1.022 m above mean sea level<
         time.</p>
     </section>
 
+    <section id="tide-rate">
+      <h3>How fast it is moving</h3>
+      <p>On &ldquo;LIVE&rdquo;, beside the measured height, is how fast the water level moved over
+        the gauge's last 30 minutes: an arrowhead up or down and the speed, or a dash and
+        <em>slack</em>. It is measured, not predicted: the slope of a straight line through the
+        gauge's last six readings, six minutes apart, carried to the open coast as the height is.</p>
+<pre class="math">rate  = 0.944 × slope through the last 6 readings (30 minutes)
+slack = |rate| under 0.10 m/h (0.33 ft/h), or a predicted high or low inside those 30 minutes</pre>
+      <p>It is the last 30 minutes, not this instant. A line through readings up to half an hour
+        old describes their middle, so read as the rate at this moment it runs about a quarter of
+        an hour behind every turn. With a reading missing in those 30 minutes there is no rate,
+        never one fitted through fewer.</p>
+      <div class="choice"><span class="lbl">Model choice · where slack starts</span>
+        <p>Over 30 minutes the gauge's change and the harmonic prediction's differ by about 2 cm
+          typically. Below 5 cm in the half hour (0.10 m/h) the gauge cannot reliably say which way
+          the water is going, so the card says slack: about 29% of readings, against 30% for the
+          prediction. And a straight line fitted across a high or a low measures no direction at
+          all, so for 30 minutes after a predicted turn it is slack too. That is where nearly every
+          reading that ran against the turn named below it lay: 31 of 35 in the first 47 days, all
+          within 24 minutes of a predicted turn. The 4 left were the bay's own short oscillations,
+          hours from any turn, and are shown as measured.</p></div>
+    </section>
+
     <section id="tide-turn">
       <h3>The next high or low</h3>
       <p>The next turn is NOAA's own prediction of high and low water, computed from the tidal
         constituents. It is the one predicted number on the &ldquo;LIVE&rdquo; tab, tagged
-        <em>predicted</em>. Rising or falling is read from it: if the next turn is a high, the tide
-        is rising into it. Direction and target come from one source, so they cannot contradict
-        each other on screen.</p>
-      <div class="choice"><span class="lbl">Model choice · never difference the gauge</span>
+        <em>predicted</em>, and there it is named: &ldquo;next low 1.8 ft at 7:18 AM&rdquo;. The
+        tab's direction is the measured rate beside the height, so no predicted word sits against
+        it. On the Forecast tab, where nothing measured is beside it, rising or falling is read
+        from the turn: if the next turn is a high, the tide is rising into it, so direction and
+        target come from one source and cannot contradict each other on screen.</p>
+      <div class="choice"><span class="lbl">Model choice · never difference two readings</span>
         <p>Comparing the two newest gauge readings would get the direction backwards on a large
           share of readings near slack water, where the real change is smaller than the gauge's
-          own wobble. Picking the highest hour of an hourly prediction would put the time of high
-          water up to half an hour out. So neither is used, and there is no fallback from one to
-          the other.</p></div>
+          own wobble. The measured rate is a line through six readings, said as the last 30
+          minutes, and slack wherever the gauge cannot tell. Picking the highest hour of an hourly
+          prediction would put the time of high water up to half an hour out, so the turns are
+          NOAA's own, and there is no fallback from one to the other.</p></div>
     </section>
 
     <section id="tide-departure">

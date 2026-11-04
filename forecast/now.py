@@ -63,7 +63,7 @@ from .live import (
 )
 from .tideturns import read_turns, turns_between
 from . import origin
-from . import sunset, tidephase
+from . import sunset, tidephase, tiderate
 from .nearshore import (buoy_offset, buoy_split, carry, density_grids, load_tables, local_sea,
                         summarise, train_dicts)
 from .siting import load_coordinates
@@ -393,6 +393,14 @@ class NowTide:
     note: str = ""
     #: The gauge's own reading on its MLLW, before it is carried to the coast.
     gauge_height_m: float | None = None
+    #: How fast the level moved over the gauge's last 30 minutes, at the open
+    #: coast, m/h (`forecast.tiderate`): up, down or slack, and why slack --
+    #: "rate" (it hardly moved) or "turn" (a predicted turn lies inside the
+    #: window). Kept even when slack, so the card can be traced to it.
+    rate_m_h: float | None = None
+    motion: str | None = None
+    motion_why: str | None = None
+    rate_note: str = ""
 
 
 @dataclass
@@ -669,6 +677,13 @@ def build(
         moment, moment + timedelta(hours=TURN_WINDOW_HOURS),
     )
     reading.tide_turns = [t.as_dict() for t in turns]
+    # How fast it moved over the gauge's last 30 minutes -- MEASURED. A
+    # predicted turn inside that window makes it slack: a line fitted across
+    # a high or a low measures no direction (forecast.tiderate, BRIEFING §50).
+    if reading.tide.height_m is not None:
+        every = [coast_turn(t, departure) for t in read_turns(data_dir, TIDE_STATION)]
+        for key, value in tiderate.from_archive(data_dir, reading.tide.observed_utc, every).items():
+            setattr(reading.tide, key, value)
     # The phase fold reads the same turns over its own span: today from its
     # start, and the next neap or spring a week or more out.
     # A failure is a warning, never a lost reading.
@@ -704,7 +719,8 @@ def build(
     reading.standing_on["tide"] = (
         f"OBSERVED — measured water level at {TIDE_STATION}, inside San Diego Bay, "
         f"carried to Coronado's open coast (x{RATIO_TEXT} on MLLW, measured against "
-        f"La Jolla)"
+        f"La Jolla), and how fast it moved over the gauge's last "
+        f"{tiderate.WINDOW_MIN} minutes, measured the same way"
         + ("; the next turn is a harmonic PREDICTION carried the same way "
            f"({LEAD_TEXT} earlier)"
            + (", plus the gauge's measured departure from it over the last 3 days"
@@ -996,6 +1012,10 @@ def format_table(reading: Now) -> str:
     if tide.height_m is not None:
         lines.append(f"tide  {fmt_height(tide.height_m)} at the {reading.tide_site}, MEASURED at "
                      f"{reading.tide_station_name} ({reading.tide_station}), {tide.observed_utc}")
+        if tide.motion:
+            lines.append(f"      {tide.motion} over the last {tiderate.WINDOW_MIN} min, "
+                         f"{tide.rate_m_h:+.2f} m/h at the coast"
+                         + (f" (slack: {tide.motion_why})" if tide.motion == tiderate.SLACK else ""))
     lines.append("")
 
     if reading.buoy.get("trains"):
