@@ -1973,7 +1973,37 @@ class TestTheTideSaysWhichWayItIsGoing:
         """BRIEFING §18: a 'next turn' baked in at build time stops being the
         next turn the moment it passes, on a page that sits open for hours."""
 
-        assert "new Date().toISOString(), {tagged: true}" in SOURCE
+        assert "new Date().toISOString(), {tagged: true, named: true}" in SOURCE
+
+    def test_live_names_the_turn_and_never_says_which_way(self):
+        """Owner's choice, 2026-11-04: on "LIVE" the only direction on the
+        card is the gauge's measured rate beside the height, so the predicted
+        turn is named ("next low"), never "rising" or "falling" -- a predicted
+        word cannot sit against a measured mark. The Forecast tab keeps
+        "falling to": nothing measured is beside it."""
+
+        body = SOURCE[SOURCE.index("function turnLine("):]
+        body = body[:body.index("\n}\n")]
+        assert "named ? `next <b>${turn.event}</b> ${height(turn.height_m)}`" in body
+        assert "turnLine(DATA.tide_turns || [], step.valid_utc)" in SOURCE   # not named
+
+    def test_the_measured_rate_sits_beside_the_height_and_is_only_shown(self):
+        """forecast.tiderate works it out; the page reads `motion` and
+        `rate_m_h` and never differences the level (the test above keeps
+        "slope(" off the page)."""
+
+        assert "height(tide.height_m) + tideRate(tide)" in SOURCE
+        body = SOURCE[SOURCE.index("function tideRate("):]
+        body = body[:body.index("\n}\n")]
+        assert "tide.motion" in body and "tide.rate_m_h" in body
+        assert "BRIEF_ARROW" in body              # the Briefing's own marks
+        assert "dual(" in body                    # the page's one unit path
+        assert "height_m" not in body
+
+    def test_the_rate_greys_with_the_height(self):
+        """It is the same reading, so its arrowhead greys as its text does."""
+
+        assert "#conditions [data-aged-at].aged .rate-arr{fill:var(--faint)}" in SOURCE
 
     def test_a_far_off_turn_carries_its_weekday(self):
         """'at 11:42 AM' is not an answer six days out. Run in node against a
