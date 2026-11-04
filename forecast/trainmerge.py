@@ -12,14 +12,17 @@ Briefing then named as the SSW. 30% of North's energy at 5 m was the W.
 
 Every ray's energy at 5 m is credited to the buoy train holding its (bin,
 offshore heading) -- the buoy's own split with no floor
-(`nearshore.buoy_split`). The chain is linear to 5 m, so that is exact. Three
+(`nearshore.buoy_split`). The chain is linear to 5 m, so that is exact. The
 rules for a break's rows, all through `nearshore.carry`:
 
 - **whole** -- the break's own split, every row kept whole (shipped until
   2026-11-03; the Briefing named a row's buoy train by `trainmatch.buoy_train`)
 - **divided at 20%** -- a row is divided into its buoy trains when a second
-  one carries `nearshore.BUOY_DIVIDE_SHARE` of it (shipped)
-- **divided at a third** -- the same at ⅓
+  one carries 20% of it (shipped 2026-11-03 to -04; 5% + check since, below)
+- **divided at a third** -- the same at ⅓ (measured 2026-11-03, below; no
+  longer run)
+- **10%, 5%, and each + check** -- added 2026-11-04 (below); **5% + check**
+  has shipped since
 
 Inheriting the buoy's split outright was measured too, and is not offered:
 one swell through two of a break's windows (the Baja-islands gap and the main
@@ -107,9 +110,9 @@ VISIBLE = (0.2, 0.1)
 
 #: Each rule: (the second buoy train's share of a row that divides it, and
 #: whether a division needs two pieces that pass the listing floors). None is
-#: the shipped `nearshore.BUOY_DIVIDE_SHARE`; "floor" divides a row whenever
+#: `nearshore.BUOY_DIVIDE_SHARE`; "floor" divides a row whenever
 #: two of its pieces would each be listed (share 4%, 0.05 m).
-RULES = {"whole": (math.inf, False, False), "divided at 20%": (None, False, False),
+RULES = {"whole": (math.inf, False, False), "divided at 20%": (0.20, False, False),
          "10%": (0.10, True, False), "5%": (0.05, True, False),
          "10% + check": (0.10, True, True), "5% + check": (0.05, True, True)}
 
@@ -119,6 +122,10 @@ def _share(rule: str) -> tuple[float, bool, bool]:
 
     v, two, own = RULES[rule]
     return (BUOY_DIVIDE_SHARE if v is None else v), two, own
+
+
+#: The rule `nearshore.carry` ships (2026-11-04, BRIEFING §49a): a test pins it.
+SHIPPED = "5% + check"
 
 
 def _rays(spectrum, table, grids, extra=()) -> list[tuple]:
@@ -176,7 +183,7 @@ def _contents(rays, owners, rows, n_src, source):
         c = [0.0] * n_src
         bins = set(t.bins)
         for m, (i, d, _, _) in enumerate(rays):
-            if i in bins and _inarc(int(d) % 360, t.arc) and (whole or owners[m] == t.buoy):
+            if i in bins and _inarc(int(d) % 360, t.arc) and (whole or owners[m] in (t.buoys or (t.buoy,))):
                 for j, v in enumerate(source(m)):
                     c[j] += v
         out.append(c)
