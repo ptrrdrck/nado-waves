@@ -1005,6 +1005,10 @@ class Train:
     #: one, for a train divided by the buoy's trains (owner's decision,
     #: 2026-11-03; BRIEFING §49). None otherwise; not its identity.
     buoy: int | None = field(default=None, compare=False, repr=False)
+    #: Every buoy train whose energy a divided piece holds: its own `buoy`,
+    #: and any whose piece the back-check sent back to it as its spread
+    #: (`nearshore._divide_by_buoy`, `own_heading`). Empty for a whole row.
+    buoys: tuple = field(default=(), compare=False, repr=False)
 
     @property
     def is_wind_sea(self) -> bool:

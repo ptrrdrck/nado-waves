@@ -179,15 +179,22 @@ class Nearshore:
 
 
 #: A break's train is divided by the buoy's own trains when a second one of
-#: them carries at least this share of its energy (owner's decision,
-#: 2026-11-03; BRIEFING §49): the share that already divides a band by
-#: direction, so no new constant. Measured before it was built
-#: (`forecast.trainmerge`): with the buoy's split as reference, a swell
-#: carrying ≥ 20% of a break's energy had no row of its own on 11-24% of
-#: hours, 0.3-0.8% after (a third instead: 7-8%); in the known-answer
-#: control, where the buoy itself parted two swells ≥ 60° and ≥ 3 s apart,
-#: 21% -> 3.7% (a third: 13%), and where it did not, nothing changes.
-BUOY_DIVIDE_SHARE = TRAIN_LOBE_SHARE
+#: them carries at least this share of its energy, two pieces would each be
+#: listed (`BUOY_DIVIDE_NEEDS_TWO`), and each second piece passes the
+#: back-check against the buoy (`BUOY_DIVIDE_CHECKS_HEADING`): its heading
+#: nearer its own buoy swell's than the row's lead swell's, else it is the
+#: lead's spread across the buoy's dividing line and goes back to the lead.
+#: Owner's decisions: 20% on 2026-11-03 (BRIEFING §49), 5% with the check on
+#: 2026-11-04 (§49a), after North's W at 10% of its energy -- a third of its
+#: height -- had no row. Measured (`forecast.trainmerge`), in the known-answer
+#: control where the buoy parted two swells ≥ 3 s and ≥ 60° apart: a swell
+#: ≥ 10% of a break's energy with no row 22.1% at 20% -> 9.2%, phantom rows
+#: (one swell's spread named as the other) 10.0% -> 8.0%; 5% without the
+#: check gave 8.8% and 13.0%. Single swells and swells the buoy did not part:
+#: no rule changes them.
+BUOY_DIVIDE_SHARE = 0.05
+BUOY_DIVIDE_NEEDS_TWO = True
+BUOY_DIVIDE_CHECKS_HEADING = True
 
 
 def buoy_split(spectrum, grids: dict[int, list[float]] | None = None) -> list[Train]:
@@ -258,7 +265,9 @@ def _buoy_owner(buoy: list[Train]):
 
 
 def _divide_by_buoy(trains: list[Train], buoy: list[Train], frequencies, hists, near_sin,
-                    near_cos, total: float, share: float = BUOY_DIVIDE_SHARE) -> list[Train]:
+                    near_cos, total: float, share: float = BUOY_DIVIDE_SHARE,
+                    need_two: bool = BUOY_DIVIDE_NEEDS_TWO,
+                    own_heading: bool = BUOY_DIVIDE_CHECKS_HEADING) -> list[Train]:
     """Each break train as the buoy's trains carried it: kept whole, its
     `buoy` the one carrying most of it, unless a second carries at least
     BUOY_DIVIDE_SHARE -- then one train per buoy train, each its own energy
@@ -293,6 +302,32 @@ def _divide_by_buoy(trains: list[Train], buoy: list[Train], frequencies, hists, 
             t.buoy = ranked[0]
             out.append(t)
             continue
+        held_by: dict[int, list[int]] = {}
+        if own_heading:
+            # The back-check against the buoy: a piece is the second swell's
+            # only if its own heading sits nearer that swell's heading at the
+            # buoy than the row's lead swell's. Otherwise it is read as the
+            # lead swell's spread across the buoy's dividing line, and its
+            # energy goes back to the lead.
+            lead = ranked[0]
+            for n in ranked[1:]:
+                held_by.setdefault(n, [n])
+                sn = sum(v * math.sin(math.radians(k + 0.5)) for d in parts[n].values() for k, v in d.items())
+                cs = sum(v * math.cos(math.radians(k + 0.5)) for d in parts[n].values() for k, v in d.items())
+                h = math.degrees(math.atan2(sn, cs)) % 360.0
+                off = lambda b: abs((h - buoy[b].from_deg + 180.0) % 360.0 - 180.0)
+                if off(n) >= off(lead):
+                    for i, by_k in parts.pop(n).items():
+                        into = parts[lead].setdefault(i, {})
+                        for k, v in by_k.items():
+                            into[k] = into.get(k, 0.0) + v
+                    sums[lead] += sums.pop(n)
+                    held_by.setdefault(lead, [lead]).extend(held_by.pop(n))
+            ranked = sorted((n for n in sums if n >= 0), key=lambda n: -sums[n])
+            if len(ranked) < 2 or sums[ranked[1]] < share * whole:
+                t.buoy = ranked[0]
+                out.append(t)
+                continue
         pieces = []
         for n in ranked:
             per = parts[n]
@@ -321,17 +356,27 @@ def _divide_by_buoy(trains: list[Train], buoy: list[Train], frequencies, hists, 
                 # `arc` keeps the first, `buoy` names the second.
                 arc=t.arc,
                 buoy=n,
+                buoys=tuple(sorted(held_by.get(n, [n]))),
             )
             _arrive(piece, m_bin, m_sin, m_cos)
             piece.held = _held(piece, m_hists)
             pieces.append(piece)
-        out.extend(floor_trains(pieces))
+        kept = floor_trains(pieces)
+        if need_two and len(kept) < 2:
+            # Only one piece would be listed: dividing would only drop the
+            # rest of the row's energy from it, so it stays whole.
+            t.buoy = ranked[0]
+            out.append(t)
+            continue
+        out.extend(kept)
     out.sort(key=lambda t: -t.hs_m)
     return out
 
 
 def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
-          buoy: list[Train] | None = None, divide_share: float = BUOY_DIVIDE_SHARE) -> Nearshore:
+          buoy: list[Train] | None = None, divide_share: float = BUOY_DIVIDE_SHARE,
+          divide_need_two: bool = BUOY_DIVIDE_NEEDS_TWO,
+          divide_own_heading: bool = BUOY_DIVIDE_CHECKS_HEADING) -> Nearshore:
     """Integrate S_off(f, θ0)·gain over the nearshore headings, per frequency.
 
     With `buoy`, the buoy's own split of the same spectrum (`buoy_split`),
@@ -405,7 +450,8 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
         train.held = _held(train, hists)
     if buoy and trains:
         trains = _divide_by_buoy(trains, buoy, spectrum.frequencies, hists, near_sin, near_cos,
-                                 sum(e for _, e in per_bin), divide_share)
+                                 sum(e for _, e in per_bin), divide_share, divide_need_two,
+                                 divide_own_heading)
     return Nearshore(
         table.break_id, hs(e10), hs(e_eq), hs(e_hard),
         math.degrees(math.atan2(sn, cn)) % 360 if e10 > 0 else float("nan"),

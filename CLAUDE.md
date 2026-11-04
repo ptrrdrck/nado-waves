@@ -2024,9 +2024,27 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   heading) in the buoy's own split with NO floor (`nearshore.buoy_split`,
   from the same 1° grid; floored, it is `at_buoy`'s list, a test pins
   it), which is exact because the chain is linear to 5 m; a row whose
-  second buoy train carries ≥ `BUOY_DIVIDE_SHARE` (20%, the lobe share)
-  of it becomes one row per buoy train, each its own height, peak period,
-  heading, lobes, 5 m heading and held arc, under the same floors.
+  second buoy train carries ≥ `BUOY_DIVIDE_SHARE` of it becomes one row
+  per buoy train, each its own height, peak period, heading, lobes, 5 m
+  heading and held arc, under the same floors. **Since 2026-11-04 the bar
+  is 5% with a back-check** (owner's decision, BRIEFING §49a, after North's
+  W at 10% of its energy — a third of its height — had no row at 20%): a
+  division needs two pieces that would each be listed
+  (`BUOY_DIVIDE_NEEDS_TWO`), and a second piece is that swell only when
+  its own heading sits nearer that swell's heading at the buoy than the
+  row's lead swell's (`BUOY_DIVIDE_CHECKS_HEADING`); otherwise it is the
+  lead's spread across the buoy's dividing line and goes back to the lead,
+  the row naming every buoy swell it holds in `Train.buoys`. Measured
+  (`forecast.trainmerge`), control, buoy parted, ≥ 3 s and ≥ 60° apart:
+  a swell ≥ 10% of a break's energy with no row 22.1% at 20% → 9.2%,
+  phantom rows (a row mostly the swell it is not named for) 10.0% →
+  8.0%; 5% without the check 8.8% and 13.0%. The archive's "hidden"
+  figures rise under the check (N / C / S ≥ 10%: 4.9 / 4.2 / 6.6% of
+  hours against 0.6 / 1.4 / 4.8% at 5% alone) because the check overrules
+  the buoy's dividing line that the archive is scored against; only the
+  control can judge it. Nothing tells two swells apart that the buoy read
+  as one, and the beach log is what would say whether any of this is seen.
+  The 20% figures below are the first rule's.
   **Heights never change; only rows.** MEASURED first
   (`python -m forecast.trainmerge`, ~4 min): with the buoy's split as
   reference, a swell carrying ≥ 20% of a break's energy had no row of its

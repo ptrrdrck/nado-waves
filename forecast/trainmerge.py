@@ -12,14 +12,17 @@ Briefing then named as the SSW. 30% of North's energy at 5 m was the W.
 
 Every ray's energy at 5 m is credited to the buoy train holding its (bin,
 offshore heading) -- the buoy's own split with no floor
-(`nearshore.buoy_split`). The chain is linear to 5 m, so that is exact. Three
+(`nearshore.buoy_split`). The chain is linear to 5 m, so that is exact. The
 rules for a break's rows, all through `nearshore.carry`:
 
 - **whole** -- the break's own split, every row kept whole (shipped until
   2026-11-03; the Briefing named a row's buoy train by `trainmatch.buoy_train`)
 - **divided at 20%** -- a row is divided into its buoy trains when a second
-  one carries `nearshore.BUOY_DIVIDE_SHARE` of it (shipped)
-- **divided at a third** -- the same at ⅓
+  one carries 20% of it (shipped 2026-11-03 to -04; 5% + check since, below)
+- **divided at a third** -- the same at ⅓ (measured 2026-11-03, below; no
+  longer run)
+- **10%, 5%, and each + check** -- added 2026-11-04 (below); **5% + check**
+  has shipped since
 
 Inheriting the buoy's split outright was measured too, and is not offered:
 one swell through two of a break's windows (the Baja-islands gap and the main
@@ -51,6 +54,31 @@ Measured 2026-11-03 (1,811 spectra, 4 Aug - 3 Nov 2026; 30 trials a case):
 A row is "mixed" when no buoy train (archive) or source (control) carries
 `PURE` of it -- `trainmatch`'s bar.
 
+LOWER BARS AND A BACK-CHECK (the owner's question, 3 Nov 22Z: North's W
+was 10% of its energy, about a third of its height, and had no row). Rules
+added: 10% and 5% (a division needing two pieces that pass the listing
+floors), and each with a check against the buoy -- a piece is shown as the
+second swell only when its own heading sits nearer that swell's heading at
+the buoy than the row's lead swell's; otherwise it is read as the lead's
+spread across the buoy's dividing line and goes back to the lead
+(`nearshore._divide_by_buoy`'s `own_heading`). The floor rule measured as
+5%. Phantom rows (control only): a row mostly a source other than the one
+its buoy train is named for. Measured 3 Nov (1,817 spectra, 30 trials):
+
+    archive, a swell >= 10% of a break's energy leading no row (N / C / S):
+        20% 10.3 / 7.1 / 11.6% of hours; 10% 0.8 / 1.6 / 4.8;
+        5% 0.6 / 1.4 / 4.8; 5% + check 4.9 / 4.1 / 6.4
+    control, >= 3 s and >= 60° apart, the buoy parted them:
+        phantom rows 20% 10.0%, 10% 12.5, 5% 13.0, 5% + check 8.0;
+        a swell >= 10% leading no row 22.1, 10.5, 8.8, 9.2;
+        one swell in two rows 18.4, 28.2, 29.9, 19.7
+    control, <= 30° apart, parted: phantoms 17.4, 19.0, 20.1, 13.2
+    single swells and swells the buoy did not part: no rule changes them
+
+The archive judges against the buoy's dividing line, which the check
+overrules on purpose, so its "hidden" figures rise under the check; the
+control, which knows the swells, is the one that can judge it.
+
 Reports, never edits.
 """
 
@@ -75,17 +103,29 @@ SHOWN = 3
 LISTED = 0.5
 #: A row is one source's when that source carries this share of it (`trainmatch.PURE`).
 PURE = 2 / 3
-#: A swell this share of a break's energy is one a reader should see a row for.
-VISIBLE = 0.2
+#: Swells these shares of a break's energy are ones a reader should see a row
+#: for: 20%, and 10% -- about a third of the break's height, North's W on
+#: 3 Nov 22Z (the owner's question that day).
+VISIBLE = (0.2, 0.1)
 
-RULES = {"whole": math.inf, "divided at 20%": None, "divided at a third": 1 / 3}
+#: Each rule: (the second buoy train's share of a row that divides it, and
+#: whether a division needs two pieces that pass the listing floors). None is
+#: `nearshore.BUOY_DIVIDE_SHARE`; "floor" divides a row whenever
+#: two of its pieces would each be listed (share 4%, 0.05 m).
+RULES = {"whole": (math.inf, False, False), "divided at 20%": (0.20, False, False),
+         "10%": (0.10, True, False), "5%": (0.05, True, False),
+         "10% + check": (0.10, True, True), "5% + check": (0.05, True, True)}
 
 
-def _share(rule: str) -> float:
+def _share(rule: str) -> tuple[float, bool, bool]:
     from .nearshore import BUOY_DIVIDE_SHARE
 
-    v = RULES[rule]
-    return BUOY_DIVIDE_SHARE if v is None else v
+    v, two, own = RULES[rule]
+    return (BUOY_DIVIDE_SHARE if v is None else v), two, own
+
+
+#: The rule `nearshore.carry` ships (2026-11-04, BRIEFING §49a): a test pins it.
+SHIPPED = "5% + check"
 
 
 def _rays(spectrum, table, grids, extra=()) -> list[tuple]:
@@ -129,7 +169,9 @@ def _rows(spectrum, table, grids, split, rule: str):
     from .nearshore import carry
 
     whole = {(t.bins, t.arc, round(t.hs_m, 9)) for t in carry(spectrum, table, grids).trains}
-    rows = carry(spectrum, table, grids, split, divide_share=_share(rule)).trains
+    share, two, own = _share(rule)
+    rows = carry(spectrum, table, grids, split, divide_share=share, divide_need_two=two,
+                 divide_own_heading=own).trains
     return [(t, (t.bins, t.arc, round(t.hs_m, 9)) in whole) for t in rows]
 
 
@@ -141,32 +183,38 @@ def _contents(rays, owners, rows, n_src, source):
         c = [0.0] * n_src
         bins = set(t.bins)
         for m, (i, d, _, _) in enumerate(rays):
-            if i in bins and _inarc(int(d) % 360, t.arc) and (whole or owners[m] == t.buoy):
+            if i in bins and _inarc(int(d) % 360, t.arc) and (whole or owners[m] in (t.buoys or (t.buoy,))):
                 for j, v in enumerate(source(m)):
                     c[j] += v
         out.append(c)
     return out
 
 
-def _score(c: Counter, rows, contents, break_share, wind):
-    """Count a break's rows against the sources' shares of its energy."""
+def _score(c: Counter, rows, contents, break_share, wind, labels=None):
+    """Count a break's rows against the sources' shares of its energy.
+    `labels`, in the control, is the source each row is NAMED for -- the true
+    majority of the buoy train it is credited to: a row mostly another
+    source's is a phantom, one swell's spread shown as another swell."""
 
-    shown = list(zip(rows, contents))[:SHOWN]
+    shown = list(zip(rows, contents, labels or [None] * len(rows)))[:SHOWN]
     c["break-hours"] += 1
     c["rows"] += len(shown)
     leads = Counter()
-    for _, cont in shown:
+    for _, cont, label in shown:
         tot = sum(cont)
         if tot <= 0:
             continue
         top = max(range(len(cont)), key=lambda j: cont[j])
+        if label is not None and top != label:
+            c["phantom rows"] += 1
         if cont[top] < PURE * tot:
             c["mixed rows"] += 1
         else:
             leads[top] += 1
     c["one swell in two rows"] += any(v >= 2 for v in leads.values())
-    c["a swell >= 20% leads no row"] += any(
-        s >= VISIBLE and not wind[j] and j not in leads for j, s in enumerate(break_share))
+    for v in VISIBLE:
+        c[f"a swell >= {v:.0%} leads no row"] += any(
+            s >= v and not wind[j] and j not in leads for j, s in enumerate(break_share))
     return leads
 
 
@@ -287,20 +335,22 @@ def _truth(freqs, swell) -> dict[int, list[float]]:
     return {i: [raw[i] * scale * x / gs for x in g] for i in range(len(freqs)) if raw[i] > 0}
 
 
-def _parted(split, truth, sp) -> bool:
+def _parted(split, truth, sp) -> tuple[bool, list]:
     """Did the buoy's split part the swells: each one holding PURE of a train
-    of its own that carries at least half of it?"""
+    of its own that carries at least half of it? And each buoy train's true
+    majority source, the swell a row credited to it is named for."""
 
     rad = math.radians(1)
     totals = [sum(sum(g) * rad * sp.bin_width(i) for i, g in t.items()) for t in truth]
-    got = set()
+    got, labels = set(), []
     for bt in split:
         cont = [sum(t[i][d] * rad * sp.bin_width(i) for i in bt.bins if i in t
                     for d in range(360) if _inarc(d, bt.arc)) for t in truth]
         j = max(range(len(truth)), key=lambda q: cont[q])
+        labels.append(j if cont[j] > 0 else None)
         if cont[j] >= PURE * (sum(cont) or 1) and cont[j] >= 0.5 * totals[j]:
             got.add(j)
-    return len(got) == len(truth)
+    return len(got) == len(truth), labels
 
 
 def _control_one(args):
@@ -317,7 +367,8 @@ def _control_one(args):
     grids = density_grids(sp)
     split = buoy_split(sp, grids)
     truth = [_truth(freqs, s) for s in swells]
-    group = name if len(swells) < 2 else name + (", the buoy parted them" if _parted(split, truth, sp)
+    parted, labels = _parted(split, truth, sp)
+    group = name if len(swells) < 2 else name + (", the buoy parted them" if parted
                                                  else ", the buoy did not")
     out = []
     owner = _buoy_owner(split)
@@ -331,7 +382,8 @@ def _control_one(args):
         for rule in RULES:
             rows = _rows(sp, tables[b], grids, split, rule)
             out.append((group, rule, rows and [(t.hs_m,) for t, _ in rows],
-                        _contents(rays, owners, rows, len(swells), lambda m: rays[m][3]), share))
+                        _contents(rays, owners, rows, len(swells), lambda m: rays[m][3]), share,
+                        [labels[t.buoy] if t.buoy is not None else None for t, _ in rows]))
     return out
 
 
@@ -372,25 +424,29 @@ def control(trials: int = 30, cases=CONTROL, workers: int = 4, singles: bool = T
         got = [_control_one(j) for j in jobs]
     S = defaultdict(Counter)
     for trial in got:
-        for group, rule, rows, contents, share in trial:
-            _score(S[(group, rule)], rows or [], contents, share, [False] * len(share))
+        for group, rule, rows, contents, share, labels in trial:
+            _score(S[(group, rule)], rows or [], contents, share, [False] * len(share), labels)
     return S
 
 
-def _table(S, groups, title):
-    lines = [title, f"  {'':44s}" + "".join(f"{r:>20s}" for r in RULES)]
+def _table(S, groups, title, phantom=False):
+    keys = ["mixed rows", *(["phantom rows"] if phantom else []), "one swell in two rows",
+            *(f"a swell >= {v:.0%} leads no row" for v in VISIBLE)]
+    lines = [title, f"  {'':40s}" + "".join(f"{r:>15s}" for r in RULES)]
     for g in groups:
         c0 = S[(g, "whole")]
         if not c0["break-hours"]:
             continue
         lines.append(f"  {g}  ({c0['break-hours']})")
-        for key in ("mixed rows", "one swell in two rows", "a swell >= 20% leads no row"):
+        for key in keys:
             vals = []
             for r in RULES:
                 c = S[(g, r)]
-                den = c["rows"] if key == "mixed rows" else c["break-hours"]
+                den = c["rows"] if key in ("mixed rows", "phantom rows") else c["break-hours"]
                 vals.append(f"{100 * c[key] / max(den, 1):5.1f}%")
-            lines.append(f"    {key:42s}" + "".join(f"{v:>20s}" for v in vals))
+            lines.append(f"    {key:38s}" + "".join(f"{v:>15s}" for v in vals))
+        lines.append(f"    {'rows a break-hour':38s}" + "".join(
+            f"{S[(g, r)]['rows'] / max(S[(g, r)]['break-hours'], 1):15.2f}" for r in RULES))
     return "\n".join(lines)
 
 
@@ -405,11 +461,12 @@ def main(argv: list[str] | None = None) -> int:
                  "THE ARCHIVE, against the buoy's own split (break-hours; rows for 'mixed'):"))
     print("\n  the Briefing (pooled, >= half the biggest, one line a buoy train):")
     for key in ("lines", "lines mixed", "hours missing a swell"):
-        print(f"    {key:42s}" + "".join(f"{S[(r, 'briefing')][key]:>20d}" for r in RULES))
-    print(f"    {'hours':42s}{S[('whole', 'briefing')]['hours']:>20d}")
+        print(f"    {key:38s}" + "".join(f"{S[(r, 'briefing')][key]:>15d}" for r in RULES))
+    print(f"    {'hours':38s}{S[('whole', 'briefing')]['hours']:>15d}")
     C = control(args.trials, workers=args.workers)
     print()
-    print(_table(C, sorted({g for g, _ in C}), "THE CONTROL, against the known sources (break-trials):"))
+    print(_table(C, sorted({g for g, _ in C}), "THE CONTROL, against the known sources (break-trials):",
+                 phantom=True))
     return 0
 
 

@@ -13,7 +13,8 @@ import pytest
 
 from collector.common import DEFAULT_DATA_DIR
 from forecast import trainmerge as M
-from forecast.nearshore import (BUOY_DIVIDE_SHARE, _buoy_owner, buoy_split, carry, density_grids,
+from forecast.nearshore import (BUOY_DIVIDE_CHECKS_HEADING, BUOY_DIVIDE_NEEDS_TWO, BUOY_DIVIDE_SHARE,
+                                _buoy_owner, buoy_split, carry, density_grids,
                                 load_tables)
 from forecast.transform import TRAIN_LOBE_SHARE, at_buoy, floor_trains, load_spectra
 
@@ -36,8 +37,12 @@ def _at(moment):
     return sp, grids, buoy_split(sp, grids)
 
 
-def test_the_share_is_the_one_that_divides_a_band_by_direction():
-    assert BUOY_DIVIDE_SHARE == TRAIN_LOBE_SHARE == 0.2
+def test_the_shipped_rule_is_five_percent_with_the_back_check():
+    """Owner's decision, 2026-11-04 (BRIEFING §49a), and the report runs it."""
+
+    assert (BUOY_DIVIDE_SHARE, BUOY_DIVIDE_NEEDS_TWO, BUOY_DIVIDE_CHECKS_HEADING) == (0.05, True, True)
+    assert M.RULES[M.SHIPPED] == (BUOY_DIVIDE_SHARE, BUOY_DIVIDE_NEEDS_TWO, BUOY_DIVIDE_CHECKS_HEADING)
+    assert TRAIN_LOBE_SHARE == 0.2   # the bar of 3 Nov, still the buoy's own lobe share
 
 
 def test_the_buoy_split_floored_is_the_buoys_own_trains():
@@ -68,7 +73,9 @@ def test_north_on_3_november_is_two_swells_not_one():
     assert len(rows) == 2
     ssw = next(t for t in rows if t.from_deg < 230)
     w = next(t for t in rows if t.from_deg > 240)
-    assert round(ssw.period_s, 1) == 14.3 and ssw.hs_m == pytest.approx(1.03, abs=0.01)
+    # 1.03 m at 20%; 1.05 since the back-check (2026-11-04) returns to the SSW
+    # the energy credited to the W whose heading sits nearer the SSW.
+    assert round(ssw.period_s, 1) == 14.3 and ssw.hs_m == pytest.approx(1.05, abs=0.01)
     assert w.hs_m == pytest.approx(0.69, abs=0.01)
     assert split[ssw.buoy].from_deg < 230 < split[w.buoy].from_deg
     # The two rows are the row they came from, in energy, less the buoy's
@@ -82,11 +89,52 @@ def test_the_heights_never_change_and_a_row_one_buoy_train_carried_is_untouched(
     for b, table in _tables().items():
         whole, divided = carry(sp, table, grids), carry(sp, table, grids, split)
         assert divided.hs_ref == whole.hs_ref and divided.hs_equivalent == whole.hs_equivalent
+    # 3 Nov 22Z: Center's first row, the W 18.2 s, holds no other buoy
+    # swell's energy, so it is the same row either way.
+    sp, grids, split = _at(datetime(2026, 11, 3, 22, tzinfo=timezone.utc))
     center = _tables()["coronado_center"]
     a, b = carry(sp, center, grids).trains, carry(sp, center, grids, split).trains
-    assert [(t.hs_m, t.period_s, t.from_deg, t.bins, t.held) for t in a] == \
-           [(t.hs_m, t.period_s, t.from_deg, t.bins, t.held) for t in b]
+    key = lambda t: (t.hs_m, t.period_s, t.from_deg, t.bins, t.held)
+    assert key(a[0]) == key(b[0])
     assert all(t.buoy is not None for t in b)
+
+
+def test_the_owners_case_shows_each_breaks_smaller_swell():
+    """3 Nov 22Z, the owner's question (BRIEFING §49a): North's W was 10% of
+    its energy and South's SSW 11%, neither with a row at 20%. At 5% with
+    the back-check each has its own row; nothing else changes."""
+
+    sp, grids, split = _at(datetime(2026, 11, 3, 22, tzinfo=timezone.utc))
+    rows = {b: carry(sp, t, grids, split).trains for b, t in _tables().items()}
+    w = next(n for n, t in enumerate(split) if round(t.period_s, 1) == 18.2)
+    ssw = next(n for n, t in enumerate(split) if round(t.period_s, 1) == 13.3)
+    north, south = rows["coronado_north"], rows["coronado_south"]
+    assert [t.buoy for t in north[:2]] == [ssw, w]
+    assert north[1].hs_m == pytest.approx(1.24 / 3.28084, abs=0.01)
+    assert [t.buoy for t in south[:2]] == [w, ssw]
+    assert south[1].hs_m == pytest.approx(1.11 / 3.28084, abs=0.01)
+
+
+def test_the_back_check_sends_another_swells_spread_back_to_the_lead():
+    """A piece is the second swell only when its heading is nearer that
+    swell's at the buoy than the lead's; a row then holds the energy of every
+    buoy swell named in `buoys`, which the report scores it on."""
+
+    sp, grids, split = _at(datetime(2026, 11, 3, 22, tzinfo=timezone.utc))
+    for b, table in _tables().items():
+        rays = M._rays(sp, table, grids)
+        owner = _buoy_owner(split)
+        owners = [owner(i, int(d) % 360) for i, d, _, _ in rays]
+        rows = M._rows(sp, table, grids, split, M.SHIPPED)
+        each = lambda m: [rays[m][2] if owners[m] == j else 0.0 for j in range(len(split))]
+        for (t, whole), c in zip(rows, M._contents(rays, owners, rows, len(split), each)):
+            assert 4 * math.sqrt(sum(c)) == pytest.approx(t.hs_m, rel=1e-6)
+            if not whole:
+                assert t.buoy in t.buoys and set(j for j, x in enumerate(c) if x > 0) <= set(t.buoys)
+                h = t.from_deg
+                off = lambda n: abs((h - split[n].from_deg + 180) % 360 - 180)
+                assert all(off(t.buoy) < off(n) for n in range(len(split))
+                           if n != t.buoy and split[n].share > 0.2) or len(t.buoys) > 1
 
 
 def test_a_divided_row_is_one_buoy_trains_energy_and_nothing_else():
