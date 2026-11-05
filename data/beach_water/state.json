@@ -1,20 +1,20 @@
 {
   "current": {
     "EH-050": {
-      "priority": "2",
-      "status": "Advisory"
+      "priority": "",
+      "status": "Open"
     },
     "EH-060": {
-      "priority": "2",
-      "status": "Advisory"
+      "priority": "",
+      "status": "Open"
     },
     "IB-079": {
-      "priority": "2",
-      "status": "Advisory"
+      "priority": "",
+      "status": "Open"
     }
   },
-  "last_fetch_utc": "2026-11-05T03:06:05Z",
-  "last_ok_utc": "2026-11-05T03:06:05Z",
+  "last_fetch_utc": "2026-11-05T03:15:37Z",
+  "last_ok_utc": "2026-11-05T03:15:37Z",
   "legend": {
     "1": "Warning",
     "2": "Open",

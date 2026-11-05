@@ -6,3 +6,6 @@ first_seen_utc,station,priority,status
 2026-10-31T18:35:35Z,IB-079,2,Advisory
 2026-10-31T23:35:35Z,EH-050,2,Advisory
 2026-10-31T23:35:35Z,EH-060,2,Advisory
+2026-11-05T03:15:37Z,EH-050,,Open
+2026-11-05T03:15:37Z,EH-060,,Open
+2026-11-05T03:15:37Z,IB-079,,Open
