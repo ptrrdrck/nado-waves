@@ -4750,8 +4750,23 @@ class TestTheWeekStrip:
 
     def test_its_range_is_the_briefings_range(self):
         card = self.fn("weekCard")
-        assert "const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));" in card
+        assert "const [lo, hi] = feetRange(ms);" in card
         assert "dual(...range)" in card and "dualText(...range)" in card
+        brief = SOURCE[SOURCE.index("function briefSwell"):]
+        assert "const [lo, hi] = feetRange(rows.map((r) => r.hs_m));" in brief[:brief.index("\n}\n")]
+
+    def test_a_range_is_rounded_from_the_heights_the_cards_show(self):
+        """Owner's call, 2026-11-05, after "3-5 ft" over cards that never
+        passed 4.0: the update kept at 11:18 PM on 4 Nov had North 2.999 ft
+        (shown 3.0), Center 3.809 (3.8) and South 4.022 (4.0), and read
+        "2-5 ft". Rounded from the cards' tenths it reads 3-4."""
+        start = SOURCE.index("const feetRange = ")
+        fn = SOURCE[start:SOURCE.index("};\n", start) + 3]
+        got = self._node(fn + "console.log(JSON.stringify([feetRange([0.914, 1.161, 1.226]),"
+                         " feetRange([0.979, 1.197, 1.237]), feetRange([0.31, 0.32])]));")
+        # 3.0 / 3.8 / 4.0 shown; 3.2 / 3.9 / 4.1 shown, a card over 4.0 still makes a 5;
+        # 1.0 / 1.0 shown, at least a foot apart.
+        assert json.loads(got) == [[3, 4], [3, 5], [1, 2]]
 
     def test_it_is_on_the_forecast_tab_only_above_the_swell_card(self):
         now = SOURCE[SOURCE.index('if (MODE === "now") {'):]
