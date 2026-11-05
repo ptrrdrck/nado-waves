@@ -1005,7 +1005,13 @@ forecaster actually verifies against, Surfline included.
    points in ink like the numbers (owner's request, same day). The beach
    (owner's choices, same day) is a HEADLINE: the range at 27 px, "3–4 ft
    (0.9–1.2 m)" (the three cards' breaking heights, lowest floored and
-   highest ceiled to whole feet, at least a foot apart), the biggest
+   highest ceiled to whole feet, at least a foot apart, FROM EACH HEIGHT AS
+   ITS CARD SHOWS IT, to the tenth of a foot — `feetRange`, owner's call,
+   2026-11-05, after "3–5 ft" over cards that never passed 4.0 (11:18 PM,
+   4 Nov: 2.999 / 3.809 / 4.022 ft, shown 3.0 / 3.8 / 4.0, read "2–5 ft",
+   now "3–4"); over the record to 5 Nov it changes 62 of 568
+   ranges, each a break within 0.05 ft of a whole foot; the week strip's
+   cells the same), the biggest
    breaking height each hour over 24 h a sparkline beside it (`beach_spark`,
    `swell.spark`, kept out of the record by `unsparked`); then A LINE A
    TRAIN, "SSW at 13.3 s · building" (its words "SSW at 13.3 s, building."),
@@ -1268,7 +1274,8 @@ forecaster actually verifies against, Surfline included.
    DAYLIGHT steps -- sunrise to sunset at the center break from
    forecast.json's `sun` (6 AM–6 PM only for a day without it; the mock
    said 6–6, and the 5 PM step is after dark in winter) -- floored and
-   ceiled to whole feet as the Briefing's headline range is, the cards' own
+   ceiled to whole feet as the Briefing's headline range is (`feetRange`,
+   from the heights as the cards show them), the cards' own
    heights (`cardsForForecast`), past hours as shown then. A day picks its
    biggest break's biggest daylight hour, a cell its own break's
    (`weekBest`, the earlier on a tie), through the picker's `choose`, and

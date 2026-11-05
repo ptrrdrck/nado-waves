@@ -1443,6 +1443,16 @@ const gustSpeed = (kt) => (UNITS === "metric" ? `${Math.round(kt)} kt` : `${Math
 let LAYOUT = "phone";
 const WIDE = () => LAYOUT === "stack" || LAYOUT === "console";
 const height = (m) => (m == null ? "\u2014" : dual(`${(m * FT_PER_M).toFixed(1)} ft`, `${m.toFixed(2)} m`));
+// Breaking heights as one range in whole feet: the lowest rounded down and
+// the highest up, at least a foot apart, from each height AS ITS CARD SHOWS
+// IT, to the tenth of a foot (owner's call, 2026-11-05: 2.999 / 3.809 /
+// 4.022 ft, shown 3.0 / 3.8 / 4.0, made a 2-5 ft range). The
+// Briefing's headline and the week strip's cells.
+const feetRange = (ms) => {
+  const ft = ms.map((m) => Number((m * FT_PER_M).toFixed(1)));
+  const lo = Math.floor(Math.min(...ft));
+  return [lo, Math.max(lo + 1, Math.ceil(Math.max(...ft)))];
+};
 const speed = (kt) => (kt == null ? "\u2014" : dual(`${Math.round(kt * MPH_PER_KT)} mph`, `${Math.round(kt)} kt`));
 
 // Display-only shortenings for the card's window rows. A full blocker name is
@@ -2260,8 +2270,7 @@ function briefSwell(B) {
   const out = [];
   const rows = (s.breaks || []).filter((r) => r.hs_m != null);
   if (rows.length) {
-    const ft = rows.map((r) => r.hs_m * FT_PER_M);
-    const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
+    const [lo, hi] = feetRange(rows.map((r) => r.hs_m));
     out.push({kind: "beach", range: dual(`${lo}–${hi}\u00a0ft`,
       `${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m`, briefNum),
       spark: briefSpark(s.spark, s.window_h || 24),
@@ -7726,9 +7735,9 @@ function weekCard(step) {
   const cols = days.map((d, j) => {
     const name = new Date(d.ms).toLocaleDateString("en-US", {timeZone: COAST_TZ, weekday: "long", month: "short", day: "numeric"});
     const cells = ORDER.map((id) => {
-      const ft = d.hours.map((h) => h.hs[id]).filter((m) => m != null).map((m) => m * FT_PER_M);
-      if (!ft.length) return `<span class="week-cell none">&mdash;</span>`;
-      const lo = Math.floor(Math.min(...ft)), hi = Math.max(lo + 1, Math.ceil(Math.max(...ft)));
+      const ms = d.hours.map((h) => h.hs[id]).filter((m) => m != null);
+      if (!ms.length) return `<span class="week-cell none">&mdash;</span>`;
+      const [lo, hi] = feetRange(ms);
       const range = [`${lo}–${hi} ft`, `${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)} m`];
       return `<button type="button" class="week-cell" data-week-pick="${d.key}" data-week-break="${id}"`
         + ` aria-label="${name}, ${SHORT[id]}: ${dualText(...range)} in daylight. Shows its biggest hour.">`
