@@ -102,3 +102,4 @@ sample_id,sample_date,sample_time,parameter,method,qualifier,result,units,commen
 7670,2026-10-27,06:49:00,Enterococcus,ddPCR,=,590,Copies/100ml,,2026-10-30T05:35:24Z
 7786,2026-10-28,06:49:00,Enterococcus,ddPCR,=,793,Copies/100ml,,2026-10-30T05:35:24Z
 7983,2026-10-31,08:30:00,Enterococcus,ddPCR,=,2842,Copies/100ml,,2026-10-31T23:25:56Z
+8090,2026-11-04,08:32:00,Enterococcus,ddPCR,=,822,Copies/100ml,,2026-11-05T03:25:25Z
