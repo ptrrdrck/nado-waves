@@ -185,7 +185,7 @@ South Open; <195 copies/100 mL on Oct 22, down
 ```text
 [Briefing updated · 7:16 AM]
 
-No spectrum from CDIP 191 since Oct 21, 3:00 PM.
+No spectrum from NDBC 46232 since Oct 21, 3:00 PM.
 
 AM low 0.7 ft (0.21 m) at 3:15 AM
 AM high 5.3 ft (1.62 m) at 9:32 AM
@@ -401,8 +401,8 @@ L15  Briefing NW offshore passed · 7:16 AM                    a swell offshore 
 L16  Briefing NW offshore now 12–14 s · 7:16 AM               an offshore swell's next band
 L17  Briefing NW offshore peaking · 7:16 AM                   an offshore swell's trend
 L18  Briefing W offshore now 12–14 s peaking · 7:16 AM        an offshore swell's next band and its trend: one phrase
-L19  Briefing buoy dark · 7:16 AM                             CDIP 191 dark
-L20  Briefing buoy back · 7:16 AM                             CDIP 191 back
+L19  Briefing buoy dark · 7:16 AM                             NDBC 46232 dark
+L20  Briefing buoy back · 7:16 AM                             NDBC 46232 back
 L21  Briefing new alert · 7:16 AM                             an NWS alert starts
 L22  Briefing alert extended · 7:16 AM                        an alert's end moved later
 L23  Briefing alert shortened · 7:16 AM                       an alert's end moved earlier

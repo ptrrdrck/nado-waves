@@ -272,12 +272,12 @@ forecaster actually verifies against, Surfline included.
    same style.
    Each buoy's feed is a pill at the START of its countdown line (owner's
    requests, 2026-10-09, moved there 2026-10-11 from beside the combined
-   height, whose headline is now the height alone, as a break's is): "CDIP
-   191 •" for 46232 (owner's call, 2026-10-12, shortened from "CDIP 191 via
-   NDBC") — CDIP runs it, NDBC serves its spectra — and "NDBC 46047 •",
+   height, whose headline is now the height alone, as a break's is): "NDBC
+   46232 •" (owner's request, 2026-11-06, back from 2026-10-12's "CDIP
+   191 •": CDIP runs it, NDBC serves its spectra) and "NDBC 46047 •",
    replacing the "(NDBC <id>)" the name line carried. **The whole
    provenance is ONE line of joined pills** (owner's requests, 2026-10-11
-   and -12): "CDIP 191 • | <age> | <countdown>" (`feedPills`). A first line
+   and -12): "NDBC 46232 • | <age> | <countdown>" (`feedPills`). A first line
    above it, "Point Loma South, CA | <when>" (the place alone, the time with
    no "Observed" or "Measured"; `placeWhen`), is built but switched off by
    `SHOW_PLACE_WHEN` (owner's call, same day: kept so it can come back).
@@ -293,9 +293,9 @@ forecaster actually verifies against, Surfline included.
    same day; `buoyReading`): its caret and whole line fold out everything
    between it and the provenance -- trains, rose, those words -- closed
    until opened, each buoy its own state, kept across a refresh; selecting
-   the Buoys tab opens 46232's (owner's request, 2026-10-13). 46232's
-   number is the registry's (`stations.json` `cdip`, `now.json`
-   `station_cdip`, never typed on the page; "NDBC 46232" without it). Ink at
+   the Buoys tab opens 46232's (owner's request, 2026-10-13). Every buoy
+   is named by NDBC's number (`feedName`); the registry still records
+   46232's CDIP number (`stations.json` `cdip`), and nothing shows it. Ink at
    the provenance's 12 px on the picked row's background; 46232's sits under
    every swell tab, the break tabs too, because every break's numbers are
    that one spectrum. Each pill after the first grows out of the one before
@@ -311,7 +311,7 @@ forecaster actually verifies against, Surfline included.
    LIVE only: the Forecast chain's buoy is a model.
    **The Forecast tab's provenance is the same joined pills, with no dot and
    no countdown** (owner's request, 2026-10-15): swell and the model's wind
-   at the buoy "CDIP 191 | GFS-Wave | Oct 15 at 5:00 AM, 9 h ahead" (the run
+   at the buoy "NDBC 46232 | GFS-Wave | Oct 15 at 5:00 AM, 9 h ahead" (the run
    and its lead; one name whatever `wave_source` says), Local "NWS |
    Grid SGX 56,13 | Updated …" (a past hour's from its own build's
    `local_wind_updated_utc` in `46232_shown/`, none where that build kept
@@ -339,8 +339,8 @@ forecaster actually verifies against, Surfline included.
    (`buoys.WITNESS`), held to siting's verdict by a test.
    **Under every buoy's rose, 46232's too, ONE sentence** (owner's wording,
    2026-10-12; `buoys.ABOUT`, in buoys.json as `about`, joined by the
-   page's `buoyAbout`): the station linked to its public page (CDIP's for
-   a buoy with a registry `cdip` number, NDBC's otherwise), its distance
+   page's `buoyAbout`): the station linked to its NDBC station page
+   (46232's too since 2026-11-06, replacing CDIP's page), its distance
    offshore and bearing from Center break — `forecast.siting`'s, never
    typed, none for a buoy siting cannot place — then what is read from it
    and its role. It replaced the "Open ocean witness" / "Inside South's
@@ -431,11 +431,10 @@ forecaster actually verifies against, Surfline included.
    stamp > 45 min from the last a gap, the readout naming its own time —
    from `buoys.json`'s `heights` (the week) and `buoys_all.json` (every
    archived stamp, fetched with series_all.json). Each line, in its key
-   and readout, is named as its pill names it — "CDIP 191", "NDBC 46047",
-   "NDBC 46086" (owner's request, 2026-10-14), never "Buoy 46232"; and so
-   is every buoy the page or docs.html names in words (`buoyFeed`, the CDIP
-   number from now.json or forecast.json; the geometry drawing's from
-   `geomviz`'s registry lookup). Its height is
+   and readout, is named as its pill names it — "NDBC 46232", "NDBC 46047",
+   "NDBC 46086" (owner's requests, 2026-10-14 and 2026-11-06), never
+   "Buoy 46232"; and so is every buoy the page or docs.html names in words
+   (`buoyFeed`; the geometry drawing's `buoyLabel`). Its height is
    `transform.combined_hs`: `at_buoy`'s m0 to rounding (a test pins it)
    without the trains, MEM's bins summing to one by its pole test alone
    (`spreadmethod.realisable`) — 0.7 s for two months, where `at_buoy` took
@@ -674,12 +673,11 @@ forecaster actually verifies against, Surfline included.
    2026-10-14): storm matching is explained on docs.html. Entries are set
    apart by a centred 4 px dot, never a rule: a full-width rule opens a
    section on this card. Each buoy is named as NDBC names it,
-   "Tanner Banks (NDBC 46047)" — the state dropped, and a buoy CDIP runs by
-   CDIP's number, "Point Loma South (CDIP 191)", here and on docs.html's
-   provenance (owner's request, 2026-10-13; the Forecast tab's pill reads
-   "CDIP 191" since 2026-10-15) — from
-   `origin.station_names` and `station_cdips` in now.json (fetched metadata
-   and the registry, never typed). **No upstream sighting is shown, ever**: measured, the predecessor's
+   "Tanner Banks (NDBC 46047)" — the state dropped (owner's request,
+   2026-10-13) — and 46232 the same way, "Point Loma South (NDBC 46232)",
+   here and on docs.html's provenance (owner's request, 2026-11-06,
+   replacing CDIP's number) — from `origin.station_names` in now.json
+   (fetched metadata, never typed). **No upstream sighting is shown, ever**: measured, the predecessor's
    "confirmed in transit" check is blind to the distance (scaling every distance
    by 0.7 or 1.3 moved its hit rate by a point). LIVE only: the Forecast tab
    has no Origin. **Checked against NHC's best tracks** (b-decks archived

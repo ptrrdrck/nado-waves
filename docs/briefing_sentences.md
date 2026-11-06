@@ -38,8 +38,8 @@ By what the update changed: as many as fit, and the rest carried on in the open 
 - Briefing NW offshore now 12–14 s · 7:16 AM  (L16: an offshore swell's next band)
 - Briefing NW offshore peaking · 7:16 AM  (L17: an offshore swell's trend)
 - Briefing W offshore now 12–14 s peaking · 7:16 AM  (L18: an offshore swell's next band and its trend: one phrase)
-- Briefing buoy dark · 7:16 AM  (L19: CDIP 191 dark)
-- Briefing buoy back · 7:16 AM  (L20: CDIP 191 back)
+- Briefing buoy dark · 7:16 AM  (L19: NDBC 46232 dark)
+- Briefing buoy back · 7:16 AM  (L20: NDBC 46232 back)
 - Briefing new alert · 7:16 AM  (L21: an NWS alert starts)
 - Briefing alert extended · 7:16 AM  (L22: an alert's end moved later)
 - Briefing alert shortened · 7:16 AM  (L23: an alert's end moved earlier)
@@ -90,7 +90,7 @@ SW10. W at 10.0 s, building.  (M1)
 
 SW11. At 13.3 s.  (H1)
 
-SW12. No spectrum from CDIP 191 since Oct 21, 3:00 PM.  (D1)
+SW12. No spectrum from NDBC 46232 since Oct 21, 3:00 PM.  (D1)
 
 
 ## Tides

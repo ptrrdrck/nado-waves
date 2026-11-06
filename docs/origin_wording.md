@@ -47,9 +47,9 @@ the storm's name.
 
 Every buoy is named as NDBC names it without its state, from `now.json`'s
 `station_names`, which covers the bearing buoys and every gate buoy a shown
-hurricane was matched at, and by the number of whoever runs it: CDIP's for a
-buoy with one (`station_cdips`), so 46232 is "Point Loma South (CDIP 191)",
-NDBC's otherwise, "Tanner Banks (NDBC 46047)" (owner's request, 2026-10-13).
+hurricane was matched at, and by NDBC's number: "Point Loma South (NDBC
+46232)", "Tanner Banks (NDBC 46047)" (owner's requests, 2026-10-13 and
+2026-11-06, the second replacing CDIP's number for 46232).
 
 Fold-level rules (unchanged): hurricanes first, then current readings; a
 reading of the same train as a shown hurricane is dropped; the last readable

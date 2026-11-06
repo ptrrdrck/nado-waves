@@ -481,8 +481,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    (owner's request, 2026-10-09). */
 .train[data-rose-train][aria-pressed="true"],.train[data-train][aria-pressed="true"]{background:var(--paper);opacity:1}
 /* Each LIVE card's provenance is two lines of joined pills (owner's
-   requests, 2026-10-09 to -12): where and when; then the station, "CDIP
-   <n>", "NDBC <id>", "METAR KNZY" or "NOAA 9410170", with a dot on that
+   requests, 2026-10-09 to -12): where and when; then the station, "NDBC
+   <id>", "METAR KNZY" or "NOAA 9410170", with a dot on that
    source's own countdown -- green while it arrives, green fading in and out
    once one is due, red once overdue -- how long ago, and the countdown.
    In ink at the provenance's size on the picked row's background, with
@@ -2207,8 +2207,8 @@ const briefRain = (inches) => dual(`${inches.toFixed(2)} in`, `${(inches * MM_PE
 const briefMinus = (x) => x.replace(/-/g, "−");
 const briefLevel = (m) => dual(briefMinus(`${(m * FT_PER_M).toFixed(1)} ft`), briefMinus(`${m.toFixed(2)} m`), briefNum);
 // A buoy by its place alone, "Point Loma South", or its feed without one.
-const briefBuoy = (B, id, cdip = "") => (B.station_names && B.station_names[id]
-  ? bareName(B.station_names[id]) : feedName(id, cdip));
+const briefBuoy = (B, id) => (B.station_names && B.station_names[id]
+  ? bareName(B.station_names[id]) : feedName(id));
 
 // NWS's coast and ocean alerts (owner's request and calls, 2026-10-24;
 // forecast.alerts): a line each, a warning triangle, the event linking to
@@ -2264,7 +2264,7 @@ const briefAlerts = (B, nowMs) => (B.alerts || [])
 function briefSwell(B) {
   const s = B.swell || {};
   if (s.dark) {
-    return [{kind: "text", html: `No spectrum from ${feedName(B.station, B.station_cdip)}`
+    return [{kind: "text", html: `No spectrum from ${feedName(B.station)}`
       + (s.newest_utc ? ` since ${briefWhen(s.newest_utc, B)}` : "") + "."}];
   }
   const out = [];
@@ -2289,7 +2289,7 @@ function briefSwell(B) {
     const off = `${c.trend ? `${c.trend} ` : ""}offshore`;
     const from = (c.sector_deg[0] + c.sector_deg[1]) / 2;
     out.push({kind: "off", from, body: `${head}, ${off}; `
-      + `due at ${briefBuoy(B, B.station || "46232", B.station_cdip)} around ${briefAt(c.due_buoy_utc, B)}`
+      + `due at ${briefBuoy(B, B.station || "46232")} around ${briefAt(c.due_buoy_utc, B)}`
       + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + "."});
   }
   return out;
@@ -2378,7 +2378,7 @@ function briefConditions(B) {
     const hub = water.source === "sharklab";
     row("water", "Water", briefTemp(water.c, true), water.observed_utc,
         hub ? `Shark Lab hub, ${SHORT[water.break] || "Coronado"}`
-          : feedName(water.station, water.station === B.station ? B.station_cdip : ""),
+          : feedName(water.station),
         T.water, hub ? {daysAgo: true} : {});
   } else if (c.water_last) {
     // Neither current: the row says so, and tapped, when each source last
@@ -2388,7 +2388,7 @@ function briefConditions(B) {
       trend: "", window: "", when: [
         hub ? `Shark Lab hub, ${SHORT[hub.break] || "Coronado"}, last read ${briefAgo(hub.observed_utc, B)}`
           : `No Shark Lab hub reading in ${BRIEF_WATER_LOOKBACK_D} days`,
-        buoy ? `${feedName(buoy.station, buoy.station === B.station ? B.station_cdip : "")} last read `
+        buoy ? `${feedName(buoy.station)} last read `
           + briefAt(buoy.observed_utc, B) : null].filter(Boolean).join(" · ")});
   }
   if (w.air_c != null) row("air", "Air", briefTemp(w.air_c), w.observed_utc, knzy, T.air);
@@ -3722,7 +3722,6 @@ function originFor(site) {
     last: s.last != null && A[s.last] ? A[s.last] : null,
     lastStorm: lastStormAt(site, O),
     site, lookback: O.lookback_days, names: O.station_names || {},
-    cdips: O.station_cdips || {},
     bearingStations: O.bearing_stations || [],
   };
 }
@@ -3807,11 +3806,12 @@ const ORIGIN_SEP = " &middot; ";
 const NHC_ARCHIVE = "https://www.nhc.noaa.gov/archive/";
 const stormPageUrl = (name, iso) =>
   `${NHC_ARCHIVE}${new Date(iso).getUTCFullYear()}/${name.toUpperCase()}_graphics.php`;
-// Each buoy by its name without the state, and by the number of whoever runs
-// it: "Point Loma South (CDIP <n>)", "Tanner Banks (NDBC 46047)" (owner's
-// request, 2026-10-13, replacing "Point Loma South, CA (NDBC 46232)").
+// Each buoy by its name without the state, and by NDBC's id: "Point Loma
+// South (NDBC 46232)", "Tanner Banks (NDBC 46047)" (owner's request,
+// 2026-10-13, replacing "Point Loma South, CA (NDBC 46232)"; 46232 by NDBC's
+// id again since 2026-11-06, not CDIP's number).
 const buoyName = (o, id) => {
-  const feed = o.cdips && o.cdips[id] ? `CDIP ${o.cdips[id]}` : `NDBC ${id}`;
+  const feed = `NDBC ${id}`;
   return o.names && o.names[id] ? `${bareName(o.names[id])} (${feed})` : feed;
 };
 // A reading's direction is one of three things, and each is said differently:
@@ -4621,9 +4621,8 @@ const SHOW_PLACE_WHEN = false;
 const buoyPlace = (name, station) => (name && name !== station ? name : "");
 const placeWhen = (place, iso) => (SHOW_PLACE_WHEN ? pillLine(place || "", iso ? when(iso) : "") : "");
 
-// The station: "CDIP <n>" for 46232, which CDIP runs, its number from the
-// registry (owner's call, 2026-10-12, shortened from "CDIP <n> via NDBC");
-// "NDBC <id>" for a buoy NDBC runs; "METAR KNZY" for the wind and "NOAA
+// The station: "NDBC <id>" for every buoy, 46232 too (owner's request,
+// 2026-11-06, replacing CDIP's number); "METAR KNZY" for the wind and "NOAA
 // 9410170" for the tide. Its dot runs on that source's own two instants,
 // the countdown beside it on the same two, so the two change together. No
 // observation, no age; no countdown, no last pill.
@@ -4633,7 +4632,7 @@ function feedPills(label, observedIso, iso, lateIso, {forceOver = false} = {}) {
                dueSpan(iso, lateIso, {forceOver, bare: true}));
 }
 const anchorFeed = (now, due, late) => (now && now.station
-  ? feedPills(now.station_cdip ? `CDIP ${now.station_cdip}` : `NDBC ${now.station}`, now.observed_utc,
+  ? feedPills(feedName(now.station), now.observed_utc,
              due, late, {forceOver: nowIsStale()}) : "");
 
 // The dot is filled by `tickDue` with the countdown it sits beside: the same
@@ -5526,19 +5525,16 @@ function originsSpec(id, steps) {
     },
   };
 }
-// A buoy by whoever runs it, as its pill names it: "CDIP <n>" for a buoy with
-// a registry `cdip` number (46232's, now.json `station_cdip`), "NDBC 46047"
-// otherwise. The Buoys tab's Height chart names its lines so (owner's
-// request, 2026-10-14, replacing "Buoy" and the station number).
-const feedName = (station, cdip) => (cdip ? `CDIP ${cdip}` : `NDBC ${station}`);
+// A buoy as its pill names it, "NDBC 46232", "NDBC 46047" (owner's request,
+// 2026-11-06: 46232 by NDBC's id again, not CDIP's number). The Buoys tab's
+// Height chart names its lines so (owner's request, 2026-10-14, replacing
+// "Buoy" and the station number).
+const feedName = (station) => `NDBC ${station}`;
 // And so everywhere the page names a buoy in words (owner's request, same
-// day): the CDIP number from whichever file carries this station's, now.json
-// or forecast.json, NDBC's id otherwise. A fallback ("the buoy") passes as is.
+// day). A fallback ("the buoy") passes as is.
 function buoyFeed(station) {
   if (!/^\d+$/.test(String(station || ""))) return station;
-  const files = [typeof NOW === "undefined" ? null : NOW, typeof DATA === "undefined" ? null : DATA];
-  const got = files.find((f) => f && f.station === station && f.station_cdip);
-  return feedName(station, got ? got.station_cdip : "");
+  return feedName(station);
 }
 // The context buoys' heights (buoys.json's week, and buoys_all.json once
 // asked for), placed on the chart's hours by their own stamps: a fractional
@@ -8145,7 +8141,7 @@ function renderConditions(step, cards) {
     // 2026-10-15) without its dot or countdown: a run is not a feed on a
     // clock. The buoy the model is read at, the model, then the run.
     const run = runPill(step);
-    const anchor = feedName(DATA.station, DATA.station_cdip);
+    const anchor = feedName(DATA.station);
     const modelled = hour.wind_from_deg != null;
     const measured = measuredAt(step.valid_utc);
     const got = measured.state === "value" ? measured.entry : null;

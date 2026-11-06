@@ -924,12 +924,14 @@ class TestTheSourceLine:
         assert "model run of" in INFO_TEXT and "offshore buoy" in INFO_TEXT
 
     def test_it_names_the_buoy_rather_than_only_its_number(self):
-        assert "anchorName(DATA.station_name, DATA.station, DATA.station_cdip)" in INFO
-        # By CDIP's number where CDIP runs it (owner's request, 2026-10-13).
-        assert "(CDIP ${cdip})" in INFO and "(NDBC ${id})" in INFO
-        # The page's Forecast pills name it as LIVE's do, "CDIP 191" (2026-10-15).
-        assert "feedName(DATA.station, DATA.station_cdip)" in SOURCE
-        assert "NOW.station_name" in SOURCE and "NDBC ${now.station}" in SOURCE
+        assert "anchorName(DATA.station_name, DATA.station)" in INFO
+        # By NDBC's number, 46232 too (owner's request, 2026-11-06, replacing
+        # CDIP's number from 2026-10-13).
+        assert "(NDBC ${id})" in INFO and "CDIP 191" not in INFO and "CDIP ${" not in INFO
+        # The page's Forecast pills name it as LIVE's do, "NDBC 46232" (2026-10-15).
+        assert "feedName(DATA.station)" in SOURCE
+        assert "NOW.station_name" in SOURCE and "feedName(now.station)" in SOURCE
+        assert "CDIP 191" not in SOURCE and "CDIP ${" not in SOURCE and "station_cdip" not in SOURCE
 
 
 class TestItDegradesVisibly:
@@ -1339,7 +1341,7 @@ class TestTheSwellCardIsOnBothTabs:
 
     def test_the_forecast_card_names_its_model(self):
         # The buoy, the model and how it was read, then the run (2026-10-15).
-        assert "const anchor = feedName(DATA.station, DATA.station_cdip);" in SOURCE
+        assert "const anchor = feedName(DATA.station);" in SOURCE
         # One model name whichever product the run was read from (owner's
         # call, 2026-10-15): no "partitions" pill.
         assert 'due: pills(anchor, "GFS-Wave", run),' in SOURCE
@@ -2450,7 +2452,7 @@ class TestTheWeekChart:
 
         got = self._run(
             "SERIES = {station: '46232', generated_utc: 'g', steps: week(0, 6)};\n"
-            "NOW = {station: '46232', station_cdip: '191'};\n"
+            "NOW = {station: '46232'};\n"
             "const clock = (iso) => iso.slice(11, 16);\n"
             "BUOYS = {generated_utc: 'b', heights: {'46047': {start_utc: '2026-09-19T23:50:00Z',"
             " t_min: [0, 30, 60, 150, 180], hs_m: [1.5, 1.6, 1.7, 2.0, 2.1]}}};\n"
@@ -2463,24 +2465,22 @@ class TestTheWeekChart:
         )
         assert got[0] == "-0.167,0.333,0.833,2.333,2.833"         # :50 and :20, not on the hour
         assert got[1].endswith("NDBC 46047 2.10 m at 02:50")
-        assert got[1].startswith('<span class="v">CDIP 191 1.20 m</span>')
+        assert got[1].startswith('<span class="v">NDBC 46232 1.20 m</span>')
         assert got[2] == "2 3"                                     # 60 to 150 min is a gap
         assert got[3] == '<span class="v">Buoy 1.20 m</span>'      # without it, as before
 
     def test_a_buoy_is_named_as_its_pill_names_it(self):
         """Owner's request, 2026-10-14: wherever the page names a buoy in
         words -- a chart's key, readout or spoken label, a gap, the observed
-        line under a past hour -- it is named as its pill is: CDIP's number
-        from whichever file carries it, NDBC's id otherwise."""
+        line under a past hour -- it is named as its pill is: NDBC's id, 46232
+        too (owner's request, 2026-11-06, replacing CDIP's number)."""
 
         got = self._run(
             "console.log(buoyFeed('46232'), '|', buoyFeed('46047'), '|', buoyFeed('the buoy'));\n"
-            "NOW = {station: '46232', station_cdip: '191'};\n"
-            "console.log(buoyFeed('46232'), '|', buoyFeed('46047'));\n"
-            "NOW = null; var DATA = {station: '46232', station_cdip: '191'};\n"
-            "console.log(buoyFeed('46232'));"
+            "NOW = {station: '46232'};\n"
+            "console.log(buoyFeed('46232'), '|', buoyFeed('46047'));"
         )
-        assert got == ["NDBC 46232 | NDBC 46047 | the buoy", "CDIP 191 | NDBC 46047", "CDIP 191"]
+        assert got == ["NDBC 46232 | NDBC 46047 | the buoy", "NDBC 46232 | NDBC 46047"]
 
     def test_the_buoys_tab_draws_46086_dashed_under_46047(self):
         """Owner's request, 2026-10-12: 46086 beside 46047 on the Height
@@ -2504,7 +2504,7 @@ class TestTheWeekChart:
         )
         assert got[0] == "other|NDBC 46047,other alt|NDBC 46086"
         assert got[1].endswith("NDBC 46047 — &middot; NDBC 46086 1.40 m at 02:50")
-        assert got[1].startswith('<span class="v">NDBC 46232 1.20 m</span>')  # no CDIP number known
+        assert got[1].startswith('<span class="v">NDBC 46232 1.20 m</span>')
         assert got[2] == ("NDBC 46232's height each hour, with NDBC 46047 and NDBC 46086's in lighter lines, "
                                "the second dashed, each at its own stamps.")
         assert got[3] == "1 1"
@@ -3596,13 +3596,13 @@ class TestOrigin:
         assert "+ ` ${heldAt(a, o)} `" in SOURCE
 
     def test_buoys_are_named_as_ndbc_names_them(self):
-        """"Tanner Banks (NDBC 46047)" and "Point Loma South (CDIP 191)" --
-        the name without its state, the number of whoever runs the buoy
-        (owner's request, 2026-10-13) -- and never typed: now.json carries
-        them from the fetched metadata and the registry."""
+        """"Tanner Banks (NDBC 46047)" and "Point Loma South (NDBC 46232)" --
+        the name without its state (owner's request, 2026-10-13), NDBC's
+        number (2026-11-06) -- and never typed: now.json carries them from
+        the fetched metadata."""
 
         assert "`${bareName(o.names[id])} (${feed})`" in SOURCE
-        assert "`CDIP ${o.cdips[id]}` : `NDBC ${id}`" in SOURCE
+        assert "const feed = `NDBC ${id}`;" in SOURCE and "o.cdips" not in SOURCE
         fold = SOURCE[SOURCE.index("function originFor"):SOURCE.index("let ORIGIN_OPEN")]
         assert "46047" not in _code(fold) and "46086" not in _code(fold) and "46232" not in _code(fold)
 

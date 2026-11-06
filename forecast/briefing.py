@@ -1270,7 +1270,7 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None,
     origin = now.get("origin") or {}
     return {
         "built_utc": built, "available": True,
-        "station": now.get("station"), "station_cdip": now.get("station_cdip"),
+        "station": now.get("station"),
         "station_names": origin.get("station_names") or {},
         "alerts": nws_alerts(Path(data_dir), at),
         "swell": swell_story(now, _read(live / "buoys.json"), at, Path(data_dir), _read(live / "series.json")),

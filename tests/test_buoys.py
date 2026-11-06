@@ -318,7 +318,7 @@ class TestTheSentenceUnderEachRose:
         got = self._render(buoys.about(ROOT / "data"))
         plain = [re.sub(r"<[^>]+>", "", line).replace("&deg;", "°") for line in got]
         assert plain == [
-            "Point Loma South (CDIP 191), 18 mi (29 km) offshore at 231° SW from Center "
+            "Point Loma South (NDBC 46232), 18 mi (29 km) offshore at 231° SW from Center "
             "break: its hourly directional spectrum is what every break's numbers are "
             "carried from, as the only buoy inside all three breaks' windows.",
             "San Clemente Basin (NDBC 46086), 51 mi (81 km) offshore at 256° WSW from "
@@ -330,7 +330,9 @@ class TestTheSentenceUnderEachRose:
             "Channel Islands, gives Origin its storm bearings and is checked against "
             "hurricane tracks, but is not carried to any break.",
         ]
-        assert '<a href="https://cdip.ucsd.edu/m/products/?stn=191p1" rel="noopener">' in got[0]
+        # NDBC's station page, 46232's too (owner's request, 2026-11-06).
+        assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46232" rel="noopener">' in got[0]
+        assert "cdip.ucsd.edu" not in "".join(got)
         assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46086"' in got[1]
         assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46047"' in got[2]
 
@@ -340,8 +342,8 @@ class TestTheSentenceUnderEachRose:
 
         about = buoys.about(ROOT / "data")
         plain = lambda got: [re.sub(r"<[^>]+>", "", line) for line in got]
-        assert plain(self._render(about, "imperial"))[0].startswith("Point Loma South (CDIP 191), 18 mi offshore")
-        assert plain(self._render(about, "metric"))[0].startswith("Point Loma South (CDIP 191), 29 km offshore")
+        assert plain(self._render(about, "imperial"))[0].startswith("Point Loma South (NDBC 46232), 18 mi offshore")
+        assert plain(self._render(about, "metric"))[0].startswith("Point Loma South (NDBC 46232), 29 km offshore")
 
     def test_measured_from_center_and_never_typed(self):
         from forecast import siting
@@ -357,21 +359,18 @@ class TestTheSentenceUnderEachRose:
 
 class TestThePills:
     """Owner's requests, 2026-10-09 and -11: each buoy's feed is a pill at
-    the start of its countdown line -- "CDIP 191 via NDBC •" and "NDBC
-    46047 •" -- the dot green, green fading while an update is due, and red
-    once overdue, on that buoy's own countdown; the headline is the height
+    the start of its countdown line -- "NDBC 46232 •" (owner's request,
+    2026-11-06, replacing "CDIP 191 •") and "NDBC 46047 •" -- the dot
+    green, green fading while an update is due, and red once overdue, on that buoy's own countdown; the headline is the height
     alone."""
 
-    def test_the_number_is_the_registrys_not_the_pages(self):
-        from collector.stations import load_stations
-        from forecast.live import cdip_id
+    def test_46232_is_named_by_ndbcs_number(self):
         from forecast.now import Now
 
-        by_id = {s.id: s for s in load_stations()}
-        assert by_id["46232"].cdip == "191"
-        assert cdip_id("46232") == "191" and cdip_id("46047") == ""
-        assert "station_cdip" in Now.__dataclass_fields__
-        assert "CDIP 191" not in PAGE and "CDIP ${now.station_cdip}" in PAGE
+        # Owner's request, 2026-11-06: "NDBC 46232", never CDIP's number.
+        assert "station_cdip" not in Now.__dataclass_fields__
+        assert "CDIP 191" not in PAGE and "CDIP ${" not in PAGE
+        assert "feedPills(feedName(now.station), now.observed_utc," in PAGE
 
     def test_the_dot_runs_on_the_swell_countdowns_instants(self):
         assert "due: anchorFeed(NOW, due.swell, late.swell)," in PAGE
@@ -415,8 +414,8 @@ class TestThePills:
         block = _fn("contextBuoy")
         assert "(NDBC ${b.station})" not in block
         assert "srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)], feed);" in block
-        # "CDIP <n>" alone since 2026-10-12, never "via NDBC".
-        assert "`CDIP ${now.station_cdip}` : `NDBC ${now.station}`" in PAGE
+        # "NDBC <id>" for 46232 too since 2026-11-06, never "via NDBC".
+        assert "const feedName = (station) => `NDBC ${station}`;" in PAGE
         assert "via NDBC`" not in PAGE
 
     def test_the_combined_height_sits_in_a_break_headlines_row(self):
@@ -482,7 +481,7 @@ class TestThePills:
 
 class TestTheProvenancePills:
     """Owner's requests, 2026-10-11 and -12: each LIVE card's provenance is
-    "CDIP 191 • | <age> | <countdown>", with "Point Loma South, CA | <when>"
+    "NDBC 46232 • | <age> | <countdown>", with "Point Loma South, CA | <when>"
     above it built but switched off (`SHOW_PLACE_WHEN`)."""
 
     def test_46232s_lines_in_order(self):

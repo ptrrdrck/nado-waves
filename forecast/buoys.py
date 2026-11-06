@@ -94,7 +94,7 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
 
 from . import rose, siting
-from .live import cdip_id, station_name
+from .live import station_name
 from .now import PUBLISH_MINUTES as ANCHOR_MINUTES
 from .now import STALE_HOURS, as_trains, deadline
 from .transform import at_buoy, combined_hs, load_spectra
@@ -150,9 +150,8 @@ ABOUT = {
              "hurricane tracks, but is not carried to any break.",
 }
 
-#: Each buoy's public page: CDIP's for a buoy CDIP runs (its number from the
-#: registry, `stations.json` `cdip`, never typed), NDBC's otherwise.
-CDIP_PAGE = "https://cdip.ucsd.edu/m/products/?stn={}p1"
+#: Each buoy's public page: NDBC's station page, 46232's too (owner's
+#: request, 2026-11-06, replacing CDIP's page for a buoy CDIP runs).
 NDBC_PAGE = "https://www.ndbc.noaa.gov/station_page.php?station={}"
 
 #: How far back buoys.json's heights reach: the LIVE tab's week
@@ -230,12 +229,11 @@ def about(data_dir: Path) -> dict:
         placed = {}
     out = {}
     for station in (ANCHOR, *STATIONS):
-        cdip = cdip_id(station)
         sited = placed.get(station)
         out[station] = {
             "place": station_name(station, data_dir).split(",")[0].strip(),
-            "feed": f"CDIP {cdip}" if cdip else f"NDBC {station}",
-            "url": CDIP_PAGE.format(cdip) if cdip else NDBC_PAGE.format(station),
+            "feed": f"NDBC {station}",
+            "url": NDBC_PAGE.format(station),
             "range_km": None if sited is None or sited.range_km is None else round(sited.range_km, 2),
             "bearing_deg": None if sited is None or sited.bearing is None else round(sited.bearing, 2),
             "says": ABOUT[station],

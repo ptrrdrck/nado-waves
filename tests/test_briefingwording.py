@@ -126,7 +126,7 @@ def test_a_lead_train_with_no_heading_drops_its_slot(cases):
 
 
 def test_a_dark_buoy_says_so_and_nothing_else(cases):
-    assert cases["D1"]["swell"] == ["No spectrum from CDIP 191 since Oct 21, 3:00 PM."]
+    assert cases["D1"]["swell"] == ["No spectrum from NDBC 46232 since Oct 21, 3:00 PM."]
 
 
 def test_rain_shows_both_when_either_is_above_zero_and_neither_otherwise(cases):
