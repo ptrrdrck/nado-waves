@@ -1,52 +1,49 @@
-/* The back of the Swell card: the model's geometry over satellite imagery.
-   Mock only (2026-11-06). Chrome from the page's own tokens; the overlay is
-   white and black, because it sits on a photograph, not on the card. */
-.cond.swell{position:relative}
-.sm-turn{position:absolute;top:7px;right:9px;display:inline-flex;align-items:center;gap:5px;
-  font:inherit;font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;font-size:13px;
-  letter-spacing:.06em;text-transform:uppercase;color:var(--soft);background:none;border:0;
-  padding:4px 4px;cursor:pointer;border-radius:6px}
-.sm-turn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;
-  stroke-linecap:round;stroke-linejoin:round}
-.sm-turn:hover{color:var(--ink)}
-.sm-turn:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* The Swell card's map (MOCK, 2026-11-07), in the drawing's own footprint.
+   Chrome from the page's tokens; the overlay is white and black because it
+   sits on a photograph, not on the card. */
+.sm-face{position:relative}
+.sm-face > svg.aperture{display:block}
+.sm-map{position:absolute;inset:0;border-radius:7px;overflow:hidden;background:#0b1820;isolation:isolate}
+.sm-map[hidden]{display:none!important}
+.sm-map .leaflet-container,.sm-map.leaflet-container{background:#0b1820;font:inherit}
 
-.sm-back{display:flex;flex-direction:column;gap:8px;padding:11px 13px;background:var(--card);
-  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);position:relative;
-  min-width:0}
-.sm-back[hidden]{display:none!important}
-.sm-head{display:flex;align-items:center;min-height:18px}
-.sm-head .sm-turn{position:absolute}
-.sm-map{position:relative;flex:1 1 auto;min-height:280px;border-radius:7px;overflow:hidden;
-  background:#0b1820;isolation:isolate}
-.sm-map .leaflet-container{background:#0b1820;font:inherit}
-.sm-cap{min-height:34px;font-size:13px;line-height:17px;color:var(--soft);text-align:center;
-  font-weight:500;text-wrap:balance}
-.sm-cap b{color:var(--ink);font-weight:600}
+/* Drawing | Map, top left, where the drawing has no ink. */
+.sm-switch{position:absolute;top:0;left:0;z-index:1000;display:inline-flex;gap:2px;padding:2px;
+  background:var(--paper);border:1px solid var(--line);border-radius:7px}
+.sm-switch button{display:inline-flex;align-items:center;justify-content:center;width:30px;height:24px;
+  padding:0;border:0;border-radius:5px;background:none;color:var(--faint);cursor:pointer}
+.sm-switch button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.sm-switch button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.sm-switch svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* Overlay text on the photograph. */
+.sm-attr{position:absolute;top:8px;left:72px;right:44px;z-index:800;color:rgba(255,255,255,.85);
+  font:10px/1.2 Archivo,sans-serif;text-shadow:0 0 2px #000,0 0 4px #000;pointer-events:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sm-cap{position:absolute;left:8px;right:8px;bottom:6px;z-index:800;color:#fff;text-align:center;
+  font:500 13px/16px Archivo,sans-serif;white-space:pre-line;text-wrap:balance;
+  text-shadow:0 0 2px #000,0 0 4px #000,0 0 8px rgba(0,0,0,.8);pointer-events:none}
 .sm-deg{color:#fff;font:600 11px/1 Archivo,sans-serif;white-space:nowrap;
   text-shadow:0 0 2px #000,0 0 3px #000,0 0 5px rgba(0,0,0,.7);pointer-events:none}
-.sm-deg span{display:inline-block;transform:translate(-50%,-140%)}
+.sm-deg span{display:inline-block;transform:translate(-50%,-50%)}
 .sm-tag{color:#fff;font:600 11px/1 "Barlow Condensed",Archivo,sans-serif;letter-spacing:.05em;
   text-transform:uppercase;white-space:nowrap;text-shadow:0 0 2px #000,0 0 4px #000;pointer-events:none}
 .sm-tag span{display:inline-block;transform:translate(8px,-50%)}
+.sm-head{background:none;border:0}
+.sm-head svg{display:block;filter:drop-shadow(0 0 1px rgba(0,0,0,.5))}
 
-/* Leaflet's controls in the card's own dress. */
-.sm-map .leaflet-bar{border:1px solid rgba(0,0,0,.25);border-radius:7px;box-shadow:0 1px 4px rgba(0,0,0,.35)}
-.sm-map .leaflet-bar a{width:30px;height:30px;line-height:30px;background:var(--card);color:var(--ink);
-  border-bottom-color:var(--line);font:500 18px/30px Archivo,sans-serif}
-.sm-map .leaflet-bar a:first-child{border-top-left-radius:6px;border-top-right-radius:6px}
-.sm-map .leaflet-bar a:last-child{border-bottom-left-radius:6px;border-bottom-right-radius:6px}
-.sm-map .leaflet-bar a svg{width:16px;height:16px;margin:7px;stroke:currentColor;fill:none;stroke-width:1.6;
+/* Leaflet's controls in the card's dress, small enough for the drawing's box. */
+.sm-map .leaflet-top.leaflet-right{top:0;right:0}
+.sm-map .leaflet-control{margin:4px 4px 0 0}
+.sm-map .leaflet-bar{border:1px solid rgba(0,0,0,.25);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.sm-map .leaflet-bar a{width:26px;height:26px;line-height:26px;background:var(--card);color:var(--ink);
+  border-bottom-color:var(--line);font:500 16px/26px Archivo,sans-serif}
+.sm-map .leaflet-bar a:first-child{border-top-left-radius:5px;border-top-right-radius:5px}
+.sm-map .leaflet-bar a:last-child{border-bottom-left-radius:5px;border-bottom-right-radius:5px}
+.sm-map .leaflet-bar a svg{width:14px;height:14px;margin:6px;stroke:currentColor;fill:none;stroke-width:1.6;
   stroke-linecap:round;display:block}
-.sm-map .leaflet-control-attribution{font:10px/1.4 Archivo,sans-serif;background:rgba(0,0,0,.45);color:#e8eef0;
-  padding:1px 5px;border-top-left-radius:5px}
-.sm-map .leaflet-control-attribution a{color:#fff}
 .sm-hint{position:absolute;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.45);color:#fff;font:600 15px/1.3 Archivo,sans-serif;text-align:center;
   padding:0 24px;opacity:0;transition:opacity .2s;pointer-events:none}
 .sm-hint.on{opacity:1}
 @media (prefers-reduced-motion: reduce){.sm-hint{transition:none}}
-.sm-map:not(.sm-close) .sm-near,.sm-map.sm-close .sm-far{display:none}
-.sm-head-icon{background:none;border:0}.sm-head-icon svg{display:block;filter:drop-shadow(0 0 1px rgba(0,0,0,.5))}
