@@ -1,11 +1,12 @@
 """Build the swell-map mock: the published page with its data built in, plus the back.
 
-    python -m mocks.swell_map.build BUNDLE LEAFLET_DIST OUT.html
+    python -m mocks.swell_map.build BUNDLE LEAFLET_DIST ROTATE_DIST OUT.html
 
 BUNDLE is a checkout of the public delivery repository (nado-waves-forecast):
 its index.html and every *.json beside it are built into one file, served to
 the page by a fetch stand-in, so the mock opens anywhere with no server.
-LEAFLET_DIST is Leaflet 1.9.4's dist/ folder (npm install leaflet@1.9.4).
+LEAFLET_DIST is Leaflet 1.9.4's dist/ folder and ROTATE_DIST leaflet-rotate
+0.2.8's (npm install leaflet@1.9.4 leaflet-rotate@0.2.8).
 The geometry is forecast.geomviz's, built here from spots.json, never typed.
 
 A MOCK. Nothing here is published: forecast.publish ships app/ only.
@@ -27,6 +28,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("bundle", type=Path)
     ap.add_argument("leaflet", type=Path)
+    ap.add_argument("rotate", type=Path, help="leaflet-rotate 0.2.8's dist/ folder")
     ap.add_argument("out", type=Path)
     a = ap.parse_args()
     html = (a.bundle / "index.html").read_text(encoding="utf-8")
@@ -40,6 +42,7 @@ def main() -> None:
     tail = ("<style>" + (a.leaflet / "leaflet.css").read_text() + "</style>\n"
             "<style>" + (HERE / "swellmap.css").read_text() + "</style>\n"
             "<script>" + esc((a.leaflet / "leaflet.js").read_text()) + "</script>\n"
+            "<script>" + esc((a.rotate / "leaflet-rotate.js").read_text()) + "</script>\n"
             "<script>window.__SWELLMAP_MODEL__=" + esc(model) + ";</script>\n"
             "<script>" + esc((HERE / "swellmap.js").read_text()) + "</script>\n")
     i = html.index("<script>")

@@ -1,35 +1,40 @@
-// The back of the Swell card (MOCK, 2026-11-06): the geometry the model uses,
-// from forecast.geomviz, drawn over Esri World Imagery with Leaflet. It reads
-// the page's own helpers (point, compass, dualText, shortBlocker, heightText,
-// selectSwellTab) and never re-derives a window: every fan, edge and vertex
-// is the model's. The imagery is a photograph under it, not an input.
+// The Swell card's map (MOCK, 2026-11-07): a toggle in the corner of each
+// break's drawing swaps it for the same geometry over Esri World Imagery,
+// in the drawing's own footprint and turned the drawing's way -- the break's
+// shore normal straight up, the break where the drawing puts it.
+//
+// The map reads the DRAWING, never a payload of its own: the windows' and
+// shadows' angles, each train's arrow, the 5 m arrowheads and the captions
+// are the svg's (`data-geo`, its arrows, its `.faces`), and a tap on the map
+// goes through the page's own `togglePick`, so a row tap, an arrow tap and a
+// map tap are one pick with one caption, on both tabs and every past hour.
+// Only the edge vertices and the land outlines come from forecast.geomviz,
+// because the drawing has no distances.
 (function () {
   "use strict";
   const MODEL = window.__SWELLMAP_MODEL__;
   if (!MODEL || !window.L) return;
   const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-  const ATTR = 'Imagery <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics';
-  const FAN_KM = 40;          // how far a window or shadow is drawn out to sea
-  const BUOY = "buoy";
-  const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ATTR = "Imagery Esri, Maxar, Earthstar Geographics";
+  const KEY = "nado-sm-view";               // one choice for every tab, kept on this device
   const TOUCH = matchMedia("(pointer: coarse)").matches;
+  const ICON_DRAW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 12.5h13M8 12.5L2.6 7M8 12.5L5 3.6M8 12.5l5.4-5.5"/><path d="M2.6 7a6.5 6.5 0 0 1 10.8 0" stroke-dasharray="1.6 1.8"/></svg>';
   const ICON_MAP = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5l4-1.5 5 2 4-1.5v10l-4 1.5-5-2-4 1.5z"/><path d="M5.5 2v10M10.5 4v10"/></svg>';
-  const ICON_CARD = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6.5h12"/></svg>';
   const ICON_FIT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>';
 
-  // --- the page's own helpers, with stand-ins so the mock never throws ---
-  const has = (n) => typeof window[n] === "function" || (function () { try { return typeof eval(n) === "function"; } catch (e) { return false; } })();
   const call = (n, ...a) => { try { return eval(n)(...a); } catch (e) { return null; } };
-  const ptOf = (d) => call("point", d) || "";
-  const compassOf = (d) => call("compass", d) || `${ptOf(d)} ${Math.round(d)}°`;
-  const blk = (n) => call("shortBlocker", n) || n;
-  const dual = (imp, met) => call("dualText", imp, met) || `${imp} (${met})`;
-  const ht = (m) => call("heightText", m) || `${(m * 3.28084).toFixed(1)} ft (${m.toFixed(2)} m)`;
-  const MI = (() => { try { return eval("MI_PER_KM"); } catch (e) { return 0.621371; } })();
-  const dist = (km) => dual(`${(km * MI).toFixed(km * MI < 10 ? 1 : 0)}\u00a0mi`, `${km.toFixed(km < 10 ? 1 : 0)}\u00a0km`);
+  const brk = (id) => MODEL.breaks.find((b) => b.id === id);
+  const picked = () => { try { return eval("PICKED"); } catch (e) { return {}; } };
   const deg = (b) => `${Math.round(((b % 360) + 360) % 360)}°`;
+  const MI = (() => { try { return eval("MI_PER_KM"); } catch (e) { return 0.621371; } })();
+  const dist = (km) => call("dualText", `${(km * MI).toFixed(km * MI < 10 ? 1 : 0)} mi`,
+    `${km.toFixed(km < 10 ? 1 : 0)} km`) || `${(km * MI).toFixed(1)} mi`;
+  const BUOY_NAME = `NDBC ${MODEL.buoy.id}`;  // as the page names every buoy since 2026-11-06
 
-  // --- spherical geometry: the same great circles forecast.swell uses ---
+  let view = "drawing";
+  try { view = localStorage.getItem(KEY) === "map" ? "map" : "drawing"; } catch (e) { /* storage off */ }
+
+  // --- spherical geometry, as forecast.swell has it ---
   const rad = (d) => d * Math.PI / 180, dg = (r) => r * 180 / Math.PI;
   function dest(p, brg, km) {
     const d = km / 6371.0088, t = rad(brg), f1 = rad(p[0]), l1 = rad(p[1]);
@@ -37,299 +42,254 @@
     const l2 = l1 + Math.atan2(Math.sin(t) * Math.sin(d) * Math.cos(f1), Math.cos(d) - Math.sin(f1) * Math.sin(f2));
     return [dg(f2), dg(l2)];
   }
-  function gc(p, q) {
-    const f1 = rad(p[0]), f2 = rad(q[0]), df = f2 - f1, dl = rad(q[1] - p[1]);
-    const a = Math.sin(df / 2) ** 2 + Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) ** 2;
-    const km = 2 * 6371.0088 * Math.asin(Math.sqrt(a));
-    const brg = (dg(Math.atan2(Math.sin(dl) * Math.cos(f2),
-      Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl))) + 360) % 360;
-    return {km, brg};
-  }
-  function fan(p, from, to, km = FAN_KM) {
-    const pts = [p];
-    const span = ((to - from) % 360 + 360) % 360;
-    const n = Math.max(2, Math.ceil(span));
+  function fan(p, from, to, km) {
+    const span = ((to - from) % 360 + 360) % 360, n = Math.max(2, Math.ceil(span)), pts = [p];
     for (let i = 0; i <= n; i++) pts.push(dest(p, from + span * i / n, km));
     pts.push(p);
     return pts;
   }
 
-  // --- which chain and which break the front is showing ---
-  const chain = () => (document.querySelector('#tab-forecast[aria-selected="true"]') ? "forecast" : "now");
-  const frontTab = () => {
-    const b = document.querySelector('.cond.swell [data-swell-tab][aria-selected="true"]');
-    return b ? b.dataset.swellTab : "coronado_center";
-  };
-  const reading = (id) => {
-    if (chain() !== "now") return null;      // the mock carries LIVE's numbers only
-    const now = (window.__MOCK_DATA__ || {})["now.json"];
-    return now && (now.breaks || []).find((b) => b.id === id) || null;
-  };
-  const brk = (id) => MODEL.breaks.find((b) => b.id === id);
-  const NAME = {coronado_north: "North", coronado_center: "Center", coronado_south: "South"};
-
-  // --- state ---
-  let back = null, map = null, layer = null, tab = null, picked = null, captions = {}, flipping = false;
-
-  function caption(key) {
-    const el = back && back.querySelector(".sm-cap");
-    if (el) el.innerHTML = captions[key] || captions.default || "";
+  // --- what the drawing holds ---
+  function readSvg(svg) {
+    let geo = {};
+    try { geo = JSON.parse(svg.getAttribute("data-geo")); } catch (e) { return null; }
+    const ang = (x, y) => dg(Math.atan2(x - geo.cx, geo.cy - y));
+    const trains = (geo.trains || []).map((t) => {
+      const g = svg.querySelector(`g.swell[data-pick="${t.key}"]`);
+      return {key: t.key, a: ang(t.x0, t.y0), lead: !!(g && g.classList.contains("lead"))};
+    });
+    const nears = [...svg.querySelectorAll("polygon.near")].map((p) => {
+      const [x, y] = p.getAttribute("points").trim().split(/\s+/)[0].split(",").map(Number);
+      return {show: p.getAttribute("data-show"), a: ang(x, y), on: !p.hasAttribute("hidden")};
+    });
+    const faces = [...svg.querySelectorAll("text.faces")].find((t) => !t.hasAttribute("hidden"));
+    const caption = faces ? [...faces.querySelectorAll("tspan")].map((s) => s.textContent).join("\n") : "";
+    const on = new Set([...svg.querySelectorAll("[data-pick].on")].map((e) => e.getAttribute("data-pick")));
+    return {sections: geo.sections || [], trains, nears, caption, on, rimPx: geo.r, cx: geo.cx, cy: geo.cy};
   }
 
-  // One break's windows and shadows, as the front's drawing has them: the
-  // shadows are whatever the seaward half-plane's windows leave, each cast by
-  // the land that closes the window before it.
-  function drawBreak(id) {
-    const b = brk(id); if (!b) return;
-    const c = reading(id);
-    const p = b.position, wins = b.windows.slice().sort((x, y) => x.from - y.from);
-    const lo = b.normal - 90, hi = b.normal + 90;
-    const rel = (x) => ((x - b.normal) % 360 + 540) % 360 - 180;
-    captions = {default: `<b>${NAME[id] || b.name}</b> facing ${compassOf(b.normal)}`};
-    const pick = (key, lyr) => lyr.on("click", (e) => { L.DomEvent.stop(e); select(key); });
-
-    // Shadows.
-    const shadows = [];
-    let from = lo;
-    wins.forEach((w) => {
-      if (rel(w.from) > rel(from) + 0.01) shadows.push({from, to: w.from, by: w.edges.find((e) => e.side === "low").blocker});
-      from = w.to;
-    });
-    if (rel(hi) > rel(from) + 0.01) shadows.push({from, to: hi, by: wins[wins.length - 1].edges.find((e) => e.side === "high").blocker});
-    shadows.forEach((s, i) => {
-      const key = `s${i}`;
-      const tb = c && (c.taken_by || []).find((t) => t.blocker === s.by);
-      captions[key] = `<b>${s.by}</b>` + (c ? (tb ? `, blocking ${Math.round(100 * tb.share)}% of this swell` : ", blocking none of this swell") : "")
-        + ` · ${deg(s.from)}–${deg(s.to)}`;
-      pick(key, L.polygon(fan(p, s.from, s.to), {className: "sm-sec", color: "#000", weight: 0, fillColor: "#000",
-        fillOpacity: 0.3, _key: key}).addTo(layer));
-    });
-
-    // Windows, each edge a ray to the one vertex that forms it.
-    wins.forEach((w, i) => {
-      const key = `w${i}`;
-      const low = w.edges.find((e) => e.side === "low"), high = w.edges.find((e) => e.side === "high");
-      captions[key] = `<b>${blk(low.blocker)} → ${blk(high.blocker)}</b>, ${ptOf(midOf(w.from, w.to))}, ${Math.round(w.span)}° wide · ${deg(w.from)}–${deg(w.to)}`;
-      pick(key, L.polygon(fan(p, w.from, w.to), {color: "#fff", weight: 0, fillColor: "#fff", fillOpacity: 0.04, _key: key}).addTo(layer));
-    });
-    wins.forEach((w, i) => w.edges.forEach((e) => {
-      const key = `v${i}${e.side[0]}`;
-      L.polyline([p, e.vertex], {color: "#000", weight: 3.5, opacity: 0.35, interactive: false}).addTo(layer);
-      L.polyline([p, e.vertex], {color: "#fff", weight: 1.5, opacity: 0.95, interactive: false}).addTo(layer);
-      L.polyline([e.vertex, dest(p, e.bearing, FAN_KM)], {color: "#fff", weight: 1, opacity: 0.6, dashArray: "3 5", interactive: false}).addTo(layer);
-      captions[key] = `<b>${e.blocker}</b>, the vertex that forms the ${deg(e.bearing)} edge · ${dist(e.range_km)} from this break`;
-      pick(key, L.circleMarker(e.vertex, {radius: 4.5, color: "#fff", weight: 2, fillColor: "#000", fillOpacity: 0.6, _key: key}).addTo(layer));
-    }));
-    // The two outermost edges carry their degrees, as on the front.
-    const ends = [wins[0].edges.find((e) => e.side === "low"), wins[wins.length - 1].edges.find((e) => e.side === "high")];
-    ends.forEach((e) => label(dest(p, e.bearing, Math.min(e.range_km + 4, FAN_KM - 6)), deg(e.bearing)));
-
-    // Trains, in from the sea along the heading each arrives from offshore.
-    if (c) (c.trains || []).forEach((t, i) => {
-      if (t.local || t.wind_sea || !isFinite(t.from_deg) || Math.abs(rel(t.from_deg)) >= 90) return;
-      const key = `t${i}`, lead = i === 0;
-      const a = dest(p, t.from_deg, lead ? 11 : 9), z = dest(p, t.from_deg, 1.4);
-      captions[key] = `<b>${ht(t.hs_m)}</b> at ${t.period_s.toFixed(1)} s from ${ptOf(t.from_deg)} ${deg(t.from_deg)}, offshore`;
-      L.polyline([a, z], {color: "#000", weight: lead ? 6 : 4.5, opacity: 0.35, interactive: false}).addTo(layer);
-      pick(key, L.polyline([a, z], {color: "#fff", weight: lead ? 3 : 2, opacity: 1, _key: key}).addTo(layer));
-      // The head is drawn in screen pixels, so it stays a head at every zoom.
-      const sz = lead ? 16 : 13;
-      const head = L.marker(z, {keyboard: false, _key: key, icon: L.divIcon({className: "sm-head-icon", iconSize: [sz, sz],
-        html: `<svg viewBox="0 0 16 16" width="${sz}" height="${sz}" style="transform:rotate(${(t.from_deg + 180) % 360}deg)">`
-          + `<path d="M8 15 L2 3 L8 6 L14 3 Z" fill="#fff" stroke="#000" stroke-opacity=".45" stroke-width="1"/></svg>`})}).addTo(layer);
-      pick(key, head);
-    });
-    return [p, ...wins.flatMap((w) => w.edges.map((e) => e.vertex))];
-  }
-  const midOf = (a, b) => (call("midBearing", a, b) ?? (a + (((b - a) % 360 + 360) % 360) / 2));
-
-  function label(at, text, cls = "sm-deg") {
-    L.marker(at, {interactive: false, keyboard: false,
-      icon: L.divIcon({className: cls, html: `<span>${text}</span>`, iconSize: [0, 0]})}).addTo(layer);
-  }
-
-  // The land the model has, as the model has it: Point Loma's charted hull,
-  // and the islands' and Baja's edges, so the photograph shows how few
-  // vertices the windows stand on.
-  function drawBlockers() {
-    MODEL.blockers.forEach((b) => {
-      const line = b.outline && b.outline.length > 2 ? b.outline : [b.a, b.b];
-      L.polyline(line, {color: "#fff", weight: 1.25, opacity: 0.85, dashArray: "2 4", interactive: false}).addTo(layer);
-    });
-  }
-
-  function drawBreaks(selected) {
-    MODEL.breaks.forEach((b) => {
-      const on = b.id === selected;
-      L.polyline(b.chord, {color: "#000", weight: on ? 6 : 4, opacity: 0.4, interactive: false}).addTo(layer);
-      L.polyline(b.chord, {color: "#fff", weight: on ? 3 : 2, opacity: on ? 1 : 0.8, interactive: false}).addTo(layer);
-      const dot = L.circleMarker(b.position, {radius: on ? 5.5 : 4, color: on ? "#000" : "#fff", weight: on ? 2 : 1.5,
-        fillColor: on ? "#fff" : "#000", fillOpacity: 1}).addTo(layer);
-      dot.on("click", (e) => { L.DomEvent.stop(e); choose(b.id); });
-      if (!on || tab === BUOY) label(b.position, NAME[b.id] || b.id, "sm-tag sm-near");
-    });
-    label(brk("coronado_center").position, "Coronado", "sm-tag sm-far");
-  }
-
-  function drawBuoy() {
-    const q = MODEL.buoy.position; if (!q) return null;
-    const name = MODEL.buoy.cdip ? `CDIP ${MODEL.buoy.cdip}` : `NDBC ${MODEL.buoy.id}`;
-    const c = brk("coronado_center"), g = gc(c.position, q);
-    captions.buoy = `<b>${name}</b>, Point Loma South · ${dist(g.km)} ${ptOf(g.brg)} of Center break`;
-    const m = L.circleMarker(q, {radius: 6, color: "#fff", weight: 2, fillColor: "#000", fillOpacity: 0.7}).addTo(layer);
-    m.on("click", (e) => { L.DomEvent.stop(e); select("buoy"); });
-    label(q, name, "sm-tag");
-    return q;
-  }
-
-  function render(fit) {
-    layer.clearLayers();
-    picked = null;
-    let pts;
-    if (tab === BUOY) {
-      captions = {};
-      drawBlockers(); drawBreaks(null);
-      const q = drawBuoy();
-      captions.default = captions.buoy;
-      pts = [q, ...MODEL.breaks.map((b) => b.position), ...MODEL.blockers.flatMap((b) => [b.a, b.b])].filter(Boolean);
-    } else {
-      drawBlockers();
-      pts = drawBreak(tab) || [];
-      drawBreaks(tab);
-      drawBuoy();
+  // One map per drawing, made the first time it is shown.
+  class Face {
+    constructor(svg) {
+      this.svg = svg;
+      this.id = svg.getAttribute("data-break");
+      this.b = brk(this.id);
+      this.box = document.createElement("div");
+      this.box.className = "sm-face";
+      svg.before(this.box);
+      this.box.append(svg);
+      this.box.insertAdjacentHTML("beforeend",
+        `<div class="sm-map" hidden><div class="sm-attr">${ATTR}</div><div class="sm-cap" aria-live="polite"></div>`
+        + `<div class="sm-hint">Use two fingers to move the map</div></div>`
+        + `<div class="sm-switch" role="group" aria-label="Show the windows as">`
+        + `<button type="button" data-sm-view="drawing" aria-label="Drawing" title="Drawing">${ICON_DRAW}</button>`
+        + `<button type="button" data-sm-view="map" aria-label="Map" title="Map">${ICON_MAP}</button></div>`);
+      this.el = this.box.querySelector(".sm-map");
+      this.box.querySelectorAll("[data-sm-view]").forEach((btn) =>
+        btn.addEventListener("click", (e) => { e.stopPropagation(); setView(btn.dataset.smView); }));
+      // The drawing's own picks, from its rows or its arrows, redraw the map's.
+      new MutationObserver(() => this.sync()).observe(svg, {attributes: true, subtree: true, attributeFilter: ["class", "hidden"]});
+      this.show();
     }
-    caption("default");
-    back._bounds = L.latLngBounds(pts);
-    if (fit) map.fitBounds(back._bounds, {padding: [14, 14], animate: false});
-    syncTabs();
-  }
 
-  function select(key) {
-    picked = picked === key ? null : key;
-    layer.eachLayer((l) => {
-      if (!l.options._key) return;
-      const on = l.options._key === picked;
-      if (l instanceof L.Polygon && l.options.fillColor === "#000") l.setStyle({fillOpacity: on ? 0.55 : 0.3});
-      else if (l instanceof L.Polygon && l.options.weight === 0) l.setStyle({fillOpacity: on ? 0.22 : 0.04});
-    });
-    caption(picked || "default");
-  }
-
-  function choose(id) {
-    tab = id;
-    // The front follows, so turning back lands on the same break.
-    if (has("selectSwellTab")) call("selectSwellTab", id);
-    render(true);
-  }
-
-  function syncTabs() {
-    back.querySelectorAll("[data-sm-tab]").forEach((b) => {
-      const on = b.dataset.smTab === tab;
-      b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1;
-    });
-  }
-
-  function build(card) {
-    back = document.createElement("div");
-    back.className = "sm-back"; back.hidden = true;
-    const tabs = [...card.querySelectorAll("[data-swell-tab]")]
-      .map((b) => `<button type="button" role="tab" data-sm-tab="${b.dataset.swellTab}">${b.textContent.trim()}</button>`).join("");
-    back.innerHTML = `<div class="sm-head"><span class="lbl">Swell · Map</span>
-        <button type="button" class="sm-turn" aria-label="Turn the card back over">${ICON_CARD}Card</button></div>
-      <div class="subtabs" role="tablist" aria-label="Break on the map">${tabs}</div>
-      <div class="sm-map"><div class="sm-hint">Use two fingers to move the map</div></div>
-      <div class="sm-cap" aria-live="polite"></div>
-      <div class="srcs"><span class="src"><span class="pills"><span class="pill">Esri World Imagery</span><span class="pill-tail">Model geometry</span><span class="pill-tail">NOAA ENC</span></span></span></div>`;
-    back.querySelector(".sm-turn").addEventListener("click", () => turn(false));
-    back.querySelectorAll("[data-sm-tab]").forEach((b) => b.addEventListener("click", () => choose(b.dataset.smTab)));
-    card.after(back);
-  }
-
-  function makeMap() {
-    const el = back.querySelector(".sm-map");
-    map = L.map(el, {
-      zoomSnap: 0.25, zoomDelta: 0.5, attributionControl: true, zoomControl: false,
-      dragging: !TOUCH, touchZoom: true, scrollWheelZoom: false, tap: false,
-      maxBounds: [[31.5, -118.6], [33.6, -116.3]], minZoom: 8, maxZoom: 18,
-    });
-    map.attributionControl.setPrefix(false);
-    L.tileLayer(ESRI, {attribution: ATTR, maxNativeZoom: 18, maxZoom: 18}).addTo(map);
-    L.control.zoom({position: "topright"}).addTo(map);
-    const Fit = L.Control.extend({options: {position: "topright"}, onAdd() {
-      const d = L.DomUtil.create("div", "leaflet-bar");
-      d.innerHTML = `<a href="#" role="button" title="Back to the whole geometry" aria-label="Back to the whole geometry">${ICON_FIT}</a>`;
-      L.DomEvent.on(d.firstChild, "click", (e) => { L.DomEvent.stop(e); map.fitBounds(back._bounds, {padding: [14, 14]}); });
-      return d;
-    }});
-    new Fit().addTo(map);
-    layer = L.featureGroup().addTo(map);
-    window.__smMap = map;
-    const zoomClass = () => el.classList.toggle("sm-close", map.getZoom() >= 13);
-    map.on("zoomend", zoomClass); zoomClass();
-    map.on("click", () => { if (picked) select(picked); });
-    // Ctrl + wheel zooms, as the charts do; a plain wheel scrolls the page.
-    el.addEventListener("wheel", (e) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      map.setZoom(map.getZoom() - Math.sign(e.deltaY) * 0.5);
-    }, {passive: false});
-    // One finger scrolls the page; say how to move the map instead.
-    if (TOUCH) {
-      const hint = el.querySelector(".sm-hint");
-      let t0 = null, timer = 0;
-      el.addEventListener("touchstart", (e) => { t0 = e.touches.length === 1 ? e.touches[0].clientY : null; }, {passive: true});
-      el.addEventListener("touchmove", (e) => {
-        if (t0 == null || e.touches.length !== 1 || Math.abs(e.touches[0].clientY - t0) < 8) return;
-        hint.classList.add("on"); clearTimeout(timer);
-        timer = setTimeout(() => hint.classList.remove("on"), 1100); t0 = null;
-      }, {passive: true});
+    show() {
+      const on = view === "map" && !!this.b;
+      this.box.querySelectorAll("[data-sm-view]").forEach((btn) => btn.setAttribute("aria-pressed", String(btn.dataset.smView === (on ? "map" : "drawing"))));
+      this.el.hidden = !on;
+      this.svg.style.visibility = on ? "hidden" : "";
+      if (on && this.box.offsetWidth) {
+        if (!this.map) this.make();
+        this.map.invalidateSize({animate: false});
+        if (!this.framed) this.frame();
+        this.draw();
+      }
     }
+
+    make() {
+      const map = this.map = L.map(this.el, {
+        rotate: true, bearing: 0, touchRotate: false, shiftKeyRotate: false, rotateControl: false,
+        compassBearing: false, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false,
+        dragging: !TOUCH, touchZoom: true, scrollWheelZoom: false, doubleClickZoom: true, minZoom: 8, maxZoom: 18,
+      });
+      L.tileLayer(ESRI, {maxNativeZoom: 18, maxZoom: 18}).addTo(map);
+      const self = this;
+      // + and - zoom around the break, so it stays where the drawing has it;
+      // pinch and double-tap zoom where the reader puts them.
+      const Zoom = L.Control.extend({options: {position: "topright"}, onAdd() {
+        const d = L.DomUtil.create("div", "leaflet-bar");
+        d.innerHTML = '<a href="#" role="button" title="Zoom in" aria-label="Zoom in">+</a>'
+          + '<a href="#" role="button" title="Zoom out" aria-label="Zoom out">\u2212</a>';
+        const step = (dz) => (e) => { L.DomEvent.stop(e); map.setZoomAround(self.b.position, map.getZoom() + dz); };
+        L.DomEvent.on(d.children[0], "click", step(1));
+        L.DomEvent.on(d.children[1], "click", step(-1));
+        L.DomEvent.disableClickPropagation(d);
+        return d;
+      }});
+      new Zoom().addTo(map);
+      const Fit = L.Control.extend({options: {position: "topright"}, onAdd() {
+        const d = L.DomUtil.create("div", "leaflet-bar");
+        d.innerHTML = `<a href="#" role="button" title="Back to the whole window" aria-label="Back to the whole window">${ICON_FIT}</a>`;
+        L.DomEvent.on(d.firstChild, "click", (e) => { L.DomEvent.stop(e); self.frame(true); });
+        L.DomEvent.disableClickPropagation(d);
+        return d;
+      }});
+      new Fit().addTo(map);
+      this.land = L.featureGroup().addTo(map);     // geometry that keeps its place on the ground
+      this.marks = L.featureGroup().addTo(map);    // arrows drawn at the drawing's pixel size
+      map.on("click", () => { const k = picked()[this.id]; if (k) call("togglePick", this.svg, k); });
+      map.on("zoomend", () => this.drawMarks());
+      this.el.addEventListener("wheel", (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        map.setZoom(map.getZoom() - Math.sign(e.deltaY) * 0.5);
+      }, {passive: false});
+      if (TOUCH) {
+        const hint = this.el.querySelector(".sm-hint");
+        let y0 = null, timer = 0;
+        this.el.addEventListener("touchstart", (e) => { y0 = e.touches.length === 1 ? e.touches[0].clientY : null; }, {passive: true});
+        this.el.addEventListener("touchmove", (e) => {
+          if (y0 == null || e.touches.length !== 1 || Math.abs(e.touches[0].clientY - y0) < 8) return;
+          hint.classList.add("on"); clearTimeout(timer);
+          timer = setTimeout(() => hint.classList.remove("on"), 1100); y0 = null;
+        }, {passive: true});
+      }
+      this.drawLand();
+    }
+
+    // The drawing's frame: the shore normal up, the break at the drawing's
+    // centre point, and the farthest vertex forming an edge on its rim.
+    frame(animate = false) {
+      const map = this.map, b = this.b, d = readSvg(this.svg);
+      const W = this.el.clientWidth, H = this.el.clientHeight;
+      const vb = this.svg.viewBox.baseVal, s = W / vb.width;
+      const rimPx = d.rimPx * s, far = Math.max(...b.windows.flatMap((w) => w.edges.map((e) => e.range_km)));
+      const mpp = far * 1000 / rimPx;
+      const zoom = Math.log2(156543.03392 * Math.cos(rad(b.position[0])) / mpp);
+      const upKm = (H / 2 - d.cy * s) * -mpp / 1000;  // break sits below the middle, so the centre is seaward
+      map.setBearing(-b.normal);
+      map.setView(dest(b.position, b.normal, upKm), zoom, {animate});
+      this.framed = true;
+    }
+
+    drawLand() {
+      const g = this.land, b = this.b, p = b.position;
+      g.clearLayers();
+      const d = readSvg(this.svg) || {sections: []};
+      const far = Math.max(...b.windows.flatMap((w) => w.edges.map((e) => e.range_km))) * 1.6;
+      d.sections.forEach((sec) => {
+        const shadow = sec.key[0] === "s";
+        L.polygon(fan(p, b.normal + sec.a0, b.normal + sec.a1, far), {
+          color: "#fff", weight: 0, fillColor: shadow ? "#000" : "#fff",
+          fillOpacity: shadow ? 0.22 : 0.13, _key: sec.key, _shadow: shadow,
+        }).on("click", (e) => { L.DomEvent.stop(e); call("togglePick", this.svg, sec.key); }).addTo(g);
+      });
+      // Each window edge: a ray to the one vertex that forms it, then on to sea.
+      b.windows.forEach((w) => w.edges.forEach((e) => {
+        L.polyline([p, e.vertex], {color: "#000", weight: 3.5, opacity: 0.35, interactive: false}).addTo(g);
+        L.polyline([p, e.vertex], {color: "#fff", weight: 1.5, opacity: 0.95, interactive: false}).addTo(g);
+        L.polyline([e.vertex, dest(p, e.bearing, far)], {color: "#fff", weight: 1, opacity: 0.6, dashArray: "3 5", interactive: false}).addTo(g);
+        L.circleMarker(e.vertex, {radius: 4.5, color: "#fff", weight: 2, fillColor: "#000", fillOpacity: 0.6})
+          .on("click", (ev) => { L.DomEvent.stop(ev); this.say(`${e.blocker}, the vertex that forms the ${deg(e.bearing)} edge, ${dist(e.range_km)} from this break`); })
+          .addTo(g);
+      }));
+      // The land the model has, as it has it: dashed, so the photograph shows
+      // how few vertices the windows stand on.
+      MODEL.blockers.forEach((bl) => {
+        const line = bl.outline && bl.outline.length > 2 ? bl.outline : [bl.a, bl.b];
+        L.polyline(line, {color: "#fff", weight: 1.25, opacity: 0.85, dashArray: "2 4", interactive: false}).addTo(g);
+      });
+      MODEL.breaks.forEach((o) => {
+        const on = o.id === this.id;
+        L.polyline(o.chord, {color: "#000", weight: on ? 6 : 4, opacity: 0.4, interactive: false}).addTo(g);
+        L.polyline(o.chord, {color: "#fff", weight: on ? 3 : 2, opacity: on ? 1 : 0.8, interactive: false}).addTo(g);
+        L.circleMarker(o.position, {radius: on ? 5 : 3.5, color: on ? "#000" : "#fff", weight: on ? 2 : 1.5,
+          fillColor: on ? "#fff" : "#000", fillOpacity: 1, interactive: false}).addTo(g);
+      });
+      const q = MODEL.buoy.position;
+      if (q) {
+        L.circleMarker(q, {radius: 5, color: "#fff", weight: 2, fillColor: "#000", fillOpacity: 0.7}).addTo(g)
+          .on("click", (ev) => { L.DomEvent.stop(ev); this.say(`${BUOY_NAME}, Point Loma South`); });
+        tag(g, q, BUOY_NAME);
+      }
+    }
+
+    // Arrows in screen pixels from the break, as the drawing draws them: in
+    // from the rim to 0.62 of it, the lead heavier; and a picked train's 5 m
+    // arrowhead at the break. Redrawn on every zoom so they keep their size.
+    drawMarks() {
+      const map = this.map, g = this.marks, d = readSvg(this.svg);
+      g.clearLayers();
+      if (!d) return;
+      const s = this.el.clientWidth / this.svg.viewBox.baseVal.width, r = d.rimPx * s;
+      const o = map.latLngToContainerPoint(this.b.position);
+      const at = (a, rr) => map.containerPointToLatLng([o.x + rr * Math.sin(rad(a)), o.y - rr * Math.cos(rad(a))]);
+      [...d.trains].reverse().forEach((t) => {
+        const lit = d.on.has(t.key), w = t.lead ? 3 : 2;
+        const line = [at(t.a, r * 0.95), at(t.a, r * 0.62 + 6)];
+        L.polyline(line, {color: "#000", weight: w + 3, opacity: 0.35, interactive: false}).addTo(g);
+        L.polyline(line, {color: lit ? "#ffd84d" : "#fff", weight: lit ? w + 1 : w, _key: t.key})
+          .on("click", (e) => { L.DomEvent.stop(e); call("togglePick", this.svg, t.key); }).addTo(g);
+        head(g, at(t.a, r * 0.62), t.a, t.lead ? 14 : 11, lit).on("click", (e) => { L.DomEvent.stop(e); call("togglePick", this.svg, t.key); });
+      });
+      d.nears.filter((n) => n.on).forEach((n) => head(g, at(n.a, r * 0.1), n.a, 17, true, true));
+      // The two outermost edges carry their degrees, where the drawing puts
+      // them: just inside the rim, so they never sit on the break.
+      const secs = d.sections.slice().sort((x, y) => x.a0 - y.a0);
+      const wins = secs.filter((x) => x.key[0] === "w");
+      if (wins.length) {
+        [wins[0].a0, wins[wins.length - 1].a1].forEach((a) =>
+          tag(g, at(a, r * 0.86), deg(this.b.normal + a), "sm-deg"));
+      }
+    }
+
+    draw() {
+      if (!this.map) return;
+      const d = readSvg(this.svg);
+      this.land.eachLayer((l) => {
+        if (!l.options._key) return;
+        const lit = d.on.has(l.options._key);
+        l.setStyle(l.options._shadow ? {fillOpacity: lit ? 0.5 : 0.22} : {fillOpacity: lit ? 0.3 : 0.13});
+      });
+      this.drawMarks();
+      this.say(d.caption);
+    }
+
+    say(text) { this.el.querySelector(".sm-cap").textContent = text; }
+    sync() { if (!this.el.hidden) this.draw(); }
   }
 
-  // Turning over: the card turns away to its edge, the back turns in from
-  // its edge, in the front's footprint so nothing below moves.
-  async function turn(toBack) {
-    const card = document.querySelector(".cond.swell");
-    if (!card || flipping) return;
-    flipping = true;
-    const out = toBack ? card : back, inn = toBack ? back : card;
-    if (toBack) {
-      back.style.height = `${card.offsetHeight}px`;
-      tab = frontTab();
-    }
-    const ease = (from, to, e) => ({duration: 170, easing: e, fill: "forwards"});
-    if (!REDUCED) await out.animate([{transform: "perspective(1400px) rotateY(0)"},
-      {transform: `perspective(1400px) rotateY(${toBack ? 90 : -90}deg)`}], ease(0, 90, "cubic-bezier(.4,0,1,1)")).finished;
-    out.hidden = true; out.getAnimations().forEach((a) => a.cancel());
-    inn.hidden = false;
-    if (toBack) {
-      if (!map) makeMap();
-      map.invalidateSize({animate: false});
-      render(true);
-    }
-    if (!REDUCED) await inn.animate([{transform: `perspective(1400px) rotateY(${toBack ? -90 : 90}deg)`},
-      {transform: "perspective(1400px) rotateY(0)"}], ease(90, 0, "cubic-bezier(0,0,.2,1)")).finished;
-    inn.getAnimations().forEach((a) => a.cancel());
-    (toBack ? back.querySelector(".sm-turn") : card.querySelector(".sm-turn")).focus({preventScroll: true});
-    flipping = false;
+  // A label that stays upright whatever way the map is turned.
+  function tag(g, at, text, cls = "sm-tag") {
+    return L.marker(at, {interactive: false, keyboard: false,
+      icon: L.divIcon({className: cls, html: `<span>${text}</span>`, iconSize: [0, 0]})}).addTo(g);
+  }
+  // An arrowhead pointing in along screen angle `a` (degrees off straight up).
+  function head(g, at, a, size, lit, near = false) {
+    const fill = lit ? "#ffd84d" : "#fff";
+    return L.marker(at, {keyboard: false, icon: L.divIcon({className: "sm-head", iconSize: [size, size],
+      html: `<svg viewBox="0 0 16 16" width="${size}" height="${size}" style="transform:rotate(${a}deg)">`
+        + `<path d="M8 15 L2 3 L8 6 L14 3 Z" fill="${fill}" stroke="#000" stroke-opacity=".5" stroke-width="1"/></svg>`})}).addTo(g);
   }
 
-  // The page redraws its cards on every refresh; the button is put back each
-  // time, and a card redrawn while the back is showing stays turned away.
+  const faces = new Map();
+  function setView(v) {
+    view = v;
+    try { localStorage.setItem(KEY, v); } catch (e) { /* storage off */ }
+    faces.forEach((f) => f.show());
+  }
+
+  // The page redraws its cards on every refresh and every hour picked: each
+  // new drawing gets its toggle and, if the map is the choice, its map.
   function attach() {
-    const card = document.querySelector(".cond.swell");
-    if (!card) return;
-    if (!card.querySelector(":scope > .sm-turn")) {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "sm-turn"; b.setAttribute("aria-label", "Turn the card over to the map");
-      b.innerHTML = `${ICON_MAP}Map`;
-      b.addEventListener("click", () => turn(true));
-      card.prepend(b);
-    }
-    if (!back || !back.isConnected) { back = null; map = null; build(card); }
-    else if (back.previousElementSibling !== card) card.after(back);
-    if (!back.hidden) card.hidden = true;
+    document.querySelectorAll("svg.aperture").forEach((svg) => {
+      if (faces.has(svg) || !brk(svg.getAttribute("data-break"))) return;
+      if (svg.closest(".swell-wide, [data-layout='stack'] .cols, [data-layout='console'] .cols")) return;
+      faces.set(svg, new Face(svg));
+    });
+    faces.forEach((f, svg) => { if (!svg.isConnected) faces.delete(svg); });
   }
+  // A tab or tab-chain switch reveals a drawing that was hidden when made.
+  document.addEventListener("click", () => setTimeout(() => faces.forEach((f) => { if (!f.el.hidden || view === "map") f.show(); }), 0));
   new MutationObserver(() => attach()).observe(document.body, {childList: true, subtree: true});
   attach();
 })();
