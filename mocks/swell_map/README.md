@@ -19,7 +19,9 @@ so its cards age from then; the map's tiles need the network.
   in from the map's top-left corner (owner's calls, 2026-11-08): on the
   drawing the map symbol alone; on the map the drawing symbol, a half-circle
   with a line from the break to Baja's edge and Point Loma's as Center sees
-  them, as wide as the map symbol. Every map control (that button, return,
+  them, as wide as the map symbol. Both toggle symbols are drawn 18 px across
+  (16 x 15 and 17.5 x 9.5 px of ink) in a box pinned to the return
+  button's 28 px, whatever a browser gives a button by default. Every map control (that button, return,
   + and -) is the card's colour with a soft shadow and NO outline. + and - are drawn, not typed, so all four sit
   on their box's centre: measured at 4x, 0.00 px across and the same 0.5 px
   low for each (the card starts on a fractional pixel here); the

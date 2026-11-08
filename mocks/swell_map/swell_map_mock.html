@@ -9601,7 +9601,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
   color:var(--ink);border:1px solid transparent;border-radius:6px;cursor:pointer}
 .sm-face.on-map > .sm-switch{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .sm-switch:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
-.sm-switch svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+/* Pinned to the return button's own box, 28 px outside, whatever a
+   browser gives a <button> by default, and its symbol drawn larger, 18 px
+   across, at the same 1.5 px of line (owner's request, 2026-11-08). */
+.sm-switch{-webkit-appearance:none;appearance:none;margin:0;min-width:28px;min-height:28px;
+  max-width:28px;max-height:28px;font:inherit;line-height:0}
+.sm-switch svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.33;stroke-linecap:round;stroke-linejoin:round}
 
 /* Overlay text on the photograph. */
 .sm-attr{position:absolute;top:8px;left:40px;right:8px;text-align:right;z-index:800;color:rgba(255,255,255,.85);
