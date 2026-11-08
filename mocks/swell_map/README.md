@@ -34,6 +34,16 @@ so its cards age from then; the map's tiles need the network.
   keeps its height. Only the MAP's top edge moves against the trains: as far
   under the last train's ink as the first train's ink sits under the
   headline's, 21.0 px at 4x (21.25 as Chromium snaps it here).
+- **The drawing or map starts at ONE height on all three break tabs**
+  (owner's choice, 2026-11-08, of three put to the owner): the lowest any
+  of them would start at this reading or hour, so switching break tabs
+  never moves it; it moves only when a new reading or another hour changes
+  the lowest. One to four train rows, a headline wrapping on a 320 px
+  phone, a past hour's "Observed at" line all vary above it, so the
+  difference is made up directly above the drawing. Hidden tabs are
+  measured laid out unseen, their rows fitted as the page fits them when
+  shown, so nothing flickers. Checked at 320, 360 and 390 px on both tabs,
+  drawing and map: one top on every break.
 - The map is SQUARE, taller than the drawing so there is room to move about
   in (owner's request, 2026-11-08), and never more than 70% of the screen's
   height; the card grows by the difference while it shows.
