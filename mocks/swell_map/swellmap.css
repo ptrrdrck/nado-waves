@@ -3,6 +3,7 @@
    sits on a photograph, not on the card. */
 .sm-face{position:relative}
 .sm-face > svg.aperture{display:block}
+.sm-face > svg.aperture text.faces{display:none}
 .sm-face.on-map > svg.aperture{display:none}
 /* Taller than the drawing (owner's request, 2026-11-08): square, so there is
    room to move about in, and never more than most of a phone's screen. */
@@ -13,10 +14,12 @@
 
 /* One button, top left, where the drawing has no ink: it shows what a tap
    turns to. On the map it sits inside the map's corner, as the zoom does. */
-.sm-switch{position:absolute;top:0;left:0;z-index:1000;display:inline-flex;align-items:center;
-  justify-content:center;width:30px;height:28px;padding:0;background:var(--card);color:var(--ink);
-  border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);cursor:pointer}
-.sm-face.on-map > .sm-switch{top:4px;left:4px}
+.sm-switch{position:absolute;top:0;left:-5px;z-index:1000;display:inline-flex;align-items:center;
+  justify-content:center;width:26px;height:26px;padding:0;background:none;color:var(--ink);
+  border:0;border-radius:6px;cursor:pointer}
+/* On the map it is dressed as + and - are, in the opposite corner. */
+.sm-face.on-map > .sm-switch{top:4px;left:4px;width:28px;height:28px;background:var(--card);
+  border:1px solid rgba(0,0,0,.25);box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .sm-switch:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .sm-switch svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
@@ -24,9 +27,8 @@
 .sm-attr{position:absolute;top:10px;left:42px;right:38px;z-index:800;color:rgba(255,255,255,.85);
   font:10px/1.2 Archivo,sans-serif;text-shadow:0 0 2px #000,0 0 4px #000;pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sm-cap{position:absolute;left:8px;right:8px;bottom:6px;z-index:800;color:#fff;text-align:center;
-  font:500 13px/16px Archivo,sans-serif;white-space:pre-line;text-wrap:balance;
-  text-shadow:0 0 2px #000,0 0 4px #000,0 0 8px rgba(0,0,0,.8);pointer-events:none}
+.sm-cap{position:relative;margin-top:8px;color:var(--ink);text-align:center;
+  font:400 14px/21px Archivo,sans-serif;text-wrap:balance;pointer-events:none}
 .sm-deg{color:#fff;font:600 11px/1 Archivo,sans-serif;white-space:nowrap;
   text-shadow:0 0 2px #000,0 0 3px #000,0 0 5px rgba(0,0,0,.7);pointer-events:none}
 .sm-deg span{display:inline-block;transform:translate(-50%,-50%)}
@@ -44,7 +46,8 @@
   border-bottom-color:var(--line);font:500 16px/26px Archivo,sans-serif}
 .sm-map .leaflet-bar a:first-child{border-top-left-radius:5px;border-top-right-radius:5px}
 .sm-map .leaflet-bar a:last-child{border-bottom-left-radius:5px;border-bottom-right-radius:5px}
-.sm-map .leaflet-bar a svg{width:14px;height:14px;margin:6px;stroke:currentColor;fill:none;stroke-width:1.6;
+.sm-map .leaflet-bar a{display:flex;align-items:center;justify-content:center}
+.sm-map .leaflet-bar a svg{width:14px;height:14px;margin:0;stroke:currentColor;fill:none;stroke-width:1.6;
   stroke-linecap:round;display:block}
 .sm-hint{position:absolute;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.45);color:#fff;font:600 15px/1.3 Archivo,sans-serif;text-align:center;
