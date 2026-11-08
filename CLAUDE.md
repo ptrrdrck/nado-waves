@@ -270,6 +270,25 @@ forecaster actually verifies against, Surfline included.
    (owner's call, same day): 46232's reading, then the card's provenance
    (46232's), then each context buoy's block with its provenance in the
    same style.
+   **Since 2026-11-08 every card's provenance sits in its TITLE ROW**
+   (owner's design: option B of five mocked; `headPills`, `headRow`): the
+   station pill pinned at the right edge, ONE pill growing out of its LEFT
+   end (`.pill-lead`, the joined cut mirrored), and a tap switching that
+   pill's text and nothing else -- no highlight, no pressed state. On LIVE
+   the left pill is the age and a tap shows the countdown for 5 s
+   (`HEAD_TAP_MS`); overdue, it shows the red countdown and a tap the age.
+   The dot keeps its 7 px inside a countdown RING with no track (`statusRing`:
+   1.5 px of stroke at r 4.75, a 0.5 px hairline of the pill between it and
+   the dot, 11 px across), the arc the share of the wait left from the
+   reading's stamp to due. On Forecast (`modelPills`) the first part is at
+   the right with no dot, the second beside it, and a tap switches to the
+   third and STAYS until the next tap (owner's call, same day). 46047's and
+   46086's sit above their own headlines with no title beside them, and in
+   the wide layouts each Buoys-card column's too, 46232's included (owner's
+   call, same day). The space under a title row is the space above the
+   card's Charts rule (10 px, box to box). No countdown shows a leading zero:
+   "42 s" under a minute, never "0:42" (`hms`). What follows describes the
+   pills' content; where it places them under the reading, this supersedes it.
    Each buoy's feed is a pill at the START of its countdown line (owner's
    requests, 2026-10-09, moved there 2026-10-11 from beside the combined
    height, whose headline is now the height alone, as a break's is): "NDBC

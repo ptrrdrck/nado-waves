@@ -1182,31 +1182,36 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         from. On a wide screen there are no break tabs: the breaks sit side by side, North to
         South, and the buoys are a card of their own (<a href="#start-wide">On a wider
         screen</a>).</p>
-      <p>On &ldquo;LIVE&rdquo;, each buoy's provenance is one line of joined pills, each
-        growing out of the one before it: the station, with a dot, then how long ago its spectrum
-        was taken, then the countdown to the next. The Wind and Tide cards' provenance is the
-        same line: &ldquo;METAR KNZY&rdquo;, the age and the countdown; &ldquo;NOAA
-        9410170&rdquo;, the age and the countdown. On a narrow phone, where the pills do not all
-        fit, one wraps to start the next row and stands on its own. Point Loma South's
-        station reads &ldquo;NDBC 46232&rdquo;, Tanner Banks' &ldquo;NDBC 46047&rdquo; and San Clemente Basin's
-        &ldquo;NDBC 46086&rdquo;: each buoy's spectra reach this page through NDBC, and this page
-        names every buoy by NDBC's number, in its charts and here. NDBC 46232's
-        line sits under every swell tab, the break tabs included, because every break's numbers
-        come from its spectrum. The dot is green while that buoy's spectra arrive on time, fades
-        in and out once the next one is due, and turns red once it is overdue. It changes exactly
-        when the <a href="#swell-countdown">countdown</a> beside it says &ldquo;Update due&rdquo;
-        and &ldquo;Overdue&rdquo;, from the same two instants. With reduced motion on, a due dot
-        holds at half strength instead of fading.</p>
-      <p>On Forecast, every card's provenance is the same line of joined pills, with no dot and
-        no countdown, because a model run is not a feed arriving on a clock. The swell, and the
-        model's wind at the buoy: the buoy the model is read at, &ldquo;NDBC 46232&rdquo;, then
-        &ldquo;GFS-Wave&rdquo;, then the run and how far ahead of the hour it was made, as in
-        &ldquo;Oct 15 at 5:00 AM, 9 h ahead&rdquo;. The local wind: &ldquo;NWS&rdquo;, the forecast grid
-        cell, then when the National Weather Service last updated that grid, which under a past
-        hour is the update the build that showed it read. The tide: &ldquo;NOAA 9410170&rdquo;,
-        &ldquo;Harmonic&rdquo;, then the gauge's measured departure from the prediction over the
-        last 3 days that the hour carries, or &ldquo;No departure&rdquo;. The hour itself is the one in the bar above the
-        cards.</p>
+      <p>Every card's provenance sits in its title row, across from the title: the station's
+        pill at the right edge, and one pill growing out of its left end. On &ldquo;LIVE&rdquo;
+        the station pill carries a dot, and the pill beside it says how long ago the reading was
+        taken. Tap either and that pill shows the <a href="#swell-countdown">countdown</a> to the
+        next reading for 5 seconds, then the age again. The Wind card's station is &ldquo;METAR
+        KNZY&rdquo; and the Tide card's &ldquo;NOAA 9410170&rdquo;. Point Loma South's station
+        reads &ldquo;NDBC 46232&rdquo;, Tanner Banks' &ldquo;NDBC 46047&rdquo; and San Clemente
+        Basin's &ldquo;NDBC 46086&rdquo;: each buoy's spectra reach this page through NDBC, and
+        this page names every buoy by NDBC's number, in its charts and here. NDBC 46232's pills
+        sit in the Swell card's title row, above every swell tab, the break tabs included,
+        because every break's numbers come from its spectrum. On the Buoys tab, NDBC 46086's and
+        NDBC 46047's sit above their own headlines, with no title beside them.</p>
+      <p>The dot sits inside a thin ring that empties clockwise from the moment the reading was
+        taken to when the next is due, so the ring is the countdown, drawn. While the reading is
+        on time the dot is green. Once the next one is due the ring has emptied and the dot fades
+        in and out. Once it is overdue the dot and a full ring are red, and the pill beside them
+        shows the red &ldquo;Overdue&rdquo; countdown instead of the age; a tap shows the age.
+        The dot and the countdown change together, from the same two instants. With reduced
+        motion on, a due dot holds at half strength instead of fading.</p>
+      <p>On Forecast, every card's provenance sits in its title row the same way, with no dot,
+        because a model run is not a feed arriving on a clock. The swell, and the model's wind
+        at the buoy: &ldquo;NDBC 46232&rdquo;, the buoy the model is read at, with
+        &ldquo;GFS-Wave&rdquo; beside it; a tap shows the run and how far ahead of the hour it
+        was made, as in &ldquo;Oct 15 at 5:00 AM, 9 h ahead&rdquo;. The local wind:
+        &ldquo;NWS&rdquo;, with the forecast grid cell beside it; a tap shows when the National
+        Weather Service last updated that grid, which under a past hour is the update the build
+        that showed it read. The tide: &ldquo;NOAA 9410170&rdquo;, with &ldquo;Harmonic&rdquo;
+        beside it; a tap shows the gauge's measured departure from the prediction over the last
+        3 days that the hour carries, or &ldquo;No departure&rdquo;. On this tab a tap stays
+        until the next tap. The hour itself is the one in the bar above the cards.</p>
       <p>On &ldquo;LIVE&rdquo; the Buoys tab also shows NDBC 46086 at San Clemente Basin, 81 km
         west-south-west. It is read the same way as 46232: the combined height of its directional
         spectrum, and its <a href="#swell-trains">swell trains</a>, with a train fed from two
@@ -1223,7 +1228,7 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         own observed time and its own countdown. The Forecast tab's Buoys tab shows NDBC 46232 only,
         because the model run is read at NDBC 46232 alone.</p>
       <p>Each buoy's headline folds out, as a break's does: tap it, or the caret at its end, and
-        what sits between it and the buoy's provenance opens beneath it &mdash; its swell trains,
+        what belongs to it opens beneath it &mdash; its swell trains,
         and on &ldquo;LIVE&rdquo; its rose and one sentence under it: the station, linked to its
         public page at NDBC, how far
         offshore it is and its bearing from Center break, both worked out from NDBC's position for
@@ -1607,7 +1612,8 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
           <tr><th scope="row">Wind, KNZY</th><td>hourly at :52</td><td class="num">3 min</td><td class="num">4 min</td><td>(11:52 AM reading) 12:55 PM, red after 1:05 PM</td></tr>
           <tr><th scope="row">Tide, 9410170</th><td>every 6 min</td><td class="num">5 min</td><td class="num">10 min</td><td>12:15 PM, red after 12:25 PM</td></tr>
         </tbody></table></div>
-      <p>It reads &ldquo;Update in m:ss&rdquo;, then &ldquo;Update due&rdquo; once the typical time
+      <p>It reads &ldquo;Update in m:ss&rdquo; (h:mm:ss past an hour, and seconds alone, as in
+        &ldquo;42 s&rdquo;, under a minute: no countdown starts with a zero), then &ldquo;Update due&rdquo; once the typical time
         has passed. Only past the late time does it turn red and say &ldquo;Overdue m:ss&rdquo;,
         and not until 5 minutes after it plus the page's refresh: a collection takes a few
         minutes to publish what it fetched, and the update is due, not late, while it does.
@@ -1758,7 +1764,7 @@ slack = |rate| under 0.10 m/h (0.33 ft/h), or a predicted high or low inside tho
 
     <section id="tide-phase">
       <h3>The tide's phase</h3>
-      <p>Under the card's provenance, a line reads <em>Phase</em>. On &ldquo;LIVE&rdquo; it is
+      <p>Above the card's Charts line, a line reads <em>Phase</em>. On &ldquo;LIVE&rdquo; it is
         tagged <em>predicted</em>. Opened, it gives three paragraphs, each under a heading: the day
         (<em>Today</em>), the next spring or neap (<em>Around 17 Oct</em>) and the one after
         (<em>Late October</em>), set apart by a dot as Origin's entries are. The first says where

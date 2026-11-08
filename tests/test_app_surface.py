@@ -106,8 +106,10 @@ class TestTheTideCardSaysWhereItIs:
         # 2026-10-11: "Coronado, CA", then "NOAA 9410170" on the countdown.
         assert "placeWhen(NOW.tide_place || NOW.tide_site, tide.observed_utc)" in SOURCE
         assert "feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide)" in SOURCE
-        # Forecast's is the same gauge pill, with no dot (2026-10-15).
-        assert 'pills(`NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide))' in SOURCE
+        # Forecast's is the same gauge pill, with no dot (2026-10-15), in the
+        # card's title row since 2026-11-08.
+        assert ('modelPills("fc-tide",\n        `NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide))'
+                in SOURCE)
         assert "tideSource" not in SOURCE
         assert "carried from NOAA 9410170" in INFO_TEXT
 
@@ -630,8 +632,8 @@ class TestWindAndTideAreHoisted:
 
     def test_the_tide_says_it_is_a_model(self):
         # The gauge, "Harmonic", then the correction the hour carries.
-        assert ('srcLines([], pills(`NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide)))'
-                in SOURCE)
+        assert ('<div class="chead"><span class="lbl">Tide</span>${modelPills("fc-tide",\n'
+                '        `NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide))}</div>') in SOURCE
 
     def test_the_forecast_tide_says_when_it_carries_the_measured_departure(self):
         """The card's height is the prediction plus the gauge's measured
@@ -654,7 +656,7 @@ class TestWindAndTideAreHoisted:
         # Forecast's in pills since 2026-10-15: the buoy, the model, the run.
         # No observation stands in for a forecast wind there (owner's call,
         # same day): KNZY is not a forecast.
-        assert 'srcLines([], pills(anchor, "GFS-Wave", run))' in SOURCE
+        assert 'modelPills("fc-buoy-wind", anchor, "GFS-Wave", run)' in SOURCE
         fc = SOURCE[SOURCE.index("function localWindBlock"):SOURCE.index("function renderConditions")]
         fc += SOURCE[SOURCE.index("  } else {\n    const past = step.from"):SOURCE.index("\nfunction renderBreaks(")]
         assert "METAR" not in fc and "DATA.wind" not in fc
@@ -669,7 +671,7 @@ class TestWindAndTideAreHoisted:
         render = SOURCE[SOURCE.index("function renderConditions"):]
         render = render[render.index('data-wind="buoy"'):]
         render = render[:render.index('${cardChart("wind")}')]
-        assert "pills(anchor, \"GFS-Wave\", run)" in render
+        assert "modelPills(\"fc-buoy-wind\", anchor, \"GFS-Wave\", run)" in render
         assert "METAR" not in render and "observed_utc" not in render
         # A past hour whose run had no model wind says so, rather than that it
         # was not kept (owner's wording, 2026-10-15).
@@ -788,7 +790,7 @@ class TestTheTwoChains:
         buoy, the NWS grid for the local wind, the harmonic tide."""
 
         assert SOURCE.count('"GFS-Wave", run)') == 2
-        assert 'pills("NWS", grid, issued)' in SOURCE
+        assert 'modelPills("fc-local-wind", "NWS", grid, issued)' in SOURCE
         assert '"Harmonic", departurePill(tide)' in SOURCE
 
     def test_a_stale_observation_is_not_rendered_as_current(self):
@@ -1348,7 +1350,7 @@ class TestTheSwellCardIsOnBothTabs:
         assert "const anchor = feedName(DATA.station);" in SOURCE
         # One model name whichever product the run was read from (owner's
         # call, 2026-10-15): no "partitions" pill.
-        assert 'due: pills(anchor, "GFS-Wave", run),' in SOURCE
+        assert 'due: modelPills("fc-swell", anchor, "GFS-Wave", run),' in SOURCE
         assert "GFS-Wave partitions" not in SOURCE
 
     def test_every_forecast_hour_names_its_run_past_or_future(self):
@@ -1437,7 +1439,10 @@ class TestTheBreaksAreTabsOfTheSwellCard:
 
         card = SOURCE[SOURCE.index("function swellCard"):]
         card = card[:card.index("\n}\n")]
-        assert card.rindex('class="pane"') < card.index("${srcLines(source, due)}")
+        # In the card's title row, above the tabs and every pane (owner's
+        # design, 2026-11-08), so it shows whichever tab is open.
+        assert 'headRow(`<span class="lbl">${label}</span>`, due)' in card
+        assert card.index("headRow(") < card.index('class="subtabs"') < card.index('class="pane"')
         panel = SOURCE[SOURCE.index("function buoyPanel"):]
         panel = panel[:panel.index("\n}\n")]
         assert 'class="src"' not in panel and "dueSpan" not in panel
@@ -1778,10 +1783,10 @@ class TestTheUpdateCountdown:
         assert "document.querySelectorAll(\"[data-due]\")" in SOURCE
 
     HMS_CASES = [
-        (0, "0:00"),
-        (1_000, "0:01"),
-        (42_000, "0:42"),
-        (59_000, "0:59"),
+        (0, "0 s"),                     # no leading zero (owner's call, 2026-11-08)
+        (1_000, "1 s"),
+        (42_000, "42 s"),
+        (59_000, "59 s"),
         (60_000, "1:00"),
         (3_542_000, "59:02"),
         (3_599_000, "59:59"),
@@ -1791,7 +1796,7 @@ class TestTheUpdateCountdown:
         (86_400_000, "1 d 0:00:00"),
         (360_000_000, "4 d 4:00:00"),
         (1_400_000_000, "16 d 4:53:20"),  # 46232's outage, as a reader meets it
-        (-5_000, "0:05"),               # sign is carried by the wording, not here
+        (-5_000, "5 s"),               # sign is carried by the wording, not here
     ]
 
     def test_the_clock_drops_units_it_does_not_need(self):
@@ -1824,8 +1829,10 @@ class TestTheUpdateCountdown:
         """Counting down to the next wind observation under "not collected"
         would promise a replacement for something that was never there."""
 
-        assert "feedPills(`METAR ${wind.station}`, wind.observed_utc, due.wind, late.wind))\n        : srcLines(wind.note)}" in SOURCE
-        assert "feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide))\n        : srcLines(tide.note)}" in SOURCE
+        assert ("${windHeard(wind)\n        // Across from the title (owner's design, 2026-11-08), as the swell card's.\n"
+                "        ? feedPills(`METAR ${wind.station}`, wind.observed_utc, due.wind, late.wind) : \"\"}") in SOURCE
+        assert ("${tide.height_m != null\n        // The gauge the numbers are carried from, across from the title.\n"
+                "        ? feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide) : \"\"}") in SOURCE
 
 
 class TestTheCdnCannotServeAStalePayload:
@@ -2076,8 +2083,10 @@ class TestEveryMeasurementSaysHowOldItIs:
         reading taken AT one. "23 h ago" under next Tuesday would be nonsense,
         so their pills carry no `ageSpan`."""
 
-        for predicted in ('pills(anchor, "GFS-Wave", run)', 'pills("NWS", grid, issued)',
-                          'pills(`NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide))'):
+        for predicted in ('modelPills("fc-swell", anchor, "GFS-Wave", run)',
+                          'modelPills("fc-buoy-wind", anchor, "GFS-Wave", run)',
+                          'modelPills("fc-local-wind", "NWS", grid, issued)',
+                          '`NOAA ${DATA.tide_station}`, "Harmonic", departurePill(tide)'):
             assert predicted in SOURCE, predicted
             line = SOURCE[SOURCE.index(predicted):]
             assert "ageSpan" not in line[:line.index("\n")], predicted
@@ -2409,7 +2418,7 @@ class TestTheWeekChart:
         assert "setChartOpen(!CHART_OPEN);" in SOURCE
         # Below the card's provenance, outside the pane (owner's call, 2026-10-02).
         swell = SOURCE[SOURCE.index("function swellCard"):]
-        assert swell.index("${srcLines(source, due)}") < swell.index("seriesChart(tab.id")
+        assert swell.index("${srcLines(source)}") < swell.index("seriesChart(tab.id")
 
     def test_the_chart_is_picked_from_a_menu_and_opens_on_one_day(self):
         """Owner's design, 2026-09-27: a dropdown, not a row of tabs, and the
@@ -2758,7 +2767,7 @@ class TestTheWindAndTideCharts:
         assert "chart" not in local
         swell = SOURCE[SOURCE.index("function swellCard"):]
         swell = swell[:swell.index("\n}\n")]
-        assert swell.index("${srcLines(source, due)}") < swell.index("seriesChart(")
+        assert swell.index("${srcLines(source)}") < swell.index("seriesChart(")
         for panel in ("function breakPanel", "function buoyPanel"):
             body = SOURCE[SOURCE.index(panel):]
             assert "seriesChart(" not in body[:body.index("\n}\n")]
@@ -3276,9 +3285,9 @@ class TestTheProvenanceDivider:
 
         local = SOURCE[SOURCE.index("function localWindBlock"):]
         local = local[:local.index("\n}\n")]
-        assert local.index("${windAtBreaks(cards)}") < local.index("${seen}") < local.index("srcLines(")
+        assert local.index("${windAtBreaks(cards)}") < local.index("${seen}")
         render = SOURCE[SOURCE.index("function renderConditions"):]
-        assert "localWindBlock(hour, cards, past, seenWind, updated)" in render
+        assert "localWindBlock(hour, cards, past, seenWind)" in render
 
     def test_the_local_wind_leads_and_the_buoys_follows(self):
         """Owner's request, 2026-10-20: on the Forecast tab the NWS wind (and
@@ -3290,7 +3299,7 @@ class TestTheProvenanceDivider:
         card = card[:card.index('${cardChart("wind")}')]
         assert card.index('<span class="lbl">Wind</span>') < card.index("${local}") \
             < card.index('<span class="sublbl">At the buoy</span>') \
-            < card.index('pills(anchor, "GFS-Wave", run)')
+            < card.index('modelPills("fc-buoy-wind", anchor, "GFS-Wave", run)')
         assert '<span class="sublbl">Local</span>' not in SOURCE
 
     def test_a_measured_box_under_a_value_gets_room_above_it(self):
@@ -3367,7 +3376,8 @@ class TestTheLocalWindOnTheForecastTab:
             "let DATA = {local_wind: {available: true, office: 'SGX', grid_x: 55, grid_y: 12,"
             " updated_utc: '2026-09-30T04:00:00Z'}};\n"
         )
-        body = "".join(fn(n) for n in ("compass", "sense", "windAtBreaks", "localWindBlock", "pills"))
+        body = "".join(fn(n) for n in ("compass", "sense", "windAtBreaks", "localWindBlock",
+                                       "localWindPills", "modelPills", "headPills"))
         start = SOURCE.index("const windVal")
         body += "const LIGHT_KT = 3;\n" + SOURCE[start:SOURCE.index(";\n", start) + 2]
         start = SOURCE.index("const windHeard")
@@ -3380,16 +3390,22 @@ class TestTheLocalWindOnTheForecastTab:
         got = self._run(
             "const hour = {local_wind_from_deg: 30, local_wind_kt: 8, local_gust_kt: 14};\n"
             "const cards = [{id: 'coronado_north', windOffshore: 0.96}, {id: 'coronado_south', windOffshore: -0.5}];\n"
-            "console.log(localWindBlock(hour, cards, false, '', '2026-09-30T04:00:00Z').replace(/\\s+/g, ' '));"
+            "console.log(localWindBlock(hour, cards, false, '').replace(/\\s+/g, ' '));\n"
+            "console.log(localWindPills(hour, '2026-09-30T04:00:00Z'));"
         )
+        got, pill = got.splitlines()
         assert "sublbl" not in got and "NNE 30°" in got and "9 mph (8 kt)" in got
         assert "gusting 16 mph" in got
         assert "<b>offshore</b> at this break" in got and "<b>onshore</b> at this break" in got
-        # One line of joined pills, as LIVE's, without a dot (owner's request,
-        # 2026-10-15): the service, its grid cell, when it was last updated.
-        assert ('<span class="pill">NWS</span><span class="pill-tail">Grid SGX 55,12</span>'
-                '<span class="pill-tail">Updated at 2026-09-30T04:00:00Z</span>') in got
-        assert "status" not in got
+        # Its pills, without a dot (owner's request, 2026-10-15), in the
+        # card's title row (2026-11-08): the service at the right, its grid
+        # cell beside it, and a tap for when it was last updated.
+        assert "NWS" not in got
+        assert '<span class="pill">NWS</span>' in pill
+        assert '<span data-head-text="a">Grid SGX 55,12</span>' in pill
+        assert '<span data-head-text="b" class="off">Updated at 2026-09-30T04:00:00Z</span>' in pill
+        assert 'data-head-key="fc-local-wind"' in pill and "data-head-live" not in pill
+        assert "ring" not in pill and "status" not in pill
 
     def test_a_past_hour_names_its_own_builds_update(self):
         """A past hour's pill names the update the build that showed it read
@@ -3397,12 +3413,14 @@ class TestTheLocalWindOnTheForecastTab:
         never today's."""
         got = self._run(
             "const hour = {local_wind_from_deg: 30, local_wind_kt: 8};\n"
-            "console.log(localWindBlock(hour, [], true, '', '2026-09-29T10:00:00Z').replace(/\\s+/g, ' '));\n"
-            "console.log(localWindBlock(hour, [], true, '', undefined).replace(/\\s+/g, ' '));"
+            "console.log(localWindPills(hour, '2026-09-29T10:00:00Z'));\n"
+            "console.log(localWindPills(hour, undefined));"
         )
         first, second = got.splitlines()
         assert "Updated at 2026-09-29T10:00:00Z" in first
-        assert "Updated" not in second and "Grid SGX 55,12</span></span>" in second
+        # With nothing to switch to, its two pills are no button.
+        assert "Updated" not in second and "<button" not in second
+        assert '<span class="pill-swap"><span>Grid SGX 55,12</span></span>' in second
 
     def test_a_calm_hour_reads_calm_not_north(self):
         """A calm is archived as 0° at 0 kt; the card says Calm, never "N 0°"
@@ -3465,7 +3483,7 @@ class TestOrigin:
         provenance, one per swell tab."""
 
         card = SOURCE[SOURCE.index("function swellCard"):SOURCE.index("function windAtBreaks")]
-        assert card.index("${srcLines(source, due)}") \
+        assert card.index("${srcLines(source)}") \
             < card.index("originFold(tab.id, tab.origin") < card.index("seriesChart(tab.id")
         assert "originBlock" not in SOURCE and "${originBlock" not in SOURCE
         assert "<span>Origin${n ? ` <span class=\"count\"" in SOURCE and "data-origin-toggle" in SOURCE
@@ -4586,9 +4604,11 @@ class TestTheWideLayouts:
         wide = self.fn("swellWide")
         assert "ORDER.map((id) =>" in wide and "rankByEnergy" not in wide
         assert '<div class="break-cols" data-align>' in wide
-        # 46232's provenance under the breaks, as under every phone tab, and
-        # again under its own reading on the buoys' card.
-        assert wide.count("${srcLines(source, due)}") == 2
+        # 46232's pills in the title row, as on every phone tab, and again
+        # above its own headline on the buoys' card (owner's call, 2026-11-08).
+        assert 'headRow(`<span class="lbl">${label}</span>`, due)' in wide
+        assert '<div class="pane">${headRow("", due)}' in wide
+        assert "srcLines(source, due)" not in wide
 
     def test_origin_is_each_arrival_once_with_the_breaks_it_reaches(self):
         got = self._node(
@@ -4844,3 +4864,87 @@ class TestTheWeekStrip:
     def test_the_footer_keeps_a_phones_width_wider(self):
         css = SOURCE[:SOURCE.index("</style>")]
         assert ':root[data-layout="tablet"] .links,:root[data-layout="stack"] .links{max-width:560px}' in css
+
+
+class TestTheTitleRowPills:
+    """Every card's provenance sits across from its title (owner's design,
+    2026-11-08: option B of five mocked): the station pill pinned at the
+    right, ONE pill growing out of its left end, and a tap switching that
+    pill's text and nothing else."""
+
+    @staticmethod
+    def fn(name):
+        start = SOURCE.index(f"function {name}(")
+        return SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+
+    def test_every_card_puts_its_pills_in_its_title_row(self):
+        render = self.fn("renderConditions")
+        # LIVE's Wind and Tide, and the Forecast tab's three cards.
+        assert '<div class="chead"><span class="lbl">Wind</span>${windHeard(wind)' in render
+        assert '<div class="chead"><span class="lbl">Tide</span>${tide.height_m != null' in render
+        assert '<div class="chead"><span class="lbl">Wind</span>${localWindPills(hour, updated)}</div>' in render
+        assert '<div class="chead"><span class="sublbl">At the buoy</span>${modelled' in render
+        assert '<div class="chead"><span class="lbl">Tide</span>${modelPills("fc-tide",' in render
+        # No provenance pills are left under any card.
+        assert "srcLines([], pills(" not in SOURCE
+        assert re.search(r"srcLines\([^;]*?feedPills\(", render) is None
+
+    def test_each_context_buoy_has_its_pills_above_its_own_headline(self):
+        body = self.fn("contextBuoy")
+        assert 'return `<hr>${headRow("", feed)}${reading}`' in body
+        assert "srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)]);" in body
+
+    def test_the_station_is_at_the_right_and_one_pill_at_its_left(self):
+        head = self.fn("headPills")
+        assert head.index('<span class="pill-lead">') < head.index('<span class="pill">${head}</span>')
+        assert '<span data-head-text="a">${a}</span><span data-head-text="b" class="off">${b}</span>' in head
+        # LIVE: the age at rest, the countdown a tap away.
+        feed = self.fn("feedPills")
+        assert "headPills(label + statusRing(observedIso, iso, lateIso, {forceOver}), age, due," in feed
+        # Forecast: the second part at rest, the third a tap away.
+        assert "const [head, a = \"\", b = \"\"] = parts.filter(Boolean);" in self.fn("modelPills")
+        # The left pill is the joined cut, mirrored: cut from its RIGHT end.
+        rule = SOURCE[SOURCE.index(".pill-lead{"):]
+        rule = rule[:rule.index("}\n")]
+        assert "margin-right:-4px;padding:0 13px 0 7px;border-radius:4px 0 0 4px;" in rule
+        assert "radial-gradient(circle at 100% calc(50% - 5px),#000 6px,transparent 6.5px)" in rule
+
+    def test_a_tap_changes_the_text_and_nothing_else(self):
+        rule = SOURCE[SOURCE.index("button.chead-pills{"):]
+        rule = rule[:rule.index("}\n")]
+        assert "-webkit-tap-highlight-color:transparent" in rule
+        assert "background:none" in rule and "user-select:none" in rule
+        assert "button.chead-pills:focus{outline:none}" in SOURCE
+        assert "button.chead-pills:active" not in SOURCE and ".chead-pills:hover" not in SOURCE
+
+    def test_live_taps_last_five_seconds_and_forecast_taps_stay(self):
+        assert "const HEAD_TAP_MS = 5000;" in SOURCE
+        tap = self.fn("tapHead")
+        assert "HEAD_ALT[key] = (HEAD_ALT[key] || 0) > Date.now() ? 0 : Date.now() + HEAD_TAP_MS;" in tap
+        assert "else HEAD_ALT[key] = !HEAD_ALT[key];" in tap
+        tick = self.fn("tickHeads")
+        # Overdue, the red countdown is what shows; a tap shows the age.
+        assert 'const over = !!btn.querySelector(".due.over");' in tick
+        assert "const showB = over ? !alt : alt;" in tick
+        assert "tickHeads();" in self.fn("tickDue")
+
+    def test_the_dot_keeps_its_size_inside_a_ring_with_a_hairline(self):
+        """7 px dot (r 3.5), 11 px ring (r 5.5), and a 0.5 px hairline taken
+        from the ring: 1.5 px of stroke centred at r 4.75. No track."""
+        ring = self.fn("statusRing")
+        assert 'viewBox="0 0 11 11"' in ring
+        assert 'class="arc" cx="5.5" cy="5.5" r="4.75"' in ring
+        assert 'class="core" cx="5.5" cy="5.5" r="3.5"' in ring
+        assert "const RING_C = 2 * Math.PI * 4.75;" in SOURCE
+        assert ".ring .arc{fill:none;stroke:var(--dot-ok);stroke-width:1.5}" in SOURCE
+        assert 3.5 + 0.5 == 4.75 - 1.5 / 2 and 4.75 + 1.5 / 2 == 5.5
+        assert ".ring .trk" not in SOURCE
+
+    def test_the_space_under_the_title_is_the_space_above_the_charts_rule(self):
+        """Owner's call, 2026-11-08: the card's gap plus the chart's margin."""
+        assert ".cond > .chart{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}" in SOURCE
+        assert ".cond.swell > .chart{margin-top:2px}" in SOURCE
+        assert "column-gap:12px;row-gap:4px;min-height:18px;margin-bottom:8px}" in SOURCE
+        assert ".cond.swell > .chead{margin-bottom:2px}" in SOURCE
+        # In a buoy's pane, whose gap is 11.
+        assert ".pane > .chead{margin-bottom:-1px}" in SOURCE
