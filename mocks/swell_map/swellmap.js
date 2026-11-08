@@ -19,10 +19,10 @@
   const KEY = "nado-sm-view";               // one choice for every tab, kept on this device
   const TOUCH = matchMedia("(pointer: coarse)").matches;
   // The drawing in small: its half-circle, and a line out from the break to
-  // each of the edges Center sees -- Baja, the islands, Point Loma (owner's
-  // design, 2026-11-08). Its box's middle sits a quarter unit above centre,
+  // Baja's edge and Point Loma's as Center sees them (owner's design,
+  // 2026-11-08; the islands' line taken out the same day). Its box's middle sits a quarter unit above centre,
   // where a flat-based shape reads as centred.
-  const ICON_DRAW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 11.25A7 7 0 0 1 15 11.25Z"/><path d="M8 11.25L2.80 6.57M8 11.25L6.31 4.46M8 11.25L12.11 5.59"/></svg>';
+  const ICON_DRAW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 11.25A7 7 0 0 1 15 11.25Z"/><path d="M8 11.25L2.80 6.57M8 11.25L12.11 5.59"/></svg>';
   const ICON_MAP = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5l4-1.5 5 2 4-1.5v10l-4 1.5-5-2-4 1.5z"/><path d="M5.5 2v10M10.5 4v10"/></svg>';
   const ICON_PLUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
   const ICON_MINUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9"/></svg>';
