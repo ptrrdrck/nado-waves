@@ -168,20 +168,62 @@ def test_the_control_still_reads_as_measured():
     assert dict(S[(other, "whole")]) == dict(S[(other, "divided at 20%")])
 
 
-def test_rows_of_one_swell_carry_it_and_what_it_was_at_the_buoy():
-    """For the page's bracket and tap (owner's call, 2026-11-03): every row
-    names its swell, and only rows that share one say what it was at the
-    buoy. Center at 3 Nov 15Z: the W 18.2 s reaches it as two rows."""
+def test_rows_of_one_buoy_train_are_one_swell_only_from_one_direction_there():
+    """For the page's bracket and tap: every row names the buoy train that
+    carried most of it (`swell`), and rows are ONE swell -- `group` and
+    `swell_at_buoy` -- only when their energy came from one direction at the
+    buoy, within BRACKET_DEG (owner's decision, 2026-11-08, BRIEFING §49b).
 
-    from forecast.nearshore import train_dicts
+    North, 5 Nov 17Z (the owner's question): the buoy's one train was its
+    whole spectrum; the SW 16.7 s row's energy came from 247° there, the W
+    10.5 s and 6.7 s rows' from 281° and 272° -- not one swell, so no
+    bracket at all: a bracket is all of a buoy train's rows or none
+    (`bracket_groups`). Center, 3 Nov 15Z: the W 18.2 s's two
+    rows sit 23° apart at the buoy, outside the 20° bar, and lose the bracket
+    they had (what the buoy holds there is not settled by anything)."""
+
+    from forecast.nearshore import BRACKET_DEG, train_dicts
+
+    assert BRACKET_DEG == 20.0
+    sp, grids, split = _at(datetime(2026, 11, 5, 17, tzinfo=timezone.utc))
+    near = carry(sp, _tables()["coronado_north"], grids, split)
+    rows = train_dicts(near.trains[:3], near.buoy)
+    assert [r["period_s"] for r in rows] == [16.7, 10.5, 6.7]
+    assert len({r["swell"] for r in rows}) == 1
+    heads = [round(t.buoy_from_deg) for t in near.trains[:3]]
+    assert heads == [247, 281, 272]
+    assert not any("group" in r or "swell_at_buoy" in r for r in rows)
+    # The W's own two rows are one swell's when the SW row is not shown.
+    two = train_dicts(near.trains[1:3], near.buoy)
+    assert two[0]["group"] == two[1]["group"]
+    assert two[0]["swell_at_buoy"] == {"period_s": 10.5, "from_deg": 277, "lobes": []}
 
     sp, grids, split = _at(datetime(2026, 11, 3, 15, tzinfo=timezone.utc))
     near = carry(sp, _tables()["coronado_center"], grids, split)
     rows = train_dicts(near.trains[:3], near.buoy)
     swells = [r["swell"] for r in rows]
-    assert len(rows) == 3 and swells[0] == swells[2] != swells[1]
-    shared = [r for r in rows if "swell_at_buoy" in r]
-    assert shared == [rows[0], rows[2]]
-    assert shared[0]["swell_at_buoy"] == {"period_s": 18.2, "from_deg": 273, "lobes": []}
+    assert swells[0] == swells[2] != swells[1]
+    gap = abs((near.trains[0].buoy_from_deg - near.trains[2].buoy_from_deg + 180) % 360 - 180)
+    assert BRACKET_DEG < gap < BRACKET_DEG + 5
+    assert not any("group" in r or "swell_at_buoy" in r for r in rows)
     # Without the buoy's split, nothing is said.
-    assert all("swell" not in r for r in train_dicts(carry(sp, _tables()["coronado_center"], grids).trains))
+    assert all("swell" not in r and "group" not in r
+               for r in train_dicts(carry(sp, _tables()["coronado_center"], grids).trains))
+
+
+def test_the_bracket_control_still_reads_as_measured():
+    """5 Nov-like: a big W with a weak SW under it that the buoy reads as one
+    train. Any two rows of that train bracketed were mostly wrong; at the
+    shipped bar the wrong ones go and a single swell keeps its bracket."""
+
+    from forecast.nearshore import BRACKET_DEG
+
+    out = []
+    for k in range(10):
+        out += M._bracket_one(("5 Nov-like", M.BRACKET_CASES["5 Nov-like: W 10.5 s + SW 15 s 0.5 m"],
+                               1000 * k))
+        out += M._bracket_one(("single", M.BRACKET_CASES["single: W 16 s 12°"], 1000 * k + 1))
+    tally = lambda fam, bar, n: sum(x[n] for x in out if x[0] == fam and x[1] == bar)
+    assert tally("5 Nov-like", None, 3) >= 5 and tally("5 Nov-like", BRACKET_DEG, 3) <= 2
+    assert tally("single", BRACKET_DEG, 2) == tally("single", None, 2) > 0
+    assert tally("single", None, 3) == 0

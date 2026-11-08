@@ -384,11 +384,14 @@ class TestSplittingIntoTrains:
         got = through(self.two_peaks(), BY_ID["coronado_center"], [])
         assert sum(t.share for t in got.trains) == pytest.approx(1.0, abs=0.06)
 
-    def test_short_period_is_flagged_as_wind_sea(self):
+    def test_short_period_is_set_apart_but_never_labelled_wind_sea_by_it(self):
+        """Period sets a train apart for reports; only the wind labels it
+        wind sea (`forecast.windsea`, BRIEFING §51)."""
         got = through(self.two_peaks(), BY_ID["coronado_center"], [])
         short = min(got.trains, key=lambda t: t.period_s)
         long_ = max(got.trains, key=lambda t: t.period_s)
-        assert short.is_wind_sea and not long_.is_wind_sea
+        assert short.is_short and not long_.is_short
+        assert not short.wind_sea and not long_.wind_sea
 
     @pytest.mark.parametrize("west", [0.6, 0.8, 1.0, 1.2, 1.4])
     def test_the_aperture_always_shifts_the_balance_toward_the_open_train(self, west):

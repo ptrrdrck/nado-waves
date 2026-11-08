@@ -267,8 +267,9 @@ def test_the_swell_is_each_breaks_card_number_and_the_trains_pooled_over_the_bre
 def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_buoy_train():
     """Owner's calls, 2026-10-23 and -24: pooled over the three breaks, half
     the biggest swell train's height, one line a train at the buoy (the
-    biggest's), never wind sea or local chop; a train of two directions by
-    its larger, as its row names it, never its 5 m heading."""
+    biggest's), never local chop; a train of two directions by its larger,
+    as its row names it, never its 5 m heading. Wind sea -- the wind still
+    driving it -- is listed and says so (owner's call, 2026-11-08)."""
 
     north = {"id": "coronado_north", "hs_nearshore_m": 1.3, "trains": [
         {"period_s": 15.4, "from_deg": 221, "hs_m": 1.26, "lobes": [], "band_hz": [0.045, 0.43],
@@ -283,7 +284,8 @@ def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_buoy_tr
         {"period_s": 9.1, "from_deg": 264, "hs_m": 0.94, "lobes": [], "buoy_train": 0},   # Center's W swell: one line
         {"period_s": 16.7, "from_deg": 194, "hs_m": 0.34, "lobes": [], "buoy_train": 1}]}  # under half the biggest
     got = bf.listed_trains([north, center, south])
-    assert [(t["period_s"], t["from_deg"]) for t in got] == [(15.4, 221), (9.1, 264)]
+    assert [(t["period_s"], t["from_deg"]) for t in got] == [(15.4, 221), (9.1, 264), (4.8, 240)]
+    assert got[2]["wind_sea"] is True and "wind_sea" not in got[0]
     assert got[0]["band_hz"] == [0.045, 0.43] and got[0]["held_deg"] == [187, 234]
     # Two trains of one compass point that are two trains at the buoy are two
     # lines; a train the buoy's split does not hold is its own line.
@@ -297,7 +299,11 @@ def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_buoy_tr
                               "peak_direction_deg": 200, "hs_nearshore_m": 1.0}])[0]["from_deg"] == 200
     only_sea = {"id": "coronado_north", "hs_nearshore_m": 1.0,
                 "trains": [{"period_s": 5.3, "from_deg": 272, "hs_m": 1.0, "wind_sea": True, "lobes": []}]}
-    assert bf.listed_trains([only_sea])[0]["period_s"] == 5.3       # nothing else to name: the lead
+    assert bf.listed_trains([only_sea])[0]["period_s"] == 5.3
+    only_chop = {"id": "coronado_north", "hs_nearshore_m": 1.0,
+                 "trains": [{"period_s": 3.5, "from_deg": 272, "hs_m": 1.0, "wind_sea": True,
+                             "local": True, "lobes": []}]}
+    assert bf.listed_trains([only_chop])[0]["period_s"] == 3.5     # nothing else to name: the lead
     assert bf.listed_trains([]) == []
 
 

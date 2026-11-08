@@ -57,6 +57,7 @@ from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, pa
 from . import ensemble, forecastlog, sunset, tidephase
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
+from .windsea import label_model, label_partitions
 from .nearshore import (buoy_offset, buoy_split, carry, density_grids, load_tables, local_sea,
                         spectrum_from_partitions,
                         summarise, table_frequencies)
@@ -687,6 +688,7 @@ def build(
         if record is not None:
             view = at_buoy(GridSpectrum(record.time, record.frequencies,
                                         record.directions, record.energy))
+            label_model(view.trains, record.wind_kt, record.wind_from_deg)
             forecast.buoy.append({
                 "valid_utc": row.valid_utc.strftime(ISO),
                 "hs_m": round(view.hs_m, 3),
@@ -698,7 +700,7 @@ def build(
                 "trains": [
                     {"hs_m": round(t.hs_m, 3), "period_s": round(t.period_s, 1),
                      "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
-                     "share": round(t.share, 4), "wind_sea": t.is_wind_sea,
+                     "share": round(t.share, 4), "wind_sea": t.wind_sea,
                      "lobes": lobes_payload(t)}
                     for t in view.trains[:3]
                 ],
@@ -786,15 +788,20 @@ def build(
             if record is not None:
                 sp = GridSpectrum(record.time, record.frequencies, record.directions, record.energy)
                 wind = (record.wind_kt, record.wind_from_deg)
+                # GFS-Wave decides what is wind sea (owner's decision,
+                # 2026-11-08; BRIEFING §51): wave age against its own wind.
+                labeller = (lambda trains, w=wind: label_model(trains, *w))
             else:
                 parts = [(p.hs_m, p.tp_s, float(from_direction(p.toward_deg)), p.wind_sea)
                          for p in row.partitions]
                 sp = spectrum_from_partitions(parts, row.valid_utc, freqs)
                 wind = (None, None)
+                # No wind on this path: the bulletin's own wind-sea flags.
+                labeller = (lambda trains, ps=parts: label_partitions(trains, ps))
             grids = density_grids(sp)
             # The buoy's own trains in this spectrum, which each break's are
             # divided by where two of them carried one (BRIEFING §49).
-            carried_input[row.valid_utc] = (sp, grids, wind, buoy_split(sp, grids))
+            carried_input[row.valid_utc] = (sp, grids, wind, buoy_split(sp, grids), labeller)
     # Where the buoy sits from each break: how much water the buoy's spectrum
     # has not seen, along a given wind (`nearshore.local_sea`).
     buoy_offsets = {b: buoy_offset(by_id[b].position) for b in BREAKS}
@@ -817,6 +824,7 @@ def build(
                 grid = GridSpectrum(record.time, record.frequencies,
                                     record.directions, record.energy)
                 survived = through(grid, spot, blockers)
+                label_model(survived.trains, record.wind_kt, record.wind_from_deg)
                 hs_offshore = survived.hs_total_m
                 hs_window = survived.hs_in_window_m
                 fraction = survived.fraction
@@ -830,7 +838,7 @@ def build(
                 hour_trains = [
                     {"hs_m": round(t.hs_m, 3), "period_s": round(t.period_s, 1),
                      "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
-                     "share": round(t.share, 4), "wind_sea": t.is_wind_sea,
+                     "share": round(t.share, 4), "wind_sea": t.wind_sea,
                      "lobes": lobes_payload(t)}
                     for t in survived.trains[:3]
                 ]
@@ -871,7 +879,7 @@ def build(
             ]
             near: dict = {}
             if row.valid_utc in carried_input:
-                sp, grids, _, split = carried_input[row.valid_utc]
+                sp, grids, _, split, labeller = carried_input[row.valid_utc]
                 table = tables[break_id]
                 # Local chop grows on the water off the break, so it takes the
                 # LOCAL forecast wind (the NWS grid at Coronado), as the observed
@@ -881,6 +889,7 @@ def build(
                 # blind to the near-shore wind the open-water growth is for.
                 here = local_hours.get(row.valid_utc.strftime(ISO))
                 carried = carry(sp, table, grids, split)
+                labeller(carried.trains)
                 chop = (local_sea(table, spot.normal, here["speed_kt"], here["from_deg"],
                                   carried_short_hs=carried.hs_short,
                                   buoy=buoy_offsets.get(break_id), wind="NWS forecast")

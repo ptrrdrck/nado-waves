@@ -224,7 +224,7 @@ def _chain(data_dir: Path, spectra):
         tables = load_tables()
     except (FileNotFoundError, ValueError):
         tables = {}
-    return trains_builder(spectra, {s.id: s for s in spots}, blockers, tables)
+    return trains_builder(spectra, {s.id: s for s in spots}, blockers, tables, data_dir)
 
 
 def build_archive(data_dir: Path = DEFAULT_DATA_DIR) -> dict:

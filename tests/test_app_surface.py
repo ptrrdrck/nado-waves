@@ -977,7 +977,8 @@ class TestItMatchesTheLiveOutput:
         from forecast.nearshore import train_dicts
         from forecast.transform import Train
         known |= set(train_dicts([Train(1.0, 12.0, 250.0, 1.0)])[0])  # a break's, 5 m heading too
-        one = [Train(1.0, 12.0, 250.0, 0.5, buoy=0), Train(0.5, 16.0, 200.0, 0.5, buoy=0)]
+        one = [Train(1.0, 12.0, 250.0, 0.5, buoy=0, buoy_from_deg=240.0),
+               Train(0.5, 16.0, 200.0, 0.5, buoy=0, buoy_from_deg=245.0)]
         known |= set(train_dicts(one, [Train(1.1, 14.0, 230.0, 1.0)])[0])  # one swell's rows (§49)
         known |= {"peak_period_s", "peak_direction_deg", "frequency_bins"}  # buoy
         known |= {"age_hours", "observed_utc", "trains", "height_m", "kind"}
@@ -1202,7 +1203,8 @@ class TestWaveTrainsOnScreen:
 
     def test_one_swells_rows_sit_together_and_a_tap_picks_them_all(self):
         """Owner's call, 2026-11-03 (A1 with E, BRIEFING §49): rows of one
-        buoy swell the break shows as two rows are put together under a bracket, the
+        buoy swell the break shows as two rows are put together under a bracket
+        -- one `group`, never `swell` alone (§49b, 2026-11-08) -- the
         swells in order of their biggest row, each row keeping its index for
         its arrows; and a tap on one picks every row and arrow of it."""
 
@@ -1217,10 +1219,11 @@ class TestWaveTrainsOnScreen:
         fns += SOURCE[start:SOURCE.index(");\n", start) + 3]
         script = fns + """
 const order = (ts) => JSON.stringify(swellGroups(ts).map((g) => g.map((r) => r.i)));
-console.log(order([{swell: 1}, {swell: 0}, {swell: 1}, {local: true}]));
-console.log(order([{swell: 0}, {swell: 1}, {swell: 2}]));
-console.log(order([{swell: 1}, {}, {swell: 1}]));
+console.log(order([{group: 1}, {group: 0}, {group: 1}, {local: true}]));
+console.log(order([{group: 0}, {group: 1}, {group: 2}]));
+console.log(order([{group: 1}, {}, {group: 1}]));
 console.log(order([{hs_m: 1}, {hs_m: 0.5}]));
+console.log(order([{swell: 0}, {swell: 0}, {swell: 0, group: 0}, {swell: 0, group: 0}]));
 const hit = pickMatch("G0.2");
 console.log(["t0", "t2-1", "g0.2", "t1", "t20", "g0"].map(hit).join(" "));
 console.log(["0", "1", "2"].map((n) => pickRows("G0.2", n)).join(" "), pickRows("T1", "1"), pickRows("t2-1", "2"));
@@ -1228,6 +1231,7 @@ console.log(["0", "1", "2"].map((n) => pickRows("G0.2", n)).join(" "), pickRows(
         out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
         assert out.stdout.splitlines() == [
             "[[0,2],[1],[3]]", "[[0],[1],[2]]", "[[0,2],[1]]", "[[0],[1]]",
+            "[[0],[1],[2,3]]",
             "true true true false false false", "true false true true true"]
         rows = SOURCE[SOURCE.index("function trainList("):]
         rows = rows[:rows.index("\n}\n")]

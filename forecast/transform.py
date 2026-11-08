@@ -1009,15 +1009,23 @@ class Train:
     #: and any whose piece the back-check sent back to it as its spread
     #: (`nearshore._divide_by_buoy`, `own_heading`). Empty for a whole row.
     buoys: tuple = field(default=(), compare=False, repr=False)
+    #: At a break only, with the buoy's split: the heading at the BUOY of
+    #: this train's energy -- each of its rays given the nearest direction
+    #: lobe of its buoy train in that ray's period bin, energy-weighted
+    #: (`nearshore._buoy_heading`). Two rows of one buoy train are one swell
+    #: on the page only when these sit within `nearshore.BRACKET_DEG`.
+    buoy_from_deg: float = field(default=math.nan, compare=False, repr=False)
+    #: Wind sea: the wind still driving it, by wave age against the winds
+    #: `forecast.windsea` reads for its chain -- never its period alone
+    #: (owner's decision, 2026-11-08, BRIEFING §51). False until labelled.
+    wind_sea: bool = field(default=False, compare=False, repr=False)
 
     @property
-    def is_wind_sea(self) -> bool:
-        """Short period is the only wind-sea signal available here.
-
-        The bulletin flags its own partitions; a spectrum does not, and
-        inferring it from steepness would need the wind, which is a different
-        measurement with its own failure modes. Eight seconds is conventional.
-        """
+    def is_short(self) -> bool:
+        """Under `WIND_SEA_PERIOD_S`: the period band a report or a filter
+        sets apart. NOT the wind-sea label (`wind_sea`), which was this test
+        until 2026-11-08: by wave age, 13-55% of the trains it named were
+        being driven by the wind, depending on whose wind (BRIEFING §51)."""
 
         return self.period_s < WIND_SEA_PERIOD_S
 

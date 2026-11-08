@@ -155,6 +155,14 @@ CASES = [
            swell__trains=[{"period_s": 15.4, "from_deg": 203, "hs_m": 1.02, "trend": "fading"},
                           {"period_s": 14.3, "from_deg": 208, "hs_m": 0.9, "trend": "holding"},
                           {"period_s": 10.0, "from_deg": 268, "hs_m": 0.6, "trend": "building"}])),
+    ("WS1", "a wind sea at half the biggest's height or more: the wind still driving it, said after "
+            "its point (forecast.windsea, owner's call 2026-11-08); a short train the wind is not "
+            "driving is a train like any other",
+     _case(swell__breaks=[{"id": N, "hs_m": 1.02}],
+           swell__trains=[{"period_s": 14.3, "from_deg": 208, "hs_m": 1.02, "trend": "holding"},
+                          {"period_s": 4.5, "from_deg": 305, "hs_m": 0.62, "trend": "building",
+                           "wind_sea": True},
+                          {"period_s": 6.7, "from_deg": 272, "hs_m": 0.55, "trend": "holding"}])),
     ("H1", "the lead train has no heading, and no status yet: their slots drop with their words",
      _case(swell__breaks=[{"id": N, "hs_m": 1.02}],
            swell__trains=[{"period_s": 13.3, "from_deg": None, "hs_m": 1.02, "trend": None}])),

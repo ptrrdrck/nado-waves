@@ -15,7 +15,7 @@ the page will read as the page's again until that happens. The formula is in
 
 ## The fold's line
 
-- Briefing updated · 7:16 AM  (Q1, B1, C1, M1, H1, D1, W1, W2, K1, A1, R1, Z1, S1)
+- Briefing updated · 7:16 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, R1, Z1, S1)
 - Briefing updated · Oct 21, 12:06 PM  (Y1)
 
 By what the update changed: as many as fit, and the rest carried on in the open fold:
@@ -68,7 +68,7 @@ AL2. Small Craft Advisory in effect  (A1)
 
 ## Swell
 
-SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, H1, W1, W2, K1, A1, R1, Z1, S1, Y1)
+SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, WS1, H1, W1, W2, K1, A1, R1, Z1, S1, Y1)
 
 SW2. SSW at 13.3 s, holding.  (Q1, W1, W2, K1, A1, R1, Z1, S1, Y1)
 
@@ -84,24 +84,28 @@ SW7. NW 14–17 s, fading offshore; due at Point Loma South around 9:50 AM, and 
 
 SW8. SSW at 15.4 s, fading.  (M1)
 
-SW9. SSW at 14.3 s, holding.  (M1)
+SW9. SSW at 14.3 s, holding.  (M1, WS1)
 
 SW10. W at 10.0 s, building.  (M1)
 
-SW11. At 13.3 s.  (H1)
+SW11. NW wind sea at 4.5 s, building.  (WS1)
 
-SW12. No spectrum from NDBC 46232 since Oct 21, 3:00 PM.  (D1)
+SW12. W at 6.7 s, holding.  (WS1)
+
+SW13. At 13.3 s.  (H1)
+
+SW14. No spectrum from NDBC 46232 since Oct 21, 3:00 PM.  (D1)
 
 
 ## Tides
 
-TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
 
-TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
 
-TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
 
-TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
 
 TI5. AM low −0.7 ft (−0.21 m) at 6:40 AM  (K1)
 
@@ -110,13 +114,13 @@ TI6. PM high 5.6 ft (1.71 m) at 1:05 PM  (K1)
 
 ## Conditions
 
-CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, H1, D1, A1, R1, Z1, S1, Y1)
+CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, WS1, H1, D1, A1, R1, Z1, S1, Y1)
 
-CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
 
-CO3. Humidity 88%, steady  (Q1, B1, C1, M1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+CO3. Humidity 88%, steady  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
 
-CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
 
 CO5. Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
 
@@ -129,11 +133,11 @@ CO8. Water No current reading  (W2)
 
 ## Water quality
 
-WQ1. North Open; 1,379 copies/100 mL on Oct 21, steady  (Q1, B1, C1, M1, H1, D1, W1, W2, K1, A1, Y1)
+WQ1. North Open; 1,379 copies/100 mL on Oct 21, steady  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, Y1)
 
-WQ2. Center Open; 793 copies/100 mL on Oct 21, up  (Q1, B1, C1, M1, H1, D1, W1, W2, K1, A1, Y1)
+WQ2. Center Open; 793 copies/100 mL on Oct 21, up  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, Y1)
 
-WQ3. South Open; <195 copies/100 mL on Oct 22, down  (Q1, B1, C1, M1, H1, D1, W1, W2, K1, A1, Y1)
+WQ3. South Open; <195 copies/100 mL on Oct 22, down  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, Y1)
 
 WQ4. North Advisory until 11 AM Sat; 1,379 copies/100 mL on Oct 21, steady  (R1)
 
@@ -159,6 +163,7 @@ WQ12. South Status not read since 2:35 AM; <195 copies/100 mL on Oct 22, down  (
 - **B1**: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
 - **C1**: two sectors offshore, each still to reach the breaks; rain earlier in the day only
 - **M1**: a mix: every swell train at the breaks at half the biggest's height or more, a line each, one a train at the buoy
+- **WS1**: a wind sea at half the biggest's height or more: the wind still driving it, said after its point (forecast.windsea, owner's call 2026-11-08); a short train the wind is not driving is a train like any other
 - **H1**: the lead train has no heading, and no status yet: their slots drop with their words
 - **D1**: 46232 dark: the swell says so and nothing else
 - **W1**: the water from Center's hub, yesterday's (the lab loads it each night); 46232 only when no hub has a reading
