@@ -15,19 +15,17 @@ so its cards age from then; the map's tiles need the network.
 
 ## What it does
 
-- ONE button showing what a tap turns to (owner's requests, 2026-11-08): on
-  the drawing the map symbol alone, no outline or shadow, its ink level with
-  the rim's top and the headline's left edge; on the map the drawing symbol
-  dressed as + and - are, in the opposite corner. One choice for every tab
+- ONE button showing what a tap turns to, at ONE place in both views, 4 px
+  in from the map's top-left corner (owner's calls, 2026-11-08): on the
+  drawing the map symbol alone; on the map the drawing symbol, outlined as
+  the map's controls are. No shadow on any control. One choice for every tab
   and both chains, kept on the device.
 - The caption is OUT of the drawing and the map: one plain line under
   either, in a lead train heading's style (Archivo 14 px, 400, ink), the
   drawing's own words rejoined as its spoken label joins them.
-- The drawing's rim, or the map's top edge, sits as far under the last
-  train's ink as the first train sits under the headline's: 21.0 px ink to
-  ink at 4x, landing at 21.5 (drawing) and 21.25 (map) in Chromium, which
-  snaps both to whole pixels here. The drawing's empty card above its rim
-  and below its chord (where its caption was) is taken back.
+- The drawing keeps its own box. Only the MAP's top edge moves: as far
+  under the last train's ink as the first train's ink sits under the
+  headline's, 21.0 px at 4x (21.25 as Chromium snaps it here).
 - The map is SQUARE, taller than the drawing so there is room to move about
   in (owner's request, 2026-11-08), and never more than 70% of the screen's
   height; the card grows by the difference while it shows.
