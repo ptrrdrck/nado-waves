@@ -44,7 +44,9 @@ so its cards age from then; the map's tiles need the network.
   keep their size at every zoom; a picked train lights in yellow with its
   5 m arrowhead at the break. Each edge is a ray to the ONE vertex that
   forms it; tap a vertex for its blocker and distance.
-- \+ and - zoom around the break; the square returns to the opening view.
+- Along the map's foot, aligned right: the return button, then + and -
+  (owner's request, 2026-11-08). + and - zoom around the break; return
+  goes back to the opening view.
   On a phone one finger scrolls the page and two move the map, with a hint;
   with a mouse, drag pans and ctrl + wheel zooms, as the charts do.
 
