@@ -1,0 +1,84 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d382238b1b33fde307157091501e549cf3ac233c.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d382238b1b33fde307157091501e549cf3ac233c.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.d382238b1b33fde307157091501e549cf3ac233c.001.1",
+        "areaDesc": "San Diego County Coastal Areas",
+        "geocode": {
+            "SAME": [
+                "006073"
+            ],
+            "UGC": [
+                "CAZ043"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043"
+        ],
+        "references": [],
+        "sent": "2026-11-08T00:10:00-08:00",
+        "effective": "2026-11-08T00:10:00-08:00",
+        "onset": "2026-11-08T04:00:00-08:00",
+        "expires": "2026-11-08T14:00:00-08:00",
+        "ends": "2026-11-10T22:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Beach Hazards Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Beach Hazards Statement issued November 8 at 12:10AM PST until November 10 at 10:00PM PST by NWS San Diego CA",
+        "description": "* WHAT...Minor to locally moderate coastal flooding expected.\nAdditionally, dangerous rip currents and surf of 3 to 7 feet\nexpected along west-facing beaches.\n\n* WHERE...San Diego County Coastal Areas.\n\n* WHEN...For the Coastal Flood Advisory, until noon PST Tuesday.\nFor the Beach Hazards Statement, from 4 AM PST this morning\nthrough Tuesday evening.\n\n* IMPACTS...Flooding of parking lots and roads with only isolated\nroad closures expected. Dangerous swimming conditions due to\nelevated surf and strong rip currents.\n\n* ADDITIONAL DETAILS...Highest tides will occur in the late\nmorning each day, peaking at 7.4-7.6 feet Sunday and Monday,\nwhich is 1.3 to 1.6 feet above astronomical tide predictions.\nSurf will be highest at 4-7 feet Monday, which may prolong some\nof the coastal impacts.",
+        "instruction": "If travel is required, allow extra time as some roads may be\nclosed. Do not drive around barricades or through water of\nunknown depth. Take the necessary actions to protect flood-prone\nproperty. Stay off of sea walls and jetties. Remain farther back\nfrom the ocean, as waves will run farther up the beach than\nexpected, especially during high and rising tides.\n\nRemain out of the water to avoid hazardous swimming conditions. If\nyou do get in the water, always swim near a lifeguard.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 080810"
+            ],
+            "NWSheadline": [
+                "COASTAL FLOOD ADVISORY REMAINS IN EFFECT UNTIL NOON PST TUESDAY... ...BEACH HAZARDS STATEMENT IN EFFECT FROM 4 AM PST EARLY THIS MORNING THROUGH TUESDAY EVENING"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.NEW.KSGX.BH.S.0017.261108T1200Z-261111T0600Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-10T22:00:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "BHS"
+            ]
+        }
+    }
+}
