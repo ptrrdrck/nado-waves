@@ -281,8 +281,11 @@ class TestOnThePage:
 
         card = PAGE[PAGE.index("function swellCard("):]
         card = card[:card.index("\n}\n")]
-        assert (card.index("${tab.body}</div>") < card.index("${srcLines(source, due)}")
-                < card.index('data-after-tab="${tab.id}"'))
+        # 46232's pills in the card's title row since 2026-11-08, each context
+        # buoy's above its own headline, in its own block after the panes.
+        assert (card.index('headRow(`<span class="lbl">${label}</span>`, due)')
+                < card.index("${tab.body}</div>") < card.index('data-after-tab="${tab.id}"'))
+        assert 'return `<hr>${headRow("", feed)}${reading}`' in _fn("contextBuoy")
         assert "contextBuoy" not in PAGE[PAGE.index("function buoyPanel("):
                                          PAGE.index("function buoyReading(")]
         select = PAGE[PAGE.index("function selectSwellTab("):]
@@ -376,14 +379,14 @@ class TestThePills:
         assert "due: anchorFeed(NOW, due.swell, late.swell)," in PAGE
         # The dot and the countdown pill read the same instants and force.
         feed = _fn("feedPills")
-        assert "statusDot(iso, lateIso, {forceOver})" in feed
+        assert "statusRing(observedIso, iso, lateIso, {forceOver})" in feed
         assert "dueSpan(iso, lateIso, {forceOver, bare: true})" in feed
         assert "{forceOver: nowIsStale()}" in PAGE[PAGE.index("const anchorFeed"):][:300]
         # The swell card's countdown is the feed's second pill, forced as its dot is.
         assert "dueSpan(due.swell" not in PAGE
         # One computation of the two instants for the countdown and the dot.
         assert "dueInstants(iso, lateIso)" in _fn("dueSpan")
-        assert "dueInstants(iso, lateIso)" in _fn("statusDot")
+        assert "dueInstants(iso, lateIso)" in _fn("statusRing")
         tick = _fn("tickDue")
         assert "[data-status-due]" in tick
         assert '"Receiving normally"' in tick and '"Update due"' in tick and '"Overdue"' in tick
@@ -413,7 +416,7 @@ class TestThePills:
         assert "placeWhen(buoyPlace(NOW.station_name, NOW.station), NOW.observed_utc)" in PAGE
         block = _fn("contextBuoy")
         assert "(NDBC ${b.station})" not in block
-        assert "srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)], feed);" in block
+        assert "srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)]);" in block
         # "NDBC <id>" for 46232 too since 2026-11-06, never "via NDBC".
         assert "const feedName = (station) => `NDBC ${station}`;" in PAGE
         assert "via NDBC`" not in PAGE
@@ -491,8 +494,12 @@ class TestTheProvenancePills:
 
     def test_the_second_line_is_station_age_countdown(self):
         feed = _fn("feedPills")
-        assert ("pills(label + statusDot(iso, lateIso, {forceOver}), ageSpan(observedIso),\n"
-                "               dueSpan(iso, lateIso, {forceOver, bare: true}))") in feed
+        # In the title row since 2026-11-08: the station with its ring at
+        # the right, the age beside it, the countdown a tap away.
+        assert "const age = ageSpan(observedIso);" in feed
+        assert "const due = dueSpan(iso, lateIso, {forceOver, bare: true});" in feed
+        assert ("headPills(label + statusRing(observedIso, iso, lateIso, {forceOver}), age, due,\n"
+                "                   {key: label, live: true})") in feed
         assert "now.observed_utc,\n             due, late, {forceOver: nowIsStale()}" in PAGE
 
     def test_the_first_line_is_place_and_time_with_no_verb(self):
