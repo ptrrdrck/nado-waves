@@ -29,6 +29,7 @@
   const MI = (() => { try { return eval("MI_PER_KM"); } catch (e) { return 0.621371; } })();
   const dist = (km) => call("dualText", `${(km * MI).toFixed(km * MI < 10 ? 1 : 0)} mi`,
     `${km.toFixed(km < 10 ? 1 : 0)} km`) || `${(km * MI).toFixed(1)} mi`;
+  const OPEN_STEPS = 3;                      // zoom steps in from the drawing's scale
   const BUOY_NAME = `NDBC ${MODEL.buoy.id}`;  // as the page names every buoy since 2026-11-06
 
   let view = "drawing";
@@ -81,12 +82,14 @@
       this.box.insertAdjacentHTML("beforeend",
         `<div class="sm-map" hidden><div class="sm-attr">${ATTR}</div><div class="sm-cap" aria-live="polite"></div>`
         + `<div class="sm-hint">Use two fingers to move the map</div></div>`
-        + `<div class="sm-switch" role="group" aria-label="Show the windows as">`
-        + `<button type="button" data-sm-view="drawing" aria-label="Drawing" title="Drawing">${ICON_DRAW}</button>`
-        + `<button type="button" data-sm-view="map" aria-label="Map" title="Map">${ICON_MAP}</button></div>`);
+        + `<button type="button" class="sm-switch"></button>`);
       this.el = this.box.querySelector(".sm-map");
-      this.box.querySelectorAll("[data-sm-view]").forEach((btn) =>
-        btn.addEventListener("click", (e) => { e.stopPropagation(); setView(btn.dataset.smView); }));
+      // One button: it shows what a tap turns to -- the map from the
+      // drawing, the drawing from the map (owner's request, 2026-11-08).
+      this.box.querySelector(".sm-switch").addEventListener("click", (e) => {
+        e.stopPropagation();
+        setView(view === "map" ? "drawing" : "map");
+      });
       // The drawing's own picks, from its rows or its arrows, redraw the map's.
       new MutationObserver(() => this.sync()).observe(svg, {attributes: true, subtree: true, attributeFilter: ["class", "hidden"]});
       this.show();
@@ -94,9 +97,12 @@
 
     show() {
       const on = view === "map" && !!this.b;
-      this.box.querySelectorAll("[data-sm-view]").forEach((btn) => btn.setAttribute("aria-pressed", String(btn.dataset.smView === (on ? "map" : "drawing"))));
+      const btn = this.box.querySelector(".sm-switch");
+      btn.innerHTML = on ? ICON_DRAW : ICON_MAP;
+      btn.setAttribute("aria-label", on ? "Show the drawing" : "Show the map");
+      btn.title = on ? "Drawing" : "Map";
       this.el.hidden = !on;
-      this.svg.style.visibility = on ? "hidden" : "";
+      this.box.classList.toggle("on-map", on);
       if (on && this.box.offsetWidth) {
         if (!this.map) this.make();
         this.map.invalidateSize({animate: false});
@@ -128,7 +134,7 @@
       new Zoom().addTo(map);
       const Fit = L.Control.extend({options: {position: "topright"}, onAdd() {
         const d = L.DomUtil.create("div", "leaflet-bar");
-        d.innerHTML = `<a href="#" role="button" title="Back to the whole window" aria-label="Back to the whole window">${ICON_FIT}</a>`;
+        d.innerHTML = `<a href="#" role="button" title="Back to the opening view" aria-label="Back to the opening view">${ICON_FIT}</a>`;
         L.DomEvent.on(d.firstChild, "click", (e) => { L.DomEvent.stop(e); self.frame(true); });
         L.DomEvent.disableClickPropagation(d);
         return d;
@@ -156,16 +162,19 @@
       this.drawLand();
     }
 
-    // The drawing's frame: the shore normal up, the break at the drawing's
-    // centre point, and the farthest vertex forming an edge on its rim.
+    // The opening view: the shore normal up, the break as far above the
+    // map's foot as it sits above the drawing's, and three zoom steps in
+    // from the drawing's own scale -- where the farthest vertex forming an
+    // edge sits on its rim (owner's request, 2026-11-08: "+" three times).
     frame(animate = false) {
       const map = this.map, b = this.b, d = readSvg(this.svg);
       const W = this.el.clientWidth, H = this.el.clientHeight;
       const vb = this.svg.viewBox.baseVal, s = W / vb.width;
       const rimPx = d.rimPx * s, far = Math.max(...b.windows.flatMap((w) => w.edges.map((e) => e.range_km)));
-      const mpp = far * 1000 / rimPx;
+      const mpp = far * 1000 / rimPx / 2 ** OPEN_STEPS;
       const zoom = Math.log2(156543.03392 * Math.cos(rad(b.position[0])) / mpp);
-      const upKm = (H / 2 - d.cy * s) * -mpp / 1000;  // break sits below the middle, so the centre is seaward
+      const breakY = H - (vb.height - d.cy) * s;
+      const upKm = (breakY - H / 2) * mpp / 1000;  // the break sits below the middle, so the centre is seaward
       map.setBearing(-b.normal);
       map.setView(dest(b.position, b.normal, upKm), zoom, {animate});
       this.framed = true;
