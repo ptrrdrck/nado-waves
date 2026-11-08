@@ -15,12 +15,12 @@
 /* One button: it shows what a tap turns to, at ONE place in both views, 4 px
    in from the map's top-left corner (top set by the script with the map's
    gap). On the drawing the map symbol alone; on the map the drawing symbol
-   outlined as the map's controls are, with no shadow (owner's calls,
-   2026-11-08). The same 28 px box either way, so the symbol never moves. */
+   dressed as every map control is (owner's calls, 2026-11-08). The same
+   28 px box either way, so the symbol never moves. */
 .sm-switch{position:absolute;top:0;left:4px;z-index:1000;display:inline-flex;align-items:center;
   justify-content:center;box-sizing:border-box;width:28px;height:28px;padding:0;background:none;
   color:var(--ink);border:1px solid transparent;border-radius:6px;cursor:pointer}
-.sm-face.on-map > .sm-switch{background:var(--card);border-color:rgba(0,0,0,.25)}
+.sm-face.on-map > .sm-switch{background:var(--card);border-color:rgba(0,0,0,.25);box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .sm-switch:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .sm-switch svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
@@ -41,13 +41,14 @@
 
 /* Leaflet's controls in the card's dress, small enough for the drawing's box. */
 /* Along the map's foot, aligned right: return, then + and - (owner's
-   request, 2026-11-08), 4 px in from the corner, outlined, no shadow. */
+   request, 2026-11-08), 4 px in from the corner. Every control dressed as
+   + and - were first: a thin dark outline and a soft shadow. */
 .sm-map .leaflet-bottom.leaflet-right{bottom:4px;right:4px;display:flex;flex-direction:row;
   align-items:flex-end;gap:4px}
 .sm-map .leaflet-bottom.leaflet-right .leaflet-control{margin:0;float:none;clear:none}
 .sm-map .sm-fit{order:1}
 .sm-map .sm-zoom{order:2;display:flex;flex-direction:row}
-.sm-map .leaflet-bar{border:1px solid rgba(0,0,0,.25);border-radius:6px;box-shadow:none;background:var(--card)}
+.sm-map .leaflet-bar{border:1px solid rgba(0,0,0,.25);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.35);background:var(--card)}
 .sm-map .leaflet-bar a{width:26px;height:26px;line-height:26px;background:var(--card);color:var(--ink);
   border:0;border-radius:0;font:500 16px/26px Archivo,sans-serif}
 .sm-map .sm-fit a{border-radius:5px}
@@ -56,6 +57,7 @@
 .sm-map .leaflet-bar a{display:flex;align-items:center;justify-content:center}
 .sm-map .leaflet-bar a svg{width:14px;height:14px;margin:0;stroke:currentColor;fill:none;stroke-width:1.6;
   stroke-linecap:round;display:block}
+.sm-map .sm-zoom a svg{width:16px;height:16px;stroke-width:1.5}
 .sm-hint{position:absolute;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.45);color:#fff;font:600 15px/1.3 Archivo,sans-serif;text-align:center;
   padding:0 24px;opacity:0;transition:opacity .2s;pointer-events:none}

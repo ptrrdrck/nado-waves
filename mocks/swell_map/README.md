@@ -17,13 +17,22 @@ so its cards age from then; the map's tiles need the network.
 
 - ONE button showing what a tap turns to, at ONE place in both views, 4 px
   in from the map's top-left corner (owner's calls, 2026-11-08): on the
-  drawing the map symbol alone; on the map the drawing symbol, outlined as
-  the map's controls are. No shadow on any control. One choice for every tab
-  and both chains, kept on the device.
+  drawing the map symbol alone; on the map the drawing symbol, a half-circle
+  with a line from the break to each of the edges Center sees (Baja, the
+  islands, Point Loma), as wide as the map symbol. Every map control (that
+  button, return, + and -) is dressed as + and - first were: a thin dark
+  outline and a soft shadow. + and - are drawn, not typed, so all four sit
+  on their box's centre: measured at 4x, 0.00 px across and the same 0.5 px
+  low for each (the card starts on a fractional pixel here); the
+  half-circle a quarter pixel higher, where a flat-based shape reads as
+  centred.
 - The caption is OUT of the drawing and the map: one plain line under
   either, in a lead train heading's style (Archivo 14 px, 400, ink), the
   drawing's own words rejoined as its spoken label joins them.
-- The drawing keeps its own box. Only the MAP's top edge moves: as far
+- The drawing keeps its own box, but its lowest ink (the break's dot) sits
+  as far above the caption's ink as the map's foot does: 13.5 px against
+  13.25 at 4x. The empty card below its chord moved above it, so the page
+  keeps its height. Only the MAP's top edge moves against the trains: as far
   under the last train's ink as the first train's ink sits under the
   headline's, 21.0 px at 4x (21.25 as Chromium snaps it here).
 - The map is SQUARE, taller than the drawing so there is room to move about

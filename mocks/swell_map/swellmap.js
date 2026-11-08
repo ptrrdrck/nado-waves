@@ -18,8 +18,14 @@
   const ATTR = "Imagery Esri, Maxar, Earthstar Geographics";
   const KEY = "nado-sm-view";               // one choice for every tab, kept on this device
   const TOUCH = matchMedia("(pointer: coarse)").matches;
-  const ICON_DRAW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 12.5h13M8 12.5L2.6 7M8 12.5L5 3.6M8 12.5l5.4-5.5"/><path d="M2.6 7a6.5 6.5 0 0 1 10.8 0" stroke-dasharray="1.6 1.8"/></svg>';
+  // The drawing in small: its half-circle, and a line out from the break to
+  // each of the edges Center sees -- Baja, the islands, Point Loma (owner's
+  // design, 2026-11-08). Its box's middle sits a quarter unit above centre,
+  // where a flat-based shape reads as centred.
+  const ICON_DRAW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 11.25A7 7 0 0 1 15 11.25Z"/><path d="M8 11.25L2.80 6.57M8 11.25L6.31 4.46M8 11.25L12.11 5.59"/></svg>';
   const ICON_MAP = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5l4-1.5 5 2 4-1.5v10l-4 1.5-5-2-4 1.5z"/><path d="M5.5 2v10M10.5 4v10"/></svg>';
+  const ICON_PLUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
+  const ICON_MINUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9"/></svg>';
   const ICON_FIT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>';
 
   const call = (n, ...a) => { try { return eval(n)(...a); } catch (e) { return null; } };
@@ -33,6 +39,8 @@
   // pane's next box; 5.25 more puts the map's edge 21.0 px under it, as the
   // first train sits under the headline (21.25 as Chromium snaps it here).
   const GAP_MAP = 5.25;
+  // The drawing's lowest ink in viewBox units: its break's dot, r 3 at cy 162.
+  const DRAW_INK_FOOT = 165.5;
   const OPEN_STEPS = 3;                      // zoom steps in from the drawing's scale
   const BUOY_NAME = `NDBC ${MODEL.buoy.id}`;  // as the page names every buoy since 2026-11-06
 
@@ -131,8 +139,9 @@
       // pinch and double-tap zoom where the reader puts them.
       const Zoom = L.Control.extend({options: {position: "bottomright"}, onAdd() {
         const d = L.DomUtil.create("div", "leaflet-bar sm-zoom");
-        d.innerHTML = '<a href="#" role="button" title="Zoom in" aria-label="Zoom in">+</a>'
-          + '<a href="#" role="button" title="Zoom out" aria-label="Zoom out">\u2212</a>';
+        // Drawn, not typed: a font's + and - sit on its baseline, not in the box.
+        d.innerHTML = `<a href="#" role="button" title="Zoom in" aria-label="Zoom in">${ICON_PLUS}</a>`
+          + `<a href="#" role="button" title="Zoom out" aria-label="Zoom out">${ICON_MINUS}</a>`;
         const step = (dz) => (e) => { L.DomEvent.stop(e); map.setZoomAround(self.b.position, map.getZoom() + dz); };
         L.DomEvent.on(d.children[0], "click", step(1));
         L.DomEvent.on(d.children[1], "click", step(-1));
@@ -292,7 +301,14 @@
     // The toggle sits at one place in both views, 4 px in from the map's
     // corner, as the controls sit in theirs.
     space() {
-      this.svg.style.marginTop = this.svg.style.marginBottom = "";
+      // The drawing moves DOWN to its caption (owner's request, 2026-11-08):
+      // its chord and dot as far above the caption's ink as the map's foot.
+      // What lay below them in its box goes above it, so the page keeps its
+      // height and the trains keep their place.
+      const sc = (this.svg.clientWidth || this.box.clientWidth) / this.svg.viewBox.baseVal.width;
+      const down = Math.max(0, (this.svg.viewBox.baseVal.height - DRAW_INK_FOOT) * sc);
+      this.svg.style.marginTop = `${down.toFixed(2)}px`;
+      this.svg.style.marginBottom = `${(-down).toFixed(2)}px`;
       this.el.style.marginTop = `${GAP_MAP}px`;
       const sw = this.box.querySelector(".sm-switch");
       sw.style.top = `${GAP_MAP + 4}px`;
