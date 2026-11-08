@@ -9594,17 +9594,17 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* One button: it shows what a tap turns to, at ONE place in both views, 4 px
    in from the map's top-left corner (top set by the script with the map's
    gap). On the drawing the map symbol alone; on the map the drawing symbol
-   dressed as every map control is (owner's calls, 2026-11-08). The same
+   dressed as every map control is, no outline (owner's calls, 2026-11-08). The same
    28 px box either way, so the symbol never moves. */
 .sm-switch{position:absolute;top:0;left:4px;z-index:1000;display:inline-flex;align-items:center;
   justify-content:center;box-sizing:border-box;width:28px;height:28px;padding:0;background:none;
   color:var(--ink);border:1px solid transparent;border-radius:6px;cursor:pointer}
-.sm-face.on-map > .sm-switch{background:var(--card);border-color:rgba(0,0,0,.25);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.sm-face.on-map > .sm-switch{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .sm-switch:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .sm-switch svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* Overlay text on the photograph. */
-.sm-attr{position:absolute;top:13px;left:40px;right:8px;z-index:800;color:rgba(255,255,255,.85);
+.sm-attr{position:absolute;top:8px;left:40px;right:8px;text-align:right;z-index:800;color:rgba(255,255,255,.85);
   font:10px/1.2 Archivo,sans-serif;text-shadow:0 0 2px #000,0 0 4px #000;pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sm-cap{position:relative;margin-top:8px;color:var(--ink);text-align:center;
@@ -9620,14 +9620,15 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
 /* Leaflet's controls in the card's dress, small enough for the drawing's box. */
 /* Along the map's foot, aligned right: return, then + and - (owner's
-   request, 2026-11-08), 4 px in from the corner. Every control dressed as
-   + and - were first: a thin dark outline and a soft shadow. */
+   request, 2026-11-08), 4 px in from the corner. Every control the card's
+   colour with a soft shadow and NO outline (owner's call, same day); the
+   1 px border is kept transparent so no box changes size. */
 .sm-map .leaflet-bottom.leaflet-right{bottom:4px;right:4px;display:flex;flex-direction:row;
   align-items:flex-end;gap:4px}
 .sm-map .leaflet-bottom.leaflet-right .leaflet-control{margin:0;float:none;clear:none}
 .sm-map .sm-fit{order:1}
 .sm-map .sm-zoom{order:2;display:flex;flex-direction:row}
-.sm-map .leaflet-bar{border:1px solid rgba(0,0,0,.25);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.35);background:var(--card)}
+.sm-map .leaflet-bar{border:1px solid transparent;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.35);background:var(--card)}
 .sm-map .leaflet-bar a{width:26px;height:26px;line-height:26px;background:var(--card);color:var(--ink);
   border:0;border-radius:0;font:500 16px/26px Archivo,sans-serif}
 .sm-map .sm-fit a{border-radius:5px}
@@ -9674,10 +9675,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
   const KEY = "nado-sm-view";               // one choice for every tab, kept on this device
   const TOUCH = matchMedia("(pointer: coarse)").matches;
   // The drawing in small: its half-circle, and a line out from the break to
-  // each of the edges Center sees -- Baja, the islands, Point Loma (owner's
-  // design, 2026-11-08). Its box's middle sits a quarter unit above centre,
+  // Baja's edge and Point Loma's as Center sees them (owner's design,
+  // 2026-11-08; the islands' line taken out the same day). Its box's middle sits a quarter unit above centre,
   // where a flat-based shape reads as centred.
-  const ICON_DRAW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 11.25A7 7 0 0 1 15 11.25Z"/><path d="M8 11.25L2.80 6.57M8 11.25L6.31 4.46M8 11.25L12.11 5.59"/><\/svg>';
+  const ICON_DRAW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 11.25A7 7 0 0 1 15 11.25Z"/><path d="M8 11.25L2.80 6.57M8 11.25L12.11 5.59"/><\/svg>';
   const ICON_MAP = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5l4-1.5 5 2 4-1.5v10l-4 1.5-5-2-4 1.5z"/><path d="M5.5 2v10M10.5 4v10"/><\/svg>';
   const ICON_PLUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/><\/svg>';
   const ICON_MINUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9"/><\/svg>';

@@ -18,10 +18,9 @@ so its cards age from then; the map's tiles need the network.
 - ONE button showing what a tap turns to, at ONE place in both views, 4 px
   in from the map's top-left corner (owner's calls, 2026-11-08): on the
   drawing the map symbol alone; on the map the drawing symbol, a half-circle
-  with a line from the break to each of the edges Center sees (Baja, the
-  islands, Point Loma), as wide as the map symbol. Every map control (that
-  button, return, + and -) is dressed as + and - first were: a thin dark
-  outline and a soft shadow. + and - are drawn, not typed, so all four sit
+  with a line from the break to Baja's edge and Point Loma's as Center sees
+  them, as wide as the map symbol. Every map control (that button, return,
+  + and -) is the card's colour with a soft shadow and NO outline. + and - are drawn, not typed, so all four sit
   on their box's centre: measured at 4x, 0.00 px across and the same 0.5 px
   low for each (the card starts on a fractional pixel here); the
   half-circle a quarter pixel higher, where a flat-based shape reads as
@@ -66,7 +65,7 @@ so its cards age from then; the map's tiles need the network.
 - The Buoys tab has no drawing, so no map.
 - **Esri's terms are unchecked.** The classic tile endpoint needs no key
   today; Esri's current terms may ask for a free ArcGIS key, and attribution
-  is required (top of the map).
+  is required (top right of the map).
 - Leaflet 1.9.4 and leaflet-rotate 0.2.8 are built into the file (~190 KB).
   Shipping them would make them the page's first outside scripts.
 - docs.html would need a section saying the imagery is a photograph under
