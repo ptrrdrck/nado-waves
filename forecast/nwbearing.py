@@ -430,7 +430,7 @@ def on_the_page(spectra46232: list) -> list[str]:
         mine = [({i for i, _ in band}, [sum(hists[i][k] for i, _ in band) for k in range(360)])
                 for band in bands]
         for train in trains:
-            if train.is_wind_sea or math.isnan(train.from_deg) or not mine:
+            if train.is_short or math.isnan(train.from_deg) or not mine:
                 continue
             peak = min(range(len(freqs)), key=lambda i: abs(1.0 / freqs[i] - train.period_s))
             hist = next((h for bins, h in mine if peak in bins), None)

@@ -173,7 +173,8 @@ PEAK_COVER = 0.75
 #: the biggest one's height is listed, a line each, one a compass point
 #: (owner's calls, 2026-10-23: half its height, a quarter of its energy,
 #: pooled over the breaks; it was 0.7, beside the lead at the biggest break,
-#: from another point only). Never wind sea or local chop.
+#: from another point only). Never local chop; wind sea since 2026-11-08,
+#: when it became the wind's call and not a period's (BRIEFING §51).
 MIX_SHARE = 0.5
 
 
@@ -915,15 +916,18 @@ def listed_trains(sites: list[dict]) -> list[dict]:
     (`buoy_train`: since 2026-11-03 the buoy train that carried most of the
     row, a row two carried being divided first -- `nearshore.carry`,
     BRIEFING §49) are one line, the biggest's. A
-    train with no buoy train is its own line. Never wind sea or local chop;
-    with no swell train at all, the biggest break's lead as its row gives it.
+    train with no buoy train is its own line. Never local chop, and wind sea
+    -- the wind still driving it, `forecast.windsea` -- said as such
+    (`wind_sea`; owner's call, 2026-11-08, BRIEFING §51: until then every
+    train under 8 s was left out as "wind sea"); with no train at all but
+    chop, the biggest break's lead as its row gives it.
     Each with its offshore heading as its row names it, and its band at the
     buoy (`band_hz`, `held_deg`) from its own break when the reading carries
     one."""
 
     order = {b: k for k, b in enumerate(BREAKS)}
     pool = sorted(((t, site) for site in sites for t in site.get("trains") or []
-                   if not t.get("wind_sea") and not t.get("local") and _heading(t) is not None),
+                   if not t.get("local") and _heading(t) is not None),
                   key=lambda ts: (-(ts[0].get("hs_m") or 0.0), order.get(ts[1].get("id"), 9)))
     if not pool:
         if not sites:
@@ -947,7 +951,8 @@ def listed_trains(sites: list[dict]) -> list[dict]:
                 continue
             said.add(swell)
         out.append({"period_s": t.get("period_s"), "from_deg": _heading(t), "hs_m": t.get("hs_m"),
-                    "band_hz": t.get("band_hz"), "held_deg": t.get("held_deg")})
+                    "band_hz": t.get("band_hz"), "held_deg": t.get("held_deg"),
+                    **({"wind_sea": True} if t.get("wind_sea") else {})})
     return out
 
 

@@ -1017,7 +1017,9 @@ forecaster actually verifies against, Surfline included.
    the biggest one's height, biggest first (owner's call, same day, after
    the WSW sea leading Center and South went unsaid because North, the
    biggest break, held only an SSW train; `MIX_SHARE` 0.5 of height; never
-   wind sea or chop, unless no swell train exists at all), **ONE LINE A
+   local chop, unless nothing else exists; WIND SEA since 2026-11-08, said
+   "NW wind sea at 4.5 s, building." (owner's call, when the label became
+   the wind's: below, and BRIEFING §51), **ONE LINE A
    TRAIN AT 46232** (owner's call, 2026-10-24, replacing one a compass
    point, which listed one W swell twice, W 9.1 s at South and WSW 9.9 s at
    Center, either side of the 258.75° boundary): each carried row's
@@ -1756,9 +1758,14 @@ forecaster actually verifies against, Surfline included.
       trainmatch.py     a break's train to the buoy train it is, for the
                         Briefing's one line a swell; and the archive and
                         known-answer control that chose it; reports  [built]
+      windsea.py        which trains are wind sea: wave age against KNZY's
+                        AND 46086's measured wind on LIVE, GFS-Wave's own
+                        wind (or its bulletin's flags) on Forecast; and the
+                        measurement behind it; never a period (§51) [built]
       trainmerge.py     a break's row that is two buoy trains: how often,
                         and what dividing it at 20% / a third does, on the
                         archive and a known-answer control (BRIEFING §49);
+                        and `--brackets`, which rows are one swell (§49b);
                         reports, never edits                       [built]
       briefingreport.py its thresholds, measured; reports, never edits
       briefingwording.py its wording, run from the page's own code into
@@ -2077,8 +2084,26 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   mock's "through two windows". **On the page, one swell's rows sit
   together under a bracket, and a tap on either picks them all** (owner's
   choice, 2026-11-03: A1 with E of a mock of five): each row carries
-  `swell`, the buoy train that carried most of it, and rows sharing one
-  carry `swell_at_buoy` (`nearshore.train_dicts`, both chains); the three
+  `swell`, the buoy train that carried most of it, and rows that are one
+  swell carry `group` and `swell_at_buoy` (`nearshore.train_dicts`, both
+  chains). **One buoy train is one swell only from one direction AT THE
+  BUOY** (owner's decision, 2026-11-08, BRIEFING §49b; `BRACKET_DEG`,
+  `bracket_groups`): each row's `buoy_from_deg` -- its rays given the
+  nearest direction lobe of its buoy train in their own bin, an even
+  maximum-entropy twin read as one -- and ALL of a buoy train's shown rows
+  within 20° of each other, or none bracketed (a subset added as many wrong
+  brackets as right). North 5 Nov 17Z read "one swell at the buoy" over a
+  SW 16.7 s, a W 10.5 s and a 6.7 s row, the buoy's one train being its
+  whole spectrum; at the buoy they came from 247°, 281° and 272°. Measured
+  (`python -m forecast.trainmerge --brackets`, ~1 min, the control):
+  single swells keep 107 of 111 brackets; in five 5 Nov-like cases wrong
+  brackets 79 → 5; two swells ≥ 60° apart the buoy merged 61 → 21, 50°
+  40 → 26, ≤ 30° 70 → 70 (one swell's shape at the buoy, at any bar).
+  The archive's hours with a bracket: N / C / S 19 / 31 / 51% → 10 / 15 /
+  18%. Center 3 Nov 15Z, the case the bracket was built on, sits 23° apart
+  and lost it; what the buoy held there is settled by nothing. A dip test
+  on the buoy's own energy density was measured and does not help: a weak
+  swell on a big one's flank is a shoulder there, not a hill. The three
   rows are chosen by height, then each swell's rows put together, the
   swells in order of their biggest row (`swellGroups`), so the lead row is
   still first and a smaller piece can sit above another swell — the A·B·A
@@ -2105,6 +2130,32 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   its tag (a 320 px phone) does the tag wrap. Worst-case width thresholds
   (the 2026-10-06 container queries) dropped degrees on rows that had room
   for them; measuring each row is what stops that.
+- **Wind sea is the wind's call, never the period's** (owner's decision,
+  2026-11-08; BRIEFING §51; `forecast/windsea.py`). A train is tagged wind
+  sea only when the wind along it outruns it -- wave age, β·U·cos θ > gT/2π.
+  On LIVE BOTH KNZY's and NDBC 46086's MEASURED winds must say so at β 1.5
+  (Hanson & Phillips), each as of the spectrum (KNZY's METAR from 70 min
+  before; 46086's standard met within 30 min, carried to 10 m ×1.09 from a
+  4.1 m anemometer, an assumption); either missing, no tag. On Forecast
+  GFS-Wave decides: its own 10 m wind at the buoy at WAVEWATCH III's own
+  multiplier (1.7), or on the partition fallback its bulletin's flags.
+  **Every other train has NO tag** (owner's call): its period already says
+  it is short; "short period" was offered and declined. The 46047 / 46086
+  Buoys-tab cards carry no tag (nothing validated there). Measured
+  (`python -m forecast.windsea`, ~15 s, 4 Aug - 8 Nov): the old < 8 s rule
+  named 32% of 46232's trains; by wave age 13% of those were driven with
+  KNZY's wind, 33% 46086's, 55% 46047's; the two winds agree on under a
+  third of each other's firings; both together name 94 of 2,884 trains,
+  and a third wind that played no part agreed on 87% (46047) and 89%
+  (GFS-Wave) of them. GFS-Wave's own flags call 9% of its < 8 s partitions
+  at 46232 wind sea. It is a test of the wind: nothing observes the sea
+  being driven. `Train.wind_sea` is the tag, set by the chain;
+  `Train.is_short` is the period test reports and filters keep. 46086's
+  wind is a wind, never its spectrum: §3a's guard still keeps the station
+  out of now.py by name, and a test pins that the label reads only its
+  standard met. Its standard met is collect-beach-inputs.yml's since the
+  same day (beside 46232's; collect.yml excludes both), because on
+  collect.yml's schedule it landed a median 5 h apart.
 - **Imperial leads, metric in parentheses, everywhere a number is shown — by
   default.** "2.3 ft (0.71 m)", "9 mph (8 kt)". Since 2026-10-28 (owner's
   call) the reader's Units setting at the foot of the page can show

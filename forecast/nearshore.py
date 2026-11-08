@@ -196,6 +196,28 @@ BUOY_DIVIDE_SHARE = 0.05
 BUOY_DIVIDE_NEEDS_TWO = True
 BUOY_DIVIDE_CHECKS_HEADING = True
 
+#: Two of a break's rows that one buoy train carried are ONE swell on the
+#: page -- bracketed, captioned, tapped together -- only when their energy
+#: came from the same direction AT THE BUOY: each row's `buoy_from_deg`
+#: (`_buoy_heading`) within this of every other in its group (owner's
+#: decision, 2026-11-08, BRIEFING §49b). Until then any two rows of one buoy
+#: train were bracketed, and where the buoy had merged two swells that was
+#: wrong 79 of 85 times in the known-answer control (5 Nov-like cases: a big
+#: W with a weak S/SW under it) -- North on 5 Nov 17Z read "one swell" over
+#: a SW 16.7 s row, a W 10.5 s row and a 6.7 s row, the buoy's one train
+#: being its whole spectrum. Measured (`forecast.trainmerge --brackets`,
+#: 30 trials a case): single synthetic swells' rows sit within 15° on 105
+#: of 111 brackets and all within 35°; at 20° 107 are kept, and wrong
+#: brackets fall from 79 to 5 in the 5 Nov-like cases, and for two swells
+#: the buoy merged 60° or more apart from 61 to 21 (50°: 40 to 26). Two swells 30° apart it
+#: merged stay bracketed at any bar (70 of 70 wrong brackets kept): at the
+#: buoy they are one swell's shape. Lower rather than higher, because a
+#: missing bracket claims nothing and a wrong one claims "one swell at the
+#: buoy".
+#: A dip test on the buoy's own energy density did not help: a weak swell on
+#: a big one's flank is a shoulder there, not a hill (§40's limit).
+BRACKET_DEG = 20.0
+
 
 def buoy_split(spectrum, grids: dict[int, list[float]] | None = None) -> list[Train]:
     """The buoy's own trains, from the 1° grid `carry` reads: `transform.at_buoy`'s
@@ -452,6 +474,11 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
         trains = _divide_by_buoy(trains, buoy, spectrum.frequencies, hists, near_sin, near_cos,
                                  sum(e for _, e in per_bin), divide_share, divide_need_two,
                                  divide_own_heading)
+        owner = _buoy_owner(buoy)
+        lobes_at: dict = {}
+        for train in trains:
+            if train.buoy is not None:
+                train.buoy_from_deg = _buoy_heading(train, buoy, grids, hists, owner, lobes_at)
     return Nearshore(
         table.break_id, hs(e10), hs(e_eq), hs(e_hard),
         math.degrees(math.atan2(sn, cn)) % 360 if e10 > 0 else float("nan"),
@@ -463,6 +490,67 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
         hs(e_short),
         list(buoy or ()),
     )
+
+
+def _buoy_heading(train, buoy: list[Train], grids, hists, owner, cache: dict) -> float:
+    """Where this row's energy came from AT THE BUOY: each of its rays (bin,
+    offshore degree) given the nearest direction lobe of its buoy train in
+    that bin -- lobes of ≥ 10% of the bin, an even pair maximum entropy makes
+    of one swell (`mem_twin`) read as their mean -- and those headings
+    energy-weighted. Two rows of one buoy train from different lobes are two
+    swells the buoy could not part (BRACKET_DEG)."""
+
+    from .transform import lobes as find_lobes, mem_twin
+
+    k = train.buoy
+    bt = buoy[k]
+    arc = set(_arc_degrees(bt.arc)) if bt.arc else None
+    degrees = _arc_degrees(train.arc)
+    sx = sy = 0.0
+    for i in train.bins:
+        h = hists.get(i)
+        grid = grids.get(i)
+        if not h or grid is None:
+            continue
+        key = (k, i)
+        if key not in cache:
+            dist = [v if arc is None or d in arc else 0.0 for d, v in enumerate(grid)]
+            found = [(hd, sh) for hd, sh in find_lobes(dist) if sh >= 0.1]
+            if len(found) == 2 and mem_twin(found):
+                ms = sum(v * math.sin(math.radians(d + 0.5)) for d, v in enumerate(dist))
+                mc = sum(v * math.cos(math.radians(d + 0.5)) for d, v in enumerate(dist))
+                found = [(math.degrees(math.atan2(ms, mc)) % 360.0, 1.0)]
+            cache[key] = [hd for hd, _ in found]
+        heads = cache[key]
+        for d in degrees:
+            e = h[d]
+            if e <= 0 or (train.buoys and owner(i, d) not in train.buoys):
+                continue
+            to = (min(heads, key=lambda hd: abs((d + 0.5 - hd + 180.0) % 360.0 - 180.0))
+                  if heads else d + 0.5)
+            sx += e * math.cos(math.radians(to)); sy += e * math.sin(math.radians(to))
+    return math.degrees(math.atan2(sy, sx)) % 360.0 if (sx or sy) else math.nan
+
+
+def bracket_groups(trains, deg: float = BRACKET_DEG) -> list[list[int]]:
+    """The rows (indices into `trains`) a page brackets as one swell: ALL the
+    rows one buoy train carried, when every one's `buoy_from_deg` sits within
+    `deg` of every other's; otherwise none of them. A subset was measured
+    too and added about as many wrong brackets as right ones (5 Nov-like
+    control: 9 right, 7 wrong). Any other `deg` is for `forecast.trainmerge
+    --brackets` to measure."""
+
+    by: dict[int, list[int]] = {}
+    for n, t in enumerate(trains):
+        if t.buoy is not None:
+            by.setdefault(t.buoy, []).append(n)
+    out = []
+    for rows in by.values():
+        heads = [trains[n].buoy_from_deg for n in rows]
+        if len(rows) > 1 and not any(math.isnan(h) for h in heads) and all(
+                abs((a - b + 180.0) % 360.0 - 180.0) < deg for a in heads for b in heads):
+            out.append(rows)
+    return sorted(out)
 
 
 def _held(train, hists: dict[int, list[float]]) -> tuple:
@@ -658,21 +746,21 @@ def local_sea(table: Table, normal_deg: float, wind_kt: float | None,
 def train_dicts(trains, buoy: list | None = None) -> list[dict]:
     """The rows a surface shows. With `buoy`, the split the trains were
     divided by (`Nearshore.buoy`), each row also carries `swell`, the buoy
-    train that carried most of it (`Train.buoy`), so a page can show that
-    two of a break's rows are ONE swell at the buoy (owner's call,
-    2026-11-03, BRIEFING §49: bracketed together, tapped together); and the
-    rows that share one carry `swell_at_buoy`, what that swell was at the
-    buoy, for the drawing's caption. Only those: it is the rows' business,
-    not every row's."""
+    train that carried most of it (`Train.buoy`). Rows a page shows as ONE
+    swell at the buoy (owner's call, 2026-11-03, BRIEFING §49: bracketed
+    together, tapped together) carry `group`, the same number for each, and
+    `swell_at_buoy`, what that swell was at the buoy, for the drawing's
+    caption: rows of one buoy train from one direction there
+    (`bracket_groups`, BRACKET_DEG; since 2026-11-08, §49b)."""
 
-    shared = {k for k in (t.buoy for t in trains)
-              if k is not None and sum(1 for u in trains if u.buoy == k) > 1}
+    group_of = {n: g for g, rows in enumerate(bracket_groups(trains) if buoy else []) for n in rows}
 
-    def at_buoy(k):
-        if not buoy or k not in shared or not 0 <= k < len(buoy):
+    def at_buoy(n, k):
+        if not buoy or n not in group_of or k is None or not 0 <= k < len(buoy):
             return {}
         b = buoy[k]
-        return {"swell_at_buoy": {"period_s": round(b.period_s, 1),
+        return {"group": group_of[n],
+                "swell_at_buoy": {"period_s": round(b.period_s, 1),
                                   "from_deg": None if math.isnan(b.from_deg) else round(b.from_deg),
                                   "lobes": lobes_payload(b)}}
 
@@ -682,16 +770,16 @@ def train_dicts(trains, buoy: list | None = None) -> list[dict]:
             "period_s": round(t.period_s, 1),
             "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
             "share": round(t.share, 4),
-            "wind_sea": t.is_wind_sea,
+            "wind_sea": t.wind_sea,
             "lobes": lobes_payload(t),
             # Where it arrives from in 5 m of water, and each lobe's: the
             # break drawing's inner arrow, never a train row.
             "near_from_deg": None if math.isnan(t.near_from_deg) else round(t.near_from_deg) % 360,
             "near_lobes": [None if math.isnan(d) else round(d) % 360 for d in t.near_lobes],
             **({"swell": t.buoy} if buoy and t.buoy is not None else {}),
-            **at_buoy(t.buoy),
+            **at_buoy(n, t.buoy),
         }
-        for t in trains
+        for n, t in enumerate(trains)
     ]
 
 

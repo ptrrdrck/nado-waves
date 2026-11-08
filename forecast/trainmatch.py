@@ -109,7 +109,7 @@ def _rows(spectrum, tables):
     rows = []
     for b in BREAKS:
         for t in carry(spectrum, tables[b], grids).trains[:3]:
-            if t.is_wind_sea or not t.bins or math.isnan(t.from_deg):
+            if t.is_short or not t.bins or math.isnan(t.from_deg):
                 continue
             rows.append({"break": b, "train": t, "ref": buoy_train(t, buoy, spectrum.frequencies),
                          "peak": peak_bin(t, spectrum.frequencies)})

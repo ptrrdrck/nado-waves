@@ -576,7 +576,8 @@ svg text{font-family:Archivo,system-ui,sans-serif}
           NDBC 46232 it belongs to, the one holding its peak period (and where the buoy split a band by
           direction, the side holding its heading), and trains that are one train at the buoy are
           one line, the biggest's. Two swells only a second or two apart, or from directions the
-          buoy cannot part, can still read as one. Wind sea and local chop never are listed.
+          buoy cannot part, can still read as one. Local chop is never listed. A
+          <a href="#wind-sea">wind sea</a> is, and says so: &ldquo;NW wind sea at 4.5&nbsp;s&rdquo;.
           Each says where it comes from and its period, as its row on the card does: offshore, not
           the direction it arrives from in 5&nbsp;m of water. Then its status, read at NDBC 46232 in
           that train's band: the periods it holds, from the offshore directions that hold nine
@@ -1320,6 +1321,22 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
       <p>The number is rarely one swell. The spectrum is split into separate trains, each with
         its height, period and direction, and the local chop is listed as its own train, tagged.
         The trains add up, in energy, to the number above them.</p>
+      <p id="wind-sea">A train is tagged <em>wind sea</em> only when the wind is still driving it:
+        when the wind along its direction is faster than its waves travel, a test called wave
+        age. A wave of period T moves at about 1.56&nbsp;T metres a second in deep water, so a
+        6.7&nbsp;s train needs about 14&nbsp;kt of wind blowing along it, and a 5&nbsp;s train
+        about 10&nbsp;kt. NDBC 46232 measures no wind, so on &ldquo;LIVE&rdquo; the wind is two
+        others&rsquo;, and both must agree: KNZY&rsquo;s on the sand and NDBC 46086&rsquo;s
+        offshore. They often disagree: when either says the wind is driving a train, the other
+        agrees less than a third of the time. When both agreed, between August and November 2026, a third
+        anemometer that played no part, Tanner Banks (NDBC 46047), also had the wind driving
+        the train 87% of the time, and the model&rsquo;s wind at the buoy 89%. On the Forecast
+        tab the model decides, from its own wind at the buoy and its own rule for what it
+        calls wind sea. Until November 2026 every train shorter than 8&nbsp;s was tagged; by the
+        wind, most of them were not being driven, but had been raised by wind further off and
+        had travelled in. A short train the wind is not driving has no tag: its period already
+        says it is short. Nothing here watches the sea being driven; this is a test of the
+        wind.</p>
       <p>The split happens in two steps. First by period: the energy is followed from long
         periods to short, and cut wherever it dips between two peaks. A dip counts only if it is
         deeper than the buoy's own sampling noise could make it, so a single swell is not cut in
@@ -1357,6 +1374,18 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         hours the list is ordered by swell first and height second. Tapping either line lights
         both, and both arrows on the drawing, with one caption naming the swell as the buoy
         read it.</p>
+      <p>Lines are bracketed only when their energy came from one direction at the buoy as
+        well: within 20&deg; of each other there, read in each line&rsquo;s own periods. One
+        train at the buoy is not always one swell. When nothing in its spectrum dips, the buoy
+        keeps a small south swell under a big west one as a single train, and the windows can
+        then show the two at a break as separate lines. On 5 November 2026 North read a SW
+        16.7&nbsp;s line and a W 10.5&nbsp;s line from what the buoy held as one train; at the
+        buoy their energy came from 247&deg; and 281&deg;, so they are not bracketed. In tests
+        on made-up swells where the right answer is known, single swells kept their bracket
+        107 times in 111, and wrong brackets fell from 79 to 5 where a weak swell sat under a
+        big one. A bracket is all of a train&rsquo;s lines or none. Two swells less than about
+        30&deg; apart that the buoy read as one are still bracketed: at the buoy they look like
+        one swell.</p>
       <p>What the buoy cannot tell apart, no split can. A buoy reports four numbers about
         direction for each band, and from those one swell 20&deg; wide and two narrow swells
         30&deg; apart look the same. Read by maximum entropy, a single swell 20&ndash;35&deg;
@@ -2084,9 +2113,10 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
         <tbody>
           <tr><th scope="row">NDBC 46232, Point Loma South</th><td>Hourly directional spectrum, 64 bands; position from NDBC's metadata</td><td>&ldquo;LIVE&rdquo; swell and its Origin, every chart's buoy line, the blue line</td></tr>
           <tr><th scope="row">NDBC 46047 and NDBC 46086, Tanner Banks and San Clemente Basin</th><td>Hourly directional spectra</td><td>Origin's direction (NDBC 46047), the hurricane match (both)</td></tr>
-          <tr><th scope="row">KNZY, NAS North Island</th><td>Hourly airfield report (METAR)</td><td>&ldquo;LIVE&rdquo; wind, local chop, Shore direction</td></tr>
+          <tr><th scope="row">NDBC 46086, San Clemente Basin</th><td>10-minute wind (standard met)</td><td>&ldquo;LIVE&rdquo; wind sea, with KNZY</td></tr>
+          <tr><th scope="row">KNZY, NAS North Island</th><td>Hourly airfield report (METAR)</td><td>&ldquo;LIVE&rdquo; wind, local chop, Shore direction, wind sea (with NDBC 46086)</td></tr>
           <tr><th scope="row">NOAA tide gauge 9410170, San Diego</th><td>6-minute measured level, hourly prediction, predicted highs and lows, harmonic constants</td><td>Tide card and its phase, breaking depth, departure</td></tr>
-          <tr><th scope="row">GFS-Wave (WAVEWATCH III), NOAA</th><td>The model's own directional spectrum and 10 m wind at the buoy, four runs a day</td><td>Forecast swell</td></tr>
+          <tr><th scope="row">GFS-Wave (WAVEWATCH III), NOAA</th><td>The model's own directional spectrum and 10 m wind at the buoy, four runs a day</td><td>Forecast swell and its wind sea</td></tr>
           <tr><th scope="row">GEFS-Wave, NOAA</th><td>31-member ensemble at the buoy, height only</td><td>Ensemble chart</td></tr>
           <tr><th scope="row">National Weather Service grid</th><td>Hourly forecast wind at the center break, 7 days</td><td>Forecast wind, offshore line</td></tr>
           <tr><th scope="row">USGS CoNED, GMRT</th><td>Surveyed seabed, beach profiles and Point Loma's land (2016)</td><td>Refraction, friction, shoaling, breaking, the Sun card's skyline</td></tr>
@@ -2230,7 +2260,10 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
         it hourly, the model every hour of its run.</dd>
       <dt>Swell train</dt><dd>One peak of the spectrum: a swell with its own height, period and
         direction.</dd>
-      <dt>Wind sea, chop</dt><dd>Short-period waves made by local wind.</dd>
+      <dt>Wind sea</dt><dd>Waves the wind is still driving: the wind along them outruns them.
+        Tagged only then (<a href="#wind-sea">how</a>), never for a short period alone.</dd>
+      <dt>Local chop</dt><dd>Short waves the local wind makes on the water off the break, which
+        the buoy never saw.</dd>
       <dt>Dispersion</dt><dd>A distant storm's swell sorting itself by period as it travels,
         longest first, because longer waves move faster. What Origin reads the distance from.</dd>
       <dt>Forerunner</dt><dd>The first, longest-period waves of a swell to arrive.</dd>

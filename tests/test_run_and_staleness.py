@@ -242,11 +242,17 @@ def test_a_single_station_run_leaves_the_status_alone(tmp_path, monkeypatch):
     assert fetched == ["46232"] and status == []
 
 
-def test_46232s_standard_met_has_one_writer_the_ten_minute_collection():
+def test_46232s_and_46086s_standard_met_have_one_writer_the_ten_minute_collection():
+    """46232's for the Briefing's water; 46086's since 2026-11-08 for the
+    LIVE wind-sea label's offshore wind (`forecast.windsea`)."""
+    from forecast.windsea import OFFSHORE_STATION
+
     root = Path(__file__).resolve().parents[1] / ".github" / "workflows"
     collect = (root / "collect.yml").read_text(encoding="utf-8")
     beach = (root / "collect-beach-inputs.yml").read_text(encoding="utf-8")
-    assert "args=(--exclude 46232)" in collect
-    assert "python -m collector.run --stations 46232 --no-status" in beach
-    assert "git add data/observations/46232.csv" in beach
+    assert OFFSHORE_STATION == "46086"
+    assert "args=(--exclude 46232,46086)" in collect
+    assert "python -m collector.run --stations 46232,46086 --no-status" in beach
+    assert "git add data/observations/46232.csv data/observations/46086.csv" in beach
     assert "git add data/revisions/46232.csv" in beach
+    assert "git add data/revisions/46086.csv" in beach

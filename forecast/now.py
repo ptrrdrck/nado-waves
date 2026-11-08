@@ -63,6 +63,7 @@ from .live import (
 from .tideturns import read_turns, turns_between
 from . import origin
 from . import sunset, tidephase, tiderate
+from .windsea import label_live, live_winds
 from .nearshore import (buoy_offset, buoy_split, carry, density_grids, load_tables, local_sea,
                         summarise, train_dicts)
 from .siting import load_coordinates
@@ -536,7 +537,7 @@ def as_trains(trains) -> list[dict]:
             "period_s": round(t.period_s, 1),
             "from_deg": None if math.isnan(t.from_deg) else round(t.from_deg),
             "share": round(t.share, 4),
-            "wind_sea": t.is_wind_sea,
+            "wind_sea": t.wind_sea,
             "lobes": lobes_payload(t),
         }
         for t in trains
@@ -734,6 +735,13 @@ def build(
     # height reading ~5% high: the Fourier shape's clamping added energy.
     spectrum = spectrum.with_spread("mem")
     raw = at_buoy(spectrum)
+    # Wind sea is the wind still driving a train: KNZY's AND the offshore
+    # anemometer's (`windsea.OFFSHORE_STATION`, its standard met -- a wind,
+    # never its spectrum), as of this spectrum, by wave age; never a train's
+    # period alone (owner's decision, 2026-11-08; BRIEFING §51). Either wind
+    # missing, no label. It names trains and changes no height.
+    sea_winds = live_winds(spectrum.time, data_dir)
+    label_live(raw.trains, sea_winds)
     reading.buoy = {
         "hs_m": round(raw.hs_m, 3),
         "peak_period_s": None if math.isnan(raw.peak_period_s) else round(raw.peak_period_s, 1),
@@ -783,11 +791,13 @@ def build(
     for break_id in BREAKS:
         spot: Spot = by_id[break_id]
         got = through(spectrum, spot, blockers)
+        label_live(got.trains, sea_winds)
         offshore, note = wind_at_break(spot, reading.wind)
         near_hs, near = None, {}
         if break_id in tables:
             table = tables[break_id]
             carried = carry(spectrum, table, grids, split)
+            label_live(carried.trains, sea_winds)
             # KNZY's wind on the water off the break: fresh over a closed
             # fetch, grown on from the carried wind sea over an open one.
             chop = local_sea(table, spot.normal, reading.wind.speed_kt, reading.wind.from_deg,
@@ -858,7 +868,8 @@ def build(
     return reading
 
 
-def trains_builder(spectra, by_id: dict, blockers, tables: dict):
+def trains_builder(spectra, by_id: dict, blockers, tables: dict,
+                   data_dir: Path = DEFAULT_DATA_DIR):
     """`trains_at(moment)`: each site's card trains rebuilt for a past hour of
     46232's spectrum (empty when that hour has none), the card's own two cases:
     carried over the seabed when the tables are there, through the
@@ -872,15 +883,21 @@ def trains_builder(spectra, by_id: dict, blockers, tables: dict):
         if past is None:
             return {}
         past = past.with_spread("mem")
-        out = {"buoy": as_trains(at_buoy(past).trains)}
+        winds = live_winds(past.time, data_dir)
+        buoy_trains = at_buoy(past).trains
+        label_live(buoy_trains, winds)
+        out = {"buoy": as_trains(buoy_trains)}
         grids = density_grids(past) if tables else {}
         split = buoy_split(past, grids) if tables else []
         for break_id in BREAKS:
             if break_id in tables:
                 near = carry(past, tables[break_id], grids, split)
+                label_live(near.trains, winds)
                 out[break_id] = train_dicts(near.trains[:3], near.buoy)
             else:
-                out[break_id] = as_trains(through(past, by_id[break_id], blockers).trains)
+                trains = through(past, by_id[break_id], blockers).trains
+                label_live(trains, winds)
+                out[break_id] = as_trains(trains)
         return out
 
     return trains_at
@@ -902,7 +919,7 @@ def origin_reading(data_dir: Path, spectrum: Spectrum, reading: Now, by_id: dict
         return {}
     trains_now = {b.id: b.trains for b in reading.breaks}
     trains_now["buoy"] = reading.buoy.get("trains", [])
-    trains_at = trains_builder(spectra, by_id, blockers, tables)
+    trains_at = trains_builder(spectra, by_id, blockers, tables, data_dir)
     block = origin.reading(spectra, archives, load_coordinates().get(STATION),
                            newest=spectrum.time, trains_now=trains_now, trains_at=trains_at)
     block["hurricanes"] = hurricanes_now(data_dir, spectrum.time, trains_now,

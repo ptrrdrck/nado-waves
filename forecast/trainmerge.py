@@ -79,6 +79,14 @@ The archive judges against the buoy's dividing line, which the check
 overrules on purpose, so its "hidden" figures rise under the check; the
 control, which knows the swells, is the one that can judge it.
 
+WHICH ROWS ARE ONE SWELL (the owner's report, 5 Nov 17Z, BRIEFING §49b):
+`--brackets` runs the control's singles, five 5 Nov-like cases (a big W
+with a weak S/SW under it that the buoy reads as one train) and CONTROL's
+pairs, and counts each bracket right when every row of it is mostly one true
+swell, at each bar on the rows' headings at the buoy (`nearshore.BRACKET_DEG`,
+`bracket_groups`). Measured 8 Nov (30 trials): any rows of one buoy train,
+5 Nov-like 6 right / 79 wrong; at 20° 6 / 5, singles 107 / 0 of 111.
+
 Reports, never edits.
 """
 
@@ -235,7 +243,7 @@ def _archive_one(args):
                 if t.bins == f.bins and t.arc == f.arc}
     from .nearshore import _buoy_owner
     owner = _buoy_owner(split)
-    wind = [t.is_wind_sea for t in split]
+    wind = [t.is_short for t in split]
     out = {}
     for b in BREAKS:
         rays = _rays(sp, tables[b], grids)
@@ -259,7 +267,7 @@ def _archive_one(args):
                     ids.append(to_split.get(k) if k is not None else None)
                 else:
                     ids.append(t.buoy)
-            rules[rule] = [(t.hs_m, t.is_wind_sea, k, c) for (t, _), k, c in zip(rows, ids, cont)]
+            rules[rule] = [(t.hs_m, t.is_short, k, c) for (t, _), k, c in zip(rows, ids, cont)]
         out[b] = {"share": [x / tot for x in per], "wind": wind, "rules": rules,
                   "heights": [4 * math.sqrt(x) for x in per]}
     return out
@@ -429,6 +437,88 @@ def control(trials: int = 30, cases=CONTROL, workers: int = 4, singles: bool = T
     return S
 
 
+# ------------------------------------------------------------------ brackets
+
+#: The control's cases for the bracket: single swells, which every bracket
+#: should keep; five like North on 5 Nov 17Z, a big W with a weak S/SW
+#: under it that the buoy reads as one train; and CONTROL's pairs.
+BRACKET_CASES = {
+    "single: W 10.5 s 15°": [(1.8, 10.5, 277, 15)],
+    "single: W 12 s 20°": [(1.5, 12, 280, 20)],
+    "single: W 16 s 12°": [(1.2, 16, 275, 12)],
+    "5 Nov-like: W 10.5 s + SW 16 s 0.4 m": [(1.8, 10.5, 277, 15), (0.4, 16, 210, 12)],
+    "5 Nov-like: W 10.5 s + SW 15 s 0.5 m": [(1.8, 10.5, 277, 15), (0.5, 15, 220, 12)],
+    "5 Nov-like: W 10.5 s + S 17 s 0.35 m": [(1.8, 10.5, 277, 15), (0.35, 17, 200, 12)],
+    "5 Nov-like: W 12 s + SW 14 s 0.5 m": [(1.5, 12, 280, 15), (0.5, 14, 225, 12)],
+    "5 Nov-like: W 10.5 s + SW 16 s 0.6 m": [(1.8, 10.5, 277, 15), (0.6, 16, 215, 12)],
+}
+#: The bars measured; `nearshore.BRACKET_DEG` ships, None is any two rows of
+#: one buoy train (the rule of 2026-11-03 to -08).
+BARS = (None, 15.0, 20.0, 25.0, 30.0, 35.0, 45.0)
+
+
+def _bracket_one(args):
+    """Each break's brackets at every bar: (family, bar, right, wrong) --
+    right when every row of a bracket is mostly the same true swell."""
+
+    name, swells, seed = args
+    from .nearshore import _buoy_owner, bracket_groups, buoy_split, density_grids, load_tables
+    from .trainsplit import synthetic
+
+    global _CACHE
+    if _CACHE is None:
+        _CACHE = (load_tables(), T.load_spectra(DEFAULT_DATA_DIR / "spectra" / "46232", limit=1))
+    tables, spectra = _CACHE
+    freqs = spectra[-1].frequencies
+    sp = synthetic(freqs, swells, T.BUOY_DOF, random.Random(seed))
+    grids = density_grids(sp)
+    split = buoy_split(sp, grids)
+    truth = [_truth(freqs, s) for s in swells]
+    owner = _buoy_owner(split)
+    family = name.split(":")[0]
+    out = []
+    for b in BREAKS:
+        rays = _rays(sp, tables[b], grids, truth)
+        if not rays:
+            continue
+        owners = [owner(i, int(d) % 360) for i, d, _, _ in rays]
+        rows = _rows(sp, tables[b], grids, split, SHIPPED)[:SHOWN]
+        cont = _contents(rays, owners, rows, len(swells), lambda m: rays[m][3])
+        major = [max(range(len(c)), key=lambda q: c[q]) if sum(c) > 0 else None for c in cont]
+        trains = [t for t, _ in rows]
+        for bar in BARS:
+            groups = (bracket_groups(trains, bar) if bar is not None else
+                      [g for g in ([n for n, t in enumerate(trains) if t.buoy == k]
+                                   for k in {t.buoy for t in trains if t.buoy is not None})
+                       if len(g) > 1])
+            right = sum(1 for g in groups if len({major[n] for n in g}) == 1)
+            out.append((family, bar, right, len(groups) - right))
+    return out
+
+
+def brackets(trials: int = 30, workers: int = 4):
+    """{(family, bar): Counter(right, wrong)} on the known-answer control."""
+
+    from .trainsplit import CASES
+
+    named = [(f"single: {n}", s) for n, s in CASES.items() if len(s) == 1]
+    named += list(BRACKET_CASES.items())
+    named += [(f"two swells: {_group(a, b)}", [a, b]) for a, b in CONTROL]
+    jobs = [(name, swells, 1000 * k + 7 * ci)
+            for ci, (name, swells) in enumerate(named) for k in range(trials)]
+    if workers > 1:
+        with Pool(workers) as pool:
+            got = pool.map(_bracket_one, jobs, chunksize=4)
+    else:
+        got = [_bracket_one(j) for j in jobs]
+    S = defaultdict(Counter)
+    for trial in got:
+        for family, bar, right, wrong in trial:
+            S[(family, bar)]["right"] += right
+            S[(family, bar)]["wrong"] += wrong
+    return S
+
+
 def _table(S, groups, title, phantom=False):
     keys = ["mixed rows", *(["phantom rows"] if phantom else []), "one swell in two rows",
             *(f"a swell >= {v:.0%} leads no row" for v in VISIBLE)]
@@ -455,7 +545,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--trials", type=int, default=30)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--brackets", action="store_true",
+                        help="only the bracket's control, at each bar (~30 s)")
     args = parser.parse_args(argv)
+    if args.brackets:
+        S = brackets(args.trials, args.workers)
+        families = sorted({f for f, _ in S})
+        print("THE BRACKET, against the known sources: brackets right / wrong, by bar")
+        print(f"  {'bar':>8s}" + "".join(f"{f:>24s}" for f in families))
+        for bar in BARS:
+            print(f"  {'any' if bar is None else f'{bar:g}°':>8s}" + "".join(
+                f"{S[(f, bar)]['right']:>14d} / {S[(f, bar)]['wrong']:<7d}" for f in families))
+        return 0
     S = archive(args.data_dir, args.workers)
     print(_table({(b, r): S[(r, b)] for r in RULES for b in BREAKS}, BREAKS,
                  "THE ARCHIVE, against the buoy's own split (break-hours; rows for 'mixed'):"))
