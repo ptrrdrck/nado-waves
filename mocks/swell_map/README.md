@@ -15,13 +15,18 @@ so its cards age from then; the map's tiles need the network.
 
 ## What it does
 
-- A Drawing | Map switch in the top-left corner of every break's drawing,
-  where the drawing has no ink. One choice for every tab and both chains,
-  kept on the device. The map takes the drawing's exact footprint (the
-  drawing stays laid out, unseen, beneath it), so the page never moves.
-- **Turned as the drawing is**: the break's shore normal straight up, the
-  break at the drawing's centre point, and the farthest vertex forming an
-  edge on the drawing's rim. Every window edge is then at its drawing angle.
+- ONE button in the top-left corner of every break's drawing, where the
+  drawing has no ink, showing what a tap turns to: the map icon on the
+  drawing, the drawing's on the map (owner's request, 2026-11-08). One choice
+  for every tab and both chains, kept on the device.
+- The map is SQUARE, taller than the drawing so there is room to move about
+  in (owner's request, 2026-11-08), and never more than 70% of the screen's
+  height; the card grows by the difference while it shows.
+- **Turned as the drawing is**: the break's shore normal straight up and
+  the break as far above the map's foot as it sits above the drawing's, so
+  every window edge is at its drawing angle. It OPENS three zoom steps in
+  from the drawing's own scale (where the farthest vertex forming an edge
+  sits on its rim): the owner's "+" three times, 2026-11-08.
 - **It reads the drawing, not a payload of its own**: the windows' and
   shadows' angles (`data-geo`), each train's arrow, the 5 m arrowheads and
   the captions are the svg's, and a tap on the map goes through the page's
@@ -32,7 +37,7 @@ so its cards age from then; the map's tiles need the network.
   keep their size at every zoom; a picked train lights in yellow with its
   5 m arrowhead at the break. Each edge is a ray to the ONE vertex that
   forms it; tap a vertex for its blocker and distance.
-- \+ and - zoom around the break; the square returns to the drawing's frame.
+- \+ and - zoom around the break; the square returns to the opening view.
   On a phone one finger scrolls the page and two move the map, with a hint;
   with a mouse, drag pans and ctrl + wheel zooms, as the charts do.
 
