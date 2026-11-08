@@ -29,6 +29,12 @@
   const MI = (() => { try { return eval("MI_PER_KM"); } catch (e) { return 0.621371; } })();
   const dist = (km) => call("dualText", `${(km * MI).toFixed(km * MI < 10 ? 1 : 0)} mi`,
     `${km.toFixed(km < 10 ? 1 : 0)} km`) || `${(km * MI).toFixed(1)} mi`;
+  // Measured 2026-11-08 at 4x: the last train's ink ends 4.5 px above the
+  // pane's next box, and the headline's ink ends 21.0 px above the first
+  // train's. These put the drawing's rim, and the map's edge, 21.0 px under
+  // the last train's ink as painted (the rim's antialiasing starts half a
+  // pixel above its stroke). CHORD_FOOT keeps the break's dot (r 3).
+  const GAP_DRAWING = 5.45, GAP_MAP = 5.25, CHORD_FOOT = 4;
   const OPEN_STEPS = 3;                      // zoom steps in from the drawing's scale
   const BUOY_NAME = `NDBC ${MODEL.buoy.id}`;  // as the page names every buoy since 2026-11-06
 
@@ -80,9 +86,11 @@
       svg.before(this.box);
       this.box.append(svg);
       this.box.insertAdjacentHTML("beforeend",
-        `<div class="sm-map" hidden><div class="sm-attr">${ATTR}</div><div class="sm-cap" aria-live="polite"></div>`
+        `<div class="sm-map" hidden><div class="sm-attr">${ATTR}</div>`
         + `<div class="sm-hint">Use two fingers to move the map</div></div>`
+        + `<div class="sm-cap" aria-live="polite"></div>`
         + `<button type="button" class="sm-switch"></button>`);
+      this.cap = this.box.querySelector(".sm-cap");
       this.el = this.box.querySelector(".sm-map");
       // One button: it shows what a tap turns to -- the map from the
       // drawing, the drawing from the map (owner's request, 2026-11-08).
@@ -103,6 +111,8 @@
       btn.title = on ? "Drawing" : "Map";
       this.el.hidden = !on;
       this.box.classList.toggle("on-map", on);
+      this.space();
+      this.say(readSvg(this.svg).caption);
       if (on && this.box.offsetWidth) {
         if (!this.map) this.make();
         this.map.invalidateSize({animate: false});
@@ -263,8 +273,39 @@
       this.say(d.caption);
     }
 
-    say(text) { this.el.querySelector(".sm-cap").textContent = text; }
-    sync() { if (!this.el.hidden) this.draw(); }
+    // The caption sits under the drawing or the map as plain text, in a
+    // lead train heading's style; the drawing's own two lines are rejoined
+    // as its spoken label joins them.
+    say(text) {
+      this.cap.textContent = String(text || "").split("\n")
+        .reduce((all, part) => (all ? all + (/,$/.test(all) ? " " : ", ") : "") + part, "")
+        // A number never wraps away from its unit or its point: "12.5 s".
+        .replace(/(\d) (s|ft|m|mi|km|kt|mph)\b/g, "$1\u00a0$2").replace(/\b([NSEW]{1,3}) (\d)/g, "$1\u00a0$2");
+    }
+    sync() {
+      if (!this.el.hidden) this.draw();
+      else this.say(readSvg(this.svg).caption);
+    }
+
+    // As far from the last train to the drawing's rim, or to the map's top
+    // edge, as from the headline to the first train: 21.0 px of card ink to
+    // ink, measured at 4x on 2026-11-08 (GAP_DRAWING, GAP_MAP). The drawing's box holds
+    // 21.5 viewBox units of empty card above its rim and 34 below its chord
+    // where its caption was; both are taken back, as the width scales them.
+    space() {
+      const s = (this.svg.clientWidth || this.box.clientWidth) / this.svg.viewBox.baseVal.width;
+      const d = readSvg(this.svg);
+      if (!d) return;
+      const rimTop = (d.cy - d.rimPx) * s;
+      this.svg.style.marginTop = `${(GAP_DRAWING - rimTop).toFixed(2)}px`;
+      this.svg.style.marginBottom = `${(-(this.svg.viewBox.baseVal.height - d.cy - CHORD_FOOT) * s).toFixed(2)}px`;
+      this.el.style.marginTop = `${GAP_MAP}px`;
+      // The map icon's ink level with the rim's top and the headline's left.
+      const sw = this.box.querySelector(".sm-switch");
+      // Placed off the laid-out box, whether or not its margin collapsed.
+      sw.style.top = this.el.hidden ? `${(this.svg.offsetTop + rimTop - 5).toFixed(2)}px`
+        : `${this.el.offsetTop + 4}px`;
+    }
   }
 
   // A label that stays upright whatever way the map is turned.
@@ -300,5 +341,6 @@
   // A tab or tab-chain switch reveals a drawing that was hidden when made.
   document.addEventListener("click", () => setTimeout(() => faces.forEach((f) => { if (!f.el.hidden || view === "map") f.show(); }), 0));
   new MutationObserver(() => attach()).observe(document.body, {childList: true, subtree: true});
+  addEventListener("resize", () => faces.forEach((f) => f.space()));
   attach();
 })();
