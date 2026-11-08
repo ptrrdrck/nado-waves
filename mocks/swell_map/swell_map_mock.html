@@ -9967,7 +9967,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       this.svg.style.marginBottom = `${(-down).toFixed(2)}px`;
       this.el.style.marginTop = `${GAP_MAP}px`;
       const sw = this.box.querySelector(".sm-switch");
-      sw.style.top = `${GAP_MAP + 4}px`;
+      sw.style.top = `${(this.pad || 0) + GAP_MAP + 4}px`;
       sw.style.left = "4px";
     }
   }
@@ -10004,8 +10004,61 @@ svg.leaflet-image-layer.leaflet-interactive path {
   }
   // A tab or tab-chain switch reveals a drawing that was hidden when made.
   document.addEventListener("click", () => setTimeout(() => faces.forEach((f) => { if (!f.el.hidden || view === "map") f.show(); }), 0));
-  new MutationObserver(() => attach()).observe(document.body, {childList: true, subtree: true});
-  addEventListener("resize", () => faces.forEach((f) => f.space()));
+  // The drawing or map starts at ONE height on all three break tabs, the
+  // lowest any of them would start at this reading or hour (owner's choice,
+  // 2026-11-08), so switching break tabs never moves it; it moves only when
+  // a new reading or another hour changes the lowest. Whatever sits above it
+  // varies -- one to four train rows, a headline that wraps on a narrow
+  // phone, a past hour's "Observed at" line -- so the difference is made up
+  // directly above the drawing (`Face.pad`), never inside any of them.
+  // Hidden panes are measured laid out unseen at the open pane's width, in
+  // the same frame, their rows fitted first as the page fits them when shown
+  // (`fitRow`), so nothing flickers. The Buoys tab has no drawing.
+  function level() {
+    document.querySelectorAll(".cond.swell").forEach((card) => {
+      const panes = [...card.querySelectorAll('.pane[id^="swell-pane-coronado"]')];
+      const open = panes.find((p) => !p.hidden);
+      if (!open) return;
+      const width = open.clientWidth;
+      const items = panes.map((p) => {
+        const box = p.querySelector(":scope > .sm-face");
+        return {p, box, face: box && faces.get(box.querySelector("svg.aperture"))};
+      }).filter((it) => it.face);
+      const tops = items.map(({p, box, face}) => {
+        face.pad = 0;
+        box.style.paddingTop = "";
+        const measure = () => box.getBoundingClientRect().top - p.getBoundingClientRect().top;
+        if (!p.hidden) return measure();
+        const keep = p.style.cssText;
+        p.hidden = false;
+        p.style.cssText += `;position:absolute;visibility:hidden;width:${width}px`;
+        p.querySelectorAll(".train").forEach((row) => call("fitRow", row));
+        const top = measure();
+        p.style.cssText = keep;
+        p.hidden = true;
+        return top;
+      });
+      const lowest = Math.max(...tops);
+      items.forEach(({box, face}, i) => {
+        face.pad = lowest - tops[i];
+        box.style.paddingTop = face.pad ? `${face.pad}px` : "";
+        face.space();
+      });
+    });
+  }
+  let levelling = 0;
+  const relevel = () => { cancelAnimationFrame(levelling); levelling = requestAnimationFrame(level); };
+  // The page's redraws, never the map's own tiles, set it going.
+  new MutationObserver((records) => {
+    attach();
+    if (records.some((r) => !(r.target.closest && r.target.closest(".sm-map")))) relevel();
+  }).observe(document.body, {childList: true, subtree: true});
+  addEventListener("resize", () => { faces.forEach((f) => f.space()); relevel(); });
+  // A tab shown re-fits its rows; level again after it has.
+  document.addEventListener("click", (e) => {
+    if (e.target.closest && e.target.closest("[data-swell-tab], #tab-now, #tab-forecast")) setTimeout(relevel, 0);
+  });
+  relevel();
   attach();
 })();
 </script>
