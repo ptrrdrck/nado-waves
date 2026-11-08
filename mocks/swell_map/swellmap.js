@@ -30,11 +30,9 @@
   const dist = (km) => call("dualText", `${(km * MI).toFixed(km * MI < 10 ? 1 : 0)} mi`,
     `${km.toFixed(km < 10 ? 1 : 0)} km`) || `${(km * MI).toFixed(1)} mi`;
   // Measured 2026-11-08 at 4x: the last train's ink ends 4.5 px above the
-  // pane's next box, and the headline's ink ends 21.0 px above the first
-  // train's. These put the drawing's rim, and the map's edge, 21.0 px under
-  // the last train's ink as painted (the rim's antialiasing starts half a
-  // pixel above its stroke). CHORD_FOOT keeps the break's dot (r 3).
-  const GAP_DRAWING = 5.45, GAP_MAP = 5.25, CHORD_FOOT = 4;
+  // pane's next box; 5.25 more puts the map's edge 21.0 px under it, as the
+  // first train sits under the headline (21.25 as Chromium snaps it here).
+  const GAP_MAP = 5.25;
   const OPEN_STEPS = 3;                      // zoom steps in from the drawing's scale
   const BUOY_NAME = `NDBC ${MODEL.buoy.id}`;  // as the page names every buoy since 2026-11-06
 
@@ -131,8 +129,8 @@
       const self = this;
       // + and - zoom around the break, so it stays where the drawing has it;
       // pinch and double-tap zoom where the reader puts them.
-      const Zoom = L.Control.extend({options: {position: "topright"}, onAdd() {
-        const d = L.DomUtil.create("div", "leaflet-bar");
+      const Zoom = L.Control.extend({options: {position: "bottomright"}, onAdd() {
+        const d = L.DomUtil.create("div", "leaflet-bar sm-zoom");
         d.innerHTML = '<a href="#" role="button" title="Zoom in" aria-label="Zoom in">+</a>'
           + '<a href="#" role="button" title="Zoom out" aria-label="Zoom out">\u2212</a>';
         const step = (dz) => (e) => { L.DomEvent.stop(e); map.setZoomAround(self.b.position, map.getZoom() + dz); };
@@ -142,8 +140,8 @@
         return d;
       }});
       new Zoom().addTo(map);
-      const Fit = L.Control.extend({options: {position: "topright"}, onAdd() {
-        const d = L.DomUtil.create("div", "leaflet-bar");
+      const Fit = L.Control.extend({options: {position: "bottomright"}, onAdd() {
+        const d = L.DomUtil.create("div", "leaflet-bar sm-fit");
         d.innerHTML = `<a href="#" role="button" title="Back to the opening view" aria-label="Back to the opening view">${ICON_FIT}</a>`;
         L.DomEvent.on(d.firstChild, "click", (e) => { L.DomEvent.stop(e); self.frame(true); });
         L.DomEvent.disableClickPropagation(d);
@@ -287,24 +285,18 @@
       else this.say(readSvg(this.svg).caption);
     }
 
-    // As far from the last train to the drawing's rim, or to the map's top
-    // edge, as from the headline to the first train: 21.0 px of card ink to
-    // ink, measured at 4x on 2026-11-08 (GAP_DRAWING, GAP_MAP). The drawing's box holds
-    // 21.5 viewBox units of empty card above its rim and 34 below its chord
-    // where its caption was; both are taken back, as the width scales them.
+    // Only the MAP moves (owner's call, 2026-11-08, undoing the drawing's
+    // trim): its top edge sits as far under the last train's ink as the
+    // first train's ink sits under the headline's, 21.0 px at 4x, which
+    // Chromium snaps to 21.25 here (GAP_MAP). The drawing keeps its box.
+    // The toggle sits at one place in both views, 4 px in from the map's
+    // corner, as the controls sit in theirs.
     space() {
-      const s = (this.svg.clientWidth || this.box.clientWidth) / this.svg.viewBox.baseVal.width;
-      const d = readSvg(this.svg);
-      if (!d) return;
-      const rimTop = (d.cy - d.rimPx) * s;
-      this.svg.style.marginTop = `${(GAP_DRAWING - rimTop).toFixed(2)}px`;
-      this.svg.style.marginBottom = `${(-(this.svg.viewBox.baseVal.height - d.cy - CHORD_FOOT) * s).toFixed(2)}px`;
+      this.svg.style.marginTop = this.svg.style.marginBottom = "";
       this.el.style.marginTop = `${GAP_MAP}px`;
-      // The map icon's ink level with the rim's top and the headline's left.
       const sw = this.box.querySelector(".sm-switch");
-      // Placed off the laid-out box, whether or not its margin collapsed.
-      sw.style.top = this.el.hidden ? `${(this.svg.offsetTop + rimTop - 5).toFixed(2)}px`
-        : `${this.el.offsetTop + 4}px`;
+      sw.style.top = `${GAP_MAP + 4}px`;
+      sw.style.left = "4px";
     }
   }
 

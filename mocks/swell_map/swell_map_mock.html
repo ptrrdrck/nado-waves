@@ -9591,19 +9591,20 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .sm-map[hidden]{display:none!important}
 .sm-map .leaflet-container,.sm-map.leaflet-container{background:#0b1820;font:inherit}
 
-/* One button, top left, where the drawing has no ink: it shows what a tap
-   turns to. On the map it sits inside the map's corner, as the zoom does. */
-.sm-switch{position:absolute;top:0;left:-5px;z-index:1000;display:inline-flex;align-items:center;
-  justify-content:center;width:26px;height:26px;padding:0;background:none;color:var(--ink);
-  border:0;border-radius:6px;cursor:pointer}
-/* On the map it is dressed as + and - are, in the opposite corner. */
-.sm-face.on-map > .sm-switch{top:4px;left:4px;width:28px;height:28px;background:var(--card);
-  border:1px solid rgba(0,0,0,.25);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+/* One button: it shows what a tap turns to, at ONE place in both views, 4 px
+   in from the map's top-left corner (top set by the script with the map's
+   gap). On the drawing the map symbol alone; on the map the drawing symbol
+   outlined as the map's controls are, with no shadow (owner's calls,
+   2026-11-08). The same 28 px box either way, so the symbol never moves. */
+.sm-switch{position:absolute;top:0;left:4px;z-index:1000;display:inline-flex;align-items:center;
+  justify-content:center;box-sizing:border-box;width:28px;height:28px;padding:0;background:none;
+  color:var(--ink);border:1px solid transparent;border-radius:6px;cursor:pointer}
+.sm-face.on-map > .sm-switch{background:var(--card);border-color:rgba(0,0,0,.25)}
 .sm-switch:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .sm-switch svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* Overlay text on the photograph. */
-.sm-attr{position:absolute;top:10px;left:42px;right:38px;z-index:800;color:rgba(255,255,255,.85);
+.sm-attr{position:absolute;top:13px;left:40px;right:8px;z-index:800;color:rgba(255,255,255,.85);
   font:10px/1.2 Archivo,sans-serif;text-shadow:0 0 2px #000,0 0 4px #000;pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sm-cap{position:relative;margin-top:8px;color:var(--ink);text-align:center;
@@ -9618,13 +9619,19 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .sm-head svg{display:block;filter:drop-shadow(0 0 1px rgba(0,0,0,.5))}
 
 /* Leaflet's controls in the card's dress, small enough for the drawing's box. */
-.sm-map .leaflet-top.leaflet-right{top:0;right:0}
-.sm-map .leaflet-control{margin:4px 4px 0 0}
-.sm-map .leaflet-bar{border:1px solid rgba(0,0,0,.25);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+/* Along the map's foot, aligned right: return, then + and - (owner's
+   request, 2026-11-08), 4 px in from the corner, outlined, no shadow. */
+.sm-map .leaflet-bottom.leaflet-right{bottom:4px;right:4px;display:flex;flex-direction:row;
+  align-items:flex-end;gap:4px}
+.sm-map .leaflet-bottom.leaflet-right .leaflet-control{margin:0;float:none;clear:none}
+.sm-map .sm-fit{order:1}
+.sm-map .sm-zoom{order:2;display:flex;flex-direction:row}
+.sm-map .leaflet-bar{border:1px solid rgba(0,0,0,.25);border-radius:6px;box-shadow:none;background:var(--card)}
 .sm-map .leaflet-bar a{width:26px;height:26px;line-height:26px;background:var(--card);color:var(--ink);
-  border-bottom-color:var(--line);font:500 16px/26px Archivo,sans-serif}
-.sm-map .leaflet-bar a:first-child{border-top-left-radius:5px;border-top-right-radius:5px}
-.sm-map .leaflet-bar a:last-child{border-bottom-left-radius:5px;border-bottom-right-radius:5px}
+  border:0;border-radius:0;font:500 16px/26px Archivo,sans-serif}
+.sm-map .sm-fit a{border-radius:5px}
+.sm-map .sm-zoom a:first-child{border-right:1px solid var(--line);border-radius:5px 0 0 5px}
+.sm-map .sm-zoom a:last-child{border-radius:0 5px 5px 0}
 .sm-map .leaflet-bar a{display:flex;align-items:center;justify-content:center}
 .sm-map .leaflet-bar a svg{width:14px;height:14px;margin:0;stroke:currentColor;fill:none;stroke-width:1.6;
   stroke-linecap:round;display:block}
@@ -9676,11 +9683,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
   const dist = (km) => call("dualText", `${(km * MI).toFixed(km * MI < 10 ? 1 : 0)} mi`,
     `${km.toFixed(km < 10 ? 1 : 0)} km`) || `${(km * MI).toFixed(1)} mi`;
   // Measured 2026-11-08 at 4x: the last train's ink ends 4.5 px above the
-  // pane's next box, and the headline's ink ends 21.0 px above the first
-  // train's. These put the drawing's rim, and the map's edge, 21.0 px under
-  // the last train's ink as painted (the rim's antialiasing starts half a
-  // pixel above its stroke). CHORD_FOOT keeps the break's dot (r 3).
-  const GAP_DRAWING = 5.45, GAP_MAP = 5.25, CHORD_FOOT = 4;
+  // pane's next box; 5.25 more puts the map's edge 21.0 px under it, as the
+  // first train sits under the headline (21.25 as Chromium snaps it here).
+  const GAP_MAP = 5.25;
   const OPEN_STEPS = 3;                      // zoom steps in from the drawing's scale
   const BUOY_NAME = `NDBC ${MODEL.buoy.id}`;  // as the page names every buoy since 2026-11-06
 
@@ -9777,8 +9782,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
       const self = this;
       // + and - zoom around the break, so it stays where the drawing has it;
       // pinch and double-tap zoom where the reader puts them.
-      const Zoom = L.Control.extend({options: {position: "topright"}, onAdd() {
-        const d = L.DomUtil.create("div", "leaflet-bar");
+      const Zoom = L.Control.extend({options: {position: "bottomright"}, onAdd() {
+        const d = L.DomUtil.create("div", "leaflet-bar sm-zoom");
         d.innerHTML = '<a href="#" role="button" title="Zoom in" aria-label="Zoom in">+<\/a>'
           + '<a href="#" role="button" title="Zoom out" aria-label="Zoom out">\u2212<\/a>';
         const step = (dz) => (e) => { L.DomEvent.stop(e); map.setZoomAround(self.b.position, map.getZoom() + dz); };
@@ -9788,8 +9793,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
         return d;
       }});
       new Zoom().addTo(map);
-      const Fit = L.Control.extend({options: {position: "topright"}, onAdd() {
-        const d = L.DomUtil.create("div", "leaflet-bar");
+      const Fit = L.Control.extend({options: {position: "bottomright"}, onAdd() {
+        const d = L.DomUtil.create("div", "leaflet-bar sm-fit");
         d.innerHTML = `<a href="#" role="button" title="Back to the opening view" aria-label="Back to the opening view">${ICON_FIT}<\/a>`;
         L.DomEvent.on(d.firstChild, "click", (e) => { L.DomEvent.stop(e); self.frame(true); });
         L.DomEvent.disableClickPropagation(d);
@@ -9933,24 +9938,18 @@ svg.leaflet-image-layer.leaflet-interactive path {
       else this.say(readSvg(this.svg).caption);
     }
 
-    // As far from the last train to the drawing's rim, or to the map's top
-    // edge, as from the headline to the first train: 21.0 px of card ink to
-    // ink, measured at 4x on 2026-11-08 (GAP_DRAWING, GAP_MAP). The drawing's box holds
-    // 21.5 viewBox units of empty card above its rim and 34 below its chord
-    // where its caption was; both are taken back, as the width scales them.
+    // Only the MAP moves (owner's call, 2026-11-08, undoing the drawing's
+    // trim): its top edge sits as far under the last train's ink as the
+    // first train's ink sits under the headline's, 21.0 px at 4x, which
+    // Chromium snaps to 21.25 here (GAP_MAP). The drawing keeps its box.
+    // The toggle sits at one place in both views, 4 px in from the map's
+    // corner, as the controls sit in theirs.
     space() {
-      const s = (this.svg.clientWidth || this.box.clientWidth) / this.svg.viewBox.baseVal.width;
-      const d = readSvg(this.svg);
-      if (!d) return;
-      const rimTop = (d.cy - d.rimPx) * s;
-      this.svg.style.marginTop = `${(GAP_DRAWING - rimTop).toFixed(2)}px`;
-      this.svg.style.marginBottom = `${(-(this.svg.viewBox.baseVal.height - d.cy - CHORD_FOOT) * s).toFixed(2)}px`;
+      this.svg.style.marginTop = this.svg.style.marginBottom = "";
       this.el.style.marginTop = `${GAP_MAP}px`;
-      // The map icon's ink level with the rim's top and the headline's left.
       const sw = this.box.querySelector(".sm-switch");
-      // Placed off the laid-out box, whether or not its margin collapsed.
-      sw.style.top = this.el.hidden ? `${(this.svg.offsetTop + rimTop - 5).toFixed(2)}px`
-        : `${this.el.offsetTop + 4}px`;
+      sw.style.top = `${GAP_MAP + 4}px`;
+      sw.style.left = "4px";
     }
   }
 
