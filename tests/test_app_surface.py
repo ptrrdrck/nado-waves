@@ -3618,7 +3618,7 @@ class TestOrigin:
         assert "+ ` ${heldAt(a, o)} `" in SOURCE
 
     def test_buoys_are_named_as_ndbc_names_them(self):
-        """"Tanner Banks (NDBC 46047)" and "Point Loma South (NDBC 46232)" --
+        """"Tanner Bank (NDBC 46047)" and "Point Loma South (NDBC 46232)" --
         the name without its state (owner's request, 2026-10-13), NDBC's
         number (2026-11-06) -- and never typed: now.json carries them from
         the fetched metadata."""
@@ -4315,7 +4315,7 @@ class TestTheBriefing:
     def test_the_swell_is_a_headline_a_line_a_train_over_hung_offshore_lines(self):
         """Owner's choices, 2026-10-23: the range a headline with its 24 h
         sparkline beside it, each train a line under it with its own status
-        and no trend mark, Tanner Banks' points hung in the ledger's small
+        and no trend mark, Tanner Bank's points hung in the ledger's small
         caps."""
         rows = self.BLOCK[self.BLOCK.index("function briefSwellRow(r)"):]
         rows = rows[:rows.index("\n}\n")]
@@ -4332,7 +4332,7 @@ class TestTheBriefing:
             (APP.parent.parent / "forecast" / "briefingwording.py").read_text(encoding="utf-8")
 
     def test_tanner_banks_lines_are_plain_open_on_their_point_and_say_offshore(self):
-        """Owner's calls, 2026-10-23 and -24: no ink in Tanner Banks' lines;
+        """Owner's calls, 2026-10-23 and -24: no ink in Tanner Bank's lines;
         each opens on its point, says "offshore" on its trend ("peaking
         offshore"), and hangs a grey signal mark turned the way the swell
         travels; no tag and no "Offshore:" line."""
@@ -4607,7 +4607,7 @@ class TestTheWideLayouts:
         # 46232's pills in the title row, as on every phone tab, and again
         # above its own headline on the buoys' card (owner's call, 2026-11-08).
         assert 'headRow(`<span class="lbl">${label}</span>`, due)' in wide
-        assert '<div class="pane">${headRow("", due)}' in wide
+        assert '<div class="pane">${headRow(buoyTitle(stationName), due)}' in wide
         assert "srcLines(source, due)" not in wide
 
     def test_origin_is_each_arrival_once_with_the_breaks_it_reaches(self):
@@ -4891,7 +4891,7 @@ class TestTheTitleRowPills:
 
     def test_each_context_buoy_has_its_pills_above_its_own_headline(self):
         body = self.fn("contextBuoy")
-        assert 'return `<hr>${headRow("", feed)}${reading}`' in body
+        assert 'return `<hr>${headRow(buoyTitle(b.station_name), feed)}${reading}`' in body
         assert "srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)]);" in body
 
     def test_the_station_is_at_the_right_and_one_pill_at_its_left(self):
@@ -5000,3 +5000,39 @@ class TestTheBalancedTitleRow:
         assert ("const solo = trains.length === 1 && headline != null"
                 " && height(trains[0].hs_m) === height(headline);") in lst
         assert '${solo ? "" : `<span class="ht">${height(t.hs_m)}</span>`}' in lst
+
+
+class TestBuoyNamesAndTheOverdueDot:
+    """Owner's requests, 2026-11-09: each buoy's name above its headline, set
+    as the station; overdue is the red dot alone, with no ring; and 46047's
+    bank is Tanner Bank, singular, wherever it is shown."""
+
+    @staticmethod
+    def fn(name):
+        start = SOURCE.index(f"function {name}(")
+        return SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+
+    def test_each_buoy_is_named_above_its_headline(self):
+        assert ('const buoyTitle = (name) => (name ? `<span class="buoy-name">${bareName(name)}</span>`'
+                ' : "");') in SOURCE
+        panel = self.fn("buoyPanel")
+        # 46232 on a phone: its pills are the card's, so its name stands alone.
+        assert 'const head = named ? headRow(buoyTitle(station && station.name)) : "";' in panel
+        assert "return head + buoyReading(" in panel
+        # The context buoys: across from their own pills.
+        assert "headRow(buoyTitle(b.station_name), feed)" in self.fn("contextBuoy")
+        # Set as the station across from it is.
+        assert ".chead > .buoy-name{font-size:12px;font-weight:500;line-height:18px;color:var(--ink)" in SOURCE
+        # The Forecast tab names its buoy too.
+        assert "stationName: DATA.station_name," in SOURCE
+
+    def test_overdue_draws_no_ring(self):
+        assert ".ring.over .arc" not in SOURCE
+        assert "const left = over ? 0 : isDue" in SOURCE
+        assert ' stroke-dasharray="0 ${RING_C.toFixed(2)}"/>' in self.fn("statusRing")
+
+    def test_tanner_bank_is_singular_where_it_is_read(self):
+        from forecast import live
+        assert live.NAME_FIXES == {"Tanner Banks": "Tanner Bank"}
+        assert live.station_name("46047", APP.parent.parent / "data").startswith("Tanner Bank,")
+        assert "Tanner Banks" not in SOURCE and "Tanner Banks" not in INFO

@@ -70,7 +70,7 @@ BEARING_HOURS = 12
 #: date come from the dispersion slope, which is a clock and needs no geometry.
 #: Direction comes from the buoy's mean wave direction, which is refracted by
 #: the shelf and shadowed by the Channel Islands — the same January swell reads
-#: 307 degrees at Tanner Banks and 279 at Mission Bay, a 28-degree spread that
+#: 307 degrees at Tanner Bank and 279 at Mission Bay, a 28-degree spread that
 #: is 4,000 km of error at the far end. So the bearing is taken from the most
 #: EXPOSED buoy that has this swell as its dominant peak, not from the buoy the
 #: swell was timed at, and the station used is reported rather than hidden.
