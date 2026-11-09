@@ -1182,29 +1182,29 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         from. On a wide screen there are no break tabs: the breaks sit side by side, North to
         South, and the buoys are a card of their own (<a href="#start-wide">On a wider
         screen</a>).</p>
-      <p>Every card's provenance sits in its title row, across from the title: the station's
-        pill at the right edge, and one pill growing out of its left end. On &ldquo;LIVE&rdquo;
-        the station pill carries a dot, and the pill beside it says how long ago the reading was
-        taken. Tap either and that pill shows the <a href="#swell-countdown">countdown</a> to the
+      <p>Every card's provenance sits in its title row, across from the title: the station at
+        the right edge, and to its left, after a thin divider, a word in grey. On &ldquo;LIVE&rdquo;
+        the station carries a dot, and the grey word says how long ago the reading was
+        taken. Tap either and it shows the <a href="#swell-countdown">countdown</a> to the
         next reading for 5 seconds, then the age again. The Wind card's station is &ldquo;METAR
         KNZY&rdquo; and the Tide card's &ldquo;NOAA 9410170&rdquo;. Point Loma South's station
         reads &ldquo;NDBC 46232&rdquo;, Tanner Banks' &ldquo;NDBC 46047&rdquo; and San Clemente
         Basin's &ldquo;NDBC 46086&rdquo;: each buoy's spectra reach this page through NDBC, and
-        this page names every buoy by NDBC's number, in its charts and here. NDBC 46232's pills
-        sit in the Swell card's title row, above every swell tab, the break tabs included,
+        this page names every buoy by NDBC's number, in its charts and here. NDBC 46232's provenance
+        sits in the Swell card's title row, above every swell tab, the break tabs included,
         because every break's numbers come from its spectrum. On the Buoys tab, NDBC 46086's and
         NDBC 46047's sit above their own headlines, with no title beside them.</p>
       <p>The dot sits inside a thin ring that empties clockwise from the moment the reading was
         taken to when the next is due, so the ring is the countdown, drawn. While the reading is
         on time the dot is green. Once the next one is due the ring has emptied and the dot fades
-        in and out. Once it is overdue the dot and a full ring are red, and the pill beside them
+        in and out. Once it is overdue the dot and a full ring are red, and the word beside them
         shows the red &ldquo;Overdue&rdquo; countdown instead of the age; a tap shows the age.
         The dot and the countdown change together, from the same two instants. With reduced
         motion on, a due dot holds at half strength instead of fading.</p>
       <p>On Forecast, every card's provenance sits in its title row the same way, with no dot,
         because a model run is not a feed arriving on a clock. The swell, and the model's wind
         at the buoy: &ldquo;NDBC 46232&rdquo;, the buoy the model is read at, with
-        &ldquo;GFS-Wave&rdquo; beside it; a tap shows the run and how far ahead of the hour it
+        &ldquo;GFS-Wave&rdquo; in grey beside it; a tap shows the run and how far ahead of the hour it
         was made, as in &ldquo;Oct 15 at 5:00 AM, 9 h ahead&rdquo;. The local wind:
         &ldquo;NWS&rdquo;, with the forecast grid cell beside it; a tap shows when the National
         Weather Service last updated that grid, which under a past hour is the update the build
@@ -1325,7 +1325,9 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
       <h3>Swell trains</h3>
       <p>The number is rarely one swell. The spectrum is split into separate trains, each with
         its height, period and direction, and the local chop is listed as its own train, tagged.
-        The trains add up, in energy, to the number above them.</p>
+        The trains add up, in energy, to the number above them. When there is only one train,
+        and its height is the number above it, its line gives only its period and direction,
+        rather than repeating the height.</p>
       <p id="wind-sea">A train is tagged <em>wind sea</em> only when the wind is still driving it:
         when the wind along its direction is faster than its waves travel, a test called wave
         age. A wave of period T moves at about 1.56&nbsp;T metres a second in deep water, so a
