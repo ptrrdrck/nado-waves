@@ -590,6 +590,42 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
   .ring.due .core{animation:none;opacity:.45}
   .pill-swap,.pill-swap > span{transition:none}
 }
+/* THE TITLE ROW, BALANCED (owner's pick, 2026-11-09: "Balanced" of a mock of
+   header and tab options -- H3 with T2 and three tweaks, the pills in H1's
+   quiet text). The title row leaned right: filled pills beside the faintest
+   text on the card, while the fold rows below it were the card's boldest.
+   Every card's title is now the same capitals a size up, bold and in ink
+   (the "At the buoy" heading too); the pills lose their fills -- the age or
+   the model in the faint grey, a hairline, the station in ink -- so the two
+   sides weigh about the same; the fold rows (Origin, Charts, Phase) take the
+   old title type, so the reading is the heaviest thing on a card. */
+.cond > .lbl,.chead > .lbl,.chead > .sublbl{font-family:"Barlow Condensed",Archivo,sans-serif;
+  font-size:14px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.1em}
+.chead-pills .pill-lead{background:transparent;-webkit-mask:none;mask:none;color:var(--faint);
+  margin-right:0;padding:0 9px 0 0;border-radius:0;position:relative}
+.chead-pills .pill-lead::after{content:"";position:absolute;right:0;top:4px;bottom:4px;width:1px;
+  background:var(--line-strong)}
+.chead-pills > .pill{background:transparent;padding:0 0 0 9px;border-radius:0;font-weight:500}
+.chart-head:not([data-brief-head]){font-family:"Barlow Condensed",Archivo,sans-serif;font-size:12.5px;
+  font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--soft)}
+/* "predicted" and "computed" set as the provenance was, a word on the
+   picked row's grey with 4 px corners, never spaced capitals. */
+.cond .turn .tag,.phase-fold .chart-head .tag{font-family:Archivo,system-ui,sans-serif;font-size:12px;
+  font-weight:400;text-transform:none;letter-spacing:0;color:var(--soft);background:var(--paper);
+  padding:1px 6px;border-radius:4px}
+/* The tabs as one family (T2): "LIVE" / Forecast drawn as the break tabs
+   are, on the backdrop's grey with the pick raised in the card's colour,
+   the pick's words in the tab blue -- the blue the Forecast tab's measured
+   lines still take (`--measured`). */
+.tabs{background:var(--paper);box-shadow:none}
+.tabs button[aria-selected="true"]{background:var(--card);color:var(--surf);font-weight:700;
+  box-shadow:var(--shadow)}
+/* "Briefing", and the Forecast tab's weekday that matches it, in the
+   cards' title type: the backdrop's line reads as one more title row. */
+.chart-head [data-brief-line] .brief-name,#when-label .wd-long,#when-label .wd-short{
+  font-family:"Barlow Condensed",Archivo,sans-serif;font-size:14px;font-weight:700;color:var(--ink);
+  text-transform:uppercase;letter-spacing:.1em}
+
 /* The break card's headline with its caret at the right end. The caret
    points up while the calculation is folded away and down once it is open
    beneath the line (owner's design, 2026-09-26). */
@@ -3504,8 +3540,13 @@ function cardsForForecast(step) {
 // still the first. A row keeps its index in `trains` (`data-train`), which is
 // how the drawing's arrows know it; a grouped row's `data-group` names every
 // row of its swell, and a tap picks them all (option E; `pickMatch`).
-function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = ""} = {}) {
+// `headline`: the height in the line above. A lone train of that same height
+// (as shown) drops its height, so the row is its period and heading only
+// (owner's request, 2026-11-09): it repeated the number right above it. The
+// height comes back with a second train.
+function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = "", headline = null} = {}) {
   if (!trains || !trains.length) return "";
+  const solo = trains.length === 1 && headline != null && height(trains[0].hs_m) === height(headline);
   const row = ({t, i}, group) => {
     const tag = t.local ? "chop" : t.wind_sea ? "ws" : "";
     const forms = trainForms(t, !!tag);
@@ -3518,7 +3559,7 @@ function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = 
         + ` aria-label="${of ? "Show this swell's trains on the drawing" : "Show this train on the drawing"}"`
       : onRose ? ` data-rose-train="${i}" data-rose-for="${rose}" tabindex="0" role="button"`
         + ` aria-pressed="${ROSE_TRAIN[rose] === i}" aria-label="Show this period range on the rose"` : ""}>
-      <span class="ht">${height(t.hs_m)}</span>
+      ${solo ? "" : `<span class="ht">${height(t.hs_m)}</span>`}
       <span class="tp">${t.period_s.toFixed(1)} s</span>
       <span class="dr">${forms.map((f, k) => `<span${k ? " hidden" : ""}>${f}</span>`).join("")}</span>
       ${tag === "chop" ? '<span class="tag">local chop</span>'
@@ -3755,7 +3796,7 @@ function breakPanel(c) {
   return `
     ${head}
 
-    ${c.trains && c.trains.length ? trainList(c.trains, {drawn, aged}) : `
+    ${c.trains && c.trains.length ? trainList(c.trains, {drawn, aged, headline: c.hsWindow}) : `
     <div class="quiet"${aged}>
       peak <b>${c.period ? c.period.toFixed(1) + " s" : "—"}</b>
       from <b>${compass(c.direction)}</b>
@@ -4648,7 +4689,7 @@ const valLine = (val) => `<div class="val-line">${val}</div>`;
 // its own, kept across a refresh. Nothing to fold, no caret. Under a past
 // Forecast hour the observed line stays outside it, as on a break's tab.
 function buoyReading(buoy, id, {roseFor = null, rose = "", note = "", aged = ""} = {}) {
-  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor, aged})
+  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor, aged, headline: buoy.hs_m})
     : buoy.period_s ? `<div class="quiet"${aged}>peak <b>${buoy.period_s.toFixed(1)} s</b>`
       + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
   const value = `<span class="val"${aged}>${height(buoy.hs_m)} <span class="unit">combined</span></span>`;
@@ -4795,8 +4836,9 @@ function fitHeads(root = document, animate = false) {
     if (!row || !shown) return;
     if (headResize && !HEAD_ROWS.has(row)) { HEAD_ROWS.add(row); headResize.observe(row); }
     if (!row.clientWidth) return;
-    // The left pill's 20 px of padding, less the 4 px it runs under the station's end.
-    const room = Math.max(0, row.clientWidth - pill.offsetWidth - 16);
+    // The left pill's 9 px before its hairline (owner's pick, 2026-11-09: no
+    // fills, so it no longer runs under the station's end).
+    const room = Math.max(0, row.clientWidth - pill.offsetWidth - 9);
     const want = Math.min(shown.scrollWidth, room);
     swap.classList.toggle("tight", shown.scrollWidth > room);
     const was = parseFloat(swap.style.width);

@@ -289,6 +289,20 @@ forecaster actually verifies against, Surfline included.
    card's Charts rule (10 px, box to box). No countdown shows a leading zero:
    "42 s" under a minute, never "0:42" (`hms`). What follows describes the
    pills' content; where it places them under the reading, this supersedes it.
+   **Since 2026-11-09 the title row is BALANCED** (owner's pick of a mock of
+   header and tab options: "Balanced", H3 + T2 + three tweaks, the pills in
+   H1's style): every card title (`.cond > .lbl`, `.chead > .lbl`/`.sublbl`)
+   the same capitals at 14 px, bold, in ink; the pills QUIET TEXT -- no
+   fills and no joined cut, the age or model in `--faint`, a hairline, the
+   station in ink at 500; the fold rows (Origin, Charts, Phase; never the
+   Briefing's) in the old title type, 12.5 px grey capitals, so the reading
+   is the card's heaviest line; "predicted" / "computed" set as a word on
+   the paper grey, 4 px corners; the "LIVE" / Forecast tabs drawn as the
+   break tabs are, the pick raised in the card colour with its words in
+   `--surf`; and "Briefing" and the Forecast tab's weekday in the title
+   type. **A lone train of the headline's height drops its height**
+   (`trainList`'s `headline`, same day): its row is period and heading only,
+   and the height returns with a second train.
    Each buoy's feed is a pill at the START of its countdown line (owner's
    requests, 2026-10-09, moved there 2026-10-11 from beside the combined
    height, whose headline is now the height alone, as a break's is): "NDBC

@@ -164,7 +164,7 @@ class TestTheBreakCard:
         panel = SOURCE[SOURCE.index("function breakPanel"):]
         panel = panel[:panel.index("function depthLabel")]
         order = ("depthLabel(c)", "calculationTable(c)", 'id="calc-${c.id}"',
-                 "trainList(c.trains, {drawn, aged})", "drawing || windowList(c.swellWindow)")
+                 "trainList(c.trains, {drawn, aged, headline: c.hsWindow})", "drawing || windowList(c.swellWindow)")
         at = [panel.index(mark) for mark in order]
         assert at == sorted(at)
         # The windows and the shares are in the drawing now (2026-09-26); the
@@ -1177,7 +1177,7 @@ class TestWaveTrainsOnScreen:
 
     def test_there_is_a_train_renderer_shared_by_both_chains(self):
         assert "function trainList" in SOURCE
-        assert "trainList(buoy.trains, {rose: roseFor, aged})" in SOURCE
+        assert "trainList(buoy.trains, {rose: roseFor, aged, headline: buoy.hs_m})" in SOURCE
         assert "trainList(c.trains" in SOURCE
 
     def test_a_train_shows_height_period_and_heading(self):
@@ -1310,8 +1310,8 @@ console.log(["0", "1", "2"].map((n) => pickRows("G0.2", n)).join(" "), pickRows(
 
         card = SOURCE[SOURCE.index("function breakPanel"):]
         card = card[:card.index("function buoyPanel")]
-        assert "trainList(c.trains, {drawn, aged})" in card and "buoy.trains" not in card
-        assert card.index("in window") < card.index("trainList(c.trains, {drawn, aged})")
+        assert "trainList(c.trains, {drawn, aged, headline: c.hsWindow})" in card and "buoy.trains" not in card
+        assert card.index("in window") < card.index("trainList(c.trains, {drawn, aged, headline: c.hsWindow})")
 
     def test_the_swell_card_is_styled_like_wind_and_tide(self):
         """Same .cond card in the same strip, not a dashed aside."""
@@ -4948,3 +4948,55 @@ class TestTheTitleRowPills:
         assert ".cond.swell > .chead{margin-bottom:2px}" in SOURCE
         # In a buoy's pane, whose gap is 11.
         assert ".pane > .chead{margin-bottom:-1px}" in SOURCE
+
+
+class TestTheBalancedTitleRow:
+    """Owner's pick, 2026-11-09 ("Balanced" of a mock of header and tab
+    options): card titles a size up, bold and in ink; the pills as quiet
+    text; the fold rows in the old title type; "predicted" as a pill; the
+    main tabs drawn as the break tabs are; "Briefing" as a title; and a
+    lone train no longer repeating the headline's height."""
+
+    @staticmethod
+    def rule(start):
+        at = SOURCE.index(start)
+        return SOURCE[at:SOURCE.index("}", at) + 1]
+
+    def test_card_titles_are_bold_ink_capitals(self):
+        r = self.rule(".cond > .lbl,.chead > .lbl,.chead > .sublbl{")
+        assert "font-size:14px;font-weight:700;color:var(--ink)" in r and "letter-spacing:.1em" in r
+        # Never the measured box's label under a past hour: not a card title.
+        assert ".measured .lbl" not in r
+
+    def test_the_pills_are_quiet_text(self):
+        lead = self.rule(".chead-pills .pill-lead{")
+        assert "background:transparent;-webkit-mask:none;mask:none;color:var(--faint)" in lead
+        assert "background:var(--line-strong)" in self.rule(".chead-pills .pill-lead::after{")
+        station = self.rule(".chead-pills > .pill{background")
+        assert "background:transparent" in station and "font-weight:500" in station
+        # The width fit counts the left pill's 9 px before its hairline.
+        assert "row.clientWidth - pill.offsetWidth - 9" in SOURCE
+
+    def test_fold_rows_take_the_old_title_type_but_the_briefing_does_not(self):
+        r = self.rule(".chart-head:not([data-brief-head]){")
+        assert "font-size:12.5px" in r and "text-transform:uppercase" in r and "color:var(--soft)" in r
+
+    def test_predicted_and_computed_are_pills(self):
+        r = self.rule(".cond .turn .tag,.phase-fold .chart-head .tag{")
+        assert "text-transform:none" in r and "background:var(--paper)" in r and "border-radius:4px" in r
+
+    def test_the_main_tabs_are_the_break_tabs_family(self):
+        assert ".tabs{background:var(--paper);box-shadow:none}" in SOURCE
+        r = self.rule('.tabs button[aria-selected="true"]{background:var(--card)')
+        assert "color:var(--surf)" in r and "box-shadow:var(--shadow)" in r
+
+    def test_briefing_and_the_weekday_read_as_titles(self):
+        r = self.rule(".chart-head [data-brief-line] .brief-name,#when-label .wd-long,#when-label .wd-short{")
+        assert "font-size:14px;font-weight:700;color:var(--ink)" in r
+
+    def test_a_lone_train_of_the_headlines_height_drops_its_height(self):
+        lst = SOURCE[SOURCE.index("function trainList("):]
+        lst = lst[:lst.index("\n}\n")]
+        assert ("const solo = trains.length === 1 && headline != null"
+                " && height(trains[0].hs_m) === height(headline);") in lst
+        assert '${solo ? "" : `<span class="ht">${height(t.hs_m)}</span>`}' in lst
