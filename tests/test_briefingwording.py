@@ -92,7 +92,7 @@ def test_a_line_too_long_breaks_off_and_carries_on_in_the_open_fold(cases):
 
 def test_the_swell_reads_as_the_owner_wrote_it(cases):
     """Owner's wording and calls, 2026-10-23: the beach's range, a line a
-    train with its own status, then what Tanner Banks holds, each opening on
+    train with its own status, then what Tanner Bank holds, each opening on
     its point, its trend said as offshore's (owner's wording, 2026-10-24)."""
     assert cases["Q1"]["swell"] == ["3–4 ft (0.9–1.2 m).", "SSW at 13.3 s, holding."]
     assert cases["B1"]["swell"][2:] == ["W 10–12 s, building offshore; due at Point Loma South "

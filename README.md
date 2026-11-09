@@ -129,7 +129,7 @@ python -m forecast.verify                # how wrong GFS-Wave is at the buoy
 python -m forecast.residual --ceiling    # what an upstream observation could win
 python -m forecast.forensics             # where a past swell was born
 python -m forecast.briefing              # build the briefing -> data/live/briefing.json
-python -m forecast.upstreamlag           # Tanner Banks to Point Loma South to the breaks
+python -m forecast.upstreamlag           # Tanner Bank to Point Loma South to the breaks
 python -m forecast.briefingreport        # the briefing's thresholds, measured
 python -m collector.run                  # fetch and archive (needs NDBC reachable)
 python -m collector.gfswave_backfill     # archive GFS-Wave bulletins

@@ -285,7 +285,7 @@ class TestOnThePage:
         # buoy's above its own headline, in its own block after the panes.
         assert (card.index('headRow(`<span class="lbl">${label}</span>`, due)')
                 < card.index("${tab.body}</div>") < card.index('data-after-tab="${tab.id}"'))
-        assert 'return `<hr>${headRow("", feed)}${reading}`' in _fn("contextBuoy")
+        assert 'return `<hr>${headRow(buoyTitle(b.station_name), feed)}${reading}`' in _fn("contextBuoy")
         assert "contextBuoy" not in PAGE[PAGE.index("function buoyPanel("):
                                          PAGE.index("function buoyReading(")]
         select = PAGE[PAGE.index("function selectSwellTab("):]
@@ -328,7 +328,7 @@ class TestTheSentenceUnderEachRose:
             "Center break: its half-hourly directional spectrum is shown here and checked "
             "against hurricane tracks, and though it sits inside South's window it is not "
             "carried to any break.",
-            "Tanner Banks (NDBC 46047), 138 mi (222 km) offshore at 263° W from Center "
+            "Tanner Bank (NDBC 46047), 138 mi (222 km) offshore at 263° W from Center "
             "break: its half-hourly directional spectrum reads the open ocean before the "
             "Channel Islands, gives Origin its storm bearings and is checked against "
             "hurricane tracks, but is not carried to any break.",

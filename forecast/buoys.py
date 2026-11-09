@@ -4,7 +4,7 @@ Run: ``python -m forecast.buoys``  (writes ``data/live/buoys.json``)
 
 The Buoys tab (owner's request, 2026-10-06) shows 46232 -- the anchor every
 break's card is derived from, read by `forecast.now` -- and under it 46086,
-San Clemente Basin (owner's request, 2026-10-12), then 46047, Tanner Banks,
+San Clemente Basin (owner's request, 2026-10-12), then 46047, Tanner Bank,
 the least shadowed buoy in the array (`STATIONS`). Each is shown the way 46232 is at the
 buoy: the combined height of its directional spectrum read by maximum
 entropy, and its wave trains (`transform.at_buoy`, the same peak split and the

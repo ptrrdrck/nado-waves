@@ -262,7 +262,7 @@ forecaster actually verifies against, Surfline included.
    geometry.html, 2026-10-02).
    **The buoy's tab reads "Buoys"** (owner's request, 2026-10-06; BRIEFING
    §39), on both chains, its id still `buoy`. On LIVE it holds 46232 and under
-   it **46047, Tanner Banks**, built the same way — combined height, maximum-
+   it **46047, Tanner Bank**, built the same way — combined height, maximum-
    entropy trains split by period then direction (§40) — with its own name,
    observed time, countdown and words under its rose (since 2026-10-12 the
    one sentence below) (`forecast/buoys.py` → `buoys.json`, its own step in the
@@ -303,6 +303,16 @@ forecaster actually verifies against, Surfline included.
    type. **A lone train of the headline's height drops its height**
    (`trainList`'s `headline`, same day): its row is period and heading only,
    and the height returns with a second train.
+   **Each buoy is named above its headline** (owner's request, 2026-11-09;
+   `buoyTitle`): NDBC's name without its state, set as the station is
+   (12 px, ink, 500) -- 46232's on a line of its own on a phone, where its
+   pills are the Swell card's, and on both tabs; 46047's and 46086's, and
+   every wide Buoys-card column's, across from their own pills. **Overdue
+   is the red dot alone, no ring** (same day). **46047's bank is Tanner
+   Bank, singular** (owner's call, same day): NDBC's metadata says "Tanner
+   Banks, CA" and keeps saying it in the fetched files and the archived
+   Briefing lines; `live.NAME_FIXES` corrects it where the name is read,
+   so every name the page and docs show reads "Tanner Bank".
    Each buoy's feed is a pill at the START of its countdown line (owner's
    requests, 2026-10-09, moved there 2026-10-11 from beside the combined
    height, whose headline is now the height alone, as a break's is): "NDBC
@@ -692,7 +702,7 @@ forecaster actually verifies against, Surfline included.
    of its own: a hurricane's "NHC had it at 161° SSE, with winds of
    121 mph (105 kt) and 950 mb pressure at that time.", NHC's fix that SENT the train, so
    a storm that has weakened since still reads as it was then; a reading's
-   naming the buoy (`heldAt`): "Tanner Banks (NDBC 46047) holds this train
+   naming the buoy (`heldAt`): "Tanner Bank (NDBC 46047) holds this train
    from 212° SSW.", "… from 190° S and 276° W, so no place is given." for a
    split, "… does not have this train, so no place is given."; and how long:
    a storm's "Arriving for N h so far." — the longest any gate buoy has had
@@ -706,7 +716,7 @@ forecaster actually verifies against, Surfline included.
    2026-10-14): storm matching is explained on docs.html. Entries are set
    apart by a centred 4 px dot, never a rule: a full-width rule opens a
    section on this card. Each buoy is named as NDBC names it,
-   "Tanner Banks (NDBC 46047)" — the state dropped (owner's request,
+   "Tanner Bank (NDBC 46047)" — the state dropped (owner's request,
    2026-10-13) — and 46232 the same way, "Point Loma South (NDBC 46232)",
    here and on docs.html's provenance (owner's request, 2026-11-06,
    replacing CDIP's number) — from `origin.station_names` in now.json
@@ -1100,18 +1110,18 @@ forecaster actually verifies against, Surfline included.
    to show or not at all; or sooner, once its sector's 8–17 s energy falls
    under a third of its peak since it began. In plain words with no
    ink, each OPENING ON ITS POINT, no "first", and saying "offshore" on its
-   trend, which is Tanner Banks' own (owner's calls, same day, replacing an
+   trend, which is Tanner Bank's own (owner's calls, same day, replacing an
    "offshore" tag, which had replaced an "Offshore:" line), with a grey
    SIGNAL MARK in the margin — a dot, the origin, sending two arcs — turned
    to the swell's direction of TRAVEL, its sector's middle plus 180°
    (`briefSignal`): "W 10–12 s, building offshore; due at Point Loma South
    around 1:33 PM, and at the breaks 39–53 min later." The due time is
-   computed, never a measured arrival (§43), and the trend is Tanner Banks'
+   computed, never a measured arrival (§43), and the trend is Tanner Bank's
    NOW: building ≥ +25% on 3 h before, fading under half its peak, else
    peaking. Hourly over the 60 days to 24 Oct a line showed on 19% of hours
    (the first band's window alone would have given 10%; with "arriving
    since" it was 91%), a swell caught a median 3.1 h before its first
-   band's window. SW at Tanner Banks is never said (owner's call): it is not
+   band's window. SW at Tanner Bank is never said (owner's call): it is not
    upstream of the breaks for a south swell. A dark 46232 says so and nothing
    else.
    **Conditions**, a LEDGER (owner's calls, 2026-10-23; `briefConditions`,

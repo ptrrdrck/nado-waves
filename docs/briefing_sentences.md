@@ -160,7 +160,7 @@ WQ12. South Status not read since 2:35 AM; <195 copies/100 mL on Oct 22, down  (
 ## The cases
 
 - **Q1**: a quiet morning: one range, nothing coming, no rain
-- **B1**: west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour
+- **B1**: west swell rising at Tanner Bank, waves spread over three feet, rain in the last hour
 - **C1**: two sectors offshore, each still to reach the breaks; rain earlier in the day only
 - **M1**: a mix: every swell train at the breaks at half the biggest's height or more, a line each, one a train at the buoy
 - **WS1**: a wind sea at half the biggest's height or more: the wind still driving it, said after its point (forecast.windsea, owner's call 2026-11-08); a short train the wind is not driving is a train like any other

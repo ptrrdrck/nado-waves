@@ -23,7 +23,7 @@ NWS's alerts do:
   "SSW at 13.3 s, building.", each its offshore heading as its row names it
   (never its 5 m one), its period, and its status: its band at 46232 over the last day
   (`train_trend`). Offshore, at 46047: each west or
-  north-west swell found by its rise and said for as long as Tanner Banks
+  north-west swell found by its rise and said for as long as Tanner Bank
   still holds it (`upstream_story`), due at 46232 and the breaks by
   deep-water speed (`forecast.upstreamlag`, BRIEFING §43), each line in
   plain words opening on its point, its trend said as offshore's: "W 10–12 s,
@@ -138,7 +138,7 @@ PRECIP_DAY_H = 24
 
 #: 46047's rises FIND a swell; its presence keeps it (owner's call,
 #: 2026-10-23). A rise is looked for this far back, and the swell is said
-#: until Tanner Banks' energy from its sector over all the bands falls
+#: until Tanner Bank's energy from its sector over all the bands falls
 #: below UPSTREAM_GONE_SHARE of its peak since it began (the rise factor of
 #: 3, run in reverse); "fading" once under UPSTREAM_FADING_SHARE.
 UPSTREAM_LOOKBACK_H = 72.0
@@ -159,7 +159,7 @@ UPSTREAM_GROUP_H = 24.0
 #: TREND_H: up by BUILDING_RATIO is "building", down to FADING_RATIO
 #: "fading". For each train at the beach, of its band at 46232 smoothed
 #: over TREND_H (`train_trend`): else "peaking" when its highest in
-#: PEAK_OVER_H came within TREND_H, else "holding". At Tanner Banks:
+#: PEAK_OVER_H came within TREND_H, else "holding". At Tanner Bank:
 #: building, else fading under UPSTREAM_FADING_SHARE of the peak, else
 #: peaking.
 TREND_H = 3.0
@@ -809,7 +809,7 @@ def upstream_story(data_dir: Path, buoys: dict | None, at: datetime, spectra=Non
 
 
 def next_band(swell: dict, at: datetime) -> dict | None:
-    """The band of a Tanner Banks swell the Briefing names at `at`: the
+    """The band of a Tanner Bank swell the Briefing names at `at`: the
     first, by its due time, whose window at the breaks (due at 46232 plus
     the slowest leg) has not yet passed. None once the last has: by then the
     swell is the beach chain's to show, in the headline or not at all

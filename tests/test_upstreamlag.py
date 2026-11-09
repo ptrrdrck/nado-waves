@@ -1,4 +1,4 @@
-"""The upstream lag: Tanner Banks (46047) to Point Loma South (46232) to the breaks.
+"""The upstream lag: Tanner Bank (46047) to Point Loma South (46232) to the breaks.
 
 The report's measurements live in docs/upstream_lag.md; these pin the pure
 pieces the LIVE briefing reads: the deep-water lag, the leg tables, and the
