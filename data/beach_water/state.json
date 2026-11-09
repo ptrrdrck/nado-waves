@@ -9,12 +9,12 @@
       "status": "Open"
     },
     "IB-079": {
-      "priority": "2",
-      "status": "Advisory"
+      "priority": "",
+      "status": "Open"
     }
   },
-  "last_fetch_utc": "2026-11-09T03:15:48Z",
-  "last_ok_utc": "2026-11-09T03:15:48Z",
+  "last_fetch_utc": "2026-11-09T03:25:34Z",
+  "last_ok_utc": "2026-11-09T03:25:34Z",
   "legend": {
     "1": "Warning",
     "2": "Open",
