@@ -1,0 +1,42 @@
+{
+  "grid": "context",
+  "source": "GMRT Global Multi-Resolution Topography synthesis (multibeam + GEBCO)",
+  "source_url": "https://www.gmrt.org/services/GridServer",
+  "crs": "EPSG:26911",
+  "vertical_datum": "MSL",
+  "units": "decimetres, elevation (negative is below sea level)",
+  "nodata": -32768,
+  "cell_m": 400.0,
+  "shape": [
+    869,
+    1356
+  ],
+  "transform": [
+    400.0,
+    0.0,
+    101600.0,
+    0.0,
+    -400.0,
+    3776800.0
+  ],
+  "bounds_utm": [
+    101600.0,
+    3429200.0,
+    644000.0,
+    3776800.0
+  ],
+  "resampling": "bilinear, reprojected from GMRT's geographic grid",
+  "not_covered": "",
+  "datum": {
+    "station": "9410170",
+    "msl_above_navd88_m": null,
+    "note": "not needed: GMRT is referenced to sea level"
+  },
+  "stats": {
+    "cells": 1178364,
+    "nodata_cells": 0,
+    "min_elevation_m": -4688.829324379456,
+    "max_elevation_m": 3403.1824310741613
+  },
+  "retrieved_utc": "2026-11-10T18:46:45Z"
+}
