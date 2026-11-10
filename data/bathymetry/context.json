@@ -8,22 +8,22 @@
   "nodata": -32768,
   "cell_m": 400.0,
   "shape": [
-    869,
-    1356
+    1819,
+    2306
   ],
   "transform": [
     400.0,
     0.0,
-    101600.0,
+    -88400.0,
     0.0,
     -400.0,
-    3776800.0
+    3966800.0
   ],
   "bounds_utm": [
-    101600.0,
-    3429200.0,
-    644000.0,
-    3776800.0
+    -88400.0,
+    3239200.0,
+    834000.0,
+    3966800.0
   ],
   "resampling": "bilinear, reprojected from GMRT's geographic grid",
   "not_covered": "",
@@ -33,10 +33,10 @@
     "note": "not needed: GMRT is referenced to sea level"
   },
   "stats": {
-    "cells": 1178364,
-    "nodata_cells": 0,
-    "min_elevation_m": -4688.829324379456,
-    "max_elevation_m": 3403.1824310741613
+    "cells": 4194614,
+    "nodata_cells": 8374,
+    "min_elevation_m": -4727.486036595355,
+    "max_elevation_m": 3350.9916609681372
   },
-  "retrieved_utc": "2026-11-10T18:46:45Z"
+  "retrieved_utc": "2026-11-10T19:43:38Z"
 }
