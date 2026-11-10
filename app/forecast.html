@@ -575,13 +575,14 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .pill-swap.tight > span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .pill-swap > span.off{opacity:0;visibility:hidden;transition:opacity .3s,visibility 0s .3s}
 /* The status dot inside its countdown ring (owner's design, same day): the
-   dot keeps its 7 px (r 3.5), the ring its 11 px outside (r 5.5), and a
-   0.5 px hairline of the pill between them is taken from the ring, 1.5 px
-   of stroke centred at r 4.75. No track: the arc alone is the time left
+   dot keeps its 7 px (r 3.5), a 1 px gap of the pill around it, and the
+   ring 1.5 px of stroke centred at r 5.25, 12 px across (owner's pick,
+   2026-11-10: C of three mocked, the gap widened from 0.5 px with the
+   ring's weight kept, so the mark grew from 11 px). No track: the arc alone is the time left
    from the reading's stamp to its update, draining clockwise from the top.
    Due, the arc is gone and the dot fades in and out as it did; overdue, the
    dot alone, in red, with no ring (owner's call, 2026-11-09). */
-.ring{display:block;width:11px;height:11px;overflow:visible;flex:none}
+.ring{display:block;width:12px;height:12px;overflow:visible;flex:none}
 .ring .arc{fill:none;stroke:var(--dot-ok);stroke-width:1.5}
 .ring .core{fill:var(--dot-ok)}
 .ring.due .core{animation:status-due 2s ease-in-out infinite}
@@ -4950,12 +4951,12 @@ const headResize = typeof ResizeObserver === "undefined" ? null
 // by `tickDue` with the countdown it sits beside: the same instants with
 // this page's refresh leg added, and the same three states. The arc is the
 // share of the wait left, from the reading's stamp to `due`.
-const RING_C = 2 * Math.PI * 4.75;
+const RING_C = 2 * Math.PI * 5.25;
 function statusRing(observedIso, iso, lateIso, {forceOver = false} = {}) {
-  const svg = (cls, attrs) => `<svg class="ring${cls}" viewBox="0 0 11 11" role="img"${attrs}>`
-    + `<circle class="arc" cx="5.5" cy="5.5" r="4.75" transform="rotate(-90 5.5 5.5)"`
+  const svg = (cls, attrs) => `<svg class="ring${cls}" viewBox="0 0 12 12" role="img"${attrs}>`
+    + `<circle class="arc" cx="6" cy="6" r="5.25" transform="rotate(-90 6 6)"`
     + ` stroke-dasharray="0 ${RING_C.toFixed(2)}"/>`
-    + '<circle class="core" cx="5.5" cy="5.5" r="3.5"/></svg>';
+    + '<circle class="core" cx="6" cy="6" r="3.5"/></svg>';
   const when = dueInstants(iso, lateIso);
   if (!when) return forceOver ? svg(" over", ' aria-label="Overdue"') : "";
   return svg("", ` data-status-due="${when.due}" data-status-late="${when.late}"`

@@ -278,8 +278,9 @@ forecaster actually verifies against, Surfline included.
    the left pill is the age and a tap shows the countdown for 5 s
    (`HEAD_TAP_MS`); overdue, it shows the red countdown and a tap the age.
    The dot keeps its 7 px inside a countdown RING with no track (`statusRing`:
-   1.5 px of stroke at r 4.75, a 0.5 px hairline of the pill between it and
-   the dot, 11 px across), the arc the share of the wait left from the
+   1.5 px of stroke at r 5.25, a 1 px gap of the pill between it and the
+   dot, 12 px across; owner's pick 2026-11-10, C of three mocked, from 11 px
+   with a 0.5 px gap), the arc the share of the wait left from the
    reading's stamp to due. On Forecast (`modelPills`) the first part is at
    the right with no dot, the second beside it, and a tap switches to the
    third and STAYS until the next tap (owner's call, same day). 46047's and
