@@ -19,6 +19,7 @@ Build, from checkouts of the delivery repository and Leaflet:
     python -m mocks.swell_fill.rays ../nado-waves-forecast/now.json --json > rays.json   # ~4 min
     python -m mocks.swell_fill.build ../nado-waves-forecast node_modules/leaflet/dist \
         node_modules/leaflet-rotate/dist mocks/swell_fill/swell_fill_mock.html --rays rays.json
+    # builds the seabed tiles into mocks/swell_fill/tiles/ (~20 s), which the page loads
 
 `python -m mocks.swell_fill.rays NOW.json` alone runs every check and prints
 what it built. The page is this branch's `app/forecast.html`, wrapped as
@@ -28,20 +29,25 @@ never chosen between map and drawing.
 
 ## What it does
 
-- **The map is the seabed**: near the breaks, the grids the rays are traced
-  over (USGS CoNED 2016 and GMRT, depth below mean sea level), a finer picture
-  over the breaks and the Point Loma tip; past them, for context only,
-  `collector.bathymetry`'s new `context` grid (GMRT, 400 m, round the breaks
-  and the three buoys with 160 km to spare), shaded the same way. Greys,
-  lighter for shallower, contours at 5, 10, 20, 50, 100, 200, 500, 1,000 and
-  2,000 m, land lighter still; each inner picture fades out at its edges.
-- **The context grid is not fetched yet.** gmrt.org is denied from a session,
-  so `.github/workflows/bathymetry-context.yml` fetches it on Actions when
-  this work is merged (it runs on a push to master that changes the collector
-  or itself), into `data/bathymetry/context.{npz,json}`. No chain reads it:
-  `raytrace` loads its three grids by name, and a test pins it. Until it
-  lands, the inner pictures fade to the map's deep grey; rebuild the mock
-  afterwards and `context.py` picks it up.
+- **The map is the seabed, as map tiles** (`tiles.py`), loaded only where
+  they are in view, so zooming fetches a handful of small tiles at a time and
+  a wider grid costs disk, never screen time. Three layers, each from the
+  grids fit for its zoom: the GMRT `context` grid (400 m) at zooms 6–9, out
+  past Tanner Bank; the rays' own CoNED regional (32 m) and GMRT outer (90 m)
+  grids at 10–12; CoNED's nearshore grid (8 m) at 13–14; each stretched past
+  its last zoom. 229 tiles, 0.43 MB in all, against ~0.3 MB of pictures the
+  page used to decode whole on load. Greys, lighter for shallower, contours
+  at 5, 10, 20, 50, 100, 200, 500, 1,000 and 2,000 m, land lighter still.
+- **The context grid** is `collector.bathymetry`'s, fetched on Actions by
+  `.github/workflows/bathymetry-context.yml` (gmrt.org is denied from a
+  session): first on the merge of PR #213, 2026-11-10, 1,356 × 869 cells at
+  400 m, none empty, with a 160 km margin. That left the turned map's widest
+  view off the grid to the south-west and north-west, so the margin is now
+  350 km at the same 400 m cells (owner's choice, same day): ~2,305 × 1,820
+  cells, ~6.5 MB in the repository against 1.8 MB, fetched again by the
+  workflow when this is merged. The page never loads the grid itself; only
+  the tiles drawn from it, and only those in view. No chain reads it:
+  `raytrace` loads its three grids by name, and a test pins it.
 - **NDBC 46086 and 46047 are marked as 46232 is**, at NDBC's fetched
   coordinates (`forecast.siting.load_coordinates`).
 - **It zooms out to just past Tanner Bank and no further**: at the widest, a
