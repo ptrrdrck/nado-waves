@@ -5,6 +5,12 @@
 
 The briefing (`forecast.briefing`) says a thing only where it is right at
 least `RIGHT` of the times it fires, the Phase fold's rule (BRIEFING §41).
+
+The first three below are the 2026-10-17 design's words, which the briefing
+no longer says. Their constants stay in `forecast.briefing` for this report
+only, and `tests/test_briefingreport.py` keeps them there: it reports their
+hit rates rather than asserting them, and fails if anything live reads one.
+If one of those words returns, its 85% assertion returns with it.
 "Right" here is a reasonable expectation, never a forecast: what the
 briefing says about the last few hours still holds over the next three.
 
@@ -321,8 +327,9 @@ def report() -> str:
     chosen = smallest(CHANGE_STEPS, lambda case, step: change_precision(heights, case[0], case[1], step),
                       every=[(k, s) for k in range(len(BREAKS)) for s in SPANS_H])
     lines += ["", f"Smallest step right on every break and span: **{chosen:.0%}**; "
-              f"`briefing.CHANGE_SHARE` is {briefing.CHANGE_SHARE:.0%}. Below it the briefing says "
-              "\"little change\".", "",
+              f"`briefing.CHANGE_SHARE` is {briefing.CHANGE_SHARE:.0%}. The briefing no longer says "
+              "rose or dropped; the constant is kept for this report, and as the +15% the "
+              "long-period section scores against.", "",
               "## Which break leads", "", "| margin ≥ | fires | right |", "|---|---|---|"]
     for m in MARGIN_STEPS:
         n, p = leader_precision(heights, m)
@@ -330,8 +337,8 @@ def report() -> str:
     lowest = smallest(MARGIN_STEPS, lambda case, step: leader_precision(heights, step), every=[0])
     lines += ["", f"Smallest margin right ≥ {RIGHT:.0%}: {lowest:.0%}. `briefing.LEAD_MARGIN` is "
               f"{briefing.LEAD_MARGIN:.0%}, one step stricter, so the two heights it names differ on "
-              "screen at the 0.1 ft the page shows them in (3% of 2 ft is 0.06 ft). Below it no break "
-              "is named as leading.", "",
+              "screen at the 0.1 ft the page shows them in (3% of 2 ft is 0.06 ft). The briefing no "
+              "longer names a leading break; the constant is kept for this report.", "",
               "## A ridge's period ahead", "", "| ahead | ridges still read | within 1 s | median error |",
               "|---|---|---|---|"]
     errors = period_projection()
@@ -341,7 +348,8 @@ def report() -> str:
         lines.append(f"| {h} h | {len(errs)} | {within:.0%} | {med:.2f} s |")
     lines += ["", f"`briefing.PERIOD_AHEAD_H` is {briefing.PERIOD_AHEAD_H} h, in whole seconds. Thin "
               "(one late-summer season) and biased toward ridges that last, since an ended ridge "
-              "has no reading to score against.", "",
+              "has no reading to score against. The briefing no longer says a ridge's period "
+              "ahead; the constant is kept for this report.", "",
               "## The wind's onshore habit", "", "| break | within 1.5 h of the 14-day median |", "|---|---|"]
     for bid, (hits, n) in wind_habit().items():
         lines.append(f"| {bid.replace('coronado_', '')} | {hits} of {n} |")
