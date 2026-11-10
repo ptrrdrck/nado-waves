@@ -71,6 +71,10 @@ class Ray:
     #: stated as its own effect; 1 for a table built before it was modelled.
     friction: float = 1.0
     diff_friction: float = 1.0
+    #: The row's place among its frequency's rows in `<break>.csv`, which
+    #: names the ray in `<break>_paths.json` (the map's fill). -1 for a ray
+    #: built some other way.
+    k: int = -1
 
 
 @dataclass
@@ -85,16 +89,19 @@ class Table:
         meta = json.loads((directory / f"{break_id}.json").read_text())
         by_freq: dict[float, list[Ray]] = {}
         with (directory / f"{break_id}.csv").open(newline="", encoding="utf-8") as fh:
+            place: dict[float, int] = {}
             for row in csv.DictReader(fh):
+                f = float(row["freq_hz"])
+                k = place[f] = place.get(f, -1) + 1
                 gain, diff_gain = float(row["gain"]), float(row["diff_gain"])
                 if gain <= 0.0 and diff_gain <= 0.0:
                     continue          # carries nothing, hard or soft
-                by_freq.setdefault(float(row["freq_hz"]), []).append(Ray(
+                by_freq.setdefault(f, []).append(Ray(
                     float(row["near_from_deg"]), math.radians(float(row["near_width_deg"])),
                     float(row["off_from_deg"]), gain,
                     float(row["diff_off_from_deg"]), diff_gain,
                     float(row.get("friction") or 1.0),
-                    float(row.get("diff_friction") or 1.0)))
+                    float(row.get("diff_friction") or 1.0), k))
         fetch = []
         path = directory / f"{break_id}_fetch.csv"
         if path.exists():

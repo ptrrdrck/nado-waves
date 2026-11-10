@@ -1422,6 +1422,28 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 /* MapLibre's own "two fingers" screen, in the page's type. */
 .sm-map .maplibregl-cooperative-gesture-screen{background:rgba(0,0,0,.45);color:#fff;
   font:600 15px/1.3 Archivo,sans-serif;padding:0 24px;z-index:6}
+/* The map's fill on LIVE: its rays' canvas over the map and under its
+   controls; the play bar along the map's foot, left of return, + and -,
+   dressed as every map control is. */
+.sf-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.sf-bar{position:absolute;left:4px;bottom:4px;z-index:4;display:flex;align-items:center;gap:4px;height:28px}
+.sf-bar[hidden]{display:none!important}
+.sf-play{flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
+  width:28px;height:28px;padding:0;margin:0;border:1px solid transparent;border-radius:6px;cursor:pointer;
+  background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.sf-play svg{width:12px;height:12px;fill:currentColor}
+/* Replay: 16 px at 1.5, as the map's + and - are drawn. */
+.sf-play svg.stroke{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;
+  stroke-linejoin:round}
+.sf-track{flex:1 1 auto;min-width:0;height:28px;box-sizing:border-box;display:flex;align-items:center;gap:8px;
+  padding:0 10px 0 8px;border:1px solid transparent;border-radius:6px;background:var(--card);color:var(--ink);
+  box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none}
+.sf-min{flex:none;width:4.4em;text-align:right;font:600 12px/1 Archivo,sans-serif;font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+.sf-line{position:relative;flex:1 1 auto;height:2px;border-radius:1px;background:var(--line-strong)}
+.sf-past{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:1px;background:var(--soft)}
+.sf-head{position:absolute;top:50%;left:0;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--ink)}
+.sf-play:focus-visible,.sf-track:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 </style>
 
 <div class="wrap">
@@ -1550,6 +1572,11 @@ const MAP_SOURCE = PARAM.get("map") || "../data/live/map.json";
 const SEABED_TILES = "../data/seabed_tiles/";
 // The map library, bundled beside the page (BSD-3, its licence beside it).
 const MAPLIBRE = "vendor/maplibre-gl-4.7.1/maplibre-gl";
+// The map's fill on LIVE: each train's energy ray by ray (forecast.fill),
+// fetched only when a train is picked on the map, and each break's ray paths
+// (forecast.raytrace --paths-only), fetched the first time a fill plays.
+const FILL_SOURCE = PARAM.get("fill") || "../data/live/fill.json";
+const NEARSHORE_PATHS = "../data/nearshore/";
 
 // North to south along the sand: the west edge of the window is the bearing
 // to the Point Loma tip and it sweeps as you walk. This is the scope and the
@@ -9442,6 +9469,7 @@ Promise.all([
       this.box.classList.toggle("on-map", on);
       this.space();
       this.say(readSvg(this.svg).caption);
+      if (!on) this.fillEnd();
       if (!on || !this.box.offsetWidth) return;
       ready().then((d) => {
         if (!d || view !== "map" || !this.box.isConnected) return;
@@ -9485,7 +9513,7 @@ Promise.all([
       map.keyboard.disableRotation();
       this.limits();
       map.on("load", () => { this.land(); this.draw(); });
-      map.on("render", () => this.drawMarks());
+      map.on("render", () => { this.drawMarks(); this.paintFill(); });
       map.on("moveend", () => {
         if (this.framed) VIEWS[this.id] = {center: map.getCenter(), zoom: map.getZoom()};
         this.pull();
@@ -9694,6 +9722,7 @@ Promise.all([
       }
       this.map.triggerRepaint();
       this.say(d.caption);
+      this.fillSync();
     }
 
     // The caption under the drawing or the map, the drawing's two lines
@@ -9707,6 +9736,235 @@ Promise.all([
     sync() {
       if (!this.el.hidden) this.draw();
       else this.say(readSvg(this.svg).caption);
+    }
+
+    // ---------------------------------------------------------------- the fill
+    // On LIVE, a picked train's energy coming in along its rays' traced paths
+    // (owner's request, 2026-11-10; mocked in mocks/swell_fill). The paths are
+    // the break's (`<break>_paths.json`, raytrace --paths-only); how much of
+    // the train each ray carries is fill.json's (forecast.fill), built from
+    // the same spectrum as now.json and checked against the chain's own 5 m
+    // height. The clock is minutes after the same wave group passed NDBC
+    // 46232; long periods come in first. Nothing here is a wave or a crest.
+    fillSync() {
+      const key = PICKED[this.id] || null;
+      const rows = fillRowsOf(key);
+      const live = MODE === "now" && view === "map" && !this.el.hidden && this.map;
+      if (this.fill && (!live || this.fill.key !== key)) this.fillEnd();
+      if (!live || !rows.length) { if (this.bar) this.bar.hidden = true; return; }
+      fillData().then((d) => {
+        const mine = d && NOW && d.observed_utc === NOW.observed_utc && (d.breaks || {})[this.id];
+        const have = mine ? rows.filter((n) => mine.some((r) => r.row === n)) : [];
+        if (PICKED[this.id] !== key || !have.length) { if (this.bar) this.bar.hidden = true; return; }
+        this.fillBar();
+        this.bar.hidden = false;
+        if (!this.fill) this.fill = {key, rows: have, t: null, playing: false, started: false, m: null};
+        this.fillRender();
+        // The timeline shows its start as soon as a train is picked (owner's
+        // request, 2026-11-10), which needs the break's paths: fetched now,
+        // once per break.
+        this.fillPrepare().then(() => this.fillRender());
+      });
+    }
+
+    fillBar() {
+      if (this.bar) return;
+      this.fillCanvas = document.createElement("canvas");
+      this.fillCanvas.className = "sf-canvas";
+      this.fillCanvas.setAttribute("aria-hidden", "true");
+      this.el.appendChild(this.fillCanvas);
+      this.bar = document.createElement("div");
+      this.bar.className = "sf-bar";
+      this.bar.hidden = true;
+      this.bar.innerHTML = `<button type="button" class="sf-play"></button>`
+        + `<div class="sf-track" role="slider" tabindex="0" aria-label="Minutes after NDBC 46232">`
+        + `<span class="sf-min"></span><span class="sf-line"><span class="sf-past"></span><span class="sf-head"></span></span></div>`;
+      this.el.appendChild(this.bar);
+      this.bar.addEventListener("click", (e) => e.stopPropagation());
+      this.bar.querySelector(".sf-play").addEventListener("click", () => this.fillToggle());
+      const track = this.bar.querySelector(".sf-track");
+      track.addEventListener("pointerdown", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        this.fillPrepare().then((S) => {
+          if (!S) return;
+          S.playing = false;
+          this.fillStart(S);
+          const line = track.querySelector(".sf-line");
+          const move = (ev) => {
+            const r = line.getBoundingClientRect();
+            S.t = S.m.t0 + Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * (S.m.t1 - S.m.t0);
+            this.fillRender();
+          };
+          move(e);
+          try { track.setPointerCapture(e.pointerId); } catch (err) { /* released already */ }
+          const up = () => { track.removeEventListener("pointermove", move); track.removeEventListener("pointerup", up); };
+          track.addEventListener("pointermove", move);
+          track.addEventListener("pointerup", up);
+        });
+      });
+      track.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        this.fillPrepare().then((S) => {
+          if (!S) return;
+          S.playing = false;
+          this.fillStart(S);
+          S.t = Math.max(S.m.t0, Math.min(S.m.t1, S.t + (e.key === "ArrowLeft" ? -1 : 1)));
+          this.fillRender();
+        });
+      });
+    }
+
+    // The rays and their shares, once: the break's paths file the first time.
+    fillPrepare() {
+      const S = this.fill;
+      if (!S) return Promise.resolve(null);
+      if (S.m) return Promise.resolve(S);
+      return Promise.all([fillData(), pathsOf(this.id)]).then(([d, paths]) => {
+        if (!d || !paths || this.fill !== S) return null;
+        S.m = fillModel(d.breaks[this.id], S.rows, paths);
+        if (!S.m) return null;
+        S.t = S.m.t0;
+        return S;
+      });
+    }
+
+    fillToggle() {
+      this.fillPrepare().then((S) => {
+        if (!S) return;
+        this.fillStart(S);
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          S.playing = false; S.t = S.m.t1;
+        } else if (S.playing) {
+          S.playing = false;
+        } else {
+          if (S.t >= S.m.t1 - 1e-6) S.t = S.m.t0;
+          S.playing = true;
+          fillRun();
+        }
+        this.fillRender();
+      });
+    }
+
+    // The first play or scrub: the arrows give way, and the map frames the rays.
+    fillStart(S) {
+      if (S.started) return;
+      S.started = true;
+      this.box.classList.add("sf-filling");
+      const map = this.map, p0 = this.b.position, normal = this.b.normal;
+      const kmLat = 111.32, kmLon = 111.32 * Math.cos(rad(p0[0]));
+      const up = [Math.sin(rad(normal)), Math.cos(rad(normal))], side = [Math.cos(rad(normal)), -Math.sin(rad(normal))];
+      let a0 = 0, a1 = 0, s0 = 0, s1 = 0;
+      S.m.rays.forEach(({pts, e}) => {
+        if (e < 0.05 * S.m.ref) return;
+        pts.forEach(([la, lo]) => {
+          const dx = (lo - p0[1]) * kmLon, dy = (la - p0[0]) * kmLat;
+          const al = dx * up[0] + dy * up[1], sd = dx * side[0] + dy * side[1];
+          a0 = Math.min(a0, al); a1 = Math.max(a1, al); s0 = Math.min(s0, sd); s1 = Math.max(s1, sd);
+        });
+      });
+      const W = this.el.clientWidth, H = this.el.clientHeight;
+      const mpp = Math.max((s1 - s0) * 1.12 * 1000 / W, ((a1 - a0) * 1.15 + 0.5) * 1000 / H);
+      const zoom = Math.max(map.getMinZoom(), Math.log2(MPP0 * Math.cos(rad(p0[0])) / mpp));
+      const ca = (a0 + a1) / 2 - 0.25, cs = (s0 + s1) / 2;
+      const cdx = ca * up[0] + cs * side[0], cdy = ca * up[1] + cs * side[1];
+      map.easeTo({center: [p0[1] + cdx / kmLon, p0[0] + cdy / kmLat], zoom, bearing: normal,
+        duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 500});
+    }
+
+    fillEnd() {
+      if (!this.fill) return;
+      this.fill = null;
+      this.box.classList.remove("sf-filling");
+      if (this.fillCanvas) {
+        const ctx = this.fillCanvas.getContext("2d");
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.fillCanvas.width, this.fillCanvas.height);
+      }
+      if (this.bar) this.bar.hidden = true;
+      this.say(readSvg(this.svg).caption);
+      if (this.map) this.map.triggerRepaint();
+    }
+
+    fillRender() {
+      const S = this.fill;
+      if (!S || !this.bar) return;
+      const ctl = this.el.querySelector(".sm-ctl");
+      this.bar.style.right = `${ctl ? ctl.offsetWidth + 8 : 96}px`;
+      const btn = this.bar.querySelector(".sf-play");
+      const mode = S.playing ? "pause" : S.m && S.started && S.t >= S.m.t1 - 1e-6 ? "again" : "play";
+      if (btn.dataset.mode !== mode) {
+        btn.dataset.mode = mode;
+        btn.innerHTML = FILL_ICON[mode];
+        btn.setAttribute("aria-label", mode === "pause" ? "Pause the swell filling in"
+          : mode === "again" ? "Play the swell filling in again" : "Play the swell filling in");
+      }
+      if (!S.m) {
+        this.bar.querySelector(".sf-min").textContent = "";
+        return;
+      }
+      const f = (S.t - S.m.t0) / (S.m.t1 - S.m.t0), r = Math.round(S.t);
+      this.bar.querySelector(".sf-min").textContent = `${r < 0 ? "−" : "+"}${Math.abs(r)} min`;
+      this.bar.querySelector(".sf-past").style.width = `${(100 * f).toFixed(2)}%`;
+      this.bar.querySelector(".sf-head").style.left = `${(100 * f).toFixed(2)}%`;
+      const track = this.bar.querySelector(".sf-track");
+      track.setAttribute("aria-valuemin", Math.round(S.m.t0));
+      track.setAttribute("aria-valuemax", Math.round(S.m.t1));
+      track.setAttribute("aria-valuenow", r);
+      if (!S.started) return;
+      const text = fillReadout(S);
+      track.setAttribute("aria-valuetext", text);
+      if (this.cap.textContent !== text) this.cap.textContent = text;
+      this.map.triggerRepaint();
+    }
+
+    // The rays, drawn to the minute shown: each from its start toward the
+    // break as far as its group has come, brighter for more of the train's
+    // energy, the light adding up where rays crowd, as the energy does.
+    paintFill() {
+      const c = this.fillCanvas, S = this.fill;
+      if (!c) return;
+      const dpr = window.devicePixelRatio || 1, W = this.el.clientWidth, H = this.el.clientHeight;
+      if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) {
+        c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+      }
+      const ctx = c.getContext("2d");
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, c.width, c.height);
+      if (!S || !S.m || !S.started) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.strokeStyle = LIT; ctx.fillStyle = LIT; ctx.lineWidth = 1.3; ctx.lineJoin = "round";
+      const t = S.t, map = this.map;
+      S.m.rays.forEach(({pts, e}) => {
+        if (t <= pts[0][2]) return;
+        const a = Math.min(1, 0.9 * e / S.m.ref);
+        if (a < 0.01) return;
+        ctx.globalAlpha = a;
+        ctx.beginPath();
+        let p = map.project([pts[0][1], pts[0][0]]);
+        ctx.moveTo(p.x, p.y);
+        let k = 1, prev = p;
+        for (; k < pts.length && pts[k][2] <= t; k++) {
+          p = map.project([pts[k][1], pts[k][0]]);
+          ctx.lineTo(p.x, p.y);
+          prev = p;
+        }
+        let fx = prev.x, fy = prev.y;
+        if (k < pts.length) {
+          const q = map.project([pts[k][1], pts[k][0]]);
+          const u = (t - pts[k - 1][2]) / (pts[k][2] - pts[k - 1][2]);
+          fx = prev.x + u * (q.x - prev.x); fy = prev.y + u * (q.y - prev.y);
+          ctx.lineTo(fx, fy);
+        }
+        ctx.stroke();
+        if (k < pts.length) {           // the front, while it is still on its way
+          ctx.globalAlpha = Math.min(1, a * 1.6);
+          ctx.beginPath(); ctx.arc(fx, fy, 1.6, 0, 2 * Math.PI); ctx.fill();
+        }
+      });
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
     }
 
     // The drawing moves DOWN to its caption (owner's request, 2026-11-08):
@@ -9732,7 +9990,138 @@ Promise.all([
     store(VIEW_KEY, v);
     faces.forEach((f) => f.show());
   }
-  window.swellMapFaces = faces;               // read by the fill (below) and by checks
+  window.swellMapFaces = faces;               // read by checks
+
+  // ---------------------------------------------------------------- the fill's data
+  const FILL_ICON = {
+    play: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z"/></svg>',
+    pause: '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" rx=".5"/>'
+      + '<rect x="7" y="1.5" width="3" height="9" rx=".5"/></svg>',
+    // The week card's "back to" clock without its arms (owner's reference,
+    // 2026-11-10), at the map buttons' line.
+    again: '<svg class="stroke" viewBox="0 0 16 16" aria-hidden="true">'
+      + '<path d="M3.1 5.6A5.4 5.4 0 1 1 2.6 8.6"/><path d="M2.7 3.2v2.6h2.6"/></svg>',
+  };
+  const FILL_PLAY_MS = 12000;               // the whole fill, on screen
+  let FILLDATA = null, FILL_LOADING = null;
+  const PATHS = {};
+  // fill.json, again whenever now.json has moved on: the two are built from
+  // one spectrum and must name the same one.
+  function fillData() {
+    if (FILLDATA && NOW && FILLDATA.observed_utc === NOW.observed_utc) return Promise.resolve(FILLDATA);
+    if (FILL_LOADING) return FILL_LOADING;
+    FILL_LOADING = fetch(fresh(FILL_SOURCE), {cache: "no-store"})
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { FILL_LOADING = null; FILLDATA = d; return d; })
+      .catch(() => { FILL_LOADING = null; return null; });
+    return FILL_LOADING;
+  }
+  // A break's ray paths, static between ray-table builds, fetched once.
+  function pathsOf(id) {
+    if (!PATHS[id]) {
+      PATHS[id] = fetch(`${NEARSHORE_PATHS}${id}_paths.json`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!d) { delete PATHS[id]; return null; }
+          const byRay = new Map();
+          Object.entries(d.rays).forEach(([f, rays]) => rays.forEach(([k, , pts]) => byRay.set(`${f}:${k}`, pts)));
+          return byRay;
+        })
+        .catch(() => { delete PATHS[id]; return null; });
+    }
+    return PATHS[id];
+  }
+  // A key's rows: "T1", "t1", "t1-1" one train; "G0.2" each row of one swell.
+  function fillRowsOf(key) {
+    if (!key) return [];
+    let m = /^[Tt](\d+)(?:-\d+)?$/.exec(key);
+    if (m) return [+m[1]];
+    m = /^G([\d.]+)$/.exec(key);
+    return m ? m[1].split(".").map(Number) : [];
+  }
+  function fillModel(breakRows, rows, paths) {
+    const picked = rows.map((n) => (breakRows || []).find((r) => r.row === n)).filter(Boolean);
+    if (!picked.length) return null;
+    const w = new Map(), byRow = picked.map(() => []);
+    picked.forEach((row, ri) => {
+      const e0 = row.row_hs_m * row.row_hs_m;
+      row.rays.forEach(([f, k, share]) => {
+        const pts = paths.get(`${f}:${k}`);
+        if (!pts) return;
+        const id = `${f}:${k}`;
+        const v = w.get(id) || {pts, e: 0, period: 1 / +f};
+        v.e += share * e0;
+        w.set(id, v);
+        byRow[ri].push([pts, share, 1 / +f]);
+      });
+    });
+    const rays = [...w.values()];
+    if (!rays.length) return null;
+    const sorted = rays.map((r) => r.e).sort((p, q) => p - q);
+    const ref = sorted[Math.floor(sorted.length * 0.9)] || 1;
+    const arrive = (r) => r.pts[r.pts.length - 1][2];
+    const order = rays.slice().sort((p, q) => arrive(p) - arrive(q));
+    const total = rays.reduce((s, r) => s + r.e, 0);
+    const pct = (p) => {
+      let c = 0;
+      for (const r of order) { c += r.e; if (c >= p * total) return arrive(r); }
+      return arrive(order[order.length - 1]);
+    };
+    const last = pct(0.98);
+    // The clock opens as the swell passes 46232 (0), or earlier where much
+    // of it leaves deep water up-swell of the buoy's line.
+    const starts = rays.map((r) => [r.pts[0][2], r.e]).sort((p, q) => p[0] - q[0]);
+    let acc = 0, start = 0;
+    for (const [t, e] of starts) { acc += e; if (acc >= 0.02 * total) { start = Math.min(0, t); break; } }
+    return {rays, ref, byRow, rowHs: picked.map((r) => r.row_hs_m), drawn: picked.map((r) => r.drawn_share),
+      t0: Math.floor(start), t1: last + 3, last};
+  }
+  function fillSoFar(m, t) {
+    const inRow = m.rowHs.map(() => 0), per = {};
+    m.byRow.forEach((list, ri) => list.forEach(([pts, share, period]) => {
+      const p = period.toFixed(1), v = per[p] || (per[p] = [0, 0]);
+      v[1] += share;
+      if (pts[pts.length - 1][2] <= t) { inRow[ri] += share; v[0] += share; }
+    }));
+    const h = Math.sqrt(m.rowHs.reduce((s, hs, ri) => s + hs * hs * Math.min(1, inRow[ri] / (m.drawn[ri] || 1)), 0));
+    const tot = Object.values(per).reduce((s, v) => s + v[1], 0);
+    const ps = Object.entries(per).filter(([, v]) => v[1] >= 0.02 * tot && v[0] >= 0.5 * v[1]).map(([p]) => +p);
+    return {h, longest: ps.length ? Math.max(...ps) : null, shortest: ps.length ? Math.min(...ps) : null};
+  }
+  const fillMinutes = (t) => (Math.round(t) < 0 ? `${-Math.round(t)} min before` : `+${Math.round(t)} min`);
+  function fillReadout(S) {
+    const {m, t} = S;
+    if (t >= m.t1 - 1e-6) {
+      return `98% in by ${fillMinutes(m.last)} · ${heightText(Math.sqrt(m.rowHs.reduce((s, hs) => s + hs * hs, 0)))}`;
+    }
+    const sf = fillSoFar(m, t);
+    if (!(sf.h > 0)) return `${fillMinutes(t)} · on its way in`;
+    if (!sf.longest) return `${fillMinutes(t)} · ${heightText(sf.h)} in`;
+    const ps = sf.longest === sf.shortest ? `${sf.longest.toFixed(1)} s`
+      : `${sf.longest.toFixed(1)}–${sf.shortest.toFixed(1)} s`;
+    return `${fillMinutes(t)} · ${ps} in · ${heightText(sf.h)}`;
+  }
+  let FILL_RAF = 0, FILL_LAST = 0;
+  function fillRun() {
+    FILL_LAST = performance.now();
+    if (!FILL_RAF) FILL_RAF = requestAnimationFrame(fillTick);
+  }
+  function fillTick(now) {
+    FILL_RAF = 0;
+    const dt = Math.min(now - FILL_LAST, 100);
+    FILL_LAST = now;
+    let more = false;
+    faces.forEach((f) => {
+      const S = f.fill;
+      if (!S || !S.playing || !S.m) return;
+      if (MODE !== "now") { f.fillEnd(); return; }
+      S.t = Math.min(S.m.t1, S.t + dt * (S.m.t1 - S.m.t0) / FILL_PLAY_MS);
+      if (S.t >= S.m.t1) S.playing = false;
+      f.fillRender();
+      more = more || S.playing;
+    });
+    if (more) FILL_RAF = requestAnimationFrame(fillTick);
+  }
 
   // The page redraws its cards on every refresh and every hour picked: each
   // break's new drawing is handed to its face, which keeps its map.

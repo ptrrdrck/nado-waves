@@ -42,6 +42,10 @@ The bundle:
                     fetches only the tiles in view
     vendor/         app/vendor/: MapLibre GL JS 4.7.1 and its BSD-3 licence,
                     which draws the map; loaded only when the map is opened
+    nearshore/      data/nearshore/<break>_paths.json: each break's ray paths
+                    for the map's fill (forecast.raytrace --paths-only)
+    fill.json       data/live/fill.json: each LIVE train's energy ray by ray
+                    (forecast.fill); fetched only when a fill is played
     docs.html       app/docs.html: the documentation, with the geometry
                     drawing filled by forecast.geomviz from spots.json, the
                     caveat and both chains' standing-on blocks; linked from
@@ -149,6 +153,13 @@ REPO_MAP_PATH = "../data/live/map.json"
 BUNDLE_MAP_PATH = "map.json"
 REPO_SEABED_PATH = "../data/seabed_tiles/"
 BUNDLE_SEABED_PATH = "seabed/"
+#: The map's fill on LIVE: each train's energy by ray (`forecast.fill`) and
+#: each break's ray paths (`forecast.raytrace --paths-only`).
+REPO_FILL_PATH = "../data/live/fill.json"
+BUNDLE_FILL_PATH = "fill.json"
+REPO_NEARSHORE_PATH = "../data/nearshore/"
+BUNDLE_NEARSHORE_PATH = "nearshore/"
+NEARSHORE_SOURCE = REPO_ROOT / "data" / "nearshore"
 #: Where they come from here. The vendored map library sits beside the page in
 #: `app/vendor/` and at `vendor/` in the bundle, so its path needs no repointing.
 SEABED_SOURCE = REPO_ROOT / "data" / "seabed_tiles"
@@ -239,7 +250,9 @@ def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
             .replace(REPO_BRIEFING_PATH, BUNDLE_BRIEFING_PATH)
             .replace(REPO_ALERTS_PATH, BUNDLE_ALERTS_PATH)
             .replace(REPO_MAP_PATH, BUNDLE_MAP_PATH)
-            .replace(REPO_SEABED_PATH, BUNDLE_SEABED_PATH))
+            .replace(REPO_SEABED_PATH, BUNDLE_SEABED_PATH)
+            .replace(REPO_FILL_PATH, BUNDLE_FILL_PATH)
+            .replace(REPO_NEARSHORE_PATH, BUNDLE_NEARSHORE_PATH))
 
 
 def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
@@ -253,7 +266,8 @@ def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> Non
 
     for name in (BUNDLE_MEASURED_PATH, BUNDLE_SERIES_PATH, BUNDLE_SERIES_ALL_PATH,
                  BUNDLE_WINDTIDE_PATH, BUNDLE_ORIGINS_PATH, BUNDLE_BUOYS_PATH,
-                 BUNDLE_BUOYS_ALL_PATH, BUNDLE_BRIEFING_PATH, BUNDLE_ALERTS_PATH):
+                 BUNDLE_BUOYS_ALL_PATH, BUNDLE_BRIEFING_PATH, BUNDLE_ALERTS_PATH,
+                 BUNDLE_FILL_PATH):
         source = Path(data_dir) / "live" / name
         if not source.exists():
             continue
@@ -279,6 +293,14 @@ def copy_map(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
         if source.exists():
             shutil.copytree(source, out_dir / name)
             written[name + "/"] = sum(p.stat().st_size for p in (out_dir / name).rglob("*") if p.is_file())
+    # The ray paths only: the rest of data/nearshore/ is the chain's own.
+    paths = sorted(NEARSHORE_SOURCE.glob("*_paths.json"))
+    if paths:
+        target_dir = out_dir / BUNDLE_NEARSHORE_PATH.rstrip("/")
+        target_dir.mkdir()
+        for path in paths:
+            shutil.copy2(path, target_dir / path.name)
+        written[BUNDLE_NEARSHORE_PATH] = sum(p.stat().st_size for p in target_dir.iterdir())
 
 
 def wrap(fragment: str, *, app_title: str) -> str:

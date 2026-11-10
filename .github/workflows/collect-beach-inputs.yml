@@ -286,6 +286,14 @@ jobs:
           # while a hurricane's band is arriving at 46047 or 46086.
           python -m forecast.originhistory --live
 
+      # The Swell card map's fill on LIVE: each train's energy ray by ray, for
+      # the reading now.json was just built from, checked against the chain's
+      # own 5 m height (forecast.fill). Its own step and file: a failure here
+      # never touches now.json. ~1 s.
+      - name: The map's fill
+        continue-on-error: true
+        run: python -m forecast.fill
+
       # The context buoys on the LIVE tab's Buoys tab (46047, Tanner Bank, and
       # 46086, San Clemente Basin): each one's newest spectrum at the buoy,
       # not carried to any break, with its own measured countdown. Their own file

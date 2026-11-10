@@ -260,3 +260,26 @@ def test_travel_time_along_a_ray_is_the_group_integral(period):
     assert float(rays.time_s[0]) == pytest.approx(expected, rel=0.01)
     # Slower than deep water over the same path: the shelf holds it back.
     assert float(rays.time_s[0]) > float(rays.path_m[0]) / (G * period / (4 * math.pi)) * 0.9
+
+
+def test_recording_paths_changes_nothing_the_tables_read():
+    """`trace(record=True)` (the map fill's paths, 2026-11-10) only records:
+    every status, heading, exit, friction and travel time is the same, and
+    each path starts at the start point and ends at the ray's exit."""
+
+    from forecast.raytrace import trace
+
+    bathy = planar()
+    x0, y0 = start(bathy)
+    near = np.linspace(-60.0, 60.0, 13)
+    plain = trace(bathy, x0, y0, near, 12.0)
+    rec = trace(bathy, x0, y0, near, 12.0, record=True)
+    assert plain.paths is None and len(rec.paths) == near.size
+    assert np.array_equal(plain.status, rec.status)
+    for a, b in ((plain.off_from_deg, rec.off_from_deg), (plain.exit_x, rec.exit_x),
+                 (plain.exit_y, rec.exit_y), (plain.friction, rec.friction), (plain.time_s, rec.time_s)):
+        assert np.array_equal(a, b)
+    for i, p in enumerate(rec.paths):
+        assert p[0][:2] == (x0, y0)
+        assert p[-1][0] == rec.exit_x[i] and p[-1][1] == rec.exit_y[i]
+        assert p[-1][2] == rec.time_s[i]

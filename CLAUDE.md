@@ -546,6 +546,33 @@ forecaster actually verifies against, Surfline included.
    `seabed/` and `vendor/` it ships from BOTH publish jobs, and
    `publish-pages.sh` replaces a directory whole (its old `cp "$BUNDLE"/*`
    skipped directories and, under `set -e`, would have failed the publish).
+   **The map's FILL, LIVE only** (owner's requests and calls, 2026-11-10,
+   mocked in mocks/swell_fill and shipped the same day): pick a train on the
+   map and a play button and a timeline appear along its foot, the
+   timeline at its start at once; play and the train comes in along its
+   rays -- every row of the break's table that clears every edge, drawn
+   where it was TRACED (`raytrace.trace(record=True)`, `--paths-only` ->
+   `data/nearshore/<break>_paths.json`, each ray checked against its table
+   row; 2.8 MB, ~0.8 MB compressed, a break's fetched the first time a train
+   is picked there), from the line through 46232 square to its heading
+   (where the chain takes the buoy's spectrum to hold, the clock's 0) to
+   the exit, over the seabed to 5 m, then along the break's normal to the
+   break; long periods first, minutes after 46232 (`leg_table`'s
+   arithmetic). Each ray's share of the train is `forecast/fill.py`'s
+   (`data/live/fill.json`, its own step after `forecast.now`, NEVER a key
+   in now.json: owner's question, the per-ray energy would ride every
+   refresh): the chain's carry re-run for now.json's own spectrum, credited
+   as `carry` credits it -- diffraction on the nearest clearing ray of the
+   same period -- and a row whose rays do not rebuild the chain's 5 m height
+   to 2 mm is left out with a note, never drawn wrong; the page plays a
+   fill only when fill.json and now.json name the same spectrum. Brighter
+   for more energy, the light adding where rays crowd; the caption the
+   periods and height in so far, then "98% in by +N min" and the row's own
+   height. **Not a wave field**: no crest is drawn, nothing observes it,
+   and swell wrapping round a headland tip is where the ray method is
+   weakest (§31, §45). The first version, on the window DRAWING, was
+   dropped by the owner the same day: a view from the break can only draw
+   swell bending round Point Loma's tip as energy crossing its shadow.
    **The Forecast tab reaches 48 h back** (owner's decision, 2026-09-26). For a
    past hour it shows what the page showed then: the newest run published
    before that hour, from `forecast.json`'s `past`, read back from the
@@ -1849,6 +1876,9 @@ forecaster actually verifies against, Surfline included.
                         swept over scale; reports, never edits    [built]
       blockeredge.py    a blocker's edges read off the charted coast, against
                         what spots.json claims; reports, never edits  [built]
+      fill.py           the map's fill on LIVE: each train's 5 m energy
+                        credited ray by ray, checked against the chain's
+                        height, into data/live/fill.json            [built]
       seabedtiles.py    PRECOMPUTE (numpy, Pillow): the Swell card map's
                         seabed as map tiles from the bathymetry grids, into
                         data/seabed_tiles/; `--check`            [built]
@@ -1918,7 +1948,8 @@ forecaster actually verifies against, Surfline included.
       beachverify.py    does the log agree with the geometry, and the control
     data/live/          forecast.json, now.json, measured.json, series.json,
                         series_all.json, windtide.json, origins.json,
-                        buoys.json, briefing.json and alerts.json, what the app surface
+                        buoys.json, briefing.json, alerts.json, fill.json
+                        and map.json, what the app surface
                         reads (derived, gitignored)
     data/alerts/        YYYY/<oid>.json: every NWS alert the active listing
                         returned for CAZ043 and PZZ750, as NWS served it,
@@ -1993,6 +2024,9 @@ forecaster actually verifies against, Surfline included.
                         start point to dry sand, along the normal)
                         <break>_skyline.csv (the land's angle above the eye
                         every 0.02° of azimuth, 225–315°; forecast.skyline)
+                        <break>_paths.json (every clearing ray's traced path
+                        and minutes after 46232, 0.03–0.25 Hz, for the map's
+                        fill; raytrace --paths-only)
     data/beach_log/     the verification series — human observation  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/ensemble_forecasts/ GEFS-Wave's bulletin at 46232, 00Z 2023–2025 (means
