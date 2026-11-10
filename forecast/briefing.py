@@ -747,7 +747,8 @@ def upstream_story(data_dir: Path, buoys: dict | None, at: datetime, spectra=Non
     bands earliest first (a dispersed swell's long periods lead), each band
     when it rose and when deep water puts it at 46232 and the breaks
     (BRIEFING §43); its first arrival at the breaks, and its trend at Tanner
-    Banks now."""
+    Bank now. Each band's energy is `offshore_energy`'s, a bin MEM cannot
+    represent read by Fourier as the train status reads it."""
 
     from . import upstreamlag as ul
 
@@ -769,13 +770,13 @@ def upstream_story(data_dir: Path, buoys: dict | None, at: datetime, spectra=Non
         heading = sum(ul.SECTORS[sector]) / 2.0
         risen = {}
         for band in UPSTREAM_BANDS_S:
-            smoothed = ul.smooth_log(ul.series(recent, band, ul.SECTORS[sector]), ul.SMOOTH_ONSET_H)
+            smoothed = ul.smooth_log(offshore_series(recent, band, ul.SECTORS[sector]), ul.SMOOTH_ONSET_H)
             risen[band] = [r for r in ul.rises(smoothed) if since - timedelta(hours=UPSTREAM_GROUP_H) <= r.mid <= at]
         swell = disperse(risen, since)
         if not swell:
             continue
         start = min(r.start for _, r in swell)
-        held = [(t, math.exp(v)) for t, v in ul.smooth_log(ul.series(recent, whole_band, ul.SECTORS[sector]),
+        held = [(t, math.exp(v)) for t, v in ul.smooth_log(offshore_series(recent, whole_band, ul.SECTORS[sector]),
                                                            ul.SMOOTH_ONSET_H) if t >= start]
         if not held:
             continue
@@ -969,8 +970,6 @@ def band_energy(spectrum, band_hz, held) -> float | None:
     at all (an energetic bin with none never loads: `transform.unplaceable_bin`):
     never a partial sum."""
 
-    from .spreadmethod import R1_CEILING, Unrealisable, mem_sector, shipped
-
     lo, hi = band_hz
     whole = not held or (held[1] - held[0]) % 360 == 0
     total, n = 0.0, 0
@@ -980,20 +979,68 @@ def band_energy(spectrum, band_hz, held) -> float | None:
         e = spectrum.c11[i]
         if e is None or math.isnan(e):
             return None
-        share = 1.0
-        if not whole:
-            vals = (spectrum.r1[i], spectrum.r2[i], spectrum.a1[i], spectrum.a2[i])
-            if any(v is None or math.isnan(v) for v in vals):
-                return None
-            try:
-                if vals[0] >= R1_CEILING:
-                    raise Unrealisable("r1 at its ceiling")
-                share = mem_sector(*vals, float(held[0]), float(held[1]))
-            except (Unrealisable, ValueError, ZeroDivisionError):
-                share = fourier_sector(shipped(*vals), held)
+        share = 1.0 if whole else sector_share(spectrum, i, held)
+        if share is None:
+            return None
         total += e * spectrum.bin_width(i) * share
         n += 1
     return total if n else None
+
+
+def sector_share(spectrum, i: int, held) -> float | None:
+    """Bin i's share of its energy between two bearings, clockwise from the
+    first: by maximum entropy in closed form, and a bin MEM cannot represent
+    (r1 at its ceiling, or moments it finds unrealisable) by NDBC's clamped
+    Fourier form, as the chain reads it (`transform.Spectrum.density`).
+    None when the bin has no direction reading at all."""
+
+    from .spreadmethod import R1_CEILING, Unrealisable, mem_sector, shipped
+
+    vals = (spectrum.r1[i], spectrum.r2[i], spectrum.a1[i], spectrum.a2[i])
+    if any(v is None or math.isnan(v) for v in vals):
+        return None
+    try:
+        if vals[0] >= R1_CEILING:
+            raise Unrealisable("r1 at its ceiling")
+        return mem_sector(*vals, float(held[0]), float(held[1]))
+    except (Unrealisable, ValueError, ZeroDivisionError):
+        return fourier_sector(shipped(*vals), held)
+
+
+def offshore_energy(spectrum, band_s, sector) -> float | None:
+    """m² at Tanner Bank in a period band from a sector, for the offshore
+    lines: `upstreamlag.band_energy`'s bins (the band half-open in
+    frequency), each read by `sector_share` as the train status reads its
+    own. Owner's call, 2026-11-10, for consistency: `upstreamlag.band_energy`
+    drops a reading with any bin MEM cannot represent (3.1% of 46047's to
+    10 Nov), and stays so for BRIEFING §43's report. Replayed over the
+    record since 24 Oct (91% of builds reproduced as shipped), the change
+    alters 8 of 670 builds, each only its trend word; hourly over 16 Aug to
+    10 Nov, 29 of 2,048 hours (a line on 371 against 366). None only when a
+    bin has no reading at all: never a partial sum."""
+
+    lo_hz, hi_hz = 1.0 / band_s[1], 1.0 / band_s[0]
+    total = 0.0
+    for i, f in enumerate(spectrum.frequencies):
+        if not lo_hz <= f < hi_hz:
+            continue
+        e = spectrum.c11[i]
+        share = sector_share(spectrum, i, sector)
+        if e is None or math.isnan(e) or share is None:
+            return None
+        total += e * spectrum.bin_width(i) * share
+    return total
+
+
+def offshore_series(spectra, band_s, sector) -> list[tuple[datetime, float]]:
+    """`offshore_energy` at each stamp that has one: a stamp without is a gap."""
+
+    out = []
+    for s in spectra:
+        e = offshore_energy(s, band_s, sector)
+        if e is not None:
+            out.append((s.time, e))
+    return out
 
 
 def fourier_sector(dist: list[float], held) -> float:

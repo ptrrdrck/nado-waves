@@ -775,6 +775,29 @@ def test_a_bin_mem_cannot_read_is_read_as_the_chain_reads_it():
     assert abs(bf.fourier_sector(shipped(*vals), [200, 300]) - mem_sector(*vals, 200.0, 300.0)) < 0.05
 
 
+def test_the_offshore_lines_read_an_unrepresentable_bin_as_the_train_status_does():
+    """2026-11-10 (owner's call, for consistency): Tanner Bank's offshore
+    lines read a bin MEM cannot represent by Fourier, as the train status
+    does, where `upstreamlag.band_energy` -- kept so for BRIEFING §43's
+    report -- drops the whole reading. 46047 at 30 Aug 04:20Z: 9.09 s (r1
+    0.89, r2 0.81) is unrealisable, poles 1.0073 and 1.0681."""
+
+    from forecast import upstreamlag as ul
+    from forecast.transform import load_spectra
+
+    sp = next(s for s in load_spectra(Path("data/spectra/46047"))
+              if s.time == datetime(2026, 8, 30, 4, 20, tzinfo=timezone.utc)).with_spread("mem")
+    west = ul.SECTORS["west"]
+    assert ul.band_energy(sp, (8.0, 10.0), west) is None                 # the report drops it
+    assert bf.offshore_energy(sp, (8.0, 10.0), west) > 0                  # the Briefing reads it
+    # Where every bin is MEM's, the two are the same number.
+    assert bf.offshore_energy(sp, (10.0, 12.0), west) == pytest.approx(
+        ul.band_energy(sp, (10.0, 12.0), west), rel=1e-12)
+    # And the series has that stamp, where the report's has a gap.
+    stamps = [t for t, _ in bf.offshore_series([sp], (8.0, 10.0), west)]
+    assert stamps == [sp.time] and ul.series([sp], (8.0, 10.0), west) == []
+
+
 # ------------------------------------------------------------------ water quality
 
 def _beach_water(tmp_path, *, read="2026-10-30T01:23:01Z", current=None, events=(), samples=None):

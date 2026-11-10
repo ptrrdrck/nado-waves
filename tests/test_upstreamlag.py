@@ -43,14 +43,30 @@ def test_swell_travelling_from_46232_toward_46047_reads_negative():
 def test_the_whole_circle_band_energy_is_the_buoy_view_in_that_band():
     """band_energy over (nearly) the whole circle is the band's m0: the sector
     share is 1. (0–360 exactly is an empty sector to `mem_sector`, whose
-    edges are taken modulo 360.)"""
+    edges are taken modulo 360.)
 
-    s = load_spectra(ul.SPECTRA / "46232", limit=1)[0].with_spread("mem")
+    Pinned to a stamp (2026-11-09): `limit=1` reads the NEWEST record, which
+    changes every collection, and 4.4% of 46232's archived spectra (86 of
+    1,946 to 09 Nov 07Z) hold a 10–12 s bin maximum entropy cannot represent.
+    09 Nov 07Z is one: 10.53 s at r1 0.94, r2 0.92, poles 1.0055 and 1.1188.
+    There band_energy is None by design -- the report never reads such a bin
+    by a Fourier stand-in (the Briefing's train status has its own
+    `briefing.band_energy`, which does) -- and that is pinned too."""
+
+    spectra = load_spectra(ul.SPECTRA / "46232")
+    def at(stamp):
+        return next(x for x in spectra if x.time == stamp).with_spread("mem")
+
     band = (10.0, 12.0)
+    s = at(datetime(2026, 10, 23, 5, tzinfo=timezone.utc))
     total = sum(s.c11[i] * s.bin_width(i) for i, f in enumerate(s.frequencies)
                 if 1 / band[1] <= f < 1 / band[0])
+    assert total > 0
     assert ul.band_energy(s, band, (0.0, 359.999)) == pytest.approx(total, rel=1e-4)
     assert at_buoy(s)  # the spectrum is readable at all
+
+    unrealisable = at(datetime(2026, 11, 9, 7, tzinfo=timezone.utc))
+    assert ul.band_energy(unrealisable, band, (0.0, 359.999)) is None
 
 
 def test_each_break_has_a_leg_table_from_46232():
