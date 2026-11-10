@@ -252,8 +252,8 @@
       [...d.trains].reverse().forEach((t) => {
         const lit = d.on.has(t.key), w = t.lead ? 3 : 2;
         const line = [at(t.a, r * 0.95), at(t.a, r * 0.62 + 6)];
-        L.polyline(line, {color: "#000", weight: w + 3, opacity: 0.35, interactive: false}).addTo(g);
-        L.polyline(line, {color: lit ? "#ffd84d" : "#fff", weight: lit ? w + 1 : w, _key: t.key})
+        L.polyline(line, {color: "#000", weight: w + 3, opacity: 0.35, interactive: false, className: "sm-arrow"}).addTo(g);
+        L.polyline(line, {color: lit ? "#ffd84d" : "#fff", weight: lit ? w + 1 : w, _key: t.key, className: "sm-arrow"})
           .on("click", (e) => { L.DomEvent.stop(e); call("togglePick", this.svg, t.key); }).addTo(g);
         head(g, at(t.a, r * 0.62), t.a, t.lead ? 14 : 11, lit).on("click", (e) => { L.DomEvent.stop(e); call("togglePick", this.svg, t.key); });
       });
@@ -324,7 +324,7 @@
   // An arrowhead pointing in along screen angle `a` (degrees off straight up).
   function head(g, at, a, size, lit, near = false) {
     const fill = lit ? "#ffd84d" : "#fff";
-    return L.marker(at, {keyboard: false, icon: L.divIcon({className: "sm-head", iconSize: [size, size],
+    return L.marker(at, {keyboard: false, icon: L.divIcon({className: near ? "sm-head sm-near" : "sm-head", iconSize: [size, size],
       html: `<svg viewBox="0 0 16 16" width="${size}" height="${size}" style="transform:rotate(${a}deg)">`
         + `<path d="M8 15 L2 3 L8 6 L14 3 Z" fill="${fill}" stroke="#000" stroke-opacity=".5" stroke-width="1"/></svg>`})}).addTo(g);
   }

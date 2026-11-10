@@ -1,0 +1,23 @@
+/* Swell fill on the map (MOCK): the rays' canvas over the map's panes and
+   under its controls; the play bar along the map's foot, left of return,
+   + and -, dressed as every map control is. */
+.sf-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:450}
+.sf-bar{position:absolute;left:4px;bottom:4px;z-index:1000;display:flex;align-items:center;gap:4px;height:28px}
+.sf-bar[hidden]{display:none!important}
+.sf-play{flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
+  width:28px;height:28px;padding:0;margin:0;border:1px solid transparent;border-radius:6px;cursor:pointer;
+  background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.sf-play svg{width:12px;height:12px;fill:currentColor}
+.sf-play svg.stroke{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sf-track{flex:1 1 auto;min-width:0;height:28px;box-sizing:border-box;display:flex;align-items:center;gap:8px;
+  padding:0 10px 0 8px;border:1px solid transparent;border-radius:6px;background:var(--card);color:var(--ink);
+  box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none}
+.sf-min{flex:none;width:4.4em;text-align:right;font:600 12px/1 Archivo,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sf-line{position:relative;flex:1 1 auto;height:2px;border-radius:1px;background:var(--line-strong)}
+.sf-done{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:1px;background:var(--soft)}
+.sf-head{position:absolute;top:50%;left:0;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--ink)}
+.sf-play:focus-visible,.sf-track:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+/* While a fill shows, the train's arrows give way to its rays; its 5 m
+   arrowhead comes back once the fill is in. */
+.sm-face.sf-filling .sm-arrow,.sm-face.sf-filling .sm-head{display:none}
+.sm-face.sf-filling.sf-done .sm-head.sm-near{display:block}
