@@ -20,4 +20,4 @@
 /* While a fill shows, the train's arrows give way to its rays; its 5 m
    arrowhead comes back once the fill is in. */
 .sm-face.sf-filling .sm-arrow,.sm-face.sf-filling .sm-head{display:none}
-.sm-face.sf-filling.sf-done .sm-head.sm-near{display:block}
+.sm-face.sf-filling.sf-complete .sm-head.sm-near{display:block}

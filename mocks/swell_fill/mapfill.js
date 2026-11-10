@@ -238,7 +238,7 @@
     const ctx = F.canvas.getContext("2d");
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, F.canvas.width, F.canvas.height);
-    F.box.classList.remove("sf-filling", "sf-done");
+    F.box.classList.remove("sf-filling", "sf-complete");
     seabed(F, false);
     F.bar.querySelector(".sf-min").textContent = "";
     F.bar.querySelector(".sf-done").style.width = "0";
@@ -323,7 +323,7 @@
   function render(F) {
     if (!F.m) return;
     const done = F.t >= F.m.t1 - 1e-6;
-    F.box.classList.toggle("sf-done", done);
+    F.box.classList.toggle("sf-complete", done);
     const f = (F.t - F.m.t0) / (F.m.t1 - F.m.t0);
     const r = Math.round(F.t);
     F.bar.querySelector(".sf-min").textContent = `${r < 0 ? "\u2212" : "+"}${Math.abs(r)} min`;
