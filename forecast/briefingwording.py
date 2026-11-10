@@ -48,7 +48,7 @@ QUIET = {
     "built_utc": "2026-10-22T14:16:00Z", "updated_utc": "2026-10-22T14:16:00Z",
     "key": "2026-10-22T14:16:00Z", "available": True,
     "station": "46232",
-    "station_names": {"46232": "Point Loma South, CA", "46047": "Tanner Banks, CA"},
+    "station_names": {"46232": "Point Loma South, CA", "46047": "Tanner Bank, CA"},
     "swell": {"dark": False, "newest_utc": "2026-10-22T14:00:00Z",
               "breaks": [{"id": N, "hs_m": 1.02}, {"id": C, "hs_m": 1.10}, {"id": S, "hs_m": 1.18}],
               "trains": [{"period_s": 13.3, "from_deg": 205, "hs_m": 1.18, "trend": "holding"}],
@@ -139,7 +139,7 @@ def _water(**per_break):
 #: (id, what it is, the briefing.json). One per branch the page can take.
 CASES = [
     ("Q1", "a quiet morning: one range, nothing coming, no rain", QUIET),
-    ("B1", "west swell rising at Tanner Banks, waves spread over three feet, rain in the last hour",
+    ("B1", "west swell rising at Tanner Bank, waves spread over three feet, rain in the last hour",
      _case(swell__breaks=[{"id": N, "hs_m": 0.74}, {"id": C, "hs_m": 1.00}, {"id": S, "hs_m": 1.31}],
            swell__trains=[{"period_s": 18.2, "from_deg": 188, "hs_m": 1.31, "trend": "building"}],
            swell__coming=[WEST],

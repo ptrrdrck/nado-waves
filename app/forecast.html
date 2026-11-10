@@ -219,7 +219,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* The swell's sentences a line each, a little apart (owner's request,
    2026-10-23). The beach's range is a headline (owner's choices, same day),
    its last 24 h a sparkline beside it, and each train a line under it.
-   Tanner Banks' lines are plain words, each opening on its point, with a
+   Tanner Bank's lines are plain words, each opening on its point, with a
    grey signal mark hung in the margin turned the way the swell travels
    (owner's choice, 2026-10-24). */
 .brief-block.brief-swell{gap:6px}
@@ -579,13 +579,13 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    0.5 px hairline of the pill between them is taken from the ring, 1.5 px
    of stroke centred at r 4.75. No track: the arc alone is the time left
    from the reading's stamp to its update, draining clockwise from the top.
-   Due, the arc is gone and the dot fades in and out as it did; overdue, a
-   whole red ring round a red dot. */
+   Due, the arc is gone and the dot fades in and out as it did; overdue, the
+   dot alone, in red, with no ring (owner's call, 2026-11-09). */
 .ring{display:block;width:11px;height:11px;overflow:visible;flex:none}
 .ring .arc{fill:none;stroke:var(--dot-ok);stroke-width:1.5}
 .ring .core{fill:var(--dot-ok)}
 .ring.due .core{animation:status-due 2s ease-in-out infinite}
-.ring.over .arc{stroke:var(--dot-over)} .ring.over .core{fill:var(--dot-over)}
+.ring.over .core{fill:var(--dot-over)}
 @media (prefers-reduced-motion: reduce){
   .ring.due .core{animation:none;opacity:.45}
   .pill-swap,.pill-swap > span{transition:none}
@@ -606,6 +606,9 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .chead-pills .pill-lead::after{content:"";position:absolute;right:0;top:4px;bottom:4px;width:1px;
   background:var(--line-strong)}
 .chead-pills > .pill{background:transparent;padding:0 0 0 9px;border-radius:0;font-weight:500}
+/* A buoy's name in its title row, set as the station across from it is
+   (owner's request, 2026-11-09): 12 px, ink, 500. */
+.chead > .buoy-name{font-size:12px;font-weight:500;line-height:18px;color:var(--ink);flex:none}
 .chart-head:not([data-brief-head]){font-family:"Barlow Condensed",Archivo,sans-serif;font-size:12.5px;
   font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--soft)}
 /* "predicted" and "computed" set as the provenance was, a word on the
@@ -1501,7 +1504,7 @@ function wireLayout() {
     else if (mq.addListener) mq.addListener(changed);
   });
 }
-// A buoy's NDBC name without its state: "Tanner Banks, CA" is "Tanner Banks".
+// A buoy's NDBC name without its state: "Tanner Bank, CA" is "Tanner Bank".
 const bareName = (name) => name.replace(/, [A-Z]{2}$/, "");
 
 // Matches forecast.transform.SEAWARD_CLIP. Not a blocker: this is the share of
@@ -1953,11 +1956,11 @@ function tickDue() {
     const said = over ? "Overdue" : isDue ? "Update due" : "Receiving normally";
     el.setAttribute("aria-label", said);
     el.setAttribute("title", said);
-    // A ring's arc: the share of the wait left, full once overdue.
+    // A ring's arc: the share of the wait left; none once due or overdue.
     const arc = el.querySelector(".arc");
     if (arc) {
       const from = new Date(el.getAttribute("data-status-from")).getTime();
-      const left = over ? 1 : isDue || !Number.isFinite(from) || due <= from ? 0
+      const left = over ? 0 : isDue || !Number.isFinite(from) || due <= from ? 0
         : Math.min(1, Math.max(0, (due - now) / (due - from)));
       arc.setAttribute("stroke-dasharray", `${(left * RING_C).toFixed(2)} ${RING_C.toFixed(2)}`);
     }
@@ -2290,7 +2293,7 @@ const sunNow = () => sunCard(NOW, coastDay(Date.now()), {tagged: true, live: tru
 // conditions), three blocks apart by the cards' fold
 // rule; every number that says something in ink and heavier (`briefNum`).
 // Never the model: GFS-Wave is the Forecast tab's.
-// Tanner Banks' sectors by their points, each opening its line (owner's
+// Tanner Bank's sectors by their points, each opening its line (owner's
 // wording, 2026-10-23 and -24).
 const BRIEF_SECTOR = {west: "W", "north-west": "NW"};
 // A signal from far away (owner's choice, 2026-10-24): a dot, the origin,
@@ -2306,7 +2309,7 @@ const BRIEF_SEEN = "nado-waves.brief-seen";
 const briefNum = (s) => `<b class="brief-num">${s}</b>`;
 // A time as of the build: "7:07 AM", or "Oct 21, 7:07 AM" on another day.
 // Its clock never parts from its AM / PM at a line's end; `briefAt` is the
-// same time without the ink, for Tanner Banks' plain lines.
+// same time without the ink, for Tanner Bank's plain lines.
 const briefAt = (iso, B) => (coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc))
   ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`).replace(/ (AM|PM)$/, "\u00a0$1");
 const briefWhen = (iso, B) => briefNum(briefAt(iso, B));
@@ -2369,7 +2372,7 @@ const briefAlerts = (B, nowMs) => (B.alerts || [])
 // "wind sea" when the wind is still driving it, its
 // period, and its status: its band at the buoy (`briefing.train_trend`),
 // with no trend mark. Then, a line each, every west or north-west swell
-// Tanner Banks holds whose next band is still to reach the breaks
+// Tanner Bank holds whose next band is still to reach the breaks
 // (`briefing.next_band`), in plain words opening on its point, its trend
 // there said as offshore's, and when that band is due by deep-water speed
 // (BRIEFING §43); once its last band has passed it is the headline's to
@@ -2402,7 +2405,7 @@ function briefSwell(B) {
     const legs = c.legs || [];
     const lo = Math.min(...legs.map((l) => l.lo_min)), hi = Math.max(...legs.map((l) => l.hi_min));
     const head = `${BRIEF_SECTOR[c.sector] || c.sector} ${c.band_s[0]}–${c.band_s[1]} s`;
-    // Its trend is Tanner Banks' own, so it is said as offshore's.
+    // Its trend is Tanner Bank's own, so it is said as offshore's.
     const off = `${c.trend ? `${c.trend} ` : ""}offshore`;
     const from = (c.sector_deg[0] + c.sector_deg[1]) / 2;
     out.push({kind: "off", from, body: `${head}, ${off}; `
@@ -2412,7 +2415,7 @@ function briefSwell(B) {
   return out;
 }
 // A swell line's words, for the record and docs/briefing_wording.md: the
-// range, each train as a sentence, each Tanner Banks line as it reads.
+// range, each train as a sentence, each Tanner Bank line as it reads.
 const briefSwellText = (r) => (r.kind === "beach" ? `${r.range}.`
   : r.kind === "train" ? `${r.html}${r.trend ? `, ${r.trend}` : ""}.`
   : r.kind === "off" ? r.body : r.html);
@@ -3934,7 +3937,7 @@ const NHC_ARCHIVE = "https://www.nhc.noaa.gov/archive/";
 const stormPageUrl = (name, iso) =>
   `${NHC_ARCHIVE}${new Date(iso).getUTCFullYear()}/${name.toUpperCase()}_graphics.php`;
 // Each buoy by its name without the state, and by NDBC's id: "Point Loma
-// South (NDBC 46232)", "Tanner Banks (NDBC 46047)" (owner's request,
+// South (NDBC 46232)", "Tanner Bank (NDBC 46047)" (owner's request,
 // 2026-10-13, replacing "Point Loma South, CA (NDBC 46232)"; 46232 by NDBC's
 // id again since 2026-11-06, not CDIP's number).
 const buoyName = (o, id) => {
@@ -4635,7 +4638,7 @@ function wireDrawings() {
 //
 // On the LIVE tab it also carries the context buoys from buoys.json (owner's
 // request, 2026-10-06): since 2026-10-12 46086, San Clemente Basin, then
-// 46047, Tanner Banks, the least shadowed buoy in the array -- buoys.json's
+// 46047, Tanner Bank, the least shadowed buoy in the array -- buoys.json's
 // order (owner's call, 2026-10-12) -- each built the same
 // way -- combined height and maximum-entropy trains -- under its own name,
 // its own observed time and its own countdown, because their spectra are
@@ -4650,17 +4653,25 @@ function wireDrawings() {
 // (owner's call, 2026-10-06): 46232's reading here, then the card's own
 // provenance lines, which are 46232's, then each context buoy's block after
 // them (`swellCard`'s `after`), its provenance in the same style.
-function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "") {
+// `named`: the buoy's name on a line of its own above its headline (owner's
+// request, 2026-11-09). On a phone 46232's pills are the Swell card's, so its
+// name stands alone; the context buoys', and each wide column's, sit across
+// from their own pills instead (`buoyTitle` in their title rows).
+function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "", {named = true} = {}) {
   const line = measuredLine(measured, (m) => m.buoy);
   const id = station && station.id;
+  const head = named ? headRow(buoyTitle(station && station.name)) : "";
   // The sentence under the rose, LIVE only as the rose is: on Forecast the
   // buoy's numbers are a model run, not its spectrum.
   const note = rose ? buoyAbout(id) : "";
   if (!buoy || buoy.hs_m == null) {
-    return valLine('<span class="val"><span class="unit">no spectrum</span></span>') + rose + note + line;
+    return head + valLine('<span class="val"><span class="unit">no spectrum</span></span>') + rose + note + line;
   }
-  return buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note, aged}) + line;
+  return head + buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note, aged}) + line;
 }
+// A buoy's name above its headline: NDBC's, its state dropped, set as the
+// station is in the pills across from it (owner's request, 2026-11-09).
+const buoyTitle = (name) => (name ? `<span class="buoy-name">${bareName(name)}</span>` : "");
 
 // One sentence under each buoy's rose (owner's wording, 2026-10-12): the
 // station, linked to its public page, how far offshore it is and its bearing
@@ -4861,7 +4872,7 @@ const RING_C = 2 * Math.PI * 4.75;
 function statusRing(observedIso, iso, lateIso, {forceOver = false} = {}) {
   const svg = (cls, attrs) => `<svg class="ring${cls}" viewBox="0 0 11 11" role="img"${attrs}>`
     + `<circle class="arc" cx="5.5" cy="5.5" r="4.75" transform="rotate(-90 5.5 5.5)"`
-    + ` stroke-dasharray="${cls ? RING_C.toFixed(2) : 0} ${RING_C.toFixed(2)}"/>`
+    + ` stroke-dasharray="0 ${RING_C.toFixed(2)}"/>`
     + '<circle class="core" cx="5.5" cy="5.5" r="3.5"/></svg>';
   const when = dueInstants(iso, lateIso);
   if (!when) return forceOver ? svg(" over", ' aria-label="Overdue"') : "";
@@ -4890,7 +4901,7 @@ function contextBuoy(b) {
   const reading = b.hs_m != null ? buoyReading(b, b.station, {roseFor: b.station, rose: roseBlock(b.station), note,
                                                              aged: agedAttr(b.observed_utc, !!b.stale)})
     : valLine('<span class="val"><span class="unit">no spectrum</span></span>') + roseBlock(b.station) + note;
-  return `<hr>${headRow("", feed)}${reading}`
+  return `<hr>${headRow(buoyTitle(b.station_name), feed)}${reading}`
     + srcLines([placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)]);
 }
 
@@ -7818,8 +7829,8 @@ function swellWide({label, buoy, station, stationName, others, cards, source, du
     ${srcLines(source)}
     ${beachOrigin(breaks)}
   </div>`;
-  const anchor = `<div class="pane">${headRow("", due)}`
-    + `${buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged)}`
+  const anchor = `<div class="pane">${headRow(buoyTitle(stationName), due)}`
+    + `${buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged, {named: false})}`
     + `${srcLines(source)}</div>`;
   const buoys = `<div class="cond swell buoys-card" data-card="buoys">
     <span class="lbl">Buoys</span>
@@ -8397,6 +8408,7 @@ function renderConditions(step, cards) {
       label: "Swell",
       buoy,
       station: DATA.station,
+      stationName: DATA.station_name,
       cards,
       measured,
       source: buoy ? [] : [`The spectral product was unavailable for this cycle, so there are no trains`],

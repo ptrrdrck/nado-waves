@@ -429,15 +429,25 @@ def read_latest_wind(data_dir: Path, *, until: datetime | None = None) -> dict[s
     return max(rows, key=lambda r: r["observed_utc"]) if rows else None
 
 
+#: A place NDBC's metadata names differently from the chart, corrected where
+#: the name is read, never in the fetched file (owner's call, 2026-11-09):
+#: the buoy off Tanner Bank sits on one bank, where NDBC says "Tanner Banks, CA".
+NAME_FIXES = {"Tanner Banks": "Tanner Bank"}
+
+
 def station_name(station: str, data_dir: Path) -> str:
-    """The buoy's name from the fetched metadata, or its id if unplaced."""
+    """The buoy's name from the fetched metadata, or its id if unplaced,
+    with `NAME_FIXES` applied."""
 
     try:
         from collector.metadata import load_metadata
 
         record = load_metadata(Path(data_dir)).get(station)
         if record and record.name:
-            return record.name
+            name = record.name
+            for wrong, right in NAME_FIXES.items():
+                name = name.replace(wrong, right)
+            return name
     except Exception:  # noqa: BLE001 — a missing name must not stop a forecast
         pass
     return station

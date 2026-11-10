@@ -1,6 +1,6 @@
 {
  "station": "9410170",
- "fetched_utc": "2026-10-11T00:14:11Z",
+ "fetched_utc": "2026-11-10T00:15:51Z",
  "source": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9410170/harcon.json?units=metric",
  "response": {
   "units": "meters",

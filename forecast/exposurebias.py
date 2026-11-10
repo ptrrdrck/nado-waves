@@ -7,7 +7,7 @@ BRIEFING §5 measured GFS-Wave's analysis 0.26–0.31 m LOW at 46232, 46224 and
 unresolved nearshore point". All three of those buoys sit in the Channel
 Islands' shadow (§3), so that reading was never tested against a buoy that is
 NOT shadowed. This report adds the ones that make the test possible: 46047
-(Tanner Banks, §3's unshadowed denominator), 46086 (partly shadowed) and 46258
+(Tanner Bank, §3's unshadowed denominator), 46086 (partly shadowed) and 46258
 (shadowed like 46232, on the far side of Point Loma).
 
 Two measurements, both at one lead (the analysis, +0h, by default, where a
@@ -47,7 +47,7 @@ from .verify import _indexed, _lookup, load_forecasts
 REFERENCE = "46047"
 
 #: Every station with archived GFS-Wave cycles: the reference, then five buoys
-#: the islands shadow (§3's ratios to Tanner Banks on SW swell: 0.82, 0.72,
+#: the islands shadow (§3's ratios to Tanner Bank on SW swell: 0.82, 0.72,
 #: 0.75, 0.64, 0.50).
 DEFAULT_STATIONS = ("46047", "46086", "46258", "46232", "46224", "46222")
 
