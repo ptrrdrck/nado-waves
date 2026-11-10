@@ -264,8 +264,8 @@ forecaster actually verifies against, Surfline included.
    §39), on both chains, its id still `buoy`. On LIVE it holds 46232 and under
    it **46047, Tanner Bank**, built the same way — combined height, maximum-
    entropy trains split by period then direction (§40) — with its own name,
-   observed time, countdown and words under its rose (since 2026-10-12 the
-   one sentence below) (`forecast/buoys.py` → `buoys.json`, its own step in the
+   observed time, countdown and words under its rose (since 2026-11-10 the
+   station block below) (`forecast/buoys.py` → `buoys.json`, its own step in the
    collection). **Each buoy's provenance follows its own measurements**
    (owner's call, same day): 46232's reading, then the card's provenance
    (46232's), then each context buoy's block with its provenance in the
@@ -380,18 +380,41 @@ forecaster actually verifies against, Surfline included.
    South's window alone (§3a: "the nearest thing to a stand-in, and
    partial"), so the standing-on line names each buoy's windows
    (`buoys.WITNESS`), held to siting's verdict by a test.
-   **Under every buoy's rose, 46232's too, ONE sentence** (owner's wording,
-   2026-10-12; `buoys.ABOUT`, in buoys.json as `about`, joined by the
-   page's `buoyAbout`): the station linked to its NDBC station page
-   (46232's too since 2026-11-06, replacing CDIP's page), its distance
-   offshore and bearing from Center break — `forecast.siting`'s, never
-   typed, none for a buoy siting cannot place — then what is read from it
-   and its role. It replaced the "Open ocean witness" / "Inside South's
-   window" notes; its mention of a window is held to siting's verdict too.
-   LIVE only, as the rose is. At 15 px, the size of "combined" beside the
-   height (owner's request, 2026-10-14), and a buoy with no rose says "No
-   spectrum from … in the last six hours." at that size and grey, evenly
-   spaced between its trains and its sentence. Its countdown is its
+   **Under every buoy's rose, 46232's too, a STATION BLOCK** (owner's
+   request and picks, 2026-11-10, from a mock; replacing 2026-10-12's one
+   sentence; `buoys.about`, in buoys.json as `about`, drawn by the page's
+   `buoyAbout`): on a PLATE of the page's paper set into the card (the
+   owner's pick of four separations), no name or station (the card has
+   both). Readings two to a row, each a symbol, a label in the fold rows'
+   type, the value and its OWN time, greying past 3 h as every LIVE number
+   does: Peak (period and FROM direction, `at_buoy`'s, a test pins it),
+   Mean period (Tm02 over the headline's own energies, `bin_energies`; NDBC's
+   APD is computed differently), Spread at peak (√(2(1 − r1)), Kuik), all
+   from the newest spectrum; Water, Wind (knots from NDBC's m/s, its gust in
+   the time line) and Pressure from the standard met, the newest within
+   `STDMET_WITHIN_H` (24 h), "not measured" for a column the archive has
+   never held (46232, a Waverider: wind and pressure), "none in 24 h"
+   otherwise. Then a hairline and the facts, a symbol each: Location —
+   distance and bearing from Center break (`forecast.siting`'s, never
+   typed), NDBC's coordinates linked to its station page, and "In … of
+   water", the depth `collector/stationdepth.py` reads off that page
+   (monthly, collect-beach-inputs.yml its one writer, checked against the
+   live pages 2026-11-10: 1049.8 / 1862 / 1390 m); Updates — the countdown's
+   own `PUBLISH_MINUTES` and typical lag; and Used for — `buoys.USES`, one
+   line each in the same type, none a grey second line (owner's request:
+   each use as important as the next). **No window line** (owner's call,
+   same day): the standing-on line still names each buoy's windows. Left
+   off by the owner's pick: air temperature and dewpoint, hull. Advised
+   against and not built: NDBC's own WVHT / DPD / MWD (a second reading of
+   the swell by another method; 46232's MWD is §38's mean) and NDBC's
+   swell / wind-wave split (by period, against §51). **46047's standard met
+   is collect-beach-inputs.yml's since the same day** (owner's call; beside
+   46232's and 46086's, collect.yml excluding all three): on collect.yml's
+   throttled schedule it ran hours behind its spectrum. Each value still
+   shows its own time. LIVE only, as the rose is. At 15 px, the size of
+   "combined" beside the height (owner's request, 2026-10-14), and a buoy
+   with no rose says "No spectrum from … in the last six hours." at that
+   size and grey. Its countdown is its
    own: :20 and :50, 25 typical and **115** worst on 188 stamps since its
    sensor returned 2026-10-08. The three past H+85 were NDBC's, shared with
    46047 (10-10 07:50 reached H+125 there, past 46047's shipped 85; not
@@ -1630,6 +1653,9 @@ forecaster actually verifies against, Surfline included.
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log),
+                        stationdepth.py (each shown buoy's water depth,
+                        read off NDBC's station page, monthly ->
+                        data/station_depth.json; Actions only),
                         nwsalerts.py (NWS's alerts for CAZ043 and PZZ750,
                         each one's document byte for byte, once by its id
                         -> data/alerts/; Actions only),

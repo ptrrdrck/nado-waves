@@ -66,11 +66,12 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          # 46232 and 46086 are collect-beach-inputs.yml's, fetched every
-          # collection: 46232 for the Briefing's water (owner's call,
-          # 2026-10-31), 46086 for the LIVE wind-sea label's wind (2026-11-08).
-          # Both stay in the status file, which reads the archive.
-          args=(--exclude 46232,46086)
+          # 46232, 46086 and 46047 are collect-beach-inputs.yml's, fetched
+          # every collection: 46232 for the Briefing's water (owner's call,
+          # 2026-10-31), 46086 for the LIVE wind-sea label's wind (2026-11-08),
+          # 46047 for the Buoys tab's station block (2026-11-10). All stay in
+          # the status file, which reads the archive.
+          args=(--exclude 46232,46086,46047)
           if [ -n "${STATIONS:-}" ]; then
             args+=(--stations "${STATIONS}")
           fi

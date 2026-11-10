@@ -1,0 +1,43 @@
+# Read each shown buoy's water depth off NDBC's station page -- on demand.
+#
+# www.ndbc.noaa.gov is denied at CONNECT from a Claude session (BRIEFING
+# section 8), so collector.stationdepth's parse can only be checked here
+# against the live pages before the collection relies on it.
+#
+# Not scheduled, writes nothing back: the record is printed, not committed.
+# collect-beach-inputs.yml is the file's one writer.
+
+name: Probe buoy water depth
+
+on:
+  workflow_dispatch:
+  # A branch can run it before it reaches the default branch, which
+  # workflow_dispatch cannot: only a change to the collector or this file
+  # triggers it.
+  push:
+    branches: ["claude/**"]
+    paths:
+      - collector/stationdepth.py
+      - .github/workflows/probe-station-depth.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Read the depths into a scratch directory
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/data"
+          python -m collector.stationdepth --data-dir "${out}"
+          cat "${out}/station_depth.json"

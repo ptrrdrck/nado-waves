@@ -85,6 +85,7 @@ the archive fills.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import sys
@@ -96,8 +97,9 @@ from collector.common import DEFAULT_DATA_DIR, ISO, utcnow
 from . import rose, siting
 from .live import station_name
 from .now import PUBLISH_MINUTES as ANCHOR_MINUTES
+from .now import PUBLISH_LAG_MIN as ANCHOR_LAG_MIN
 from .now import STALE_HOURS, as_trains, deadline
-from .transform import at_buoy, combined_hs, load_spectra
+from .transform import STEP_DEG, at_buoy, combined_hs, load_spectra
 from .units import height as fmt_height
 
 #: The buoys shown under 46232 on the Buoys tab, in order (owner's call).
@@ -132,23 +134,30 @@ WITNESS = {
 #: for the sentence under it.
 ANCHOR = "46232"
 
-#: One sentence under each buoy's rose (owner's wording, 2026-10-12): the
-#: station, linked to its public page, how far offshore it is and its bearing
-#: from Center break, then these words -- what is read from it and its role
-#: here. The page joins the parts; the distance and bearing are DERIVED
-#: (`about`, from `forecast.siting`), never typed, so they cannot outlive
-#: the coordinates. A test holds each one's mention of a window to siting's
-#: verdict, as the standing-on line's is.
-ABOUT = {
-    "46232": "its hourly directional spectrum is what every break's numbers are "
-             "carried from, as the only buoy inside all three breaks' windows.",
-    "46086": "its half-hourly directional spectrum is shown here and checked against "
-             "hurricane tracks, and though it sits inside South's window it is not "
-             "carried to any break.",
-    "46047": "its half-hourly directional spectrum reads the open ocean before the "
-             "Channel Islands, gives Origin its storm bearings and is checked against "
-             "hurricane tracks, but is not carried to any break.",
+#: What each buoy is used for here, one line each and each as important as
+#: the next (owner's request, 2026-11-10, replacing the one sentence of
+#: 2026-10-12 under each rose; its window clause went with it, the owner's
+#: call). Typed, because a use is a decision, not a measurement; the
+#: standing-on line (`WITNESS`) still says which windows each sits in.
+USES = {
+    "46232": ("Every break's swell numbers",
+              "The Briefing's water temperature when the shark buoys have none"),
+    "46086": ("The wind-sea tag, with KNZY's wind",
+              "Hurricane track matching"),
+    "46047": ("Origin's storm bearings",
+              "The Briefing's offshore swell lines",
+              "Hurricane track matching"),
 }
+
+#: How old a standard-met value may be and still be shown, with its own
+#: time, in the station block. Past the page's three hours it greys as every
+#: LIVE number does; past this it is not shown at all: a day-old wind is no
+#: reading of the buoy now.
+STDMET_WITHIN_H = 24
+
+#: NDBC publishes wind in m/s; the page, like the rest of its JSON, takes
+#: knots (collector.wavespec converts WAVEWATCH III's the same way).
+KT_PER_MS = 1.943844
 
 #: Each buoy's public page: NDBC's station page, 46232's too (owner's
 #: request, 2026-11-06, replacing CDIP's page for a buoy CDIP runs).
@@ -212,38 +221,174 @@ def roses(data_dir: Path, moment: datetime) -> dict:
     return out
 
 
-def about(data_dir: Path) -> dict:
-    """The sentence under each buoy's rose, as parts the page joins.
+def bin_energies(spectrum) -> list[tuple[int, float]]:
+    """Each bin's energy over the whole circle, m², as `combined_hs` sums it:
+    a maximum-entropy bin's c11 x width, a bin MEM cannot read by the clamped
+    Fourier integral. So a mean period from these is the headline's own."""
 
-    The place is the station's name from the fetched metadata without its
-    state ("Point Loma South"); the range and bearing are `forecast.siting`'s
-    from Center break, in kilometres and degrees -- the page converts, as it
-    does every number. A buoy siting cannot place has no distance, and says
-    none.
+    steps = max(int(round(360.0 / STEP_DEG)), 1)
+    d_theta = 360.0 / steps
+    radians_step = math.radians(d_theta)
+    out = []
+    for index in range(len(spectrum.frequencies)):
+        density = spectrum.c11[index]
+        if density <= 0.0 or math.isnan(density):
+            continue
+        width = spectrum.bin_width(index)
+        if spectrum.spread == "mem" and spectrum.mem_ok(index):
+            out.append((index, density * width))
+            continue
+        total = 0.0
+        for n in range(steps):
+            energy = spectrum.density(index, (n + 0.5) * d_theta) * radians_step * width
+            if energy > 0.0:
+                total += energy
+        out.append((index, total))
+    return out
+
+
+def spectrum_reading(spectrum) -> dict:
+    """The station block's numbers from one spectrum (owner's request,
+    2026-11-10): the peak, as `at_buoy` takes it (the most energetic bin, its
+    period and its mean direction from the buoy's own first moment); the mean
+    period Tm02 = sqrt(m0 / m2) over the same energies as the headline; and
+    the directional spread at the peak, sqrt(2(1 - r1)) in degrees (Kuik et
+    al. 1988), which the four moments give whichever way D(θ) is drawn.
     """
 
+    out = {"spectrum_utc": spectrum.time.strftime(ISO), "peak_period_s": None,
+           "peak_from_deg": None, "mean_period_s": None, "spread_deg": None}
+    energies = bin_energies(spectrum)
+    if not energies:
+        return out
+    f = spectrum.frequencies
+    m0 = sum(e for _, e in energies)
+    m2 = sum(e * f[i] ** 2 for i, e in energies)
+    best, best_energy = max(energies, key=lambda item: item[1])
+    if best_energy > 0 and f[best] > 0:
+        out["peak_period_s"] = round(1.0 / f[best], 1)
+        out["peak_from_deg"] = round(spectrum.a1[best] % 360.0)
+    if m0 > 0 and m2 > 0:
+        out["mean_period_s"] = round(math.sqrt(m0 / m2), 1)
+    r1 = spectrum.r1[best]
+    if r1 is not None and not math.isnan(r1) and 0.0 <= r1 <= 1.0:
+        out["spread_deg"] = round(math.degrees(math.sqrt(2.0 * (1.0 - r1))))
+    return out
+
+
+def stdmet_reading(station: str, data_dir: Path, moment: datetime) -> dict:
+    """The station's standard met as the block shows it: water temperature,
+    wind and gust, pressure, each the newest valid value within
+    `STDMET_WITHIN_H` with its own time. A column the archive has never held
+    a value in is `never` -- 46232 is a Waverider and reports no wind -- so the
+    page can say "not measured" rather than "none lately"."""
+
+    from collector.ndbc import is_missing
+
+    columns = {"water": ("wtmp",), "wind": ("wspd", "wdir", "gst"), "pressure": ("pres",)}
+    seen = {k: False for k in columns}
+    best: dict = {}
+    path = Path(data_dir) / "observations" / f"{station}.csv"
+    try:
+        with path.open(newline="", encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
+    except FileNotFoundError:
+        rows = []
+    for row in rows:
+        try:
+            t = datetime.strptime(row["timestamp_utc"], ISO).replace(tzinfo=timezone.utc)
+        except (KeyError, ValueError):
+            continue
+        for key, cols in columns.items():
+            lead = cols[0]
+            token = (row.get(lead) or "").strip()
+            if not token or is_missing(lead.upper(), token):
+                continue
+            seen[key] = True
+            if t > moment or moment - t > timedelta(hours=STDMET_WITHIN_H):
+                continue
+            if key in best and best[key][0] >= t:
+                continue
+            values = {}
+            for col in cols:
+                tok = (row.get(col) or "").strip()
+                values[col] = (None if not tok or is_missing(col.upper(), tok) else float(tok))
+            best[key] = (t, values)
+    out: dict = {"never": sorted(k for k, v in seen.items() if not v), "stdmet_within_h": STDMET_WITHIN_H}
+    if "water" in best:
+        t, v = best["water"]
+        out["water_c"], out["water_utc"] = v["wtmp"], t.strftime(ISO)
+    if "wind" in best:
+        t, v = best["wind"]
+        out["wind_kt"] = round(v["wspd"] * KT_PER_MS, 1)
+        out["gust_kt"] = None if v["gst"] is None else round(v["gst"] * KT_PER_MS, 1)
+        out["wind_from_deg"] = None if v["wdir"] is None else round(v["wdir"])
+        out["wind_utc"] = t.strftime(ISO)
+    if "pressure" in best:
+        t, v = best["pressure"]
+        out["pressure_hpa"], out["pressure_utc"] = v["pres"], t.strftime(ISO)
+    return out
+
+
+def cadence(station: str) -> dict:
+    """How often the buoy stamps a spectrum and how soon one is usually
+    collected: the same measured constants the countdown runs on."""
+
+    if station == ANCHOR:
+        marks, lag = ANCHOR_MINUTES["swell"], ANCHOR_LAG_MIN["swell"]
+    else:
+        marks, lag = PUBLISH_MINUTES[station], PUBLISH_LAG_MIN[station]
+    return {"every_min": round(60 / len(marks)), "marks": list(marks), "lag_min": lag}
+
+
+def about(data_dir: Path, moment: datetime | None = None) -> dict:
+    """Each buoy's station block under its rose, as values the page sets.
+
+    Owner's request, 2026-11-10, replacing the one sentence of 2026-10-12:
+    the readings (`spectrum_reading`, `stdmet_reading`), then where it is --
+    `forecast.siting`'s range and bearing from Center break in kilometres and
+    degrees, NDBC's coordinates, and the depth `collector.stationdepth` read
+    off NDBC's page -- how often it reports, and what it is used for here.
+    Nothing is converted or typed: a buoy siting cannot place has no
+    distance, and one whose depth was never read has none.
+    """
+
+    from collector.stationdepth import load as load_depths
+
+    moment = moment or utcnow()
     metadata = Path(data_dir) / "station_metadata.csv"
     try:
         placed = {s.station.id: s for s in siting.survey(metadata_path=metadata)}
     except (FileNotFoundError, ValueError):
         placed = {}
+    depths = load_depths(data_dir)
     out = {}
     for station in (ANCHOR, *STATIONS):
         sited = placed.get(station)
+        newest = _spectra(data_dir, station, limit=1)
+        depth = (depths.get(station) or {}).get("depth_m")
         out[station] = {
             "place": station_name(station, data_dir).split(",")[0].strip(),
             "feed": f"NDBC {station}",
             "url": NDBC_PAGE.format(station),
             "range_km": None if sited is None or sited.range_km is None else round(sited.range_km, 2),
             "bearing_deg": None if sited is None or sited.bearing is None else round(sited.bearing, 2),
-            "says": ABOUT[station],
+            "latitude": None if sited is None or sited.latitude is None else round(sited.latitude, 3),
+            "longitude": None if sited is None or sited.longitude is None else round(sited.longitude, 3),
+            "depth_m": depth,
+            "cadence": cadence(station),
+            "uses": list(USES[station]),
+            "readings": {
+                **(spectrum_reading(newest[-1].with_spread("mem")) if newest else {"spectrum_utc": None}),
+                **stdmet_reading(station, data_dir, moment),
+            },
         }
     return out
 
 
-def _spectra(data_dir: Path, station: str) -> list:
+def _spectra(data_dir: Path, station: str, limit: int | None = None) -> list:
     try:
-        return load_spectra(Path(data_dir) / "spectra" / station)
+        return load_spectra(Path(data_dir) / "spectra" / station, limit=limit)
     except (FileNotFoundError, ValueError):
         return []
 
@@ -317,9 +462,9 @@ def build(*, data_dir: Path = DEFAULT_DATA_DIR, now: datetime | None = None) -> 
             ) + "; shown at the buoy on the Buoys tab and not carried to any break",
         },
         "buoys": shown,
-        # The sentence under each rose, 46232's included (owner's wording,
-        # 2026-10-12).
-        "about": about(data_dir),
+        # The station block under each rose, 46232's included (owner's
+        # request, 2026-11-10).
+        "about": about(data_dir, moment),
         "roses": roses(data_dir, moment),
         # The context buoys' own heights over the week, for the Height chart.
         "heights": {station: heights(_spectra(data_dir, station),
