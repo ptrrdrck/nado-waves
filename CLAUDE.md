@@ -1108,7 +1108,12 @@ forecaster actually verifies against, Surfline included.
    that band's window at the breaks — due at 46232 plus the slowest leg —
    has passed, and nothing after the last, when the swell is the headline's
    to show or not at all; or sooner, once its sector's 8–17 s energy falls
-   under a third of its peak since it began. In plain words with no
+   under a third of its peak since it began. Its energy is
+   `briefing.offshore_energy`'s: a bin MEM cannot represent is read by
+   Fourier, as the train status reads it (owner's call, 2026-11-10, for
+   consistency; `upstreamlag.band_energy` still drops the whole reading,
+   for §43's report). Replayed, it changed 8 of 670 builds since 24 Oct,
+   each only its trend word. In plain words with no
    ink, each OPENING ON ITS POINT, no "first", and saying "offshore" on its
    trend, which is Tanner Bank's own (owner's calls, same day, replacing an
    "offshore" tag, which had replaced an "Offshore:" line), with a grey
