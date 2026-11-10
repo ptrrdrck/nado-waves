@@ -1,0 +1,20 @@
+{
+ "46047": {
+  "depth_m": 1390.0,
+  "read": "Water depth: 1390 m",
+  "source": "https://www.ndbc.noaa.gov/station_page.php?station=46047",
+  "fetched_utc": "2026-11-10T07:15:39Z"
+ },
+ "46086": {
+  "depth_m": 1862.0,
+  "read": "Water depth: 1862 m",
+  "source": "https://www.ndbc.noaa.gov/station_page.php?station=46086",
+  "fetched_utc": "2026-11-10T07:15:39Z"
+ },
+ "46232": {
+  "depth_m": 1049.8,
+  "read": "Water depth: 1049.8 m",
+  "source": "https://www.ndbc.noaa.gov/station_page.php?station=46232",
+  "fetched_utc": "2026-11-10T07:15:39Z"
+ }
+}
