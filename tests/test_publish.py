@@ -199,9 +199,38 @@ class TestTheBundleIsServable:
     def test_every_file_pages_needs_is_present(self, tmp_path):
         written = publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
         assert set(written) == {"index.html", "forecast.json", ".nojekyll", "README.md",
-                                "docs.html", ".retired"}
+                                "docs.html", ".retired", "map.json", "seabed/", "vendor/"}
         for name in written:
             assert (tmp_path / "site" / name).exists()
+
+    def test_the_map_ships_with_the_page_from_both_jobs(self, tmp_path):
+        """The Swell card map (2026-11-10): its geometry, its seabed tiles and
+        the bundled map library go out wherever the page does, because the
+        page ships from both jobs and a page published before what it loads is
+        a broken map until the next forecast cycle."""
+
+        d = write(tmp_path / "d", forecast())
+        (d / "live" / "now.json").write_text("{}", encoding="utf-8")
+        for build in (lambda out: publish.build(out, data_dir=d),
+                      lambda out: publish.build_now_only(out, data_dir=d)):
+            out = tmp_path / "site"
+            written = build(out)
+            assert {"map.json", "seabed/", "vendor/"} <= set(written)
+            assert (out / "seabed" / "manifest.json").exists()
+            assert (out / "vendor" / "maplibre-gl-4.7.1" / "maplibre-gl.js").exists()
+            assert (out / "vendor" / "maplibre-gl-4.7.1" / "LICENSE.txt").exists()
+            index = (out / "index.html").read_text(encoding="utf-8")
+            assert '"map.json"' in index and '"seabed/"' in index
+            assert "../data/live/map.json" not in index and "../data/seabed_tiles/" not in index
+
+    def test_pages_publishing_copies_directories_whole(self):
+        """`cp "$BUNDLE"/*` skipped directories and, under `set -e`, failed the
+        publish: the map's seabed/ and vendor/ are replaced whole instead."""
+
+        script = (publish.REPO_ROOT / ".github" / "scripts" / "publish-pages.sh").read_text()
+        assert 'cp -R "$entry" "$work/$name"' in script
+        assert 'rm -rf -- "${work:?}/${name}"' in script
+        assert 'cp "${BUNDLE}"/* "$work/"' not in script
 
     def test_nojekyll_is_present_so_pages_serves_files_as_is(self, tmp_path):
         publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))

@@ -35,6 +35,13 @@ The bundle:
                     collection's build, updated as kept in data/briefings/ (forecast.briefing)
     alerts.json     data/live/alerts.json — NWS's coast and ocean alerts over
                     the Forecast tab's hours (forecast.alerts)
+    map.json        the Swell card map's geometry, the other buoys and the
+                    seabed tiles' manifest (forecast.mapdata), in both builds
+    seabed/         data/seabed_tiles/: the map's seabed as map tiles, drawn
+                    from the bathymetry grids (forecast.seabedtiles); the page
+                    fetches only the tiles in view
+    vendor/         app/vendor/: MapLibre GL JS 4.7.1 and its BSD-3 licence,
+                    which draws the map; loaded only when the map is opened
     docs.html       app/docs.html: the documentation, with the geometry
                     drawing filled by forecast.geomviz from spots.json, the
                     caveat and both chains' standing-on blocks; linked from
@@ -136,6 +143,16 @@ BUNDLE_BRIEFING_PATH = "briefing.json"
 #: hours. Optional in the same way.
 REPO_ALERTS_PATH = "../data/live/alerts.json"
 BUNDLE_ALERTS_PATH = "alerts.json"
+#: The Swell card map's geometry (`forecast.mapdata`) and its seabed tiles
+#: (`forecast.seabedtiles`). Optional in the same way.
+REPO_MAP_PATH = "../data/live/map.json"
+BUNDLE_MAP_PATH = "map.json"
+REPO_SEABED_PATH = "../data/seabed_tiles/"
+BUNDLE_SEABED_PATH = "seabed/"
+#: Where they come from here. The vendored map library sits beside the page in
+#: `app/vendor/` and at `vendor/` in the bundle, so its path needs no repointing.
+SEABED_SOURCE = REPO_ROOT / "data" / "seabed_tiles"
+VENDOR_SOURCE = REPO_ROOT / "app" / "vendor"
 
 DOCTYPE = "<!doctype html>"
 HEAD = """<html lang="en">
@@ -220,7 +237,9 @@ def repoint(fragment: str, *, name: str = PAGE_SOURCE.name) -> str:
             .replace(REPO_BUOYS_PATH, BUNDLE_BUOYS_PATH)
             .replace(REPO_BUOYS_ALL_PATH, BUNDLE_BUOYS_ALL_PATH)
             .replace(REPO_BRIEFING_PATH, BUNDLE_BRIEFING_PATH)
-            .replace(REPO_ALERTS_PATH, BUNDLE_ALERTS_PATH))
+            .replace(REPO_ALERTS_PATH, BUNDLE_ALERTS_PATH)
+            .replace(REPO_MAP_PATH, BUNDLE_MAP_PATH)
+            .replace(REPO_SEABED_PATH, BUNDLE_SEABED_PATH))
 
 
 def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
@@ -244,6 +263,22 @@ def copy_measured(data_dir: Path, out_dir: Path, written: dict[str, int]) -> Non
             encoding="utf-8",
         )
         written[name] = target.stat().st_size
+
+
+def copy_map(data_dir: Path, out_dir: Path, written: dict[str, int]) -> None:
+    """`map.json`, `seabed/` and `vendor/`, in BOTH builds: the page ships
+    from both jobs, and a page published before what it loads is a broken map
+    until the next forecast cycle (the lesson `build_now_only` records)."""
+
+    from . import mapdata
+
+    target = out_dir / BUNDLE_MAP_PATH
+    target.write_text(json.dumps(mapdata.build(data_dir), separators=(",", ":")), encoding="utf-8")
+    written[BUNDLE_MAP_PATH] = target.stat().st_size
+    for source, name in ((SEABED_SOURCE, BUNDLE_SEABED_PATH.rstrip("/")), (VENDOR_SOURCE, "vendor")):
+        if source.exists():
+            shutil.copytree(source, out_dir / name)
+            written[name + "/"] = sum(p.stat().st_size for p in (out_dir / name).rglob("*") if p.is_file())
 
 
 def wrap(fragment: str, *, app_title: str) -> str:
@@ -374,6 +409,7 @@ def build(
         written["now.json"] = payload.stat().st_size
 
     copy_measured(data_dir, out_dir, written)
+    copy_map(data_dir, out_dir, written)
 
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
     written[".nojekyll"] = 0
@@ -439,6 +475,7 @@ def build_now_only(
     )
     written["now.json"] = target.stat().st_size
     copy_measured(data_dir, out_dir, written)
+    copy_map(data_dir, out_dir, written)
     return written
 
 

@@ -43,7 +43,17 @@ fi
 # Replace the published files; anything else in the repository is left alone,
 # except the pages the bundle has retired (forecast.publish.RETIRED), which
 # would otherwise stay on the site, unlinked and frozen at their last build.
-cp "${BUNDLE}"/* "$work/"
+# A directory (the map's seabed/ tiles and vendor/ library) is replaced whole,
+# so a tile or file the bundle no longer has does not linger on the site.
+for entry in "${BUNDLE}"/*; do
+  name="$(basename "$entry")"
+  if [ -d "$entry" ]; then
+    rm -rf -- "${work:?}/${name}"
+    cp -R "$entry" "$work/$name"
+  else
+    cp "$entry" "$work/"
+  fi
+done
 [ -f "${BUNDLE}/.nojekyll" ] && cp "${BUNDLE}/.nojekyll" "$work/"
 if [ -f "${BUNDLE}/.retired" ]; then
   while IFS= read -r name; do
