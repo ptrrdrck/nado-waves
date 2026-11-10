@@ -7,32 +7,43 @@ confusing: the drawing is a view from the break, so swell that bends round
 Point Loma's tip could only be drawn crossing its shadow. The owner moved it
 to the map, at true scale, with the real ray paths (option B), and then made
 the seabed the map's base in place of the satellite imagery (a satellite
-option may come back). **Nothing here is published**: `forecast.publish`
-ships `app/` only, and `app/forecast.html` is unchanged.
+option may come back). **Nothing in this folder is published**:
+`forecast.publish` ships `app/` only. The one change this work makes to the
+live page is separate (owner's call, 2026-11-10): the window drawing no
+longer shows the 5 m heading, its arrowhead and caption line; each train's
+`near_from_deg` stays in the payload, and docs.html's swell-bend table stays.
 
 Build, from checkouts of the delivery repository and Leaflet:
 
     npm install leaflet@1.9.4 leaflet-rotate@0.2.8
     python -m mocks.swell_fill.rays ../nado-waves-forecast/now.json --json > rays.json   # ~4 min
-    python -m mocks.swell_fill.context context.json --cache tiles/                       # fetches
     python -m mocks.swell_fill.build ../nado-waves-forecast node_modules/leaflet/dist \
-        node_modules/leaflet-rotate/dist mocks/swell_fill/swell_fill_mock.html \
-        --rays rays.json --context context.json
+        node_modules/leaflet-rotate/dist mocks/swell_fill/swell_fill_mock.html --rays rays.json
 
 `python -m mocks.swell_fill.rays NOW.json` alone runs every check and prints
-what it built. The file is the published page of its build time with its data
-built in, so its cards age from then. It opens on the map on a device that has
+what it built. The page is this branch's `app/forecast.html`, wrapped as
+`forecast.publish` wraps it, with the delivery repository's data of the build
+time built in, so its cards age from then. It opens on the map on a device that has
 never chosen between map and drawing.
 
 ## What it does
 
 - **The map is the seabed**: near the breaks, the grids the rays are traced
   over (USGS CoNED 2016 and GMRT, depth below mean sea level), a finer picture
-  over the breaks and the Point Loma tip; past them, for context only, AWS's
-  open Terrain Tiles (ETOPO1 and other public models), shaded the same way.
-  Greys, lighter for shallower, contours at 5, 10, 20, 50, 100, 200, 500,
-  1,000 and 2,000 m, land lighter still; each inner picture fades out at its
-  edges. NDBC 46047 is marked as 46232 is.
+  over the breaks and the Point Loma tip; past them, for context only,
+  `collector.bathymetry`'s new `context` grid (GMRT, 400 m, round the breaks
+  and the three buoys with 160 km to spare), shaded the same way. Greys,
+  lighter for shallower, contours at 5, 10, 20, 50, 100, 200, 500, 1,000 and
+  2,000 m, land lighter still; each inner picture fades out at its edges.
+- **The context grid is not fetched yet.** gmrt.org is denied from a session,
+  so `.github/workflows/bathymetry-context.yml` fetches it on Actions when
+  this work is merged (it runs on a push to master that changes the collector
+  or itself), into `data/bathymetry/context.{npz,json}`. No chain reads it:
+  `raytrace` loads its three grids by name, and a test pins it. Until it
+  lands, the inner pictures fade to the map's deep grey; rebuild the mock
+  afterwards and `context.py` picks it up.
+- **NDBC 46086 and 46047 are marked as 46232 is**, at NDBC's fetched
+  coordinates (`forecast.siting.load_coordinates`).
 - **It zooms out to just past Tanner Bank and no further**: at the widest, a
   point 25 km past NDBC 46047 is in view with the break where the map keeps
   it, and the view's middle cannot be panned further than that from the
@@ -47,9 +58,10 @@ never chosen between map and drawing.
   timeline at its start. A pick on the Forecast tab, a window, a shadow or
   nothing shows neither. A swell shown as two rows (`G…`) fills as one.
 - Play (or drag the timeline): the map frames every ray the train comes in on,
-  the train's arrows and its 5 m arrowhead give way to the rays, and the
-  timeline is a clock, **minutes after the same wave group passed NDBC
-  46232**. The caption under the map reads the periods more than half in and
+  the train's arrows give way to the rays, and the timeline is a clock,
+  **minutes after the same wave group passed NDBC 46232**. The replay symbol
+  is the week card's "back to" clock without its arms, at the map buttons'
+  line (16 px at 1.5). The caption under the map reads the periods more than half in and
   the height so far, "+38 min · 16.7–14.3 s in · 5.1 ft (1.55 m)"; at the end,
   the minute by which 98% of the train's energy is in and the row's own
   height. The button pauses, and at the end replays. Any other pick ends it.
@@ -113,8 +125,7 @@ context only: nothing is traced over it.
   draw the breaks as columns.
 - `mocks/swell_map` itself still opens on Esri's imagery; only this mock's
   map is the seabed (two hooks in `swellmap.js`: `__SWELLMAP_BASE__` and
-  `__SWELLMAP_ATTR__`).
+  `__SWELLMAP_ATTR__`). A satellite option may come back.
 - To ship: the paths belong in `forecast/raytrace.py` (`trace` recording them,
   into `data/nearshore/`), each train's per-ray energy in `now.py`, and the
-  seabed pictures in a precompute; the outer seabed's source would need its
-  own archive rather than a fetch at build. The map must ship first.
+  seabed pictures in a precompute. The map must ship first.
