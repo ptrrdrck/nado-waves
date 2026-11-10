@@ -248,6 +248,14 @@ jobs:
         continue-on-error: true
         run: python -m collector.harcon --max-age-days 30
 
+      # Each shown buoy's water depth, read off NDBC's station page for the
+      # Buoys tab's station block (owner's request, 2026-11-10). It changes
+      # only when a buoy is re-moored, so it is re-read once a month; a
+      # failed read leaves the stored record.
+      - name: Buoy water depth
+        continue-on-error: true
+        run: python -m collector.stationdepth --max-age-days 30
+
       # "Now" is only as fresh as the job that publishes it. The forecast job
       # runs four times a day, which would make an hourly observation up to six
       # hours old before anyone saw it -- so the observed reading is rebuilt and
@@ -383,13 +391,15 @@ jobs:
           git add data/sharklab 2>/dev/null || true
           # Likewise: until the first county water quality collection.
           git add data/beach_water 2>/dev/null || true
+          # Likewise: until the first depth is read.
+          git add data/station_depth.json 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No new beach inputs to commit."
             exit 0
           fi
 
-          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts data/alerts data/observations/46232.csv data/observations/46086.csv data/revisions/46232.csv data/revisions/46086.csv data/sharklab data/beach_water \
+          rows=$(git diff --cached --numstat -- data/spectra data/wind data/tide data/besttracks data/nhcforecasts data/alerts data/observations/46232.csv data/observations/46086.csv data/revisions/46232.csv data/revisions/46086.csv data/sharklab data/beach_water data/station_depth.json \
             | awk '{sum += $1} END {print sum + 0}')
 
           git commit \
