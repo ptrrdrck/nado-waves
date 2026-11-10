@@ -470,11 +470,15 @@ class Rays:
     #: from the exit point to the start depth (`forecast.upstreamlag`). The
     #: tables do not store it.
     time_s: np.ndarray | None = None
+    #: With `record`, each ray's path from the start point outward: a list of
+    #: (x, y, elapsed seconds) per step, for the Swell card map's fill
+    #: (`paths_table`). None otherwise; no gain or table reads it.
+    paths: list | None = None
 
 
 def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
           period_s: float, islands: list[Island] | None = None,
-          edges: dict[str, np.ndarray] | None = None) -> Rays:
+          edges: dict[str, np.ndarray] | None = None, record: bool = False) -> Rays:
     """Trace every heading at one period, seaward, until deep water, land or edge.
 
     With `islands`, also records where each ray has each island abeam — the
@@ -500,6 +504,7 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     edges = edges or {}
     near_edge = {name: [np.full(n, np.inf), np.zeros(n), np.full(n, np.nan)] for name in edges}
     lost = np.zeros(n)
+    rec = [[(float(x0), float(y0), 0.0)] for _ in range(n)] if record else None
     elapsed = np.zeros(n)
 
     def ahead(island, xa, ya, ba):
@@ -564,6 +569,9 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
         y[idx] = ya + ds * np.sin(bm)
         beta[idx] = ba + ds * k2
         path[idx] += ds
+        if rec is not None:
+            for j, xj, yj, ej in zip(idx.tolist(), x[idx].tolist(), y[idx].tolist(), elapsed[idx].tolist()):
+                rec[j].append((xj, yj, ej))
         for island in islands:
             rec = abeam[island.name]
             passed = (~rec[4][idx]) & (ahead(island, xa, ya, ba) > 0) & (ahead(island, x[idx], y[idx], beta[idx]) <= 0)
@@ -590,7 +598,7 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     passes = {name: tuple(v) for name, v in abeam.items()} if islands else None
     return Rays(compass_from(beta), status, x, y, exit_depth, path, passes,
                 {name: tuple(v) for name, v in near_edge.items()} if edges else None,
-                np.exp(-lost), elapsed)
+                np.exp(-lost), elapsed, rec)
 
 
 # ------------------------------------------------------------------ blockers
@@ -977,6 +985,114 @@ def write_fetch(rows: list[dict], break_id: str, out_dir: Path = OUT_DIR) -> Pat
     return path
 
 
+
+# ------------------------------------------------------------------ the map's ray paths
+
+#: The swell band the map fill draws rays for, Hz: 4 to 33 s, every train a
+#: card lists but local chop (which has no rays).
+PATH_BAND_HZ = (0.03, 0.25)
+#: Paths are simplified to this, metres (Douglas-Peucker in UTM).
+PATH_SIMPLIFY_M = 12.0
+#: The surf zone's middle depth, for how long 5 m to the break takes (m).
+SURF_MID_DEPTH_M = 2.5
+
+
+def simplify(pts: np.ndarray, tol: float) -> np.ndarray:
+    """Douglas-Peucker on (x, y, ...) rows, keeping both ends."""
+
+    if len(pts) < 3:
+        return pts
+    keep = np.zeros(len(pts), bool)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        a, b = stack.pop()
+        if b <= a + 1:
+            continue
+        p, q = pts[a, :2], pts[b, :2]
+        d = q - p
+        seg = float(np.hypot(*d)) or 1.0
+        mid = pts[a + 1:b, :2]
+        dist = np.abs(d[0] * (mid[:, 1] - p[1]) - d[1] * (mid[:, 0] - p[0])) / seg
+        k = int(np.argmax(dist))
+        if dist[k] > tol:
+            m = a + 1 + k
+            keep[m] = True
+            stack += [(a, m), (m, b)]
+    return pts[keep]
+
+
+def paths_table(bathy: Bathymetry, spot: Spot, buoy: tuple[float, float],
+                table_dir: Path = OUT_DIR) -> dict:
+    """Where each of the break's table rays that clears every edge actually
+    went, for the Swell card map's fill (owner's request, 2026-11-10).
+
+    Every row of `<break>.csv` with a hard gain, per frequency bin in
+    `PATH_BAND_HZ`, re-traced with `trace(record=True)` -- the same start,
+    headings and step -- and checked against the table: each ray's offshore
+    heading must equal its row's, or nothing is written. A path runs from the
+    line through `buoy` (46232) square to the ray's heading, where its clock
+    reads 0 (the chain takes the buoy's spectrum to hold all along that
+    line; an exit already up-swell of it starts at the exit), straight to the
+    ray's deep-water exit, along the traced path to the 5 m start, then along
+    the break's normal to the break -- the surf zone's own line, at the
+    shallow-water speed of its middle depth. Each point carries its minutes
+    after 46232, `leg_table`'s arithmetic. No gain is computed here: the fill
+    credits each ray from the table, as `nearshore.carry` does."""
+
+    import csv as _csv
+
+    by_freq: dict[str, list[dict]] = {}
+    with (table_dir / f"{spot.id}.csv").open(newline="", encoding="utf-8") as fh:
+        for row in _csv.DictReader(fh):
+            by_freq.setdefault(row["freq_hz"], []).append(row)
+    xs, ys, _ = start_point(bathy, spot)
+    near = (spot.normal - 90.0 + DIR_STEP_DEG / 2.0
+            + DIR_STEP_DEG * np.arange(int(round(180.0 / DIR_STEP_DEG)))) % 360.0
+    bx, by = to_utm(*buoy)
+    sx, sy = to_utm(*spot.position)
+    run = math.hypot(sx - xs, sy - ys)
+    out: dict[str, list] = {}
+    for key, rows in sorted(by_freq.items(), key=lambda kv: float(kv[0])):
+        f = float(key)
+        if not PATH_BAND_HZ[0] <= f <= PATH_BAND_HZ[1]:
+            continue
+        if len(rows) != near.size:
+            raise ValueError(f"{spot.id} {key} Hz: {len(rows)} table rows, {near.size} headings")
+        period = 1.0 / f
+        rays = trace(bathy, xs, ys, near, period, record=True)
+        cg0 = G * period / (4.0 * math.pi)
+        drawn = []
+        for k, row in enumerate(rows):
+            if float(row["gain"]) <= 0:
+                continue
+            off = float(rays.off_from_deg[k])
+            if abs((off - float(row["off_from_deg"]) + 180.0) % 360.0 - 180.0) > 0.02:
+                raise ValueError(f"{spot.id} {key} Hz ray {k}: traced {off:.2f}, table {row['off_from_deg']}")
+            p = np.array(rays.paths[k])
+            total = p[-1, 2]
+            ex, ey = p[-1, 0], p[-1, 1]
+            toward = math.radians(off + 180.0)
+            offset_s = ((ex - bx) * math.sin(toward) + (ey - by) * math.cos(toward)) / cg0
+            t_exit = offset_s / 60.0
+            back = max(0.0, offset_s * cg0)
+            pts = [(ex - back * math.sin(toward), ey - back * math.cos(toward), 0.0)] if back > 0 else []
+            for x, y, e in simplify(p[::-1].copy(), PATH_SIMPLIFY_M):
+                pts.append((x, y, t_exit + (total - e) / 60.0))
+            pts.append((sx, sy, pts[-1][2] + run / math.sqrt(G * SURF_MID_DEPTH_M) / 60.0))
+            drawn.append([k, round(off, 2), [[round(la, 5), round(lo, 5), round(t, 2)]
+                                             for la, lo, t in ((*from_utm(x, y), t) for x, y, t in pts)]])
+        out[key] = drawn
+    return {"break": spot.id, "from_station": LEG_FROM, "band_hz": list(PATH_BAND_HZ),
+            "simplify_m": PATH_SIMPLIFY_M, "rays": out}
+
+
+def write_paths(paths: dict, break_id: str, out_dir: Path = OUT_DIR) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{break_id}_paths.json"
+    path.write_text(json.dumps(paths, separators=(",", ":")), encoding="utf-8")
+    return path
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--break", dest="only", choices=BREAKS)
@@ -986,6 +1102,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="rebuild the surf-zone profiles and nothing else")
     parser.add_argument("--leg-only", action="store_true",
                         help=f"rebuild the {LEG_FROM}-to-break travel times and nothing else")
+    parser.add_argument("--paths-only", action="store_true",
+                        help="rebuild the map fill's ray paths and nothing else")
     args = parser.parse_args(argv)
 
     bathy = Bathymetry.load()
@@ -994,6 +1112,12 @@ def main(argv: list[str] | None = None) -> int:
     freqs = frequencies()
     for sid in BREAKS:
         if args.only and sid != args.only:
+            continue
+        if args.paths_only:
+            from .siting import load_coordinates
+            buoy = load_coordinates()[LEG_FROM]
+            out = write_paths(paths_table(bathy, by_id[sid], buoy), sid)
+            print(f"{sid}: paths -> {out} ({out.stat().st_size / 1e3:.0f} KB)")
             continue
         if args.leg_only:
             from .siting import load_coordinates

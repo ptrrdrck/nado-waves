@@ -199,7 +199,7 @@ class TestTheBundleIsServable:
     def test_every_file_pages_needs_is_present(self, tmp_path):
         written = publish.build(tmp_path / "site", data_dir=write(tmp_path / "d", forecast()))
         assert set(written) == {"index.html", "forecast.json", ".nojekyll", "README.md",
-                                "docs.html", ".retired", "map.json", "seabed/", "vendor/"}
+                                "docs.html", ".retired", "map.json", "seabed/", "vendor/", "nearshore/"}
         for name in written:
             assert (tmp_path / "site" / name).exists()
 
@@ -222,6 +222,26 @@ class TestTheBundleIsServable:
             index = (out / "index.html").read_text(encoding="utf-8")
             assert '"map.json"' in index and '"seabed/"' in index
             assert "../data/live/map.json" not in index and "../data/seabed_tiles/" not in index
+
+    def test_the_fill_ships_its_paths_from_both_jobs_and_fill_json_when_built(self, tmp_path):
+        """The map's fill on LIVE (2026-11-10): each break's ray paths go out
+        with the page from both jobs, and fill.json whenever the collection
+        has built it, as the other live payloads do."""
+
+        d = write(tmp_path / "d", forecast())
+        (d / "live" / "now.json").write_text("{}", encoding="utf-8")
+        (d / "live" / "fill.json").write_text('{"breaks":{}}', encoding="utf-8")
+        for build in (lambda out: publish.build(out, data_dir=d),
+                      lambda out: publish.build_now_only(out, data_dir=d)):
+            out = tmp_path / "site"
+            written = build(out)
+            assert {"nearshore/", "fill.json"} <= set(written)
+            names = sorted(p.name for p in (out / "nearshore").iterdir())
+            assert names == ["coronado_center_paths.json", "coronado_north_paths.json",
+                             "coronado_south_paths.json"]
+            index = (out / "index.html").read_text(encoding="utf-8")
+            assert '"fill.json"' in index and '"nearshore/"' in index
+            assert "../data/live/fill.json" not in index and "../data/nearshore/" not in index
 
     def test_pages_publishing_copies_directories_whole(self):
         """`cp "$BUNDLE"/*` skipped directories and, under `set -e`, failed the

@@ -76,3 +76,22 @@ def test_the_map_data_names_no_coordinate_by_hand():
     src = (ROOT / "forecast" / "mapdata.py").read_text()
     assert not re.search(r"-11[0-9]\.\d{2}", src)
     assert mapdata.OTHER_BUOYS == ("46086", "46047")
+
+
+def test_the_fill_is_live_only_and_reads_its_own_files():
+    """The fill (owner's request, 2026-11-10) is offered on LIVE alone, from
+    fill.json and the break's paths, fetched only when a train is picked on
+    the map; it never draws on the Forecast tab."""
+
+    assert 'const FILL_SOURCE = PARAM.get("fill") || "../data/live/fill.json";' in PAGE
+    assert 'const NEARSHORE_PATHS = "../data/nearshore/";' in PAGE
+    assert 'const live = MODE === "now" && view === "map"' in PAGE
+    # fill.json and now.json must name the same spectrum, or no fill.
+    assert "d.observed_utc === NOW.observed_utc" in PAGE
+
+
+def test_the_fill_says_what_it_is():
+    """Rays the calculation follows, never waves, timed from NDBC 46232."""
+
+    assert 'aria-label="Minutes after NDBC 46232"' in PAGE
+    assert "98% in by" in PAGE
