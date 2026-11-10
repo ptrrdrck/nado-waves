@@ -4929,15 +4929,16 @@ class TestTheTitleRowPills:
         assert "tickHeads();" in self.fn("tickDue")
 
     def test_the_dot_keeps_its_size_inside_a_ring_with_a_hairline(self):
-        """7 px dot (r 3.5), 11 px ring (r 5.5), and a 0.5 px hairline taken
-        from the ring: 1.5 px of stroke centred at r 4.75. No track."""
+        """7 px dot (r 3.5), a 1 px gap, then 1.5 px of ring centred at
+        r 5.25: 12 px across (owner's pick, 2026-11-10). No track."""
         ring = self.fn("statusRing")
-        assert 'viewBox="0 0 11 11"' in ring
-        assert 'class="arc" cx="5.5" cy="5.5" r="4.75"' in ring
-        assert 'class="core" cx="5.5" cy="5.5" r="3.5"' in ring
-        assert "const RING_C = 2 * Math.PI * 4.75;" in SOURCE
+        assert 'viewBox="0 0 12 12"' in ring
+        assert 'class="arc" cx="6" cy="6" r="5.25"' in ring
+        assert 'class="core" cx="6" cy="6" r="3.5"' in ring
+        assert "const RING_C = 2 * Math.PI * 5.25;" in SOURCE
+        assert ".ring{display:block;width:12px;height:12px;" in SOURCE
         assert ".ring .arc{fill:none;stroke:var(--dot-ok);stroke-width:1.5}" in SOURCE
-        assert 3.5 + 0.5 == 4.75 - 1.5 / 2 and 4.75 + 1.5 / 2 == 5.5
+        assert 3.5 + 1 == 5.25 - 1.5 / 2 and 5.25 + 1.5 / 2 == 6
         assert ".ring .trk" not in SOURCE
 
     def test_the_space_under_the_title_is_the_space_above_the_charts_rule(self):
