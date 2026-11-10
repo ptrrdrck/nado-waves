@@ -483,11 +483,9 @@ The breaking height, in feet with metres in parentheses: “3.5 ft (1.07 m) brea
 
 The break's windows, drawn facing the way the break faces: open water above the shore, the grey shadows of the land either side, and an arrow for each swell train, two for a train arriving from two directions. Tap a shadow for the land casting it and the share of this swell it takes; tap a window for the land either side and its width; tap an arrow for that train. Tapping a train in the list above the drawing picks its arrows the same way, and the train's row stays highlighted while it is picked. Tap it again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with Tab.
 
-A picked train also gets an arrowhead at the break, pointing in along the direction it arrives from in 5 m of water, after the seabed has turned it, and its caption gives that heading on a second line. [The next section](#swell-bend) says how it is worked out.
-
 ### [swell-bend] Which way a swell arrives in 5 m of water
 
-Every arrow from the rim of the drawing is the direction a train's energy came from offshore, the frame the windows are drawn in. On its way in, a swell slows over the shallowing seabed and turns toward the shallows ([step 3](#calc-refraction)), so by 5 m of water it comes from much nearer straight out to sea. The arrowhead at the break is that heading: where each ray carrying the train's energy arrives from at the start point, averaged by the energy each carries. It is worked out for every train from the spectrum of the hour, at each break.
+Every arrow from the rim of the drawing is the direction a train's energy came from offshore, the frame the windows are drawn in. On its way in, a swell slows over the shallowing seabed and turns toward the shallows ([step 3](#calc-refraction)), so by 5 m of water it comes from much nearer straight out to sea: where each ray carrying a train's energy arrives from at the start point, averaged by the energy each carries.
 
 The table is the same calculation for one narrow swell at a time: 14.3 s, spread ±10° about each offshore heading, through the soft window edges and bottom friction as a train is. A dash means less than a tenth of that heading's energy reaches 5 m, too little for its direction to tell you anything.
 

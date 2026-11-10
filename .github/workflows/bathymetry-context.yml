@@ -1,0 +1,70 @@
+# Fetch the coarse CONTEXT seabed: GMRT round the breaks and the three buoys
+# the page shows, out past Tanner Bank (collector.bathymetry's `context`
+# grid). A map draws it for context; no chain reads it, and no ray is traced
+# over it (forecast.raytrace loads its three grids by name).
+#
+# Why a workflow: gmrt.org is denied from a session (measured 2026-09-25).
+#
+# Runs when this file or the collector changes on master (so it runs once
+# when the work that added it is merged), and on demand. Only the context
+# grid: the full run, with the datum, is bathymetry.yml's. GMRT is referenced
+# to sea level, so no datum is needed.
+
+name: Bathymetry context
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - collector/bathymetry.py
+      - .github/workflows/bathymetry-context.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bathymetry
+  cancel-in-progress: false
+
+jobs:
+  context:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-precompute.txt
+
+      - name: Fetch the context grid
+        run: python -m collector.bathymetry --skip-datum --grids context | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves collector"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/bathymetry/context.npz data/bathymetry/context.json
+
+          if git diff --cached --quiet; then
+            echo "No context seabed change to commit."
+            exit 0
+          fi
+
+          git commit \
+            -m "data: the context seabed (GMRT, out past Tanner Bank)" \
+            -m "Automated commit from .github/workflows/bathymetry-context.yml."
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then exit 0; fi
+            git pull --rebase origin "${BRANCH}" || true
+            sleep $((2 ** attempt))
+          done
+          echo "::error title=Push failed::Could not push the context seabed after 4 attempts."
+          exit 1

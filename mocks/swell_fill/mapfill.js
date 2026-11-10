@@ -14,8 +14,8 @@
 // arrive first. Nothing here is a wave field or a crest.
 //
 // The map's base is the seabed (owner's choice, 2026-11-10): the grids the
-// rays were traced over near the breaks, and AWS's Terrain Tiles for context
-// out past Tanner Bank, where the map stops zooming out.
+// rays were traced over near the breaks, and GMRT's coarse context grid out
+// past Tanner Bank, where the map stops zooming out.
 //
 // Loaded after Leaflet and before swellmap.js, so it sees every map made.
 (function () {
@@ -30,9 +30,10 @@
     play: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z"/></svg>',
     pause: '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" rx=".5"/>'
       + '<rect x="7" y="1.5" width="3" height="9" rx=".5"/></svg>',
-    // A counter-clockwise turn, its arrowhead on the open end.
-    again: '<svg class="stroke" viewBox="0 0 24 24" aria-hidden="true">'
-      + '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
+    // The forecast page's "back to" clock without its arms (owner's
+    // reference, 2026-11-10: the week card's button), at the map buttons' line.
+    again: '<svg class="stroke" viewBox="0 0 16 16" aria-hidden="true">'
+      + '<path d="M3.1 5.6A5.4 5.4 0 1 1 2.6 8.6"/><path d="M2.7 3.2v2.6h2.6"/></svg>',
   };
   const g = (name, fb) => { try { return eval(name); } catch (e) { return fb; } };
   const live = () => g("MODE", "now") === "now";
@@ -48,24 +49,26 @@
   }
 
   // ------------------------------------------------------------ the base map
-  // The seabed, back to front: the context, then the grids' wide and fine
-  // pictures. No zooming out past the context, and no panning off it.
+  // The seabed, back to front: the context grid (GMRT, out past Tanner Bank,
+  // once bathymetry-context.yml has fetched it), then the traced grids' wide
+  // and fine pictures. No zooming out past Tanner Bank, no panning off it.
   const SEABED = [...((RAYS.context || {}).layers || []), ...((RAYS.seabed || {}).layers || [])];
-  window.__SWELLMAP_ATTR__ = `Seabed USGS CoNED, GMRT${RAYS.context ? "; Terrain Tiles" : ""}`;
+  const BUOYS = RAYS.buoys || {};
+  window.__SWELLMAP_ATTR__ = "Seabed USGS CoNED, GMRT";
   window.__SWELLMAP_BASE__ = (map, b) => {
     SEABED.forEach((s) => L.imageOverlay(s.png, s.bounds, {interactive: false}).addTo(map));
-    if (!RAYS.context || !b) return;
-    // Tanner Bank's buoy, marked as 46232 is, so the widest view has its
-    // landmark (the map's own marks are in screen pixels on any zoom).
-    L.circleMarker(RAYS.context.tanner, {radius: 5, color: "#fff", weight: 2, fillColor: "#000",
-      fillOpacity: 0.7, interactive: false}).addTo(map);
-    L.marker(RAYS.context.tanner, {interactive: false, keyboard: false,
-      icon: L.divIcon({className: "sm-tag", html: "<span>NDBC 46047</span>", iconSize: [0, 0]})}).addTo(map);
-    const home = L.latLng(b.position), far = home.distanceTo(L.latLng(RAYS.context.tanner));
-    const reach = far + 25000;                    // just past Tanner Bank
+    // The other buoys the page shows, marked as 46232 is.
+    Object.entries(BUOYS).forEach(([id, at]) => {
+      L.circleMarker(at, {radius: 5, color: "#fff", weight: 2, fillColor: "#000",
+        fillOpacity: 0.7, interactive: false}).addTo(map);
+      L.marker(at, {interactive: false, keyboard: false,
+        icon: L.divIcon({className: "sm-tag", html: `<span>NDBC ${id}</span>`, iconSize: [0, 0]})}).addTo(map);
+    });
+    if (!BUOYS["46047"] || !b) return;
+    const home = L.latLng(b.position), t = L.latLng(BUOYS["46047"]);
+    const reach = home.distanceTo(t) + 25000;     // just past Tanner Bank
     // At the widest, a point just past Tanner Bank is in view with the break
     // where the map keeps it (the middle of the foot, the normal up).
-    const t = L.latLng(RAYS.context.tanner);
     const y = Math.sin(rad(t.lng - home.lng)) * Math.cos(rad(t.lat));
     const x = Math.cos(rad(home.lat)) * Math.sin(rad(t.lat))
       - Math.sin(rad(home.lat)) * Math.cos(rad(t.lat)) * Math.cos(rad(t.lng - home.lng));

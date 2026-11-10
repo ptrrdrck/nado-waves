@@ -8,7 +8,9 @@
   width:28px;height:28px;padding:0;margin:0;border:1px solid transparent;border-radius:6px;cursor:pointer;
   background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .sf-play svg{width:12px;height:12px;fill:currentColor}
-.sf-play svg.stroke{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+/* Replay: 16 px at 1.5, as the map's + and - are drawn. */
+.sf-play svg.stroke{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;
+  stroke-linejoin:round}
 .sf-track{flex:1 1 auto;min-width:0;height:28px;box-sizing:border-box;display:flex;align-items:center;gap:8px;
   padding:0 10px 0 8px;border:1px solid transparent;border-radius:6px;background:var(--card);color:var(--ink);
   box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none}

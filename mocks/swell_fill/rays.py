@@ -181,7 +181,7 @@ def ang(a: float, b: float) -> float:
 def seabed_png(bathy: Bathymetry, south: float, west: float, north: float, east: float,
                px: int = 1100, feather: float = 0.06) -> tuple[str, list]:
     """Depth below MSL as greys on a Web-Mercator-aligned grid, land lighter,
-    with contours at 5, 10, 20, 50, 100, 200 and 500 m. A data: URI. Its
+    with contours at 5, 10, 20, 50, 100, 200, 500, 1,000 and 2,000 m. A data: URI. Its
     edges fade out over `feather` of its size, and where the grids have no
     cell it is clear, so the picture under it shows through."""
 
@@ -211,7 +211,7 @@ def seabed_png(bathy: Bathymetry, south: float, west: float, north: float, east:
     img = np.where(water, grey, np.where(land, 150.0, 18.0))
     rgb = np.stack([img * 0.92, img * 0.98, img * 1.06], -1)   # the map's navy-grey, faintly
     edge = np.zeros(h.shape, bool)
-    for level in (5, 10, 20, 50, 100, 200, 500):
+    for level in (5, 10, 20, 50, 100, 200, 500, 1000, 2000):
         above = np.where(water, h, 0.0) >= level
         e = np.zeros_like(above)
         e[:-1] |= above[:-1] != above[1:]
@@ -219,7 +219,8 @@ def seabed_png(bathy: Bathymetry, south: float, west: float, north: float, east:
         edge |= e & water
     rgb[edge] = rgb[edge] * 0.55 + 255 * 0.45 * 0.6
     rgb = np.clip(rgb, 0, 255).astype(np.uint8)
-    ramp = lambda n: np.clip(np.minimum(np.arange(n) + 0.5, n - np.arange(n) - 0.5) / (feather * n), 0, 1)
+    ramp = ((lambda n: np.clip(np.minimum(np.arange(n) + 0.5, n - np.arange(n) - 0.5) / (feather * n), 0, 1))
+            if feather > 0 else (lambda n: np.ones(n)))
     alpha = np.outer(ramp(hgt), ramp(w)) * (water | land)
     rgba = np.dstack([rgb, (alpha * 255).astype(np.uint8)])
     buf = io.BytesIO()

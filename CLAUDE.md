@@ -464,13 +464,14 @@ forecaster actually verifies against, Surfline included.
    under the reading split from that same spectrum (`trains_from_utc`); a
    new spectrum clears it. A break tab's train row lights the same way
    when its train is picked, from the list or by its arrow on the drawing
-   (owner's request, 2026-10-09). **A picked train also shows its heading in
-   5 m of water** (owner's request, 2026-10-22): an arrowhead alone at the
-   break, 1.25× its own offshore head (`NEAR_HEAD`; owner's call, same day:
-   the dashed leg looked bad), and a second caption line, "from SW 222° in
-   5 m of water" — its own rays' 5 m headings, energy-weighted
-   (`nearshore._arrive`, `near_from_deg` / `near_lobes`), on the drawing
-   only, never in the row. docs.html's `swell-bend` table is the same
+   (owner's request, 2026-10-09). **The drawing shows no heading in 5 m of water**
+   (owner's call, 2026-11-10, removing the arrowhead at the break and the
+   caption line "from SW 222° in 5 m of water" shown since 2026-10-22): by 5 m
+   nearly everything arrives within ~16° of straight in, and the map mock's
+   traced rays show the turn. Each train's own rays' 5 m heading,
+   energy-weighted, is still computed and kept in the payload
+   (`nearshore._arrive`, `near_from_deg` / `near_lobes`), never in a row, in
+   case it is useful as a trend. docs.html's `swell-bend` table is the same
    calculation for one narrow swell per heading (`forecast/bending.py
    --write`, pinned to `carry` by a test). **By 5 m the offshore direction
    is mostly erased** (BRIEFING §45): everything the windows let in arrives

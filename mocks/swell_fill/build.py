@@ -4,16 +4,21 @@
         [--rays RAYS.json] [--fragment]
 
 BUNDLE is a checkout of the public delivery repository (nado-waves-forecast):
-its index.html and every *.json beside it are built into one file, served to
-the page by a fetch stand-in, as the swell-map mock does. LEAFLET_DIST is
+every *.json in it is built into one file, served to the page by a fetch
+stand-in, as the swell-map mock does. The page is this branch's
+app/forecast.html, wrapped as forecast.publish wraps it. LEAFLET_DIST is
 Leaflet 1.9.4's dist/ folder and ROTATE_DIST leaflet-rotate 0.2.8's
 (npm install leaflet@1.9.4 leaflet-rotate@0.2.8). The map is
-mocks/swell_map's, with two class names and two hooks added (a base map, and
-the view kept across the page's redraws); the rays are
-`rays.py`'s for that bundle's now.json (or a saved `--rays` file of it: the
-trace takes a few minutes), and the outer seabed `context.py`'s (or a saved
-`--context` file; else fetched from AWS's Terrain Tiles). `--fragment` drops the document's own doctype,
-html, head and body tags, for a host that supplies its own.
+mocks/swell_map's, with class names and hooks added (a base map, its
+attribution, the view kept across the page's redraws, zoom buttons that stop
+at their limits); the rays are `rays.py`'s for that bundle's now.json (or a
+saved `--rays` file of it: the trace takes a few minutes); the outer seabed is
+`context.py`'s, from `collector.bathymetry`'s GMRT context grid once
+bathymetry-context.yml has fetched it, and absent until then; the buoys
+marked beside 46232 (46086 and 46047) are NDBC's fetched coordinates
+(`forecast.siting.load_coordinates`), never typed. `--fragment` drops the
+document's own doctype, html, head and body tags, for a host that supplies
+its own.
 
 The map's base is the seabed, not the satellite imagery (owner's choice,
 2026-11-10). The mock opens on the map rather than the drawing on a device
@@ -41,7 +46,6 @@ def main() -> None:
     ap.add_argument("rotate", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--rays", type=Path)
-    ap.add_argument("--context", type=Path, help="a saved `context.py` output (else fetched)")
     ap.add_argument("--fragment", action="store_true")
     a = ap.parse_args()
     if a.rays:
@@ -49,13 +53,16 @@ def main() -> None:
     else:
         from .rays import build as build_rays
         rays = build_rays(a.bundle / "now.json")
-    if a.context:
-        rays["context"] = json.loads(a.context.read_text(encoding="utf-8"))
-    else:
-        from forecast.geometry import load
-        from .context import build as build_context
-        rays["context"] = build_context([s.position for s in load()[0] if s.id.startswith("coronado")])
-    html = (a.bundle / "index.html").read_text(encoding="utf-8")
+    from forecast.siting import load_coordinates
+    from .context import build as build_context
+    rays["context"] = build_context()
+    where = load_coordinates()
+    rays["buoys"] = {b: list(where[b]) for b in ("46086", "46047")}
+    print("context seabed:", "GMRT context grid" if rays["context"] else "none yet (bathymetry-context.yml)")
+    # The page as this branch would publish it (forecast.publish's own
+    # wrapping), not the delivery repo's: the mock shows this branch's page.
+    from forecast.publish import PAGE_SOURCE, repoint, wrap
+    html = wrap(repoint(PAGE_SOURCE.read_text(encoding="utf-8")), app_title="Nado Waves")
     data = {p.name: json.loads(p.read_text(encoding="utf-8")) for p in sorted(a.bundle.glob("*.json"))}
     shim = ("<script>window.__MOCK_DATA__=" + esc(json.dumps(data, separators=(",", ":"))) + ";"
             "(function(){var real=window.fetch.bind(window);window.fetch=function(u,o){"

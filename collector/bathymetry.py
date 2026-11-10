@@ -40,6 +40,12 @@ than typed boxes, finest first:
   elsewhere, referenced to sea level rather than NAVD88; the sidecar says so.
   gmrt.org is denied from a session (measured 2026-09-25), so this grid comes
   from the workflow.
+- `context` — GMRT, coarse (`CONTEXT_CELL_M`), the breaks and the three
+  buoys the page shows (46232, 46086, 46047 at Tanner Bank), with
+  `CONTEXT_MARGIN_M` around them: the seabed a map draws for context out past
+  Tanner Bank (owner's request, 2026-11-10, for the swell-fill map). READ BY
+  NO CHAIN: `forecast.raytrace` loads the three grids above by name, and a
+  ray is never traced over this one. Fetched by bathymetry-context.yml.
 
 DATUM. The grid is NAVD88; waves see mean sea level. The offset between them
 at NOAA 9410170 is FETCHED from CO-OPS (`datums` endpoint), never typed. CO-OPS
@@ -79,10 +85,22 @@ TIDE_STATION = "9410170"
 DATUMS_URL = ("https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/"
               f"{TIDE_STATION}/datums.json?units=metric")
 
+#: The context grid's cell and margin: coarse, and wide enough that a map's
+#: widest view round the breaks, out past Tanner Bank, stays on it.
+CONTEXT_CELL_M = 400.0
+CONTEXT_MARGIN_M = 160000.0
+#: The buoys the context grid has to hold: the ones the page shows.
+CONTEXT_BUOYS = ("46232", "46086", "46047")
+
 #: Grid name -> (cell size in metres, margin in metres around its anchors, source).
 GRIDS = {"nearshore": (8.0, 3000.0, "coned"),
          "regional": (32.0, 12000.0, "coned"),
-         "outer": (90.0, 15000.0, "gmrt")}
+         "outer": (90.0, 15000.0, "gmrt"),
+         "context": (CONTEXT_CELL_M, CONTEXT_MARGIN_M, "gmrt")}
+
+#: GMRT's own resolution for each of its grids: its finest near the breaks,
+#: its medium for the coarse context.
+GMRT_RESOLUTION = {"outer": "high", "context": "med"}
 
 GMRT_URL = "https://www.gmrt.org/services/GridServer"
 GMRT_NAME = "GMRT Global Multi-Resolution Topography synthesis (multibeam + GEBCO)"
@@ -92,14 +110,14 @@ NOT_COVERED = ("the Coronado Islands and the Baja coast (south of the source's "
                "32.49 N edge, Mexican waters)")
 
 
-def buoy_position(path: Path = STATIONS) -> tuple[float, float]:
-    """46232 from NDBC's own metadata, never typed (CLAUDE.md)."""
+def buoy_position(path: Path = STATIONS, station: str = BUOY) -> tuple[float, float]:
+    """A buoy (46232 unless named) from NDBC's own metadata, never typed (CLAUDE.md)."""
 
     with path.open(newline="", encoding="utf-8") as fh:
         for row in csv.reader(fh):
-            if row and row[0] == BUOY:
+            if row and row[0] == station:
                 return float(row[4]), float(row[5])
-    raise LookupError(f"{BUOY} is not placed in {path}; run collector.metadata on Actions")
+    raise LookupError(f"{station} is not placed in {path}; run collector.metadata on Actions")
 
 
 def anchors(grid: str) -> list[tuple[float, float]]:
@@ -117,6 +135,8 @@ def anchors(grid: str) -> list[tuple[float, float]]:
     if grid == "outer":
         for blocker in blockers:
             points += [blocker.a, blocker.b, *blocker.outline]
+    if grid == "context":
+        points += [buoy_position(station=b) for b in CONTEXT_BUOYS]
     return points
 
 
@@ -167,9 +187,9 @@ def read_grid(grid: str):
     return read_gmrt(grid) if GRIDS[grid][2] == "gmrt" else read_coned(grid)
 
 
-def gmrt_url(south: float, north: float, west: float, east: float) -> str:
+def gmrt_url(south: float, north: float, west: float, east: float, resolution: str = "high") -> str:
     return (f"{GMRT_URL}?north={north:.4f}&south={south:.4f}&east={east:.4f}&west={west:.4f}"
-            "&layer=topo&format=geotiff&resolution=high")
+            f"&layer=topo&format=geotiff&resolution={resolution}")
 
 
 def read_gmrt(grid: str):
@@ -189,11 +209,12 @@ def read_gmrt(grid: str):
     corners = [from_utm(x, y) for x in (left, right) for y in (bottom, top)]
     pad = 0.02
     url = gmrt_url(min(c[0] for c in corners) - pad, max(c[0] for c in corners) + pad,
-                   min(c[1] for c in corners) - pad, max(c[1] for c in corners) + pad)
+                   min(c[1] for c in corners) - pad, max(c[1] for c in corners) + pad,
+                   GMRT_RESOLUTION.get(grid, "high"))
     request = urllib.request.Request(url, headers={"User-Agent": "nado-waves bathymetry collector"})
     with urllib.request.urlopen(request, timeout=120) as resp:
         blob = resp.read()
-    print(f"outer: GMRT answered {len(blob)} bytes for {url}")
+    print(f"{grid}: GMRT answered {len(blob)} bytes for {url}")
     width = int(round((right - left) / cell))
     height = int(round((top - bottom) / cell))
     out = np.full((height, width), np.nan, dtype="float64")
@@ -273,7 +294,8 @@ def write(grid: str, dm, transform, bounds, stats, datum: dict | None, out_dir: 
                        else "average of the 1 m cells, via the source's overviews"),
         "not_covered": "" if gmrt else NOT_COVERED,
         "datum": datum or {"station": TIDE_STATION, "msl_above_navd88_m": None,
-                           "note": "not fetched: CO-OPS is denied from a session; run the workflow"},
+                           "note": ("not needed: GMRT is referenced to sea level" if gmrt
+                                    else "not fetched: CO-OPS is denied from a session; run the workflow")},
         "stats": stats,
         "retrieved_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

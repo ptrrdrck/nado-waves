@@ -110,3 +110,19 @@ def test_the_stored_grid_puts_the_charted_coast_near_mean_high_water():
             vals.append(z[row, col])
     assert len(vals) > 500
     assert 0.5 < float(np.median(vals)) < 2.5
+
+
+def test_the_context_grid_holds_the_page_buoys_and_feeds_no_chain():
+    """Owner's request, 2026-11-10: a coarse GMRT seabed out past Tanner Bank
+    for a map's context. It must hold every buoy the page shows, and the ray
+    tracer must never load it: it is for drawing, not for refraction."""
+
+    from forecast import raytrace
+
+    assert bathymetry.GRIDS["context"][2] == "gmrt"
+    points = bathymetry.anchors("context")
+    for station in bathymetry.CONTEXT_BUOYS:
+        assert bathymetry.buoy_position(station=station) in points
+    src = Path(raytrace.__file__).read_text()
+    assert 'for name in ("nearshore", "regional", "outer"):' in src
+    assert '"context"' not in src
