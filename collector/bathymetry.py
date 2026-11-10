@@ -86,9 +86,12 @@ DATUMS_URL = ("https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/
               f"{TIDE_STATION}/datums.json?units=metric")
 
 #: The context grid's cell and margin: coarse, and wide enough that a map's
-#: widest view round the breaks, out past Tanner Bank, stays on it.
+#: widest view round the breaks, out past Tanner Bank, stays on it. 160 km
+#: (2026-11-10, the first fetch) left the turned map's widest view off the
+#: grid to the south-west and north-west, where it reaches ~330 km from the
+#: breaks; 350 km at the same 400 m cells (owner's choice, same day).
 CONTEXT_CELL_M = 400.0
-CONTEXT_MARGIN_M = 160000.0
+CONTEXT_MARGIN_M = 350000.0
 #: The buoys the context grid has to hold: the ones the page shows.
 CONTEXT_BUOYS = ("46232", "46086", "46047")
 

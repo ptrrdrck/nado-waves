@@ -81,7 +81,11 @@ def test_a_grid_stored_without_a_datum_says_so():
         datum = meta["datum"]
         assert datum["msl_above_navd88_m"] is None or isinstance(datum["msl_above_navd88_m"], float)
         if datum["msl_above_navd88_m"] is None:
-            assert "not fetched" in datum["note"]
+            # A CoNED grid needs the offset and says it is missing; a GMRT
+            # grid is already sea level and says it needs none (the context
+            # grid, fetched with --skip-datum by bathymetry-context.yml).
+            want = "not fetched" if bathymetry.GRIDS[grid][2] == "coned" else ("not fetched", "not needed")
+            assert any(w in datum["note"] for w in ([want] if isinstance(want, str) else want))
         if bathymetry.GRIDS[grid][2] == "coned":
             assert meta["vertical_datum"] == "NAVD88"
             assert "Coronado Islands" in meta["not_covered"]

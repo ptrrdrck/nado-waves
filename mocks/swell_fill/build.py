@@ -12,9 +12,10 @@ Leaflet 1.9.4's dist/ folder and ROTATE_DIST leaflet-rotate 0.2.8's
 mocks/swell_map's, with class names and hooks added (a base map, its
 attribution, the view kept across the page's redraws, zoom buttons that stop
 at their limits); the rays are `rays.py`'s for that bundle's now.json (or a
-saved `--rays` file of it: the trace takes a few minutes); the outer seabed is
-`context.py`'s, from `collector.bathymetry`'s GMRT context grid once
-bathymetry-context.yml has fetched it, and absent until then; the buoys
+saved `--rays` file of it: the trace takes a few minutes); the seabed is
+`tiles.py`'s map tiles, in tiles/ beside OUT (or a built `--tiles` directory,
+which the page then expects copied there), the page fetching only those in
+view; the buoys
 marked beside 46232 (46086 and 46047) are NDBC's fetched coordinates
 (`forecast.siting.load_coordinates`), never typed. `--fragment` drops the
 document's own doctype, html, head and body tags, for a host that supplies
@@ -46,6 +47,7 @@ def main() -> None:
     ap.add_argument("rotate", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--rays", type=Path)
+    ap.add_argument("--tiles", type=Path, help="a built tiles.py directory (else built into tiles/ beside OUT)")
     ap.add_argument("--fragment", action="store_true")
     a = ap.parse_args()
     if a.rays:
@@ -54,11 +56,17 @@ def main() -> None:
         from .rays import build as build_rays
         rays = build_rays(a.bundle / "now.json")
     from forecast.siting import load_coordinates
-    from .context import build as build_context
-    rays["context"] = build_context()
+    # The seabed is map tiles beside the page, not pictures inside it.
+    rays.pop("seabed", None)
+    tiles_dir = a.out.parent / "tiles"
+    if a.tiles:
+        manifest = json.loads((a.tiles / "manifest.json").read_text(encoding="utf-8"))
+    else:
+        from .tiles import build as build_tiles
+        manifest = build_tiles(tiles_dir)
+    rays["tiles"] = {**manifest, "base": "tiles"}
     where = load_coordinates()
     rays["buoys"] = {b: list(where[b]) for b in ("46086", "46047")}
-    print("context seabed:", "GMRT context grid" if rays["context"] else "none yet (bathymetry-context.yml)")
     # The page as this branch would publish it (forecast.publish's own
     # wrapping), not the delivery repo's: the mock shows this branch's page.
     from forecast.publish import PAGE_SOURCE, repoint, wrap

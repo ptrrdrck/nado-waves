@@ -13,9 +13,10 @@
 // wave group passed 46232 (raytrace.leg_table's arithmetic): long periods
 // arrive first. Nothing here is a wave field or a crest.
 //
-// The map's base is the seabed (owner's choice, 2026-11-10): the grids the
-// rays were traced over near the breaks, and GMRT's coarse context grid out
-// past Tanner Bank, where the map stops zooming out.
+// The map's base is the seabed (owner's choice, 2026-11-10), as map tiles
+// loaded only where they are in view: the grids the rays were traced over
+// near the breaks, and GMRT's coarse context grid out past Tanner Bank, where
+// the map stops zooming out.
 //
 // Loaded after Leaflet and before swellmap.js, so it sees every map made.
 (function () {
@@ -49,14 +50,24 @@
   }
 
   // ------------------------------------------------------------ the base map
-  // The seabed, back to front: the context grid (GMRT, out past Tanner Bank,
-  // once bathymetry-context.yml has fetched it), then the traced grids' wide
-  // and fine pictures. No zooming out past Tanner Bank, no panning off it.
-  const SEABED = [...((RAYS.context || {}).layers || []), ...((RAYS.seabed || {}).layers || [])];
+  // The seabed as map tiles (mocks/swell_fill/tiles.py), back to front: the
+  // GMRT context grid out past Tanner Bank (zooms 6-9), the rays' own CoNED
+  // and GMRT grids (10-12), and CoNED's nearshore grid (13-14), each layer
+  // stretched past its last zoom and fetched only where it has tiles. Leaflet
+  // loads the tiles in view and no others, so a wider grid costs nothing on
+  // screen. No zooming out past Tanner Bank, no panning off it.
+  const TILES = RAYS.tiles || {layers: []};
   const BUOYS = RAYS.buoys || {};
   window.__SWELLMAP_ATTR__ = "Seabed USGS CoNED, GMRT";
   window.__SWELLMAP_BASE__ = (map, b) => {
-    SEABED.forEach((s) => L.imageOverlay(s.png, s.bounds, {interactive: false}).addTo(map));
+    TILES.layers.forEach((t, i) => {
+      L.tileLayer(`${TILES.base}/{z}/{x}/{y}.png`, {
+        minZoom: i ? t.zooms[0] : 0, maxNativeZoom: t.zooms[1], maxZoom: 18,
+        bounds: L.latLngBounds(t.bounds), minNativeZoom: t.zooms[0],
+        keepBuffer: 4, updateWhenZooming: false, className: `sf-tiles sf-tiles-${t.name}`,
+        zIndex: i + 1,
+      }).addTo(map);
+    });
     // The other buoys the page shows, marked as 46232 is.
     Object.entries(BUOYS).forEach(([id, at]) => {
       L.circleMarker(at, {radius: 5, color: "#fff", weight: 2, fillColor: "#000",
