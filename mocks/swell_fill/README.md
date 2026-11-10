@@ -35,13 +35,13 @@ never chosen between map and drawing.
   and the three buoys with 160 km to spare), shaded the same way. Greys,
   lighter for shallower, contours at 5, 10, 20, 50, 100, 200, 500, 1,000 and
   2,000 m, land lighter still; each inner picture fades out at its edges.
-- **The context grid is not fetched yet.** gmrt.org is denied from a session,
-  so `.github/workflows/bathymetry-context.yml` fetches it on Actions when
-  this work is merged (it runs on a push to master that changes the collector
-  or itself), into `data/bathymetry/context.{npz,json}`. No chain reads it:
-  `raytrace` loads its three grids by name, and a test pins it. Until it
-  lands, the inner pictures fade to the map's deep grey; rebuild the mock
-  afterwards and `context.py` picks it up.
+- **The context grid** is fetched on Actions by
+  `.github/workflows/bathymetry-context.yml` (gmrt.org is denied from a
+  session), into `data/bathymetry/context.{npz,json}`: first on the merge of
+  PR #213, 2026-11-10, 1,356 x 869 cells at 400 m, none empty, -4,689 to
+  +3,403 m. No chain reads it: `raytrace` loads its three grids by name, and a
+  test pins it. At the widest zoom its edge shows to the south-west and
+  north-west: 160 km is not enough margin for the turned view there.
 - **NDBC 46086 and 46047 are marked as 46232 is**, at NDBC's fetched
   coordinates (`forecast.siting.load_coordinates`).
 - **It zooms out to just past Tanner Bank and no further**: at the widest, a
