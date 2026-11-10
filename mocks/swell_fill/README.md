@@ -5,17 +5,19 @@ windows from its direction and period. Owner's choices the same day: a picked
 train, LIVE only. A first version on the window drawing (option A) was
 confusing: the drawing is a view from the break, so swell that bends round
 Point Loma's tip could only be drawn crossing its shadow. The owner moved it
-to the map, at true scale, with the real ray paths (option B). Option A is
-gone from this folder, and from the build. **Nothing here is published**:
-`forecast.publish` ships `app/` only, and `app/forecast.html` is unchanged.
+to the map, at true scale, with the real ray paths (option B), and then made
+the seabed the map's base in place of the satellite imagery (a satellite
+option may come back). **Nothing here is published**: `forecast.publish`
+ships `app/` only, and `app/forecast.html` is unchanged.
 
-Build, from checkouts of the delivery repository and Leaflet (as the
-swell-map mock is built):
+Build, from checkouts of the delivery repository and Leaflet:
 
     npm install leaflet@1.9.4 leaflet-rotate@0.2.8
     python -m mocks.swell_fill.rays ../nado-waves-forecast/now.json --json > rays.json   # ~4 min
+    python -m mocks.swell_fill.context context.json --cache tiles/                       # fetches
     python -m mocks.swell_fill.build ../nado-waves-forecast node_modules/leaflet/dist \
-        node_modules/leaflet-rotate/dist mocks/swell_fill/swell_fill_mock.html --rays rays.json
+        node_modules/leaflet-rotate/dist mocks/swell_fill/swell_fill_mock.html \
+        --rays rays.json --context context.json
 
 `python -m mocks.swell_fill.rays NOW.json` alone runs every check and prints
 what it built. The file is the published page of its build time with its data
@@ -24,46 +26,69 @@ never chosen between map and drawing.
 
 ## What it does
 
-- On LIVE, on the map, pick a train (its row, or its arrow): a play button and
-  a timeline appear along the map's foot, left of return, + and -. A pick on
-  the Forecast tab, a window, a shadow or nothing shows neither. A swell shown
-  as two rows (`G…`) fills as one.
-- Play: the map turns to the seabed and frames every ray the train comes in
-  on, from where it leaves deep water to the break (shore normal still up).
-  The train's arrows give way to its rays. The clock in the timeline is
-  **minutes after the same wave group passed NDBC 46232**; the caption under
-  the map reads the periods more than half in and the height so far, "+38 min
-  · 16.7–14.3 s in · 5.1 ft (1.55 m)". At the end it gives the minute by which
-  98% of the train's 5 m energy is in, the row's own height, and the train's
-  5 m arrowhead comes back. Drag the timeline, or use the arrow keys; pan and
-  zoom as ever (into the tip, where the rays turn most). Any other pick ends it.
-- **Each ray is one row of the break's transfer table**, drawn where it really
-  went: straight in from 15 km seaward of where it leaves deep water, then
-  bent over the seabed to 5 m of water off the break. Brighter for more of the
-  train's energy; where rays crowd, the light adds up, as the energy does.
+- **The map is the seabed**: near the breaks, the grids the rays are traced
+  over (USGS CoNED 2016 and GMRT, depth below mean sea level), a finer picture
+  over the breaks and the Point Loma tip; past them, for context only, AWS's
+  open Terrain Tiles (ETOPO1 and other public models), shaded the same way.
+  Greys, lighter for shallower, contours at 5, 10, 20, 50, 100, 200, 500,
+  1,000 and 2,000 m, land lighter still; each inner picture fades out at its
+  edges. NDBC 46047 is marked as 46232 is.
+- **It zooms out to just past Tanner Bank and no further**: at the widest, a
+  point 25 km past NDBC 46047 is in view with the break where the map keeps
+  it, and the view's middle cannot be panned further than that from the
+  break. The + and - buttons stop at the limits (they used to walk the centre
+  off the map past them).
+- **The view is kept across the page's redraws.** The page rebuilds its cards
+  every minute on LIVE, and the map was rebuilt with them, back at its
+  opening view: that was the jump after a fill. The view and the fill are now
+  kept by break.
+- On LIVE, on the map, pick a train (its row, or its arrow): the play button
+  and the timeline appear along the map's foot, left of return, + and -, the
+  timeline at its start. A pick on the Forecast tab, a window, a shadow or
+  nothing shows neither. A swell shown as two rows (`G…`) fills as one.
+- Play (or drag the timeline): the map frames every ray the train comes in on,
+  the train's arrows and its 5 m arrowhead give way to the rays, and the
+  timeline is a clock, **minutes after the same wave group passed NDBC
+  46232**. The caption under the map reads the periods more than half in and
+  the height so far, "+38 min · 16.7–14.3 s in · 5.1 ft (1.55 m)"; at the end,
+  the minute by which 98% of the train's energy is in and the row's own
+  height. The button pauses, and at the end replays. Any other pick ends it.
+- **Each ray is one row of the break's transfer table**, drawn where it went:
+  straight in from the line through 46232 square to its heading, then bent
+  over the seabed to 5 m of water, then on to the break. Brighter for more of
+  the train's energy; where rays crowd, the light adds up, as the energy does.
   Each period moves at its own group speed, so long periods come in first.
-- The seabed is drawn from the same grids the rays were traced over (USGS
-  CoNED 2016 and GMRT, depth below mean sea level): greys, lighter for
-  shallower, contours at 5, 10, 20, 50, 100, 200 and 500 m, land lighter
-  still. A finer picture covers the breaks and the Point Loma tip. It also
-  stands in for the satellite imagery wherever the imagery cannot load (the
-  artifact's host blocks tile servers).
 - Reduced motion: play shows the filled map at once; the timeline still reads
   any minute.
 
-## Where every number comes from
+## Where the rays start, and why
 
-`rays.py` re-runs the LIVE chain (`nearshore.buoy_split`, `nearshore.carry`) on
-the archived 46232 spectrum at that `now.json`'s `observed_utc`, and for each
-period bin a listed train holds re-traces all 360 of the break's rays with
-`trace_paths`: `raytrace.trace`'s own loop, recording each step.
+A ray is traced BACKWARD from 5 m of water off the break until the water is
+one deep-water wavelength deep (L0 = gT²/2π: 370 m at 15.4 s, 100 m at 8 s).
+Past that depth the seabed no longer bends it, so the rest of its way in is a
+straight line, and that is where the trace stops: on the shelf's edge, 19–26
+km out, inside 46232's distance for some rays and outside it for others.
+
+The chain takes the spectrum 46232 measures to hold all along the line
+through the buoy square to the swell's travel (BRIEFING §29: "the buoy
+spectrum is assumed to hold across the offshore boundary"). So each ray is
+drawn from that line, where the clock reads 0, straight to its exit, then
+along its traced path. A ray that leaves deep water up-swell of that line
+starts at its exit, before 0; the clock opens where 2% of the energy has
+started (here −31 min), and a ray starting earlier opens part-way in. The
+first version drew 15 km of straight line past each exit instead, which
+meant nothing.
+
+## Where every number comes from
 
 | drawn | from |
 |---|---|
-| a ray's path | `trace_paths`, paths simplified to 12 m (Douglas-Peucker) |
+| a ray's path | `trace_paths`, `raytrace.trace`'s loop recording each step, simplified to 12 m (Douglas-Peucker) |
+| from 46232's line to the exit | straight, along the ray's offshore heading: the plane-wave offset `raytrace.leg_table` uses |
+| from 5 m to the break | straight along the break's normal, the line `surfzone` carries the sea along, at the shallow-water speed of 2.5 m (drawn: the surf zone has no rays) |
 | its brightness | the train's energy at 5 m on that ray, as `carry` credits it: the row's bins, its arc, its buoy swell(s) |
 | a ray the land stops | nothing hard; what diffraction gives it is drawn on the clearing ray of the same period nearest the heading the table credits it to (raytrace's own reading of where diffracted energy comes round an edge from) |
-| when it arrives | the plane-wave offset from 46232 to the ray's exit, then ∫ ds / cg along it: `raytrace.leg_table`'s arithmetic, for every period |
+| when it arrives | the plane-wave offset from 46232 to the exit, then ∫ ds / cg along the path |
 | "in so far" | each row's height scaled by the share of its drawn 5 m energy in, as `summarise` scales every train by one factor to the breaking height |
 
 Checks that stop the build: every traced ray's status and offshore heading
@@ -79,21 +104,17 @@ each; it never computes waves. Nothing here is a crest. Where rays cross
 (BRIEFING §45: 37–59% of neighbouring pairs on the shelf) ray theory is at
 its limit, and swell wrapping round a headland tip is where refraction and
 diffraction, combined here rather than solved together (§31), are weakest.
-None of it is observed: the beach log is what would say.
-
-## What it shows
-
-On 2026-11-10 07Z (a W swell, 15.4 s from 241–276° at the three breaks), most
-of what reaches Center and South leaves deep water west and south-west of
-Point Loma, 19–26 km out, and bends round the tip over its shelf: rays from
-offshore headings the drawing shades as Point Loma's shadow, on the water the
-whole way.
+None of it is observed: the beach log is what would say. The outer seabed is
+context only: nothing is traced over it.
 
 ## Not done, and open
 
 - Phone and tablet layouts only, as the map is: the stack and console layouts
   draw the breaks as columns.
+- `mocks/swell_map` itself still opens on Esri's imagery; only this mock's
+  map is the seabed (two hooks in `swellmap.js`: `__SWELLMAP_BASE__` and
+  `__SWELLMAP_ATTR__`).
 - To ship: the paths belong in `forecast/raytrace.py` (`trace` recording them,
-  into `data/nearshore/`), and each train's per-ray energy in `now.py`; ~5,000
-  points a break for one train at this simplification. The map must ship first.
-- Esri's terms are still unchecked (see `mocks/swell_map/README.md`).
+  into `data/nearshore/`), each train's per-ray energy in `now.py`, and the
+  seabed pictures in a precompute; the outer seabed's source would need its
+  own archive rather than a fetch at build. The map must ship first.

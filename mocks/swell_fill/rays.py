@@ -21,9 +21,11 @@ chain's 5 m height for the row.
 
 Times are minutes after the same wave group passed 46232, as
 `raytrace.leg_table` computes them: the plane-wave offset from the buoy to the
-ray's deep-water exit, then ∫ ds / cg along the bent path. Beyond the exit the
-path is straight, so it is extended seaward `STRAIGHT_KM` along the heading,
-at deep-water group speed.
+ray's deep-water exit, then ∫ ds / cg along the bent path. Seaward of the exit
+the path is straight, and it is drawn from the line through 46232 square to
+its heading, where the clock reads 0: the chain takes the buoy's spectrum to
+hold all along that line. From 5 m it runs on to the break along the break's
+normal, the line the surf zone is computed on.
 
 Also a seabed picture for the map, from the same grids (depth below MSL as
 the tracer reads it), since the bending happens over it. A MOCK.
@@ -55,8 +57,8 @@ from forecast.utm import from_utm, to_utm
 ROOT = Path(__file__).resolve().parents[2]
 SPECTRA = ROOT / "data" / "spectra" / "46232"
 BUOY = "46232"
-#: How far the straight deep-water leg is drawn seaward of each ray's exit.
-STRAIGHT_KM = 15.0
+#: The surf zone's middle depth, for how long 5 m to the break takes (m).
+SURF_MID_DEPTH_M = 2.5
 #: Path simplification tolerance, metres (Douglas-Peucker in UTM).
 SIMPLIFY_M = 12.0
 #: Rays carrying less than this share of a row's 5 m energy are left out.
@@ -177,9 +179,11 @@ def ang(a: float, b: float) -> float:
 # ------------------------------------------------------------------ the seabed picture
 
 def seabed_png(bathy: Bathymetry, south: float, west: float, north: float, east: float,
-               px: int = 1100) -> tuple[str, list]:
+               px: int = 1100, feather: float = 0.06) -> tuple[str, list]:
     """Depth below MSL as greys on a Web-Mercator-aligned grid, land lighter,
-    with contours at 5, 10, 20, 50, 100, 200 and 500 m. A data: URI."""
+    with contours at 5, 10, 20, 50, 100, 200 and 500 m. A data: URI. Its
+    edges fade out over `feather` of its size, and where the grids have no
+    cell it is clear, so the picture under it shows through."""
 
     from PIL import Image
 
@@ -215,8 +219,12 @@ def seabed_png(bathy: Bathymetry, south: float, west: float, north: float, east:
         edge |= e & water
     rgb[edge] = rgb[edge] * 0.55 + 255 * 0.45 * 0.6
     rgb = np.clip(rgb, 0, 255).astype(np.uint8)
+    ramp = lambda n: np.clip(np.minimum(np.arange(n) + 0.5, n - np.arange(n) - 0.5) / (feather * n), 0, 1)
+    alpha = np.outer(ramp(hgt), ramp(w)) * (water | land)
+    rgba = np.dstack([rgb, (alpha * 255).astype(np.uint8)])
     buf = io.BytesIO()
-    Image.fromarray(rgb, "RGB").convert("P", palette=Image.ADAPTIVE, colors=64).save(buf, "PNG", optimize=True)
+    Image.fromarray(rgba, "RGBA").quantize(colors=96, method=Image.Quantize.FASTOCTREE).save(
+        buf, "PNG", optimize=True)
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode(), [[south, west], [north, east]]
 
 
@@ -249,6 +257,7 @@ def build(now_path: Path, seabed: bool = True) -> dict:
         shown = (b.get("nearshore") or {}).get("trains") or []
         trains = list(zip(shown, carried.trains[:3]))
         xs, ys, _ = start_point(bathy, spot)
+        bx_break, by_break = to_utm(*spot.position)
         near = (spot.normal - 90.0 + DIR_STEP_DEG / 2.0
                 + DIR_STEP_DEG * np.arange(int(round(180.0 / DIR_STEP_DEG)))) % 360.0
         bins = sorted({i for _, t in trains for i in t.bins if i in grids})
@@ -286,13 +295,22 @@ def build(now_path: Path, seabed: bool = True) -> dict:
             toward = math.radians(off[k] + 180.0)
             offset_s = ((ex - bx) * math.sin(toward) + (ey - by) * math.cos(toward)) / cg0
             t_exit = (offset_s) / 60.0
-            # from the far end of the straight leg in to the 5 m start
-            far = STRAIGHT_KM * 1000.0
-            fx, fy = ex - far * math.sin(toward), ey - far * math.cos(toward)
-            pts = [(fx, fy, t_exit - far / cg0 / 60.0)]
+            # Seaward of the exit the ray is straight. It starts on the line
+            # through 46232 square to its heading, where the clock is 0: the
+            # chain takes the buoy's spectrum to hold all along that line. An
+            # exit already up-swell of that line starts at the exit itself.
+            back = max(0.0, offset_s * cg0)
+            pts = [(ex - back * math.sin(toward), ey - back * math.cos(toward),
+                    t_exit - back / cg0 / 60.0)] if back > 0 else []
             inward = simplify(p[::-1].copy(), SIMPLIFY_M)
             for x, y, e in inward:
                 pts.append((x, y, t_exit + (total - e) / 60.0))
+            # 5 m in to the break: the surf zone's own line, the break's
+            # normal (`surfzone` carries the sea along it, not along a ray), at
+            # the shallow-water speed of its middle depth.
+            sx, sy = bx_break, by_break
+            run = math.hypot(sx - xs, sy - ys)
+            pts.append((sx, sy, pts[-1][2] + run / math.sqrt(G * SURF_MID_DEPTH_M) / 60.0))
             ll = []
             for x, y, t in pts:
                 la, lo = from_utm(x, y)

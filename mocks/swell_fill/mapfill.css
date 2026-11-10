@@ -14,10 +14,12 @@
   box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none}
 .sf-min{flex:none;width:4.4em;text-align:right;font:600 12px/1 Archivo,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
 .sf-line{position:relative;flex:1 1 auto;height:2px;border-radius:1px;background:var(--line-strong)}
-.sf-done{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:1px;background:var(--soft)}
+.sf-past{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:1px;background:var(--soft)}
 .sf-head{position:absolute;top:50%;left:0;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--ink)}
 .sf-play:focus-visible,.sf-track:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
-/* While a fill shows, the train's arrows give way to its rays; its 5 m
-   arrowhead comes back once the fill is in. */
+/* While a fill shows, the train's arrows and its 5 m arrowhead give way to
+   its rays, which run all the way in to the break. */
 .sm-face.sf-filling .sm-arrow,.sm-face.sf-filling .sm-head{display:none}
-.sm-face.sf-filling.sf-complete .sm-head.sm-near{display:block}
+/* The seabed's deepest grey round its edges, so the view never ends on a
+   colour the seabed does not have. */
+.sm-map,.sm-map .leaflet-container,.sm-map.leaflet-container{background:#16181b}

@@ -4,13 +4,18 @@
 //
 // Every ray is one row of the break's transfer table, re-traced with its
 // path recorded (mocks/swell_fill/rays.py, checked against raytrace.trace):
-// from 15 km seaward of where it leaves deep water, straight, then bent over
-// the seabed to the 5 m start point off the break. Its brightness is the
-// train's energy it carries to 5 m, as nearshore.carry credits it; what
+// straight in from the line through NDBC 46232 square to its heading, where
+// the clock reads 0, then bent over the seabed to 5 m of water, then on to
+// the break along the line the surf zone is computed on. Its brightness is
+// the train's energy it carries to 5 m, as nearshore.carry credits it; what
 // diffraction adds is drawn on the clearing ray of the same period nearest
 // the heading the table credits it to. The clock is minutes after the same
-// wave group passed NDBC 46232 (raytrace.leg_table's arithmetic): long
-// periods arrive first. Nothing here is a wave field or a crest.
+// wave group passed 46232 (raytrace.leg_table's arithmetic): long periods
+// arrive first. Nothing here is a wave field or a crest.
+//
+// The map's base is the seabed (owner's choice, 2026-11-10): the grids the
+// rays were traced over near the breaks, and AWS's Terrain Tiles for context
+// out past Tanner Bank, where the map stops zooming out.
 //
 // Loaded after Leaflet and before swellmap.js, so it sees every map made.
 (function () {
@@ -19,15 +24,15 @@
   if (!RAYS || !window.L) return;
 
   const PLAY_MS = 12000;
-  const LEAD_MIN = 40;           // the clock starts this long before 2% of the energy is in
   const RAY = "#ffd84d";         // the map's pick colour
   const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
   const ICON = {
     play: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z"/></svg>',
     pause: '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" rx=".5"/>'
       + '<rect x="7" y="1.5" width="3" height="9" rx=".5"/></svg>',
-    again: '<svg class="stroke" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 6.6A3.9 3.9 0 1 0 3.4 3.1"/>'
-      + '<path d="M3.6 0.9v2.4H1.2"/></svg>',
+    // A counter-clockwise turn, its arrowhead on the open end.
+    again: '<svg class="stroke" viewBox="0 0 24 24" aria-hidden="true">'
+      + '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
   };
   const g = (name, fb) => { try { return eval(name); } catch (e) { return fb; } };
   const live = () => g("MODE", "now") === "now";
@@ -41,6 +46,51 @@
     m = /^G([\d.]+)$/.exec(key);
     return m ? m[1].split(".").map(Number) : [];
   }
+
+  // ------------------------------------------------------------ the base map
+  // The seabed, back to front: the context, then the grids' wide and fine
+  // pictures. No zooming out past the context, and no panning off it.
+  const SEABED = [...((RAYS.context || {}).layers || []), ...((RAYS.seabed || {}).layers || [])];
+  window.__SWELLMAP_ATTR__ = `Seabed USGS CoNED, GMRT${RAYS.context ? "; Terrain Tiles" : ""}`;
+  window.__SWELLMAP_BASE__ = (map, b) => {
+    SEABED.forEach((s) => L.imageOverlay(s.png, s.bounds, {interactive: false}).addTo(map));
+    if (!RAYS.context || !b) return;
+    // Tanner Bank's buoy, marked as 46232 is, so the widest view has its
+    // landmark (the map's own marks are in screen pixels on any zoom).
+    L.circleMarker(RAYS.context.tanner, {radius: 5, color: "#fff", weight: 2, fillColor: "#000",
+      fillOpacity: 0.7, interactive: false}).addTo(map);
+    L.marker(RAYS.context.tanner, {interactive: false, keyboard: false,
+      icon: L.divIcon({className: "sm-tag", html: "<span>NDBC 46047</span>", iconSize: [0, 0]})}).addTo(map);
+    const home = L.latLng(b.position), far = home.distanceTo(L.latLng(RAYS.context.tanner));
+    const reach = far + 25000;                    // just past Tanner Bank
+    // At the widest, a point just past Tanner Bank is in view with the break
+    // where the map keeps it (the middle of the foot, the normal up).
+    const t = L.latLng(RAYS.context.tanner);
+    const y = Math.sin(rad(t.lng - home.lng)) * Math.cos(rad(t.lat));
+    const x = Math.cos(rad(home.lat)) * Math.sin(rad(t.lat))
+      - Math.sin(rad(home.lat)) * Math.cos(rad(t.lat)) * Math.cos(rad(t.lng - home.lng));
+    const rel = Math.atan2(y, x) - rad(b.normal);
+    const fit = () => {
+      const el = map.getContainer(), W = el.clientWidth || 330, H = el.clientHeight || 330;
+      const across = Math.abs(Math.sin(rel)) * reach, along = Math.max(0, Math.cos(rel)) * reach;
+      // 76 px kept at the side for 46047's label.
+      const mpp = Math.max(across / (0.5 * W - 76), along / (0.85 * H), 1);
+      map.setMinZoom(Math.log2(156543.03392 * Math.cos(rad(home.lat)) / mpp));
+    };
+    fit();
+    map.on("resize", fit);
+    // The view's middle stays within that reach of the break.
+    let pulling = false;
+    map.on("moveend", () => {
+      if (pulling) return;
+      const c = map.getCenter(), d = home.distanceTo(c);
+      if (d <= reach) return;
+      const k = 0.98 * reach / d;
+      pulling = true;
+      map.panTo([home.lat + (c.lat - home.lat) * k, home.lng + (c.lng - home.lng) * k], {animate: false});
+      pulling = false;
+    });
+  };
 
   // ------------------------------------------------------------ the model
   function model(id, rows) {
@@ -68,12 +118,18 @@
       for (const r of order) { c += r.e; if (c >= p * total) return arrive(r); }
       return order.length ? arrive(order[order.length - 1]) : 0;
     };
-    const first = pct(0.02), last = pct(0.98);
+    const last = pct(0.98);
+    // The clock opens as the swell passes 46232 (0), or earlier where much
+    // of it leaves deep water up-swell of the buoy's line: where 2% of the
+    // energy has started. A ray starting earlier opens part-way in.
+    const starts = rays.map((r) => [r.ray.pts[0][2], r.e]).sort((p, q) => p[0] - q[0]);
+    let acc = 0, start = 0;
+    for (const [t, e] of starts) { acc += e; if (acc >= 0.02 * total) { start = Math.min(0, t); break; } }
     return {
       id, rows, rays, ref, total, byRow,
       rowHs: rows.map((n) => b.rows[n].row_hs_m),
       drawnShare: rows.map((n) => b.rows[n].drawn_share),
-      t0: first - LEAD_MIN, t1: last + 3, first, last,
+      t0: Math.floor(start), t1: last + 3, last,
     };
   }
 
@@ -98,8 +154,9 @@
   }
 
   const minutes = (t) => (Math.round(t) < 0 ? `${-Math.round(t)} min before` : `+${Math.round(t)} min`);
-  function readout(F) {
-    const {m, t} = F;
+  const clock = (t) => { const r = Math.round(t); return `${r < 0 ? "−" : "+"}${Math.abs(r)} min`; };
+  function readout(S) {
+    const {m, t} = S;
     if (t >= m.t1 - 1e-6) {
       const whole = Math.sqrt(m.rowHs.reduce((s, hs) => s + hs * hs, 0));
       return `98% in by ${minutes(m.last)} · ${height(whole)}`;
@@ -112,23 +169,24 @@
     return `${minutes(t)} · ${ps} in · ${height(sf.h)}`;
   }
 
-  // ------------------------------------------------------------ one map's fill
-  const FACES = new Map();         // map -> face state
+  // ------------------------------------------------------------ state
+  // A fill belongs to a BREAK, not to a map: the page redraws its cards every
+  // minute on LIVE, and each redraw makes a new map. `FILLS[id]` is
+  // {key, m, t, playing, started}; each map shows its break's.
+  const FILLS = {};
+  const FACES = new Map();         // map -> {map, id, box, svg, canvas, bar, proj}
+  window.__swellFillFaces = FACES; // for checking in a browser
 
   L.Map.addInitHook(function () {
     const map = this;
-    const F = {map, t: 0, playing: false, m: null, key: null, proj: null, seabed: null, tilesFailed: false};
+    const F = {map, proj: null};
     FACES.set(map, F);
-    map.on("layeradd", (e) => {
-      if (e.layer instanceof L.TileLayer && !e.layer._sfWatched) {
-        e.layer._sfWatched = true;
-        e.layer.on("tileerror", () => { F.tilesFailed = true; seabed(F, true); });
-      }
-    });
-    map.on("move zoom viewreset resize rotate", () => { F.proj = null; if (F.m) paint(F); });
-    map.on("zoomend moveend", () => { if (F.m) place(F); });
+    map.on("move zoom viewreset resize rotate", () => { F.proj = null; paint(F); });
+    map.on("zoomend moveend resize", () => place(F));
     setTimeout(() => setup(F), 0);
   });
+
+  const fill = (F) => (F.id && FILLS[F.id]) || null;
 
   function setup(F) {
     const el = F.map.getContainer();
@@ -145,22 +203,24 @@
     F.bar.hidden = true;
     F.bar.innerHTML = `<button type="button" class="sf-play"></button>`
       + `<div class="sf-track" role="slider" tabindex="0" aria-label="Minutes after NDBC 46232">`
-      + `<span class="sf-min"></span><span class="sf-line"><span class="sf-done"></span><span class="sf-head"></span></span></div>`;
+      + `<span class="sf-min"></span><span class="sf-line"><span class="sf-past"></span><span class="sf-head"></span></span></div>`;
     el.appendChild(F.bar);
     L.DomEvent.disableClickPropagation(F.bar);
     L.DomEvent.disableScrollPropagation(F.bar);
     F.bar.querySelector(".sf-play").addEventListener("click", (e) => { e.stopPropagation(); toggle(F); });
     const track = F.bar.querySelector(".sf-track");
     track.addEventListener("pointerdown", (e) => {
-      if (!F.m) return;
+      const S = fill(F);
+      if (!S) return;
       e.preventDefault(); e.stopPropagation();
-      F.playing = false;
+      S.playing = false;
+      start(F, S);
       track.setPointerCapture(e.pointerId);
       const line = track.querySelector(".sf-line");
       const move = (ev) => {
         const r = line.getBoundingClientRect();
         const f = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
-        F.t = F.m.t0 + f * (F.m.t1 - F.m.t0);
+        S.t = S.m.t0 + f * (S.m.t1 - S.m.t0);
         render(F);
       };
       move(e);
@@ -169,63 +229,56 @@
       track.addEventListener("pointerup", up);
     });
     track.addEventListener("keydown", (e) => {
-      if (!F.m || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+      const S = fill(F);
+      if (!S || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
       e.preventDefault();
-      F.playing = false;
-      F.t = Math.max(F.m.t0, Math.min(F.m.t1, F.t + (e.key === "ArrowLeft" ? -1 : 1)));
+      S.playing = false;
+      start(F, S);
+      S.t = Math.max(S.m.t0, Math.min(S.m.t1, S.t + (e.key === "ArrowLeft" ? -1 : 1)));
       render(F);
     });
     if (F.svg) new MutationObserver(() => sync(F)).observe(F.svg, {attributes: true, subtree: true, attributeFilter: ["class", "hidden"]});
     new MutationObserver(() => sync(F)).observe(el, {attributes: true, attributeFilter: ["hidden"]});
     sync(F);
+    const S = fill(F);
+    if (S && S.playing) run();
   }
 
-  // The seabed under the rays: shown while a fill is, and whenever the
-  // imagery cannot load (an artifact's host blocks tile servers).
-  function seabed(F, on) {
-    const map = F.map;
-    if (on && !F.seabed && RAYS.seabed) {
-      // The finer picture over the breaks sits on the wide one.
-      F.seabed = RAYS.seabed.layers.map((s) =>
-        L.imageOverlay(s.png, s.bounds, {interactive: false, opacity: 1}).addTo(map));
-      F.seabed.slice().reverse().forEach((l) => l.bringToBack());
-    } else if (!on && F.seabed && !F.tilesFailed) {
-      F.seabed.forEach((l) => map.removeLayer(l));
-      F.seabed = null;
-    }
-    const attr = map.getContainer().querySelector(".sm-attr");
-    if (attr) {
-      if (!attr.dataset.imagery) attr.dataset.imagery = attr.textContent;
-      attr.textContent = F.seabed ? `Seabed ${RAYS.seabed.source.split(",")[0]}` : attr.dataset.imagery;
-    }
-  }
-
+  // After a pick: LIVE, a train (or one swell's rows) picked, and this
+  // break's rays built. The timeline shows at once, at its start; the rays
+  // only once played or scrubbed. Any other pick ends the fill.
   function sync(F) {
     if (!F.box || !F.svg || !F.svg.isConnected) return;
     const el = F.map.getContainer();
     const key = g("PICKED", {})[F.id] || null;
     const ok = live() && !el.hidden && rowsOf(key).some((n) => (RAYS.breaks[F.id] || {rows: []}).rows[n]);
-    if (F.m && (!ok || F.key !== key)) stop(F);
-    F.bar.hidden = !ok;
-    if (ok) { place(F); setIcon(F); }
-    if (F.m) render(F);
+    let S = fill(F);
+    if (S && (!ok || S.key !== key)) { end(F); S = null; }
+    if (ok && !S) {
+      const m = model(F.id, rowsOf(key));
+      if (m) S = FILLS[F.id] = {key, m, t: m.t0, playing: false, started: false};
+    }
+    F.bar.hidden = !S;
+    place(F);
+    render(F);
   }
 
   function place(F) {
+    if (!F.bar) return;
     const el = F.map.getContainer();
     const ctl = el.querySelector(".leaflet-bottom.leaflet-right");
-    const right = ctl ? ctl.offsetWidth + 8 : 96;
-    F.bar.style.right = `${right}px`;
+    F.bar.style.right = `${ctl ? ctl.offsetWidth + 8 : 96}px`;
     const dpr = window.devicePixelRatio || 1, w = el.clientWidth, h = el.clientHeight;
     if (F.canvas.width !== Math.round(w * dpr) || F.canvas.height !== Math.round(h * dpr)) {
       F.canvas.width = Math.round(w * dpr); F.canvas.height = Math.round(h * dpr);
       F.proj = null;
+      paint(F);
     }
   }
 
-  function setIcon(F) {
+  function setIcon(F, S) {
     const b = F.bar.querySelector(".sf-play");
-    const mode = F.playing ? "pause" : F.m && F.t >= F.m.t1 - 1e-6 ? "again" : "play";
+    const mode = S && S.playing ? "pause" : S && S.started && S.t >= S.m.t1 - 1e-6 ? "again" : "play";
     if (b.dataset.mode === mode) return;
     b.dataset.mode = mode;
     b.innerHTML = ICON[mode];
@@ -233,26 +286,28 @@
       : mode === "again" ? "Play the swell filling in again" : "Play the swell filling in");
   }
 
-  function stop(F) {
-    F.m = null; F.playing = false; F.key = null; F.proj = null;
-    const ctx = F.canvas.getContext("2d");
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, F.canvas.width, F.canvas.height);
-    F.box.classList.remove("sf-filling", "sf-complete");
-    seabed(F, false);
-    F.bar.querySelector(".sf-min").textContent = "";
-    F.bar.querySelector(".sf-done").style.width = "0";
-    F.bar.querySelector(".sf-head").style.left = "0";
-    // The caption back: the page's own words for the pick.
+  // The fill ends: the page's own caption for the pick comes back.
+  function end(F) {
+    delete FILLS[F.id];
+    F.proj = null;
+    paint(F);
+    F.box.classList.remove("sf-filling");
     const faces = [...F.svg.querySelectorAll("text.faces")].find((t) => !t.hasAttribute("hidden"));
     const cap = F.box.querySelector(".sm-cap");
     if (cap && faces) cap.textContent = [...faces.querySelectorAll("tspan")].map((s) => s.textContent).join(" ");
-    setIcon(F);
+  }
+
+  // The first play or scrub: the arrows give way, and the map frames the rays.
+  function start(F, S) {
+    if (S.started) return;
+    S.started = true;
+    F.box.classList.add("sf-filling");
+    frame(F, S);
   }
 
   // Frame the rays: the shore normal up, as the map always is, and every
   // drawn ray from where it leaves deep water to the break in view.
-  function frame(F) {
+  function frame(F, S) {
     const map = F.map, b = RAYS.breaks[F.id];
     const normal = -map.getBearing();
     const p0 = b.start;
@@ -260,9 +315,9 @@
     const up = [Math.sin(rad(normal)), Math.cos(rad(normal))];          // east, north
     const side = [Math.cos(rad(normal)), -Math.sin(rad(normal))];
     let a0 = 0, a1 = 0, s0 = 0, s1 = 0;
-    F.m.rays.forEach(({ray, e}) => {
-      if (e < 0.05 * F.m.ref) return;
-      ray.pts.slice(1).forEach(([la, lo]) => {
+    S.m.rays.forEach(({ray, e}) => {
+      if (e < 0.05 * S.m.ref) return;
+      ray.pts.forEach(([la, lo]) => {
         const dx = (lo - p0[1]) * kmLon, dy = (la - p0[0]) * kmLat;
         const al = dx * up[0] + dy * up[1], sd = dx * side[0] + dy * side[1];
         a0 = Math.min(a0, al); a1 = Math.max(a1, al); s0 = Math.min(s0, sd); s1 = Math.max(s1, sd);
@@ -271,80 +326,81 @@
     const el = map.getContainer(), W = el.clientWidth, H = el.clientHeight;
     const kmW = (s1 - s0) * 1.12, kmH = (a1 - a0) * 1.15 + 0.5;
     const mpp = Math.max(kmW * 1000 / W, kmH * 1000 / H);
-    const zoom = Math.log2(156543.03392 * Math.cos(rad(p0[0])) / mpp);
+    const zoom = Math.max(map.getMinZoom(), Math.log2(156543.03392 * Math.cos(rad(p0[0])) / mpp));
     const ca = (a0 + a1) / 2 - 0.25, cs = (s0 + s1) / 2;
     const cdx = ca * up[0] + cs * side[0], cdy = ca * up[1] + cs * side[1];
     map.setView([p0[0] + cdy / kmLat, p0[1] + cdx / kmLon], zoom, {animate: !REDUCED.matches});
   }
 
   let RAF = 0, LAST = 0;
+  function run() {
+    LAST = performance.now();
+    if (!RAF) RAF = requestAnimationFrame(tick);
+  }
+
   function toggle(F) {
-    const key = g("PICKED", {})[F.id] || null;
-    if (!F.m) {
-      const m = model(F.id, rowsOf(key));
-      if (!m) return;
-      F.m = m; F.key = key; F.t = m.t0;
-      F.box.classList.add("sf-filling");
-      seabed(F, true);
-      place(F);
-      frame(F);
-    }
+    const S = fill(F);
+    if (!S) return;
+    start(F, S);
     if (REDUCED.matches) {
-      F.playing = false; F.t = F.m.t1;
-    } else if (F.playing) {
-      F.playing = false;
+      S.playing = false; S.t = S.m.t1;
+    } else if (S.playing) {
+      S.playing = false;
     } else {
-      if (F.t >= F.m.t1 - 1e-6) F.t = F.m.t0;
-      F.playing = true;
-      LAST = performance.now();
-      if (!RAF) RAF = requestAnimationFrame(tick);
+      if (S.t >= S.m.t1 - 1e-6) S.t = S.m.t0;
+      S.playing = true;
+      run();
     }
     render(F);
   }
 
+  // One clock per break; each map shows its own break's.
   function tick(now) {
     RAF = 0;
     const dt = Math.min(now - LAST, 100);
     LAST = now;
     let more = false;
-    FACES.forEach((F) => {
-      if (!F.m) return;
-      if (!live() || !F.svg.isConnected || F.map.getContainer().hidden) { stop(F); return; }
-      if (F.playing) {
-        F.t = Math.min(F.m.t1, F.t + dt * (F.m.t1 - F.m.t0) / PLAY_MS);
-        if (F.t >= F.m.t1) F.playing = false;
-        render(F);
-        more = more || F.playing;
-      }
+    Object.values(FILLS).forEach((S) => {
+      if (!S.playing) return;
+      if (!live()) { S.playing = false; return; }
+      S.t = Math.min(S.m.t1, S.t + dt * (S.m.t1 - S.m.t0) / PLAY_MS);
+      if (S.t >= S.m.t1) S.playing = false;
+      more = more || S.playing;
+    });
+    FACES.forEach((F, map) => {
+      if (!F.svg || !F.svg.isConnected) { FACES.delete(map); return; }
+      if (fill(F)) render(F);
     });
     if (more) RAF = requestAnimationFrame(tick);
   }
 
   function render(F) {
-    if (!F.m) return;
-    const done = F.t >= F.m.t1 - 1e-6;
-    F.box.classList.toggle("sf-complete", done);
-    const f = (F.t - F.m.t0) / (F.m.t1 - F.m.t0);
-    const r = Math.round(F.t);
-    F.bar.querySelector(".sf-min").textContent = `${r < 0 ? "\u2212" : "+"}${Math.abs(r)} min`;
-    F.bar.querySelector(".sf-done").style.width = `${(100 * f).toFixed(2)}%`;
+    if (!F.bar) return;
+    const S = fill(F);
+    setIcon(F, S);
+    if (!S) return;
+    const f = (S.t - S.m.t0) / (S.m.t1 - S.m.t0);
+    F.bar.querySelector(".sf-min").textContent = clock(S.t);
+    F.bar.querySelector(".sf-past").style.width = `${(100 * f).toFixed(2)}%`;
     F.bar.querySelector(".sf-head").style.left = `${(100 * f).toFixed(2)}%`;
     const track = F.bar.querySelector(".sf-track");
-    track.setAttribute("aria-valuemin", Math.round(F.m.t0));
-    track.setAttribute("aria-valuemax", Math.round(F.m.t1));
-    track.setAttribute("aria-valuenow", Math.round(F.t));
-    const text = readout(F);
+    track.setAttribute("aria-valuemin", Math.round(S.m.t0));
+    track.setAttribute("aria-valuemax", Math.round(S.m.t1));
+    track.setAttribute("aria-valuenow", Math.round(S.t));
+    if (!S.started) return;
+    F.box.classList.add("sf-filling");
+    const text = readout(S);
     track.setAttribute("aria-valuetext", text);
     const cap = F.box.querySelector(".sm-cap");
     if (cap && cap.textContent !== text) cap.textContent = text;
-    setIcon(F);
     paint(F);
   }
 
-  function project(F) {
-    if (F.proj) return F.proj;
+  function project(F, S) {
+    if (F.proj && F.projFor === S.m) return F.proj;
     const map = F.map;
-    F.proj = F.m.rays.map(({ray}) => ray.pts.map(([la, lo]) => {
+    F.projFor = S.m;
+    F.proj = S.m.rays.map(({ray}) => ray.pts.map(([la, lo]) => {
       const p = map.latLngToContainerPoint([la, lo]);
       return [p.x, p.y];
     }));
@@ -352,22 +408,24 @@
   }
 
   function paint(F) {
+    if (!F.canvas) return;
     const ctx = F.canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, F.canvas.width, F.canvas.height);
-    if (!F.m) return;
+    const S = fill(F);
+    if (!S || !S.started || F.map.getContainer().hidden) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const proj = project(F), t = F.t;
+    const proj = project(F, S), t = S.t;
     ctx.globalCompositeOperation = "lighter";
     ctx.strokeStyle = RAY;
     ctx.fillStyle = RAY;
     ctx.lineWidth = 1.3;
     ctx.lineJoin = "round";
-    F.m.rays.forEach(({ray, e}, n) => {
+    S.m.rays.forEach(({ray, e}, n) => {
       const pts = ray.pts, xy = proj[n];
       if (t <= pts[0][2]) return;
-      const a = Math.min(1, 0.9 * e / F.m.ref);
+      const a = Math.min(1, 0.9 * e / S.m.ref);
       if (a < 0.01) return;
       ctx.globalAlpha = a;
       ctx.beginPath();
@@ -392,5 +450,5 @@
     ctx.globalCompositeOperation = "source-over";
   }
 
-  window.addEventListener("resize", () => FACES.forEach((F) => { if (F.m) { place(F); F.proj = null; paint(F); } }));
+  window.addEventListener("resize", () => FACES.forEach((F) => { place(F); F.proj = null; paint(F); }));
 })();

@@ -15,7 +15,9 @@
   const MODEL = window.__SWELLMAP_MODEL__;
   if (!MODEL || !window.L) return;
   const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-  const ATTR = "Imagery Esri, Maxar, Earthstar Geographics";
+  // A page that brings its own base map (mocks/swell_fill: the seabed) sets
+  // __SWELLMAP_BASE__ (called with each new map) and __SWELLMAP_ATTR__.
+  const ATTR = window.__SWELLMAP_ATTR__ || "Imagery Esri, Maxar, Earthstar Geographics";
   const KEY = "nado-sm-view";               // one choice for every tab, kept on this device
   const TOUCH = matchMedia("(pointer: coarse)").matches;
   // The drawing in small: its half-circle, and a line out from the break to
@@ -122,7 +124,14 @@
       if (on && this.box.offsetWidth) {
         if (!this.map) this.make();
         this.map.invalidateSize({animate: false});
-        if (!this.framed) this.frame();
+        if (!this.framed) {
+          const v = VIEWS[this.id];
+          if (v) {
+            this.map.setBearing(-this.b.normal);
+            this.map.setView(v.center, v.zoom, {animate: false});
+            this.framed = true;
+          } else this.frame();
+        }
         this.draw();
       }
     }
@@ -133,7 +142,11 @@
         compassBearing: false, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false,
         dragging: !TOUCH, touchZoom: true, scrollWheelZoom: false, doubleClickZoom: true, minZoom: 8, maxZoom: 18,
       });
-      L.tileLayer(ESRI, {maxNativeZoom: 18, maxZoom: 18}).addTo(map);
+      if (typeof window.__SWELLMAP_BASE__ === "function") window.__SWELLMAP_BASE__(map, this.b);
+      else L.tileLayer(ESRI, {maxNativeZoom: 18, maxZoom: 18}).addTo(map);
+      // Kept by break across the page's redraws (every minute on LIVE, and
+      // on every refresh), which make a new map each time.
+      map.on("moveend", () => { VIEWS[this.id] = {center: map.getCenter(), zoom: map.getZoom()}; });
       const self = this;
       // + and - zoom around the break, so it stays where the drawing has it;
       // pinch and double-tap zoom where the reader puts them.
@@ -142,7 +155,13 @@
         // Drawn, not typed: a font's + and - sit on its baseline, not in the box.
         d.innerHTML = `<a href="#" role="button" title="Zoom in" aria-label="Zoom in">${ICON_PLUS}</a>`
           + `<a href="#" role="button" title="Zoom out" aria-label="Zoom out">${ICON_MINUS}</a>`;
-        const step = (dz) => (e) => { L.DomEvent.stop(e); map.setZoomAround(self.b.position, map.getZoom() + dz); };
+        // Clamped first: past a limit, Leaflet moves the centre as if it had
+        // zoomed there, and the break walks off the map.
+        const step = (dz) => (e) => {
+          L.DomEvent.stop(e);
+          const z = Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), map.getZoom() + dz));
+          if (z !== map.getZoom()) map.setZoomAround(self.b.position, z);
+        };
         L.DomEvent.on(d.children[0], "click", step(1));
         L.DomEvent.on(d.children[1], "click", step(-1));
         L.DomEvent.disableClickPropagation(d);
@@ -330,6 +349,7 @@
   }
 
   const faces = new Map();
+  const VIEWS = {};                          // break id -> the view last left there
   function setView(v) {
     view = v;
     try { localStorage.setItem(KEY, v); } catch (e) { /* storage off */ }
