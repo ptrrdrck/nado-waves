@@ -408,9 +408,10 @@ forecaster actually verifies against, Surfline included.
    against and not built: NDBC's own WVHT / DPD / MWD (a second reading of
    the swell by another method; 46232's MWD is §38's mean) and NDBC's
    swell / wind-wave split (by period, against §51). **46047's standard met
-   is collect.yml's**, on its throttled schedule, so its water, wind and
-   pressure can be hours behind its spectrum; the plate shows each with its
-   own time, grey. LIVE only, as the rose is. At 15 px, the size of
+   is collect-beach-inputs.yml's since the same day** (owner's call; beside
+   46232's and 46086's, collect.yml excluding all three): on collect.yml's
+   throttled schedule it ran hours behind its spectrum. Each value still
+   shows its own time. LIVE only, as the rose is. At 15 px, the size of
    "combined" beside the height (owner's request, 2026-10-14), and a buoy
    with no rose says "No spectrum from … in the last six hours." at that
    size and grey. Its countdown is its
