@@ -1,5 +1,12 @@
 # Swell card's map: a picked train filling in along its rays (MOCK)
 
+> **Status, 2026-11-10.** The map this mock was built on has SHIPPED in
+> `app/forecast.html` (MapLibre GL JS, bundled, in place of Leaflet and the
+> GPL-3.0 leaflet-rotate; the seabed tiles from `forecast/seabedtiles.py`).
+> The mock's Leaflet build, its map script and its tiles are removed. The
+> fill ships next, from `rays.py`'s reading of the chain, carried into
+> `forecast/`. What follows describes the mock as it was.
+
 Owner's request (2026-11-10): animate how a swell fills in through the
 windows from its direction and period. Owner's choices the same day: a picked
 train, LIVE only. A first version on the window drawing (option A) was

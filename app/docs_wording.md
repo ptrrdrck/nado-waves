@@ -483,6 +483,14 @@ The breaking height, in feet with metres in parentheses: “3.5 ft (1.07 m) brea
 
 The break's windows, drawn facing the way the break faces: open water above the shore, the grey shadows of the land either side, and an arrow for each swell train, two for a train arriving from two directions. Tap a shadow for the land casting it and the share of this swell it takes; tap a window for the land either side and its width; tap an arrow for that train. Tapping a train in the list above the drawing picks its arrows the same way, and the train's row stays highlighted while it is picked. Tap it again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with Tab.
 
+### [swell-map] The map
+
+The button in the drawing's top-left corner swaps it for a map of the same windows, at true scale, over the seabed the swell crosses on its way in. The map is turned the way the drawing is, the break's shore facing up, so every window edge sits at its drawing angle, and it opens zoomed in round the break. The page remembers the choice on this device, for every tab.
+
+Each window edge is a line from the break to the charted point of land that forms it; tap that point for the land's name and its distance. The dashed lines are the coast the model has, as it has it: they show how few charted points the windows stand on. The breaks' shorelines, NDBC 46232, NDBC 46086 and NDBC 46047 at Tanner Bank are marked. Tap a window, a shadow or an arrow to pick it, as on the drawing; the train lights yellow, the one colour on the map. Pick a train in the list and the map shows it too.
+
+The seabed is drawn from the same depth grids the swell is carried over: USGS CoNED 2016 near the beach, GMRT farther out, greys lighter for shallower water, contour lines at 5, 10, 20, 50, 100, 200, 500, 1,000 and 2,000 m, and land lighter still. Close in it is drawn from 8 m cells; out past Tanner Bank, where the map stops zooming out, from 400 m cells, for context only. Nothing on the map is a photograph. On a phone, one finger scrolls the page and two move the map; with a mouse, drag to move and hold Ctrl (⌘ on a Mac) while scrolling to zoom. The return button goes back to the opening view.
+
 ### [swell-bend] Which way a swell arrives in 5 m of water
 
 Every arrow from the rim of the drawing is the direction a train's energy came from offshore, the frame the windows are drawn in. On its way in, a swell slows over the shallowing seabed and turns toward the shallows ([step 3](#calc-refraction)), so by 5 m of water it comes from much nearer straight out to sea: where each ray carrying a train's energy arrives from at the start point, averaged by the energy each carries.

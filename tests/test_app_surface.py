@@ -1859,7 +1859,8 @@ class TestTheCdnCannotServeAStalePayload:
         """Different caches. The query parameter defeats shared ones; `no-store`
         defeats this browser's own. Dropping either leaves a gap."""
 
-        assert SOURCE.count('{cache: "no-store"}') == 17
+        # 18 since 2026-11-10: the Swell card map's map.json.
+        assert SOURCE.count('{cache: "no-store"}') == 18
 
     def test_fresh_appends_without_breaking_an_existing_query(self):
         """`SOURCE` is overridable via `?data=`, so the URL may already carry a

@@ -507,6 +507,45 @@ forecaster actually verifies against, Surfline included.
    without the trains, MEM's bins summing to one by its pole test alone
    (`spreadmethod.realisable`) — 0.7 s for two months, where `at_buoy` took
    ~90.
+   **The Swell card's MAP** (owner's requests, 2026-11-06 to -10, mocked in
+   `mocks/swell_map` and shipped 2026-11-10): a button in each break
+   drawing's top-left corner swaps it for the same windows at true scale
+   over the SEABED (owner's choice over Esri imagery, 2026-11-10; a
+   satellite option may come later), on both tabs, every layout -- phone,
+   tablet, stack and console (owner's call, same day) -- and every past
+   hour. The choice is this device's (`nado-waves.swell-view`, through
+   `stored`/`store`). It READS THE DRAWING, never a payload of its own: the
+   sections' angles (`data-geo`), the arrows, the captions and the picks are
+   the svg's, and a map tap goes through `togglePick`, so a row, an arrow
+   and a map tap are one pick. Turned the drawing's way, the break's shore
+   normal up (MapLibre's `bearing`; the reader cannot rotate it), the
+   break as far above the map's foot as above the drawing's, opening three
+   zoom steps in from the drawing's scale; square, at most 70vh; the toggle,
+   the caption under it, the drawing moved down to its caption, and one
+   start height across the break tabs (`level`) as the owner picked them in
+   the mock. It zooms out to just past Tanner Bank (46047 and 25 km in view
+   with the break kept where it sits) and pans no further from the break;
+   the + / - buttons clamp before zooming round the break. ONE MAP PER
+   BREAK, carried across the page's redraws (`Face.adopt`; every minute on
+   LIVE), never rebuilt: a new map each minute reset the view (the mock's
+   "jump") and would leak WebGL contexts. Drawn by **MapLibre GL JS 4.7.1**,
+   BUNDLED in `app/vendor/` with its BSD-3 licence (owner's calls,
+   2026-11-10: bundled, not a CDN; MapLibre over Leaflet + leaflet-rotate,
+   whose GPL-3.0 would arguably have made the page a GPL combined work while
+   the repository carries no licence on purpose), loaded only when a map is
+   first shown. The seabed is MAP TILES (`forecast/seabedtiles.py` ->
+   `data/seabed_tiles/`, derived but tracked, redrawn by both bathymetry
+   workflows after a fetch, a test failing when a grid is newer than its
+   tiles): `context` zooms 5-9 from `collector.bathymetry`'s GMRT context
+   grid (400 m, 350 km round the breaks and the three buoys, read by no
+   chain), `inner` 10-12 from the regional and outer grids, `near` 13-14
+   from the nearshore; 408 tiles, 0.63 MB, the page loading only those in
+   view. Contours as drawn for now (owner's call, same day: busy at the
+   widest zooms). `map.json` (`forecast/mapdata.py`): geomviz's model, 46086
+   and 46047 at NDBC's fetched coordinates, and the tile manifest; with
+   `seabed/` and `vendor/` it ships from BOTH publish jobs, and
+   `publish-pages.sh` replaces a directory whole (its old `cp "$BUNDLE"/*`
+   skipped directories and, under `set -e`, would have failed the publish).
    **The Forecast tab reaches 48 h back** (owner's decision, 2026-09-26). For a
    past hour it shows what the page showed then: the newest run published
    before that hour, from `forecast.json`'s `past`, read back from the
@@ -1690,7 +1729,10 @@ forecaster actually verifies against, Surfline included.
                         unverified against a live file until its first run),
                         bathymetry.py (USGS CoNED seabed, regional 32 m and
                         nearshore 8 m, NAVD88; the MSL offset is fetched from
-                        CO-OPS on Actions — needs requirements-precompute.txt)
+                        CO-OPS on Actions — needs requirements-precompute.txt;
+                        and GMRT's outer 90 m and `context` 400 m grids, the
+                        latter the map's only, read by no chain, fetched by
+                        bathymetry-context.yml)
     app/forecast.html   the app surface — Coronado's three breaks       [built]
     app/docs.html       the documentation, the live page's one link: every
                         card, chart and calculation; one contents pill built
@@ -1712,6 +1754,8 @@ forecaster actually verifies against, Surfline included.
                         pinned to the page by a test. Edits are carried INTO
                         docs.html by hand and the file regenerated; `>>`
                         lines are notes to Claude, never page text
+    app/vendor/         MapLibre GL JS 4.7.1 and its BSD-3 licence, for the
+                        Swell card map; shipped beside the page
     app/beachlog.html   the phone form, owner build (shared store)
     app/beachlog-observer.html  same file, observer build — no sign-in, entries
                         stay on the phone and are handed back as text. The two
@@ -1805,6 +1849,11 @@ forecaster actually verifies against, Surfline included.
                         swept over scale; reports, never edits    [built]
       blockeredge.py    a blocker's edges read off the charted coast, against
                         what spots.json claims; reports, never edits  [built]
+      seabedtiles.py    PRECOMPUTE (numpy, Pillow): the Swell card map's
+                        seabed as map tiles from the bathymetry grids, into
+                        data/seabed_tiles/; `--check`            [built]
+      mapdata.py        the map's map.json: geomviz's model, the other
+                        buoys, the tile manifest                  [built]
       geomviz.py        draws the vertices the model uses, the ray to each
                         edge's vertex, and the distances between them, into
                         docs.html                                  [built]
@@ -1931,6 +1980,9 @@ forecaster actually verifies against, Surfline included.
     data/bathymetry/    CoNED seabed grids (.npz, decimetres NAVD88) + a JSON
                         sidecar each. Does NOT cover the Coronado Islands or
                         Baja (south of 32.49 N); those stay charted blockers.
+    data/seabed_tiles/  the Swell card map's seabed, {z}/{x}/{y}.png and
+                        manifest.json (forecast.seabedtiles); derived but
+                        tracked, redrawn by the bathymetry workflows
     data/nearshore/     per-break transfer tables from forecast.raytrace:
                         <break>.csv (one row per period x 0.5° heading at
                         5 m: hard-edged gain, diffracting gain and the heading

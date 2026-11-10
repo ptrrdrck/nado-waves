@@ -40,6 +40,10 @@ jobs:
       - name: Fetch the grids and the datum
         run: python -m collector.bathymetry | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # The map's seabed tiles are drawn from the grids; new grids redraw them.
+      - name: Redraw the seabed tiles
+        run: python -m forecast.seabedtiles | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Commit and push
         env:
           BRANCH: ${{ github.ref_name }}
@@ -49,7 +53,7 @@ jobs:
           git config user.name "nado-waves collector"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/bathymetry
+          git add data/bathymetry data/seabed_tiles
 
           if git diff --cached --quiet; then
             echo "No bathymetry change to commit."
@@ -57,7 +61,7 @@ jobs:
           fi
 
           git commit \
-            -m "data: seabed grids and the 9410170 datum offset" \
+            -m "data: seabed grids, the 9410170 datum offset and the map's seabed tiles" \
             -m "Automated commit from .github/workflows/bathymetry.yml."
 
           for attempt in 1 2 3 4; do

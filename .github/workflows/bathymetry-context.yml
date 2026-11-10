@@ -41,6 +41,10 @@ jobs:
       - name: Fetch the context grid
         run: python -m collector.bathymetry --skip-datum --grids context | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # The map's seabed tiles are drawn from the grids; a new grid redraws them.
+      - name: Redraw the seabed tiles
+        run: python -m forecast.seabedtiles | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Commit and push
         env:
           BRANCH: ${{ github.ref_name }}
@@ -50,7 +54,7 @@ jobs:
           git config user.name "nado-waves collector"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/bathymetry/context.npz data/bathymetry/context.json
+          git add data/bathymetry/context.npz data/bathymetry/context.json data/seabed_tiles
 
           if git diff --cached --quiet; then
             echo "No context seabed change to commit."
@@ -58,7 +62,7 @@ jobs:
           fi
 
           git commit \
-            -m "data: the context seabed (GMRT, out past Tanner Bank)" \
+            -m "data: the context seabed (GMRT, out past Tanner Bank) and its map tiles" \
             -m "Automated commit from .github/workflows/bathymetry-context.yml."
 
           for attempt in 1 2 3 4; do
