@@ -15,7 +15,9 @@
   const MODEL = window.__SWELLMAP_MODEL__;
   if (!MODEL || !window.L) return;
   const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-  const ATTR = "Imagery Esri, Maxar, Earthstar Geographics";
+  // A page that brings its own base map (mocks/swell_fill: the seabed) sets
+  // __SWELLMAP_BASE__ (called with each new map) and __SWELLMAP_ATTR__.
+  const ATTR = window.__SWELLMAP_ATTR__ || "Imagery Esri, Maxar, Earthstar Geographics";
   const KEY = "nado-sm-view";               // one choice for every tab, kept on this device
   const TOUCH = matchMedia("(pointer: coarse)").matches;
   // The drawing in small: its half-circle, and a line out from the break to
@@ -122,7 +124,14 @@
       if (on && this.box.offsetWidth) {
         if (!this.map) this.make();
         this.map.invalidateSize({animate: false});
-        if (!this.framed) this.frame();
+        if (!this.framed) {
+          const v = VIEWS[this.id];
+          if (v) {
+            this.map.setBearing(-this.b.normal);
+            this.map.setView(v.center, v.zoom, {animate: false});
+            this.framed = true;
+          } else this.frame();
+        }
         this.draw();
       }
     }
@@ -133,7 +142,11 @@
         compassBearing: false, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false,
         dragging: !TOUCH, touchZoom: true, scrollWheelZoom: false, doubleClickZoom: true, minZoom: 8, maxZoom: 18,
       });
-      L.tileLayer(ESRI, {maxNativeZoom: 18, maxZoom: 18}).addTo(map);
+      if (typeof window.__SWELLMAP_BASE__ === "function") window.__SWELLMAP_BASE__(map, this.b);
+      else L.tileLayer(ESRI, {maxNativeZoom: 18, maxZoom: 18}).addTo(map);
+      // Kept by break across the page's redraws (every minute on LIVE, and
+      // on every refresh), which make a new map each time.
+      map.on("moveend", () => { VIEWS[this.id] = {center: map.getCenter(), zoom: map.getZoom()}; });
       const self = this;
       // + and - zoom around the break, so it stays where the drawing has it;
       // pinch and double-tap zoom where the reader puts them.
@@ -142,7 +155,13 @@
         // Drawn, not typed: a font's + and - sit on its baseline, not in the box.
         d.innerHTML = `<a href="#" role="button" title="Zoom in" aria-label="Zoom in">${ICON_PLUS}</a>`
           + `<a href="#" role="button" title="Zoom out" aria-label="Zoom out">${ICON_MINUS}</a>`;
-        const step = (dz) => (e) => { L.DomEvent.stop(e); map.setZoomAround(self.b.position, map.getZoom() + dz); };
+        // Clamped first: past a limit, Leaflet moves the centre as if it had
+        // zoomed there, and the break walks off the map.
+        const step = (dz) => (e) => {
+          L.DomEvent.stop(e);
+          const z = Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), map.getZoom() + dz));
+          if (z !== map.getZoom()) map.setZoomAround(self.b.position, z);
+        };
         L.DomEvent.on(d.children[0], "click", step(1));
         L.DomEvent.on(d.children[1], "click", step(-1));
         L.DomEvent.disableClickPropagation(d);
@@ -252,8 +271,8 @@
       [...d.trains].reverse().forEach((t) => {
         const lit = d.on.has(t.key), w = t.lead ? 3 : 2;
         const line = [at(t.a, r * 0.95), at(t.a, r * 0.62 + 6)];
-        L.polyline(line, {color: "#000", weight: w + 3, opacity: 0.35, interactive: false}).addTo(g);
-        L.polyline(line, {color: lit ? "#ffd84d" : "#fff", weight: lit ? w + 1 : w, _key: t.key})
+        L.polyline(line, {color: "#000", weight: w + 3, opacity: 0.35, interactive: false, className: "sm-arrow"}).addTo(g);
+        L.polyline(line, {color: lit ? "#ffd84d" : "#fff", weight: lit ? w + 1 : w, _key: t.key, className: "sm-arrow"})
           .on("click", (e) => { L.DomEvent.stop(e); call("togglePick", this.svg, t.key); }).addTo(g);
         head(g, at(t.a, r * 0.62), t.a, t.lead ? 14 : 11, lit).on("click", (e) => { L.DomEvent.stop(e); call("togglePick", this.svg, t.key); });
       });
@@ -324,12 +343,13 @@
   // An arrowhead pointing in along screen angle `a` (degrees off straight up).
   function head(g, at, a, size, lit, near = false) {
     const fill = lit ? "#ffd84d" : "#fff";
-    return L.marker(at, {keyboard: false, icon: L.divIcon({className: "sm-head", iconSize: [size, size],
+    return L.marker(at, {keyboard: false, icon: L.divIcon({className: near ? "sm-head sm-near" : "sm-head", iconSize: [size, size],
       html: `<svg viewBox="0 0 16 16" width="${size}" height="${size}" style="transform:rotate(${a}deg)">`
         + `<path d="M8 15 L2 3 L8 6 L14 3 Z" fill="${fill}" stroke="#000" stroke-opacity=".5" stroke-width="1"/></svg>`})}).addTo(g);
   }
 
   const faces = new Map();
+  const VIEWS = {};                          // break id -> the view last left there
   function setView(v) {
     view = v;
     try { localStorage.setItem(KEY, v); } catch (e) { /* storage off */ }

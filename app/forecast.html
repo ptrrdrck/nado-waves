@@ -846,9 +846,6 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .aperture .swell polygon{fill:var(--ink)}
 .aperture .swell.lead{opacity:1}
 .aperture .swell.lead line{stroke-width:3}
-/* The picked train's heading in 5 m of water: an arrowhead alone, in ink,
-   at the break, so the turn from the offshore arrow is the refraction. */
-.aperture .near{pointer-events:none;fill:var(--ink)}
 
 /* The week under each Now card (forecast.series): the tab's own line only,
    in ink. One axis, thin lines, hairline grid; an hour without a spectrum is a pale band with no
@@ -1683,15 +1680,6 @@ function trainForms(t, tagged = false) {
 }
 function pointsText(t) {
   return headings(t).map(point).join(" and ");
-}
-// Where a break's train arrives from in 5 m of water, one per heading
-// `headings` gives, in its order; null where the payload has none.
-function nearHeadings(t) {
-  const fin = (d) => (typeof d === "number" && isFinite(d) ? d : null);
-  if (t && t.lobes && t.lobes.length >= 2) {
-    return t.lobes.map((_, j) => fin((t.near_lobes || [])[j]));
-  }
-  return [fin(t ? t.near_from_deg : null)];
 }
 
 function when(iso) {
@@ -4279,9 +4267,6 @@ function setCalcOpen(open) {
 // Larger than the first version (r 124 -> 140 in the same 320 box): the
 // drawing is read AND tapped now, and a phone has room either side of it.
 const DRAW = {w: 320, h: 200, cx: 160, cy: 162, r: 140, rim: 1};
-// The 5 m arrowhead against its train's own offshore head (owner's call,
-// 2026-10-22: slightly larger).
-const NEAR_HEAD = 1.25;
 
 // Plain text for SVG captions, which cannot hold the HTML `height()` returns.
 // Same one conversion constant, so the rule that a factor appears once holds.
@@ -4422,14 +4407,11 @@ function windowDrawing(c, aged = "") {
   // Local chop is made by the wind over the last few kilometres, not
   // carried in from the ocean, so it gets no arrow from the rim.
   const trains = [];
-  // Where each train arrives from in 5 m of water, refracted toward the shore
-  // (owner's request, 2026-10-22: on the drawing only, never in its row): an
-  // arrowhead alone, pointing in at the break along that heading, a quarter
-  // larger than its own offshore arrow's head (owner's call, same day: the
-  // dashed leg looked bad), one per outer arrow, shown only while its train
-  // is picked -- drawn for every train at once they would knot at the break.
-  // A payload from before it, or a train no ray carried, has none.
-  const nears = [];
+  // No 5 m heading on the drawing (owner's call, 2026-11-10, after a month of
+  // the arrowhead and its caption line from 2026-10-22): by 5 m nearly every
+  // swell arrives within ~16 degrees of straight in (BRIEFING §45), and the
+  // map shows how the rays turn. Each train's `near_from_deg` is still
+  // computed and kept in the payload, and docs.html's swell-bend table stays.
   // A swell the break shows as two rows (BRIEFING §49) has one caption of
   // its own (`swellCaption`), shown when one of its rows is tapped and all of
   // its arrows light. Pushed before the trains' captions: a pick shows only
@@ -4453,21 +4435,9 @@ function windowDrawing(c, aged = "") {
       const [bx, by] = at(a, tip + len);
       const [px, py] = [Math.cos(th) * half, Math.sin(th) * half];
       const head = `${xy(at(a, tip))} ${xy([bx + px, by + py])} ${xy([bx - px, by - py])}`;
-      const near = nearHeadings(t);
-      const shown = near.filter((d) => d != null);
       const text = `${heightText(t.hs_m)} at ${t.period_s.toFixed(1)} s, ${pointsText(t)}`
-        + (shown.length ? `\nfrom ${shown.map(compass).join(" & ")} in 5 m of water` : "")
         + (t.wind_sea ? ", wind sea" : "");
-      const said = text.replace("\n", ", ");
-      const an = near[j] == null ? null : rel(near[j]);
-      if (an != null && an > -90 && an < 90) {
-        const nlen = NEAR_HEAD * len, nhalf = NEAR_HEAD * half, ntip = r * 0.1;
-        const nth = an * Math.PI / 180;
-        const [nbx, nby] = at(an, ntip + nlen);
-        const [npx, npy] = [Math.cos(nth) * nhalf, Math.sin(nth) * nhalf];
-        nears.push(`<polygon class="near" data-show="${key}" hidden`
-          + ` points="${xy(at(an, ntip))} ${xy([nbx + npx, nby + npy])} ${xy([nbx - npx, nby - npy])}"/>`);
-      }
+      const said = text;
       const [ex, ey] = at(a, tip);
       trains.push({key, x0: +x0.toFixed(1), y0: +y0.toFixed(1), x1: +ex.toFixed(1), y1: +ey.toFixed(1)});
       labels.push(`<text class="deg" data-show="${key}" hidden x="${at(a, r + 12)[0].toFixed(1)}"`
@@ -4499,7 +4469,7 @@ function windowDrawing(c, aged = "") {
   return `<svg class="aperture" viewBox="0 0 ${w} ${h}" role="group" aria-label="${svgText(summary)}"
     data-break="${c.id}" data-geo="${geo}"${aged}>
     <path class="sea" d="${wedge(-90, 90)}"/>
-    ${windowPaths}${shading}${rays}${labels.join("")}${arrows}${nears.join("")}
+    ${windowPaths}${shading}${rays}${labels.join("")}${arrows}
     <line class="chord" x1="${cx - r}" y1="${cy}" x2="${cx + r}" y2="${cy}"/>
     <circle class="spot" cx="${cx}" cy="${cy}" r="3"/>
     ${captions.join("")}
