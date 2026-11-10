@@ -21,8 +21,9 @@ or one that fails to load, leaves that station's stored record as it was and
 is reported; a station never read has no record, and the page says nothing
 about its depth rather than guess.
 
-UNVERIFIED against a live page until its first run on Actions
-(probe-station-depth.yml prints what it read).
+Checked against the live pages on Actions 2026-11-10 (probe-station-depth.yml):
+"Water depth: 1049.8 m" at 46232, "1862 m" at 46086, "1390 m" at 46047 --
+one line each, 46232's to the decimetre, the others whole metres.
 """
 
 from __future__ import annotations

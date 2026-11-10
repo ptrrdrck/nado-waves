@@ -109,15 +109,19 @@ class TestTheReading:
         shown = buoys.build(data_dir=tmp_path, now=MOMENT)["buoys"]
         # Owner's call, 2026-10-12: 46086 first, then 46047.
         assert [b["station"] for b in shown] == ["46086", "46047"]
-        # Each buoy's own sentence, 46232's included (owner's wording,
-        # 2026-10-12), and still there when its spectrum is missing.
+        # Each buoy's own station block, 46232's included (owner's request,
+        # 2026-11-10), and still there when its spectrum is missing.
         (tmp_path / "spectra" / "46086" / "c11.csv").unlink()
         payload = buoys.build(data_dir=tmp_path, now=MOMENT)
         assert "hs_m" not in block(payload, "46086")
         assert list(payload["about"]) == ["46232", "46086", "46047"]
-        assert {s: a["says"] for s, a in payload["about"].items()} == buoys.ABOUT
-        # No metadata in this archive: no place, so no distance -- never a guess.
+        assert {s: tuple(a["uses"]) for s, a in payload["about"].items()} == buoys.USES
+        assert payload["about"]["46086"]["readings"]["spectrum_utc"] is None
+        # No metadata in this archive: no place, so no distance, coordinates
+        # or depth -- never a guess.
         assert payload["about"]["46086"]["range_km"] is None
+        assert payload["about"]["46086"]["latitude"] is None
+        assert payload["about"]["46086"]["depth_m"] is None
         assert payload["about"]["46086"]["place"] == "46086"
 
     def test_json_round_trips(self, tmp_path):
@@ -158,12 +162,11 @@ class TestItFeedsNoBreak:
             got = by_id[station].in_window_of
             assert got in words, (station, got)
             assert buoys.WITNESS[station]["windows"] == words[got], station
-            says = buoys.ABOUT[station]
-            assert says.endswith("not carried to any break.")
-            assert ("window" in says) == bool(got), station
-        # The anchor's sentence claims all three windows: siting must agree.
+        # The station block names no window since 2026-11-10 (owner's call):
+        # the standing-on line is where a window is claimed.
+        for station, uses in buoys.USES.items():
+            assert not any("window" in u for u in uses), station
         assert len(by_id[buoys.ANCHOR].in_window_of) == 3
-        assert "all three breaks' windows" in buoys.ABOUT[buoys.ANCHOR]
 
     def test_the_only_buoy_shown_is_a_context_buoy(self):
         from collector.spectra import CONTEXT_STATIONS, DEFAULT_STATION
@@ -297,67 +300,208 @@ def _fn(name: str) -> str:
     return body[:body.index("\n}\n")]
 
 
-class TestTheSentenceUnderEachRose:
-    """Owner's wording, 2026-10-12: one sentence under each buoy's rose --
-    the station linked to its public page, its distance offshore and bearing
-    from Center break, what is read from it and its role here."""
+class TestTheStationBlock:
+    """Owner's request, 2026-11-10, replacing the one sentence of 2026-10-12
+    under each buoy's rose: a plate of readings (peak, mean period, spread,
+    water, wind, pressure), then where the buoy is, how often it reports and
+    what it is used for -- each with a symbol, every use alike, no window
+    line, and the name and station left to the card."""
 
     def _render(self, about, units="both"):
         node = shutil.which("node")
         if node is None:
             pytest.skip("node is not available")
+        units_js = PAGE[PAGE.index("const FT_PER_M = "):PAGE.index("\n// Display-only shortenings")]
+        icons = PAGE[PAGE.index("const BI_ICON = {"):]
+        icons = icons[:icons.index("\n};\n") + 4]
         script = (
-            "const MI_PER_KM = 0.621371;\n"
-            + PAGE[PAGE.index("let UNITS = "):PAGE.index("\nconst height = ")]
-            + f"\nUNITS = {json.dumps(units)};\n"
-            + _fn("point") + "\n}\n" + _fn("buoyAbout") + "\n}\n"
+            units_js + f"\nUNITS = {json.dumps(units)};\n"
+            + "const agedAttr = () => '';\n"
+            + "const pad2 = (n) => String(n).padStart(2, '0');\n"
+            + "const clock = (iso) => iso.slice(11, 16);\n"
+            + "const onDay = (iso) => iso.slice(5, 10);\n"
+            + "const coastDay = () => 'today';\n"
+            + _fn("point") + "\n}\n" + _fn("compass") + "\n}\n" + icons
+            + PAGE[PAGE.index("const infoWhen = "):PAGE.index("function buoyAbout(")]
+            + _fn("buoyAbout") + "\n}\n"
             + f"const BUOYS = {{about: {json.dumps(about)}}};\n"
             + "for (const s of ['46232', '46086', '46047']) console.log(buoyAbout(s));\n"
         )
         out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
         return out.stdout.strip().split("\n")
 
-    def test_the_approved_sentences(self):
-        got = self._render(buoys.about(ROOT / "data"))
-        plain = [re.sub(r"<[^>]+>", "", line).replace("&deg;", "°") for line in got]
-        assert plain == [
-            "Point Loma South (NDBC 46232), 18 mi (29 km) offshore at 231° SW from Center "
-            "break: its hourly directional spectrum is what every break's numbers are "
-            "carried from, as the only buoy inside all three breaks' windows.",
-            "San Clemente Basin (NDBC 46086), 51 mi (81 km) offshore at 256° WSW from "
-            "Center break: its half-hourly directional spectrum is shown here and checked "
-            "against hurricane tracks, and though it sits inside South's window it is not "
-            "carried to any break.",
-            "Tanner Bank (NDBC 46047), 138 mi (222 km) offshore at 263° W from Center "
-            "break: its half-hourly directional spectrum reads the open ocean before the "
-            "Channel Islands, gives Origin its storm bearings and is checked against "
-            "hurricane tracks, but is not carried to any break.",
+    ABOUT = {
+        "46232": {"url": "https://www.ndbc.noaa.gov/station_page.php?station=46232",
+                  "range_km": 29.01, "bearing_deg": 230.78, "latitude": 32.517, "longitude": -117.425,
+                  "depth_m": 1049.8, "cadence": {"every_min": 60, "marks": [0], "lag_min": 15},
+                  "uses": list(buoys.USES["46232"]),
+                  "readings": {"spectrum_utc": "2026-11-10T05:00:00Z", "peak_period_s": 15.4,
+                               "peak_from_deg": 284, "mean_period_s": 13.0, "spread_deg": 27,
+                               "never": ["pressure", "wind"], "stdmet_within_h": 24,
+                               "water_c": 23.8, "water_utc": "2026-11-10T05:56:00Z"}},
+        "46086": {"url": "https://www.ndbc.noaa.gov/station_page.php?station=46086",
+                  "range_km": 81.49, "bearing_deg": 256.15, "latitude": 32.504, "longitude": -118.029,
+                  "depth_m": None, "cadence": {"every_min": 30, "marks": [20, 50], "lag_min": 25},
+                  "uses": list(buoys.USES["46086"]),
+                  "readings": {"spectrum_utc": None, "never": [], "stdmet_within_h": 24,
+                               "wind_kt": 3.9, "gust_kt": 5.8, "wind_from_deg": 290,
+                               "wind_utc": "2026-11-10T05:40:00Z",
+                               "pressure_hpa": 1017.3, "pressure_utc": "2026-11-10T05:40:00Z"}},
+        "46047": {"url": "https://www.ndbc.noaa.gov/station_page.php?station=46047",
+                  "range_km": None, "bearing_deg": None, "latitude": None, "longitude": None,
+                  "depth_m": None, "cadence": {"every_min": 30, "marks": [20, 50], "lag_min": 25},
+                  "uses": list(buoys.USES["46047"]), "readings": {"never": []}},
+    }
+
+    @staticmethod
+    def _plain(line):
+        text = re.sub(r"<[^>]+>", "|", line).replace("&deg;", "°").replace("&nbsp;", " ")
+        text = text.replace("&#8599;", "↗").replace("&middot;", "·")
+        return [t for t in (x.strip() for x in text.split("|")) if t]
+
+    def test_the_approved_block(self):
+        got = self._render(self.ABOUT)
+        assert self._plain(got[0]) == [
+            "Peak", "15.4 s, WNW 284°", "05:00",
+            "Mean period", "13.0 s", "05:00",
+            "Spread at peak", "27°", "05:00",
+            "Water", "75 °F", "(23.8 °C)", "05:56",
+            "Wind", "not measured", "Pressure", "not measured",
+            "18 mi", "(29 km)", "offshore, 231° SW of Center",
+            "32.517° N, 117.425° W ↗", "In 3,444 ft", "(1,050 m)", "of water",
+            "Spectrum every hour, on the hour", "Usually collected within 15 min",
+            *buoys.USES["46232"],
         ]
-        # NDBC's station page, 46232's too (owner's request, 2026-11-06).
-        assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46232" rel="noopener">' in got[0]
-        assert "cdip.ucsd.edu" not in "".join(got)
-        assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46086"' in got[1]
-        assert '<a href="https://www.ndbc.noaa.gov/station_page.php?station=46047"' in got[2]
+        # The coordinates link to NDBC's station page; the name and station
+        # are the card's, never repeated here.
+        assert '<a class="bi-coord" href="https://www.ndbc.noaa.gov/station_page.php?station=46232"' in got[0]
+        assert "Point Loma South" not in got[0] and "NDBC 46232" not in got[0]
+        # No window line (owner's call, 2026-11-10).
+        assert "window" not in got[0] and "window" not in got[1]
 
-    def test_the_distance_follows_the_units_setting(self):
-        """Owner's call, 2026-10-28: Imperial gives miles alone, Metric the
-        bracket's kilometres alone, never rounded again."""
+    def test_what_is_missing_is_said_never_guessed(self):
+        got = [self._plain(line) for line in self._render(self.ABOUT)]
+        # 46086: no spectrum, so no spectrum cells; no water in 24 h; wind
+        # with its gust beside its own time; no depth line.
+        assert got[1][:12] == ["Water", "none in 24 h", "Wind", "WNW 4 mph", "(4 kt)", "gusts 7 mph · 05:40",
+                               "Pressure", "30.04 inHg", "(1017 hPa)", "05:40",
+                               "51 mi", "(81 km)"]
+        assert "Spectrum every 30 min, at :20 and :50" in got[1]
+        assert not any("of water" in t for t in got[1])
+        # 46047 with no siting: no place, coordinates or depth.
+        assert got[2][-5:-3] == ["Spectrum every 30 min, at :20 and :50", "Usually collected within 25 min"]
+        assert not any(t.startswith("offshore,") for t in got[2])
 
-        about = buoys.about(ROOT / "data")
-        plain = lambda got: [re.sub(r"<[^>]+>", "", line) for line in got]
-        assert plain(self._render(about, "imperial"))[0].startswith("Point Loma South (NDBC 46232), 18 mi offshore")
-        assert plain(self._render(about, "metric"))[0].startswith("Point Loma South (NDBC 46232), 29 km offshore")
+    def test_every_use_is_alike(self):
+        """Owner's request, 2026-11-10: each use reads as important as the
+        next -- one line each in the same type, none a grey second line."""
+
+        for station, line in zip(("46232", "46086", "46047"), self._render(self.ABOUT)):
+            uses = line[line.index('<div class="bi-uses">') + len('<div class="bi-uses">'):]
+            assert uses.startswith("".join(f"<div>{u}</div>" for u in buoys.USES[station]) + "</div>")
+        assert ".bi-uses{display:flex;flex-direction:column;gap:4px}" in PAGE
+
+    def test_the_units_setting_reaches_every_number(self):
+        imp = [self._plain(line) for line in self._render(self.ABOUT, "imperial")]
+        met = [self._plain(line) for line in self._render(self.ABOUT, "metric")]
+        assert "75 °F" in imp[0] and "In 3,444 ft of water" in imp[0] and "18 mi offshore, 231° SW of Center" in imp[0]
+        assert "23.8 °C" in met[0] and "In 1,050 m of water" in met[0] and "29 km offshore, 231° SW of Center" in met[0]
+        assert "WNW 4 kt" in met[1] and "1017 hPa" in met[1]
+
+    def test_on_a_plate_apart_from_the_rose(self):
+        """Owner's pick of the mock's four separations: the plate."""
+
+        assert (".buoy-info{background:var(--paper);border-radius:8px;padding:12px;display:flex;"
+                "flex-direction:column;") in PAGE
+        assert ".buoy-fold .rose + .buoy-info{margin-top:11px}" in PAGE
 
     def test_measured_from_center_and_never_typed(self):
         from forecast import siting
 
         assert siting.REFERENCE_BREAK == "coronado_center"
         source = (ROOT / "forecast" / "buoys.py").read_text()
-        for figure in ("29.0", "81.5", "222.2", "230.8", "256.2", "263.0"):
+        for figure in ("29.0", "81.5", "222.2", "230.8", "256.2", "263.0", "1049", "1862", "1390",
+                       "32.517", "117.425"):
             assert figure not in source, figure
 
     def test_live_only_as_the_rose_is(self):
         assert 'const note = rose ? buoyAbout(id) : "";' in _fn("buoyPanel")
+
+
+class TestTheStationReadings:
+    """The plate's numbers (`spectrum_reading`, `stdmet_reading`)."""
+
+    def test_the_peak_is_at_buoys_and_the_mean_period_the_headlines(self):
+        from forecast.transform import combined_hs
+
+        for station in ("46232", "46086", "46047"):
+            try:
+                sp = load_spectra(ROOT / "data" / "spectra" / station, limit=1)[-1].with_spread("mem")
+            except (FileNotFoundError, IndexError):
+                continue
+            got = buoys.spectrum_reading(sp)
+            view = at_buoy(sp)
+            assert got["peak_period_s"] == round(view.peak_period_s, 1), station
+            assert got["peak_from_deg"] == round(view.peak_direction_deg), station
+            m0 = sum(e for _, e in buoys.bin_energies(sp))
+            assert 4 * math.sqrt(m0) == pytest.approx(combined_hs(sp), rel=1e-9), station
+            assert got["mean_period_s"] <= got["peak_period_s"] + 5
+            assert 0 <= got["spread_deg"] <= 81
+
+    def _write(self, tmp_path, rows):
+        folder = tmp_path / "observations"
+        folder.mkdir(parents=True, exist_ok=True)
+        cols = ["timestamp_utc", "first_seen_utc", "wdir", "wspd", "gst", "wvht", "dpd", "apd",
+                "mwd", "pres", "atmp", "wtmp", "dewp", "vis", "ptdy", "tide"]
+        with (folder / "46086.csv").open("w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=cols)
+            w.writeheader()
+            for r in rows:
+                w.writerow({c: r.get(c, "") for c in cols})
+
+    def test_each_value_is_the_newest_with_its_own_time(self, tmp_path):
+        t = lambda h: (MOMENT - timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        self._write(tmp_path, [
+            {"timestamp_utc": t(30), "wtmp": "19.0", "wspd": "9.0", "wdir": "300", "gst": "11.0", "pres": "1010.0"},
+            {"timestamp_utc": t(2), "wtmp": "20.5", "pres": "1016.1"},
+            {"timestamp_utc": t(1), "wspd": "5.0", "wdir": "310", "gst": "7.0", "wtmp": "999.0"},
+            {"timestamp_utc": t(-1), "wtmp": "25.0"},
+        ])
+        got = buoys.stdmet_reading("46086", tmp_path, MOMENT)
+        assert got["water_c"] == 20.5 and got["water_utc"] == t(2)     # 999.0 is NDBC's missing
+        assert got["wind_kt"] == round(5.0 * buoys.KT_PER_MS, 1) and got["wind_from_deg"] == 310
+        assert got["gust_kt"] == round(7.0 * buoys.KT_PER_MS, 1) and got["wind_utc"] == t(1)
+        assert got["pressure_hpa"] == 1016.1
+        assert got["never"] == []
+
+    def test_a_day_old_value_is_not_shown_and_never_is_its_own(self, tmp_path):
+        t = lambda h: (MOMENT - timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        self._write(tmp_path, [{"timestamp_utc": t(buoys.STDMET_WITHIN_H + 1), "wtmp": "19.0"}])
+        got = buoys.stdmet_reading("46086", tmp_path, MOMENT)
+        assert "water_c" not in got
+        # Water was seen, so it is "none lately"; wind and pressure never.
+        assert got["never"] == ["pressure", "wind"]
+
+    def test_46232_has_never_reported_wind(self):
+        got = buoys.stdmet_reading("46232", ROOT / "data", MOMENT)
+        assert "wind" in got["never"] and "pressure" in got["never"]
+
+    def test_cadence_is_the_countdowns(self):
+        from forecast.now import PUBLISH_LAG_MIN, PUBLISH_MINUTES
+
+        assert buoys.cadence("46232") == {"every_min": 60, "marks": list(PUBLISH_MINUTES["swell"]),
+                                          "lag_min": PUBLISH_LAG_MIN["swell"]}
+        for station in buoys.STATIONS:
+            assert buoys.cadence(station)["lag_min"] == buoys.PUBLISH_LAG_MIN[station]
+            assert buoys.cadence(station)["every_min"] == 30
+
+    def test_the_depth_is_the_collectors(self, tmp_path):
+        (tmp_path / "station_depth.json").write_text(json.dumps(
+            {"46047": {"depth_m": 1390.0, "read": "Water depth: 1390 m",
+                       "source": "x", "fetched_utc": "2026-11-10T06:51:45Z"}}))
+        about = buoys.about(tmp_path, MOMENT)
+        assert about["46047"]["depth_m"] == 1390.0
+        assert about["46232"]["depth_m"] is None
 
 
 class TestThePills:
@@ -526,7 +670,7 @@ class TestTheProvenancePills:
         assert (block.index("const note = buoyAbout(b.station);")
                 < block.index("srcLines(")
                 < block.index("placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)"))
-        assert ".buoy-fold .rose + .buoy-note{margin-top:3px}" in PAGE
+        assert ".buoy-fold .rose + .buoy-info{margin-top:11px}" in PAGE
 
     def test_the_sentence_reads_at_the_size_of_combined(self):
         """Owner's request, 2026-10-14: each buoy's sentence at the size of
