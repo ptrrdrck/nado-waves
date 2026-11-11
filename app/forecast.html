@@ -660,9 +660,16 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    the size of "combined". Readings two to a row, each label in the fold
    rows' type with its symbol; a hairline; then the facts, a symbol each,
    their second lines grey and every use alike. */
-.buoy-info{background:var(--paper);border-radius:8px;padding:12px;display:flex;flex-direction:column;
+.buoy-info{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;
            gap:12px;font-size:15px;line-height:1.4}
-.buoy-fold .rose + .buoy-info{margin-top:11px}
+/* 21 px of card above and below the block, box to box, the spacing between
+   the text above it (owner's request, 2026-11-11): the rose's own 10 px and
+   the fold's 11 px gap above; below, what follows it differs by where the
+   buoy sits, so each says its own. */
+.buoy-fold .rose-none + .buoy-info{margin-top:6px}
+#swell-pane-buoy .buoy-info{margin-bottom:9px}
+.pane.after .buoy-info{margin-bottom:10px}
+.pane.after > .buoy-fold:last-child .buoy-info{margin-bottom:11px}
 .bi-reads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
 .bi-read{display:flex;flex-direction:column;min-width:0}
 .bi-k{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;font-size:12px;letter-spacing:.06em;

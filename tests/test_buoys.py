@@ -412,9 +412,11 @@ class TestTheStationBlock:
     def test_on_a_plate_apart_from_the_rose(self):
         """Owner's pick of the mock's four separations: the plate."""
 
-        assert (".buoy-info{background:var(--paper);border-radius:8px;padding:12px;display:flex;"
-                "flex-direction:column;") in PAGE
-        assert ".buoy-fold .rose + .buoy-info{margin-top:11px}" in PAGE
+        # Outlined as the rose's and the swell's plates since 2026-11-11, and
+        # 21 px of card above and below it, box to box (owner's request).
+        assert (".buoy-info{background:var(--paper);border:1px solid var(--line);border-radius:8px;"
+                "padding:12px;display:flex;flex-direction:column;") in PAGE
+        assert "#swell-pane-buoy .buoy-info{margin-bottom:9px}" in PAGE
 
     def test_measured_from_center_and_never_typed(self):
         from forecast import siting
@@ -671,7 +673,7 @@ class TestTheProvenancePills:
         assert (block.index("const note = buoyAbout(b.station);")
                 < block.index("srcLines(")
                 < block.index("placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)"))
-        assert ".buoy-fold .rose + .buoy-info{margin-top:11px}" in PAGE
+        assert ".buoy-fold .rose-none + .buoy-info{margin-top:6px}" in PAGE
 
     def test_the_sentence_reads_at_the_size_of_combined(self):
         """Owner's request, 2026-10-14: each buoy's sentence at the size of

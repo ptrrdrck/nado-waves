@@ -386,7 +386,9 @@ forecaster actually verifies against, Surfline included.
    request and picks, 2026-11-10, from a mock; replacing 2026-10-12's one
    sentence; `buoys.about`, in buoys.json as `about`, drawn by the page's
    `buoyAbout`): on a PLATE of the page's paper set into the card (the
-   owner's pick of four separations), no name or station (the card has
+   owner's pick of four separations; since 2026-11-11 outlined as the rose's
+   and the swell's plates are, with 21 px of card above and below it, box to
+   box, each place it sits saying its own margin), no name or station (the card has
    both). Readings two to a row, a label in the fold rows' type (no
    symbol since 2026-11-11, owner's request), the value and its OWN time -- a hidden line since 2026-11-11, as a
    Briefing row's: a tap on any reading shows or hides every reading's time
