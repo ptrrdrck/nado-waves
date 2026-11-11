@@ -35,6 +35,12 @@ holds:
 - the contours, `{"k": "line", "d": depth}`, at `LINES`;
 - the shoreline, `{"k": "coast"}`, where the depth crosses `H_LAND`.
 
+Every band and line is cut to one outline, the grid's covered cells set two
+tolerances in (`edge`), so all of a grid's bands end on the same line and the
+grid beneath shows past it: simplified one by one, and each straight in UTM
+but not on the map, they ended kilometres apart, and the land colour drew a
+line along the grid's edge across open sea.
+
 Each grid is smoothed over about a cell before it is contoured (`TIERS`), so
 a line does not trace the survey's cell-scale noise, and simplified to a few
 metres near the beach and 80 m out past Tanner Bank. A display, never a
@@ -66,6 +72,11 @@ OUT_DIR = ROOT / "data" / "seabed_vector"
 BANDS = (5, 10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 4000)
 #: The contour lines (m).
 LINES = (5, 10, 20, 50, 100, 200, 500, 1000, 2000)
+#: How far inside a grid's covered cells its bands are cut, in simplifying
+#: tolerances: past the 1 x a simplified band can wander from the edge (`edge`).
+EDGE_INSET = 2.0
+#: The longest stretch of that outline left without a vertex, in tolerances.
+EDGE_STEP = 250.0
 #: grid -> (the zoom it is drawn from, smoothing sigma in cells, simplifying
 #: tolerance in metres, decimal places of a degree kept), coarsest first: the
 #: order they are drawn in.
@@ -130,13 +141,18 @@ def features(grid: Grid, sigma: float, tol: float, dec: int) -> list[dict]:
     gen = contourpy.contour_generator(x, y, np.ma.masked_invalid(depth),
                                       fill_type="OuterOffset", line_type="Separate", name="serial")
     least = (2 * tol) ** 2
+
+    def filled(lower: float) -> list[Polygon]:
+        polys, offsets = gen.filled(lower, 1e9)
+        return [Polygon(pts[off[0]:off[1]], [pts[off[i]:off[i + 1]] for i in range(1, len(off) - 1)])
+                for pts, off in zip(polys, offsets)]
+
+    clip = edge(filled(-1e9), tol)
     out: list[dict] = []
     for band, lower in enumerate((-1e9, H_LAND) + BANDS):
-        polys, offsets = gen.filled(lower, 1e9)
-        for pts, off in zip(polys, offsets):
-            rings = [pts[off[i]:off[i + 1]] for i in range(len(off) - 1)]
-            shape = simplify(Polygon(rings[0], rings[1:]), tol, preserve_topology=True)
-            for part in ([shape] if shape.geom_type == "Polygon" else list(getattr(shape, "geoms", []))):
+        for poly in filled(lower):
+            shape = simplify(poly, tol, preserve_topology=True).intersection(clip)
+            for part in _parts(shape, "Polygon"):
                 if part.is_empty or part.area < least:
                     continue
                 coords = [_lonlat(np.asarray(part.exterior.coords), dec)]
@@ -147,13 +163,45 @@ def features(grid: Grid, sigma: float, tol: float, dec: int) -> list[dict]:
         for pts in gen.lines(level):
             if len(pts) < 3:
                 continue
-            line = simplify(LineString(pts), tol)
-            if line.length < 4 * tol:
-                continue
             props = {"k": "coast"} if level == H_LAND else {"k": "line", "d": level}
-            out.append({"type": "Feature", "properties": props,
-                        "geometry": {"type": "LineString", "coordinates": _lonlat(np.asarray(line.coords), dec)}})
+            for line in _parts(simplify(LineString(pts), tol).intersection(clip), "LineString"):
+                if line.length < 4 * tol:
+                    continue
+                out.append({"type": "Feature", "properties": props,
+                            "geometry": {"type": "LineString", "coordinates": _lonlat(np.asarray(line.coords), dec)}})
     return out
+
+
+def _parts(shape, kind: str) -> list:
+    """The pieces of `kind` in a shapely result, whatever it came back as."""
+
+    if shape.is_empty:
+        return []
+    if shape.geom_type == kind:
+        return [shape]
+    return [p for g in getattr(shape, "geoms", []) for p in _parts(g, kind)]
+
+
+def edge(cover: list, tol: float):
+    """ONE outline every band and line of a grid is cut to: the grid's
+    covered cells, simplified as the bands are and set `EDGE_INSET` x the
+    tolerance inside. Each band simplified alone wanders up to `tol` from the
+    grid's edge, a different way each, so the land colour under them all (b
+    -1) showed as a thin line along a straight grid edge across open sea
+    (owner's report, 2026-11-11: the context grid's edge over the wide).
+    Cut to one outline, every band that reaches the edge ends on the same
+    line, and the coarser grid shows past it.
+
+    The outline is then given a vertex every `EDGE_STEP` tolerances. A
+    straight line in UTM is a curve in the map's projection, so a band whose
+    edge was one chord across the grid's 900 km side bowed kilometres away
+    from a band whose edge had vertices along it, even where the two agreed
+    exactly in UTM; with the same vertices, every band bends the same way."""
+
+    from shapely import segmentize, simplify, union_all
+
+    clip = simplify(union_all(cover), tol, preserve_topology=True).buffer(-EDGE_INSET * tol, join_style="mitre")
+    return segmentize(clip, EDGE_STEP * tol)
 
 
 def retrieved(directory: Path = BATHY_DIR) -> dict[str, str | None]:

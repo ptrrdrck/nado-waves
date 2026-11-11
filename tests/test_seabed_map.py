@@ -45,6 +45,52 @@ def test_the_seabed_is_vectors_for_every_grid_the_rays_use():
     assert manifest["bands"][0] == H_LAND
 
 
+def test_every_band_ends_on_one_line_at_a_grids_edge():
+    """Owner's report, 2026-11-11: a land-coloured line ran across open sea
+    along the context grid's edge. Each band was simplified alone, and each
+    edge straight in UTM but not on the map, so a band whose edge was one
+    long chord bowed kilometres from one with vertices along it, and the
+    land colour under them all showed between. A synthetic grid 800 km
+    across, land along one side and the bands crossing the edge many times:
+    everywhere on the edge, every band the water there is deep enough for
+    must begin where the land colour does."""
+
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("contourpy")
+    pytest.importorskip("shapely")
+    from shapely import union_all
+    from shapely.geometry import Point, shape
+
+    from forecast import utm
+    from forecast.raytrace import Grid
+    from forecast.seabedvector import BANDS, H_LAND, features
+
+    cell, n, left, top = 4000.0, 225, 100_000.0, 3_700_000.0
+    deep = 1800 + 1700 * np.sin(np.arange(n) / 23.0) * np.cos(np.arange(n)[:, None] / 31.0)
+    deep[:, :12] = -150.0                                   # land along the west
+    grid = Grid.from_elevation(-deep, left, top, cell, 0.0)
+    bands: dict[int, list] = {}
+    for f in features(grid, 0.8, 80.0, 4):
+        if f["properties"]["k"] == "fill":
+            bands.setdefault(f["properties"]["b"], []).append(shape(f["geometry"]))
+    union = {b: union_all(v) for b, v in bands.items()}
+    ring = union[-1].exterior
+    checked = worst = 0
+    for i in range(800):
+        p = ring.interpolate(i / 800, normalized=True)
+        x, y = utm.to_utm(p.y, p.x)
+        c = int(np.clip((x - left) / cell, 0, n - 1))
+        r = int(np.clip((top - y) / cell, 0, n - 1))
+        depth = deep[max(r - 3, 0):r + 4, max(c - 3, 0):c + 4].min()   # the water all round
+        for b, lower in enumerate((H_LAND,) + BANDS):
+            if lower < depth and b in union:
+                checked += 1
+                worst = max(worst, union[b].distance(Point(p.x, p.y)))
+    # One rounding step of the 4 decimals kept (~10 m); apart, it was 0.06 deg.
+    assert checked > 2000
+    assert worst < 1e-4
+
+
 def test_the_map_library_is_bundled_with_its_licence_and_loaded_only_when_shown():
     """BSD-3, bundled (owner's call, 2026-11-10), and never in the page's own
     head: it is fetched by `ready()` the first time a map is shown."""
