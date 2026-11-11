@@ -14,9 +14,10 @@ pixel:
   out past Tanner Bank. Read by no chain.
 - `inner`, zooms 10-12: the CoNED regional grid (32 m), then GMRT's outer
   (90 m): the rays' own grids.
-- `near`, zooms 13-14: the CoNED nearshore grid (8 m), then the regional.
+- `near`, zooms 13-15: the CoNED nearshore grid (8 m), then the regional.
 
-Each tile is 256 px in Web Mercator ({z}/{x}/{y}.png), shaded: greys, lighter
+Each tile is a 256 px Web Mercator tile ({z}/{x}/{y}.png) drawn at 512 px,
+so a phone's screen gets a pixel of its own; shaded, anti-aliased: greys, lighter
 for shallower, depth below mean sea level as the ray tracer reads it (CoNED
 carried from NAVD88 by the grid's own fetched offset, GMRT already sea level),
 contours at 5, 10, 20, 50, 100, 200, 500, 1,000 and 2,000 m, land lighter
@@ -48,7 +49,19 @@ from .raytrace import BATHY_DIR, H_LAND, Bathymetry, Grid
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "seabed_tiles"
-TILE = 256
+#: Pixels a tile is drawn at. The page asks for 256 px tiles, so these are
+#: drawn at twice that, as a phone's screen shows them (owner's report,
+#: 2026-11-11: grainy at 256).
+TILE = 512
+#: Half a contour's width, in tile pixels: a line one CSS pixel wide.
+LINE_HALF_PX = 1.0
+#: The contours are drawn on the depths smoothed over this many tile pixels
+#: (a Gaussian's sigma): drawn finer than a phone pixel, the grids' cell-scale
+#: noise read as a wiggling line.
+CONTOUR_SMOOTH_PX = 1.5
+PAD = 6
+#: Each tile's palette: 64 drew the shallow ramp in visible steps.
+COLOURS = 160
 LEVELS = (5, 10, 20, 50, 100, 200, 500, 1000, 2000)
 #: name -> (zooms, the grids it is drawn from finest first, how many of those
 #: bound it: the near layer covers the nearshore grid's box, the regional only
@@ -56,7 +69,7 @@ LEVELS = (5, 10, 20, 50, 100, 200, 500, 1000, 2000)
 LAYERS = {
     "context": ((5, 9), ("context",), 1),
     "inner": ((10, 12), ("regional", "outer"), 2),
-    "near": ((13, 14), ("nearshore", "regional"), 1),
+    "near": ((13, 15), ("nearshore", "regional"), 1),
 }
 
 
@@ -123,25 +136,70 @@ def sample(bathys: list[Bathymetry], lat: np.ndarray, lon: np.ndarray) -> tuple[
     return h.reshape(lat.shape), (~todo).reshape(lat.shape)
 
 
-def shade(h: np.ndarray, covered: np.ndarray) -> np.ndarray:
-    """RGBA for a padded block; the caller crops the pad."""
+def _smooth(a: np.ndarray, sigma: float) -> np.ndarray:
+    """A Gaussian blur that ignores empty cells (NaN stays NaN)."""
 
-    water = covered & (h > H_LAND)
-    d = np.clip(np.where(water, h, 1.0), 1.0, 4000.0)
-    grey = np.clip(92 - 62 * np.log10(d) / np.log10(2000.0), 18, 255)
-    img = np.where(water, grey, 150.0)
+    r = int(math.ceil(3 * sigma))
+    k = np.exp(-0.5 * (np.arange(-r, r + 1) / sigma) ** 2)
+    ok = np.isfinite(a)
+    num, den = np.where(ok, a, 0.0), ok.astype(float)
+    for axis in (0, 1):
+        num = np.apply_along_axis(lambda v: np.convolve(v, k, "same"), axis, num)
+        den = np.apply_along_axis(lambda v: np.convolve(v, k, "same"), axis, den)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return np.where(ok, num / den, np.nan)
+
+
+def _crosses(above: np.ndarray) -> np.ndarray:
+    """Pixels with a pixel on the other side of the level among their eight neighbours."""
+
+    hi, lo = above.copy(), above.copy()
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            moved = np.roll(np.roll(above, dy, 0), dx, 1)
+            hi |= moved
+            lo &= moved
+    return hi & ~lo
+
+
+def shade(h: np.ndarray, covered: np.ndarray) -> np.ndarray:
+    """RGBA for a padded block; the caller crops the pad.
+
+    Anti-aliased (owner's report, 2026-11-11: grainy on a phone): every
+    contour and the shoreline are drawn by each pixel's distance from the
+    level, |h - level| / |grad h| in pixels, rather than a pixel set where a
+    neighbour crosses it -- a one-pixel staircase a phone's screen magnifies.
+    """
+
+    with np.errstate(invalid="ignore"):
+        hh = np.where(covered, h, np.nan)
+        gy, gx = np.gradient(hh)
+        g = np.hypot(gx, gy)
+        g = np.where(np.isfinite(g) & (g > 1e-9), g, np.inf)
+        # The water's share of each pixel: a one-pixel ramp across the shoreline.
+        wet = np.where(np.isfinite(g), np.clip(0.5 + (hh - H_LAND) / g, 0.0, 1.0),
+                       (hh > H_LAND).astype(float))
+        wet = np.where(covered, np.nan_to_num(wet), 0.0)
+        d = np.clip(np.where(covered & (hh > H_LAND), hh, 1.0), 1.0, 4000.0)
+        grey = np.clip(92 - 62 * np.log10(d) / np.log10(2000.0), 18, 255)
+        img = wet * grey + (1 - wet) * 150.0
+        hs = _smooth(hh, CONTOUR_SMOOTH_PX)
+        sy, sx = np.gradient(hs)
+        gs = np.hypot(sx, sy)
+        gs = np.where(np.isfinite(gs) & (gs > 1e-9), gs, np.inf)
+        line = np.zeros(h.shape)
+        for level in LEVELS:
+            dist = np.abs(hs - level) / gs
+            ink = np.clip(LINE_HALF_PX + 0.5 - np.nan_to_num(dist, nan=9.0), 0.0, 1.0)
+            # Only where the seabed CROSSES the level within a pixel: a flat
+            # that comes near it without crossing is no contour.
+            line = np.maximum(line, np.where(_crosses(hs >= level), ink, 0.0))
+        line *= wet
     rgb = np.stack([img * 0.92, img * 0.98, img * 1.06], -1)
-    depth = np.where(water, h, 0.0)
-    edge = np.zeros(h.shape, bool)
-    for level in LEVELS:
-        above = depth >= level
-        e = np.zeros_like(above)
-        e[:-1] |= above[:-1] != above[1:]
-        e[:, :-1] |= above[:, :-1] != above[:, 1:]
-        edge |= e & water
-    rgb[edge] = rgb[edge] * 0.55 + 255 * 0.45 * 0.6
+    a = line[..., None]
+    rgb = rgb * (1 - 0.45 * a) + 255 * 0.45 * 0.6 * a
     alpha = np.where(covered, 255, 0)
-    return np.dstack([np.clip(rgb, 0, 255), alpha]).astype(np.uint8)
+    return np.dstack([np.clip(np.round(rgb), 0, 255), alpha]).astype(np.uint8)
 
 
 def bounds_of(bathys: list[Bathymetry]) -> list[list[float]]:
@@ -182,7 +240,7 @@ def build(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> dict:
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
-    manifest = {"tile": TILE, "grids": retrieved(directory), "layers": []}
+    manifest = {"tile": 256, "drawn_px": TILE, "grids": retrieved(directory), "layers": []}
     total = 0
     for name, ((z0, z1), names, bounding) in LAYERS.items():
         if names[0] not in have:
@@ -194,20 +252,21 @@ def build(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> dict:
         for z in range(z0, z1 + 1):
             fx0, fy1 = tile_of(south, west, z)
             fx1, fy0 = tile_of(north, east, z)
-            # one pixel of pad each side, so contours meet across tiles
-            px = (np.arange(-1, TILE + 1) + 0.5) / TILE
+            # a pad each side, so the smoothing, the gradient and the
+            # contours meet across tiles
+            px = (np.arange(-PAD, TILE + PAD) + 0.5) / TILE
             for tx in range(int(fx0), int(fx1) + 1):
                 for ty in range(int(fy0), int(fy1) + 1):
                     lon_grid, lat_grid = np.meshgrid(lon_of(tx + px, z), lat_of(ty + px, z))
                     h, cov = sample(bathys, lat_grid, lon_grid)
                     if not cov.any():
                         continue
-                    rgba = shade(h, cov)[1:-1, 1:-1]
+                    rgba = shade(h, cov)[PAD:-PAD, PAD:-PAD]
                     path = out / str(z) / str(tx) / f"{ty}.png"
                     path.parent.mkdir(parents=True, exist_ok=True)
                     buf = io.BytesIO()
                     Image.fromarray(rgba, "RGBA").quantize(
-                        colors=64, method=Image.Quantize.FASTOCTREE).save(buf, "PNG", optimize=True)
+                        colors=COLOURS, method=Image.Quantize.FASTOCTREE).save(buf, "PNG", optimize=True)
                     path.write_bytes(buf.getvalue())
                     count += 1
         total += count

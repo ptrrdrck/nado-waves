@@ -95,3 +95,42 @@ def test_the_fill_says_what_it_is():
 
     assert 'aria-label="Minutes after NDBC 46232"' in PAGE
     assert "98% in by" in PAGE
+
+
+def test_the_tiles_are_drawn_at_twice_the_size_the_page_asks_for():
+    """Owner's report, 2026-11-11: grainy on a phone. The page asks for 256 px
+    tiles and each is drawn at 512, anti-aliased."""
+
+    from PIL import Image
+
+    manifest = json.loads((ROOT / "data" / "seabed_tiles" / "manifest.json").read_text())
+    assert manifest["tile"] == 256 and manifest["drawn_px"] == 512
+    assert "tileSize: 256," in PAGE
+    one = next((ROOT / "data" / "seabed_tiles").rglob("*.png"))
+    assert Image.open(one).size == (512, 512)
+
+
+def test_a_contour_is_drawn_only_where_its_level_is_crossed():
+    """The distance test alone drew a flat lying near a level as a blob of
+    line; a crossing within a pixel is what makes a contour."""
+
+    np = pytest.importorskip("numpy")
+    from forecast import seabedtiles
+
+    flat = np.full((20, 20), 9.9)               # near 10 m, never crossing it
+    rgba = seabedtiles.shade(flat, np.ones(flat.shape, bool))
+    assert len({tuple(p) for p in rgba[3:-3, 3:-3].reshape(-1, 4)}) == 1
+    slope = np.tile(np.linspace(5.5, 14.5, 40), (20, 1))   # crosses 10 m once
+    rgba = seabedtiles.shade(slope, np.ones(slope.shape, bool))
+    row = rgba[10, :, 0].astype(int)
+    assert row[20] > row[5] + 20 and row[20] > row[35] + 20
+
+
+def test_every_break_opens_at_one_scale():
+    """Owner's request, 2026-11-11: the farthest edge vertex of ANY break sets
+    the opening scale, so no break tab opens nearer than another."""
+
+    body = PAGE[PAGE.index("  frame(animate = false) {"):]
+    body = body[:body.index("const mpp")]
+    assert "MAPDATA.geometry.breaks.flatMap" in body
+    assert "this.b.windows" not in body

@@ -9556,13 +9556,16 @@ Promise.all([
 
     // The opening view: the shore normal up, the break as far above the
     // map's foot as it sits above the drawing's, and three zoom steps in from
-    // the drawing's own scale -- where the farthest vertex forming an edge
-    // sits on its rim (owner's request, 2026-11-08).
+    // the drawing's scale -- where the farthest vertex forming an edge sits
+    // on its rim (owner's request, 2026-11-08). ONE scale for the three
+    // breaks (owner's request, 2026-11-11): the farthest such vertex of any
+    // of them, so a break tab never opens nearer than another.
     frame(animate = false) {
       const W = this.el.clientWidth, H = this.el.clientHeight;
       if (!W || !H) return;
       const d = readSvg(this.svg), vb = this.svg.viewBox.baseVal, s = W / vb.width;
-      const far = Math.max(...this.b.windows.flatMap((w) => w.edges.map((e) => e.range_km)));
+      const far = Math.max(...MAPDATA.geometry.breaks.flatMap((o) =>
+        o.windows.flatMap((w) => w.edges.map((e) => e.range_km))));
       const mpp = far * 1000 / (d.rimPx * s) / 2 ** OPEN_STEPS;
       const zoom = Math.log2(MPP0 * Math.cos(rad(this.b.position[0])) / mpp);
       const breakY = H - (vb.height - d.cy) * s;

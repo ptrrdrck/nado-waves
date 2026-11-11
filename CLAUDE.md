@@ -520,7 +520,9 @@ forecaster actually verifies against, Surfline included.
    and a map tap are one pick. Turned the drawing's way, the break's shore
    normal up (MapLibre's `bearing`; the reader cannot rotate it), the
    break as far above the map's foot as above the drawing's, opening three
-   zoom steps in from the drawing's scale; square, at most 70vh; the toggle,
+   zoom steps in from the drawing's scale -- ONE scale for the three breaks,
+   the farthest edge vertex of any (owner's request, 2026-11-11: each break
+   had opened at its own, South ~0.2 steps nearer); square, at most 70vh; the toggle,
    the caption under it, the drawing moved down to its caption, and one
    start height across the break tabs (`level`) as the owner picked them in
    the mock. It zooms out to just past Tanner Bank (46047 and 25 km in view
@@ -538,10 +540,15 @@ forecaster actually verifies against, Surfline included.
    workflows after a fetch, a test failing when a grid is newer than its
    tiles): `context` zooms 5-9 from `collector.bathymetry`'s GMRT context
    grid (400 m, 350 km round the breaks and the three buoys, read by no
-   chain), `inner` 10-12 from the regional and outer grids, `near` 13-14
-   from the nearshore; 408 tiles, 0.63 MB, the page loading only those in
+   chain), `inner` 10-12 from the regional and outer grids, `near` 13-15
+   from the nearshore; 489 tiles, 2.2 MB, the page loading only those in
    view. Contours as drawn for now (owner's call, same day: busy at the
-   widest zooms). `map.json` (`forecast/mapdata.py`): geomviz's model, 46086
+   widest zooms). **Each 256 px tile is drawn at 512 px, anti-aliased**
+   (owner's report, 2026-11-11: grainy on a phone): the shoreline and every
+   contour by each pixel's distance from its level, |h − level| / |∇h|, the
+   contours on depths smoothed over 1.5 tile px and only where the level is
+   crossed within a pixel, 160 colours a tile; 1-px staircases drawn at
+   256 px were what a phone's screen magnified. `map.json` (`forecast/mapdata.py`): geomviz's model, 46086
    and 46047 at NDBC's fetched coordinates, and the tile manifest; with
    `seabed/` and `vendor/` it ships from BOTH publish jobs, and
    `publish-pages.sh` replaces a directory whole (its old `cp "$BUNDLE"/*`

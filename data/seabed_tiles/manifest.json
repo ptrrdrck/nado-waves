@@ -1,5 +1,6 @@
 {
  "tile": 256,
+ "drawn_px": 512,
  "grids": {
   "nearshore": "2026-09-25T20:16:11Z",
   "regional": "2026-09-25T20:16:12Z",
@@ -54,7 +55,7 @@
    "name": "near",
    "zooms": [
     13,
-    14
+    15
    ],
    "bounds": [
     [
@@ -70,7 +71,7 @@
     "nearshore",
     "regional"
    ],
-   "tiles": 34
+   "tiles": 115
   }
  ]
 }
