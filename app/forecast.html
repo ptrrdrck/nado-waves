@@ -1379,7 +1379,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    than most of a phone's screen). Its height is the script's (`space`), and
    a switch grows or shrinks it from its foot as a fold slides, the drawing
    and the map both standing on the foot so the break rides it. */
-.sm-plate{position:relative;width:100%;border-radius:7px;overflow:hidden;background:var(--paper);
+.sm-plate{position:relative;width:100%;border-radius:7px 7px 0 0;overflow:hidden;background:var(--paper);
   isolation:isolate}
 .sm-plate > svg.aperture{position:absolute;left:0;width:100%;display:block}
 .sm-plate > svg.aperture text.faces{display:none}
@@ -1407,7 +1407,12 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The caption sits under the drawing or the map as plain text, in a lead
    train heading's style. */
-.sm-cap{position:relative;margin-top:8px;color:var(--ink);text-align:center;
+/* The caption's TRAY (owner's request, 2026-11-11): attached under the
+   plate, its foot the unit's, so the plate grows and shrinks above it and
+   the tray rides the foot; a hairline between them, the plate's colour,
+   the plate's corners at its foot. */
+.sm-cap{position:relative;margin-top:0;padding:7px 12px 8px;color:var(--ink);text-align:center;
+  background:var(--paper);border-top:1px solid var(--line);border-radius:0 0 7px 7px;
   font:400 14px/21px Archivo,sans-serif;text-wrap:balance;pointer-events:none}
 .sm-tag{color:var(--sm-ink,#fff);font:600 11px/1 "Barlow Condensed",Archivo,sans-serif;letter-spacing:.05em;
   text-transform:uppercase;white-space:nowrap;text-shadow:var(--sm-glow,none);pointer-events:none}
@@ -3650,13 +3655,12 @@ function cardsForForecast(step) {
 // still the first. A row keeps its index in `trains` (`data-train`), which is
 // how the drawing's arrows know it; a grouped row's `data-group` names every
 // row of its swell, and a tap picks them all (option E; `pickMatch`).
-// `headline`: the height in the line above. A lone train of that same height
-// (as shown) drops its height, so the row is its period and heading only
-// (owner's request, 2026-11-09): it repeated the number right above it. The
-// height comes back with a second train.
+// `headline`: the height in the line above. A lone train keeps its height
+// even when it repeats that number (owner's call, 2026-11-11, reversing
+// 2026-11-09's drop: without it the period and heading jumped sideways
+// between break tabs).
 function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = "", headline = null} = {}) {
   if (!trains || !trains.length) return "";
-  const solo = trains.length === 1 && headline != null && height(trains[0].hs_m) === height(headline);
   const row = ({t, i}, group) => {
     const tag = t.local ? "chop" : t.wind_sea ? "ws" : "";
     const forms = trainForms(t, !!tag);
@@ -3669,7 +3673,7 @@ function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = 
         + ` aria-label="${of ? "Show this swell's trains on the drawing" : "Show this train on the drawing"}"`
       : onRose ? ` data-rose-train="${i}" data-rose-for="${rose}" tabindex="0" role="button"`
         + ` aria-pressed="${ROSE_TRAIN[rose] === i}" aria-label="Show this period range on the rose"` : ""}>
-      ${solo ? "" : `<span class="ht">${height(t.hs_m)}</span>`}
+      <span class="ht">${height(t.hs_m)}</span>
       <span class="tp">${t.period_s.toFixed(1)} s</span>
       <span class="dr">${forms.map((f, k) => `<span${k ? " hidden" : ""}>${f}</span>`).join("")}</span>
       ${tag === "chop" ? '<span class="tag">local chop</span>'

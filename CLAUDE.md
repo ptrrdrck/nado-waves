@@ -301,9 +301,10 @@ forecaster actually verifies against, Surfline included.
    the paper grey, 4 px corners; the "LIVE" / Forecast tabs drawn as the
    break tabs are, the pick raised in the card colour with its words in
    `--surf`; and "Briefing" and the Forecast tab's weekday in the title
-   type. **A lone train of the headline's height drops its height**
-   (`trainList`'s `headline`, same day): its row is period and heading only,
-   and the height returns with a second train.
+   type. A lone train of the headline's height dropped its height from the
+   same day **until 2026-11-11, when the owner reversed it**: without the
+   height the period and heading jumped sideways between break tabs, so
+   every train row keeps its height.
    **Each buoy is named above its headline** (owner's request, 2026-11-09;
    `buoyTitle`): NDBC's name without its state, set as the station is
    (12 px, ink, 500) -- 46232's on a line of its own on a phone, where its
@@ -529,6 +530,10 @@ forecaster actually verifies against, Surfline included.
    `PLATE_PAD` (12 px) above and below, the map's square; a switch grows or
    shrinks it from its foot with the folds' slide (`FOLD_SLIDE`), the view
    coming in faded over the one going out, and both stand on the foot, the
+   caption under it in a TRAY attached to the plate (same day: a hairline
+   over it, the plate's colour, the unit's rounded foot), which rides the
+   foot as the plate grows and shrinks above it; and both views stand on the
+   plate's foot, the
    drawing's break and the map's opening break the same `foot` above it, so
    the break never moves against it; the map's canvas unseen until its
    seabed is drawn (a new WebGL canvas paints black first). **The plate
