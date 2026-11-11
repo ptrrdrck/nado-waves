@@ -199,29 +199,28 @@ class TestOnThePage:
                 assert sc["rings"] == pytest.approx(
                     [sc["step"] * (k + 1) for k in range(len(sc["rings"]))])
 
-    def test_the_scale_is_a_line_under_the_rose_and_play_sits_by_the_time(self):
-        """Owner's request, 2026-10-07: no figure on the plot, where every
-        spot is a bearing; the scale in one line under it; play / pause as
-        symbols, left of the six hours."""
+    def test_the_rose_sits_on_a_plate_its_readout_in_the_tray(self):
+        """Owner's requests, 2026-10-07 and 2026-11-11: no figure on the plot;
+        play / pause left of the six hours along the plate's foot; the scale
+        line and the Period legend in the tray under the plate."""
 
         block = PAGE[PAGE.index("function roseBlock("):]
         block = block[:block.index("\n}\n")]
-        assert (block.index('class="rose-plot"') < block.index('class="rose-scale')
+        assert (block.index('class="rose-plate">${roseSwitch()}') < block.index('class="rose-plot"')
                 < block.index('class="rose-time">${rosePlayButton()}')
-                < block.index('class="rose-line"'))
-        assert "rosePlayButton" not in block[:block.index('class="rose-plot"')]
+                < block.index('class="rose-line"') < block.index('class="rose-tray"')
+                < block.index('class="rose-scale') < block.index("${roseLegend(ROSE_MODE)}"))
 
-    def test_the_switch_sits_at_the_end_of_the_timeline_row(self):
-        """Owner's request, 2026-10-08: no row of its own above the rose; "ft"
-        and "s" right of the six hours, still named Height and Period to a
-        screen reader; the Period legend on one row."""
+    def test_the_switch_is_one_toggle_at_the_plates_corner(self):
+        """Owner's request, 2026-11-11 (replacing 2026-10-08's "ft | s" right
+        of the six hours): one button at the plate's top-left, as the drawing
+        / map toggle, showing what a tap turns to, named to a screen reader."""
 
-        block = PAGE[PAGE.index("function roseBlock("):]
-        block = block[:block.index("\n}\n")]
-        assert "rose-head" not in block
-        assert (block.index('class="rose-line"') < block.index('class="ranges rose-modes"')
-                < block.index("${roseLegend(ROSE_MODE)}"))
-        assert 'aria-label="${m.label}"' in block and "${roseSymbol(m)}</button>" in block
+        sw = PAGE[PAGE.index("function roseSwitch("):]
+        sw = sw[:sw.index("\n}\n")]
+        assert "ROSE_MODES.find((m) => m.id !== ROSE_MODE)" in sw
+        assert 'aria-label="Show the ${next.label} rose"' in sw and "${roseSymbol(next)}</button>" in sw
+        assert ".rose-switch{position:absolute;top:4px;left:4px;" in PAGE
         # "m | s" on Metric (owner's call, 2026-10-28).
         assert 'const roseSymbol = (m) => (m.id === "height" && UNITS === "metric" ? "m" : m.symbol);' in PAGE
         assert 'const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];' in PAGE
@@ -240,17 +239,19 @@ class TestOnThePage:
 
     def test_switching_views_never_moves_the_page(self):
         """Owner's request, 2026-10-08: the Period legend's row is kept on
-        Height too, laid out but unseen, and play / pause is the ft / s
-        buttons' height."""
+        Height too, laid out but unseen; and since 2026-11-11 play / pause is
+        the map's controls' 28 px, as the toggle is."""
 
         legend = PAGE[PAGE.index("function roseLegend("):]
         legend = legend[:legend.index("\n}\n")]
         assert 'if (mode !== "period") return ""' not in legend
         assert '" off"' in legend and 'aria-hidden="true"' in legend
-        assert ".rose .legend.off{visibility:hidden}" in PAGE
-        css = PAGE[PAGE.index(".rose .ranges button{"):PAGE.index(".rose .rose-play svg")]
-        heights = re.findall(r"[;{]height:(\d+)px", css)
-        assert len(heights) == 2 and len(set(heights)) == 1, heights
+        # Since 2026-11-11 Height takes no legend room: the tray grows with
+        # its words, as the drawing's and the map's does.
+        assert ".rose .legend.off{display:none}" in PAGE
+        play = PAGE[PAGE.index(".rose .rose-play{"):PAGE.index(".rose .rose-track{")]
+        assert "width:28px;height:28px" in play
+        assert "width:28px;height:28px" in PAGE[PAGE.index(".rose-switch{"):PAGE.index(".rose .ranges{")]
 
     def test_one_line_under_the_rose_carries_the_scale_and_the_frame(self):
         """Owner's request, 2026-10-08: "Rings every 1 ft (0.30 m) · 11:00 AM

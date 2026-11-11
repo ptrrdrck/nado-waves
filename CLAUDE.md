@@ -301,9 +301,10 @@ forecaster actually verifies against, Surfline included.
    the paper grey, 4 px corners; the "LIVE" / Forecast tabs drawn as the
    break tabs are, the pick raised in the card colour with its words in
    `--surf`; and "Briefing" and the Forecast tab's weekday in the title
-   type. **A lone train of the headline's height drops its height**
-   (`trainList`'s `headline`, same day): its row is period and heading only,
-   and the height returns with a second train.
+   type. A lone train of the headline's height dropped its height from the
+   same day **until 2026-11-11, when the owner reversed it**: without the
+   height the period and heading jumped sideways between break tabs, so
+   every train row keeps its height.
    **Each buoy is named above its headline** (owner's request, 2026-11-09;
    `buoyTitle`): NDBC's name without its state, set as the station is
    (12 px, ink, 500) -- 46232's on a line of its own on a phone, where its
@@ -385,17 +386,21 @@ forecaster actually verifies against, Surfline included.
    request and picks, 2026-11-10, from a mock; replacing 2026-10-12's one
    sentence; `buoys.about`, in buoys.json as `about`, drawn by the page's
    `buoyAbout`): on a PLATE of the page's paper set into the card (the
-   owner's pick of four separations), no name or station (the card has
-   both). Readings two to a row, each a symbol, a label in the fold rows'
-   type, the value and its OWN time, greying past 3 h as every LIVE number
-   does: Peak (period and FROM direction, `at_buoy`'s, a test pins it),
+   owner's pick of four separations; since 2026-11-11 outlined as the rose's
+   and the swell's plates are, with 21 px of card above and below it, box to
+   box, each place it sits saying its own margin), no name or station (the card has
+   both). Readings two to a row, a label in the fold rows' type (no
+   symbol since 2026-11-11, owner's request), the value and its OWN time -- a hidden line since 2026-11-11, as a
+   Briefing row's: a tap on any reading shows or hides every reading's time
+   on every buoy (`BI_TIMES`, `toggleBiTimes`; owner's request) -- greying
+   past 3 h as every LIVE number does: Peak (period and FROM direction, `at_buoy`'s, a test pins it),
    Mean period (Tm02 over the headline's own energies, `bin_energies`; NDBC's
    APD is computed differently), Spread at peak (√(2(1 − r1)), Kuik), all
    from the newest spectrum; Water, Wind (knots from NDBC's m/s, its gust in
    the time line) and Pressure from the standard met, the newest within
-   `STDMET_WITHIN_H` (24 h), "not measured" for a column the archive has
-   never held (46232, a Waverider: wind and pressure), "none in 24 h"
-   otherwise. Then a hairline and the facts, a symbol each: Location —
+   `STDMET_WITHIN_H` (24 h), "none in 24 h" otherwise, and a column the
+   archive has never held NOT SHOWN (46232, a Waverider: wind and
+   pressure; owner's request, 2026-11-11, where it said "not measured"). Then a hairline and the facts, a symbol each: Location —
    distance and bearing from Center break (`forecast.siting`'s, never
    typed), NDBC's coordinates linked to its station page, and "In … of
    water", the depth `collector/stationdepth.py` reads off that page
@@ -423,7 +428,13 @@ forecaster actually verifies against, Surfline included.
    lighter line, dashed, as a break tab's second other break is — whatever
    the tab's order: the page reads `heights` by key, and JavaScript orders
    numeric keys ascending.
-   **Under each buoy's reading, a rose** (owner's request, 2026-10-06;
+   **Under each buoy's reading, a rose** (since 2026-11-11 on a plate with a
+   tray, as the swell's drawing and map: white inside, the Height / Period
+   toggle at its top-left showing what a tap turns to, play / pause at the
+   map's 28 px 4 px from the plate's corner, the scale line and the Period
+   legend in the tray in its caption's 14 / 21 px type, the tray a line
+   taller when they need one and the legend taking no room on Height; where
+   the text below says otherwise, this supersedes it) (owner's request, 2026-10-06;
    `forecast/rose.py`, in `buoys.json` as `roses`): one per spectrum, the
    energy in sixteen 22.5° sectors, petals pointing FROM, integrated as
    `at_buoy` integrates it so the sectors are the reading's own m0 (a test
@@ -522,10 +533,30 @@ forecaster actually verifies against, Surfline included.
    break as far above the map's foot as above the drawing's, opening three
    zoom steps in from the drawing's scale -- ONE scale for the three breaks,
    the farthest edge vertex of any (owner's request, 2026-11-11: each break
-   had opened at its own, South ~0.2 steps nearer); square, at most 70vh; the toggle,
-   the caption under it, the drawing moved down to its caption, and one
-   start height across the break tabs (`level`) as the owner picked them in
-   the mock. It zooms out to just past Tanner Bank (46047 and 25 km in view
+   had opened at its own, South ~0.2 steps nearer); square, at most 70vh; the toggle
+   and the caption under it as the owner picked them in the mock. **The
+   drawing and the map share ONE PLATE** (owner's requests, 2026-11-11;
+   `.sm-plate`, `space`, `slide`), WHITE INSIDE as the drawing was before it
+   (the card's colour, a hairline round plate and tray; owner's call, same
+   day), every corner button 4 px inside the hairline as the map's own
+   controls are: the drawing's trimmed to its ink with
+   `PLATE_PAD` (12 px) above and below, the map's square; a switch grows or
+   shrinks it from its foot with the folds' slide (`FOLD_SLIDE`), the view
+   coming in faded over the one going out, the caption under it in a TRAY
+   attached to the plate (same day: a hairline over it, the plate's colour,
+   the unit's rounded foot), which rides the foot as the plate grows and
+   shrinks above it. Both views stand on the plate's foot: the drawing's
+   break `foot` (PLATE_PAD below its ink) above it, the map's opening break
+   the untrimmed drawing's (vb.height - cy) * s, ~37 px at 390 (owner's call,
+   same day: at 15 px the fill's timeline covered the break and the
+   shoreline); the map's canvas unseen until its
+   seabed is drawn (a new WebGL canvas paints black first). **The plate
+   follows its own break's trains** (owner's call, same day, B of three
+   mocked, reversing 2026-11-08's one start height across the break tabs,
+   `level`): nothing re-lines the tabs up. That re-lining was also what made
+   the map jump after a fold: run mid-slide, it measured the open tab part
+   way and the hidden ones whole, overshot ~150 px, and snapped back half a
+   second later. It zooms out to just past Tanner Bank (46047 and 25 km in view
    with the break kept where it sits) and pans no further from the break;
    the + / - buttons clamp before zooming round the break. ONE MAP PER
    BREAK, carried across the page's redraws (`Face.adopt`; every minute on
@@ -540,9 +571,12 @@ forecaster actually verifies against, Surfline included.
    phone; `forecast/seabedvector.py` -> `data/seabed_vector/`, derived but
    tracked, redrawn by both bathymetry workflows after a fetch, a test failing
    when a grid is newer than its drawing): one GeoJSON a grid, the finer drawn
-   over the coarser from the zoom its cells are fit for -- `context` (GMRT
-   400 m, 350 km round the breaks and the three buoys, read by no chain) from
-   0, `outer` (90 m) from 8, `regional` (CoNED 32 m) from 9, `nearshore`
+   over the coarser from the zoom its cells are fit for -- `wide` (GMRT 2 km,
+   1,200 km round the breaks, read by no chain; owner's report, 2026-11-11:
+   the widest view reaches ~850 km from the break on a 390 px phone, ~1,030 km
+   on a 260 px map, and ran off the context grid as bare land colour) from 0,
+   `context` (GMRT 400 m, 350 km round the breaks and the three buoys, read
+   by no chain) from 0 over it, `outer` (90 m) from 8, `regional` (CoNED 32 m) from 9, `nearshore`
    (8 m) from 11 -- each its depth bands as NESTED polygons (land, then
    `raytrace.H_LAND` and 5 ... 4,000 m, so simplifying one edge opens no gap),
    its contours at 5 ... 2,000 m and its shoreline at H_LAND; the depths
@@ -1377,12 +1411,14 @@ forecaster actually verifies against, Surfline included.
    line once, for the owner to edit; edits are carried into the page by
    hand) by `forecast/briefingwording.py`, both pinned by a test.
    **The foot of the page** (owner's design, 2026-10-28): ONE line,
-   "Docs | Observer | Units [Both] | ◐", spread over the Briefing line's
+   "Docs | Observer | Units [Imperial] | ◐" (Observer HIDDEN since 2026-11-11,
+   its bar with it, "just for now", owner's call; the gate still reads the
+   stored choice), spread over the Briefing line's
    width (at most a phone's 560 px on a tablet or a stack layout, owner's
    call 2026-10-30; the console's sits in its rail), Docs under its words and the glyph's ink under its
    caret's, with no rule above (owner's calls, 2026-10-29) — Docs in ink at the line's
    weight, Observer the gate's checkbox drawn as a switch, Units a bordered
-   chip that shows its setting and cycles Both → Imperial → Metric on a tap
+   chip that shows its setting and cycles Imperial → Metric → Both on a tap
    (its word centred cap-to-baseline in the chip, measured at 4x; always as
    wide as "Imperial", so a tap never moves the line), and the theme a
    half-lit disc at the right end: a tap gives the other theme, and landing
@@ -2333,10 +2369,11 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   standard met. Its standard met is collect-beach-inputs.yml's since the
   same day (beside 46232's; collect.yml excludes both), because on
   collect.yml's schedule it landed a median 5 h apart.
-- **Imperial leads, metric in parentheses, everywhere a number is shown — by
-  default.** "2.3 ft (0.71 m)", "9 mph (8 kt)". Since 2026-10-28 (owner's
+- **Imperial leads, metric in parentheses, everywhere a number is shown
+  in "Both".** "2.3 ft (0.71 m)", "9 mph (8 kt)". Since 2026-10-28 (owner's
   call) the reader's Units setting at the foot of the page can show
-  Imperial or Metric alone instead: every number goes through the page's
+  Imperial or Metric alone instead, and since 2026-11-11 Imperial alone is
+  the DEFAULT, a tap moving Imperial → Metric → Both (owner's call): every number goes through the page's
   one `dual` / `dualText` (beside the constants), a metric value alone is
   the "both" form's bracket and never a second rounding, wind's metric stays
   knots (owner's call, same day), and the chart axes and the rose's rings

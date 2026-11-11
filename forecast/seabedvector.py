@@ -15,8 +15,10 @@ tiles and 2.2 MB).
 One GeoJSON file per grid, finest drawn on top, each from the zoom its cells
 are fit for (`TIERS`):
 
+- `wide`, from zoom 0: GMRT at 2 km, 1,200 km round the breaks, under
+  everything, so the widest view is seabed to its corners. Read by no chain.
 - `context`, from zoom 0: `collector.bathymetry`'s GMRT context grid
-  (400 m), out past Tanner Bank. Read by no chain.
+  (400 m), out past Tanner Bank, over the wide. Read by no chain.
 - `outer`, from zoom 8: GMRT's 90 m grid, the rays' outermost.
 - `regional`, from zoom 9: CoNED's 32 m grid.
 - `nearshore`, from zoom 11: CoNED's 8 m grid.
@@ -68,6 +70,7 @@ LINES = (5, 10, 20, 50, 100, 200, 500, 1000, 2000)
 #: tolerance in metres, decimal places of a degree kept), coarsest first: the
 #: order they are drawn in.
 TIERS = {
+    "wide": (0, 0.8, 400.0, 3),
     "context": (0, 0.8, 80.0, 4),
     "outer": (8, 0.8, 20.0, 5),
     "regional": (9, 1.0, 6.0, 5),

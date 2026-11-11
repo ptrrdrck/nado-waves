@@ -130,3 +130,33 @@ def test_the_context_grid_holds_the_page_buoys_and_feeds_no_chain():
     src = Path(raytrace.__file__).read_text()
     assert 'for name in ("nearshore", "regional", "outer"):' in src
     assert '"context"' not in src
+
+
+def test_the_wide_grid_reaches_the_maps_widest_view_and_feeds_no_chain():
+    """Owner's report, 2026-11-11: the map's widest view ran off the context
+    grid. The wide grid's margin must reach the farthest corner of that view,
+    the break where the map keeps it and 46047 and 25 km in view, on a 260 px
+    map, panned to its limit (the page's own `limits()` arithmetic)."""
+
+    import math
+
+    from forecast import raytrace
+    from forecast.geometry import load
+    from forecast.siting import load_coordinates
+    from forecast.swell import great_circle_km, initial_bearing
+
+    assert bathymetry.GRIDS["wide"][2] == "gmrt"
+    tanner = load_coordinates()["46047"]
+    far = 0.0
+    for spot in load()[0]:
+        if not spot.id.startswith("coronado_"):
+            continue
+        p = spot.position
+        reach = great_circle_km(p, tanner) + 25
+        rel = math.radians(initial_bearing(p, tanner) - spot.normal)
+        w = h = 260
+        mpp = max(abs(math.sin(rel)) * reach * 1000 / (0.5 * w - 76),
+                  max(0.0, math.cos(rel)) * reach * 1000 / (0.85 * h), 1)
+        far = max(far, reach + math.hypot(w, h) / 2 * mpp / 1000)
+    assert bathymetry.WIDE_MARGIN_M / 1000 > far
+    assert '"wide"' not in Path(raytrace.__file__).read_text()

@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -123,7 +124,10 @@ def script(source: str, cases: list) -> str:
     code = "\n".join([
         _lift(source, "const FT_PER_M = ", ";"),
         # The Units setting and the formatters built on it, as one block.
-        source[source.index("let UNITS = "):source.index("\n// Display-only shortenings")],
+        # Rendered in "Both" whatever the page's default (Imperial since
+        # 2026-11-11): the record and the wording docs keep every unit.
+        re.sub(r'let UNITS = "[a-z]+";', 'let UNITS = "both";',
+               source[source.index("let UNITS = "):source.index("\n// Display-only shortenings")]),
         source[source.index("const COAST_TZ = "):source.index("// Whether the phase fold is open")],
     ])
     return code + f"""

@@ -321,6 +321,7 @@ class TestTheStationBlock:
             + "const clock = (iso) => iso.slice(11, 16);\n"
             + "const onDay = (iso) => iso.slice(5, 10);\n"
             + "const coastDay = () => 'today';\n"
+            + "let BI_TIMES = false;\n"
             + _fn("point") + "\n}\n" + _fn("compass") + "\n}\n" + icons
             + PAGE[PAGE.index("const infoWhen = "):PAGE.index("function buoyAbout(")]
             + _fn("buoyAbout") + "\n}\n"
@@ -366,7 +367,7 @@ class TestTheStationBlock:
             "Mean period", "13.0 s", "05:00",
             "Spread at peak", "27°", "05:00",
             "Water", "75 °F", "(23.8 °C)", "05:56",
-            "Wind", "not measured", "Pressure", "not measured",
+            # Never measured at 46232, so not shown (owner's request, 2026-11-11).
             "18 mi", "(29 km)", "offshore, 231° SW of Center",
             "32.517° N, 117.425° W ↗", "In 3,444 ft", "(1,050 m)", "of water",
             "Spectrum every hour, on the hour", "Usually collected within 15 min",
@@ -411,9 +412,11 @@ class TestTheStationBlock:
     def test_on_a_plate_apart_from_the_rose(self):
         """Owner's pick of the mock's four separations: the plate."""
 
-        assert (".buoy-info{background:var(--paper);border-radius:8px;padding:12px;display:flex;"
-                "flex-direction:column;") in PAGE
-        assert ".buoy-fold .rose + .buoy-info{margin-top:11px}" in PAGE
+        # Outlined as the rose's and the swell's plates since 2026-11-11, and
+        # 21 px of card above and below it, box to box (owner's request).
+        assert (".buoy-info{background:var(--paper);border:1px solid var(--line);border-radius:8px;"
+                "padding:12px;display:flex;flex-direction:column;") in PAGE
+        assert "#swell-pane-buoy .buoy-info{margin-bottom:9px}" in PAGE
 
     def test_measured_from_center_and_never_typed(self):
         from forecast import siting
@@ -670,7 +673,7 @@ class TestTheProvenancePills:
         assert (block.index("const note = buoyAbout(b.station);")
                 < block.index("srcLines(")
                 < block.index("placeWhen(buoyPlace(b.station_name, b.station), b.observed_utc)"))
-        assert ".buoy-fold .rose + .buoy-info{margin-top:11px}" in PAGE
+        assert ".buoy-fold .rose-none + .buoy-info{margin-top:6px}" in PAGE
 
     def test_the_sentence_reads_at_the_size_of_combined(self):
         """Owner's request, 2026-10-14: each buoy's sentence at the size of
@@ -751,11 +754,11 @@ class TestTheSpacing:
         390, where the drawing scales and the rose does not); the Period
         legend inside the lower space, so the switch never moves the page."""
 
-        assert (".rose{display:flex;flex-direction:column;gap:6px;margin-top:20px;margin-bottom:-11px}"
-                in PAGE)
+        # Since 2026-11-11 on a plate with a tray, spaced as the swell's plate.
+        assert ".rose{display:flex;flex-direction:column;gap:0;margin-top:5.25px;margin-bottom:10px}" in PAGE
         assert ".pane .rose + .srcs{margin-top:3px}" in PAGE
-        # The legend's row is still laid out on Height.
-        assert ".rose .legend.off{visibility:hidden}" in PAGE
+        # Since 2026-11-11 the legend takes no room on Height.
+        assert ".rose .legend.off{display:none}" in PAGE
 
 
 class TestBreakRowsLightToo:
@@ -834,3 +837,16 @@ class TestTheHeightChart:
         assert "Math.abs(p.i - i) <= 0.5" in spec
         assert "(spec.tracks || []).map((tr) => trackPath(tr, a, z, X, Y, plotW))" in PAGE
         assert ".series .ln.other{stroke:var(--faint)" in PAGE
+
+
+def test_the_readings_times_hide_until_a_reading_is_tapped():
+    """Owner's request, 2026-11-11: each reading's time is a hidden line, as a
+    Briefing row's; a tap on any reading shows or hides them all."""
+
+    assert ".buoy-info:not(.bi-times) .bi-t{display:none}" in PAGE
+    assert "let BI_TIMES = false;" in PAGE
+    about = _fn("buoyAbout")
+    assert '` role="button" tabindex="0" aria-expanded="${BI_TIMES}"`' in about
+    assert '<div class="buoy-info${BI_TIMES ? " bi-times" : ""}">' in about
+    toggle = _fn("toggleBiTimes")
+    assert 'document.querySelectorAll(".buoy-info").forEach' in toggle

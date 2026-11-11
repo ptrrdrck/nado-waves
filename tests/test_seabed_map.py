@@ -30,7 +30,10 @@ def test_the_seabed_is_vectors_for_every_grid_the_rays_use():
 
     manifest = json.loads((ROOT / "data" / "seabed_vector" / "manifest.json").read_text())
     tiers = manifest["tiers"]
-    assert [t["name"] for t in tiers] == ["context", "outer", "regional", "nearshore"]
+    from forecast import seabedvector
+    stored = [n for n in seabedvector.TIERS if (ROOT / "data" / "bathymetry" / f"{n}.json").exists()]
+    assert [t["name"] for t in tiers] == stored
+    assert stored[-4:] == ["context", "outer", "regional", "nearshore"]
     assert [t["minzoom"] for t in tiers] == sorted(t["minzoom"] for t in tiers)
     assert not (ROOT / "data" / "seabed_tiles").exists()
     one = json.loads((ROOT / "data" / "seabed_vector" / "nearshore.geojson").read_text())

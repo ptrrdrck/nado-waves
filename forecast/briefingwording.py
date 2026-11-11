@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -307,7 +308,10 @@ def code(source: str) -> str:
         _lift(source, "const HPA_PER_INHG = ", ";"),
         _lift(source, "const fahrenheit = ", ";\n"),
         # The Units setting and the formatters built on it, as one block.
-        source[source.index("let UNITS = "):source.index("\n// Display-only shortenings")],
+        # Rendered in "Both" whatever the page's default (Imperial since
+        # 2026-11-11): the record and the wording docs keep every unit.
+        re.sub(r'let UNITS = "[a-z]+";', 'let UNITS = "both";',
+               source[source.index("let UNITS = "):source.index("\n// Display-only shortenings")]),
         _lift(source, "const ORDER = ", ";"),
         _lift(source, "const SHORT = ", "};"),
         _lift(source, "const bareName = ", ";\n"),

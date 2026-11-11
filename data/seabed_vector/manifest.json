@@ -25,12 +25,20 @@
   2000
  ],
  "grids": {
-  "context": "2026-11-11T15:21:46Z",
+  "wide": "2026-11-11T17:00:03Z",
+  "context": "2026-11-11T16:59:58Z",
   "outer": "2026-09-25T20:16:19Z",
   "regional": "2026-09-25T20:16:12Z",
   "nearshore": "2026-09-25T20:16:11Z"
  },
  "tiers": [
+  {
+   "name": "wide",
+   "file": "wide.geojson",
+   "minzoom": 0,
+   "features": 408,
+   "bytes": 571990
+  },
   {
    "name": "context",
    "file": "context.geojson",
