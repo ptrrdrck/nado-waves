@@ -221,7 +221,7 @@ class TestTheBundleIsServable:
             assert (out / "vendor" / "maplibre-gl-4.7.1" / "LICENSE.txt").exists()
             index = (out / "index.html").read_text(encoding="utf-8")
             assert '"map.json"' in index and '"seabed/"' in index
-            assert "../data/live/map.json" not in index and "../data/seabed_tiles/" not in index
+            assert "../data/live/map.json" not in index and "../data/seabed_vector/" not in index
 
     def test_the_fill_ships_its_paths_from_both_jobs_and_fill_json_when_built(self, tmp_path):
         """The map's fill on LIVE (2026-11-10): each break's ray paths go out

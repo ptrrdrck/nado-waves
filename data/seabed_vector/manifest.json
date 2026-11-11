@@ -1,0 +1,63 @@
+{
+ "bands": [
+  0.3,
+  5,
+  10,
+  20,
+  50,
+  100,
+  200,
+  500,
+  1000,
+  2000,
+  3000,
+  4000
+ ],
+ "lines": [
+  5,
+  10,
+  20,
+  50,
+  100,
+  200,
+  500,
+  1000,
+  2000
+ ],
+ "grids": {
+  "context": "2026-11-10T21:09:22Z",
+  "outer": "2026-09-25T20:16:19Z",
+  "regional": "2026-09-25T20:16:12Z",
+  "nearshore": "2026-09-25T20:16:11Z"
+ },
+ "tiers": [
+  {
+   "name": "context",
+   "file": "context.geojson",
+   "minzoom": 0,
+   "features": 550,
+   "bytes": 991698
+  },
+  {
+   "name": "outer",
+   "file": "outer.geojson",
+   "minzoom": 8,
+   "features": 129,
+   "bytes": 187316
+  },
+  {
+   "name": "regional",
+   "file": "regional.geojson",
+   "minzoom": 9,
+   "features": 76,
+   "bytes": 253896
+  },
+  {
+   "name": "nearshore",
+   "file": "nearshore.geojson",
+   "minzoom": 11,
+   "features": 53,
+   "bytes": 106648
+  }
+ ]
+}

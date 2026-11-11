@@ -8,8 +8,8 @@
   46232. Never typed: the same file the forecast reads.
 - `buoys`: the other buoys the page shows, 46086 and 46047, at NDBC's fetched
   coordinates (`forecast.siting.load_coordinates`), never typed.
-- `seabed`: `data/seabed_tiles/manifest.json`, so the page knows each tile
-  layer's zooms and bounds and asks for no tile that is not there.
+- `seabed`: `data/seabed_vector/manifest.json`, so the page knows each
+  grid's file and the zoom it is drawn from (forecast.seabedvector).
 
 Static between geometry changes, a few KB, built by `forecast.publish` into
 both bundles beside the page (which ships from both jobs) and written here for
@@ -25,18 +25,18 @@ from pathlib import Path
 from collector.common import DEFAULT_DATA_DIR
 
 ROOT = Path(__file__).resolve().parent.parent
-TILES_DIR = ROOT / "data" / "seabed_tiles"
+SEABED_DIR = ROOT / "data" / "seabed_vector"
 #: The buoys marked on the map beside 46232 (geomviz's own), as the Buoys tab
 #: shows them.
 OTHER_BUOYS = ("46086", "46047")
 
 
-def build(data_dir: Path = DEFAULT_DATA_DIR, tiles: Path = TILES_DIR) -> dict:
+def build(data_dir: Path = DEFAULT_DATA_DIR, seabed_dir: Path = SEABED_DIR) -> dict:
     from . import geomviz
     from .siting import load_coordinates
 
     where = load_coordinates()
-    manifest_path = tiles / "manifest.json"
+    manifest_path = seabed_dir / "manifest.json"
     seabed = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else None
     return {
         "geometry": json.loads(json.dumps(geomviz.build(data_dir=data_dir), default=list)),
