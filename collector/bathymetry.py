@@ -46,6 +46,11 @@ than typed boxes, finest first:
   Tanner Bank (owner's request, 2026-11-10, for the swell-fill map). READ BY
   NO CHAIN: `forecast.raytrace` loads the three grids above by name, and a
   ray is never traced over this one. Fetched by bathymetry-context.yml.
+- `wide` — GMRT, coarser still (`WIDE_CELL_M`), `WIDE_MARGIN_M` round the
+  breaks: under the context grid, so the map's widest view is seabed to its
+  corners on the narrowest phone (owner's report, 2026-11-11: at the widest
+  zoom the view ran ~850 km from the break, off the context grid, and showed
+  bare land colour). Read by no chain either; bathymetry-context.yml's too.
 
 DATUM. The grid is NAVD88; waves see mean sea level. The offset between them
 at NOAA 9410170 is FETCHED from CO-OPS (`datums` endpoint), never typed. CO-OPS
@@ -92,6 +97,11 @@ DATUMS_URL = ("https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/
 #: breaks; 350 km at the same 400 m cells (owner's choice, same day).
 CONTEXT_CELL_M = 400.0
 CONTEXT_MARGIN_M = 350000.0
+#: The wide grid's: the map's widest view, the break kept where it sits and
+#: 46047 and 25 km in view, reaches 1,029 km from North on a 260 px map
+#: (684-849 km at 330 px), corner to corner, panned to its limit.
+WIDE_CELL_M = 2000.0
+WIDE_MARGIN_M = 1200000.0
 #: The buoys the context grid has to hold: the ones the page shows.
 CONTEXT_BUOYS = ("46232", "46086", "46047")
 
@@ -99,11 +109,12 @@ CONTEXT_BUOYS = ("46232", "46086", "46047")
 GRIDS = {"nearshore": (8.0, 3000.0, "coned"),
          "regional": (32.0, 12000.0, "coned"),
          "outer": (90.0, 15000.0, "gmrt"),
-         "context": (CONTEXT_CELL_M, CONTEXT_MARGIN_M, "gmrt")}
+         "context": (CONTEXT_CELL_M, CONTEXT_MARGIN_M, "gmrt"),
+         "wide": (WIDE_CELL_M, WIDE_MARGIN_M, "gmrt")}
 
 #: GMRT's own resolution for each of its grids: its finest near the breaks,
-#: its medium for the coarse context.
-GMRT_RESOLUTION = {"outer": "high", "context": "med"}
+#: its medium for the coarse context, its lowest for the wide.
+GMRT_RESOLUTION = {"outer": "high", "context": "med", "wide": "low"}
 
 GMRT_URL = "https://www.gmrt.org/services/GridServer"
 GMRT_NAME = "GMRT Global Multi-Resolution Topography synthesis (multibeam + GEBCO)"
