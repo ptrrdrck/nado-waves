@@ -579,6 +579,12 @@ forecaster actually verifies against, Surfline included.
    by no chain) from 0 over it, `outer` (90 m) from 8, `regional` (CoNED 32 m) from 9, `nearshore`
    (8 m) from 11 -- each its depth bands as NESTED polygons (land, then
    `raytrace.H_LAND` and 5 ... 4,000 m, so simplifying one edge opens no gap),
+   ALL cut to one outline two tolerances inside the grid's edge, with a
+   vertex every 250 (`seabedvector.edge`; owner's report, 2026-11-11: a
+   land-coloured line across open sea along the context grid's edge -- each
+   band simplified alone, and a UTM-straight edge curving on the map, a band
+   whose edge was one 900 km chord bowed up to ~3 km from its neighbours;
+   a test pins one line on a synthetic grid, 0.06 deg apart before),
    its contours at 5 ... 2,000 m and its shoreline at H_LAND; the depths
    smoothed over ~1 cell before contouring and simplified to 2 m near the beach
    and 80 m past Tanner Bank (contourpy, shapely); 1.5 MB, ~0.4 MB compressed,
