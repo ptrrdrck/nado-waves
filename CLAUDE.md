@@ -522,10 +522,22 @@ forecaster actually verifies against, Surfline included.
    break as far above the map's foot as above the drawing's, opening three
    zoom steps in from the drawing's scale -- ONE scale for the three breaks,
    the farthest edge vertex of any (owner's request, 2026-11-11: each break
-   had opened at its own, South ~0.2 steps nearer); square, at most 70vh; the toggle,
-   the caption under it, the drawing moved down to its caption, and one
-   start height across the break tabs (`level`) as the owner picked them in
-   the mock. It zooms out to just past Tanner Bank (46047 and 25 km in view
+   had opened at its own, South ~0.2 steps nearer); square, at most 70vh; the toggle
+   and the caption under it as the owner picked them in the mock. **The
+   drawing and the map share ONE PLATE** (owner's requests, 2026-11-11;
+   `.sm-plate`, `space`, `slide`): the drawing's trimmed to its ink with
+   `PLATE_PAD` (12 px) above and below, the map's square; a switch grows or
+   shrinks it from its foot with the folds' slide (`FOLD_SLIDE`), the view
+   coming in faded over the one going out, and both stand on the foot, the
+   drawing's break and the map's opening break the same `foot` above it, so
+   the break never moves against it; the map's canvas unseen until its
+   seabed is drawn (a new WebGL canvas paints black first). **The plate
+   follows its own break's trains** (owner's call, same day, B of three
+   mocked, reversing 2026-11-08's one start height across the break tabs,
+   `level`): nothing re-lines the tabs up. That re-lining was also what made
+   the map jump after a fold: run mid-slide, it measured the open tab part
+   way and the hidden ones whole, overshot ~150 px, and snapped back half a
+   second later. It zooms out to just past Tanner Bank (46047 and 25 km in view
    with the break kept where it sits) and pans no further from the break;
    the + / - buttons clamp before zooming round the break. ONE MAP PER
    BREAK, carried across the page's redraws (`Face.adopt`; every minute on
@@ -540,9 +552,12 @@ forecaster actually verifies against, Surfline included.
    phone; `forecast/seabedvector.py` -> `data/seabed_vector/`, derived but
    tracked, redrawn by both bathymetry workflows after a fetch, a test failing
    when a grid is newer than its drawing): one GeoJSON a grid, the finer drawn
-   over the coarser from the zoom its cells are fit for -- `context` (GMRT
-   400 m, 350 km round the breaks and the three buoys, read by no chain) from
-   0, `outer` (90 m) from 8, `regional` (CoNED 32 m) from 9, `nearshore`
+   over the coarser from the zoom its cells are fit for -- `wide` (GMRT 2 km,
+   1,200 km round the breaks, read by no chain; owner's report, 2026-11-11:
+   the widest view reaches ~850 km from the break on a 390 px phone, ~1,030 km
+   on a 260 px map, and ran off the context grid as bare land colour) from 0,
+   `context` (GMRT 400 m, 350 km round the breaks and the three buoys, read
+   by no chain) from 0 over it, `outer` (90 m) from 8, `regional` (CoNED 32 m) from 9, `nearshore`
    (8 m) from 11 -- each its depth bands as NESTED polygons (land, then
    `raytrace.H_LAND` and 5 ... 4,000 m, so simplifying one edge opens no gap),
    its contours at 5 ... 2,000 m and its shoreline at H_LAND; the depths
