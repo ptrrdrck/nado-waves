@@ -387,16 +387,16 @@ forecaster actually verifies against, Surfline included.
    sentence; `buoys.about`, in buoys.json as `about`, drawn by the page's
    `buoyAbout`): on a PLATE of the page's paper set into the card (the
    owner's pick of four separations), no name or station (the card has
-   both). Readings two to a row, each a symbol, a label in the fold rows'
-   type, the value and its OWN time, greying past 3 h as every LIVE number
+   both). Readings two to a row, a label in the fold rows' type (no
+   symbol since 2026-11-11, owner's request), the value and its OWN time, greying past 3 h as every LIVE number
    does: Peak (period and FROM direction, `at_buoy`'s, a test pins it),
    Mean period (Tm02 over the headline's own energies, `bin_energies`; NDBC's
    APD is computed differently), Spread at peak (√(2(1 − r1)), Kuik), all
    from the newest spectrum; Water, Wind (knots from NDBC's m/s, its gust in
    the time line) and Pressure from the standard met, the newest within
-   `STDMET_WITHIN_H` (24 h), "not measured" for a column the archive has
-   never held (46232, a Waverider: wind and pressure), "none in 24 h"
-   otherwise. Then a hairline and the facts, a symbol each: Location —
+   `STDMET_WITHIN_H` (24 h), "none in 24 h" otherwise, and a column the
+   archive has never held NOT SHOWN (46232, a Waverider: wind and
+   pressure; owner's request, 2026-11-11, where it said "not measured"). Then a hairline and the facts, a symbol each: Location —
    distance and bearing from Center break (`forecast.siting`'s, never
    typed), NDBC's coordinates linked to its station page, and "In … of
    water", the depth `collector/stationdepth.py` reads off that page
@@ -529,13 +529,14 @@ forecaster actually verifies against, Surfline included.
    `.sm-plate`, `space`, `slide`): the drawing's trimmed to its ink with
    `PLATE_PAD` (12 px) above and below, the map's square; a switch grows or
    shrinks it from its foot with the folds' slide (`FOLD_SLIDE`), the view
-   coming in faded over the one going out, and both stand on the foot, the
-   caption under it in a TRAY attached to the plate (same day: a hairline
-   over it, the plate's colour, the unit's rounded foot), which rides the
-   foot as the plate grows and shrinks above it; and both views stand on the
-   plate's foot, the
-   drawing's break and the map's opening break the same `foot` above it, so
-   the break never moves against it; the map's canvas unseen until its
+   coming in faded over the one going out, the caption under it in a TRAY
+   attached to the plate (same day: a hairline over it, the plate's colour,
+   the unit's rounded foot), which rides the foot as the plate grows and
+   shrinks above it. Both views stand on the plate's foot: the drawing's
+   break `foot` (PLATE_PAD below its ink) above it, the map's opening break
+   the untrimmed drawing's (vb.height - cy) * s, ~37 px at 390 (owner's call,
+   same day: at 15 px the fill's timeline covered the break and the
+   shoreline); the map's canvas unseen until its
    seabed is drawn (a new WebGL canvas paints black first). **The plate
    follows its own break's trains** (owner's call, same day, B of three
    mocked, reversing 2026-11-08's one start height across the break tabs,
@@ -1397,12 +1398,14 @@ forecaster actually verifies against, Surfline included.
    line once, for the owner to edit; edits are carried into the page by
    hand) by `forecast/briefingwording.py`, both pinned by a test.
    **The foot of the page** (owner's design, 2026-10-28): ONE line,
-   "Docs | Observer | Units [Both] | ◐", spread over the Briefing line's
+   "Docs | Observer | Units [Imperial] | ◐" (Observer HIDDEN since 2026-11-11,
+   its bar with it, "just for now", owner's call; the gate still reads the
+   stored choice), spread over the Briefing line's
    width (at most a phone's 560 px on a tablet or a stack layout, owner's
    call 2026-10-30; the console's sits in its rail), Docs under its words and the glyph's ink under its
    caret's, with no rule above (owner's calls, 2026-10-29) — Docs in ink at the line's
    weight, Observer the gate's checkbox drawn as a switch, Units a bordered
-   chip that shows its setting and cycles Both → Imperial → Metric on a tap
+   chip that shows its setting and cycles Imperial → Metric → Both on a tap
    (its word centred cap-to-baseline in the chip, measured at 4x; always as
    wide as "Imperial", so a tap never moves the line), and the theme a
    half-lit disc at the right end: a tap gives the other theme, and landing
@@ -2353,10 +2356,11 @@ temperature forecast as a candidate scoring baseline. `LEAGUE_TZ` is now
   standard met. Its standard met is collect-beach-inputs.yml's since the
   same day (beside 46232's; collect.yml excludes both), because on
   collect.yml's schedule it landed a median 5 h apart.
-- **Imperial leads, metric in parentheses, everywhere a number is shown — by
-  default.** "2.3 ft (0.71 m)", "9 mph (8 kt)". Since 2026-10-28 (owner's
+- **Imperial leads, metric in parentheses, everywhere a number is shown
+  in "Both".** "2.3 ft (0.71 m)", "9 mph (8 kt)". Since 2026-10-28 (owner's
   call) the reader's Units setting at the foot of the page can show
-  Imperial or Metric alone instead: every number goes through the page's
+  Imperial or Metric alone instead, and since 2026-11-11 Imperial alone is
+  the DEFAULT, a tap moving Imperial → Metric → Both (owner's call): every number goes through the page's
   one `dual` / `dualText` (beside the constants), a metric value alone is
   the "both" form's bracket and never a second rounding, wind's metric stays
   knots (owner's call, same day), and the chart axes and the rose's rings

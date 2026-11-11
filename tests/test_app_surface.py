@@ -30,7 +30,10 @@ INFO = INFO_PAGE.read_text(encoding="utf-8")
 INFO_TEXT = re.sub(r"\s+", " ", INFO)
 # The Units setting's block -- UNITS, `dual`, `dualText`, `gustSpeed` -- for a
 # harness that runs page code beside its own stub formatters.
-UNITS_JS = SOURCE[SOURCE.index("let UNITS = "):SOURCE.index("\nconst height = ")] + "\n"
+# Run in "both", which shows every unit, so each harness checks both
+# numbers; the page's own default is Imperial since 2026-11-11.
+UNITS_JS = (SOURCE[SOURCE.index("let UNITS = "):SOURCE.index("\nconst height = ")] + "\n").replace(
+    'let UNITS = "imperial";', 'let UNITS = "both";')
 
 
 class TestItSaysWhatItIsStandingOn:
@@ -874,7 +877,9 @@ class TestUnits:
             ["2.3 ft", "9 mph", "2 ft", "14 mph"],
             ["0.71 m", "8 kt", "0.6 m", "12 kt"],
         ]
-        assert 'let UNITS = "both";' in SOURCE
+        # Imperial alone by default, then metric, then both (owner's call, 2026-11-11).
+        assert 'let UNITS = "imperial";' in SOURCE
+        assert 'const UNIT_ORDER = ["imperial", "metric", "both"];' in SOURCE
 
     def test_nothing_still_renders_a_bare_metric_value(self):
         """A metric value alone is shown only by the Units setting: every
@@ -4436,6 +4441,8 @@ class TestTheLogFirstGate:
         links = SOURCE[SOURCE.index('<nav class="links"'):]
         links = links[:links.index("</nav>")]
         assert 'id="log-gate"' in links and "Observer</label>" in links
+        # Hidden for now, its bar with it (owner's call, 2026-11-11).
+        assert '<label class="logger" hidden' in links
         assert (links.index("docs.html") < links.index('id="log-gate"') < links.index('id="units"')
                 < links.index('id="theme"'))
         rule = SOURCE[SOURCE.index(".links{"):]
@@ -5012,8 +5019,12 @@ class TestBuoyNamesAndTheOverdueDot:
         assert ('const buoyTitle = (name) => (name ? `<span class="buoy-name">${bareName(name)}</span>`'
                 ' : "");') in SOURCE
         panel = self.fn("buoyPanel")
-        # 46232 on a phone: its pills are the card's, so its name stands alone.
-        assert 'const head = named ? headRow(buoyTitle(station && station.name)) : "";' in panel
+        # 46232 on the LIVE Buoys tab: its pills across from its name, as the
+        # context buoys' (owner's request, 2026-11-11); the card's title row
+        # leaves them out there.
+        assert 'const head = named ? headRow(buoyTitle(station && station.name), pills) : "";' in panel
+        assert '{pills: buoyPills ? due : ""}' in SOURCE and "buoyPills: true," in SOURCE
+        assert '.cond.swell[data-buoy-pills][data-tab="buoy"] > .chead > :not(.lbl){display:none}' in SOURCE
         assert "return head + buoyReading(" in panel
         # The context buoys: across from their own pills.
         assert "headRow(buoyTitle(b.station_name), feed)" in self.fn("contextBuoy")

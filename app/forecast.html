@@ -986,7 +986,20 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    closer to the provenance than the timeline does. A context buoy's
    provenance follows the rose inside its pane, a gap 3 px wider than
    46232's, whose provenance follows the card; its 6 px margin is 3 here. */
-.rose{display:flex;flex-direction:column;gap:6px;margin-top:20px;margin-bottom:-11px}
+/* Since 2026-11-11 on a PLATE with a TRAY, as the swell's drawing and map
+   are (owner's requests): the plate's top edge as far under the last train
+   as the swell plate's, and 21 px from the tray's foot to what follows. */
+.rose{display:flex;flex-direction:column;gap:0;margin-top:5.25px;margin-bottom:10px}
+.rose-plate{position:relative;background:var(--paper);border-radius:7px 7px 0 0;padding:12px 0 0}
+.rose-tray{background:var(--paper);border-top:1px solid var(--line);border-radius:0 0 7px 7px;
+  padding:7px 12px 8px;display:flex;flex-direction:column;gap:4px}
+.rose-plate .rose-svg .pt{stroke:var(--paper)}
+.rose-plate .rose-svg .rp,.rose-plate .rose-svg .rb,.rose-plate .rose-svg .rt{stroke:var(--paper)}
+/* Top-left, as the drawing / map toggle: 28 px, the card's colour. */
+.rose-switch{position:absolute;top:4px;left:4px;z-index:2;display:inline-flex;align-items:center;
+  justify-content:center;box-sizing:border-box;width:28px;height:28px;padding:0;margin:0;border:0;
+  border-radius:6px;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.35);
+  font:600 12px/1 Archivo,sans-serif}
 .pane .rose + .srcs{margin-top:3px}
 .rose .ranges{display:flex;gap:2px}
 .rose .rose-modes{flex:none}
@@ -1001,9 +1014,15 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
   font-variant-numeric:tabular-nums}
 .rose .rose-scale .rs{white-space:nowrap}
 .rose .rose-scale .v{color:var(--ink)} .rose .rose-scale .v .unit{color:var(--soft)}
-.rose .rose-time{display:flex;align-items:center;gap:6px;width:100%;max-width:340px;margin:0 auto}
-.rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:22px;
-  padding:0;border:0;border-radius:6px;cursor:pointer;background:var(--paper);color:var(--ink)}
+/* Along the plate's foot: play / pause at the map's controls' size, a 28 px
+   button in the card's colour, and the six hours giving up the width for a
+   margin each side, the tray's 12 px (owner's request, 2026-11-11). */
+.rose .rose-time{display:flex;align-items:center;gap:6px;margin:6px 12px 8px}
+.rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+  padding:0;border:0;border-radius:6px;cursor:pointer;background:var(--card);color:var(--ink);
+  box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.rose .rose-track{flex:1 1 auto;min-width:0;display:block}
+.rose .rose-track .rose-line{width:100%}
 .rose .rose-play svg{width:12px;height:12px;fill:currentColor}
 .rose .ranges button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
 .rose button:focus-visible,.rose .rose-line:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
@@ -1372,7 +1391,15 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    loaded only when the map is first shown. Chrome from the page's tokens;
    the seabed and everything drawn over it from MAP_THEMES, the page's light
    or dark theme's own (owner's picks, 2026-11-11). */
-.sm-face{position:relative}
+/* Under the plate and its tray, to the card's next rule, the 21 px the
+   headline's ink sits above the first train's and the last train's above
+   the plate (owner's request, 2026-11-11): 10 px of the pane's and fold's
+   own, and this. */
+.sm-face{position:relative;margin-bottom:11px}
+/* On the LIVE Buoys tab 46232's pills sit across from its name, as the
+   context buoys' do (owner's request, 2026-11-11), so the Swell card's title
+   row is its title alone there. */
+.cond.swell[data-buoy-pills][data-tab="buoy"] > .chead > :not(.lbl){display:none}
 /* ONE plate for the drawing and the map (owner's requests, 2026-11-11): the
    drawing's trimmed to its ink with PLATE_PAD above and below, the map's
    square (owner's request, 2026-11-08: room to move about in, never more
@@ -1398,7 +1425,9 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
   color:var(--ink);border:1px solid transparent;border-radius:6px;cursor:pointer;
   -webkit-appearance:none;appearance:none;margin:0;min-width:28px;min-height:28px;
   max-width:28px;max-height:28px;font:inherit;line-height:0}
-.sm-face.on-map > .sm-switch{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+/* The card's colour in both views, as every button on a plate (owner's
+   request, 2026-11-11). */
+.sm-face > .sm-switch{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .sm-switch:focus-visible,.sm-ctl button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .sm-switch svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.33;
   stroke-linecap:round;stroke-linejoin:round}
@@ -1533,9 +1562,11 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
        geometry.html on 2026-10-02 (owner's decision). -->
   <nav class="links" aria-label="More">
     <a href="docs.html">Docs</a><span class="bar" aria-hidden="true"></span>
-    <label class="logger" title="Wave observer: log the beach before the forecast"><input type="checkbox"
+    <!-- Observer is hidden for now (owner's call, 2026-11-11: "I will bring
+         this back when ready"); the gate still reads the stored choice. -->
+    <label class="logger" hidden title="Wave observer: log the beach before the forecast"><input type="checkbox"
       id="log-gate" role="switch"><span class="sw" aria-hidden="true"></span>Observer</label><span class="bar"
-      aria-hidden="true"></span>
+      hidden aria-hidden="true"></span>
     <span class="units">Units <button type="button" id="units"><span data-units="both">Both</span><span
       data-units="imperial">Imperial</span><span data-units="metric">Metric</span></button></span><span
       class="bar" aria-hidden="true"></span>
@@ -1649,14 +1680,14 @@ const MM_PER_IN = 25.4;
 const HPA_PER_INHG = 33.8639;
 const fahrenheit = (c) => c * 9 / 5 + 32;
 // The reader's Units setting (owner's call, 2026-10-28), at the foot of the
-// page: "both", imperial first and metric in parentheses, the default; or
-// "imperial" or "metric" alone. Every number on screen goes through `dual`
+// page: "imperial" alone, the default since 2026-11-11 (owner's call); then
+// "metric" alone; then "both", imperial first and metric in parentheses. Every number on screen goes through `dual`
 // (HTML) or `dualText` (an SVG caption, a spoken label), so one setting
 // reaches each; a metric-only value is the "both" form's bracket, never a
 // second rounding. `lead` styles the value that leads (the Briefing's ink).
 // Read from this device at start-up (`UNITS_KEY`); the conversions above stay
 // the only ones.
-let UNITS = "both";
+let UNITS = "imperial";
 const dual = (imp, met, lead = (x) => x) => (UNITS === "imperial" ? lead(imp)
   : UNITS === "metric" ? lead(met) : `${lead(imp)} <span class="unit">(${met})</span>`);
 const dualText = (imp, met) => (UNITS === "imperial" ? imp : UNITS === "metric" ? met : `${imp} (${met})`);
@@ -3436,13 +3467,14 @@ function wireGate() {
 }
 
 // The foot of the page's two other settings (owner's design, 2026-10-28),
-// this device's as "Observer" is. Units: Both (the default, imperial first
-// and metric in parentheses), Imperial or Metric, a tap moving on; every
+// this device's as "Observer" is. Units: Imperial (the default since
+// 2026-11-11), Metric, or Both (imperial first and metric in parentheses),
+// a tap moving on in that order (owner's call, same day); every
 // number is redrawn. Theme: a tap gives the other theme, and landing on the
 // phone's own forgets the choice, so the page follows the phone again. The
 // saved theme is applied before the first paint, at the top of the page.
 const UNITS_KEY = "nado-waves.units", THEME_KEY = "nado-waves.theme";
-const UNIT_ORDER = ["both", "imperial", "metric"];
+const UNIT_ORDER = ["imperial", "metric", "both"];
 const UNIT_WORD = {both: "Both", imperial: "Imperial", metric: "Metric"};
 const DARK_MQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 const phoneTheme = () => (DARK_MQ && DARK_MQ.matches ? "dark" : "light");
@@ -3456,7 +3488,7 @@ function paintSettings() {
 }
 function wireSettings() {
   const saved = stored(UNITS_KEY);
-  UNITS = saved === "imperial" || saved === "metric" ? saved : "both";
+  UNITS = saved === "both" || saved === "metric" ? saved : "imperial";
   $("units").onclick = () => {
     UNITS = UNIT_ORDER[(UNIT_ORDER.indexOf(UNITS) + 1) % UNIT_ORDER.length];
     store(UNITS_KEY, UNITS);
@@ -4750,10 +4782,13 @@ function wireDrawings() {
 // request, 2026-11-09). On a phone 46232's pills are the Swell card's, so its
 // name stands alone; the context buoys', and each wide column's, sit across
 // from their own pills instead (`buoyTitle` in their title rows).
-function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "", {named = true} = {}) {
+// `pills`: its own pills across from its name, as the context buoys' are
+// (owner's request, 2026-11-11: 46232's on the LIVE Buoys tab, which the
+// Swell card's title row then leaves out).
+function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "", {named = true, pills = ""} = {}) {
   const line = measuredLine(measured, (m) => m.buoy);
   const id = station && station.id;
-  const head = named ? headRow(buoyTitle(station && station.name)) : "";
+  const head = named ? headRow(buoyTitle(station && station.name), pills) : "";
   // The station block under the rose, LIVE only as the rose is: on Forecast the
   // buoy's numbers are a model run, not its spectrum.
   const note = rose ? buoyAbout(id) : "";
@@ -4796,11 +4831,15 @@ function buoyAbout(station) {
   if (!a || !a.uses) return "";
   const r = a.readings || {};
   const never = r.never || [];
+  // The readings carry no symbol (owner's request, 2026-11-11; the facts
+  // under the rule keep theirs), and one this buoy has never measured is not
+  // shown at all (46232, a Waverider: wind and pressure).
   const cell = (icon, label, value, iso, extra = "") => `<div class="bi-read"${iso ? agedAttr(iso) : ""}>`
-    + `<span class="bi-k">${BI_ICON[icon]}${label}</span><span class="bi-v">${value}</span>`
+    + `<span class="bi-k">${label}</span><span class="bi-v">${value}</span>`
     + (iso ? `<span class="bi-t">${extra}${infoWhen(iso)}</span>` : "") + `</div>`;
-  const none = (icon, label, key) => `<div class="bi-read bi-none"><span class="bi-k">${BI_ICON[icon]}${label}</span>`
-    + `<span class="bi-v">${never.includes(key) ? "not measured" : `none in ${r.stdmet_within_h || 24} h`}</span></div>`;
+  const none = (icon, label, key) => (never.includes(key) ? ""
+    : `<div class="bi-read bi-none"><span class="bi-k">${label}</span>`
+      + `<span class="bi-v">none in ${r.stdmet_within_h || 24} h</span></div>`);
   const reads = [];
   if (r.spectrum_utc) {
     reads.push(r.peak_period_s != null
@@ -5346,6 +5385,14 @@ function roseLegend(mode) {
       `<span title="${ROSE_BANDS[i]}"><i class="sw rb rb${i}"></i>${b}</span>`).join("")}</div>`;
 }
 
+// The Height / Period toggle: one button showing what a tap turns to, as the
+// drawing / map one does (owner's request, 2026-11-11).
+function roseSwitch() {
+  const next = ROSE_MODES.find((m) => m.id !== ROSE_MODE);
+  return `<button type="button" class="rose-switch" data-rose-mode="${next.id}"`
+    + ` aria-label="Show the ${next.label} rose" title="${next.label}">${roseSymbol(next)}</button>`;
+}
+
 function roseView(station) {
   const rose = roseOf(station);
   const span = roseSpan();
@@ -5369,17 +5416,23 @@ function roseBlock(station) {
   if (!v || !(rose.frames || []).length) {
     return `<p class="quiet buoy-note rose-none">No spectrum from ${buoyFeed(station)} in the last six hours.</p>`;
   }
-  const modes = ROSE_MODES.map((m) => `<button type="button" data-rose-mode="${m.id}"`
-    + ` aria-pressed="${m.id === ROSE_MODE}" aria-label="${m.label}" title="${m.label}">${roseSymbol(m)}</button>`).join("");
+  // On a plate as the swell's drawing and map are (owner's requests,
+  // 2026-11-11): the Height / Period toggle at its top-left corner as theirs
+  // is, showing what a tap turns to; play / pause and the six hours along its
+  // foot at the map's controls' size; the readout and the Period legend in
+  // the tray under it.
   return `<div class="rose" data-rose="${station}" data-k="${v.key}">
+    <div class="rose-plate">${roseSwitch()}
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
-    <div class="rose-scale${roseAged(rose, v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
-    <div class="rose-time">${rosePlayButton()}
+    <div class="rose-time">${rosePlayButton()}<span class="rose-track">
     <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
-      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg>
-    <span class="ranges rose-modes" role="group" aria-label="Which rose">${modes}</span></div>
+      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg></span></div>
+    </div>
+    <div class="rose-tray">
+    <div class="rose-scale${roseAged(rose, v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
     ${roseLegend(ROSE_MODE)}
+    </div>
   </div>`;
 }
 
@@ -5468,12 +5521,11 @@ function wireRoses() {
     if (mode) {
       ROSE_MODE = mode.getAttribute("data-rose-mode");
       remember(KEEP.roseMode, ROSE_MODE);
-      document.querySelectorAll("[data-rose-mode]").forEach((b) =>
-        b.setAttribute("aria-pressed", String(b.getAttribute("data-rose-mode") === ROSE_MODE)));
+      document.querySelectorAll(".rose-switch").forEach((b) => { b.outerHTML = roseSwitch(); });
       document.querySelectorAll("[data-rose]").forEach((el) => {
         const legend = el.querySelector(".legend");
         if (legend) legend.remove();
-        el.insertAdjacentHTML("beforeend", roseLegend(ROSE_MODE));
+        (el.querySelector(".rose-tray") || el).insertAdjacentHTML("beforeend", roseLegend(ROSE_MODE));
         roseUpdate(el);
       });
       return;
@@ -7923,7 +7975,7 @@ function cardChart(id) {
 // energy derived from it with no mark on any of them.
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
                     due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = "",
-                    lead = ""}) {
+                    lead = "", buoyPills = false}) {
   if (WIDE()) {
     return swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
                       origin, buoyRose, buoyAged, lead});
@@ -7938,13 +7990,14 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   // The context buoys render after the panes, each with its own pills above
   // its own headline; shown and hidden with the tab like its pane.
   tabs.push({id: BUOY_TAB, title: "Buoys",
-             body: buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged),
+             body: buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged,
+                             {pills: buoyPills ? due : ""}),
              after: others.map(contextBuoy).join(""), chart, origin});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
 
-  return `<div class="cond swell" data-card="swell">
+  return `<div class="cond swell" data-card="swell" data-tab="${chosen}"${buoyPills ? " data-buoy-pills" : ""}>
     ${headRow(`<span class="lbl">${label}</span>`, due)}
     <div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoys">
       ${tabs.map((tab) => `<button type="button" role="tab" id="swell-tab-${tab.id}"
@@ -8350,6 +8403,7 @@ function selectSwellTab(id, {focus = false} = {}) {
   }
   SWELL_TAB = id;
   remember(KEEP.swell, id);
+  document.querySelectorAll(".cond.swell").forEach((card) => { card.dataset.tab = id; });
   const shore = $("chart-fold-wind");
   if (shore && ["shore", "week"].includes(chartModeFor("wind"))) shore.innerHTML = chartBody("wind");
   document.querySelectorAll("[data-wind-for]").forEach((line) => {
@@ -8491,6 +8545,7 @@ function renderConditions(step, cards) {
       // The feed's pill starts the countdown line, under every swell tab:
       // each one's numbers come from this one buoy (owner's call, 2026-10-11).
       due: anchorFeed(NOW, due.swell, late.swell),
+      buoyPills: true,
       chart: true,
       origin: originFor("buoy"),
     }));
@@ -9645,7 +9700,10 @@ Promise.all([
         o.windows.flatMap((w) => w.edges.map((e) => e.range_km))));
       const mpp = far * 1000 / (d.rimPx * s) / 2 ** OPEN_STEPS;
       const zoom = Math.log2(MPP0 * Math.cos(rad(this.b.position[0])) / mpp);
-      const breakY = H - (this.foot != null ? this.foot : (vb.height - d.cy) * s);
+      // The map's break stands as far above the plate's foot as the drawing's
+      // did before the plate was trimmed (owner's call, 2026-11-11: at the
+      // trimmed drawing's 15 px the fill's timeline covered the break).
+      const breakY = H - (vb.height - d.cy) * s;
       const upKm = (breakY - H / 2) * mpp / 1000;
       const view = {center: ll(dest(this.b.position, this.b.normal, upKm)), zoom, bearing: this.b.normal};
       if (animate) this.map.easeTo({...view, duration: 300}); else this.map.jumpTo(view);

@@ -366,7 +366,7 @@ class TestTheStationBlock:
             "Mean period", "13.0 s", "05:00",
             "Spread at peak", "27°", "05:00",
             "Water", "75 °F", "(23.8 °C)", "05:56",
-            "Wind", "not measured", "Pressure", "not measured",
+            # Never measured at 46232, so not shown (owner's request, 2026-11-11).
             "18 mi", "(29 km)", "offshore, 231° SW of Center",
             "32.517° N, 117.425° W ↗", "In 3,444 ft", "(1,050 m)", "of water",
             "Spectrum every hour, on the hour", "Usually collected within 15 min",
@@ -751,8 +751,8 @@ class TestTheSpacing:
         390, where the drawing scales and the rose does not); the Period
         legend inside the lower space, so the switch never moves the page."""
 
-        assert (".rose{display:flex;flex-direction:column;gap:6px;margin-top:20px;margin-bottom:-11px}"
-                in PAGE)
+        # Since 2026-11-11 on a plate with a tray, spaced as the swell's plate.
+        assert ".rose{display:flex;flex-direction:column;gap:0;margin-top:5.25px;margin-bottom:10px}" in PAGE
         assert ".pane .rose + .srcs{margin-top:3px}" in PAGE
         # The legend's row is still laid out on Height.
         assert ".rose .legend.off{visibility:hidden}" in PAGE
