@@ -12,25 +12,34 @@ PAGE = (ROOT / "app" / "forecast.html").read_text(encoding="utf-8")
 VENDOR = ROOT / "app" / "vendor"
 
 
-def test_the_tiles_are_drawn_from_todays_grids():
-    """A grid fetched again (the bathymetry workflows redraw the tiles after
-    each fetch) or a tile lost: the map would show a seabed the rays were not
+def test_the_seabed_is_drawn_from_todays_grids():
+    """A grid fetched again (the bathymetry workflows redraw the seabed after
+    each fetch) or a file lost: the map would show a seabed the rays were not
     traced over."""
 
     pytest.importorskip("numpy")
-    from forecast import seabedtiles
+    from forecast import seabedvector
 
-    assert seabedtiles.check() == []
+    assert seabedvector.check() == []
 
 
-def test_the_tiles_cover_every_layer_the_page_asks_for():
-    manifest = json.loads((ROOT / "data" / "seabed_tiles" / "manifest.json").read_text())
-    names = [layer["name"] for layer in manifest["layers"]]
-    assert names == ["context", "inner", "near"]
-    for layer in manifest["layers"]:
-        assert layer["tiles"] > 0
-        z0, z1 = layer["zooms"]
-        assert z0 <= z1
+def test_the_seabed_is_vectors_for_every_grid_the_rays_use():
+    """Owner's request, 2026-11-11: vectors, not raster tiles. Each grid a
+    file, coarsest first, the finer from a higher zoom; bands nested from the
+    land up, the shoreline at the ray tracer's own land depth."""
+
+    manifest = json.loads((ROOT / "data" / "seabed_vector" / "manifest.json").read_text())
+    tiers = manifest["tiers"]
+    assert [t["name"] for t in tiers] == ["context", "outer", "regional", "nearshore"]
+    assert [t["minzoom"] for t in tiers] == sorted(t["minzoom"] for t in tiers)
+    assert not (ROOT / "data" / "seabed_tiles").exists()
+    one = json.loads((ROOT / "data" / "seabed_vector" / "nearshore.geojson").read_text())
+    kinds = {f["properties"]["k"] for f in one["features"]}
+    assert kinds == {"fill", "line", "coast"}
+    bands = {f["properties"]["b"] for f in one["features"] if f["properties"]["k"] == "fill"}
+    assert -1 in bands and 0 in bands
+    from forecast.raytrace import H_LAND
+    assert manifest["bands"][0] == H_LAND
 
 
 def test_the_map_library_is_bundled_with_its_licence_and_loaded_only_when_shown():
@@ -95,3 +104,38 @@ def test_the_fill_says_what_it_is():
 
     assert 'aria-label="Minutes after NDBC 46232"' in PAGE
     assert "98% in by" in PAGE
+
+
+def test_the_maps_themes_are_the_owners_and_follow_the_page():
+    """Owner's picks, 2026-11-11, from the mock: one theme for each of the
+    page's, the rays the picked train's colour, and the map restyled when the
+    page's theme changes."""
+
+    assert "const MAP_THEMES = {" in PAGE
+    body = PAGE[PAGE.index("const MAP_THEMES = {"):]
+    body = body[:body.index("};") + 2]
+    assert '"#e9e0cc"' in body and '"#38362f"' in body          # the two lands
+    assert 'rays: "#e8590c"' in body and 'rays: "#ffd84d"' in body
+    assert "raysGlow: false" in body and "raysGlow: true" in body
+    assert "MAP_THEMES[shownTheme()]" in PAGE
+    assert 'attributeFilter: ["data-theme"]' in PAGE
+    assert not re.search(r"\bLIT\b(?!_)", PAGE)
+
+
+def test_the_seabeds_bands_match_the_pages_colours():
+    """The page colours bands -1 (land) to 11; the builder writes exactly those."""
+
+    from forecast import seabedvector
+
+    assert len(seabedvector.BANDS) + 1 == 12
+    assert "bandColours(th, 12)" in PAGE
+
+
+def test_every_break_opens_at_one_scale():
+    """Owner's request, 2026-11-11: the farthest edge vertex of ANY break sets
+    the opening scale, so no break tab opens nearer than another."""
+
+    body = PAGE[PAGE.index("  frame(animate = false) {"):]
+    body = body[:body.index("const mpp")]
+    assert "MAPDATA.geometry.breaks.flatMap" in body
+    assert "this.b.windows" not in body

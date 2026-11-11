@@ -1370,8 +1370,8 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    rays are traced across, in the drawing's own footprint and turned the
    drawing's way -- the break's shore normal up. MapLibre GL JS draws it,
    loaded only when the map is first shown. Chrome from the page's tokens;
-   the overlay is white and black because it sits on the dark seabed in both
-   themes. */
+   the seabed and everything drawn over it from MAP_THEMES, the page's light
+   or dark theme's own (owner's picks, 2026-11-11). */
 .sm-face{position:relative}
 .sm-face > svg.aperture{display:block}
 .sm-face > svg.aperture text.faces{display:none}
@@ -1379,7 +1379,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 /* Square, so there is room to move about in, and never more than most of a
    phone's screen (owner's request, 2026-11-08). */
 .sm-map{position:relative;width:100%;aspect-ratio:1/1;max-height:70vh;border-radius:7px;overflow:hidden;
-  background:#16181b;isolation:isolate;font:inherit}
+  background:var(--paper);isolation:isolate;font:inherit}
 .sm-map[hidden]{display:none!important}
 .sm-map .maplibregl-canvas{outline:none}
 .sm-marks{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
@@ -1396,15 +1396,15 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 .sm-switch:focus-visible,.sm-ctl button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .sm-switch svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.33;
   stroke-linecap:round;stroke-linejoin:round}
-.sm-attr{position:absolute;top:8px;left:40px;right:8px;text-align:right;z-index:4;color:rgba(255,255,255,.85);
-  font:10px/1.2 Archivo,sans-serif;text-shadow:0 0 2px #000,0 0 4px #000;pointer-events:none;
+.sm-attr{position:absolute;top:8px;left:40px;right:8px;text-align:right;z-index:4;color:var(--sm-ink,#fff);
+  font:10px/1.2 Archivo,sans-serif;text-shadow:var(--sm-glow,none);pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The caption sits under the drawing or the map as plain text, in a lead
    train heading's style. */
 .sm-cap{position:relative;margin-top:8px;color:var(--ink);text-align:center;
   font:400 14px/21px Archivo,sans-serif;text-wrap:balance;pointer-events:none}
-.sm-tag{color:#fff;font:600 11px/1 "Barlow Condensed",Archivo,sans-serif;letter-spacing:.05em;
-  text-transform:uppercase;white-space:nowrap;text-shadow:0 0 2px #000,0 0 4px #000;pointer-events:none}
+.sm-tag{color:var(--sm-ink,#fff);font:600 11px/1 "Barlow Condensed",Archivo,sans-serif;letter-spacing:.05em;
+  text-transform:uppercase;white-space:nowrap;text-shadow:var(--sm-glow,none);pointer-events:none}
 .sm-tag span{display:inline-block;transform:translate(8px,-50%)}
 /* Along the map's foot, aligned right: return, then + and - (owner's
    request, 2026-11-08), 4 px in from the corner, the card's colour with a
@@ -1565,11 +1565,11 @@ const BRIEFING_SOURCE = PARAM.get("briefing") || "../data/live/briefing.json";
 // Their heights at every archived stamp, for the Buoys tab's Height chart past
 // the week (forecast.buoys); fetched with series_all.json, only when asked for.
 const BUOYS_ALL_SOURCE = PARAM.get("buoys_all") || "../data/live/buoys_all.json";
-// The Swell card map's geometry, buoys and seabed tile manifest
-// (forecast.mapdata), and its seabed tiles (forecast.seabedtiles). Fetched
+// The Swell card map's geometry, buoys and seabed manifest (forecast.mapdata),
+// and its seabed, one vector file a grid (forecast.seabedvector). Fetched
 // only when the map is first shown.
 const MAP_SOURCE = PARAM.get("map") || "../data/live/map.json";
-const SEABED_TILES = "../data/seabed_tiles/";
+const SEABED = "../data/seabed_vector/";
 // The map library, bundled beside the page (BSD-3, its licence beside it).
 const MAPLIBRE = "vendor/maplibre-gl-4.7.1/maplibre-gl";
 // The map's fill on LIVE: each train's energy ray by ray (forecast.fill),
@@ -9325,7 +9325,55 @@ Promise.all([
   const ICON_PLUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
   const ICON_MINUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9"/></svg>';
   const ICON_FIT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>';
-  const LIT = "#ffd84d";                      // a picked train, on the map only
+  // The map's two themes, the page's light or dark one's (owner's picks,
+  // 2026-11-11, from the mock "Seabed map themes"): the seabed's colours (the
+  // bands ramp from `shallow` to `deep` in OKLab, `curve` bending it), its
+  // contours and shoreline, the windows and shadows, the lines and marks over
+  // them and their halo, and the rays, which are also a picked train's
+  // colour on the map. On a dark map the rays add up where they crowd
+  // (`raysGlow`); on a light one that washes out to white, so they lie over
+  // each other instead.
+  const MAP_THEMES = {
+    light: {land: "#e9e0cc", shallow: "#d6ecf4", deep: "#2c628a", curve: 0.95,
+      contour: "#173f5c", contourOpacity: 0.22, contourWidth: 0.8, coast: "#7d6d50", coastWidth: 1,
+      window: "#ffffff", windowOpacity: 0.1, shadow: "#0d2a40", shadowOpacity: 0.1,
+      ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
+      rays: "#e8590c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false},
+    dark: {land: "#38362f", shallow: "#3a6d85", deep: "#0a1b28", curve: 0.85,
+      contour: "#a6cde0", contourOpacity: 0.28, contourWidth: 0.8, coast: "#d9ceb6", coastWidth: 1.1,
+      window: "#ffffff", windowOpacity: 0.1, shadow: "#000000", shadowOpacity: 0.1,
+      ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
+      rays: "#ffd84d", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true},
+  };
+  const theme = () => MAP_THEMES[shownTheme()] || MAP_THEMES.dark;
+  // A picked window or shadow, this much stronger than its own (the 2026-11-10
+  // map's 0.13 -> 0.3 and 0.22 -> 0.5).
+  const LIT_GAIN = 2.3;
+  const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const rgba = (h, a) => `rgba(${hexRgb(h).join(",")},${a})`;
+  // The depth bands' colours, `shallow` to `deep` in OKLab.
+  function bandColours(th, n) {
+    const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    const gam = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+    const lab = (h) => {
+      const [r, g, b] = hexRgb(h).map((v) => lin(v / 255));
+      const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+      const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+      const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+      return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+        0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+    };
+    const hex = ([L, a, b]) => {
+      const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3,
+        s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+      return "#" + [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s]
+        .map((c) => Math.round(Math.max(0, Math.min(1, gam(c))) * 255).toString(16).padStart(2, "0")).join("");
+    };
+    const a = lab(th.shallow), b = lab(th.deep);
+    return Array.from({length: n}, (_, i) => hex(a.map((v, k) => v + (b[k] - v) * (i / (n - 1)) ** th.curve)));
+  }
+  const lineWidth = (w) => ["interpolate", ["linear"], ["zoom"], 7, w * 0.7, 12, w, 15, w * 1.5];
   // Measured 2026-11-08 at 4x: the map's edge 21.0 px under the last train's
   // ink, as the first train sits under the headline.
   const GAP_MAP = 5.25;
@@ -9389,7 +9437,7 @@ Promise.all([
     return LOADING;
   }
   const brk = (id) => MAPDATA && MAPDATA.geometry.breaks.find((b) => b.id === id);
-  const tileUrl = () => new URL(SEABED_TILES, location.href).href + "{z}/{x}/{y}.png";
+  const seabedUrl = (file) => new URL(SEABED, location.href).href + file;
 
   // What the drawing holds.
   function readSvg(svg) {
@@ -9489,15 +9537,22 @@ Promise.all([
     }
 
     make() {
-      const seabed = (MAPDATA.seabed || {}).layers || [];
-      const sources = {}, layers = [{id: "deep", type: "background", paint: {"background-color": "#16181b"}}];
-      seabed.forEach((tl) => {
-        sources[`seabed-${tl.name}`] = {type: "raster", tiles: [tileUrl()], tileSize: 256,
-          minzoom: tl.zooms[0], maxzoom: tl.zooms[1],
-          bounds: [tl.bounds[0][1], tl.bounds[0][0], tl.bounds[1][1], tl.bounds[1][0]]};
-        layers.push({id: `seabed-${tl.name}`, type: "raster", source: `seabed-${tl.name}`,
-          paint: {"raster-fade-duration": 0}});
+      // The seabed as vectors, one source a grid, the finer drawn over the
+      // coarser from the zoom its cells are fit for (forecast.seabedvector):
+      // each grid's bands nested, then its contours and its shoreline. The
+      // colours are `restyle`'s.
+      const tiers = (MAPDATA.seabed || {}).tiers || [];
+      const sources = {}, layers = [{id: "sm-bg", type: "background", paint: {}}];
+      tiers.forEach((tr) => {
+        sources[`seabed-${tr.name}`] = {type: "geojson", data: seabedUrl(tr.file), tolerance: 0.2, buffer: 64};
+        const at = {source: `seabed-${tr.name}`, minzoom: tr.minzoom};
+        layers.push({id: `seabed-${tr.name}-fill`, type: "fill", ...at, filter: ["==", ["get", "k"], "fill"], paint: {}});
+        layers.push({id: `seabed-${tr.name}-line`, type: "line", ...at, filter: ["==", ["get", "k"], "line"],
+          layout: {"line-join": "round", "line-cap": "round"}, paint: {}});
+        layers.push({id: `seabed-${tr.name}-coast`, type: "line", ...at, filter: ["==", ["get", "k"], "coast"],
+          layout: {"line-join": "round", "line-cap": "round"}, paint: {}});
       });
+      this.tiers = tiers.map((tr) => tr.name);
       const map = this.map = new maplibregl.Map({
         container: this.el, style: {version: 8, sources, layers},
         center: ll(this.b.position), zoom: 11, bearing: this.b.normal,
@@ -9512,7 +9567,7 @@ Promise.all([
       map.touchZoomRotate.disableRotation();
       map.keyboard.disableRotation();
       this.limits();
-      map.on("load", () => { this.land(); this.draw(); });
+      map.on("load", () => { this.land(); this.restyle(); this.draw(); });
       map.on("render", () => { this.drawMarks(); this.paintFill(); });
       map.on("moveend", () => {
         if (this.framed) VIEWS[this.id] = {center: map.getCenter(), zoom: map.getZoom()};
@@ -9556,13 +9611,16 @@ Promise.all([
 
     // The opening view: the shore normal up, the break as far above the
     // map's foot as it sits above the drawing's, and three zoom steps in from
-    // the drawing's own scale -- where the farthest vertex forming an edge
-    // sits on its rim (owner's request, 2026-11-08).
+    // the drawing's scale -- where the farthest vertex forming an edge sits
+    // on its rim (owner's request, 2026-11-08). ONE scale for the three
+    // breaks (owner's request, 2026-11-11): the farthest such vertex of any
+    // of them, so a break tab never opens nearer than another.
     frame(animate = false) {
       const W = this.el.clientWidth, H = this.el.clientHeight;
       if (!W || !H) return;
       const d = readSvg(this.svg), vb = this.svg.viewBox.baseVal, s = W / vb.width;
-      const far = Math.max(...this.b.windows.flatMap((w) => w.edges.map((e) => e.range_km)));
+      const far = Math.max(...MAPDATA.geometry.breaks.flatMap((o) =>
+        o.windows.flatMap((w) => w.edges.map((e) => e.range_km))));
       const mpp = far * 1000 / (d.rimPx * s) / 2 ** OPEN_STEPS;
       const zoom = Math.log2(MPP0 * Math.cos(rad(this.b.position[0])) / mpp);
       const breakY = H - (vb.height - d.cy) * s;
@@ -9582,39 +9640,35 @@ Promise.all([
       map.addSource("sm-sections", {type: "geojson", data: fc(d.sections.map((sec) => ({type: "Feature",
         properties: {key: sec.key, shadow: sec.key[0] === "s", lit: false},
         geometry: {type: "Polygon", coordinates: [fan(p, b.normal + sec.a0, b.normal + sec.a1, far)]}})))});
-      map.addLayer({id: "sm-sections", type: "fill", source: "sm-sections", paint: {
-        "fill-color": ["case", ["get", "shadow"], "#000", "#fff"],
-        "fill-opacity": ["case", ["get", "shadow"], ["case", ["get", "lit"], 0.5, 0.22], ["case", ["get", "lit"], 0.3, 0.13]],
-      }});
+      map.addLayer({id: "sm-sections", type: "fill", source: "sm-sections", paint: {}});
       const edges = b.windows.flatMap((w) => w.edges);
       map.addSource("sm-edges", {type: "geojson", data: fc(edges.map((e) => line([ll(p), ll(e.vertex)])))});
       map.addSource("sm-beyond", {type: "geojson", data: fc(edges.map((e) => line([ll(e.vertex), ll(dest(p, e.bearing, far))])))});
-      map.addLayer({id: "sm-edges-halo", type: "line", source: "sm-edges", paint: {"line-color": "#000", "line-width": 3.5, "line-opacity": 0.35}});
-      map.addLayer({id: "sm-edges", type: "line", source: "sm-edges", paint: {"line-color": "#fff", "line-width": 1.5, "line-opacity": 0.95}});
-      map.addLayer({id: "sm-beyond", type: "line", source: "sm-beyond", paint: {"line-color": "#fff", "line-width": 1, "line-opacity": 0.6, "line-dasharray": [3, 5]}});
+      map.addLayer({id: "sm-edges-halo", type: "line", source: "sm-edges", paint: {"line-width": 3.5}});
+      map.addLayer({id: "sm-edges", type: "line", source: "sm-edges", paint: {"line-width": 1.5}});
+      map.addLayer({id: "sm-beyond", type: "line", source: "sm-beyond", paint: {"line-width": 1, "line-dasharray": [3, 5]}});
       // The land the model has, as it has it: dashed, so the seabed shows how
       // few vertices the windows stand on.
       map.addSource("sm-blockers", {type: "geojson", data: fc(MAPDATA.geometry.blockers.map((bl) =>
         line((bl.outline && bl.outline.length > 2 ? bl.outline : [bl.a, bl.b]).map(ll))))});
-      map.addLayer({id: "sm-blockers", type: "line", source: "sm-blockers", paint: {"line-color": "#fff", "line-width": 1.25, "line-opacity": 0.85, "line-dasharray": [2, 4]}});
+      map.addLayer({id: "sm-blockers", type: "line", source: "sm-blockers", paint: {"line-width": 1.25, "line-dasharray": [2, 4]}});
       const breaks = MAPDATA.geometry.breaks;
       map.addSource("sm-chords", {type: "geojson", data: fc(breaks.map((o) => line(o.chord.map(ll), {on: o.id === this.id})))});
-      map.addLayer({id: "sm-chords-halo", type: "line", source: "sm-chords", paint: {"line-color": "#000", "line-opacity": 0.4, "line-width": ["case", ["get", "on"], 6, 4]}});
-      map.addLayer({id: "sm-chords", type: "line", source: "sm-chords", paint: {"line-color": "#fff", "line-opacity": ["case", ["get", "on"], 1, 0.8], "line-width": ["case", ["get", "on"], 3, 2]}});
+      map.addLayer({id: "sm-chords-halo", type: "line", source: "sm-chords", paint: {"line-width": ["case", ["get", "on"], 6, 4]}});
+      map.addLayer({id: "sm-chords", type: "line", source: "sm-chords", paint: {"line-width": ["case", ["get", "on"], 3, 2]}});
       map.addSource("sm-spots", {type: "geojson", data: fc(breaks.map((o) => point(o.position, {on: o.id === this.id})))});
       map.addLayer({id: "sm-spots", type: "circle", source: "sm-spots", paint: {
-        "circle-radius": ["case", ["get", "on"], 5, 3.5], "circle-color": ["case", ["get", "on"], "#fff", "#000"],
-        "circle-stroke-color": ["case", ["get", "on"], "#000", "#fff"], "circle-stroke-width": ["case", ["get", "on"], 2, 1.5]}});
+        "circle-radius": ["case", ["get", "on"], 5, 3.5], "circle-stroke-width": ["case", ["get", "on"], 2, 1.5]}});
       map.addSource("sm-vertices", {type: "geojson", data: fc(edges.map((e) => point(e.vertex,
         {text: `${e.blocker}, the vertex that forms the ${deg(e.bearing)} edge, ${dist(e.range_km)} from this break`})))});
       map.addLayer({id: "sm-vertices", type: "circle", source: "sm-vertices", paint: {
-        "circle-radius": 4.5, "circle-color": "#000", "circle-opacity": 0.6, "circle-stroke-color": "#fff", "circle-stroke-width": 2}});
+        "circle-radius": 4.5, "circle-stroke-width": 2}});
       // The buoys the page shows, each named as its pill names it.
       const buoys = [[MAPDATA.geometry.buoy.id, MAPDATA.geometry.buoy.position],
         ...Object.entries(MAPDATA.buoys || {})].filter(([, at]) => at);
       map.addSource("sm-buoys", {type: "geojson", data: fc(buoys.map(([id, at]) => point(at, {text: `NDBC ${id}`})))});
       map.addLayer({id: "sm-buoys", type: "circle", source: "sm-buoys", paint: {
-        "circle-radius": 5, "circle-color": "#000", "circle-opacity": 0.7, "circle-stroke-color": "#fff", "circle-stroke-width": 2}});
+        "circle-radius": 5, "circle-stroke-width": 2}});
       buoys.forEach(([id, at]) => {
         const el = document.createElement("div");
         el.className = "sm-tag";
@@ -9623,6 +9677,48 @@ Promise.all([
           .setLngLat(ll(at)).addTo(map);
       });
       this.landed = true;
+    }
+
+    // Every colour on the map from the page's theme, on making it and again
+    // whenever the theme changes.
+    restyle() {
+      const map = this.map;
+      if (!map || !this.landed) return;
+      const th = theme(), k = th.inkOpacity, cols = bandColours(th, 12);
+      const P = (id, prop, v) => { if (map.getLayer(id)) map.setPaintProperty(id, prop, v); };
+      P("sm-bg", "background-color", th.land);
+      const fill = ["match", ["get", "b"], -1, th.land, ...cols.flatMap((c, i) => [i, c]), th.land];
+      (this.tiers || []).forEach((n) => {
+        P(`seabed-${n}-fill`, "fill-color", fill);
+        P(`seabed-${n}-line`, "line-color", th.contour);
+        P(`seabed-${n}-line`, "line-opacity", th.contourOpacity);
+        P(`seabed-${n}-line`, "line-width", lineWidth(th.contourWidth));
+        P(`seabed-${n}-coast`, "line-color", th.coast);
+        P(`seabed-${n}-coast`, "line-width", lineWidth(Math.max(th.coastWidth, 0.01)));
+        P(`seabed-${n}-coast`, "line-opacity", th.coastWidth > 0 ? 1 : 0);
+      });
+      const lit = (o) => Math.min(1, o * LIT_GAIN);
+      P("sm-sections", "fill-color", ["case", ["get", "shadow"], th.shadow, th.window]);
+      P("sm-sections", "fill-opacity", ["case", ["get", "shadow"],
+        ["case", ["get", "lit"], lit(th.shadowOpacity), th.shadowOpacity],
+        ["case", ["get", "lit"], lit(th.windowOpacity), th.windowOpacity]]);
+      ["sm-edges", "sm-beyond", "sm-blockers", "sm-chords"].forEach((id) => P(id, "line-color", th.ink));
+      P("sm-edges", "line-opacity", 0.95 * k); P("sm-beyond", "line-opacity", 0.6 * k);
+      P("sm-blockers", "line-opacity", 0.85 * k);
+      P("sm-chords", "line-opacity", ["case", ["get", "on"], k, 0.8 * k]);
+      ["sm-edges-halo", "sm-chords-halo"].forEach((id) => { P(id, "line-color", th.halo); P(id, "line-opacity", th.haloOpacity); });
+      P("sm-spots", "circle-color", ["case", ["get", "on"], th.ink, th.halo]);
+      P("sm-spots", "circle-stroke-color", ["case", ["get", "on"], th.halo, th.ink]);
+      P("sm-spots", "circle-opacity", k); P("sm-spots", "circle-stroke-opacity", k);
+      ["sm-vertices", "sm-buoys"].forEach((id) => {
+        P(id, "circle-color", th.halo); P(id, "circle-stroke-color", th.ink);
+        P(id, "circle-opacity", 0.65 * k); P(id, "circle-stroke-opacity", k);
+      });
+      this.el.style.background = th.land;
+      this.el.style.setProperty("--sm-ink", rgba(th.ink, 0.9 * k));
+      this.el.style.setProperty("--sm-glow", th.haloOpacity > 0
+        ? `0 0 2px ${rgba(th.halo, Math.min(1, 2.8 * th.haloOpacity))},0 0 4px ${rgba(th.halo, Math.min(1, 2.8 * th.haloOpacity))}` : "none");
+      map.triggerRepaint();
     }
 
     // A tap: an arrow by its screen distance, then a vertex or a buoy (its
@@ -9675,12 +9771,15 @@ Promise.all([
       if (!g || this.box.classList.contains("sf-filling")) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.lineCap = "round";
+      const th = theme(), ink = rgba(th.ink, th.inkOpacity), halo = (a) => rgba(th.halo, a * th.haloOpacity / 0.35);
       [...g.d.trains].reverse().forEach((arrow) => {
         const lit = g.d.on.has(arrow.key), w = arrow.lead ? 3 : 2;
         const [x0, y0] = g.at(arrow.a, g.r * 0.95), [x1, y1] = g.at(arrow.a, g.r * 0.62 + 6);
-        ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = w + 3;
-        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-        ctx.strokeStyle = lit ? LIT : "#fff"; ctx.lineWidth = lit ? w + 1 : w;
+        if (th.haloOpacity > 0) {
+          ctx.strokeStyle = halo(0.35); ctx.lineWidth = w + 3;
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        }
+        ctx.strokeStyle = lit ? th.rays : ink; ctx.lineWidth = lit ? w + 1 : w;
         ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
         // The head: the mock's "M8 15 L2 3 L8 6 L14 3 Z", pointing in.
         const size = arrow.lead ? 14 : 11, [hx, hy] = g.at(arrow.a, g.r * 0.62);
@@ -9691,8 +9790,8 @@ Promise.all([
         ctx.translate(-8, -8);
         ctx.beginPath();
         ctx.moveTo(8, 15); ctx.lineTo(2, 3); ctx.lineTo(8, 6); ctx.lineTo(14, 3); ctx.closePath();
-        ctx.fillStyle = lit ? LIT : "#fff"; ctx.fill();
-        ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = lit ? th.rays : ink; ctx.fill();
+        if (th.haloOpacity > 0) { ctx.strokeStyle = halo(0.5); ctx.lineWidth = 1; ctx.stroke(); }
         ctx.restore();
       });
       // The two outermost edges carry their degrees, where the drawing puts
@@ -9703,9 +9802,11 @@ Promise.all([
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         [wins[0].a0, wins[wins.length - 1].a1].forEach((a) => {
           const [x, y] = g.at(a, g.r * 0.86), text = deg(this.b.normal + a);
-          ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.lineJoin = "round";
-          ctx.strokeText(text, x, y);
-          ctx.fillStyle = "#fff"; ctx.fillText(text, x, y);
+          if (th.haloOpacity > 0) {
+            ctx.lineWidth = 3; ctx.strokeStyle = halo(0.7); ctx.lineJoin = "round";
+            ctx.strokeText(text, x, y);
+          }
+          ctx.fillStyle = ink; ctx.fillText(text, x, y);
         });
       }
     }
@@ -9933,12 +10034,15 @@ Promise.all([
       ctx.clearRect(0, 0, c.width, c.height);
       if (!S || !S.m || !S.started) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.globalCompositeOperation = "lighter";
-      ctx.strokeStyle = LIT; ctx.fillStyle = LIT; ctx.lineWidth = 1.3; ctx.lineJoin = "round";
+      const th = theme();
+      ctx.globalCompositeOperation = th.raysGlow ? "lighter" : "source-over";
+      ctx.strokeStyle = th.rays; ctx.fillStyle = th.rays; ctx.lineWidth = th.raysWidth; ctx.lineJoin = "round";
       const t = S.t, map = this.map;
       S.m.rays.forEach(({pts, e}) => {
         if (t <= pts[0][2]) return;
-        const a = Math.min(1, 0.9 * e / S.m.ref);
+        // The theme's strength is the alpha of a ray carrying `ref`'s energy,
+        // 0.55 giving the 2026-11-10 map's 0.9.
+        const a = Math.min(1, th.raysOpacity * (0.9 / 0.55) * e / S.m.ref);
         if (a < 0.01) return;
         ctx.globalAlpha = a;
         ctx.beginPath();
@@ -9991,6 +10095,11 @@ Promise.all([
     faces.forEach((f) => f.show());
   }
   window.swellMapFaces = faces;               // read by checks
+  // The page's theme moves the map's with it: the foot's switch sets
+  // data-theme, and the phone's own setting may change under it.
+  const retheme = () => faces.forEach((f) => { f.restyle(); if (f.map) f.map.triggerRepaint(); });
+  new MutationObserver(retheme).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+  if (DARK_MQ && DARK_MQ.addEventListener) DARK_MQ.addEventListener("change", retheme);
 
   // ---------------------------------------------------------------- the fill's data
   const FILL_ICON = {

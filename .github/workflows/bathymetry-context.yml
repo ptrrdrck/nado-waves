@@ -41,9 +41,9 @@ jobs:
       - name: Fetch the context grid
         run: python -m collector.bathymetry --skip-datum --grids context | tee -a "$GITHUB_STEP_SUMMARY"
 
-      # The map's seabed tiles are drawn from the grids; a new grid redraws them.
-      - name: Redraw the seabed tiles
-        run: python -m forecast.seabedtiles | tee -a "$GITHUB_STEP_SUMMARY"
+      # The map's seabed is drawn from the grids; a new grid redraws it.
+      - name: Redraw the map's seabed
+        run: python -m forecast.seabedvector | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit and push
         env:
@@ -54,7 +54,7 @@ jobs:
           git config user.name "nado-waves collector"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/bathymetry/context.npz data/bathymetry/context.json data/seabed_tiles
+          git add data/bathymetry/context.npz data/bathymetry/context.json data/seabed_vector
 
           if git diff --cached --quiet; then
             echo "No context seabed change to commit."

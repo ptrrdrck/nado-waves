@@ -1,7 +1,7 @@
 # For the ONE-OFF precompute jobs only: collector.bathymetry (reading the USGS
 # CoNED grid through its overviews), forecast.raytrace (building the
-# refraction transfer tables) and forecast.seabedtiles (drawing the map's
-# seabed tiles from the grids). None runs on the forecast path.
+# refraction transfer tables) and forecast.seabedvector (drawing the map's
+# seabed from the grids). None runs on the forecast path.
 #
 # The collector and the live forecast stay standard-library only, for the
 # reason requirements-dev.txt gives: nothing to break the archiving job when an
@@ -9,5 +9,6 @@
 # these jobs write.
 numpy>=2.0
 rasterio>=1.4
-# forecast.seabedtiles writes PNG tiles.
-pillow>=10.0
+# forecast.seabedvector contours the grids and simplifies the lines.
+contourpy>=1.2
+shapely>=2.0

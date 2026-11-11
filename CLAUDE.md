@@ -520,7 +520,9 @@ forecaster actually verifies against, Surfline included.
    and a map tap are one pick. Turned the drawing's way, the break's shore
    normal up (MapLibre's `bearing`; the reader cannot rotate it), the
    break as far above the map's foot as above the drawing's, opening three
-   zoom steps in from the drawing's scale; square, at most 70vh; the toggle,
+   zoom steps in from the drawing's scale -- ONE scale for the three breaks,
+   the farthest edge vertex of any (owner's request, 2026-11-11: each break
+   had opened at its own, South ~0.2 steps nearer); square, at most 70vh; the toggle,
    the caption under it, the drawing moved down to its caption, and one
    start height across the break tabs (`level`) as the owner picked them in
    the mock. It zooms out to just past Tanner Bank (46047 and 25 km in view
@@ -533,15 +535,28 @@ forecaster actually verifies against, Surfline included.
    2026-11-10: bundled, not a CDN; MapLibre over Leaflet + leaflet-rotate,
    whose GPL-3.0 would arguably have made the page a GPL combined work while
    the repository carries no licence on purpose), loaded only when a map is
-   first shown. The seabed is MAP TILES (`forecast/seabedtiles.py` ->
-   `data/seabed_tiles/`, derived but tracked, redrawn by both bathymetry
-   workflows after a fetch, a test failing when a grid is newer than its
-   tiles): `context` zooms 5-9 from `collector.bathymetry`'s GMRT context
-   grid (400 m, 350 km round the breaks and the three buoys, read by no
-   chain), `inner` 10-12 from the regional and outer grids, `near` 13-14
-   from the nearshore; 408 tiles, 0.63 MB, the page loading only those in
-   view. Contours as drawn for now (owner's call, same day: busy at the
-   widest zooms). `map.json` (`forecast/mapdata.py`): geomviz's model, 46086
+   first shown. The seabed is VECTORS (owner's request, 2026-11-11, after
+   2x anti-aliased raster tiles still looked "like a retro monitor" on a
+   phone; `forecast/seabedvector.py` -> `data/seabed_vector/`, derived but
+   tracked, redrawn by both bathymetry workflows after a fetch, a test failing
+   when a grid is newer than its drawing): one GeoJSON a grid, the finer drawn
+   over the coarser from the zoom its cells are fit for -- `context` (GMRT
+   400 m, 350 km round the breaks and the three buoys, read by no chain) from
+   0, `outer` (90 m) from 8, `regional` (CoNED 32 m) from 9, `nearshore`
+   (8 m) from 11 -- each its depth bands as NESTED polygons (land, then
+   `raytrace.H_LAND` and 5 ... 4,000 m, so simplifying one edge opens no gap),
+   its contours at 5 ... 2,000 m and its shoreline at H_LAND; the depths
+   smoothed over ~1 cell before contouring and simplified to 2 m near the beach
+   and 80 m past Tanner Bank (contourpy, shapely); 1.5 MB, ~0.4 MB compressed,
+   against the tiles' 2.2 MB. Contours as drawn for now (owner's call,
+   2026-11-10: busy at the widest zooms). **Its colours are the owner's two
+   themes** (2026-11-11, picked in the mock "Seabed map themes"; `MAP_THEMES`,
+   restyled when the page's theme changes): light a pale sea to deep blue over
+   sand, dark blue to near-black over warm charcoal, the bands ramped in OKLab
+   (`bandColours`); white lines and marks, no halo; the rays and a picked
+   train's arrow orange `#e8590c` laid over each other on light, the shipped
+   gold `#ffd84d` glowing ("lighter") on dark, its strength the alpha of a ray
+   carrying the 90th percentile's energy. `map.json` (`forecast/mapdata.py`): geomviz's model, 46086
    and 46047 at NDBC's fetched coordinates, and the tile manifest; with
    `seabed/` and `vendor/` it ships from BOTH publish jobs, and
    `publish-pages.sh` replaces a directory whole (its old `cp "$BUNDLE"/*`
@@ -1879,9 +1894,9 @@ forecaster actually verifies against, Surfline included.
       fill.py           the map's fill on LIVE: each train's 5 m energy
                         credited ray by ray, checked against the chain's
                         height, into data/live/fill.json            [built]
-      seabedtiles.py    PRECOMPUTE (numpy, Pillow): the Swell card map's
-                        seabed as map tiles from the bathymetry grids, into
-                        data/seabed_tiles/; `--check`            [built]
+      seabedvector.py   PRECOMPUTE (numpy, contourpy, shapely): the Swell
+                        card map's seabed as vectors from the bathymetry
+                        grids, into data/seabed_vector/; `--check`  [built]
       mapdata.py        the map's map.json: geomviz's model, the other
                         buoys, the tile manifest                  [built]
       geomviz.py        draws the vertices the model uses, the ray to each
@@ -2011,8 +2026,8 @@ forecaster actually verifies against, Surfline included.
     data/bathymetry/    CoNED seabed grids (.npz, decimetres NAVD88) + a JSON
                         sidecar each. Does NOT cover the Coronado Islands or
                         Baja (south of 32.49 N); those stay charted blockers.
-    data/seabed_tiles/  the Swell card map's seabed, {z}/{x}/{y}.png and
-                        manifest.json (forecast.seabedtiles); derived but
+    data/seabed_vector/ the Swell card map's seabed, <grid>.geojson and
+                        manifest.json (forecast.seabedvector); derived but
                         tracked, redrawn by the bathymetry workflows
     data/nearshore/     per-break transfer tables from forecast.raytrace:
                         <break>.csv (one row per period x 0.5° heading at

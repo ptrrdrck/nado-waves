@@ -36,10 +36,10 @@ The bundle:
     alerts.json     data/live/alerts.json — NWS's coast and ocean alerts over
                     the Forecast tab's hours (forecast.alerts)
     map.json        the Swell card map's geometry, the other buoys and the
-                    seabed tiles' manifest (forecast.mapdata), in both builds
-    seabed/         data/seabed_tiles/: the map's seabed as map tiles, drawn
-                    from the bathymetry grids (forecast.seabedtiles); the page
-                    fetches only the tiles in view
+                    seabed's manifest (forecast.mapdata), in both builds
+    seabed/         data/seabed_vector/: the map's seabed as vectors, depth
+                    bands, contours and shoreline drawn from the bathymetry
+                    grids (forecast.seabedvector), one file a grid
     vendor/         app/vendor/: MapLibre GL JS 4.7.1 and its BSD-3 licence,
                     which draws the map; loaded only when the map is opened
     nearshore/      data/nearshore/<break>_paths.json: each break's ray paths
@@ -147,11 +147,11 @@ BUNDLE_BRIEFING_PATH = "briefing.json"
 #: hours. Optional in the same way.
 REPO_ALERTS_PATH = "../data/live/alerts.json"
 BUNDLE_ALERTS_PATH = "alerts.json"
-#: The Swell card map's geometry (`forecast.mapdata`) and its seabed tiles
-#: (`forecast.seabedtiles`). Optional in the same way.
+#: The Swell card map's geometry (`forecast.mapdata`) and its seabed
+#: (`forecast.seabedvector`). Optional in the same way.
 REPO_MAP_PATH = "../data/live/map.json"
 BUNDLE_MAP_PATH = "map.json"
-REPO_SEABED_PATH = "../data/seabed_tiles/"
+REPO_SEABED_PATH = "../data/seabed_vector/"
 BUNDLE_SEABED_PATH = "seabed/"
 #: The map's fill on LIVE: each train's energy by ray (`forecast.fill`) and
 #: each break's ray paths (`forecast.raytrace --paths-only`).
@@ -162,7 +162,7 @@ BUNDLE_NEARSHORE_PATH = "nearshore/"
 NEARSHORE_SOURCE = REPO_ROOT / "data" / "nearshore"
 #: Where they come from here. The vendored map library sits beside the page in
 #: `app/vendor/` and at `vendor/` in the bundle, so its path needs no repointing.
-SEABED_SOURCE = REPO_ROOT / "data" / "seabed_tiles"
+SEABED_SOURCE = REPO_ROOT / "data" / "seabed_vector"
 VENDOR_SOURCE = REPO_ROOT / "app" / "vendor"
 
 DOCTYPE = "<!doctype html>"
