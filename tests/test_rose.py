@@ -246,7 +246,9 @@ class TestOnThePage:
         legend = legend[:legend.index("\n}\n")]
         assert 'if (mode !== "period") return ""' not in legend
         assert '" off"' in legend and 'aria-hidden="true"' in legend
-        assert ".rose .legend.off{visibility:hidden}" in PAGE
+        # Since 2026-11-11 Height takes no legend room: the tray grows with
+        # its words, as the drawing's and the map's does.
+        assert ".rose .legend.off{display:none}" in PAGE
         play = PAGE[PAGE.index(".rose .rose-play{"):PAGE.index(".rose .rose-track{")]
         assert "width:28px;height:28px" in play
         assert "width:28px;height:28px" in PAGE[PAGE.index(".rose-switch{"):PAGE.index(".rose .ranges{")]

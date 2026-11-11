@@ -671,6 +671,9 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .bi-v{font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums}
 .bi-v .unit{font-weight:400;white-space:nowrap}
 .bi-t{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+.buoy-info:not(.bi-times) .bi-t{display:none}
+.bi-read[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bi-read[role=button]:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
 .bi-none .bi-v{font-weight:400;color:var(--faint)}
 .bi-rule{height:1px;background:var(--line)}
 .bi-facts{display:flex;flex-direction:column;gap:10px}
@@ -990,11 +993,13 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    are (owner's requests): the plate's top edge as far under the last train
    as the swell plate's, and 21 px from the tray's foot to what follows. */
 .rose{display:flex;flex-direction:column;gap:0;margin-top:5.25px;margin-bottom:10px}
-.rose-plate{position:relative;background:var(--paper);border-radius:7px 7px 0 0;padding:12px 0 0}
-.rose-tray{background:var(--paper);border-top:1px solid var(--line);border-radius:0 0 7px 7px;
-  padding:7px 12px 8px;display:flex;flex-direction:column;gap:4px}
-.rose-plate .rose-svg .pt{stroke:var(--paper)}
-.rose-plate .rose-svg .rp,.rose-plate .rose-svg .rb,.rose-plate .rose-svg .rt{stroke:var(--paper)}
+.rose-plate{position:relative;background:var(--card);border:1px solid var(--line);border-bottom:0;
+  border-radius:7px 7px 0 0;padding:12px 0 0}
+/* The tray as the drawing's and the map's: its words in that caption's type
+   and line, and a line more when they need one (owner's request,
+   2026-11-11). */
+.rose-tray{background:var(--paper);border:1px solid var(--line);border-radius:0 0 7px 7px;
+  padding:7px 12px 8px;display:flex;flex-direction:column;gap:0}
 /* Top-left, as the drawing / map toggle: 28 px, the card's colour. */
 .rose-switch{position:absolute;top:4px;left:4px;z-index:2;display:inline-flex;align-items:center;
   justify-content:center;box-sizing:border-box;width:28px;height:28px;padding:0;margin:0;border:0;
@@ -1008,16 +1013,16 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 /* Under the rose: play / pause, the six hours, then the ft / s switch, all
    three buttons one height (22 px). */
 /* One line under the rose: the ring spacing, then the frame's time and what
-   it holds. Room is kept for two lines, so a frame whose line wraps on a
-   narrow phone never moves the timeline under it while the loop plays. */
-.rose .rose-scale{font-size:12px;line-height:1.4;min-height:2.8em;color:var(--soft);text-align:center;
+   it holds; in the tray, which takes a line more when a frame's words wrap
+   (owner's request, 2026-11-11, as the drawing's and the map's tray does). */
+.rose .rose-scale{font:400 14px/21px Archivo,sans-serif;color:var(--ink);text-align:center;text-wrap:balance;
   font-variant-numeric:tabular-nums}
 .rose .rose-scale .rs{white-space:nowrap}
-.rose .rose-scale .v{color:var(--ink)} .rose .rose-scale .v .unit{color:var(--soft)}
 /* Along the plate's foot: play / pause at the map's controls' size, a 28 px
-   button in the card's colour, and the six hours giving up the width for a
-   margin each side, the tray's 12 px (owner's request, 2026-11-11). */
-.rose .rose-time{display:flex;align-items:center;gap:6px;margin:6px 12px 8px}
+   button in the card's colour 4 px from the plate's corner as the map's are,
+   and the six hours giving up the width for their margins (owner's
+   requests, 2026-11-11). */
+.rose .rose-time{display:flex;align-items:center;gap:8px;margin:6px 12px 4px 4px}
 .rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
   padding:0;border:0;border-radius:6px;cursor:pointer;background:var(--card);color:var(--ink);
   box-shadow:0 1px 3px rgba(0,0,0,.35)}
@@ -1057,10 +1062,10 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .rose-line .tk.on{stroke:var(--ink);stroke-width:2.5}
 .rose-line .head{stroke:var(--soft);stroke-width:1;stroke-dasharray:2 2}
 .rose-line .tt{font-size:9px;fill:var(--faint);font-variant-numeric:tabular-nums}
-.rose .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:3px 10px;font-size:12px;color:var(--soft);
-  font-variant-numeric:tabular-nums}
+.rose .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:0 10px;font:400 14px/21px Archivo,sans-serif;
+  color:var(--ink);font-variant-numeric:tabular-nums}
 .rose .legend span{white-space:nowrap}
-.rose .legend.off{visibility:hidden}
+.rose .legend.off{display:none}
 .rose .legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 0}
 
 /* A reading past the three-hour stale limit greys its numbers (owner's call,
@@ -1406,8 +1411,11 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    than most of a phone's screen). Its height is the script's (`space`), and
    a switch grows or shrinks it from its foot as a fold slides, the drawing
    and the map both standing on the foot so the break rides it. */
-.sm-plate{position:relative;width:100%;border-radius:7px 7px 0 0;overflow:hidden;background:var(--paper);
-  isolation:isolate}
+/* White inside, as the drawing and the rose were before their plates
+   (owner's call, 2026-11-11), the plate drawn by a hairline round it and
+   its tray under it. */
+.sm-plate{position:relative;width:100%;box-sizing:border-box;border:1px solid var(--line);border-bottom:0;
+  border-radius:7px 7px 0 0;overflow:hidden;background:var(--card);isolation:isolate}
 .sm-plate > svg.aperture{position:absolute;left:0;width:100%;display:block}
 .sm-plate > svg.aperture text.faces{display:none}
 .sm-face.on-map .sm-plate > svg.aperture{visibility:hidden}
@@ -1441,7 +1449,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    the tray rides the foot; a hairline between them, the plate's colour,
    the plate's corners at its foot. */
 .sm-cap{position:relative;margin-top:0;padding:7px 12px 8px;color:var(--ink);text-align:center;
-  background:var(--paper);border-top:1px solid var(--line);border-radius:0 0 7px 7px;
+  background:var(--paper);border:1px solid var(--line);border-radius:0 0 7px 7px;
   font:400 14px/21px Archivo,sans-serif;text-wrap:balance;pointer-events:none}
 .sm-tag{color:var(--sm-ink,#fff);font:600 11px/1 "Barlow Condensed",Archivo,sans-serif;letter-spacing:.05em;
   text-transform:uppercase;white-space:nowrap;text-shadow:var(--sm-glow,none);pointer-events:none}
@@ -4823,6 +4831,24 @@ const BI_ICON = {
   clock: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/><path d="M16.8 3.2v3h-3"/><path d="M10 6.5V10l2.3 1.6"/></svg>',
   uses: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.5" cy="10" r="1.8"/><path d="M6.3 10H10"/><path d="M10 10c2 0 2.5-4.5 5.5-4.5"/><path d="M10 10h5.5"/><path d="M10 10c2 0 2.5 4.5 5.5 4.5"/></svg>',
 };
+// Each reading's time is hidden until a reading is tapped, as a Briefing row's
+// line is; a tap on any of them shows or hides every one, on every buoy
+// (owner's request, 2026-11-11). Kept across the page's redraws.
+let BI_TIMES = false;
+function toggleBiTimes() {
+  BI_TIMES = !BI_TIMES;
+  document.querySelectorAll(".buoy-info").forEach((el) => el.classList.toggle("bi-times", BI_TIMES));
+  document.querySelectorAll(".bi-read[role=button]").forEach((el) => el.setAttribute("aria-expanded", String(BI_TIMES)));
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest && e.target.closest(".bi-read[role=button]")) toggleBiTimes();
+});
+document.addEventListener("keydown", (e) => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest(".bi-read[role=button]")) {
+    e.preventDefault();
+    toggleBiTimes();
+  }
+});
 // A reading's own time: "5:40 AM", or "Nov 9, 11:00 PM" on another day.
 const infoWhen = (iso) => (coastDay(Date.parse(iso)) === coastDay(Date.now())
   ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`).replace(/ (AM|PM)$/, "\u00a0$1");
@@ -4834,7 +4860,8 @@ function buoyAbout(station) {
   // The readings carry no symbol (owner's request, 2026-11-11; the facts
   // under the rule keep theirs), and one this buoy has never measured is not
   // shown at all (46232, a Waverider: wind and pressure).
-  const cell = (icon, label, value, iso, extra = "") => `<div class="bi-read"${iso ? agedAttr(iso) : ""}>`
+  const cell = (icon, label, value, iso, extra = "") => `<div class="bi-read"${iso ? agedAttr(iso) : ""}`
+    + (iso ? ` role="button" tabindex="0" aria-expanded="${BI_TIMES}"` : "") + `>`
     + `<span class="bi-k">${label}</span><span class="bi-v">${value}</span>`
     + (iso ? `<span class="bi-t">${extra}${infoWhen(iso)}</span>` : "") + `</div>`;
   const none = (icon, label, key) => (never.includes(key) ? ""
@@ -4875,7 +4902,7 @@ function buoyAbout(station) {
   const every = !c ? "" : c.every_min === 60
     ? `Spectrum every hour, ${c.marks[0] === 0 ? "on the hour" : `at :${pad2(c.marks[0])}`}`
     : `Spectrum every ${c.every_min} min, at ${c.marks.map((m) => `:${pad2(m)}`).join(" and ")}`;
-  return `<div class="buoy-info">`
+  return `<div class="buoy-info${BI_TIMES ? " bi-times" : ""}">`
     + `<div class="bi-reads">${reads.join("")}</div><div class="bi-rule"></div><div class="bi-facts">`
     + (located ? fact("pin", "Location", located) : "")
     + (every ? fact("clock", "Updates", `<div>${every}</div>${sub(`Usually collected within ${c.lag_min} min`)}`) : "")
@@ -5375,9 +5402,9 @@ function roseLine(rose, span, t, state) {
     + `<line class="head" x1="${x(t)}" y1="1" x2="${x(t)}" y2="16"/>${ends}`;
 }
 
-// The Period legend's row is kept on Height too, laid out and unseen, so
-// switching views never moves the page under the reader (owner's request,
-// 2026-10-08).
+// The Period legend, in the rose's tray; on Height it takes no room, the
+// tray a line shorter (owner's request, 2026-11-11, replacing 2026-10-08's
+// row kept unseen so the switch never moved the page).
 function roseLegend(mode) {
   const off = mode !== "period";
   return `<div class="legend${off ? " off" : ""}"${off ? ' aria-hidden="true"' : ' aria-label="Periods, shortest palest"'}>`
@@ -10178,8 +10205,9 @@ Promise.all([
         this.plate.style.height = `${(this.box.classList.contains("on-map") ? this.hMap : this.hDraw).toFixed(2)}px`;
       }
       const sw = this.box.querySelector(".sm-switch");
-      sw.style.top = `${GAP_MAP + 4}px`;
-      sw.style.left = "4px";
+      // 4 px inside the plate's hairline, as the map's own controls sit.
+      sw.style.top = `${GAP_MAP + 5}px`;
+      sw.style.left = "5px";
     }
 
     // Drawing to map or back: the plate grows or shrinks from its foot as a

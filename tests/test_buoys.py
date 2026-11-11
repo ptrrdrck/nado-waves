@@ -321,6 +321,7 @@ class TestTheStationBlock:
             + "const clock = (iso) => iso.slice(11, 16);\n"
             + "const onDay = (iso) => iso.slice(5, 10);\n"
             + "const coastDay = () => 'today';\n"
+            + "let BI_TIMES = false;\n"
             + _fn("point") + "\n}\n" + _fn("compass") + "\n}\n" + icons
             + PAGE[PAGE.index("const infoWhen = "):PAGE.index("function buoyAbout(")]
             + _fn("buoyAbout") + "\n}\n"
@@ -754,8 +755,8 @@ class TestTheSpacing:
         # Since 2026-11-11 on a plate with a tray, spaced as the swell's plate.
         assert ".rose{display:flex;flex-direction:column;gap:0;margin-top:5.25px;margin-bottom:10px}" in PAGE
         assert ".pane .rose + .srcs{margin-top:3px}" in PAGE
-        # The legend's row is still laid out on Height.
-        assert ".rose .legend.off{visibility:hidden}" in PAGE
+        # Since 2026-11-11 the legend takes no room on Height.
+        assert ".rose .legend.off{display:none}" in PAGE
 
 
 class TestBreakRowsLightToo:
@@ -834,3 +835,16 @@ class TestTheHeightChart:
         assert "Math.abs(p.i - i) <= 0.5" in spec
         assert "(spec.tracks || []).map((tr) => trackPath(tr, a, z, X, Y, plotW))" in PAGE
         assert ".series .ln.other{stroke:var(--faint)" in PAGE
+
+
+def test_the_readings_times_hide_until_a_reading_is_tapped():
+    """Owner's request, 2026-11-11: each reading's time is a hidden line, as a
+    Briefing row's; a tap on any reading shows or hides them all."""
+
+    assert ".buoy-info:not(.bi-times) .bi-t{display:none}" in PAGE
+    assert "let BI_TIMES = false;" in PAGE
+    about = _fn("buoyAbout")
+    assert '` role="button" tabindex="0" aria-expanded="${BI_TIMES}"`' in about
+    assert '<div class="buoy-info${BI_TIMES ? " bi-times" : ""}">' in about
+    toggle = _fn("toggleBiTimes")
+    assert 'document.querySelectorAll(".buoy-info").forEach' in toggle

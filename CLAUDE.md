@@ -388,8 +388,10 @@ forecaster actually verifies against, Surfline included.
    `buoyAbout`): on a PLATE of the page's paper set into the card (the
    owner's pick of four separations), no name or station (the card has
    both). Readings two to a row, a label in the fold rows' type (no
-   symbol since 2026-11-11, owner's request), the value and its OWN time, greying past 3 h as every LIVE number
-   does: Peak (period and FROM direction, `at_buoy`'s, a test pins it),
+   symbol since 2026-11-11, owner's request), the value and its OWN time -- a hidden line since 2026-11-11, as a
+   Briefing row's: a tap on any reading shows or hides every reading's time
+   on every buoy (`BI_TIMES`, `toggleBiTimes`; owner's request) -- greying
+   past 3 h as every LIVE number does: Peak (period and FROM direction, `at_buoy`'s, a test pins it),
    Mean period (Tm02 over the headline's own energies, `bin_energies`; NDBC's
    APD is computed differently), Spread at peak (√(2(1 − r1)), Kuik), all
    from the newest spectrum; Water, Wind (knots from NDBC's m/s, its gust in
@@ -424,7 +426,13 @@ forecaster actually verifies against, Surfline included.
    lighter line, dashed, as a break tab's second other break is — whatever
    the tab's order: the page reads `heights` by key, and JavaScript orders
    numeric keys ascending.
-   **Under each buoy's reading, a rose** (owner's request, 2026-10-06;
+   **Under each buoy's reading, a rose** (since 2026-11-11 on a plate with a
+   tray, as the swell's drawing and map: white inside, the Height / Period
+   toggle at its top-left showing what a tap turns to, play / pause at the
+   map's 28 px 4 px from the plate's corner, the scale line and the Period
+   legend in the tray in its caption's 14 / 21 px type, the tray a line
+   taller when they need one and the legend taking no room on Height; where
+   the text below says otherwise, this supersedes it) (owner's request, 2026-10-06;
    `forecast/rose.py`, in `buoys.json` as `roses`): one per spectrum, the
    energy in sixteen 22.5° sectors, petals pointing FROM, integrated as
    `at_buoy` integrates it so the sectors are the reading's own m0 (a test
@@ -526,7 +534,10 @@ forecaster actually verifies against, Surfline included.
    had opened at its own, South ~0.2 steps nearer); square, at most 70vh; the toggle
    and the caption under it as the owner picked them in the mock. **The
    drawing and the map share ONE PLATE** (owner's requests, 2026-11-11;
-   `.sm-plate`, `space`, `slide`): the drawing's trimmed to its ink with
+   `.sm-plate`, `space`, `slide`), WHITE INSIDE as the drawing was before it
+   (the card's colour, a hairline round plate and tray; owner's call, same
+   day), every corner button 4 px inside the hairline as the map's own
+   controls are: the drawing's trimmed to its ink with
    `PLATE_PAD` (12 px) above and below, the map's square; a switch grows or
    shrinks it from its foot with the folds' slide (`FOLD_SLIDE`), the view
    coming in faded over the one going out, the caption under it in a TRAY
