@@ -77,6 +77,11 @@ LINES = (5, 10, 20, 50, 100, 200, 500, 1000, 2000)
 EDGE_INSET = 2.0
 #: The longest stretch of that outline left without a vertex, in tolerances.
 EDGE_STEP = 250.0
+#: The strip along a grid's edge where only the band shown is drawn, in CSS
+#: pixels at the zoom the tier is first drawn (`features`, `strip_m`).
+STRIP_PX = 3.0
+#: About the map's widest zoom on a phone (it opens far nearer).
+WIDEST_ZOOM = 4
 #: grid -> (the zoom it is drawn from, smoothing sigma in cells, simplifying
 #: tolerance in metres, decimal places of a degree kept), coarsest first: the
 #: order they are drawn in.
@@ -127,11 +132,21 @@ def _lonlat(coords: np.ndarray, dec: int) -> list[list[float]]:
     return out
 
 
-def features(grid: Grid, sigma: float, tol: float, dec: int) -> list[dict]:
-    """One grid's bands, contours and shoreline as GeoJSON features."""
+def features(grid: Grid, sigma: float, tol: float, dec: int, strip: float | None = None) -> list[dict]:
+    """One grid's bands, contours and shoreline as GeoJSON features.
+
+    Within `strip` metres of the grid's edge each band is cut away under the
+    next deeper, so only the band shown reaches the edge, and the grid's land
+    colour lies under nothing there. MapLibre simplifies every shape again as
+    it draws it, each alone, so edges that meet exactly in the file part by
+    up to a fifth of a pixel on screen; nested, the land colour showed in
+    that gap as a faint dotted line along the context grid's edge across open
+    sea (owner's report, 2026-11-12, on an iPhone, after the fill outlines
+    were gone). Cut, a gap shows the coarser grid's sea beneath. Nothing else
+    changes: in the strip the band shown is the one left."""
 
     import contourpy
-    from shapely import simplify
+    from shapely import segmentize, simplify, union_all
     from shapely.geometry import LineString, Polygon
 
     depth = smooth(grid.depth, sigma)
@@ -148,17 +163,24 @@ def features(grid: Grid, sigma: float, tol: float, dec: int) -> list[dict]:
                 for pts, off in zip(polys, offsets)]
 
     clip = edge(filled(-1e9), tol)
+    inner = segmentize(clip.buffer(-(strip if strip is not None else EDGE_INSET * tol), join_style="mitre"),
+                       EDGE_STEP * tol)
+    bands = []
+    for lower in (-1e9, H_LAND) + BANDS:
+        bands.append(union_all([simplify(poly, tol, preserve_topology=True).intersection(clip)
+                                for poly in filled(lower)] or [Polygon()]))
     out: list[dict] = []
-    for band, lower in enumerate((-1e9, H_LAND) + BANDS):
-        for poly in filled(lower):
-            shape = simplify(poly, tol, preserve_topology=True).intersection(clip)
-            for part in _parts(shape, "Polygon"):
-                if part.is_empty or part.area < least:
-                    continue
-                coords = [_lonlat(np.asarray(part.exterior.coords), dec)]
-                coords += [_lonlat(np.asarray(h.coords), dec) for h in part.interiors if Polygon(h).area >= least]
-                out.append({"type": "Feature", "properties": {"k": "fill", "b": band - 1},
-                            "geometry": {"type": "Polygon", "coordinates": coords}})
+    for band, shape in enumerate(bands):
+        if band + 1 < len(bands) and not bands[band + 1].is_empty:
+            # Within the strip along the grid's edge, only the band shown.
+            shape = union_all([shape.intersection(inner), shape.difference(inner).difference(bands[band + 1])])
+        for part in _parts(shape, "Polygon"):
+            if part.area < least:
+                continue
+            coords = [_lonlat(np.asarray(part.exterior.coords), dec)]
+            coords += [_lonlat(np.asarray(h.coords), dec) for h in part.interiors if Polygon(h).area >= least]
+            out.append({"type": "Feature", "properties": {"k": "fill", "b": band - 1},
+                        "geometry": {"type": "Polygon", "coordinates": coords}})
     for level in (H_LAND,) + LINES:
         for pts in gen.lines(level):
             if len(pts) < 3:
@@ -204,6 +226,15 @@ def edge(cover: list, tol: float):
     return segmentize(clip, EDGE_STEP * tol)
 
 
+def strip_m(minzoom: int) -> float:
+    """`STRIP_PX` CSS pixels in metres at the zoom a tier is first drawn (no
+    wider than the map's widest view, `WIDEST_ZOOM`), at the breaks'
+    latitude, MapLibre's 512 px tiles."""
+
+    zoom = max(minzoom, WIDEST_ZOOM)
+    return STRIP_PX * 2 * math.pi * 6_378_137 * math.cos(math.radians(32.7)) / (512 * 2 ** zoom)
+
+
 def retrieved(directory: Path = BATHY_DIR) -> dict[str, str | None]:
     """Each stored grid's `retrieved_utc`, the seabed's provenance."""
 
@@ -225,7 +256,7 @@ def build(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> dict:
         if grid is None:
             print(f"{name}: not stored; skipped")
             continue
-        feats = features(grid, sigma, tol, dec)
+        feats = features(grid, sigma, tol, dec, strip_m(minzoom))
         path = out / f"{name}.geojson"
         path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, separators=(",", ":")),
                         encoding="utf-8")

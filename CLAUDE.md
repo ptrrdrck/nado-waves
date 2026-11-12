@@ -590,6 +590,15 @@ forecaster actually verifies against, Surfline included.
    that outline also traces where a polygon is cut at a TILE's edge, and on
    the turned map faint light lines crossed the sea on tile boundaries,
    32.5468 N at zoom 9 -- not a grid's edge; edges measured as smooth),
+   and within a strip three CSS pixels wide (at the zoom a grid is first
+   drawn) along each grid's edge every band is cut away under the next
+   deeper, so only the band shown reaches the edge (`strip_m`; owner's
+   report, 2026-11-12, on an iPhone: MapLibre re-simplifies each shape as
+   it draws, edges that meet in the file part by up to ~0.2 px, and the
+   land colour under them showed as a faint dotted line along the context
+   grid's edge; drawn with no smoothing at all, 128 such pixels at zoom 5,
+   none after, and the finer grids' edges the same; a test pins one band,
+   the right one, just inside the edge),
    its contours at 5 ... 2,000 m and its shoreline at H_LAND; the depths
    smoothed over ~1 cell before contouring and simplified to 2 m near the beach
    and 80 m past Tanner Bank (contourpy, shapely); 1.5 MB, ~0.4 MB compressed,

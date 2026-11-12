@@ -45,21 +45,22 @@ def test_the_seabed_is_vectors_for_every_grid_the_rays_use():
     assert manifest["bands"][0] == H_LAND
 
 
-def test_every_band_ends_on_one_line_at_a_grids_edge():
-    """Owner's report, 2026-11-11: a land-coloured line ran across open sea
-    along the context grid's edge. Each band was simplified alone, and each
-    edge straight in UTM but not on the map, so a band whose edge was one
-    long chord bowed kilometres from one with vertices along it, and the
-    land colour under them all showed between. A synthetic grid 800 km
-    across, land along one side and the bands crossing the edge many times:
-    everywhere on the edge, every band the water there is deep enough for
-    must begin where the land colour does."""
+def test_one_band_and_the_right_one_at_a_grids_edge():
+    """Owner's reports, 2026-11-11 and -12: a line ran across open sea along
+    the context grid's edge. First the land colour (each band simplified
+    alone, and an edge straight in UTM but curved on the map, so the land
+    band's one long chord bowed kilometres past the rest); then, the edges
+    made one, a faint dotted line on an iPhone, because MapLibre simplifies
+    each shape again as it draws and the land colour showed in the sub-pixel
+    gaps. So just inside the edge exactly ONE band is drawn, and it is the
+    band the water there calls for. A synthetic grid 800 km across, land
+    along one side and the bands crossing the edge many times."""
 
     np = pytest.importorskip("numpy")
     pytest.importorskip("contourpy")
     pytest.importorskip("shapely")
     from shapely import union_all
-    from shapely.geometry import Point, shape
+    from shapely.geometry import shape
 
     from forecast import utm
     from forecast.raytrace import Grid
@@ -69,26 +70,25 @@ def test_every_band_ends_on_one_line_at_a_grids_edge():
     deep = 1800 + 1700 * np.sin(np.arange(n) / 23.0) * np.cos(np.arange(n)[:, None] / 31.0)
     deep[:, :12] = -150.0                                   # land along the west
     grid = Grid.from_elevation(-deep, left, top, cell, 0.0)
-    bands: dict[int, list] = {}
-    for f in features(grid, 0.8, 80.0, 4):
-        if f["properties"]["k"] == "fill":
-            bands.setdefault(f["properties"]["b"], []).append(shape(f["geometry"]))
-    union = {b: union_all(v) for b, v in bands.items()}
-    ring = union[-1].exterior
-    checked = worst = 0
+    fills = [(f["properties"]["b"], shape(f["geometry"])) for f in features(grid, 0.8, 80.0, 4, strip=1000.0)
+             if f["properties"]["k"] == "fill"]
+    drawn = union_all([g for _, g in fills])
+    ring = max(getattr(drawn, "geoms", [drawn]), key=lambda g: g.area).buffer(-0.001).exterior
+    lowers = (-1e9, H_LAND) + BANDS
+    checked = 0
     for i in range(800):
-        p = ring.interpolate(i / 800, normalized=True)
-        x, y = utm.to_utm(p.y, p.x)
+        q = ring.interpolate(i / 800, normalized=True)
+        on = [b for b, g in fills if g.contains(q)]
+        assert len(on) == 1, (q.x, q.y, on)
+        x, y = utm.to_utm(q.y, q.x)
         c = int(np.clip((x - left) / cell, 0, n - 1))
         r = int(np.clip((top - y) / cell, 0, n - 1))
-        depth = deep[max(r - 3, 0):r + 4, max(c - 3, 0):c + 4].min()   # the water all round
-        for b, lower in enumerate((H_LAND,) + BANDS):
-            if lower < depth and b in union:
-                checked += 1
-                worst = max(worst, union[b].distance(Point(p.x, p.y)))
-    # One rounding step of the 4 decimals kept (~10 m); apart, it was 0.06 deg.
-    assert checked > 2000
-    assert worst < 1e-4
+        near = deep[max(r - 3, 0):r + 4, max(c - 3, 0):c + 4]
+        want = {sum(lo <= d for lo in lowers) - 2 for d in (near.min(), near.max())}
+        if len(want) == 1:                                  # one band all round
+            checked += 1
+            assert on == [want.pop()], (q.x, q.y, on)
+    assert checked > 400
 
 
 def test_the_map_multisamples_and_draws_no_fill_outlines():
