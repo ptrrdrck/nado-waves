@@ -64,6 +64,7 @@ from pathlib import Path
 import numpy as np
 
 from . import utm as U
+from .mapdata import fingerprint
 from .raytrace import BATHY_DIR, H_LAND, Bathymetry, Grid
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -224,16 +225,6 @@ def edge(cover: list, tol: float):
 
     clip = simplify(union_all(cover), tol, preserve_topology=True).buffer(-EDGE_INSET * tol, join_style="mitre")
     return segmentize(clip, EDGE_STEP * tol)
-
-
-def fingerprint(path: Path) -> str:
-    """A file's content as 16 hex digits of its SHA-256: the version the page
-    keeps a copy under (`kept` in app/forecast.html), so a changed file is a
-    new copy and an unchanged one is never fetched twice."""
-
-    import hashlib
-
-    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
 def strip_m(minzoom: int) -> float:
