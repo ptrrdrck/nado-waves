@@ -276,7 +276,11 @@ forecaster actually verifies against, Surfline included.
    end (`.pill-lead`, the joined cut mirrored), and a tap switching that
    pill's text and nothing else -- no highlight, no pressed state. On LIVE
    the left pill is the age and a tap shows the countdown for 5 s
-   (`HEAD_TAP_MS`); overdue, it shows the red countdown and a tap the age.
+   (`HEAD_TAP_MS`), overdue too: the red dot says overdue and a tap shows the
+   red count (owner's call, 2026-11-12, after "Overdue 2 d 12:35:31" pushed
+   46086's pills under its name). A buoy's name gives way instead of the
+   pills: it ends on an ellipsis and its row never wraps
+   (`.chead:has(> .buoy-name)`).
    The dot keeps its 7 px inside a countdown RING with no track (`statusRing`:
    1.5 px of stroke at r 5.25, a 1 px gap of the pill between it and the
    dot, 12 px across; owner's pick 2026-11-10, C of three mocked, from 11 px

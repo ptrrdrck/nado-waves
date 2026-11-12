@@ -4922,10 +4922,19 @@ class TestTheTitleRowPills:
         assert "HEAD_ALT[key] = (HEAD_ALT[key] || 0) > Date.now() ? 0 : Date.now() + HEAD_TAP_MS;" in tap
         assert "else HEAD_ALT[key] = !HEAD_ALT[key];" in tap
         tick = self.fn("tickHeads")
-        # Overdue, the red countdown is what shows; a tap shows the age.
-        assert 'const over = !!btn.querySelector(".due.over");' in tick
-        assert "const showB = over ? !alt : alt;" in tick
+        # The age at rest even overdue (owner's call, 2026-11-12): the red
+        # count is a tap away, and the red dot says overdue.
+        assert "const showB = alt;" in tick
+        assert ".due.over" not in tick
         assert "tickHeads();" in self.fn("tickDue")
+
+    def test_a_buoy_name_gives_way_to_its_pills(self):
+        # Owner's report, 2026-11-12: a tap's long count put 46086's pills on
+        # a second line. The name ellipsises; its row never wraps.
+        assert ".chead:has(> .buoy-name){flex-wrap:nowrap}" in SOURCE
+        rule = SOURCE.split(".chead > .buoy-name{", 1)[1].split("}", 1)[0]
+        for part in ("min-width:0", "overflow:hidden", "text-overflow:ellipsis", "white-space:nowrap"):
+            assert part in rule
 
     def test_the_dot_keeps_its_size_inside_a_ring_with_a_hairline(self):
         """7 px dot (r 3.5), a 1 px gap, then 1.5 px of ring centred at

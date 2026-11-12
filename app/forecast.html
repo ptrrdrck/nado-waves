@@ -609,7 +609,13 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .chead-pills > .pill{background:transparent;padding:0 0 0 9px;border-radius:0;font-weight:500}
 /* A buoy's name in its title row, set as the station across from it is
    (owner's request, 2026-11-09): 12 px, ink, 500. */
-.chead > .buoy-name{font-size:12px;font-weight:500;line-height:18px;color:var(--ink);flex:none}
+.chead > .buoy-name{font-size:12px;font-weight:500;line-height:18px;color:var(--ink);
+  flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A buoy's name gives way to its pills, never the pills to a second line: it
+   ends on an ellipsis while a tap's countdown is wider than the age (owner's
+   report, 2026-11-12: "Overdue 2 d 12:35:31" put 46086's pills under its
+   name). */
+.chead:has(> .buoy-name){flex-wrap:nowrap}
 .chart-head:not([data-brief-head]){font-family:"Barlow Condensed",Archivo,sans-serif;font-size:12.5px;
   font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--soft)}
 /* "predicted" and "computed" set as the provenance was, a word on the
@@ -5016,8 +5022,9 @@ function modelPills(key, ...parts) {
 // THE TITLE ROW'S PILLS (owner's design, 2026-11-08). The station pill at the
 // right; at its left one pill holding two texts, `a` shown and `b` a tap
 // away. On LIVE, `a` is the age and `b` the countdown, `b` shown for
-// `HEAD_TAP_MS` after a tap, and the other way round once the update is
-// overdue, so red is never one tap away. A tap changes that text and nothing
+// `HEAD_TAP_MS` after a tap -- overdue too, where the red dot says so and the
+// tap shows the red count (owner's call, 2026-11-12: the count up ran wider
+// than the age and broke the row). A tap changes that text and nothing
 // else. Which is shown is kept by `key` across renders (`HEAD_ALT`): the
 // page rebuilds every card each minute, and a tap must outlive that.
 const HEAD_TAP_MS = 5000;
@@ -5037,15 +5044,13 @@ function headPills(head, a, b, {key, live = false} = {}) {
 
 // Which text each switchable pill shows, by its key: run from `tickDue`
 // every second, so a tap's five seconds and an overdue flip land on the
-// second, as the countdown beside them does. An overdue LIVE pill reads its
-// countdown's red; the update arriving puts it back on the age.
+// second, as the countdown beside them does.
 function tickHeads() {
   const now = Date.now();
   document.querySelectorAll("[data-head-key]").forEach((btn) => {
     const key = btn.getAttribute("data-head-key");
     const alt = btn.hasAttribute("data-head-live") ? (HEAD_ALT[key] || 0) > now : !!HEAD_ALT[key];
-    const over = !!btn.querySelector(".due.over");
-    const showB = over ? !alt : alt;
+    const showB = alt;
     const a = btn.querySelector('[data-head-text="a"]');
     const b = btn.querySelector('[data-head-text="b"]');
     if (!a || !b) return;
