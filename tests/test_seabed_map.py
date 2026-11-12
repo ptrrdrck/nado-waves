@@ -103,6 +103,32 @@ def test_the_map_multisamples_and_draws_no_fill_outlines():
     assert len(fills) == 2 and all('"fill-antialias": false' in f for f in fills)
 
 
+def test_the_maps_files_are_kept_on_the_device_by_their_version():
+    """Owner's report, 2026-11-12: the map downloaded again on visits a few
+    minutes apart. Pages lets a browser hold a file for ten minutes only and
+    redeploys every collection, so the page keeps the library, the seabed and
+    the rays in Cache Storage under each one's version, fetched at a URL
+    carrying it: the library's in its path, the others' fingerprints in
+    map.json, each the file's own SHA-256 so a redrawn file is a new copy."""
+
+    from forecast import mapdata
+    from forecast.seabedvector import fingerprint
+
+    manifest = json.loads((ROOT / "data" / "seabed_vector" / "manifest.json").read_text())
+    for tier in manifest["tiers"]:
+        assert tier["sha"] == fingerprint(ROOT / "data" / "seabed_vector" / tier["file"])
+    paths = mapdata.build()["paths"]
+    assert set(paths) == {"coronado_north", "coronado_center", "coronado_south"}
+    for name, sha in paths.items():
+        assert sha == fingerprint(ROOT / "data" / "nearshore" / f"{name}_paths.json")
+    assert 'const KEEP = "nado-waves-map";' in PAGE
+    assert 'at.searchParams.set("v", version);' in PAGE
+    assert "kept(`${MAPLIBRE}.js`, LIB_VERSION)" in PAGE and "kept(`${MAPLIBRE}.css`, LIB_VERSION)" in PAGE
+    assert "kept(seabedUrl(tr.file), tr.sha)" in PAGE
+    assert "kept(file, ((MAPDATA || {}).paths || {})[id])" in PAGE
+    assert "fetch(`${NEARSHORE_PATHS}" not in PAGE
+
+
 def test_the_map_library_is_bundled_with_its_licence_and_loaded_only_when_shown():
     """BSD-3, bundled (owner's call, 2026-11-10), and never in the page's own
     head: it is fetched by `ready()` the first time a map is shown."""
