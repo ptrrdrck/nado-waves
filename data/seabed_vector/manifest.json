@@ -36,36 +36,36 @@
    "name": "wide",
    "file": "wide.geojson",
    "minzoom": 0,
-   "features": 405,
-   "bytes": 581730
+   "features": 414,
+   "bytes": 588491
   },
   {
    "name": "context",
    "file": "context.geojson",
    "minzoom": 0,
-   "features": 549,
-   "bytes": 1013329
+   "features": 576,
+   "bytes": 1040174
   },
   {
    "name": "outer",
    "file": "outer.geojson",
    "minzoom": 8,
-   "features": 129,
-   "bytes": 193922
+   "features": 130,
+   "bytes": 197896
   },
   {
    "name": "regional",
    "file": "regional.geojson",
    "minzoom": 9,
-   "features": 76,
-   "bytes": 267005
+   "features": 78,
+   "bytes": 271364
   },
   {
    "name": "nearshore",
    "file": "nearshore.geojson",
    "minzoom": 11,
-   "features": 53,
-   "bytes": 110477
+   "features": 54,
+   "bytes": 114035
   }
  ]
 }
