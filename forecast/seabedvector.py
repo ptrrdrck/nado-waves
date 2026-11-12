@@ -46,7 +46,7 @@ a line does not trace the survey's cell-scale noise, and simplified to a few
 metres near the beach and 80 m out past Tanner Bank. A display, never a
 depth anyone reads: the chain reads the grids themselves.
 
-`manifest.json` holds each file's zoom and size and each grid's
+`manifest.json` holds each file's zoom, size and fingerprint and each grid's
 `retrieved_utc`, so a test can tell when a grid has been fetched again and the
 seabed not redrawn. The bathymetry workflows redraw it after every fetch.
 Derived but tracked, as `data/series/` is: a collection cannot build it.
@@ -226,6 +226,16 @@ def edge(cover: list, tol: float):
     return segmentize(clip, EDGE_STEP * tol)
 
 
+def fingerprint(path: Path) -> str:
+    """A file's content as 16 hex digits of its SHA-256: the version the page
+    keeps a copy under (`kept` in app/forecast.html), so a changed file is a
+    new copy and an unchanged one is never fetched twice."""
+
+    import hashlib
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
 def strip_m(minzoom: int) -> float:
     """`STRIP_PX` CSS pixels in metres at the zoom a tier is first drawn (no
     wider than the map's widest view, `WIDEST_ZOOM`), at the breaks'
@@ -261,7 +271,8 @@ def build(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> dict:
         path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, separators=(",", ":")),
                         encoding="utf-8")
         manifest["tiers"].append({"name": name, "file": path.name, "minzoom": minzoom,
-                                  "features": len(feats), "bytes": path.stat().st_size})
+                                  "features": len(feats), "bytes": path.stat().st_size,
+                                  "sha": fingerprint(path)})
         print(f"{name}: from zoom {minzoom}, {len(feats)} features, {path.stat().st_size / 1e3:.0f} KB")
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
     return manifest
@@ -281,7 +292,7 @@ def check(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> list[str]:
                         f"drawn from {manifest.get('grids')}, grids now {retrieved(directory)}")
     for tier in manifest["tiers"]:
         f = out / tier["file"]
-        if not f.exists() or f.stat().st_size != tier["bytes"]:
+        if not f.exists() or f.stat().st_size != tier["bytes"] or fingerprint(f) != tier.get("sha"):
             problems.append(f"{tier['name']}: {f.name} missing or not the file the manifest names")
     return problems
 

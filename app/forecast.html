@@ -9523,21 +9523,60 @@ Promise.all([
     return pts;
   }
 
+  // The map's files, KEPT on this device (owner's report, 2026-11-12): Pages
+  // lets a browser hold a file for ten minutes only and redeploys every
+  // collection, so the library, the seabed and the rays (~1 MB) came down
+  // again on any visit ten minutes after the last. Each is kept in the
+  // browser's Cache Storage under its version -- the library's in its path,
+  // the seabed's and the rays' fingerprints in map.json -- fetched at a URL
+  // carrying that version, so no cache can hand back an older file under a
+  // newer one, and a changed file is a new copy (the old one deleted). Without
+  // Cache Storage, or without a version, the plain fetch. Returns a blob: URL.
+  const KEEP = "nado-waves-map";
+  async function kept(url, version) {
+    if (!version) return url;
+    const at = new URL(url, location.href);
+    at.searchParams.set("v", version);
+    let box = null, res = null;
+    try { box = await caches.open(KEEP); res = await box.match(at.href); } catch (e) { box = null; }
+    if (!res) {
+      res = await fetch(at.href);
+      if (!res.ok) throw new Error(`${res.status} ${url}`);
+      if (box) {
+        try {
+          await box.put(at.href, res.clone());
+          for (const old of await box.keys()) {
+            const o = new URL(old.url);
+            if (o.pathname === at.pathname && o.href !== at.href) await box.delete(old);
+          }
+        } catch (e) { /* a full or refused cache: this visit's copy still draws */ }
+      }
+    }
+    return URL.createObjectURL(await res.blob());
+  }
+  const LIB_VERSION = (/maplibre-gl-([\d.]+)/.exec(MAPLIBRE) || [])[1];
+
   // The map library and map.json, once, the first time a map is shown.
   function ready() {
     if (LOADING) return LOADING;
-    const lib = window.maplibregl ? Promise.resolve() : new Promise((ok, fail) => {
+    const lib = window.maplibregl ? Promise.resolve() : Promise.all([
+      kept(`${MAPLIBRE}.css`, LIB_VERSION).catch(() => `${MAPLIBRE}.css`),
+      kept(`${MAPLIBRE}.js`, LIB_VERSION).catch(() => `${MAPLIBRE}.js`),
+    ]).then(([cssUrl, jsUrl]) => new Promise((ok, fail) => {
       const css = document.createElement("link");
       css.rel = "stylesheet";
-      css.href = `${MAPLIBRE}.css`;
+      css.href = cssUrl;
       document.head.appendChild(css);
       const js = document.createElement("script");
-      js.src = `${MAPLIBRE}.js`;
+      js.src = jsUrl;
       js.onload = ok;
       js.onerror = fail;
       document.head.appendChild(js);
-    });
-    const data = fetch(fresh(MAP_SOURCE), {cache: "no-store"}).then((r) => (r.ok ? r.json() : null));
+    }));
+    const data = fetch(fresh(MAP_SOURCE), {cache: "no-store"}).then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && Promise.all(((d.seabed || {}).tiers || []).map((tr) =>
+        kept(seabedUrl(tr.file), tr.sha).catch(() => seabedUrl(tr.file)).then((u) => { tr.url = u; })))
+        .then(() => d));
     LOADING = Promise.all([lib, data]).then(([, d]) => { MAPDATA = d; return d; })
       .catch(() => { LOADING = null; return null; });
     return LOADING;
@@ -9658,7 +9697,7 @@ Promise.all([
       const tiers = (MAPDATA.seabed || {}).tiers || [];
       const sources = {}, layers = [{id: "sm-bg", type: "background", paint: {}}];
       tiers.forEach((tr) => {
-        sources[`seabed-${tr.name}`] = {type: "geojson", data: seabedUrl(tr.file), tolerance: 0.2, buffer: 64};
+        sources[`seabed-${tr.name}`] = {type: "geojson", data: tr.url || seabedUrl(tr.file), tolerance: 0.2, buffer: 64};
         const at = {source: `seabed-${tr.name}`, minzoom: tr.minzoom};
         // No outline pass: the canvas multisamples instead (`antialias`
         // below). MapLibre's anti-aliased outline also traces where it cuts
@@ -10304,10 +10343,13 @@ Promise.all([
       .catch(() => { FILL_LOADING = null; return null; });
     return FILL_LOADING;
   }
-  // A break's ray paths, static between ray-table builds, fetched once.
+  // A break's ray paths, static between ray-table builds, fetched once and
+  // kept on this device (`kept`).
   function pathsOf(id) {
     if (!PATHS[id]) {
-      PATHS[id] = fetch(`${NEARSHORE_PATHS}${id}_paths.json`)
+      const file = `${NEARSHORE_PATHS}${id}_paths.json`;
+      PATHS[id] = kept(file, ((MAPDATA || {}).paths || {})[id]).catch(() => file)
+        .then((u) => fetch(u))
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           if (!d) { delete PATHS[id]; return null; }

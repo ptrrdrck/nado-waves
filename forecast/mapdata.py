@@ -9,7 +9,14 @@
 - `buoys`: the other buoys the page shows, 46086 and 46047, at NDBC's fetched
   coordinates (`forecast.siting.load_coordinates`), never typed.
 - `seabed`: `data/seabed_vector/manifest.json`, so the page knows each
-  grid's file and the zoom it is drawn from (forecast.seabedvector).
+  grid's file, the zoom it is drawn from and its fingerprint
+  (forecast.seabedvector).
+- `paths`: each break's `<break>_paths.json` (the fill's rays) by its
+  fingerprint. The page keeps a copy of every file the map loads in the
+  browser's own cache under that fingerprint (`kept`): Pages lets a browser
+  hold a file for ten minutes only and redeploys every collection, so the
+  map's ~1 MB came down again on any visit after ten minutes (owner's
+  report, 2026-11-12).
 
 Static between geometry changes, a few KB, built by `forecast.publish` into
 both bundles beside the page (which ships from both jobs) and written here for
@@ -26,13 +33,16 @@ from collector.common import DEFAULT_DATA_DIR
 
 ROOT = Path(__file__).resolve().parent.parent
 SEABED_DIR = ROOT / "data" / "seabed_vector"
+NEARSHORE_DIR = ROOT / "data" / "nearshore"
 #: The buoys marked on the map beside 46232 (geomviz's own), as the Buoys tab
 #: shows them.
 OTHER_BUOYS = ("46086", "46047")
 
 
-def build(data_dir: Path = DEFAULT_DATA_DIR, seabed_dir: Path = SEABED_DIR) -> dict:
+def build(data_dir: Path = DEFAULT_DATA_DIR, seabed_dir: Path = SEABED_DIR,
+          nearshore_dir: Path = NEARSHORE_DIR) -> dict:
     from . import geomviz
+    from .seabedvector import fingerprint
     from .siting import load_coordinates
 
     where = load_coordinates()
@@ -42,6 +52,8 @@ def build(data_dir: Path = DEFAULT_DATA_DIR, seabed_dir: Path = SEABED_DIR) -> d
         "geometry": json.loads(json.dumps(geomviz.build(data_dir=data_dir), default=list)),
         "buoys": {b: list(where[b]) for b in OTHER_BUOYS if b in where},
         "seabed": seabed,
+        "paths": {p.name.removesuffix("_paths.json"): fingerprint(p)
+                  for p in sorted(nearshore_dir.glob("*_paths.json"))},
     }
 
 

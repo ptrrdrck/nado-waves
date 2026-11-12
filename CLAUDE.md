@@ -603,6 +603,15 @@ forecaster actually verifies against, Surfline included.
    grid's edge; drawn with no smoothing at all, 128 such pixels at zoom 5,
    none after, and the finer grids' edges the same; a test pins one band,
    the right one, just inside the edge),
+   and every file the map loads -- the library, the seabed, each break's
+   rays -- KEPT on the device (owner's report, 2026-11-12: it downloaded again
+   on visits minutes apart; Pages lets a browser hold a file ten minutes and
+   redeploys every collection): Cache Storage, under each file's version, the
+   library's in its path and the others' 16-hex SHA-256 fingerprints in the
+   seabed manifest and map.json's `paths`, fetched at a URL carrying it so no
+   cache hands an older file back under a newer one, a changed file a new
+   copy and the old deleted (`kept`); measured in Chromium, a reload fetches
+   map.json alone,
    its contours at 5 ... 2,000 m and its shoreline at H_LAND; the depths
    smoothed over ~1 cell before contouring and simplified to 2 m near the beach
    and 80 m past Tanner Bank (contourpy, shapely); 1.5 MB, ~0.4 MB compressed,
