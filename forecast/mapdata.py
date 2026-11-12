@@ -26,6 +26,7 @@ the page served from the repository.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -39,10 +40,19 @@ NEARSHORE_DIR = ROOT / "data" / "nearshore"
 OTHER_BUOYS = ("46086", "46047")
 
 
+def fingerprint(path: Path) -> str:
+    """A file's content as 16 hex digits of its SHA-256: the version the page
+    keeps a copy under (`kept` in app/forecast.html), so a changed file is a
+    new copy and an unchanged one is never fetched twice. Here, not in
+    seabedvector, which loads numpy: the publish steps run without it, and
+    importing it from there stopped every publish for two hours (2026-11-12)."""
+
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+
+
 def build(data_dir: Path = DEFAULT_DATA_DIR, seabed_dir: Path = SEABED_DIR,
           nearshore_dir: Path = NEARSHORE_DIR) -> dict:
     from . import geomviz
-    from .seabedvector import fingerprint
     from .siting import load_coordinates
 
     where = load_coordinates()

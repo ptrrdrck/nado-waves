@@ -112,7 +112,7 @@ def test_the_maps_files_are_kept_on_the_device_by_their_version():
     map.json, each the file's own SHA-256 so a redrawn file is a new copy."""
 
     from forecast import mapdata
-    from forecast.seabedvector import fingerprint
+    from forecast.mapdata import fingerprint
 
     manifest = json.loads((ROOT / "data" / "seabed_vector" / "manifest.json").read_text())
     for tier in manifest["tiers"]:
@@ -127,6 +127,22 @@ def test_the_maps_files_are_kept_on_the_device_by_their_version():
     assert "kept(seabedUrl(tr.file), tr.sha)" in PAGE
     assert "kept(file, ((MAPDATA || {}).paths || {})[id])" in PAGE
     assert "fetch(`${NEARSHORE_PATHS}" not in PAGE
+
+
+def test_map_json_is_built_without_numpy():
+    """The publish steps run without numpy. On 2026-11-12 mapdata imported its
+    fingerprint from seabedvector, which loads numpy, and every publish
+    failed for two hours: the forecast build red, every collection's publish
+    silently (continue-on-error), every LIVE card overdue."""
+
+    import subprocess
+    import sys
+
+    code = ("import sys; sys.modules['numpy'] = None; "
+            "from forecast import mapdata; import forecast.publish; d = mapdata.build(); "
+            "assert d['paths'] and d['seabed']['tiers'][0]['sha']")
+    run = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr[-2000:]
 
 
 def test_the_map_library_is_bundled_with_its_licence_and_loaded_only_when_shown():
