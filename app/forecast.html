@@ -9655,7 +9655,13 @@ Promise.all([
       tiers.forEach((tr) => {
         sources[`seabed-${tr.name}`] = {type: "geojson", data: seabedUrl(tr.file), tolerance: 0.2, buffer: 64};
         const at = {source: `seabed-${tr.name}`, minzoom: tr.minzoom};
-        layers.push({id: `seabed-${tr.name}-fill`, type: "fill", ...at, filter: ["==", ["get", "k"], "fill"], paint: {}});
+        // No outline pass: the canvas multisamples instead (`antialias`
+        // below). MapLibre's anti-aliased outline also traces where it cuts
+        // a polygon at a tile's edge, and on the turned map that drew faint
+        // light lines across the sea at the tile boundaries (owner's
+        // report, 2026-11-12).
+        layers.push({id: `seabed-${tr.name}-fill`, type: "fill", ...at, filter: ["==", ["get", "k"], "fill"],
+          paint: {"fill-antialias": false}});
         layers.push({id: `seabed-${tr.name}-line`, type: "line", ...at, filter: ["==", ["get", "k"], "line"],
           layout: {"line-join": "round", "line-cap": "round"}, paint: {}});
         layers.push({id: `seabed-${tr.name}-coast`, type: "line", ...at, filter: ["==", ["get", "k"], "coast"],
@@ -9666,7 +9672,7 @@ Promise.all([
         container: this.el, style: {version: 8, sources, layers},
         center: ll(this.b.position), zoom: 11, bearing: this.b.normal,
         attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false,
-        maxPitch: 0, maxZoom: MAX_ZOOM, cooperativeGestures: true, fadeDuration: 0,
+        maxPitch: 0, maxZoom: MAX_ZOOM, cooperativeGestures: true, fadeDuration: 0, antialias: true,
         locale: {
           "CooperativeGesturesHandler.MobileHelpText": "Use two fingers to move the map",
           "CooperativeGesturesHandler.WindowsHelpText": "Use Ctrl + scroll to zoom the map",
@@ -9754,7 +9760,7 @@ Promise.all([
       map.addSource("sm-sections", {type: "geojson", data: fc(d.sections.map((sec) => ({type: "Feature",
         properties: {key: sec.key, shadow: sec.key[0] === "s", lit: false},
         geometry: {type: "Polygon", coordinates: [fan(p, b.normal + sec.a0, b.normal + sec.a1, far)]}})))});
-      map.addLayer({id: "sm-sections", type: "fill", source: "sm-sections", paint: {}});
+      map.addLayer({id: "sm-sections", type: "fill", source: "sm-sections", paint: {"fill-antialias": false}});
       const edges = b.windows.flatMap((w) => w.edges);
       map.addSource("sm-edges", {type: "geojson", data: fc(edges.map((e) => line([ll(p), ll(e.vertex)])))});
       map.addSource("sm-beyond", {type: "geojson", data: fc(edges.map((e) => line([ll(e.vertex), ll(dest(p, e.bearing, far))])))});

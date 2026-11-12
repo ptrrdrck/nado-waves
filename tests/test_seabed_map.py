@@ -91,6 +91,18 @@ def test_every_band_ends_on_one_line_at_a_grids_edge():
     assert worst < 1e-4
 
 
+def test_the_map_multisamples_and_draws_no_fill_outlines():
+    """Owner's report, 2026-11-12: faint light lines across the sea, each on
+    a tile boundary (32.5468 N at zoom 9). MapLibre's anti-aliased fill
+    outline also traces where a polygon is cut at a tile's edge; on the
+    turned map those cuts showed. So no fill draws an outline and the canvas
+    multisamples instead, which keeps the edges smooth."""
+
+    assert "cooperativeGestures: true, fadeDuration: 0, antialias: true," in PAGE
+    fills = re.findall(r'type: "fill",[^;]*?paint: \{([^}]*)\}', PAGE)
+    assert len(fills) == 2 and all('"fill-antialias": false' in f for f in fills)
+
+
 def test_the_map_library_is_bundled_with_its_licence_and_loaded_only_when_shown():
     """BSD-3, bundled (owner's call, 2026-11-10), and never in the page's own
     head: it is fetched by `ready()` the first time a map is shown."""

@@ -585,6 +585,11 @@ forecaster actually verifies against, Surfline included.
    band simplified alone, and a UTM-straight edge curving on the map, a band
    whose edge was one 900 km chord bowed up to ~3 km from its neighbours;
    a test pins one line on a synthetic grid, 0.06 deg apart before),
+   and NO fill draws MapLibre's anti-aliased outline, the canvas
+   multisampling instead (`antialias: true`; owner's report, 2026-11-12:
+   that outline also traces where a polygon is cut at a TILE's edge, and on
+   the turned map faint light lines crossed the sea on tile boundaries,
+   32.5468 N at zoom 9 -- not a grid's edge; edges measured as smooth),
    its contours at 5 ... 2,000 m and its shoreline at H_LAND; the depths
    smoothed over ~1 cell before contouring and simplified to 2 m near the beach
    and 80 m past Tanner Bank (contourpy, shapely); 1.5 MB, ~0.4 MB compressed,
