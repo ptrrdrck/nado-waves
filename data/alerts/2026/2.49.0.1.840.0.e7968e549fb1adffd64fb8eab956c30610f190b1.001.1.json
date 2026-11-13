@@ -1,0 +1,118 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e7968e549fb1adffd64fb8eab956c30610f190b1.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e7968e549fb1adffd64fb8eab956c30610f190b1.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.e7968e549fb1adffd64fb8eab956c30610f190b1.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d9f5f95c4d13d56c8e428d79f540ead0438d172e.001.1",
+                "identifier": "urn:oid:2.49.0.1.840.0.d9f5f95c4d13d56c8e428d79f540ead0438d172e.001.1",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-13T01:23:00-08:00"
+            },
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.1b7b5b50afdceeddeed246b1b8f7408d2f30c980.001.2",
+                "identifier": "urn:oid:2.49.0.1.840.0.1b7b5b50afdceeddeed246b1b8f7408d2f30c980.001.2",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-13T03:02:00-08:00"
+            },
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.0ca489d46bf1522f21949f82db35fd4f3855c265.001.1",
+                "identifier": "urn:oid:2.49.0.1.840.0.0ca489d46bf1522f21949f82db35fd4f3855c265.001.1",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-12T11:51:00-08:00"
+            },
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.8d30ef6d379887bd752deda979abc6a4a4efdabe.001.1",
+                "identifier": "urn:oid:2.49.0.1.840.0.8d30ef6d379887bd752deda979abc6a4a4efdabe.001.1",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-12T21:35:00-08:00"
+            },
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.31909a6db8c96b67fceb93f99bfb60b647de0a06.001.2",
+                "identifier": "urn:oid:2.49.0.1.840.0.31909a6db8c96b67fceb93f99bfb60b647de0a06.001.2",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-13T05:18:00-08:00"
+            }
+        ],
+        "sent": "2026-11-13T05:22:00-08:00",
+        "effective": "2026-11-13T05:22:00-08:00",
+        "onset": "2026-11-13T16:00:00-08:00",
+        "expires": "2026-11-13T14:00:00-08:00",
+        "ends": "2026-11-15T10:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Update",
+        "category": "Met",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "High Surf Advisory",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "High Surf Advisory issued November 13 at 5:22AM PST until November 15 at 10:00AM PST by NWS San Diego CA",
+        "description": "* WHAT...Large breaking waves of 5 to 7 feet with sets to 8 to 9\nfeet at west facing beaches. High rip current risk.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...From 4 PM this afternoon to 10 AM PST Sunday.\n\n* IMPACTS...Dangerous swimming and surfing conditions and\nlocalized beach erosion.\n\n* ADDITIONAL DETAILS...Tides will be falling during this time,\nbut adjusted high tides will be near 7 feet which could combine\nwith the high surf to produce localized beach erosion and\noverflow into parking lots and boardwalks. Surf begins to wane\nSunday afternoon but may remain elevated for west-facing beaches\ninto Monday.",
+        "instruction": "Inexperienced swimmers should remain out of the water due to\ndangerous surf conditions.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 131322"
+            ],
+            "NWSheadline": [
+                "HIGH SURF ADVISORY REMAINS IN EFFECT FROM 4 PM THIS AFTERNOON TO 10 AM PST SUNDAY"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.CON.KSGX.SU.Y.0007.261114T0000Z-261115T1800Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-15T10:00:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "SUY"
+            ]
+        }
+    }
+}
