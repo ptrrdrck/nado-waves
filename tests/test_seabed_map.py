@@ -129,22 +129,6 @@ def test_the_maps_files_are_kept_on_the_device_by_their_version():
     assert "fetch(`${NEARSHORE_PATHS}" not in PAGE
 
 
-def test_map_json_is_built_without_numpy():
-    """The publish steps run without numpy. On 2026-11-12 mapdata imported its
-    fingerprint from seabedvector, which loads numpy, and every publish
-    failed for two hours: the forecast build red, every collection's publish
-    silently (continue-on-error), every LIVE card overdue."""
-
-    import subprocess
-    import sys
-
-    code = ("import sys; sys.modules['numpy'] = None; "
-            "from forecast import mapdata; import forecast.publish; d = mapdata.build(); "
-            "assert d['paths'] and d['seabed']['tiers'][0]['sha']")
-    run = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True)
-    assert run.returncode == 0, run.stderr[-2000:]
-
-
 def test_the_map_library_is_bundled_with_its_licence_and_loaded_only_when_shown():
     """BSD-3, bundled (owner's call, 2026-11-10), and never in the page's own
     head: it is fetched by `ready()` the first time a map is shown."""

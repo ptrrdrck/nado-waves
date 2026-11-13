@@ -8,7 +8,9 @@
 # rebuilds only the last week. Measured 2026-09-27: all 1,309 archived hours in
 # 35 s on four workers; a year of spectra is about five minutes.
 #
-# It is the store's ONLY writer, so its push never conflicts on those files.
+# It is the store's ONLY writer, so its push never conflicts on those files
+# with another workflow's; and it checks out the branch's tip, so it never
+# conflicts with an earlier run of its own either (below).
 # Every run rebuilds everything from scratch. The result is deterministic, so a
 # run whose chain did not change commits only the new hours.
 #
@@ -45,7 +47,16 @@ jobs:
     timeout-minutes: 90
 
     steps:
+      # The branch's tip as the job starts, never the commit that triggered
+      # it. Runs queue behind each other (the concurrency group), and a queued
+      # run checked out its trigger's commit, from BEFORE the run ahead of it
+      # pushed: it rebuilt the archive on that stale base, and its rebase onto
+      # the newer rebuild conflicted on the same file. Three of 25 runs failed
+      # so between 10 and 12 Nov (133, 135, 146), each one queued behind
+      # another.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-python@v6
         with:
