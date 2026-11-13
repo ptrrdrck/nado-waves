@@ -1,0 +1,178 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.c324513e75a5a9cdf262303f8028f68300bf2a2b.001.1",
+    "type": "Feature",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [
+                    -117.1,
+                    32.6
+                ],
+                [
+                    -117.14,
+                    32.69
+                ],
+                [
+                    -117.15,
+                    32.7
+                ],
+                [
+                    -117.13,
+                    32.62
+                ],
+                [
+                    -117.23,
+                    32.69
+                ],
+                [
+                    -117.21,
+                    32.72
+                ],
+                [
+                    -117.16,
+                    32.7
+                ],
+                [
+                    -117.16,
+                    32.71
+                ],
+                [
+                    -117.17,
+                    32.72
+                ],
+                [
+                    -117.22,
+                    32.73
+                ],
+                [
+                    -117.24,
+                    32.72
+                ],
+                [
+                    -117.24,
+                    32.67
+                ],
+                [
+                    -117.26,
+                    32.97
+                ],
+                [
+                    -117.32,
+                    33.11
+                ],
+                [
+                    -117.56,
+                    33.41
+                ],
+                [
+                    -117.3,
+                    33.46
+                ],
+                [
+                    -116.89,
+                    32.56
+                ],
+                [
+                    -117.12,
+                    32.54
+                ],
+                [
+                    -117.1,
+                    32.6
+                ]
+            ]
+        ]
+    },
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.c324513e75a5a9cdf262303f8028f68300bf2a2b.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.c324513e75a5a9cdf262303f8028f68300bf2a2b.001.1",
+        "areaDesc": "San Diego County Coastal Areas; San Diego County Inland Valleys; Santa Ana Mountains and Foothills",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059",
+                "006065"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ050",
+                "CAZ057"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ050",
+            "https://api.weather.gov/zones/forecast/CAZ057"
+        ],
+        "references": [],
+        "sent": "2026-11-13T03:50:00-08:00",
+        "effective": "2026-11-13T03:50:00-08:00",
+        "onset": "2026-11-13T03:50:00-08:00",
+        "expires": "2026-11-13T04:30:00-08:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Observed",
+        "urgency": "Expected",
+        "event": "Special Weather Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Special Weather Statement issued November 13 at 3:50AM PST by NWS San Diego CA",
+        "description": "At 349 AM PST, Doppler radar was tracking strong thunderstorms along\na line extending from Camp Pendleton to Imperial Beach. Movement was\nnortheast at 25 mph.\n\nHAZARD...Wind gusts up to 50 mph and pea size hail.\n\nSOURCE...Radar indicated.\n\nIMPACT...Gusty winds could knock down tree limbs and blow around\nunsecured objects. Minor hail damage to vegetation is\npossible.\n\nLocations impacted include...\nChula Vista, Oceanside, Carlsbad, El Cajon, Vista, Encinitas,\nNational City, La Mesa, Poway, Imperial Beach, Coronado, Del Mar,\nMission Valley, Hillcrest, Linda Vista, North Park, Midway District\nIncluding Lindbergh Field, Camp Pendleton, Tierrasanta, and\nUniversity City.",
+        "instruction": "If outdoors, consider seeking shelter inside a building.",
+        "response": "Execute",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "SPSSGX"
+            ],
+            "WMOidentifier": [
+                "WWUS86 KSGX 131150"
+            ],
+            "NWSheadline": [
+                "STRONG THUNDERSTORMS WILL IMPACT WESTERN SAN DIEGO COUNTY THROUGH 430 AM PST"
+            ],
+            "eventMotionDescription": [
+                "2026-11-13T11:49:00-00:00...storm...214DEG...22KT...33.37,-117.51 32.57,-117.11"
+            ],
+            "maxWindGust": [
+                "50 MPH"
+            ],
+            "maxHailSize": [
+                "0.25"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "EAS-ORG": [
+                "WXR"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "SPS"
+            ],
+            "NationalWeatherService": [
+                "SPS"
+            ]
+        }
+    }
+}
