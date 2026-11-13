@@ -1,0 +1,87 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.548e85b6a8072258559f748dd9e1282478d8cdb1.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.548e85b6a8072258559f748dd9e1282478d8cdb1.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.548e85b6a8072258559f748dd9e1282478d8cdb1.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [],
+        "sent": "2026-11-13T12:15:00-08:00",
+        "effective": "2026-11-13T12:15:00-08:00",
+        "onset": "2026-11-14T07:00:00-08:00",
+        "expires": "2026-11-13T20:15:00-08:00",
+        "ends": "2026-11-14T16:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Coastal Flood Advisory",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Coastal Flood Advisory issued November 13 at 12:15PM PST until November 14 at 4:00PM PST by NWS San Diego CA",
+        "description": "* WHAT...For the High Surf Advisory, large breaking waves of 5 to\n7 feet with sets 8 to 10 feet along west-facing beaches. For the\nCoastal Flood Advisory, minor coastal flooding expected,\nparticularly along west-facing beaches where surf will be\nhighest.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...For the High Surf Advisory, from 4 PM this afternoon to\n10 AM PST Sunday. For the Coastal Flood Advisory, from 7 AM to\n4 PM PST Saturday.\n\n* IMPACTS...Flooding of lots, parks, and roads with only\nisolated road closures expected. Dangerous swimming and\nsurfing conditions and localized beach erosion.\n\n* ADDITIONAL DETAILS...Adjusted high tides will be near 6.2-6.5\nfeet around midday on Saturday, which will combine with high\nsurf to produce minor coastal flooding. Highest surf is expected\nto occur late Saturday into early Sunday. Surf begins to wane\nSunday afternoon but will remain elevated into Monday.",
+        "instruction": "If travel is required, allow extra time as some roads may be\nclosed. Do not drive around barricades or through water of\nunknown depth. Take the necessary actions to protect flood-prone\nproperty.\n\nInexperienced swimmers should remain out of the water due to\ndangerous surf conditions.",
+        "response": "Monitor",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 132015"
+            ],
+            "NWSheadline": [
+                "HIGH SURF ADVISORY REMAINS IN EFFECT FROM 4 PM THIS AFTERNOON TO 10 AM PST SUNDAY... ...COASTAL FLOOD ADVISORY IN EFFECT FROM 7 AM TO 4 PM PST SATURDAY"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.NEW.KSGX.CF.Y.0010.261114T1500Z-261115T0000Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-14T16:00:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "CFY"
+            ]
+        }
+    }
+}
