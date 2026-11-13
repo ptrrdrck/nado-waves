@@ -1,0 +1,87 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.1b7b5b50afdceeddeed246b1b8f7408d2f30c980.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.1b7b5b50afdceeddeed246b1b8f7408d2f30c980.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.1b7b5b50afdceeddeed246b1b8f7408d2f30c980.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [],
+        "sent": "2026-11-13T03:02:00-08:00",
+        "effective": "2026-11-13T03:02:00-08:00",
+        "onset": "2026-11-13T03:02:00-08:00",
+        "expires": "2026-11-13T10:00:00-08:00",
+        "ends": "2026-11-13T08:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Beach Hazards Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Beach Hazards Statement issued November 13 at 3:02AM PST until November 13 at 8:00AM PST by NWS San Diego CA",
+        "description": "...HIGH SURF ADVISORY REMAINS IN EFFECT FROM 4 PM THIS AFTERNOON\nTO 10 AM PST SUNDAY...\n\n* WHAT...For the Beach Hazards Statement, cloud to ground\nlightning expected as a band of thunderstorms moves ashore. For\nthe High Surf Advisory, large breaking waves of 5 to 7 feet\nwith sets to 8 to 9 feet at west facing beaches. High rip\ncurrent risk.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...For the Beach Hazards Statement, until 8 AM PST this\nmorning. For the High Surf Advisory, from 4 PM this afternoon\nto 10 AM PST Sunday.\n\n* IMPACTS...Cloud to ground lightning is expected at beaches\nthrough 8 AM. Dangerous swimming and surfing conditions and\nlocalized beach erosion.\n\n* ADDITIONAL DETAILS...The thunderstorms and lightning threat will\ndiminish after 8 AM. Tides will be falling during this time, but\nadjusted high tides will be near 7 feet which could combine with\nthe high surf to produce localized beach erosion and overflow\ninto parking lots and boardwalks. Surf begins to wane Sunday\nafternoon but may remain elevated for west-facing beaches into\nMonday.",
+        "instruction": "A beach hazards statement for beach lightning means that there is\nthe potential for cloud to ground or cloud to water lightning\nstrikes which could result in injury or death. Move indoors until\nthe storm passes and stay away from metal objects.\n\nInexperienced swimmers should remain out of the water due to\ndangerous surf conditions.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 131102"
+            ],
+            "NWSheadline": [
+                "BEACH HAZARDS STATEMENT IN EFFECT UNTIL 8 AM PST THIS MORNING FOR BEACH LIGHTNING"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.NEW.KSGX.BH.S.0018.261113T1102Z-261113T1600Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-13T08:00:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "BHS"
+            ]
+        }
+    }
+}
