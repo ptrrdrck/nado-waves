@@ -269,7 +269,15 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          python -m forecast.now
+          # forecast.now writes now.json and THEN exits 1 when 46232 is dark,
+          # so the page can say so. It must not take the rest of this step
+          # with it: under set -e it did, and through an outage like
+          # September's 16 days the wind and tide charts, which read nothing
+          # of 46232, would have frozen with the swell. The step still ends
+          # with now's status, so "dark" stays a failed step and the archive
+          # check below still keys on it.
+          now_status=0
+          python -m forecast.now || now_status=$?
           # The same chain for each of the last 48 h, for the blue line under
           # every past hour on the Forecast tab, and for every hour of the last
           # week (series.json) for the chart on the Now tab -- one rebuild
@@ -285,6 +293,7 @@ jobs:
           # hurricanes, and what the newest spectra add to it. ~1 s, more only
           # while a hurricane's band is arriving at 46047 or 46086.
           python -m forecast.originhistory --live
+          exit "${now_status}"
 
       # The Swell card map's fill on LIVE: each train's energy ray by ray, for
       # the reading now.json was just built from, checked against the chain's
@@ -484,9 +493,20 @@ jobs:
       # the hour. forecast.json is rebuilt only by the forecast job, so this
       # re-copies whatever it last produced -- git sees no change in it and the
       # commit carries only now.json.
+      #
+      # NOT continue-on-error: a run that did not publish failed at the one
+      # thing a reader sees, so it goes red, as the forecast job's own publish
+      # always has. Every step above is isolated on purpose -- one source's
+      # outage must not cost another's data, and the archive is committed
+      # before this -- but this is the last step, nothing follows it, and
+      # continue-on-error here only hid the failure. On 2026-11-12 every
+      # publish failed for two hours (an import that needed numpy, which no
+      # runner here installs) and every one of these runs stayed green; the
+      # overdue cards were the only sign. Nothing expected fails here: now.json
+      # is written even when 46232 is dark, and with no PAGES_TOKEN the script
+      # exits 0.
       - name: Publish the observed reading
         if: ${{ !inputs.skip_commit }}
-        continue-on-error: true
         env:
           PAGES_REPO: ${{ vars.PAGES_REPO || 'ptrrdrck/nado-waves-forecast' }}
           PAGES_TOKEN: ${{ secrets.FORECAST_PAGES_TOKEN }}
@@ -504,5 +524,8 @@ jobs:
           # waited on the other. Both directions of that gap have now bitten
           # (BRIEFING §35, and the countdown on 2026-09-22). Both jobs write
           # byte-identical index.html; a test pins that.
-          python -m forecast.publish --only-now --out build/now
+          python -m forecast.publish --only-now --out build/now || {
+            echo "::error title=Page not published::forecast.publish failed, so the live page keeps its last publish and every LIVE card will go overdue. The traceback is above."
+            exit 1
+          }
           .github/scripts/publish-pages.sh

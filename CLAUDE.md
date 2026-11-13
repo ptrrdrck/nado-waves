@@ -1726,6 +1726,30 @@ forecaster actually verifies against, Surfline included.
   trailing window (6 h, 24 h, 45 days, the whole file), so a miss is filled
   ten minutes later; NDBC's standard met and the GFS/GEFS bulletins keep
   their own older retries.
+- **The production workflows run on plain Python, and a test holds them to
+  it.** collect-beach-inputs.yml, forecast.yml and every job that installs
+  nothing run their `python -m` modules on the runner's bare interpreter;
+  numpy, contourpy and shapely exist only in the precompute jobs and the test
+  job. On 2026-11-12 (#218) forecast.mapdata imported a helper from
+  seabedvector, which loads numpy, from inside a function: the tests passed
+  (they have numpy), every publish failed for two hours, and every LIVE card
+  went overdue. `tests/test_workflow_runtime.py` walks every import a
+  bare-Python workflow module can reach, function-level ones included, and
+  fails on any third-party one not in `ALLOWED` (each with its reason), and
+  runs the collection's publish under `python -S`, with no site-packages.
+  **A run that did not publish is red**: the collection's publish step is not
+  continue-on-error, as the forecast job's never was. Every step before it is
+  isolated ON PURPOSE (one source's outage must not cost another's data, and
+  the archive is committed first), but the publish is the last step and
+  nothing expected fails there. That two hours stayed green; the overdue cards
+  were the only sign. And `forecast.now`'s exit 1 for a dark 46232 no longer
+  skips the rest of its step (the measured hours, the wind and tide charts,
+  Origins), which `set -e` did.
+- **A queued run of a single-writer job must start from the branch's tip.**
+  `actions/checkout` checks out the TRIGGERING commit; series-archive.yml's
+  runs queue behind each other, so a queued one rebuilt on a base from before
+  the run ahead pushed, and its rebase conflicted on that run's rebuild of the
+  same file (3 of 25 runs, 10-12 Nov). It checks out `github.ref_name`.
 - **A rejected push of an append-only log re-appends; it never rebases.**
   Measured 2026-09-26: the forecast build and the shown-hours seed both
   appended to one JSONL, the rebase conflicted, and the old retry loop

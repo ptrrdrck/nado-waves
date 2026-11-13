@@ -535,7 +535,7 @@ def series_section(lags: list[SeriesLag]) -> list[str]:
 
 
 def leg_section() -> list[str]:
-    from .raytrace import BREAKS
+    from .nearshore import BREAKS  # the same three; raytrace loads numpy, nearshore does not
 
     lines = ["## 4. 46232 to the breaks: computed along the rays", "",
              "`data/nearshore/<break>_leg.csv` (`python -m forecast.raytrace --leg-only`). Minutes, "
