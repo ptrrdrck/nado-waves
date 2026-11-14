@@ -34,7 +34,8 @@ cycles, with no verification data involved.
 
 Everything here is diagnostic. Nothing in this module may be wired into round
 scoring: a GFS-Wave bulletin is the public forecast, which is exactly what
-CLAUDE.md says a game quantity must not be derivable from.
+the predecessor project's CLAUDE.md said a game quantity must not be
+derivable from.
 """
 
 from __future__ import annotations

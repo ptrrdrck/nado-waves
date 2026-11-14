@@ -222,8 +222,9 @@ class TestAgainstTheStoredExtract:
     def test_spots_json_now_carries_what_the_chart_draws(self, feature):
         """The check this module exists to make. The estimate these replaced
         was good — both edges within 1.6 degrees — and systematically NARROW,
-        which is what CLAUDE.md's 'a full kilometre costs under 2 degrees'
-        predicts. What it was not was checkable."""
+        which is what the islands' low leverage predicts
+        (docs/design/geometry.md: 250 m of error there moves an edge 0.46
+        degrees, so a full kilometre costs under 2). What it was not was checkable."""
 
         rows = self.rows(feature, "enc_approach_88_baja")
         for sid in ("coronado_north", "coronado_center", "coronado_south"):
