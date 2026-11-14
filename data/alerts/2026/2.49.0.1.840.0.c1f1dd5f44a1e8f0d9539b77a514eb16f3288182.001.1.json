@@ -1,0 +1,90 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.c1f1dd5f44a1e8f0d9539b77a514eb16f3288182.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.c1f1dd5f44a1e8f0d9539b77a514eb16f3288182.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.c1f1dd5f44a1e8f0d9539b77a514eb16f3288182.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [],
+        "sent": "2026-11-14T14:41:00-08:00",
+        "effective": "2026-11-14T14:41:00-08:00",
+        "onset": "2026-11-14T14:41:00-08:00",
+        "expires": "2026-11-14T14:56:54-08:00",
+        "ends": "2026-11-14T16:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Minor",
+        "certainty": "Observed",
+        "urgency": "Past",
+        "event": "Coastal Flood Advisory",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "The Coastal Flood Advisory has been cancelled.",
+        "description": "The Coastal Flood Advisory has been cancelled and is no longer in effect.",
+        "instruction": "Inexperienced swimmers should remain out of the water due to\ndangerous surf conditions.",
+        "response": "AllClear",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 142241"
+            ],
+            "NWSheadline": [
+                "HIGH SURF ADVISORY REMAINS IN EFFECT UNTIL 10 AM PST SUNDAY... ...COASTAL FLOOD ADVISORY IS CANCELLED"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.CAN.KSGX.CF.Y.0010.000000T0000Z-261115T0000Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-14T16:00:00-08:00"
+            ],
+            "expiredReferences": [
+                "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.61d0cebe8437c319d297cd9930a5631baa2963fb.001.2,2026-11-14T05:14:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.2d0a6c7f224fa916d78a5a757a275168d447c940.001.2,2026-11-13T19:36:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.548e85b6a8072258559f748dd9e1282478d8cdb1.001.1,2026-11-13T12:15:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "CFY"
+            ]
+        }
+    }
+}
