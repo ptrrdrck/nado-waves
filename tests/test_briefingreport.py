@@ -4,8 +4,8 @@ Re-runs `forecast.briefingreport`'s measurements (~1 s). The doc is a dated
 report and is not pinned: the archive it measured grows every collection.
 
 The 2026-10-17 design's three measured words -- rose / dropped, which break
-leads, a ridge's period ahead -- are no longer said (CLAUDE.md, the
-Briefing). Their constants stay in `forecast.briefing` for the report only,
+leads, a ridge's period ahead -- are no longer said (docs/design/briefing.md). Their constants stay in
+`forecast.briefing` for the report only,
 so their hit rates are REPORTED here, never asserted against the 85% rule
 (owner's call, 2026-11-10, after North's 6 h rose / dropped slid from 88.8%
 on 18 Oct to 84.98% on 8 Nov, 215 of 253, and the test flipped with every

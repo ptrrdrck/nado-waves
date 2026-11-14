@@ -135,7 +135,7 @@ class Rebuilder:
         spectrum = self.by_time.get(valid)
         if spectrum is None:
             # Newer than anything collected is not a gap yet: 46232's spectra
-            # land H+7 to H+35 min (CLAUDE.md), so the latest hour is usually
+            # land H+7 to H+35 min (docs/design/infrastructure.md), so the latest hour is usually
             # still on its way. A gap is an hour a LATER spectrum has passed.
             if not self.by_time or valid > max(self.by_time):
                 return {"valid_utc": valid.strftime(ISO), "gap": False, "pending": True,

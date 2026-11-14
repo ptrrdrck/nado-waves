@@ -362,7 +362,7 @@ def is_denial(exc: Exception) -> bool:
 
     Calling the second one a denial would file "this directory is not
     browsable" under "we could not reach this host", which is the same class
-    of fault as reading NCEP's 404 as "no cycle today" (CLAUDE.md). An
+    of fault as reading NCEP's 404 as "no cycle today" (docs/design/infrastructure.md). An
     HTTPError carries a real status from a real response, so it is never an
     egress denial; only a refused tunnel is.
     """

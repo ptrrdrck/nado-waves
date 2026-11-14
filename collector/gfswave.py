@@ -2,8 +2,8 @@
 
 This is the input for the forecast-error work (SPEC section 12). It is **not**
 a game data source and nothing here may be wired into scoring: a GFS-Wave
-bulletin is the public forecast, so it fails the second half of the CLAUDE.md
-test ("absent from the public forecasts players would read") by definition.
+bulletin is the public forecast, so it fails the second half of the
+predecessor project's CLAUDE.md test ("absent from the public forecasts players would read") by definition.
 
 Why this file exists at all: NCEP publishes, for every wave model cycle, a
 plain-text bulletin at each NDBC station point. It carries total significant

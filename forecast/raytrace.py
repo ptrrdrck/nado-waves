@@ -256,7 +256,7 @@ class Bathymetry:
 # ------------------------------------------------------------------ islands
 
 #: The Coronado Islands are diffracted, not blocked. Measured (BRIEFING §10,
-#: CLAUDE.md): Fresnel numbers 1.6 and 0.2 — the shadow fills in by the time
+#: docs/design/geometry.md): Fresnel numbers 1.6 and 0.2 — the shadow fills in by the time
 #: it reaches Coronado, and the geometric block the aperture applies is a
 #: ceiling on their effect, not an estimate of it.
 ISLAND_PREFIX = "Coronado Islands"

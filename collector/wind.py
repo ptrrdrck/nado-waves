@@ -14,7 +14,7 @@ Storage: ``data/wind/KNZY.csv``, one row per observation.
 `forecast.geometry`, and NOT the GFS-Wave bulletin convention that
 `collector.gfswave` flips on the way in. METAR is already FROM, so nothing is
 flipped here — which is worth stating precisely because the one measured
-direction bug in this project cost 151° of error (CLAUDE.md).
+direction bug in this project cost 151° of error (docs/design/chain.md).
 
 What is deliberately NOT done here: no conversion to offshore/onshore, no
 "clean/blown out" verdict. That depends on the shore normal, which differs by

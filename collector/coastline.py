@@ -19,7 +19,7 @@ ring clipped to `BBOX` (Sutherland-Hodgman against the box), keeping only
 polygons whose clipped extent is at least `MIN_EXTENT_KM` across. Smaller
 islands are dropped on purpose: a swell wraps round an island tens of
 kilometres across within a few hundred kilometres (the Coronado Islands' own
-shadow is under 5%, CLAUDE.md), so an island 35 km long does not stop a train
+shadow is under 5%, docs/design/geometry.md), so an island 35 km long does not stop a train
 crossing an ocean. Cedros and Guadalupe fall under the cut; the peninsula and
 the mainland do not. Holes are ignored: none matters at sea.
 """
