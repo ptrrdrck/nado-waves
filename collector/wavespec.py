@@ -31,7 +31,7 @@ Measured against the same cycle's bulletin and against KNZY:
   150.6° flipped, and 12.6° against the wind-sea partition versus 167.4°), so
   it is not touched.
 
-Getting either backwards is the fault CLAUDE.md measures at 151°. Both are
+Getting either backwards is the fault docs/design/chain.md measures at 151°. Both are
 pinned by tests.
 """
 

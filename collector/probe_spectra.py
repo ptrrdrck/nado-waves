@@ -276,7 +276,7 @@ def directional_spread(r1: float, a1: float, r2: float, a2: float, theta: float)
     `theta`, `a1` and `a2` are degrees. The caller is responsible for having
     them in the same convention — which for NDBC is degrees FROM which the
     waves come, matching `MWD` and NOT the GFS-Wave bulletin convention that
-    `collector.gfswave` flips on the way in. CLAUDE.md measured that confusion
+    `collector.gfswave` flips on the way in. docs/design/chain.md measured that confusion
     at 29 degrees of error with the flip and 151 without; it is worth restating
     at every boundary.
     """

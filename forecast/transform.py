@@ -24,8 +24,8 @@ different quantities and the transfer between them is unfitted — the same rule
 Conventions, because this is where they get confused: frequencies in Hz,
 directions in degrees FROM which waves come (NDBC `MWD`, `alpha1`, `alpha2`),
 matching `forecast.geometry` and NOT the GFS-Wave bulletin convention that
-`collector.gfswave` flips on the way in. CLAUDE.md measured that at 29° of error
-with the flip and 151° without.
+`collector.gfswave` flips on the way in. docs/design/chain.md measured that at
+29° of error with the flip and 151° without.
 """
 
 from __future__ import annotations
@@ -738,7 +738,7 @@ def through_partitions(
     `from_deg` is degrees FROM. `collector.gfswave` stores partitions as
     `toward_deg` and flips once on the way into the archive; if you are reading
     a `Partition` object rather than an archive row, flip it yourself and do it
-    exactly once (CLAUDE.md: 29° of error with the flip, 151° without).
+    exactly once (docs/design/chain.md: 29° of error with the flip, 151° without).
     """
 
     out = PartitionsThrough(spot_id=spot.id)

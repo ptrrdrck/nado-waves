@@ -3,7 +3,7 @@
 Two direction conventions live in one file and they disagree: the grid is
 TOWARD and the header's wind is FROM. Both were settled by measurement against
 the same cycle's bulletin and against KNZY, and both are pinned here, because
-getting either backwards is the fault CLAUDE.md measures at 151 degrees.
+getting either backwards is the fault docs/design/chain.md measures at 151 degrees.
 
 The grid's ordering is pinned for a subtler reason. A wrong direction mapping
 still integrates to the right TOTAL energy, so Hs looks correct while the
