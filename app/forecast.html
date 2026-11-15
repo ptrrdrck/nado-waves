@@ -10537,8 +10537,9 @@ Promise.all([
       return arrive(order[order.length - 1]);
     };
     const last = pct(0.98);
-    // The clock opens as the swell passes 46232 (0), or earlier where much
-    // of it leaves deep water up-swell of the buoy's line.
+    // The clock's 0 is the swell passing 46232. Rays start as far out as
+    // they are traced (BRIEFING §52), most before 0, so the clock opens where
+    // the first 2% of the train's energy starts, and never after 0.
     const starts = rays.map((r) => [r.pts[0][2], r.e]).sort((p, q) => p[0] - q[0]);
     let acc = 0, start = 0;
     for (const [t, e] of starts) { acc += e; if (acc >= 0.02 * total) { start = Math.min(0, t); break; } }

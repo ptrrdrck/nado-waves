@@ -78,10 +78,13 @@ def test_north_on_3_november_is_two_swells_not_one():
     assert round(ssw.period_s, 1) == 14.3 and ssw.hs_m == pytest.approx(1.05, abs=0.01)
     assert w.hs_m == pytest.approx(0.69, abs=0.01)
     assert split[ssw.buoy].from_deg < 230 < split[w.buoy].from_deg
-    # The two rows are the row they came from, in energy, less the buoy's
-    # 7.7 s wind sea's 3% of it: a piece under the floors leaves the list,
-    # as a band under them does.
-    assert 0.95 * whole.trains[0].hs_m ** 2 < ssw.hs_m ** 2 + w.hs_m ** 2 < whole.trains[0].hs_m ** 2
+    # The two rows are the row they came from, in energy, or a little less:
+    # a piece under the floors leaves the list, as a band under them does.
+    # Here that piece (the buoy's 7.7 s wind sea) is nothing: 0.004% with the
+    # tables of 2026-09-26, 0.000% since the rebuild of 2026-11-15 (BRIEFING
+    # §52), when the strict bound this used to be failed on rounding.
+    whole_e = whole.trains[0].hs_m ** 2
+    assert 0.95 * whole_e < ssw.hs_m ** 2 + w.hs_m ** 2 <= whole_e * (1 + 1e-9)
 
 
 def test_the_heights_never_change_and_a_row_one_buoy_train_carried_is_untouched():
@@ -112,7 +115,11 @@ def test_the_owners_case_shows_each_breaks_smaller_swell():
     assert [t.buoy for t in north[:2]] == [ssw, w]
     assert north[1].hs_m == pytest.approx(1.24 / 3.28084, abs=0.01)
     assert [t.buoy for t in south[:2]] == [w, ssw]
-    assert south[1].hs_m == pytest.approx(1.11 / 3.28084, abs=0.01)
+    # 1.11 ft at 14.3 s until the tables were rebuilt on 2026-11-15 with South
+    # Coronado's imagery tip (BRIEFING §52): 1.16 ft, its peak now 16.7 s. Not
+    # the 60 m of coast: one ray re-traced through the island's see-through
+    # disc, which a 50 m change in the disc alone moves as far.
+    assert south[1].hs_m == pytest.approx(1.16 / 3.28084, abs=0.01)
 
 
 def test_the_back_check_sends_another_swells_spread_back_to_the_lead():

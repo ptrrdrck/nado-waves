@@ -11,9 +11,9 @@ Point Loma sits directly across their swell window. Computed from coordinates:
 
 | spot | west window | cuts off at | south window | island channel | coordinates |
 |---|---|---|---|---|---|
-| Coronado — north break | 41.3° | 241.9° | 164.6–187.4° | 192.6–198.6° | charted |
-| Coronado — center break | 47.6° | 250.2° | 166.4–189.1° | 194.4–200.5° | charted |
-| Coronado — south break | 54.9° | 260.1° | 168.5–191.2° | 196.8–203.0° | charted |
+| Coronado — north break | 41.3° | 241.9° | 164.6–187.3° | 192.6–198.6° | charted |
+| Coronado — center break | 47.6° | 250.2° | 166.4–189.0° | 194.4–200.5° | charted |
+| Coronado — south break | 54.9° | 260.1° | 168.5–191.0° | 196.8–203.0° | charted |
 
 Every edge in that table is formed by land. There used to be one window per
 break, because `geometry.py` also reported a south-east arc the surface
@@ -37,7 +37,10 @@ different charted vertex up to 330 m apart, so the tip is carried as a charted
 outline and each break takes its own edge off it: north moved −0.5°, center
 0.0°, south +0.2°. Later the same day the three break chords followed: each
 endpoint is the charted vertex nearest the original trace, which moved them
-3–38 m. **Every coordinate in Coronado's aperture now comes from NOAA's ENC.**
+3–38 m. **Every coordinate in Coronado's aperture came from NOAA's ENC** until
+2026-11-15, when South Coronado's south-east tip was read off Esri World
+Imagery instead: the chart rounds that lobe off, and the islands' southern edge
+read 0.08–0.13° high (BRIEFING §52).
 What the chart cannot supply is where along the coast each break sits — that
 alongshore choice is still the one made by hand.
 

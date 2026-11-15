@@ -73,7 +73,7 @@
         ],
         "chart_product": "NOAA ENC, harbour band (usage band 5)"
       },
-      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: west window 41.3 degrees, cut off at 241.9. Also 164.6-187.4 to the south and a 192.6-198.6 channel between the islands."
+      "notes": "Northernmost of the three, closest to Point Loma, so the most shadowed: west window 41.3 degrees, cut off at 241.9. Also 164.6-187.3 to the south and a 192.6-198.6 channel between the islands."
     },
     {
       "id": "coronado_center",
@@ -100,7 +100,7 @@
         ],
         "chart_product": "NOAA ENC, harbour band (usage band 5)"
       },
-      "notes": "In front of the Hotel del. The successor to the old estimated `coronado_central` and the reference break for this project. West window 47.6 degrees, cut off at 250.2; south window 166.4-189.1; island channel 194.4-200.5."
+      "notes": "In front of the Hotel del. The successor to the old estimated `coronado_central` and the reference break for this project. West window 47.6 degrees, cut off at 250.2; south window 166.4-189.0; island channel 194.4-200.5."
     },
     {
       "id": "coronado_south",
@@ -127,7 +127,7 @@
         ],
         "chart_product": "NOAA ENC, harbour band (usage band 5)"
       },
-      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest west window: 54.9 degrees, holding to 260.1. South window 168.5-191.2; island channel 196.8-203.0."
+      "notes": "Furthest from Point Loma of the three Coronado breaks, so the widest west window: 54.9 degrees, holding to 260.1. South window 168.5-191.0; island channel 196.8-203.0."
     },
     {
       "id": "nasni_breakers",
@@ -237,8 +237,8 @@
     {
       "name": "Coronado Islands (South group)",
       "a": [
-        32.3944927,
-        -117.2397568
+        32.39128,
+        -117.23973
       ],
       "b": [
         32.4247854,
@@ -247,9 +247,20 @@
       "continues": null,
       "tip_verified": true,
       "provenance": {
-        "method": "extreme-bearing vertices of the southern island group, NOAA ENC approach band",
-        "by": "collector.shoreline region=baja",
+        "method": "extreme-bearing vertices of the southern island group: `b` NOAA ENC approach band; `a` (South Coronado's south-east tip) Esri World Imagery, because the approach band rounds that lobe off",
+        "by": "collector.shoreline region=baja; `a` measured on Esri World Imagery 2026-11-15",
         "date": "2026-09-20",
+        "imagery": {
+          "end": "a",
+          "label": "South Coronado's south-east tip",
+          "product": "Esri World Imagery",
+          "date": "2026-11-15",
+          "replaced": [
+            32.3944927,
+            -117.2397568
+          ],
+          "note": "Measured 2026-11-15 (BRIEFING section 52) after the owner saw this edge cross land on the map. The approach-band vertex sat 48 / 58 / 71 m (north / center / south, across each break's line of sight at 32 km) inside solid land on Esri World Imagery at zoom 16 (about 2 m a pixel), so the edge read 0.08 / 0.10 / 0.13 degrees too high; the coastal band is half way (0.06 to 0.07). The new vertex is the extreme-bearing pixel of land classified by colour, after an opening of 12 m that removes rocks awash; with no opening it moves a further 0.02 degrees, and openings of 6 m and 20 m land within 5 m of the same pixel. Control: on both islands' west coasts the imagery and the chart agree within 7 m, and at this group's other edge (`b`, still ENC) within 0.01 to 0.04 degrees, so this is the chart generalising one lobe, not the imagery misregistered. One vertex serves all three Coronado breaks and Gator; Breakers, on estimated coordinates, takes its tangent off a bulge 390 m north, 0.005 degrees lower than this vertex gives it."
+        },
         "note": "Charted 2026-09-20 from NOAA's ENC approach band (enc_approach/88) via collector.shoreline region=baja, endpoints read by forecast.blockeredge. The coastal band (enc_coastal/70) agrees to within 0.05 degrees on every edge. Two candidate vertices existed for one endpoint of each island and they differ by at most 0.044 degrees; the wider-shadow pick was taken. 4459 m across at 29.4 km, Fresnel about 1.9 at 15 s, which is the low end of the 1.9 to 5.4 range BRIEFING section 10 measured. At a 0.3 km link distance this group resolves further into three islands separated by 0.98 and 0.25 degrees, but those sub-degree gaps move with the link distance and the two-cluster split does not - it is identical from 0.3 km to 3 km on both chart bands.",
         "cells": [
           "US4CA74M.000",

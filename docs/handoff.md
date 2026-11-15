@@ -19,18 +19,27 @@ session per group. Numbers are the items' own and do not change as they close.
 Items 1, 5, 6 and 10 shipped; see map.md's last sections and app_surface.md's
 "Refresh and redraw". The owner checked the jump fixes on an iPhone.
 
-### Group 2: geometry and ray diagnosis (strongest setting)
+### Group 2: geometry and ray diagnosis -- done (branch claude/geometry-ray-diagnosis-2bmzpe)
 
-Area: `docs/design/geometry.md`, `chain.md`, `map.md` ("The fill"); BRIEFING
-§10, §24–§26, §31, §45.
+Items 4 and 3 shipped with the `trace` fix that lets the full table build
+run again; BRIEFING §52, geometry.md's islands section, chain.md's island
+sensitivity, map.md's fill. South Coronado's south-east tip is now Esri
+imagery (the ENC rounds it off), and the fill's rays start where the traced
+seabed ends. It left two items, both the islands':
 
-4. **Coronado Islands: the south group's southern edge runs over land** (seen
-   on satellite before too). Find the cause and the truth (ENC outline,
-   blocker hull, drawing projection, seabed shoreline) and report before
-   changing anything: a change moves published windows.
-3. **The fill's rays: some start past 46232, some at it.** Explain why, then
-   make them consistent, drawn as far out as the physics supports (where they
-   leave deep water?), measured before built.
+13. **The seabed grids are missing islands** (owner: its own session). GMRT's
+    90 m `outer` grid has only South Coronado as land (Middle reads 1.4 m
+    deep, North Coronado at least 22 m); the 400 m `context` grid, the only
+    seabed the map draws below zoom 8, has none. Rays use `outer`. Options
+    measured nowhere yet: burn the charted (or imaged) islands into the grids
+    for the map and the rays, which moves the tables; or a map-only overlay,
+    which would show land the rays do not see.
+14. **A ray re-traced through an island is unstable** (chain.md). One ray
+    through the see-through disc carries up to 33-63% of a break's 5 m energy
+    on some hours, and a 50 m change of the disc's pad moves single hours by
+    up to -29% / +34%. Measure what a smoother treatment (no step-edged disc;
+    bounded single-ray gains; or the islands as land with diffraction only)
+    does before choosing one. Strongest setting.
 
 ### Group 3: map layers (mock first)
 

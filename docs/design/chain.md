@@ -343,6 +343,31 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   them calibration would claim a level the project has not reached.
   `tests/test_app_surface.py` keeps the word out of the card's paragraph.
 
+## A ray re-traced through an island is the chain's most sensitive input
+
+- **One ray re-traced through an island can carry a third of a break's 5 m
+  energy, and its heading is not stable** (measured 2026-11-15, BRIEFING
+  §52, when moving South Coronado's tip rebuilt the tables). A ray that
+  lands on an island is re-traced over a "see-through" disc (`transparent`,
+  sized from the blocker's `a`-`b` chord plus `ISLAND_PAD_M`), and its
+  diffracting answer can carry a focused gain of 3-7. Across the archive
+  the largest single ray carries a median 3-4% of a break's 5 m energy and
+  up to 33-63% on some hours, and its offshore heading jumps 4-75 degrees
+  when the disc moves. Moving the tip (the disc's centre ~180 m, its radius
+  +151 m) left window energy and every hard-edge gain exactly unchanged and
+  the median 5 m height +0.01 / +0.09 / +0.46% (N / C / S), but moved single
+  hours up to -29% (Center) and +22% (South), more than 5% on 3 / 25 / 101
+  of 2,088 hours. Control: the old tip with only the pad 400 -> 450 m moved
+  them as far (South +34%; 6 / 17 / 74 hours). So it is the method, not the
+  coast, and it is in every published 5 m height on those hours. Open
+  (docs/handoff.md); the tables shipped with the charted-and-imaged tip by
+  the owner's decision, the pinned 3 Nov cases updated.
+- **The full table build ran again only after `trace`'s recorded paths got a
+  name of their own** (2026-11-15): from 2026-11-10 they shared `rec` with
+  the edge and island bookkeeping, and any call with edges failed. A rebuild
+  with the unchanged geometry reproduced every committed table byte for
+  byte before the tip moved.
+
 ## The transfer tables stop at 5 m
 
 - **The transfer tables stop at 5 m of water; the surf zone takes it from

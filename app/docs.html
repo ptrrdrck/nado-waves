@@ -1032,9 +1032,9 @@ K   0.012   0.041   0.250   1.259   0.844
           between them stays open water.</figcaption>
       </figure>
 <pre class="math"><span class="c">worked hour</span>
-North    0.833 → 0.851 m    +2.2%
-Center   0.628 → 0.663 m    +5.6%
-South    0.691 → 0.718 m    +3.9%</pre>
+North    0.833 → 0.852 m    +2.3%
+Center   0.628 → 0.661 m    +5.3%
+South    0.691 → 0.719 m    +4.1%</pre>
       <p>Diffraction added a little at all three: more leaked into the shadows than was lost along
         the edges.</p>
     </section>
@@ -1052,9 +1052,9 @@ h = 15 m   98.1%
 h = 10 m   96.4%
 
 <span class="c">worked hour</span>
-North    0.851 → 0.754 m   −11%     <span class="c">energy × 0.79</span>
-Center   0.663 → 0.594 m   −10%
-South    0.718 → 0.657 m    −8.5%</pre>
+North    0.852 → 0.755 m   −11%     <span class="c">energy × 0.79</span>
+Center   0.661 → 0.593 m   −10%
+South    0.719 → 0.658 m    −8.5%</pre>
       <div class="choice"><span class="lbl">Model choice · the JONSWAP friction law, untuned</span>
         <p>Its coefficient comes from the literature and has not been adjusted. It is linear in
           energy, so each ray's loss is a fixed factor that can be worked out once, ahead of time,
@@ -1072,9 +1072,9 @@ South    0.718 → 0.657 m    −8.5%</pre>
 Ks  = √(9.76 / 6.56) = 1.22           <span class="c">+22% in height</span>
 
 <span class="c">worked hour, the whole spectrum</span>
-North    0.754 → 0.926 m   +23%
-Center   0.594 → 0.715 m   +20%
-South    0.657 → 0.737 m   +12%</pre>
+North    0.755 → 0.928 m   +23%
+Center   0.593 → 0.714 m   +20%
+South    0.658 → 0.739 m   +12%</pre>
       <div class="choice"><span class="lbl">Model choice · hand over at 5 m</span>
         <p>The ray tables stop in 5 m of water, close in and still inside Point Loma's shadow.
           From there the surf zone takes over (step 8). A table that stopped further out would
@@ -1095,7 +1095,7 @@ U₁₀ = 4.12 m/s,  C_D = 0.00124,  u* = 0.145 m/s
 Hm0 = 0.092 m,   Tp = 1.1 s           → 0.3 ft (0.09 m)
 
 chop and swell add in energy:
-√(0.926² + 0.092²) = 0.931 m          +0.5%</pre>
+√(0.928² + 0.092²) = 0.933 m          +0.5%</pre>
       <div class="choice"><span class="lbl">Model choice · two kinds of fetch</span>
         <p>The growth law is the Coastal Engineering Manual's (US Army Corps of Engineers, 2002).
           Only a wind blowing from the sea toward the break makes chop that reaches it. When the
@@ -1121,16 +1121,16 @@ D = ¼·α·f_p·Qb·Hmax²,   α = 1,   Hmax = γ·h           <span class="c">
 (1 − Qb) / ln Qb = −(Hrms / Hmax)²                    <span class="c">Qb: the share of waves breaking</span>
 γ = 0.5 + 0.4·tanh(33·s₀),   s₀ = Hrms,deep / L₀      <span class="c">Battjes &amp; Stive (1985)</span>
 
-<span class="c">worked hour, North: 0.931 m at 5 m, 12.5 s</span>
-Hrms,deep = 0.931/√2 × √(6.56/9.76) = 0.540 m
-s₀ = 0.540 / 244 = 0.0022  →  γ = 0.529
+<span class="c">worked hour, North: 0.933 m at 5 m, 12.5 s</span>
+Hrms,deep = 0.933/√2 × √(6.56/9.76) = 0.541 m
+s₀ = 0.541 / 244 = 0.0022  →  γ = 0.529
 
 tide at the open coast: +1.022 m above mean sea level  <span class="c">(see the Tide card's math)</span>
-largest Hs 88 m in from the start point, in h = 2.32 m of water
-Hmax = 0.529 × 2.32 = 1.227 m,   Hrms = 1.069/√2 = 0.756 m
-(Hrms/Hmax)² = 0.380  →  Qb = 0.091                   <span class="c">9% of waves breaking</span>
+largest Hs 87 m in from the start point, in h = 2.34 m of water
+Hmax = 0.529 × 2.34 = 1.238 m,   Hrms = 1.071/√2 = 0.757 m
+(Hrms/Hmax)² = 0.374  →  Qb = 0.087                   <span class="c">9% of waves breaking</span>
 
-Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 m) depth   +15%</pre>
+Hs = 1.071 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 m) depth   +15%</pre>
       <div class="choice"><span class="lbl">Model choice · the standard 1-D surf zone, γ from the literature</span>
         <p>One line straight in, the same all along the beach, one period (the peak's). That is
           the textbook surf-zone model and no more. The breaker index γ is taken from Battjes
@@ -1303,11 +1303,13 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         the swell calculation traces over the seabed (<a href="#calc-refraction">step 3</a>), drawn
         along the path it was traced on, stronger for more of the train's energy. On the dark
         page the light adds up where the rays crowd, as the energy does; on the light page the
-        rays lie over each other. A ray starts on the line through NDBC 46232
-        square to its direction, where the calculation takes the buoy's measurement to hold, runs
-        straight in to where the seabed starts to bend it, then turns over the seabed to 5 m of
-        water and on to the break. Each period travels at its own speed, so the longest arrive
-        first. The timeline counts minutes after the same swell passed NDBC 46232; under the map,
+        rays lie over each other. A ray starts as far out as the calculation can follow it: where
+        the seabed it is traced over ends, up to about 60 km out, or nearer where land or water
+        too shallow for it to run straight (half its deep-water wavelength) lies across its way.
+        It runs straight in to where the seabed starts to bend it, then turns over the seabed to
+        5 m of water and on to the break. Each period travels at its own speed, so the longest
+        arrive first. The timeline counts minutes after the same swell passed NDBC 46232, where
+        the calculation takes the buoy's measurement to hold, so most rays start before 0; under the map,
         the periods in so far and the height so far, and at the end the minute by which almost
         all of it (98%) is in, with the train's own height. Drag the timeline to read any minute.
         A ray the land blocks carries nothing straight in; what diffraction brings round an edge
@@ -1333,9 +1335,9 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         <thead><tr><th>From, offshore</th><th>North</th><th>Center</th><th>South</th></tr></thead>
         <tbody>
           <tr><th scope="row">Shore normal</th><td class="num">194&deg;</td><td class="num">214&deg;</td><td class="num">221&deg;</td></tr>
-          <tr><th scope="row">S 180&deg;</th><td class="num">199&deg;</td><td class="num">&mdash;</td><td class="num">205&deg;</td></tr>
+          <tr><th scope="row">S 180&deg;</th><td class="num">202&deg;</td><td class="num">&mdash;</td><td class="num">206&deg;</td></tr>
           <tr><th scope="row">S 190&deg;</th><td class="num">195&deg;</td><td class="num">&mdash;</td><td class="num">205&deg;</td></tr>
-          <tr><th scope="row">SSW 200&deg;</th><td class="num">191&deg;</td><td class="num">201&deg;</td><td class="num">&mdash;</td></tr>
+          <tr><th scope="row">SSW 200&deg;</th><td class="num">191&deg;</td><td class="num">202&deg;</td><td class="num">&mdash;</td></tr>
           <tr><th scope="row">SSW 210&deg;</th><td class="num">190&deg;</td><td class="num">205&deg;</td><td class="num">&mdash;</td></tr>
           <tr><th scope="row">SW 220&deg;</th><td class="num">192&deg;</td><td class="num">205&deg;</td><td class="num">212&deg;</td></tr>
           <tr><th scope="row">SW 230&deg;</th><td class="num">197&deg;</td><td class="num">205&deg;</td><td class="num">213&deg;</td></tr>
@@ -1349,7 +1351,7 @@ Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
           <tr><th scope="row">NW 310&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">229&deg;</td></tr>
           <tr><th scope="row">NW 320&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">229&deg;</td></tr>
         </tbody></table></div>
-      <p class="foot">At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3&deg; at the median and 9&deg; at most, over the 30 cells all three periods give.</p>
+      <p class="foot">At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3&deg; at the median and 10&deg; at most, over the 31 cells all three periods give.</p>
       <!-- bending:end -->
       <p>Read down a column and a wide spread of offshore directions arrives inside a narrow
         one. By 5 m of water, the direction a swell came from offshore is mostly gone: from
@@ -2352,7 +2354,8 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
       <dt>GFS-Wave, GEFS-Wave</dt><dd>NOAA's global wave model, and the same model run as a
         31-member ensemble.</dd>
       <dt>ENC</dt><dd>NOAA's electronic navigational charts, the source of every coordinate in the
-        aperture.</dd>
+        aperture but one: South Coronado's south-east tip, which the chart rounds off, is read
+        off Esri World Imagery.</dd>
       <dt>CoNED</dt><dd>The USGS Coastal National Elevation Database, a seamless survey of land and
         seabed.</dd>
       <dt>NDBC 46232, KNZY, 9410170</dt><dd>The buoy, the airfield and the tide gauge. NDBC 46047
@@ -2377,12 +2380,12 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
  "wind":{"from_deg":270.0,"speed_kt":8.0},
  "tide":{"gauge_height_m":2.005,"height_m":1.893},
  "breaks":{
-  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.836,"refracted_hs_m":0.833,"diffracted_hs_m":0.851,"friction_hs_m":0.754,"shoaled_hs_m":0.926,"with_chop_hs_m":0.931,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":1.069,"depth_m":2.32,"distance_m":87.5,"tide_m":1.022,"gamma":0.529,"fraction_breaking":0.091,"outside_start":false}},
-  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.628,"diffracted_hs_m":0.663,"friction_hs_m":0.594,"shoaled_hs_m":0.715,"with_chop_hs_m":0.727,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":0.884,"depth_m":1.99,"distance_m":114.0,"tide_m":1.022,"gamma":0.509,"fraction_breaking":0.09,"outside_start":false}},
-  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.718,"friction_hs_m":0.657,"shoaled_hs_m":0.737,"with_chop_hs_m":0.751,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":0.881,"depth_m":2.28,"distance_m":141.0,"tide_m":1.022,"gamma":0.527,"fraction_breaking":0.026,"outside_start":false}}
+  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.836,"refracted_hs_m":0.833,"diffracted_hs_m":0.852,"friction_hs_m":0.755,"shoaled_hs_m":0.928,"with_chop_hs_m":0.933,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":1.071,"depth_m":2.34,"distance_m":87.0,"tide_m":1.022,"gamma":0.529,"fraction_breaking":0.087,"outside_start":false}},
+  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.628,"diffracted_hs_m":0.661,"friction_hs_m":0.593,"shoaled_hs_m":0.714,"with_chop_hs_m":0.726,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":0.882,"depth_m":1.99,"distance_m":114.0,"tide_m":1.022,"gamma":0.509,"fraction_breaking":0.089,"outside_start":false}},
+  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.719,"friction_hs_m":0.658,"shoaled_hs_m":0.739,"with_chop_hs_m":0.753,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":0.882,"depth_m":2.28,"distance_m":141.0,"tide_m":1.022,"gamma":0.527,"fraction_breaking":0.027,"outside_start":false}}
  }}
 </script>
 
@@ -3153,8 +3156,10 @@ function geoMap(box, opts = {}) {
     vtx(loma.b, `<b>Point Loma · b</b><br>only says the ridge runs on north<br>clipped by the query envelope, not the coast<br><span class="coord">${fmtLL(loma.b)}</span>`, {r: 4, color: cssv("--land-edge")});
     label(loma.b, "Point Loma ridge continues", 10, 4, "t-soft");
     for (const isl of [islandsS, islandsN]) {
-      for (const [k, p] of [["a", isl.a], ["b", isl.b]])
-        vtx(p, `<b>${isl.name} · ${k}</b><br>extreme-bearing vertex, NOAA ENC ${isl.cells.join(", ")}<br>screen width ${fmtDist(isl.span_km)}<br><span class="coord">${fmtLL(p)}</span>`, {color: cssv("--land-edge")});
+      for (const [k, p] of [["a", isl.a], ["b", isl.b]]) {
+        const img = isl.imagery && isl.imagery.end === k ? isl.imagery : null;
+        vtx(p, `<b>${isl.name} · ${k}</b><br>extreme-bearing vertex, ${img ? `${img.product} (${img.label}; the chart rounds it off)` : `NOAA ENC ${isl.cells.join(", ")}`}<br>screen width ${fmtDist(isl.span_km)}<br><span class="coord">${fmtLL(p)}</span>`, {color: cssv("--land-edge")});
+      }
       const west = isl.a[1] < isl.b[1] ? isl.a : isl.b;
       label(west, isl === islandsS ? "Coronado Islands · south group" : "Coronado Islands · north", -12, 4, "t-soft", "end");
     }
@@ -3306,7 +3311,11 @@ if (MODEL) {
   for (const {v, ids} of Object.values(tg)) vrows.push([`Point Loma tangent (${ids.map(short).join(", ")})`, v, "ENC", loma.date]);
   vrows.push([`Point Loma hull (${loma.outline.length} vertices)`, null, "ENC", loma.date]);
   vrows.push(["Point Loma b (ridge continues)", loma.b, "ENC", loma.date]);
-  for (const isl of [islandsS, islandsN]) { vrows.push([`${vbl(isl.name)} a`, isl.a, "ENC", isl.date]); vrows.push([`${vbl(isl.name)} b`, isl.b, "ENC", isl.date]); }
+  for (const isl of [islandsS, islandsN])
+    for (const k of ["a", "b"]) {
+      const img = isl.imagery && isl.imagery.end === k;
+      vrows.push([`${vbl(isl.name)} ${k}`, isl[k], img ? "imagery" : "ENC", img ? isl.imagery.date : isl.date]);
+    }
   vrows.push(["Baja tangent (a)", baja.a, "ENC", baja.date]);
   vrows.push(["Baja b (coast continues)", baja.b, "ENC", baja.date]);
   $("vtable").innerHTML = `<thead><tr><th>Vertex</th><th>Lat, lon</th><th>Source</th></tr></thead><tbody>` +
@@ -3316,7 +3325,7 @@ if (MODEL) {
     MODEL.distances.map((d) => `<tr><td>${d.label}${d.note ? `<br><span class="see">${d.note}</span>` : ""}</td><td class="num">${fmtDist(d.km)}</td></tr>`).join("") + `</tbody>`;
 
   $("geo-foot").textContent =
-    `Built from forecast/spots.json by forecast/geomviz.py. Break chords: ${MODEL.breaks.map((b) => `${short(b.id)} ${b.source === "chart" ? "ENC " + b.cells.join("/") : "imagery"}`).join("; ")}; where along the coast each break sits is still chosen by hand. Blockers: ${MODEL.blockers.map((b) => `${vbl(b.name)} ${b.cells.length ? "ENC " + b.cells.join("/") : "imagery"} (${b.date})`).join("; ")}. ` +
+    `Built from forecast/spots.json by forecast/geomviz.py. Break chords: ${MODEL.breaks.map((b) => `${short(b.id)} ${b.source === "chart" ? "ENC " + b.cells.join("/") : "imagery"}`).join("; ")}; where along the coast each break sits is still chosen by hand. Blockers: ${MODEL.blockers.map((b) => `${vbl(b.name)} ${b.cells.length ? "ENC " + b.cells.join("/") : "imagery"} (${b.date})${b.imagery ? `, ${b.imagery.label} from ${b.imagery.product} (${b.imagery.date})` : ""}`).join("; ")}. ` +
     `Distances are great-circle; the map is a local equirectangular projection centred on the center break. Geometry only — this says which bearings can reach each break, not how big anything is.`;
 }
 
