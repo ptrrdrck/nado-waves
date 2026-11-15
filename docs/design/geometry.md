@@ -50,6 +50,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   break. **Never collapse it back to one point.** The approach band is used,
   not the finer harbour band: the harbour coastline has a 336 m hole across
   the tip, and a tangent on a line end is missing data, not coast.
+- **Checked against imagery and lidar, 2026-11-15** (BRIEFING §53): Esri
+  World Imagery puts each break's tangent +0.08 / +0.01–0.04 / −0.13–0.15°
+  from the charted one (N / C / S; 2–16 m across the line of sight), and
+  CoNED's 1 m lidar, read at 2 m and contoured at mean high water, within
+  ±12 m of each vertex. The chart stands; the map's 32 m grid was what sat
+  off it (map.md, "The coast is the chart's").
 
 ## The Coronado Islands
 
@@ -94,6 +100,16 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   they refract over a 22 m shoal where North Coronado stands; its shadow is
   still in the numbers through the Babinet factor, which reads `spots.json`,
   not the grid.
+- **North Coronado's charted outline sits ~100–200 m north-west of the
+  island** (measured 2026-11-15, BRIEFING §53; item 18). Against Esri World
+  Imagery its edges read −0.22 to −0.26° (`a`) and −0.34 to −0.38° (`b`);
+  Copernicus GLO-30 agrees at `b` (−0.29 to −0.46°) but not at `a` (−0.02 to
+  −0.08°), where a rocky spur runs ~150 m past the chart's end right at a
+  seam between two image captures (2023 and 2021). Middle Coronado's
+  charted edge agrees with imagery within 0.01° (§52's control), and GLO-30
+  backs §52's imaged South Coronado tip within 0.02–0.04°. Not changed: a
+  move shifts the main west window's low edge and the islands' see-through
+  disc, which item 14 found unstable.
 
 ## The swell-side window
 
@@ -115,9 +131,28 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   ~1° for the same error on the Point Loma tip. Measured on the three-year
   46232 archive, **16.7% of rows and 11.6% of energy** arrive from 100–190°,
   and **9.6% of all archive hours** carry Hs ≥ 1.0 m at DPD ≥ 12 s from that
-  sector. UNTESTED: that no coast south of 32.3834 — where NOAA's charts
-  stop — bears higher than the tangent. Landmark estimates say 152–159°, all
-  below it; that is not a measurement.
+  sector. UNTESTED until 2026-11-15: that no coast south of 32.3834 — where
+  NOAA's charts stop — bears higher than the tangent. Landmark estimates said
+  152–159°, all below it; that was not a measurement. **Measured** (BRIEFING
+  §53): over GMRT at 90 m to 32.25 N and at 400 m to 29.24 N, nothing south
+  of 32.3834 bears within 1.0–2.1° of the tangent as imagery places it
+  (below).
+- **The charted Baja tangent is 0.82 / 0.86 / 0.91° too high** (N / C / S;
+  measured 2026-11-15, BRIEFING §53; the fix is item 17 in
+  `docs/handoff.md`). The ENC approach band's Mexican coast lies a median
+  225–466 m seaward of the real one from 32.38 to 32.50 N and converges at
+  the border; the tangent vertex (32.47015, −117.12459) is ~400 m off the
+  headland it stands for, in open water. Three independent sources put that
+  headland's tip at 32.4691, −117.1203 and agree within 0.01–0.09°: Esri
+  World Imagery, Copernicus GLO-30 (radar topography) and GMRT, the grid
+  the rays are already traced over. The ENC coastal band is half way (0.15°
+  high). A rock platform awash west of the tip, water-coloured on the image,
+  could pull the edge back by at most ~0.1°. **Moving `a` alone breaks
+  Breakers**: `b`, the `continues` marker at 32.3834, is an approach-band
+  vertex on the same faulty coast, and from Breakers' estimated position it
+  then bears above the new `a`, so `continues: "b"` flips the sector and
+  Baja blocks the whole seaward half-plane (every Breakers window vanishes).
+  Both move together, or not at all.
 
 ## The buoy does not share the beach's geometry
 

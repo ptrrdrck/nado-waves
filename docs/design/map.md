@@ -67,7 +67,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    `context` (GMRT 400 m, 350 km round the breaks and the three buoys, read
    by no chain) from 0 over it, `outer` (90 m) from 8, `regional` (CoNED 32 m) from 9, `nearshore`
    (8 m) from 11 -- each its depth bands as NESTED polygons (land, then
-   `raytrace.H_LAND` and 5 ... 4,000 m, so simplifying one edge opens no gap),
+   the coast -- `raytrace.H_LAND` until 2026-11-15, mean high water since
+   (below) -- and 5 ... 4,000 m, so simplifying one edge opens no gap),
    ALL cut to one outline two tolerances inside the grid's edge, with a
    vertex every 250 (`seabedvector.edge`; owner's report, 2026-11-11: a
    land-coloured line across open sea along the context grid's edge -- each
@@ -97,9 +98,11 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    cache hands an older file back under a newer one, a changed file a new
    copy and the old deleted (`kept`); measured in Chromium, a reload fetches
    map.json alone,
-   its contours at 5 ... 2,000 m and its shoreline at H_LAND; the depths
-   smoothed over ~1 cell before contouring and simplified to 2 m near the beach
-   and 80 m past Tanner Bank (contourpy, shapely); 1.5 MB, ~0.4 MB compressed,
+   its contours at 5 ... 2,000 m and its shoreline (at H_LAND until
+   2026-11-15, at mean high water and unsmoothed since: "The coast is the
+   chart's", below); the depths smoothed over ~1 cell before contouring and
+   simplified to 2 m near the beach and 80 m past Tanner Bank (contourpy,
+   shapely); 1.5 MB, ~0.4 MB compressed,
    against the tiles' 2.2 MB. Contours as drawn for now (owner's call,
    2026-11-10: busy at the widest zooms). **Its colours are the owner's two
    themes** (2026-11-11, picked in the mock "Seabed map themes"; `MAP_THEMES`,
@@ -113,6 +116,64 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    `seabed/` and `vendor/` it ships from BOTH publish jobs, and
    `publish-pages.sh` replaces a directory whole (its old `cp "$BUNDLE"/*`
    skipped directories and, under `set -e`, would have failed the publish).
+
+## The coast is the chart's
+
+   **The map's coast is mean high water, drawn from the grid as stored, and
+   only the sea is water** (owner's report and decisions, 2026-11-15, group
+   2b, items 15 and 16; BRIEFING §53). The owner saw the geometry's vertices
+   off the drawn coast on the LIVE map: Point Loma's tangents over land,
+   Baja's in the water, the breaks on land. Measured per point and per grid
+   (signed distance, vertex to drawn coast, + water) and each vertex checked
+   against Esri World Imagery, with CoNED lidar read at 2 m, Copernicus
+   GLO-30 and GMRT as independent controls, the causes were three:
+
+   - **The datum** (the breaks). Every vertex is chart coastline, which is
+     mean high water; the map drew `raytrace.H_LAND`, 0.3 m below MSL, 0.92 m
+     lower, which on Coronado's beach is ~30 m of sand. The breaks sat 13 /
+     22 / 34 m (N / C / S) inside the 8 m grid's land; on imagery each dot is
+     at the waterline, and the chart agrees with CoNED's own MHW contour
+     within -4 to +20 m. MHW is NOAA's, fetched (`collector.datums`,
+     `data/tide/9410170_datums.json`: 0.623 m above MSL, epoch 1983-2001),
+     never typed; a test checks it against the station's harmonic constants
+     (0.602 m). The rays still stop at `H_LAND`: waterline and depth contour
+     are two claims, and the map draws the chart's.
+   - **The smoothing** (Point Loma). A cliff whose land stands 15 m over
+     water a few metres deep carries a smoothed coast seaward: 21-43 m at
+     the tip on 32 m cells, on top of 18-26 m from resampling a cliff into 32
+     m cells. The chart is right there: imagery puts each tangent within
+     2-16 m of it and 2 m lidar at MHW within 12 m. So the coast and band 0
+     are contoured from the grid as stored, and the deeper bands and the
+     contour lines, still smoothed, are cut to the sea.
+   - **The chart** (Baja) and **missing islands** (GMRT): not the map's to
+     fix. The ENC approach band's Mexican coast lies a median 225-466 m
+     seaward of imagery, GLO-30 and GMRT from 32.38 to 32.50 N; the map's
+     GMRT coast is right and the Baja tangent is wrong (geometry.md, item
+     17). GMRT lacks Middle and North Coronado (items 13 and 18).
+
+   At MHW the stored grid makes low ground inland water (half a square
+   kilometre of Coronado on 8 m cells; on the coarse grids the Salton Sea,
+   Laguna Salada, the Sacramento delta and Death Valley, all below sea level,
+   had been drawn as sea), so band 0 is the sea's: water that reaches the
+   edge of a grid's cover, where the sea runs on past it. San Diego Bay
+   leaves the 8 m grid at its edge and the Gulf of California the 400 m
+   grid's, so both stay water.
+
+   | vertex, grid | before | after |
+   |---|---|---|
+   | breaks, 8 m (zoom 11+) | -13 / -22 / -34 m | +22 / +7 / -5 m |
+   | breaks, 32 m (zoom 9-10) | +3 / -35 / -43 m | +32 / -7 / -5 m |
+   | Point Loma tangents, 32 m (zoom 9+) | -57 / -58 / -67 m | -25 / -25 / -18 m |
+   | Baja tangent, 90 m (chart error, item 17) | +301 m | +346 m |
+   | South Coronado tip, 90 m | +87 m | +122 m |
+
+   At the opening view (~26 m a pixel on a 390 px phone) every break and
+   Point Loma vertex is now within a pixel of the coast; at zoom 14, 1-6 px.
+   South Coronado's edge line, which cut 0.02-0.05 degrees into GMRT's
+   drawn island, now passes 0.03-0.06 degrees outside it, both within GMRT's
+   90 m cells. The seabed is 2.22 MB (was 2.21). No forecast number moved:
+   the chain reads the grids, never the drawing. `seabedvector.check` fails
+   when NOAA's datums change, as when a grid is fetched again.
 
 ## The fill
 

@@ -28,6 +28,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         CO-OPS's own hilo TURNS in a third file),
                         harcon.py (NOAA's harmonic constants for 9410170,
                         as served, monthly; the phase fold's — §41),
+                        datums.py (NOAA's tidal datums for 9410170, as
+                        served, monthly; the map's coast is their MHW — §53),
                         tidestations.py (every CO-OPS station near the breaks,
                         their offsets and datums, and a 30-day comparison
                         window — run on Actions; BRIEFING §32),
@@ -200,7 +202,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         height, into data/live/fill.json            [built]
       seabedvector.py   PRECOMPUTE (numpy, contourpy, shapely): the Swell
                         card map's seabed as vectors from the bathymetry
-                        grids, into data/seabed_vector/; `--check`  [built]
+                        grids, its coast at mean high water (the chart's)
+                        from the stored grid, the sea's water only, into
+                        data/seabed_vector/; `--check`              [built]
       mapdata.py        the map's map.json: geomviz's model, the other
                         buoys, the tile manifest                  [built]
       geomviz.py        draws the vertices the model uses, the ray to each
@@ -313,8 +317,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
     data/wind/          KNZY       data/tide/  NOAA 9410170, three files:
                         _observed (measured), _predicted (hourly harmonic),
                         _turns (the harmonic model's own highs and lows),
-                        and _harcon.json (NOAA's harmonic constants, as
-                        served: the phase fold reads them)
+                        _harcon.json (NOAA's harmonic constants, as
+                        served: the phase fold reads them) and
+                        _datums.json (NOAA's tidal datums, as served: the
+                        map's coast is drawn at their MHW)
     data/shoreline/     NOAA ENC coastline, one file per chart band AND
                         region. `_coronado` (harbour 904 pts, approach 689,
                         coastal 312) and `_baja` (harbour 2428, approach 3691,
@@ -332,7 +338,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         Baja (south of 32.49 N); those stay charted blockers.
     data/seabed_vector/ the Swell card map's seabed, <grid>.geojson and
                         manifest.json (forecast.seabedvector); derived but
-                        tracked, redrawn by the bathymetry workflows
+                        tracked, redrawn by the bathymetry workflows (and
+                        by hand when NOAA's datums change: `--check` fails)
     data/nearshore/     per-break transfer tables from forecast.raytrace:
                         <break>.csv (one row per period x 0.5° heading at
                         5 m: hard-edged gain, diffracting gain and the heading
