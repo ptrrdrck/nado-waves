@@ -164,7 +164,7 @@ A bearing here is always the direction the swell comes **from**, as a buoy repor
 - **The channel**, the gap of open water between the two island groups, about {{geo:channel-deg:coronado_center}} wide.
 - **West**, between the north island and the tip of Point Loma: the widest, and the one that changes most along the beach.
 
-[drawing: whole] Caption: The whole aperture. Point Loma is 5–7 km out, the Baja coast 23–25 km and the islands 28–33 km. Every window edge ends on a charted vertex.
+[drawing: whole] Caption: The whole aperture. Point Loma is 5–7 km out, the Baja coast 23–25 km and the islands 28–33 km. Every window edge ends on a measured vertex.
 
 Everything else (north-west swell behind Point Loma, the open Pacific to the south-west beyond the islands' shadow) cannot reach these beaches in a straight line. The buoy sits outside all of it, 29 km offshore with nothing in the way, which is why the buoy's own number is always the biggest on the page.
 
@@ -184,7 +184,7 @@ The islands are two groups with open water between them, and the model draws eac
 
 ### [aperture-baja] The Baja coast
 
-The south edge of every window is a single vertex on the Mexican coast, {{geo:baja-km}} from the center break, that every other charted vertex from the border to Rosarito sits behind. Because it is far away, 100 m of error there moves an edge only {{geo:costs:coronado_center:Baja peninsula}}. NOAA's charts stop just south of it, so no coast further south has been checked.
+The south edge of every window is a single point on the Mexican coast, a rocky headland {{geo:baja-km}} from the center break, that the whole coast from the border to Rosarito sits behind. Because it is far away, 100 m of error there moves an edge only {{geo:costs:coronado_center:Baja peninsula}}. NOAA's charts put this stretch of coast a few hundred metres out to sea, which put every south edge almost a degree too high, so the headland is read off Esri World Imagery instead; radar topography and the seabed survey agree with it. No coast further south, checked as far as 29° N, comes within a degree of it.
 
 ### [aperture-breaks] Why three breaks 2.8 km apart differ
 
@@ -283,8 +283,8 @@ m₀,window = ∫∫ E(f,θ) · T(θ) dθ df     T = 1 inside a window, 0 outsid
 Hs,window = 4·√m₀,window = Hs · √(share)
 
 worked hour, North
-share     = (0.836 / 1.296)² = 0.416     42% of the energy is aimed through North's windows
-Hs        = 1.296 × √0.416 = 0.836 m      → 2.7 ft (0.84 m)
+share     = (0.840 / 1.296)² = 0.420     42% of the energy is aimed through North's windows
+Hs        = 1.296 × √0.420 = 0.840 m      → 2.8 ft (0.84 m)
 Center 0.875 m (46%), South 0.899 m (48%)
 ```
 
@@ -318,7 +318,7 @@ The energy that arrives comes from S(f,θ)·c·c_g staying constant along each r
 
 ```
 worked hour
-North    0.836 → 0.833 m    −0.4%
+North    0.840 → 0.833 m    −0.8%
 Center   0.875 → 0.628 m   −28%
 South    0.899 → 0.691 m   −23%
 ```
@@ -350,7 +350,7 @@ The islands use the same idea twice. By Babinet's principle an obstacle is open 
 worked hour
 North    0.833 → 0.852 m    +2.3%
 Center   0.628 → 0.661 m    +5.3%
-South    0.691 → 0.719 m    +4.1%
+South    0.691 → 0.718 m    +3.9%
 ```
 
 Diffraction added a little at all three: more leaked into the shadows than was lost along the edges.
@@ -370,8 +370,8 @@ h = 10 m   96.4%
 
 worked hour
 North    0.852 → 0.755 m   −11%     energy × 0.79
-Center   0.661 → 0.593 m   −10%
-South    0.719 → 0.658 m    −8.5%
+Center   0.661 → 0.592 m   −10%
+South    0.718 → 0.658 m    −8.4%
 ```
 
 > **Model choice · the JONSWAP friction law, untuned**
@@ -389,8 +389,8 @@ Ks  = √(9.76 / 6.56) = 1.22           +22% in height
 
 worked hour, the whole spectrum
 North    0.755 → 0.928 m   +23%
-Center   0.593 → 0.714 m   +20%
-South    0.658 → 0.739 m   +12%
+Center   0.592 → 0.713 m   +20%
+South    0.658 → 0.738 m   +12%
 ```
 
 > **Model choice · hand over at 5 m**
@@ -853,7 +853,8 @@ The Shore direction “how often” bars and the Departure view are the “LIVE�
 | GEFS-Wave, NOAA | 31-member ensemble at the buoy, height only | Ensemble chart |
 | National Weather Service grid | Hourly forecast wind at the center break, 7 days | Forecast wind, offshore line |
 | USGS CoNED, GMRT | Surveyed seabed, beach profiles and Point Loma's land (2016) | Refraction, friction, shoaling, breaking, the Sun card's skyline |
-| NOAA electronic navigational charts | Coastline of Point Loma's tip, the islands, Baja and the break chords | The aperture |
+| NOAA electronic navigational charts | Coastline of Point Loma's tip, the islands and the break chords | The aperture |
+| Esri World Imagery | South Coronado's south-east tip and the Baja coast, where the charts are wrong | The aperture |
 | NOAA solar equations | Sunrise and sunset, computed | Night shading |
 | Meeus's solar theory | The sun's position, computed | The Sun card |
 | Meeus's lunar theory | The Moon's phase, distance and declination, computed | The tide's phase |
@@ -992,7 +993,7 @@ Until that record exists, no figure on the forecast page states how well it does
 - **GFS-Wave, GEFS-Wave**
   NOAA's global wave model, and the same model run as a 31-member ensemble.
 - **ENC**
-  NOAA's electronic navigational charts, the source of every coordinate in the aperture but one: South Coronado's south-east tip, which the chart rounds off, is read off Esri World Imagery.
+  NOAA's electronic navigational charts, the source of every coordinate in the aperture but three, which are read off Esri World Imagery: South Coronado's south-east tip, which the chart rounds off, and the two points on the Baja coast, which the chart puts out to sea.
 - **CoNED**
   The USGS Coastal National Elevation Database, a seamless survey of land and seabed.
 - **NDBC 46232, KNZY, 9410170**

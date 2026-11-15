@@ -88,8 +88,11 @@ class Blocker:
     #: South Coronado's south-east tip: the ENC approach band rounds that lobe
     #: off and its vertex sat 48-71 m inside solid land, the edge 0.08-0.13
     #: degrees high. The provenance line names it beside the cells, because a
-    #: line naming only charts would claim the vertex was charted.
-    imagery: tuple[tuple[str, str], ...] = ()
+    #: line naming only charts would claim the vertex was charted. `end` is
+    #: one end ("a") or, where both were read off imagery, a tuple of them:
+    #: the Baja coast since the same day (BRIEFING §54), whose approach-band
+    #: coast lies hundreds of metres out to sea.
+    imagery: tuple[tuple[str, object], ...] = ()
 
     def a_seen_from(self, position: tuple[float, float]) -> tuple[float, float]:
         """The vertex that forms the `a`-side edge, as seen from `position`.
@@ -198,7 +201,9 @@ def _imagery(blocker: dict) -> tuple[tuple[str, str], ...]:
     got = blocker.get("provenance", {}).get("imagery")
     if not got:
         return ()
-    return tuple((k, got[k]) for k in ("end", "label", "product", "date"))
+    # A list of ends becomes a tuple, so the Blocker stays hashable.
+    return tuple((k, tuple(got[k]) if isinstance(got[k], list) else got[k])
+                 for k in ("end", "label", "product", "date"))
 
 
 def load(path: Path = SPOTS_FILE) -> tuple[list[Spot], list[Blocker]]:
@@ -477,7 +482,10 @@ def geometry_provenance(blockers: list[Blocker],
             for cell in blocker.cells:
                 if cell not in cells:
                     cells.append(cell)
-        else:
+        elif not blocker.imagery:
+            # No cells and no imagery block: a blocker traced from imagery
+            # whole. One with no cells but a block (the Baja coast, both ends
+            # imaged; BRIEFING §54) is named by its block, once.
             imagery.append(blocker.name)
     # The breaks' own cells, since 2026-09-22. A different usage band from the
     # blockers (harbour, not approach), so the product is only named when

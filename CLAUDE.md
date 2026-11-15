@@ -139,8 +139,9 @@ forecaster actually verifies against, Surfline included.
 
 1. **Beach geometry** — done, `forecast/geometry.py`. Every coordinate the
    Coronado aperture uses comes from NOAA's ENC, except where along the coast
-   each break sits and South Coronado's south-east tip (imagery: the chart
-   rounds it off). → `docs/design/geometry.md`
+   each break sits, South Coronado's south-east tip and the Baja coast
+   (imagery: the chart rounds the tip off and puts that coast out to sea).
+   → `docs/design/geometry.md`
 2. **A verification series** — built and empty, `collector/beachlog.py` →
    `data/beach_log/`. Blocks every accuracy CLAIM, not construction; it
    verifies ordinal and differential claims, not heights.
