@@ -1,6 +1,6 @@
 {
  "bands": [
-  0.3,
+  -0.623,
   5,
   10,
   20,
@@ -24,6 +24,11 @@
   1000,
   2000
  ],
+ "coast": {
+  "datum": "MHW",
+  "above_msl_m": 0.623,
+  "source": "data/tide/9410170_datums.json"
+ },
  "grids": {
   "wide": "2026-11-11T20:13:18Z",
   "context": "2026-11-11T20:13:16Z",
@@ -36,41 +41,41 @@
    "name": "wide",
    "file": "wide.geojson",
    "minzoom": 0,
-   "features": 414,
-   "bytes": 588491,
-   "sha": "fc26e4169a4431da"
+   "features": 496,
+   "bytes": 603027,
+   "sha": "9ef19262f0cf6755"
   },
   {
    "name": "context",
    "file": "context.geojson",
    "minzoom": 0,
-   "features": 576,
-   "bytes": 1040174,
-   "sha": "11e9fd34dc71e6c3"
+   "features": 561,
+   "bytes": 982628,
+   "sha": "d72c8eea77d4b439"
   },
   {
    "name": "outer",
    "file": "outer.geojson",
    "minzoom": 8,
-   "features": 130,
-   "bytes": 197896,
-   "sha": "88d895a8c9dc754f"
+   "features": 140,
+   "bytes": 216195,
+   "sha": "660de1e446efdd94"
   },
   {
    "name": "regional",
    "file": "regional.geojson",
    "minzoom": 9,
-   "features": 78,
-   "bytes": 271364,
-   "sha": "1fb18018a76d06d6"
+   "features": 88,
+   "bytes": 302268,
+   "sha": "0a39b9d45a8dc0e3"
   },
   {
    "name": "nearshore",
    "file": "nearshore.geojson",
    "minzoom": 11,
    "features": 54,
-   "bytes": 114035,
-   "sha": "f4fc78c4f4baac40"
+   "bytes": 116952,
+   "sha": "f01e50319622b5b4"
   }
  ]
 }

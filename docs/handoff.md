@@ -25,57 +25,74 @@ Items 4 and 3 shipped with the `trace` fix that lets the full table build
 run again; BRIEFING §52, geometry.md's islands section, chain.md's island
 sensitivity, map.md's fill. South Coronado's south-east tip is now Esri
 imagery (the ENC rounds it off), and the fill's rays start where the traced
-seabed ends. It left two items, both the islands':
+seabed ends. Its two islands items, 13 and 14, are now in group 2d.
 
-13. **The seabed grids are missing islands** (owner: its own session; now
-    part of group 2b). GMRT's
+### Group 2b: the map's coastline against the geometry's -- built (PR #226)
+
+Owner's report, 2026-11-15: on the LIVE map the edge vertices sat off the
+drawn coast. Measured per point and per grid, each vertex checked against
+Esri imagery with CoNED lidar at 2 m, Copernicus GLO-30 and GMRT as
+controls (BRIEFING §53; evidence images in the notes repository,
+`evidence/2026-11-15-group-2b/`). Three causes: the datum (breaks), the
+smoothing (Point Loma), the chart (Baja). Items 15 and 16 shipped; map.md
+"The coast is the chart's", geometry.md's Point Loma, south window and
+islands sections.
+
+15. **The map's coast at the chart's datum, mean high water** -- done.
+    NOAA's datums fetched by `collector.datums` (0.623 m above MSL); breaks
+    -13/-22/-34 -> +22/+7/-5 m on 8 m cells.
+16. **The coast contoured unsmoothed, the sea's water only** -- done.
+    Point Loma -57/-58/-67 -> -25/-25/-18 m on 32 m cells; low ground
+    inland (and the Salton Sea, Laguna Salada, Death Valley) no longer sea.
+    `app/docs.html`'s map paragraph says so in the owner's approved
+    wording.
+
+### Group 2c: the Baja tangent (strongest setting; next)
+
+17. **The Baja tangent from imagery** (32.4691, -117.1203; GLO-30 and
+    GMRT agree within 0.01-0.09 degrees). The ENC approach band's Mexican
+    coast is a median 225-466 m seaward of the real one; the published
+    south-window low edges are 0.82 / 0.86 / 0.91 degrees too high (164.6 ->
+    163.8, 166.4 -> 165.6, 168.5 -> 167.5; Gator 170.1 -> 169.1). Move `b`
+    (the `continues` marker, same faulty band) with `a`, or Breakers' windows
+    vanish (geometry.md). Window energy by the bin arithmetic: one bin at
+    North (164.5) and Gator (169.5), none at Center or South. Measure before
+    deciding, as §52 did: the ray tables move through Baja's edge
+    diffraction (`edge_points`) and the straight-leg block
+    (`straight_line_blocker`); rebuild and compare over the archive. The
+    "standing on" line names the imagery; spots.json's UNTESTED note can
+    close (geometry.md has the measurement).
+
+### Group 2d: the islands (strongest setting; after 2c)
+
+All three move the islands' see-through disc, item 14's unstable input, so
+one session.
+
+18. **North Coronado's outline** sits ~100-200 m north-west of the island
+    on imagery (edges -0.22 to -0.38 degrees). GLO-30 agrees at `b`, not at
+    `a`, where a rocky spur runs past the chart's end at an imagery seam
+    (2023/2021). A §52-style look at both ends before any change; a move
+    shifts the main west window's low edge and the channel's high edge.
+13. **The seabed grids are missing islands** (owner: its own session). GMRT's
     90 m `outer` grid has only South Coronado as land (Middle reads 1.4 m
     deep, North Coronado at least 22 m); the 400 m `context` grid, the only
-    seabed the map draws below zoom 8, has none. Rays use `outer`. Options
-    measured nowhere yet: burn the charted (or imaged) islands into the grids
-    for the map and the rays, which moves the tables; or a map-only overlay,
-    which would show land the rays do not see.
+    seabed the map draws below zoom 8, has none. Rays use `outer`. Options:
+    burn the imaged islands (GLO-30 as the registration control) into the
+    grids for the map and the rays, which moves the tables (those rays then
+    land and go through the disc); or a map-only overlay, which would show
+    land the rays do not see. First measure how many table rays cross
+    Middle and North Coronado today.
 14. **A ray re-traced through an island is unstable** (chain.md). One ray
     through the see-through disc carries up to 33-63% of a break's 5 m energy
     on some hours, and a 50 m change of the disc's pad moves single hours by
     up to -29% / +34%. Measure what a smoother treatment (no step-edged disc;
     bounded single-ray gains; or the islands as land with diffraction only)
-    does before choosing one. Strongest setting.
-
-### Group 2b: the map's coastline against the geometry's (strongest setting; before group 3)
-
-Owner's report, 2026-11-15, after group 2: on the LIVE map the edge
-vertices sit off the drawn coast -- Point Loma's over land, Baja's in the
-water, the breaks on land. The owner's frame: imagery is the ground truth,
-but a reader expects the measured geometry to sit on the map they are
-looking at. Area: `geometry.md`, `map.md` ("The map"), `seabedvector.py`,
-`collector/bathymetry.py`; BRIEFING §21-§22, §26-§27, §29, §52. Measured
-the same day (signed distance from each vertex to each tier's drawn coast,
-`data/seabed_vector/`):
-
-| point | context 400 m (< z8) | outer 90 m (z8+) | regional 32 m (z9+) | nearshore 8 m (z11+) |
-|---|---|---|---|---|
-| breaks (ENC harbour-band chord midpoints) | water 266-355 m | water 56-177 m | N water 3 m; C, S land 39-44 m | land 13-34 m |
-| Point Loma tangents (ENC approach) | water 473-560 m | land 22-75 m | land 57-67 m | -- |
-| Baja tangent (ENC approach) | water 536 m | water 301 m | -- | -- |
-| South Coronado tip (imagery, §52) | water 13.8 km | water 87 m | -- | -- |
-
-Not yet measured, the leads: (a) DATUM -- the chart's coastline is mean high
-water (§21: CoNED reads a median 1.4 m NAVD88 under charted vertices, MSL
-being 0.765 m above NAVD88), the drawn coast is the depth `raytrace.H_LAND`
-(0.3 m) below MSL, so about 0.9 m apart vertically, tens of metres on a
-beach; (b) each tier's ~1-cell smoothing and simplification (`TIERS`);
-(c) GMRT's own coast at Baja and the islands (§52: it lacks Middle and North
-Coronado). Item 13 (the islands missing from the grids; burning charted or
-imaged land in) belongs here, since it is the same question: what land the
-map and the rays stand on. Check each vertex against imagery as §52 did
-before deciding which side moves; a change to the grids moves the ray
-tables (item 14's sensitivity applies).
+    does before choosing one.
 
 ### Group 3: map layers (mock first)
 
-Area: `docs/design/map.md`, `origin.md`. After group 2: extending shadows to
-the map's edge also extends any islands error.
+Area: `docs/design/map.md`, `origin.md`. After groups 2c and 2d: extending
+shadows to the map's edge also extends any islands or Baja error.
 
 2. **Extend the window edges (dashed lines) to the map's edges when zoomed
    out**; add toggles to the map colours mock ("Seabed Map Themes") for rays /
@@ -115,6 +132,24 @@ wait for Tests, don't merge." to each.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
   cause and the truth before changing anything."
+- Group 2c: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes
+  for BRIEFING.md. Group 2c of docs/handoff.md (item 17), the Baja tangent
+  from imagery (strongest setting). Read geometry.md ('The south window'),
+  chain.md (edge diffraction and the island sensitivity), map.md ('The coast
+  is the chart's'), forecast/raytrace.py's edge_points and
+  straight_line_blocker, and BRIEFING §26, §31, §52, §53 first; the
+  evidence is in the notes repository's evidence/2026-11-15-group-2b/.
+  Measure what moving Baja's `a` and `b` to the imaged coast moves --
+  published windows at all five spots, window energy over the archive, the
+  ray tables and fill paths -- and report before changing anything."
+- Group 2d: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes
+  for BRIEFING.md. Group 2d of docs/handoff.md (items 18, 13, 14), the
+  islands (strongest setting). Read geometry.md's islands section, chain.md
+  ('A ray re-traced through an island...'), map.md, forecast/raytrace.py's
+  islands code and BRIEFING §10, §29, §31, §52, §53 first. Look at North
+  Coronado's ends as §52 did, count the table rays that cross Middle and
+  North Coronado, and measure item 14's smoother treatments before
+  choosing; report before changing anything."
 - Group 3: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 3 of docs/handoff.md (items 2, 11, 12), map layers. Read map.md and
   origin.md first; mock before building."
