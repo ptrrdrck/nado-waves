@@ -27,7 +27,7 @@ sensitivity, map.md's fill. South Coronado's south-east tip is now Esri
 imagery (the ENC rounds it off), and the fill's rays start where the traced
 seabed ends. Its two islands items, 13 and 14, are now in group 2d.
 
-### Group 2b: the map's coastline against the geometry's -- built (branch claude/sharp-archimedes-amm388, PR pending)
+### Group 2b: the map's coastline against the geometry's -- built (PR #226)
 
 Owner's report, 2026-11-15: on the LIVE map the edge vertices sat off the
 drawn coast. Measured per point and per grid, each vertex checked against
