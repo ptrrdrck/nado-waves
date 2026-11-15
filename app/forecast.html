@@ -1601,6 +1601,10 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 // Data comes from data/live/forecast.json, written by `python -m forecast.live`
 // and committed by the collector workflow. ?data= overrides for local testing.
 const PARAM = new URLSearchParams(location.search);
+// A refresh the reader makes opens at the top (owner's call, 2026-11-15): the
+// cards arrive after the browser's own restoration has given up, so it put
+// the reader somewhere between, differently in each browser.
+try { if ("scrollRestoration" in history) history.scrollRestoration = "manual"; } catch (e) { /* kept */ }
 const SOURCE = PARAM.get("data") || "../data/live/forecast.json";
 const NOW_SOURCE = PARAM.get("now") || "../data/live/now.json";
 // The observed chain rebuilt for each of the last 48 h (forecast.measured),
@@ -8767,7 +8771,52 @@ function renderBreaks(step) {
   renderConditions(step, cards);
 }
 
+// The page redraws itself as data arrives and every minute on LIVE, and that
+// must be invisible where the reader is (owner's call, 2026-11-15): the
+// element in view that a redraw can find again -- an id, or a card's
+// data-card -- keeps its place on screen, set right after the redraw and on
+// the next two frames, as charts and fitted lines settle, unless the reader
+// scrolls meanwhile. iPhone has no scroll anchoring to do it.
+function placeAnchor() {
+  const inView = [];
+  document.querySelectorAll(".wrap [id], .wrap [data-card]").forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.height > 0 && r.bottom > 0 && r.top < innerHeight) inView.push([el, r.top]);
+  });
+  const below = inView.find(([, top]) => top >= 0);
+  const pick = below || inView[inView.length - 1];
+  if (!pick) return null;
+  const el = pick[0];
+  const key = el.id ? `#${CSS.escape(el.id)}` : `[data-card=${JSON.stringify(el.getAttribute("data-card"))}]`;
+  const twins = [...document.querySelectorAll(key)].filter((e) => e.getClientRects().length);
+  return {key, nth: twins.indexOf(el), top: pick[1]};
+}
+function holdPlace() {
+  const a = scrollY > 0 ? placeAnchor() : null;
+  if (!a) return () => {};
+  let expect = null;
+  const settle = () => {
+    if (expect != null && Math.abs(scrollY - expect) > 1) return false;   // the reader scrolled
+    const el = [...document.querySelectorAll(a.key)].filter((e) => e.getClientRects().length)[a.nth];
+    if (!el) return false;
+    const d = el.getBoundingClientRect().top - a.top;
+    if (Math.abs(d) >= 1) scrollBy(0, d);
+    expect = scrollY;
+    return true;
+  };
+  return () => {
+    if (!settle()) return;
+    requestAnimationFrame(() => { if (settle()) requestAnimationFrame(settle); });
+  };
+}
+
 function show() {
+  const back = holdPlace();
+  drawPage();
+  back();
+}
+
+function drawPage() {
   // Never rebuild the cards under a finger: a chart gesture redraws its own
   // chart, and the card is rebuilt once when it ends.
   if (GESTURE) return;
@@ -9507,6 +9556,11 @@ Promise.all([
   let MAPDATA = null;                         // map.json, once fetched
   let LOADING = null;
   const VIEWS = {};                           // break id -> the view last left there
+  // The break whose tab was last on screen: a switch to another break's map
+  // turns it from that break's bearing to its own over TURN_MS, as one map
+  // turning would (owner's pick in the mock, 2026-11-15).
+  let lastTab = null;
+  const TURN_MS = 400;
 
   const rad = (d) => d * Math.PI / 180, dg = (r) => r * 180 / Math.PI;
   function dest(p, brg, km) {
@@ -9690,6 +9744,9 @@ Promise.all([
       this.slide(on);
       this.say(readSvg(this.svg).caption);
       if (!on) this.fillEnd();
+      const inTab = this.box.offsetWidth > 0 && !this.svg.closest(".break-cols");
+      const prev = inTab ? lastTab : null;
+      if (inTab) lastTab = this.id;
       if (!on || !this.box.offsetWidth) return;
       ready().then((d) => {
         if (!d || view !== "map" || !this.box.isConnected) return;
@@ -9705,7 +9762,33 @@ Promise.all([
           } else this.frame();
         }
         this.draw();
+        if (prev && prev !== this.id) this.turnFrom(brk(prev));
       });
+    }
+
+    // From the last break's bearing to this one's, round this break, so the
+    // break keeps its place while the map turns under it. `only` sets the
+    // starting bearing and leaves the turn to `show`.
+    turnFrom(o, only = false) {
+      if (!o || !this.map || !this.b || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const off = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180);
+      const to = this.b.normal, around = ll(this.b.position);
+      if (off(o.normal, to) < 0.5) return;
+      if (off(this.map.getBearing(), o.normal) >= 0.5) {
+        // jumpTo turns round the centre: the break is put back where it was.
+        this.map.stop();
+        const p = this.map.project(around);
+        this.map.jumpTo({bearing: o.normal});
+        const q = this.map.project(around);
+        this.map.panBy([q.x - p.x, q.y - p.y], {duration: 0});
+      }
+      if (!only) this.map.easeTo({bearing: to, around, duration: TURN_MS});
+    }
+    preTurn() {
+      if (view !== "map" || !this.map || !this.box.offsetWidth || this.svg.closest(".break-cols")) return;
+      // Hidden, the map kept its last size: sized now, not a task later.
+      this.map.resize();
+      if (lastTab && lastTab !== this.id) this.turnFrom(brk(lastTab), true);
     }
 
     make() {
@@ -10509,9 +10592,14 @@ Promise.all([
     });
   }
   // A tab or chain switch reveals a drawing hidden when it was made.
-  document.addEventListener("click", () => setTimeout(() => faces.forEach((f) => {
-    if (f.box.isConnected && (view === "map" || !f.el.hidden)) f.show();
-  }), 0));
+  // A map a tab switch has just shown is set to the last break's bearing in
+  // the click itself, so it is never painted at its own before it turns.
+  document.addEventListener("click", () => {
+    faces.forEach((f) => f.preTurn());
+    setTimeout(() => faces.forEach((f) => {
+      if (f.box.isConnected && (view === "map" || !f.el.hidden)) f.show();
+    }), 0);
+  });
   // The plate follows its own break's trains (owner's call, 2026-11-11,
   // reversing 2026-11-08's one start height across the break tabs): a tab
   // with fewer trains has its plate higher, and nothing re-lines the tabs

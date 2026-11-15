@@ -14,31 +14,10 @@ _Read at the start of a session that picks up open work, and update it before st
 Re-worded and confirmed by the owner on 2026-11-15, grouped by area into one
 session per group. Numbers are the items' own and do not change as they close.
 
-### Group 1: map behaviour (Opus, usual effort) -- built, awaiting the owner
+### Group 1: map behaviour -- done (PR #223)
 
-Area: `docs/design/map.md`. Items 1, 5 and 10 are fixed on
-`claude/keen-cannon-29iuv0` (see map.md's last sections); item 6 waits on the
-owner's pick in the "Seabed Map Themes" mock (Switching break: Ease / Jump).
-The iPhone check is the "Swell Map Jump Check" artifact: before / after copies
-of the page with a badge that turns red when the page moves on its own. Still
-open from item 1: a refresh lands at the top in Chromium because the cards
-arrive after its scroll restoration gives up; that is page-wide, not the map's,
-and waits on the owner's iPhone result and call.
-
-1. **The page jumps** on refresh while scrolled below the map, and when the
-   Units setting changes. Reproduce (scrollY before and after) before fixing;
-   an iPhone-only cause gets a diagnostic page first.
-5. **The window drawing's top heading numbers are cut off** (e.g. tap the
-   islands' north group), then the drawing drops into place after a long
-   delay. Measure the clipped text against the trimmed viewBox; time the
-   delay.
-6. **Map rotation animation.** The owner saw the rotation ease in the
-   "Seabed Map Themes" mock (one map; switching break eases the bearing over
-   400 ms) and thinks they want it. The app has one map per break, so a tab
-   switch never rotates. First an ease / jump option in that mock; the app
-   follows the owner's pick.
-10. **Tap a break on the map to switch break tabs**, through the same switch
-    a tab tap uses.
+Items 1, 5, 6 and 10 shipped; see map.md's last sections and app_surface.md's
+"Refresh and redraw". The owner checked the jump fixes on an iPhone.
 
 ### Group 2: geometry and ray diagnosis (strongest setting)
 

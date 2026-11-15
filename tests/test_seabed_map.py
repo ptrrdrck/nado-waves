@@ -275,3 +275,19 @@ def test_another_breaks_dot_is_its_tab():
     body = body[:body.index("const hit = this.arrowAt(e.point);")]
     assert 'layers: ["sm-spots"]' in body and "!f.properties.on" in body
     assert "selectSwellTab(spot.properties.id)" in body
+
+
+def test_a_switch_to_another_breaks_map_turns_it_over_400_ms():
+    """Owner's pick, 2026-11-15, from the "Seabed Map Themes" mock: a switch to
+    another break's map turns it from the last break's bearing to its own over
+    400 ms, round the break, set in the click so it is never painted at its own
+    bearing first, and not at all under reduced motion."""
+
+    assert "const TURN_MS = 400;" in PAGE
+    body = PAGE[PAGE.index("    turnFrom(o, only = false) {"):]
+    body = body[:body.index("    make() {")]
+    assert "prefers-reduced-motion: reduce" in body
+    assert "this.map.easeTo({bearing: to, around, duration: TURN_MS})" in body
+    assert "this.map.panBy([q.x - p.x, q.y - p.y], {duration: 0})" in body
+    assert "faces.forEach((f) => f.preTurn());" in PAGE
+    assert "if (prev && prev !== this.id) this.turnFrom(brk(prev));" in PAGE

@@ -5052,3 +5052,23 @@ class TestBuoyNamesAndTheOverdueDot:
         assert live.NAME_FIXES == {"Tanner Banks": "Tanner Bank"}
         assert live.station_name("46047", APP.parent.parent / "data").startswith("Tanner Bank,")
         assert "Tanner Banks" not in SOURCE and "Tanner Banks" not in INFO
+
+
+class TestTheReaderKeepsTheirPlace:
+    """Owner's call, 2026-11-15: a refresh the reader makes opens at the top;
+    the page's own redraws, as data arrives and every minute on LIVE, are
+    invisible where the reader is."""
+
+    def test_a_manual_refresh_opens_at_the_top(self):
+        assert 'history.scrollRestoration = "manual"' in SOURCE
+
+    def test_every_redraw_holds_the_reader_s_place(self):
+        body = SOURCE[SOURCE.index("function show() {"):]
+        body = body[:body.index("\n}\n")]
+        assert body.split("\n")[1:4] == ["  const back = holdPlace();", "  drawPage();", "  back();"]
+        assert "function drawPage() {" in SOURCE
+
+    def test_the_hold_steps_aside_when_the_reader_scrolls(self):
+        body = SOURCE[SOURCE.index("function holdPlace() {"):]
+        body = body[:body.index("\n}\n")]
+        assert "Math.abs(scrollY - expect) > 1) return false" in body

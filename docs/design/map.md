@@ -175,3 +175,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    does, before any other hit; a finger reaches 14 px round the 3.5 px dot,
    a mouse 8 px and gets a pointer over it. The break's own dot does
    nothing new.
+
+   **A switch to another break's map turns it** (owner's pick, 2026-11-15,
+   400 ms ease in the "Seabed Map Themes" mock's Switching break option):
+   the map a tab switch or a dot tap shows is set, in the click itself, to
+   the last tab's break's bearing round its own break (`preTurn`), sized
+   then too -- hidden, it had kept a stale 400 x 300 canvas until a task
+   later, and its break jumped 36 px -- and `show` eases it to its own
+   normal over `TURN_MS`, the break fixed on screen. Never under reduced
+   motion, never on the wide layout, where no tab hides a break.
