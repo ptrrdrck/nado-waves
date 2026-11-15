@@ -9556,9 +9556,11 @@ Promise.all([
   let MAPDATA = null;                         // map.json, once fetched
   let LOADING = null;
   const VIEWS = {};                           // break id -> the view last left there
-  // The break whose tab was last on screen: a switch to another break's map
-  // turns it from that break's bearing to its own over TURN_MS, as one map
-  // turning would (owner's pick in the mock, 2026-11-15).
+  // The face whose tab was last on screen: a switch to another break's map
+  // eases it over TURN_MS from that face's view to its own opening view --
+  // centre, zoom and bearing together, as the mock's one map does on a break
+  // switch (owner's pick, 2026-11-15; a turn round the break alone, shipped
+  // first, did not move as the mock does).
   let lastTab = null;
   const TURN_MS = 400;
 
@@ -9745,8 +9747,7 @@ Promise.all([
       this.say(readSvg(this.svg).caption);
       if (!on) this.fillEnd();
       const inTab = this.box.offsetWidth > 0 && !this.svg.closest(".break-cols");
-      const prev = inTab ? lastTab : null;
-      if (inTab) lastTab = this.id;
+      if (inTab) lastTab = this;
       if (!on || !this.box.offsetWidth) return;
       ready().then((d) => {
         if (!d || view !== "map" || !this.box.isConnected) return;
@@ -9762,33 +9763,38 @@ Promise.all([
           } else this.frame();
         }
         this.draw();
-        if (prev && prev !== this.id) this.turnFrom(brk(prev));
       });
     }
 
-    // From the last break's bearing to this one's, round this break, so the
-    // break keeps its place while the map turns under it. `only` sets the
-    // starting bearing and leaves the turn to `show`.
-    turnFrom(o, only = false) {
-      if (!o || !this.map || !this.b || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const off = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180);
-      const to = this.b.normal, around = ll(this.b.position);
-      if (off(o.normal, to) < 0.5) return;
-      if (off(this.map.getBearing(), o.normal) >= 0.5) {
-        // jumpTo turns round the centre: the break is put back where it was.
-        this.map.stop();
-        const p = this.map.project(around);
-        this.map.jumpTo({bearing: o.normal});
-        const q = this.map.project(around);
-        this.map.panBy([q.x - p.x, q.y - p.y], {duration: 0});
-      }
-      if (!only) this.map.easeTo({bearing: to, around, duration: TURN_MS});
+    // From the last tab's view to this break's opening view, as one map,
+    // started in the click itself: never painted at its own view first, and
+    // moving at once, as the mock's map does (a start left to `show`, a task
+    // later, held the old view ~230 ms).
+    turnFrom(prev) {
+      if (!prev || !this.map || !this.b || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const pb = brk(prev.id);
+      const from = prev.map
+        ? {center: prev.map.getCenter(), zoom: prev.map.getZoom(), bearing: prev.map.getBearing()}
+        : pb && this.viewFor(pb);
+      const to = this.viewFor(this.b);
+      if (!from || !to) return;
+      this.map.stop();
+      this.map.jumpTo(from);
+      this.framed = true;
+      // The clock starts once the shown map's first frame is drawn: a hidden
+      // canvas's first frame is the heavy one (173 ms in software GL, no ease
+      // at all), and an ease started before it skipped its first third.
+      const turn = this.turn = {};
+      this.map.once("render", () => requestAnimationFrame(() => {
+        if (this.turn === turn && this.box.offsetWidth) this.map.easeTo({...to, duration: TURN_MS});
+      }));
+      this.map.triggerRepaint();
     }
     preTurn() {
       if (view !== "map" || !this.map || !this.box.offsetWidth || this.svg.closest(".break-cols")) return;
       // Hidden, the map kept its last size: sized now, not a task later.
       this.map.resize();
-      if (lastTab && lastTab !== this.id) this.turnFrom(brk(lastTab), true);
+      if (lastTab && lastTab !== this && lastTab.id !== this.id) this.turnFrom(lastTab);
     }
 
     make() {
@@ -9887,21 +9893,26 @@ Promise.all([
     // breaks (owner's request, 2026-11-11): the farthest such vertex of any
     // of them, so a break tab never opens nearer than another.
     frame(animate = false) {
+      const view = this.viewFor(this.b);
+      if (!view) return;
+      if (animate) this.map.easeTo({...view, duration: 300}); else this.map.jumpTo(view);
+      this.framed = true;
+    }
+    // The opening view of break `b` on this map.
+    viewFor(b) {
       const W = this.el.clientWidth, H = this.el.clientHeight;
-      if (!W || !H) return;
+      if (!W || !H || !b) return null;
       const d = readSvg(this.svg), vb = this.svg.viewBox.baseVal, s = W / vb.width;
       const far = Math.max(...MAPDATA.geometry.breaks.flatMap((o) =>
         o.windows.flatMap((w) => w.edges.map((e) => e.range_km))));
       const mpp = far * 1000 / (d.rimPx * s) / 2 ** OPEN_STEPS;
-      const zoom = Math.log2(MPP0 * Math.cos(rad(this.b.position[0])) / mpp);
+      const zoom = Math.log2(MPP0 * Math.cos(rad(b.position[0])) / mpp);
       // The map's break stands as far above the plate's foot as the drawing's
       // did before the plate was trimmed (owner's call, 2026-11-11: at the
       // trimmed drawing's 15 px the fill's timeline covered the break).
       const breakY = H - (vb.height - d.cy) * s;
       const upKm = (breakY - H / 2) * mpp / 1000;
-      const view = {center: ll(dest(this.b.position, this.b.normal, upKm)), zoom, bearing: this.b.normal};
-      if (animate) this.map.easeTo({...view, duration: 300}); else this.map.jumpTo(view);
-      this.framed = true;
+      return {center: ll(dest(b.position, b.normal, upKm)), zoom, bearing: b.normal};
     }
 
     // The geometry that keeps its place on the ground.

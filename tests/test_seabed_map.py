@@ -277,17 +277,21 @@ def test_another_breaks_dot_is_its_tab():
     assert "selectSwellTab(spot.properties.id)" in body
 
 
-def test_a_switch_to_another_breaks_map_turns_it_over_400_ms():
+def test_a_switch_to_another_breaks_map_moves_as_the_mocks_one_map_does():
     """Owner's pick, 2026-11-15, from the "Seabed Map Themes" mock: a switch to
-    another break's map turns it from the last break's bearing to its own over
-    400 ms, round the break, set in the click so it is never painted at its own
-    bearing first, and not at all under reduced motion."""
+    another break's map eases it over 400 ms from the last tab's view to its own
+    opening view -- centre, zoom and bearing together, as the mock's one map
+    does. The owner saw that the first build, a turn round the break alone,
+    moved differently. Set in the click, the clock started after the shown
+    map's first frame, and not at all under reduced motion."""
 
     assert "const TURN_MS = 400;" in PAGE
-    body = PAGE[PAGE.index("    turnFrom(o, only = false) {"):]
-    body = body[:body.index("    make() {")]
+    body = PAGE[PAGE.index("    turnFrom(prev) {"):]
+    body = body[:body.index("    preTurn() {")]
     assert "prefers-reduced-motion: reduce" in body
-    assert "this.map.easeTo({bearing: to, around, duration: TURN_MS})" in body
-    assert "this.map.panBy([q.x - p.x, q.y - p.y], {duration: 0})" in body
+    assert "prev.map.getCenter(), zoom: prev.map.getZoom(), bearing: prev.map.getBearing()" in body
+    assert "const to = this.viewFor(this.b);" in body
+    assert "this.map.easeTo({...to, duration: TURN_MS})" in body
+    assert 'this.map.once("render"' in body
+    assert "around" not in body
     assert "faces.forEach((f) => f.preTurn());" in PAGE
-    assert "if (prev && prev !== this.id) this.turnFrom(brk(prev));" in PAGE

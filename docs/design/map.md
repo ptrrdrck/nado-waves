@@ -176,11 +176,19 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    a mouse 8 px and gets a pointer over it. The break's own dot does
    nothing new.
 
-   **A switch to another break's map turns it** (owner's pick, 2026-11-15,
-   400 ms ease in the "Seabed Map Themes" mock's Switching break option):
-   the map a tab switch or a dot tap shows is set, in the click itself, to
-   the last tab's break's bearing round its own break (`preTurn`), sized
-   then too -- hidden, it had kept a stale 400 x 300 canvas until a task
-   later, and its break jumped 36 px -- and `show` eases it to its own
-   normal over `TURN_MS`, the break fixed on screen. Never under reduced
-   motion, never on the wide layout, where no tab hides a break.
+   **A switch to another break's map moves as the mock's one map does**
+   (owner's pick, 2026-11-15, 400 ms ease in the "Seabed Map Themes" mock's
+   Switching break option). The map a tab switch or a dot tap shows is set,
+   in the click itself (`preTurn`), to the view the last tab's map was
+   showing (that break's opening view if it showed the drawing), sized then
+   too -- hidden, it had kept a stale 400 x 300 canvas until a task later --
+   and eased over `TURN_MS` to its own opening view (`viewFor`), centre,
+   zoom and bearing together. The first build turned the map round its
+   break alone, with no pan, and the owner saw it move differently from the
+   mock. The clock starts after the shown map's first frame: a hidden
+   canvas's first frame is the heavy one (173 ms in headless software GL
+   with no ease at all), and an ease started before it skipped its first
+   third. Measured against the mock, South to North: the same path, the old
+   break sliding off as the new one arrives at its place, ending exactly on
+   North's opening view. Never under reduced motion, never on the wide
+   layout, where no tab hides a break.
