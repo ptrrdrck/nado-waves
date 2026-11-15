@@ -17,7 +17,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    aperture uses now comes from NOAA's ENC** — except WHERE along the coast
    each break sits, which is a surfer's choice and no chart can make, and,
    since 2026-11-15, South Coronado's south-east tip, which the chart rounds
-   off (below). If a
+   off, and both of the Baja coast's points, which it puts out to sea
+   (below). If a
    break is ever traced from imagery again, `breaks_from_imagery` names it on
    the surface.
 
@@ -137,22 +138,36 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   §53): over GMRT at 90 m to 32.25 N and at 400 m to 29.24 N, nothing south
   of 32.3834 bears within 1.0–2.1° of the tangent as imagery places it
   (below).
-- **The charted Baja tangent is 0.82 / 0.86 / 0.91° too high** (N / C / S;
-  measured 2026-11-15, BRIEFING §53; the fix is item 17 in
-  `docs/handoff.md`). The ENC approach band's Mexican coast lies a median
-  225–466 m seaward of the real one from 32.38 to 32.50 N and converges at
-  the border; the tangent vertex (32.47015, −117.12459) is ~400 m off the
-  headland it stands for, in open water. Three independent sources put that
-  headland's tip at 32.4691, −117.1203 and agree within 0.01–0.09°: Esri
-  World Imagery, Copernicus GLO-30 (radar topography) and GMRT, the grid
-  the rays are already traced over. The ENC coastal band is half way (0.15°
-  high). A rock platform awash west of the tip, water-coloured on the image,
-  could pull the edge back by at most ~0.1°. **Moving `a` alone breaks
-  Breakers**: `b`, the `continues` marker at 32.3834, is an approach-band
-  vertex on the same faulty coast, and from Breakers' estimated position it
-  then bears above the new `a`, so `continues: "b"` flips the sector and
-  Baja blocks the whole seaward half-plane (every Breakers window vanishes).
-  Both move together, or not at all.
+- **The Baja tangent is read off imagery, both ends** (owner's decision,
+  2026-11-15, group 2c, item 17; BRIEFING §53-§54). The ENC approach band's
+  Mexican coast lies a median 225–466 m seaward of the real one from 32.38
+  to 32.50 N and converges at the border; its tangent vertex (32.47015,
+  −117.12459) was ~400 m off the headland it stands for, in open water, so
+  every south edge read 0.82 / 0.86 / 0.91° (N / C / S) too high. `a` is now
+  that headland's tip on Esri World Imagery, **32.46914, −117.12028**;
+  Copernicus GLO-30 and GMRT agree within 0.01–0.09°. One vertex serves all
+  five spots: Breakers' own imaged tangent (a headland at 32.4505 N) is
+  0.03° lower and Gator's 0.004°, so it carries no outline. A rock platform
+  awash west of the tip could pull the edge back by at most ~0.1°.
+  **`b` moved with it** (32.38339, −117.08238, the imaged coast at the old
+  `b`'s latitude; GLO-30 28 m east, GMRT within a 90 m cell): it stood on
+  the same faulty band, 620 m out to sea, and left there it bears above the
+  new `a` from Breakers' estimated position, `continues: "b"` flips the
+  sector and Baja blocks the whole seaward half-plane (every Breakers window
+  vanishes). `tests/test_geometry.py` holds `b` below `a` from every spot.
+  The blocker has no cells now; `spots.json`'s `imagery` block names both
+  ends and the chart vertices they replaced, and the "standing on" line
+  says "Esri World Imagery for the Baja coast".
+
+  | | north | center | south | Breakers* | Gator* |
+  |---|---|---|---|---|---|
+  | published low edge, chart | 164.63 | 166.42 | 168.45 | 161.41 | 170.08 |
+  | imagery | 163.81 | 165.56 | 167.54 | 160.66 | 169.10 |
+  | window energy, 2,090 hours (max. entropy) | +1.07% | 0.00% | 0.00% | 0.00% | +1.17% |
+
+  \* estimated positions. Only North (164.5) and Gator (169.5) cross a
+  half-degree bin centre (BRIEFING §26); their worst single hours gain +6.9%
+  and +27% window Hs. What the move did to the rays is in chain.md.
 
 ## The buoy does not share the beach's geometry
 

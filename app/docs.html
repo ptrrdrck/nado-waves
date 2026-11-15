@@ -771,7 +771,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       <figure>
         <div class="mapbox" data-map data-view="whole"></div>
         <figcaption>The whole aperture. Point Loma is 5–7 km out, the Baja coast 23–25 km and the
-          islands 28–33 km. Every window edge ends on a charted vertex.</figcaption>
+          islands 28–33 km. Every window edge ends on a measured vertex.</figcaption>
       </figure>
       <p>Everything else (north-west swell behind Point Loma, the open Pacific to the
         south-west beyond the islands' shadow) cannot reach these beaches in a straight line.
@@ -812,11 +812,14 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
     <section id="aperture-baja">
       <h3>The Baja coast</h3>
-      <p>The south edge of every window is a single vertex on the Mexican coast,
-        <span data-geo="baja-km">—</span> from the center break, that every other charted vertex
-        from the border to Rosarito sits behind. Because it is far away, 100 m of error there moves
-        an edge only <span data-geo="costs:coronado_center:Baja peninsula">—</span>. NOAA's charts
-        stop just south of it, so no coast further south has been checked.</p>
+      <p>The south edge of every window is a single point on the Mexican coast, a rocky headland
+        <span data-geo="baja-km">—</span> from the center break, that the whole coast from the
+        border to Rosarito sits behind. Because it is far away, 100 m of error there moves an edge
+        only <span data-geo="costs:coronado_center:Baja peninsula">—</span>. NOAA's charts put
+        this stretch of coast a few hundred metres out to sea, which put every south edge almost a
+        degree too high, so the headland is read off Esri World Imagery instead; radar topography
+        and the seabed survey agree with it. No coast further south, checked as far as 29° N,
+        comes within a degree of it.</p>
     </section>
 
     <section id="aperture-breaks">
@@ -953,8 +956,8 @@ MEM:      half-power width 10°, centred on 187–188°</pre>
 Hs,window = 4·√m₀,window = Hs · √(share)
 
 <span class="c">worked hour, North</span>
-share     = (0.836 / 1.296)² = 0.416     <span class="c">42% of the energy is aimed through North's windows</span>
-Hs        = 1.296 × √0.416 = 0.836 m      → 2.7 ft (0.84 m)
+share     = (0.840 / 1.296)² = 0.420     <span class="c">42% of the energy is aimed through North's windows</span>
+Hs        = 1.296 × √0.420 = 0.840 m      → 2.8 ft (0.84 m)
 <span class="c">Center 0.875 m (46%), South 0.899 m (48%)</span></pre>
       <div class="choice"><span class="lbl">Model choice · integrate, never test one direction</span>
         <p>Testing a single &ldquo;mean direction&rdquo; against the windows gives a yes or no:
@@ -999,7 +1002,7 @@ sin θ / c = constant along a ray     <span class="c">Snell's law, on a straight
           and Baja are land the rays stop on. The method is the one Scripps' CDIP uses for its
           coastal model, checked here against Snell's law on a flat test beach.</p></div>
 <pre class="math"><span class="c">worked hour</span>
-North    0.836 → 0.833 m    −0.4%
+North    0.840 → 0.833 m    −0.8%
 Center   0.875 → 0.628 m   −28%
 South    0.899 → 0.691 m   −23%</pre>
       <p>This is the step that reversed the order. North's seabed delivered almost everything its
@@ -1034,7 +1037,7 @@ K   0.012   0.041   0.250   1.259   0.844
 <pre class="math"><span class="c">worked hour</span>
 North    0.833 → 0.852 m    +2.3%
 Center   0.628 → 0.661 m    +5.3%
-South    0.691 → 0.719 m    +4.1%</pre>
+South    0.691 → 0.718 m    +3.9%</pre>
       <p>Diffraction added a little at all three: more leaked into the shadows than was lost along
         the edges.</p>
     </section>
@@ -1053,8 +1056,8 @@ h = 10 m   96.4%
 
 <span class="c">worked hour</span>
 North    0.852 → 0.755 m   −11%     <span class="c">energy × 0.79</span>
-Center   0.661 → 0.593 m   −10%
-South    0.719 → 0.658 m    −8.5%</pre>
+Center   0.661 → 0.592 m   −10%
+South    0.718 → 0.658 m    −8.4%</pre>
       <div class="choice"><span class="lbl">Model choice · the JONSWAP friction law, untuned</span>
         <p>Its coefficient comes from the literature and has not been adjusted. It is linear in
           energy, so each ray's loss is a fixed factor that can be worked out once, ahead of time,
@@ -1073,8 +1076,8 @@ Ks  = √(9.76 / 6.56) = 1.22           <span class="c">+22% in height</span>
 
 <span class="c">worked hour, the whole spectrum</span>
 North    0.755 → 0.928 m   +23%
-Center   0.593 → 0.714 m   +20%
-South    0.658 → 0.739 m   +12%</pre>
+Center   0.592 → 0.713 m   +20%
+South    0.658 → 0.738 m   +12%</pre>
       <div class="choice"><span class="lbl">Model choice · hand over at 5 m</span>
         <p>The ray tables stop in 5 m of water, close in and still inside Point Loma's shadow.
           From there the surf zone takes over (step 8). A table that stopped further out would
@@ -2180,7 +2183,8 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
           <tr><th scope="row">GEFS-Wave, NOAA</th><td>31-member ensemble at the buoy, height only</td><td>Ensemble chart</td></tr>
           <tr><th scope="row">National Weather Service grid</th><td>Hourly forecast wind at the center break, 7 days</td><td>Forecast wind, offshore line</td></tr>
           <tr><th scope="row">USGS CoNED, GMRT</th><td>Surveyed seabed, beach profiles and Point Loma's land (2016)</td><td>Refraction, friction, shoaling, breaking, the Sun card's skyline</td></tr>
-          <tr><th scope="row">NOAA electronic navigational charts</th><td>Coastline of Point Loma's tip, the islands, Baja and the break chords</td><td>The aperture</td></tr>
+          <tr><th scope="row">NOAA electronic navigational charts</th><td>Coastline of Point Loma's tip, the islands and the break chords</td><td>The aperture</td></tr>
+          <tr><th scope="row">Esri World Imagery</th><td>South Coronado's south-east tip and the Baja coast, where the charts are wrong</td><td>The aperture</td></tr>
           <tr><th scope="row">NOAA solar equations</th><td>Sunrise and sunset, computed</td><td>Night shading</td></tr>
           <tr><th scope="row">Meeus's solar theory</th><td>The sun's position, computed</td><td>The Sun card</td></tr>
           <tr><th scope="row">Meeus's lunar theory</th><td>The Moon's phase, distance and declination, computed</td><td>The tide's phase</td></tr>
@@ -2354,8 +2358,9 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
       <dt>GFS-Wave, GEFS-Wave</dt><dd>NOAA's global wave model, and the same model run as a
         31-member ensemble.</dd>
       <dt>ENC</dt><dd>NOAA's electronic navigational charts, the source of every coordinate in the
-        aperture but one: South Coronado's south-east tip, which the chart rounds off, is read
-        off Esri World Imagery.</dd>
+        aperture but three, which are read off Esri World Imagery: South Coronado's south-east
+        tip, which the chart rounds off, and the two points on the Baja coast, which the chart
+        puts out to sea.</dd>
       <dt>CoNED</dt><dd>The USGS Coastal National Elevation Database, a seamless survey of land and
         seabed.</dd>
       <dt>NDBC 46232, KNZY, 9410170</dt><dd>The buoy, the airfield and the tide gauge. NDBC 46047
@@ -2380,11 +2385,11 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
  "wind":{"from_deg":270.0,"speed_kt":8.0},
  "tide":{"gauge_height_m":2.005,"height_m":1.893},
  "breaks":{
-  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.836,"refracted_hs_m":0.833,"diffracted_hs_m":0.852,"friction_hs_m":0.755,"shoaled_hs_m":0.928,"with_chop_hs_m":0.933,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
+  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.84,"refracted_hs_m":0.833,"diffracted_hs_m":0.852,"friction_hs_m":0.755,"shoaled_hs_m":0.928,"with_chop_hs_m":0.933,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
     "breaking":{"hs_m":1.071,"depth_m":2.34,"distance_m":87.0,"tide_m":1.022,"gamma":0.529,"fraction_breaking":0.087,"outside_start":false}},
-  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.628,"diffracted_hs_m":0.661,"friction_hs_m":0.593,"shoaled_hs_m":0.714,"with_chop_hs_m":0.726,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
+  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.628,"diffracted_hs_m":0.661,"friction_hs_m":0.592,"shoaled_hs_m":0.713,"with_chop_hs_m":0.725,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
     "breaking":{"hs_m":0.882,"depth_m":1.99,"distance_m":114.0,"tide_m":1.022,"gamma":0.509,"fraction_breaking":0.089,"outside_start":false}},
-  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.719,"friction_hs_m":0.658,"shoaled_hs_m":0.739,"with_chop_hs_m":0.753,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
+  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.718,"friction_hs_m":0.658,"shoaled_hs_m":0.738,"with_chop_hs_m":0.752,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
     "breaking":{"hs_m":0.882,"depth_m":2.28,"distance_m":141.0,"tide_m":1.022,"gamma":0.527,"fraction_breaking":0.027,"outside_start":false}}
  }}
 </script>
@@ -2938,6 +2943,9 @@ const el = (tag, attrs = {}, parent) => {
   return n;
 };
 let VIEWS = [], P, loma, islandsS, islandsN, baja, tangentOf = {};
+// A blocker's imagery block if its end `k` was read off imagery, else null.
+// `end` is one end ("a") or a list of them (the Baja coast, both ends).
+const imageryEnd = (bl, k) => (bl.imagery && [].concat(bl.imagery.end).includes(k) ? bl.imagery : null);
 if (MODEL) {
   const C = brk("coronado_center") || MODEL.breaks[0];
   const LAT0 = C.position[0], LON0 = C.position[1];
@@ -2960,7 +2968,7 @@ if (MODEL) {
     ...MODEL.blockers.flatMap((b) => [b.a, b.b]), ...(MODEL.buoy.position ? [MODEL.buoy.position] : [])];
   VIEWS = [
     {id: "whole", label: "Whole aperture", box: bboxOf(allPts, 2.5), dist: ["far"],
-     caption: "The full aperture: Point Loma 5–7 km out, the Baja coast 23–25 km, the islands 28–33 km. Every window edge ends on a charted vertex."},
+     caption: "The full aperture: Point Loma 5–7 km out, the Baja coast 23–25 km, the islands 28–33 km. Every window edge ends on a measured vertex."},
     {id: "near", label: "Point Loma & breaks", box: bboxOf([...MODEL.breaks.flatMap((b) => b.chord), ...Object.values(tangentOf), loma.a], 0.6), dist: ["near", "beach"],
      caption: "The west edge of each window is the ray to the Point Loma tip. It sweeps as you walk the sand — that sweep is the whole difference between the three breaks."},
     {id: "tip", label: "The tip", box: bboxOf(loma.outline, 0.07), dist: ["tip"],
@@ -3157,14 +3165,15 @@ function geoMap(box, opts = {}) {
     label(loma.b, "Point Loma ridge continues", 10, 4, "t-soft");
     for (const isl of [islandsS, islandsN]) {
       for (const [k, p] of [["a", isl.a], ["b", isl.b]]) {
-        const img = isl.imagery && isl.imagery.end === k ? isl.imagery : null;
+        const img = imageryEnd(isl, k);
         vtx(p, `<b>${isl.name} · ${k}</b><br>extreme-bearing vertex, ${img ? `${img.product} (${img.label}; the chart rounds it off)` : `NOAA ENC ${isl.cells.join(", ")}`}<br>screen width ${fmtDist(isl.span_km)}<br><span class="coord">${fmtLL(p)}</span>`, {color: cssv("--land-edge")});
       }
       const west = isl.a[1] < isl.b[1] ? isl.a : isl.b;
       label(west, isl === islandsS ? "Coronado Islands · south group" : "Coronado Islands · north", -12, 4, "t-soft", "end");
     }
-    vtx(baja.a, `<b>Baja coast · tangent</b><br>one vertex carries every south edge<br>NOAA ENC ${baja.cells.join(", ")}<br><span class="coord">${fmtLL(baja.a)}</span>`, {color: cssv("--land-edge")});
-    vtx(baja.b, `<b>Baja coast · b</b><br>says only that the coast runs on south<br><span class="coord">${fmtLL(baja.b)}</span>`, {r: 3.5, color: cssv("--land-edge")});
+    const bajaSrc = (k) => { const img = imageryEnd(baja, k); return img ? `${img.product} (the chart puts this coast out to sea)` : `NOAA ENC ${baja.cells.join(", ")}`; };
+    vtx(baja.a, `<b>Baja coast · tangent</b><br>one vertex carries every south edge<br>${bajaSrc("a")}<br><span class="coord">${fmtLL(baja.a)}</span>`, {color: cssv("--land-edge")});
+    vtx(baja.b, `<b>Baja coast · b</b><br>says only that the coast runs on south<br>${bajaSrc("b")}<br><span class="coord">${fmtLL(baja.b)}</span>`, {r: 3.5, color: cssv("--land-edge")});
     label(baja.a, "Baja coast · tangent", 10, 4, "t-soft");
 
     if (MODEL.buoy.position) {
@@ -3313,11 +3322,13 @@ if (MODEL) {
   vrows.push(["Point Loma b (ridge continues)", loma.b, "ENC", loma.date]);
   for (const isl of [islandsS, islandsN])
     for (const k of ["a", "b"]) {
-      const img = isl.imagery && isl.imagery.end === k;
-      vrows.push([`${vbl(isl.name)} ${k}`, isl[k], img ? "imagery" : "ENC", img ? isl.imagery.date : isl.date]);
+      const img = imageryEnd(isl, k);
+      vrows.push([`${vbl(isl.name)} ${k}`, isl[k], img ? "imagery" : "ENC", img ? img.date : isl.date]);
     }
-  vrows.push(["Baja tangent (a)", baja.a, "ENC", baja.date]);
-  vrows.push(["Baja b (coast continues)", baja.b, "ENC", baja.date]);
+  for (const [k, name] of [["a", "Baja tangent (a)"], ["b", "Baja b (coast continues)"]]) {
+    const img = imageryEnd(baja, k);
+    vrows.push([name, baja[k], img ? "imagery" : "ENC", img ? img.date : baja.date]);
+  }
   $("vtable").innerHTML = `<thead><tr><th>Vertex</th><th>Lat, lon</th><th>Source</th></tr></thead><tbody>` +
     vrows.map(([n, p, s, d]) => `<tr><td>${n}</td><td class="coord">${p ? fmtLL(p) : "see the tip view"}</td><td><span class="src ${s === "imagery" ? "img" : ""}">${s === "imagery" ? "imagery" : "NOAA ENC"} · ${d}</span></td></tr>`).join("") + `</tbody>`;
 

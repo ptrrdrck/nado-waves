@@ -298,27 +298,42 @@
     {
       "name": "Baja peninsula",
       "a": [
-        32.4701509,
-        -117.1245933
+        32.46914,
+        -117.12028
       ],
       "b": [
-        32.3833861,
-        -117.0889979
+        32.38339,
+        -117.08238
       ],
       "continues": "b",
       "tip_verified": true,
       "provenance": {
-        "method": "seaward-most charted vertex of the Mexican coast as seen from Coronado, NOAA ENC approach band (enc_approach/88), read by forecast.blockeredge",
-        "by": "collector.shoreline region=baja",
-        "date": "2026-09-20",
-        "note": "`a` is a TANGENT, not the end of a chord. The Baja coast is seen almost exactly edge-on from these breaks - every charted vertex from the border to the extract's southern limit spans 147 to 168 degrees - so one vertex carries the whole edge, the same geometry as the Point Loma tip. It is a softer problem than Point Loma because it is 23 km out rather than 5: 100 m of error moves the edge 0.25 degrees, against about 1 there. The coastal band agrees to 0.18 degrees. The maximum sits 9.6 km NORTH of the last charted vertex, so the coast turns away inside the data and this is a tangent rather than the chart running out - forecast.blockeredge carries that alarm and it is quiet here.",
-        "cells": [
-          "US4CA1BX.000",
-          "US4CA74M.000"
-        ],
-        "chart_product": "NOAA ENC, approach band (usage band 4)"
+        "method": "seaward-most point of the Mexican coast as seen from Coronado (`a`) and the coast at the latitude where NOAA's charts stop (`b`), both measured on Esri World Imagery, because the ENC approach band's Mexican coast lies hundreds of metres out to sea",
+        "by": "Esri World Imagery, measured 2026-11-15 (BRIEFING sections 53 and 54); first charted 2026-09-20 by collector.shoreline region=baja",
+        "date": "2026-11-15",
+        "imagery": {
+          "end": [
+            "a",
+            "b"
+          ],
+          "label": "the Baja coast",
+          "product": "Esri World Imagery",
+          "date": "2026-11-15",
+          "replaced": {
+            "a": [
+              32.4701509,
+              -117.1245933
+            ],
+            "b": [
+              32.3833861,
+              -117.0889979
+            ]
+          },
+          "note": "Measured 2026-11-15 (BRIEFING sections 53 and 54) after the owner saw the Baja tangent sit in the water on the map. The ENC approach band's Mexican coast lies a median 225 to 466 m seaward of the real one from 32.38 to 32.50 N and converges at the border; its tangent vertex (`replaced.a`) was about 400 m off the headland it stood for, in open water, so every south-window edge read 0.82 / 0.86 / 0.91 degrees (north / center / south) too high. `a` is the extreme-bearing pixel of mainland classified by colour at zoom 16 (about 2 m a pixel) after a 12 m opening, the same method as South Coronado's tip; the solid and rock variants give the same pixel. Copernicus GLO-30 (radar topography, land over 1 m) and GMRT at mean high water put the tangent within 0.01 to 0.09 degrees of it. One vertex serves all five spots: Breakers' own imaged tangent, on a headland at 32.4505 N, is 0.03 degrees lower, Gator's 0.004. A rock platform awash west of the tip, water-coloured on the image, could pull the edge back by at most about 0.1 degree. `b` moves with `a` because it stood on the same faulty band (620 m out to sea): left there, it bears above the new `a` from Breakers' estimated position, `continues` flips the sector and Baja blocks Breakers' whole seaward half-plane. The new `b` is the imaged coast at the old one's latitude; GLO-30 puts it 28 m east, GMRT within one 90 m cell, and from Breakers it bears 0.33 degrees below `a`. The ENC coastal band is half way (0.15 to 0.18 degrees high)."
+        },
+        "note": "`a` is a TANGENT, not the end of a chord. The Baja coast is seen almost exactly edge-on from these breaks - every vertex from the border to Rosarito spans 147 to 168 degrees - so one vertex carries the whole edge, the same geometry as the Point Loma tip. It is a softer problem than Point Loma because it is 23 km out rather than 5: 100 m of error moves the edge 0.25 degrees, against about 1 there. On the chart the maximum sat 9.6 km NORTH of the last charted vertex, so the coast turns away inside the data and this is a tangent rather than the chart running out - forecast.blockeredge carries that alarm against the chart extract and it is quiet there."
       },
-      "notes": "The coast running south from the border. `a` is the tangent and carries the southern edge of every Coronado window; `b` only says the land continues past it and does not end. UNTESTED CLAIM: no coast south of 32.3834 - where NOAA's charts stop - bears higher than `a` from these breaks. Public landmark positions put Punta Descanso, Ensenada, Punta Banda and Punta Eugenia at 152 to 159 degrees, all below it, but those are typed estimates and not a measurement. GSHHG or a Mexican chart would settle it."
+      "notes": "The coast running south from the border. `a` is the tangent and carries the southern edge of every Coronado window; `b` only says the land continues past it and does not end. Measured 2026-11-15 (BRIEFING section 53): over GMRT at 90 m to 32.25 N and at 400 m to 29.24 N, no coast south of 32.3834 - where NOAA's charts stop - bears within 1.0 to 2.1 degrees of `a` from these breaks."
     }
   ],
   "_missing": [

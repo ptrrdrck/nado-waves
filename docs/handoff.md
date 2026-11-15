@@ -47,23 +47,21 @@ islands sections.
     Open: `app/docs.html`'s map paragraph still says every line is drawn
     from depths smoothed over a cell; the owner was asked for the wording.
 
-### Group 2c: the Baja tangent (strongest setting; next)
+### Group 2c: the Baja tangent -- built (PR on branch claude/jolly-curie-t44nks)
 
-17. **The Baja tangent from imagery** (32.4691, -117.1203; GLO-30 and
-    GMRT agree within 0.01-0.09 degrees). The ENC approach band's Mexican
-    coast is a median 225-466 m seaward of the real one; the published
-    south-window low edges are 0.82 / 0.86 / 0.91 degrees too high (164.6 ->
-    163.8, 166.4 -> 165.6, 168.5 -> 167.5; Gator 170.1 -> 169.1). Move `b`
-    (the `continues` marker, same faulty band) with `a`, or Breakers' windows
-    vanish (geometry.md). Window energy by the bin arithmetic: one bin at
-    North (164.5) and Gator (169.5), none at Center or South. Measure before
-    deciding, as §52 did: the ray tables move through Baja's edge
-    diffraction (`edge_points`) and the straight-leg block
-    (`straight_line_blocker`); rebuild and compare over the archive. The
-    "standing on" line names the imagery; spots.json's UNTESTED note can
-    close (geometry.md has the measurement).
+17. **The Baja tangent from imagery** -- done (BRIEFING §54; geometry.md
+    "The south window", chain.md "Baja's edge in the rays"). Both ends on
+    Esri World Imagery: `a` 32.46914, -117.12028 (the headland; GLO-30 and
+    GMRT within 0.01-0.09 degrees), `b` 32.38339, -117.08238 (the coast at
+    the old `b`'s latitude, so Breakers keeps its sector). Low edges
+    164.6 / 166.4 / 168.5 -> 163.8 / 165.6 / 167.5, Breakers 161.4 -> 160.7,
+    Gator 170.1 -> 169.1; window energy +1.07% North, +1.17% Gator, 0 at the
+    rest. Tables rebuilt: 1.2-1.5% of rows, 5 m height a median within
+    0.03%, worst hour -1.8%; legs and fill paths unchanged. The "standing on"
+    line says "Esri World Imagery for the Baja coast"; spots.json's
+    UNTESTED note closed.
 
-### Group 2d: the islands (strongest setting; after 2c)
+### Group 2d: the islands, and the straight leg (strongest setting; next)
 
 All three move the islands' see-through disc, item 14's unstable input, so
 one session.
@@ -88,6 +86,15 @@ one session.
     up to -29% / +34%. Measure what a smoother treatment (no step-edged disc;
     bounded single-ray gains; or the islands as land with diffraction only)
     does before choosing one.
+
+19. **The straight leg ignores `continues`** (found in group 2c; chain.md
+    "Baja's edge in the rays"). `raytrace.straight_line_blocker` blocks only
+    inside the span of a blocker's `a`, `b` and outline, so a short-period
+    ray leaving deep water near the beach heading into the Mexican coast
+    south of `b` counts as clear. Upper bound on what it carries: the 5 m
+    height a median -0.002%, at worst -3.5% (North, 22 Oct 00Z). It needs
+    the table rebuild group 2d makes anyway; measure a fix that honours
+    `continues` (the real coast, not a half-plane) before choosing one.
 
 ### Group 3: map layers (mock first)
 
@@ -132,24 +139,15 @@ wait for Tests, don't merge." to each.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
   cause and the truth before changing anything."
-- Group 2c: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes
-  for BRIEFING.md. Group 2c of docs/handoff.md (item 17), the Baja tangent
-  from imagery (strongest setting). Read geometry.md ('The south window'),
-  chain.md (edge diffraction and the island sensitivity), map.md ('The coast
-  is the chart's'), forecast/raytrace.py's edge_points and
-  straight_line_blocker, and BRIEFING §26, §31, §52, §53 first; the
-  evidence is in the notes repository's evidence/2026-11-15-group-2b/.
-  Measure what moving Baja's `a` and `b` to the imaged coast moves --
-  published windows at all five spots, window energy over the archive, the
-  ray tables and fill paths -- and report before changing anything."
 - Group 2d: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes
-  for BRIEFING.md. Group 2d of docs/handoff.md (items 18, 13, 14), the
+  for BRIEFING.md. Group 2d of docs/handoff.md (items 18, 13, 14, 19), the
   islands (strongest setting). Read geometry.md's islands section, chain.md
   ('A ray re-traced through an island...'), map.md, forecast/raytrace.py's
   islands code and BRIEFING §10, §29, §31, §52, §53 first. Look at North
   Coronado's ends as §52 did, count the table rays that cross Middle and
-  North Coronado, and measure item 14's smoother treatments before
-  choosing; report before changing anything."
+  North Coronado, and measure item 14's smoother treatments and item 19's
+  straight-leg fix (chain.md, "Baja's edge in the rays"; BRIEFING §54)
+  before choosing; report before changing anything."
 - Group 3: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 3 of docs/handoff.md (items 2, 11, 12), map layers. Read map.md and
   origin.md first; mock before building."

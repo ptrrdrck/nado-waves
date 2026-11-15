@@ -368,6 +368,40 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   with the unchanged geometry reproduced every committed table byte for
   byte before the tip moved.
 
+## Baja's edge in the rays: diffraction and the straight leg
+
+- **Moving the Baja tangent to the imaged headland moved the rays very
+  little** (measured 2026-11-15, BRIEFING §54, before the owner's decision
+  to ship it, group 2c, item 17). The rays already stopped on the right
+  coast (GMRT); what reads `spots.json`'s Baja is the straight-edge
+  diffraction (`raytrace.edge_points`, the tangent vertex), the straight-leg
+  block (`raytrace.straight_line_blocker`, the `a`-`b` span) and the
+  landed-ray label (`raytrace.landed_on`, nearest vertex within 3 km).
+  Control first: the rebuild with the old geometry reproduced every committed
+  file byte for byte. With `a` and `b` on the imaged coast, only the three
+  `<break>.csv` tables changed, 336 / 271 / 316 of 23,040 rows (N / C / S);
+  the legs, the fill's paths, the profiles, the fetch tables and the
+  tables' metadata were byte-identical. Hard shadows changed only for rays of
+  3.4 s and under, at the two ends of the straight-leg span; the rest is
+  diffraction at the moved vertex (~400 m further east, so a ray that lands
+  on Baja runs further into its shadow) and 3-6 rows per break that
+  `landed_on` relabels between "Baja peninsula" and the Coronado shore.
+  Over 2,090 archived hours (maximum entropy) the 5 m height moved a median
+  +0.002 / −0.03 / +0.009%, at worst −1.8% (Center, 8 Aug 10Z) and +0.9%
+  (South, 25 Aug 11Z), more than 1% on 0 / 5 / 0 hours, never 5%; hard-edged,
+  never 0.06%. No island ray was involved, unlike §52. The worked hour on
+  docs.html moved by at most 4 mm (North's window 0.836 → 0.840 m).
+- **Open: the straight leg ignores `continues`.** `straight_line_blocker`
+  blocks a heading only inside the angular span of a blocker's `a`, `b` and
+  outline seen from the ray's exit, so a ray that leaves deep water near the
+  beach heading into the Mexican coast south of `b` counts as clear. Those
+  are short-period rays (only those under ~2 s are deep at the start; up to
+  ~3.4 s exit within a few hundred metres). Zeroing every ray that exits
+  within 2 km heading between the seaward limit and `b`'s bearing moves the
+  5 m height a median −0.002%, at worst −3.5% (North, 22 Oct 00Z): an upper
+  bound, since bearings were taken from the break, not each exit. Handoff
+  item 19.
+
 ## The transfer tables stop at 5 m
 
 - **The transfer tables stop at 5 m of water; the surf zone takes it from

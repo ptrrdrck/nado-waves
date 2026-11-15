@@ -148,8 +148,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    - **The chart** (Baja) and **missing islands** (GMRT): not the map's to
      fix. The ENC approach band's Mexican coast lies a median 225-466 m
      seaward of imagery, GLO-30 and GMRT from 32.38 to 32.50 N; the map's
-     GMRT coast is right and the Baja tangent is wrong (geometry.md, item
-     17). GMRT lacks Middle and North Coronado (items 13 and 18).
+     GMRT coast was right and the Baja tangent wrong; the tangent moved to
+     imagery on the same day (geometry.md, item 17, BRIEFING §54) and now
+     sits 4 m from the drawn 90 m coast. GMRT lacks Middle and North
+     Coronado (items 13 and 18).
 
    At MHW the stored grid makes low ground inland water (half a square
    kilometre of Coronado on 8 m cells; on the coarse grids the Salton Sea,
@@ -164,7 +166,7 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    | breaks, 8 m (zoom 11+) | -13 / -22 / -34 m | +22 / +7 / -5 m |
    | breaks, 32 m (zoom 9-10) | +3 / -35 / -43 m | +32 / -7 / -5 m |
    | Point Loma tangents, 32 m (zoom 9+) | -57 / -58 / -67 m | -25 / -25 / -18 m |
-   | Baja tangent, 90 m (chart error, item 17) | +301 m | +346 m |
+   | Baja tangent, 90 m (chart error, item 17) | +301 m | +346 m; imaged tangent +4 m |
    | South Coronado tip, 90 m | +87 m | +122 m |
 
    At the opening view (~26 m a pixel on a 390 px phone) every break and

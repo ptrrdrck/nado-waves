@@ -16,6 +16,7 @@ from forecast.geometry import (
     load,
     open_window,
     reaches,
+    swell_window,
 )
 
 SPOTS, BLOCKERS = load()
@@ -324,10 +325,61 @@ class TestTipOutline:
         coronado = [s for s in spots if s.id.startswith("coronado_")]
         got = geometry_provenance(blockers, coronado)
         assert [(v["blocker"], v["end"]) for v in got["vertices_from_imagery"]] == [
-            ("Coronado Islands (South group)", "a")]
+            ("Coronado Islands (South group)", "a"), ("Baja peninsula", ("a", "b"))]
         line = geometry_line(blockers, coronado)
         assert "Esri World Imagery for South Coronado's south-east tip" in line
         assert "US4CA74M.000" in line
+
+    def test_a_blocker_imaged_at_both_ends_is_named_once(self):
+        """Since 2026-11-15 (BRIEFING §54) both of the Baja coast's ends are
+        Esri World Imagery and it has no cells. A blocker with no cells used
+        to be listed as "aerial imagery for <name>"; one with an imagery
+        block is named by that block, once, by product and label."""
+
+        from forecast.geometry import geometry_line, geometry_provenance
+
+        spots, blockers = load()
+        coronado = [s for s in spots if s.id.startswith("coronado_")]
+        assert geometry_provenance(blockers, coronado)["from_imagery"] == []
+        line = geometry_line(blockers, coronado)
+        assert line.count("Baja") == 1
+        assert "Esri World Imagery for the Baja coast" in line
+        assert "aerial imagery" not in line
+
+
+class TestTheBajaContinuesMarker:
+    """`b` says only that the Baja coast runs on south of the tangent; with
+    `continues: "b"` the blocked sector runs from `a` round past `b`. If `b`
+    ever bears ABOVE `a` from a spot, the sector flips and Baja blocks that
+    spot's whole seaward half-plane: what moving `a` alone to the imaged
+    headland did to Breakers (BRIEFING §53). Both ends moved together."""
+
+    def test_b_bears_below_a_from_every_spot(self):
+        from forecast.swell import initial_bearing
+
+        spots, blockers = load()
+        baja = next(b for b in blockers if b.name == "Baja peninsula")
+        for spot in spots:
+            gap = initial_bearing(spot.position, baja.a) - initial_bearing(spot.position, baja.b)
+            # Breakers, nearest the tip on estimated coordinates, is tightest: 0.33.
+            assert gap > 0.3, spot.id
+
+    def test_every_spot_keeps_a_south_window_opened_by_baja(self):
+        spots, blockers = load()
+        for spot in spots:
+            opened = [w for w in swell_window(spot, blockers)
+                      if 155.0 < w[0] < 175.0]
+            assert len(opened) == 1, spot.id
+
+    def test_the_south_edges_stand_on_the_imaged_headland(self):
+        """Published low edges, BRIEFING §54: 163.8 / 165.6 / 167.5 at the
+        three Coronado breaks (were 164.6 / 166.4 / 168.5 on the chart)."""
+
+        spots, blockers = load()
+        got = {s.id: swell_window(s, blockers)[0][0] for s in spots}
+        assert round(got["coronado_north"], 1) == 163.8
+        assert round(got["coronado_center"], 1) == 165.6
+        assert round(got["coronado_south"], 1) == 167.5
 
     def test_the_break_positions_are_charted_and_named(self):
         """The aperture's observer end came off the ENC on 2026-09-22 (BRIEFING

@@ -247,12 +247,35 @@ class TestAgainstTheStoredExtract:
         _, blockers = load()
         south = next(b for b in blockers if b.name == "Coronado Islands (South group)")
         assert dict(south.imagery)["end"] == "a"
-        assert all(not b.imagery for b in blockers if b is not south)
+        # The Baja coast is the other imaged blocker (BRIEFING §54), both ends.
+        assert all(not b.imagery for b in blockers
+                   if b is not south and not b.name.startswith("Baja"))
         rows = self.rows("Coronado Islands (South group)", "enc_approach_88_baja")
         spots = {s.id: s for s in load()[0]}
         for sid in ("coronado_north", "coronado_center", "coronado_south"):
             got = (initial_bearing(spots[sid].position, south.a) - rows[sid].low.bearing_deg + 180) % 360 - 180
             assert -0.2 < got < -0.05
+
+    def test_the_baja_coast_is_imagery_at_both_ends(self):
+        """BRIEFING §53-§54: the approach band's Mexican coast lies a median
+        225-466 m out to sea and its tangent vertex ~400 m off the headland,
+        in open water, so every south edge read 0.8-1.0 degrees high. Both
+        ends were moved to Esri World Imagery, because `b` stood on the same
+        band and, left there, bears above the new `a` from Breakers. The
+        blocker keeps no cells: none of it is charted any more."""
+
+        _, blockers = load()
+        baja = next(b for b in blockers if b.name == "Baja peninsula")
+        assert dict(baja.imagery)["end"] == ("a", "b")
+        assert dict(baja.imagery)["product"] == "Esri World Imagery"
+        assert baja.cells == ()
+        rows = self.rows("Baja peninsula", "enc_approach_88_baja")
+        spots = {s.id: s for s in load()[0]}
+        # Measured: 0.82 / 0.86 / 0.91 below the chart's tangent (N / C / S).
+        for sid, want in (("coronado_north", 0.82), ("coronado_center", 0.86),
+                          ("coronado_south", 0.91)):
+            got = rows[sid].high.bearing_deg - initial_bearing(spots[sid].position, baja.a)
+            assert got == pytest.approx(want, abs=0.006), sid
 
     @pytest.mark.parametrize("feature", ["Coronado Islands (South group)",
                                          "Coronado Islands (North group)"])

@@ -40,7 +40,9 @@ endpoint is the charted vertex nearest the original trace, which moved them
 3–38 m. **Every coordinate in Coronado's aperture came from NOAA's ENC** until
 2026-11-15, when South Coronado's south-east tip was read off Esri World
 Imagery instead: the chart rounds that lobe off, and the islands' southern edge
-read 0.08–0.13° high (BRIEFING §52).
+read 0.08–0.13° high (BRIEFING §52). The same day the Baja coast followed, both
+its points: the chart puts that coast a few hundred metres out to sea, and every
+south edge read 0.8–1.0° high (BRIEFING §53–§54).
 What the chart cannot supply is where along the coast each break sits — that
 alongshore choice is still the one made by hand.
 
