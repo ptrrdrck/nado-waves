@@ -29,11 +29,19 @@ holds:
 
 - the bands as NESTED polygons, `{"k": "fill", "b": n}`: n = -1 is every
   covered cell (the land colour shows where nothing deeper lies over it),
-  n = 0 water deeper than `raytrace.H_LAND`, then 5, 10, 20, 50, 100, 200,
+  n = 0 water below the coast (`coast_depth`), then 5, 10, 20, 50, 100, 200,
   500, 1,000, 2,000, 3,000 and 4,000 m (`BANDS`). Nested, not side by side,
   so simplifying one band's edge can open no gap to the next;
 - the contours, `{"k": "line", "d": depth}`, at `LINES`;
-- the shoreline, `{"k": "coast"}`, where the depth crosses `H_LAND`.
+- the shoreline, `{"k": "coast"}`, at the coast.
+
+THE COAST IS MEAN HIGH WATER, the line a chart's coastline is (owner's
+decision, 2026-11-15; BRIEFING §53), read off NOAA's fetched datums for
+9410170 (`collector.datums`), never typed. Every vertex the geometry stands
+on is chart coast; drawn at `raytrace.H_LAND` instead, 0.3 m below MSL and
+0.9 m below MHW, the breaks sat 13-34 m inside the map's land on 8 m cells,
+where at MHW they sit -4 to +20 m off it. The rays still stop at `H_LAND`:
+waterline and depth contour are two claims, and the map draws the chart's.
 
 Every band and line is cut to one outline, the grid's covered cells set two
 tolerances in (`edge`), so all of a grid's bands end on the same line and the
@@ -41,10 +49,15 @@ grid beneath shows past it: simplified one by one, and each straight in UTM
 but not on the map, they ended kilometres apart, and the land colour drew a
 line along the grid's edge across open sea.
 
-Each grid is smoothed over about a cell before it is contoured (`TIERS`), so
-a line does not trace the survey's cell-scale noise, and simplified to a few
-metres near the beach and 80 m out past Tanner Bank. A display, never a
-depth anyone reads: the chain reads the grids themselves.
+Each grid is smoothed over about a cell before its depth contours and deeper
+bands are drawn (`TIERS`), so a line does not trace the survey's cell-scale
+noise, and simplified to a few metres near the beach and 80 m out past Tanner
+Bank. THE COAST IS NOT SMOOTHED (owner's decision, 2026-11-15; BRIEFING §53):
+it and the land's edge are contoured from the grid as stored, and every
+deeper band is cut to them. Smoothing a cliff whose land stands 15 m above
+water a few metres deep carries the coast seaward: at the Point Loma tip it
+put the 32 m grid's coast 21-43 m farther out than the grid itself has it.
+A display, never a depth anyone reads: the chain reads the grids themselves.
 
 `manifest.json` holds each file's zoom, size and fingerprint and each grid's
 `retrieved_utc`, so a test can tell when a grid has been fetched again and the
@@ -63,13 +76,16 @@ from pathlib import Path
 
 import numpy as np
 
+from collector.datums import datums_path, mhw_above_msl_m
+
 from . import utm as U
 from .mapdata import fingerprint
-from .raytrace import BATHY_DIR, H_LAND, Bathymetry, Grid
+from .raytrace import BATHY_DIR, Bathymetry, Grid
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "seabed_vector"
-#: The bands' shallow edges (m), after the land: index 0 is H_LAND.
+#: The bands' shallow edges (m), after the land and the water below the coast
+#: (`coast_depth`).
 BANDS = (5, 10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 4000)
 #: The contour lines (m).
 LINES = (5, 10, 20, 50, 100, 200, 500, 1000, 2000)
@@ -111,6 +127,17 @@ def load_grid(name: str, directory: Path = BATHY_DIR) -> Grid | None:
     return Bathymetry([Grid.from_elevation(raw / 10.0, left, top, a, shift)], None, (name,)).grids[0]
 
 
+def coast_depth(data_dir: Path | None = None) -> float:
+    """The map's coast as a depth below MSL: mean high water, so negative.
+    Refuses to guess when the datums have not been fetched."""
+
+    mhw = mhw_above_msl_m(data_dir) if data_dir is not None else mhw_above_msl_m()
+    if mhw is None:
+        raise RuntimeError(f"{datums_path()} missing: the map's coast is mean high water, fetched "
+                           "by collector.datums on Actions (tide-stations.yml), never typed")
+    return -mhw
+
+
 def smooth(a: np.ndarray, sigma: float) -> np.ndarray:
     """A Gaussian blur that ignores empty cells (NaN stays NaN)."""
 
@@ -133,8 +160,20 @@ def _lonlat(coords: np.ndarray, dec: int) -> list[list[float]]:
     return out
 
 
-def features(grid: Grid, sigma: float, tol: float, dec: int, strip: float | None = None) -> list[dict]:
-    """One grid's bands, contours and shoreline as GeoJSON features.
+def features(grid: Grid, sigma: float, tol: float, dec: int, strip: float | None = None, *,
+             coast: float) -> list[dict]:
+    """One grid's bands, contours and shoreline as GeoJSON features, the
+    coast at depth `coast` (`coast_depth`).
+
+    The coast and the land's edge (band 0) are contoured from the grid as
+    stored; the deeper bands and the contour lines from the grid smoothed
+    over `sigma` cells, each band and line cut to band 0 so a smoothed band
+    never reaches over the coast. Band 0 is THE SEA'S: only water that
+    reaches the edge of the grid's cover, where the sea runs on past it,
+    is water. Ground below the coast that no water joins to it is land, as
+    on a chart: at mean high water it was half a square kilometre of Coronado
+    on 8 m cells, and on the coarse grids the Salton Sea, Laguna Salada and
+    Death Valley, below sea level, drawn as sea (BRIEFING §53).
 
     Within `strip` metres of the grid's edge each band is cut away under the
     next deeper, so only the band shown reaches the edge, and the grid's land
@@ -154,22 +193,36 @@ def features(grid: Grid, sigma: float, tol: float, dec: int, strip: float | None
     rows, cols = depth.shape
     x = grid.left + (np.arange(cols) + 0.5) * grid.cell
     y = grid.top - (np.arange(rows) + 0.5) * grid.cell
-    gen = contourpy.contour_generator(x, y, np.ma.masked_invalid(depth),
-                                      fill_type="OuterOffset", line_type="Separate", name="serial")
+
+    def generator(d):
+        return contourpy.contour_generator(x, y, np.ma.masked_invalid(d),
+                                           fill_type="OuterOffset", line_type="Separate", name="serial")
+
+    gen, raw = generator(depth), generator(grid.depth)
     least = (2 * tol) ** 2
 
-    def filled(lower: float) -> list[Polygon]:
-        polys, offsets = gen.filled(lower, 1e9)
+    def filled(lower: float, source=gen) -> list[Polygon]:
+        polys, offsets = source.filled(lower, 1e9)
         return [Polygon(pts[off[0]:off[1]], [pts[off[i]:off[i + 1]] for i in range(1, len(off) - 1)])
                 for pts, off in zip(polys, offsets)]
 
-    clip = edge(filled(-1e9), tol)
+    def band(lower: float, source=gen):
+        return union_all([simplify(poly, tol, preserve_topology=True).intersection(clip)
+                          for poly in filled(lower, source)] or [Polygon()])
+
+    cover = filled(-1e9)
+    clip = edge(cover, tol)
     inner = segmentize(clip.buffer(-(strip if strip is not None else EDGE_INSET * tol), join_style="mitre"),
                        EDGE_STEP * tol)
-    bands = []
-    for lower in (-1e9, H_LAND) + BANDS:
-        bands.append(union_all([simplify(poly, tol, preserve_topology=True).intersection(clip)
-                                for poly in filled(lower)] or [Polygon()]))
+    rim = union_all(cover).boundary
+    sea = [poly for poly in filled(coast, raw) if poly.distance(rim) < 0.5 * grid.cell]
+    reach = union_all(sea) if sea else Polygon()
+    water = union_all([simplify(poly, tol, preserve_topology=True).intersection(clip) for poly in sea] or [Polygon()])
+    bands = [band(-1e9), water] + [band(lower).intersection(water) for lower in BANDS]
+    # A contour is kept over the sea as stored, grown by a tolerance, not the
+    # simplified band: cut to that, the shallow lines near a coarse grid's
+    # coast broke into hundreds of pieces.
+    seaward = clip.intersection(reach.buffer(tol))
     out: list[dict] = []
     for band, shape in enumerate(bands):
         if band + 1 < len(bands) and not bands[band + 1].is_empty:
@@ -182,12 +235,18 @@ def features(grid: Grid, sigma: float, tol: float, dec: int, strip: float | None
             coords += [_lonlat(np.asarray(h.coords), dec) for h in part.interiors if Polygon(h).area >= least]
             out.append({"type": "Feature", "properties": {"k": "fill", "b": band - 1},
                         "geometry": {"type": "Polygon", "coordinates": coords}})
-    for level in (H_LAND,) + LINES:
-        for pts in gen.lines(level):
+    for level, source in [(coast, raw)] + [(d, gen) for d in LINES]:
+        for pts in source.lines(level):
             if len(pts) < 3:
                 continue
-            props = {"k": "coast"} if level == H_LAND else {"k": "line", "d": level}
-            for line in _parts(simplify(LineString(pts), tol).intersection(clip), "LineString"):
+            if source is raw:
+                # The sea's own edge, never a ring round water it does not reach.
+                if LineString(pts).distance(reach) > 1e-6 * grid.cell:
+                    continue
+                props, keep = {"k": "coast"}, clip
+            else:
+                props, keep = {"k": "line", "d": level}, seaward
+            for line in _parts(simplify(LineString(pts), tol).intersection(keep), "LineString"):
                 if line.length < 4 * tol:
                     continue
                 out.append({"type": "Feature", "properties": props,
@@ -247,17 +306,25 @@ def retrieved(directory: Path = BATHY_DIR) -> dict[str, str | None]:
     return out
 
 
+def coast_datum() -> dict:
+    """What the coast was drawn at, for the manifest and `check`."""
+
+    return {"datum": "MHW", "above_msl_m": -coast_depth(), "source": datums_path().relative_to(ROOT).as_posix()}
+
+
 def build(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> dict:
+    coast = coast_depth()
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
-    manifest = {"bands": [H_LAND, *BANDS], "lines": list(LINES), "grids": retrieved(directory), "tiers": []}
+    manifest = {"bands": [coast, *BANDS], "lines": list(LINES), "coast": coast_datum(),
+                "grids": retrieved(directory), "tiers": []}
     for name, (minzoom, sigma, tol, dec) in TIERS.items():
         grid = load_grid(name, directory)
         if grid is None:
             print(f"{name}: not stored; skipped")
             continue
-        feats = features(grid, sigma, tol, dec, strip_m(minzoom))
+        feats = features(grid, sigma, tol, dec, strip_m(minzoom), coast=coast)
         path = out / f"{name}.geojson"
         path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, separators=(",", ":")),
                         encoding="utf-8")
@@ -281,6 +348,13 @@ def check(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> list[str]:
     if manifest.get("grids") != retrieved(directory):
         problems.append("a grid was fetched again since the seabed was drawn: "
                         f"drawn from {manifest.get('grids')}, grids now {retrieved(directory)}")
+    try:
+        now = coast_datum()
+    except RuntimeError as exc:
+        problems.append(str(exc))
+    else:
+        if manifest.get("coast") != now:
+            problems.append(f"the coast was drawn at {manifest.get('coast')}, the datums now say {now}")
     for tier in manifest["tiers"]:
         f = out / tier["file"]
         if not f.exists() or f.stat().st_size != tier["bytes"] or fingerprint(f) != tier.get("sha"):

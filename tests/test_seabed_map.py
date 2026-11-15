@@ -26,7 +26,8 @@ def test_the_seabed_is_drawn_from_todays_grids():
 def test_the_seabed_is_vectors_for_every_grid_the_rays_use():
     """Owner's request, 2026-11-11: vectors, not raster tiles. Each grid a
     file, coarsest first, the finer from a higher zoom; bands nested from the
-    land up, the shoreline at the ray tracer's own land depth."""
+    land up, the shoreline at mean high water, the chart's coastline, from
+    NOAA's fetched datums (owner's decision, 2026-11-15; BRIEFING §53)."""
 
     manifest = json.loads((ROOT / "data" / "seabed_vector" / "manifest.json").read_text())
     tiers = manifest["tiers"]
@@ -41,8 +42,11 @@ def test_the_seabed_is_vectors_for_every_grid_the_rays_use():
     assert kinds == {"fill", "line", "coast"}
     bands = {f["properties"]["b"] for f in one["features"] if f["properties"]["k"] == "fill"}
     assert -1 in bands and 0 in bands
-    from forecast.raytrace import H_LAND
-    assert manifest["bands"][0] == H_LAND
+    from collector.datums import mhw_above_msl_m
+    mhw = mhw_above_msl_m()
+    assert mhw is not None and 0.3 < mhw < 1.0
+    assert manifest["bands"][0] == -mhw
+    assert manifest["coast"]["datum"] == "MHW" and manifest["coast"]["above_msl_m"] == mhw
 
 
 def test_one_band_and_the_right_one_at_a_grids_edge():
@@ -64,17 +68,19 @@ def test_one_band_and_the_right_one_at_a_grids_edge():
 
     from forecast import utm
     from forecast.raytrace import Grid
-    from forecast.seabedvector import BANDS, H_LAND, features
+    from forecast.seabedvector import BANDS, features
 
     cell, n, left, top = 4000.0, 225, 100_000.0, 3_700_000.0
     deep = 1800 + 1700 * np.sin(np.arange(n) / 23.0) * np.cos(np.arange(n)[:, None] / 31.0)
     deep[:, :12] = -150.0                                   # land along the west
     grid = Grid.from_elevation(-deep, left, top, cell, 0.0)
-    fills = [(f["properties"]["b"], shape(f["geometry"])) for f in features(grid, 0.8, 80.0, 4, strip=1000.0)
+    coast = -0.6
+    fills = [(f["properties"]["b"], shape(f["geometry"]))
+             for f in features(grid, 0.8, 80.0, 4, strip=1000.0, coast=coast)
              if f["properties"]["k"] == "fill"]
     drawn = union_all([g for _, g in fills])
     ring = max(getattr(drawn, "geoms", [drawn]), key=lambda g: g.area).buffer(-0.001).exterior
-    lowers = (-1e9, H_LAND) + BANDS
+    lowers = (-1e9, coast) + BANDS
     checked = 0
     for i in range(800):
         q = ring.interpolate(i / 800, normalized=True)
@@ -89,6 +95,63 @@ def test_one_band_and_the_right_one_at_a_grids_edge():
             checked += 1
             assert on == [want.pop()], (q.x, q.y, on)
     assert checked > 400
+
+
+def test_the_coast_is_the_grid_as_stored_and_every_band_keeps_inside_it():
+    """Owner's decision, 2026-11-15 (BRIEFING §53): smoothing a cliff whose
+    land stands far above shallow water carried the coast seaward, 21-43 m
+    at the Point Loma tip on 32 m cells. A synthetic cliff: the drawn coast
+    follows the stored grid's own contour, the smoothed grid's lies well
+    seaward of it, no deeper band reaches over the coast, and a pond below
+    sea level that no water joins to the sea is land, with no coast round
+    it, as on a chart."""
+
+    np = pytest.importorskip("numpy")
+    contourpy = pytest.importorskip("contourpy")
+    pytest.importorskip("shapely")
+    from shapely.geometry import Point, shape
+
+    from forecast import utm
+    from forecast.raytrace import Grid
+    from forecast.seabedvector import features, smooth
+
+    cell, n, left, top = 32.0, 120, 480_000.0, 3_620_000.0
+    xs = left + (np.arange(n) + 0.5) * cell
+    depth = np.tile(np.where(np.arange(n) < 50, -15.0, 1.0 + 0.4 * (np.arange(n) - 50)), (n, 1))
+    depth[50:70, 15:30] = 8.0                               # a pond below sea level, inland
+    grid = Grid.from_elevation(-depth, left, top, cell, 0.0)
+    coast = -0.6
+    feats = features(grid, 1.0, 6.0, 6, strip=50.0, coast=coast)
+    pond = utm.from_utm(xs[22], top - 60 * cell)
+    assert [f["properties"]["b"] for f in feats if f["properties"]["k"] == "fill"
+            and shape(f["geometry"]).contains(Point(pond[1], pond[0]))] == [-1]
+
+    def east(lines):
+        return float(np.median([utm.to_utm(la, lo)[0] for line in lines for lo, la in line]))
+
+    coasts = [f["geometry"]["coordinates"] for f in feats if f["properties"]["k"] == "coast"]
+    assert all(utm.to_utm(la, lo)[0] > xs[40] for line in coasts for lo, la in line)   # none round the pond
+    drawn = east(coasts)
+    ys = top - (np.arange(n) + 0.5) * cell
+
+    def contour(d):
+        lines = contourpy.contour_generator(xs, ys, d, name="serial").lines(coast)
+        return float(np.median(np.concatenate(lines)[:, 0]))
+
+    assert abs(drawn - contour(depth)) < 6.0
+    assert contour(smooth(depth, 1.0)) - drawn > 10.0
+    fills = [(f["properties"]["b"], shape(f["geometry"])) for f in feats if f["properties"]["k"] == "fill"]
+    # A spit one cell wide, 40 m high, between water 60 m deep: smoothed, it
+    # is drowned 20 m deep; drawn, it is land and no band lies over it.
+    spit = np.full((n, n), 60.0)
+    spit[:, 60] = -40.0
+    feats = features(Grid.from_elevation(-spit, left, top, cell, 0.0), 1.0, 6.0, 6, strip=50.0, coast=coast)
+    assert smooth(spit, 1.0)[n // 2, 60] > 10.0
+    fills = [(f["properties"]["b"], shape(f["geometry"])) for f in feats if f["properties"]["k"] == "fill"]
+    for y in ys[20:-20:10]:
+        la, lo = utm.from_utm(xs[60], y)
+        on = [b for b, g in fills if g.contains(Point(lo, la))]
+        assert on == [-1], (y, on)
 
 
 def test_the_map_multisamples_and_draws_no_fill_outlines():
