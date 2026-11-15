@@ -62,13 +62,14 @@ def test_the_buoy_split_floored_is_the_buoys_own_trains():
 
 def test_north_on_3_november_is_two_swells_not_one():
     """The owner's example: 46232 held a W 18.2 s and an SSW 14.3 s over the
-    same periods; North's own split made one row of them, 16.7 s from 228°,
-    neither swell's. Divided, it is each swell's own row."""
+    same periods; North's own split made one row of them, 16.7 s from 228°
+    (229° since the tables of 2026-11-15, BRIEFING §55), neither swell's.
+    Divided, it is each swell's own row."""
 
     sp, grids, split = _at(NORTH_DAY)
     north = _tables()["coronado_north"]
     whole = carry(sp, north, grids)
-    assert len(whole.trains) == 1 and round(whole.trains[0].from_deg) == 228
+    assert len(whole.trains) == 1 and round(whole.trains[0].from_deg) == 229
     rows = carry(sp, north, grids, split).trains
     assert len(rows) == 2
     ssw = next(t for t in rows if t.from_deg < 230)
@@ -76,7 +77,9 @@ def test_north_on_3_november_is_two_swells_not_one():
     # 1.03 m at 20%; 1.05 since the back-check (2026-11-04) returns to the SSW
     # the energy credited to the W whose heading sits nearer the SSW.
     assert round(ssw.period_s, 1) == 14.3 and ssw.hs_m == pytest.approx(1.05, abs=0.01)
-    assert w.hs_m == pytest.approx(0.69, abs=0.01)
+    # 0.69 m until the islands became land, their shadow diffraction only
+    # (2026-11-15, BRIEFING §55); the SSW 1.06.
+    assert w.hs_m == pytest.approx(0.72, abs=0.01)
     assert split[ssw.buoy].from_deg < 230 < split[w.buoy].from_deg
     # The two rows are the row they came from, in energy, or a little less:
     # a piece under the floors leaves the list, as a band under them does.
@@ -116,10 +119,13 @@ def test_the_owners_case_shows_each_breaks_smaller_swell():
     assert north[1].hs_m == pytest.approx(1.24 / 3.28084, abs=0.01)
     assert [t.buoy for t in south[:2]] == [w, ssw]
     # 1.11 ft at 14.3 s until the tables were rebuilt on 2026-11-15 with South
-    # Coronado's imagery tip (BRIEFING §52): 1.16 ft, its peak now 16.7 s. Not
+    # Coronado's imagery tip (BRIEFING §52): 1.16 ft, its peak 16.7 s. Not
     # the 60 m of coast: one ray re-traced through the island's see-through
-    # disc, which a 50 m change in the disc alone moves as far.
-    assert south[1].hs_m == pytest.approx(1.16 / 3.28084, abs=0.01)
+    # disc, which a 50 m change in the disc alone moved as far. The same day
+    # the disc went (BRIEFING §55): a ray that lands on an island takes a
+    # clear neighbour's heading, and this row is 1.36 ft at 13.3 s, the
+    # island method alone moving South's 5 m height 1.047 -> 1.068 m.
+    assert south[1].hs_m == pytest.approx(1.36 / 3.28084, abs=0.01)
 
 
 def test_the_back_check_sends_another_swells_spread_back_to_the_lead():

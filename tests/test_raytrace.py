@@ -460,14 +460,16 @@ def test_every_island_is_land_where_the_rays_are_traced():
         x, y = main.mean(axis=0)
         h, *_ = bathy.sample(np.array([x]), np.array([y]))
         assert h[0] <= H_LAND, o["name"]
+    # Each vertex is within one 90 m cell of land, read the way the rays read
+    # it. Not on it: North Coronado's `a` is the tip of a 2,565 m2 islet,
+    # too small to fill a quarter of a cell, and its shadow comes in through
+    # `a` itself, the Babinet edge.
+    ring = np.radians(np.arange(0.0, 360.0, 45.0))
     for b in blockers:
         if b.name.startswith(ISLAND_PREFIX):
             for p in (b.a, b.b):
                 x, y = to_utm(*p)
-                # within one 90 m cell of land, read the way the rays read it
-                xs = x + np.array([-45.0, 0.0, 45.0, 0.0, 0.0])
-                ys = y + np.array([0.0, 0.0, 0.0, -45.0, 45.0])
-                h, *_ = bathy.sample(xs, ys)
+                h, *_ = bathy.sample(x + 90.0 * np.sin(ring), y + 90.0 * np.cos(ring))
                 assert h.min() <= H_LAND, (b.name, p)
 
 

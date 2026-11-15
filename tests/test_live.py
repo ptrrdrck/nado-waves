@@ -81,18 +81,22 @@ class TestTheSwellWindowExcludesUnmodelledCoast:
         assert all(w["confidence"] == "high" for w in (south, channel, west))
 
     def test_the_west_window_matches_the_briefing_figures(self):
-        """41.3 / 47.6 / 54.9 degrees. The low edge moved when the Coronado
+        """41.6 / 48.0 / 55.3 degrees. The low edge moved when the Coronado
         Islands were charted (2026-09-20, from 42.8 / 49.1 / 56.3); the high
         edge when the Point Loma tip was (2026-09-22, to 41.1 / 47.7 / 54.9),
         each break taking its own tangent off the charted tip; and north's
         again the same day when the break chords were read off the ENC and
         its position moved 30 m (BRIEFING §27). The spread across the beach,
-        which is what §2a is about, is 13.6 degrees. Edges are published rounded to 0.1°, so a span taken
-        from them can differ by that much; the tolerance is the rounding."""
+        which is what §2a is about, is 13.6 degrees. The low edge moved again
+        when North Coronado's ends were read off imagery (2026-11-15, BRIEFING
+        §55; the chart drew the island 200-260 m north-west of where it
+        stands): 41.6 / 48.0 / 55.3 as published. Edges are published rounded
+        to 0.1°, so a span taken from them can differ by that much; the
+        tolerance is the rounding."""
 
         got = live.build(bulletin=bulletin(SOUTH), now=CYCLE)
-        expected = {"coronado_north": 41.3, "coronado_center": 47.6,
-                    "coronado_south": 54.9}
+        expected = {"coronado_north": 41.6, "coronado_center": 48.0,
+                    "coronado_south": 55.3}
         for entry in got.breaks:
             west = entry.swell_window[-1]
             assert west["to"] - west["from"] == pytest.approx(expected[entry.id], abs=0.1)
