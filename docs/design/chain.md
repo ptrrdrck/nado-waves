@@ -343,25 +343,57 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   them calibration would claim a level the project has not reached.
   `tests/test_app_surface.py` keeps the word out of the card's paragraph.
 
-## A ray re-traced through an island is the chain's most sensitive input
+## A ray that lands on an island: diffraction only
 
-- **One ray re-traced through an island can carry a third of a break's 5 m
-  energy, and its heading is not stable** (measured 2026-11-15, BRIEFING
-  §52, when moving South Coronado's tip rebuilt the tables). A ray that
-  lands on an island is re-traced over a "see-through" disc (`transparent`,
-  sized from the blocker's `a`-`b` chord plus `ISLAND_PAD_M`), and its
-  diffracting answer can carry a focused gain of 3-7. Across the archive
-  the largest single ray carries a median 3-4% of a break's 5 m energy and
-  up to 33-63% on some hours, and its offshore heading jumps 4-75 degrees
-  when the disc moves. Moving the tip (the disc's centre ~180 m, its radius
-  +151 m) left window energy and every hard-edge gain exactly unchanged and
-  the median 5 m height +0.01 / +0.09 / +0.46% (N / C / S), but moved single
-  hours up to -29% (Center) and +22% (South), more than 5% on 3 / 25 / 101
-  of 2,088 hours. Control: the old tip with only the pad 400 -> 450 m moved
-  them as far (South +34%; 6 / 17 / 74 hours). So it is the method, not the
-  coast, and it is in every published 5 m height on those hours. Open
-  (docs/handoff.md); the tables shipped with the charted-and-imaged tip by
-  the owner's decision, the pinned 3 Nov cases updated.
+- **Until 2026-11-15 one ray re-traced through an island could carry a
+  third of a break's 5 m energy, and its heading was not stable** (measured
+  2026-11-15, BRIEFING §52, when moving South Coronado's tip rebuilt the
+  tables). A ray that landed on an island was re-traced over a "see-through"
+  disc (`transparent`, sized from the blocker's `a`-`b` chord plus
+  `ISLAND_PAD_M`), and its heading through that made-up seabed jumped 4-75
+  degrees when the disc moved. Moving the tip (the disc's centre ~180 m, its
+  radius +151 m) left window energy and every hard-edge gain exactly
+  unchanged but moved single hours up to -29% (Center) and +22% (South);
+  the old tip with only the pad 400 -> 450 m moved them as far (South +34%).
+  The method, not the coast.
+- **A ray that lands on an island now brings only what diffracts round it**
+  (owner's decision, 2026-11-15, group 2d, item 14; BRIEFING §55), as at
+  Point Loma and Baja (§31): it takes the heading and friction of the nearer
+  of the clear rays either side of the shadow that have the island abeam,
+  and the Babinet factor for the slit geometry interpolated between theirs
+  (`raytrace.shadow_factor`), so nothing is read off where or how it lands.
+  The disc is gone; `ISLAND_PAD_M` only sets the ring the islands'
+  wavelength is read in, and how far an island reaches on a straight leg.
+  Four smoother treatments were measured before choosing, each rebuilt over
+  2,100 hours (maximum entropy), with §52's two perturbations:
+
+  | treatment | against the committed tables: median N / C / S; hours over 5% | South Coronado's tip, chart and imagery: worst hour; hours over 5% | pad 400 -> 450 m: worst hour; hours over 5% |
+  |---|---|---|---|
+  | the disc (as committed) | | -18 ... +41%; 3 / 30 / 88 | -23 ... +14%; 11 / 0 / 95 |
+  | the disc solved from its rim (no step at its edge) | +0.2 / 0.0 / +0.1%; 16 / 6 / 85 | -23 ... +16%; 7 / 4 / 58 | -23 ... +22%; 14 / 1 / 40 |
+  | island factors capped at 1 (bounded single-ray gains) | -3.0 / -1.8 / -1.9%, every hour | -19 ... +44%; 4 / 30 / 106 | -24 ... +15%; 11 / 0 / 107 |
+  | islands as land, factor where the ray lands | -0.2 / -0.1 / -0.7%; 6 / 3 / 156 | -3.0 ... +2.2%; 0 | under 0.7%; 0 |
+  | **islands as land, factor interpolated across the shadow** | +0.4 / +0.4 / +1.5%; 11 / 29 / 249 | -2.9 ... +1.7%; 0 | under 0.7%; 0 |
+
+  A smooth disc does not help: any made-up seabed puts the re-traced ray
+  near a caustic. The cap clips the Babinet ripple's peaks and not its
+  troughs, so every hour drops. The factor read where a ray lands depends on
+  its last heading, which swings as it climbs the island's slope: burning
+  the islands in still moved South +-6% that way, against +-0.4%
+  interpolated. The two "land" versions differ by 0.6-2.9% in median, about
+  how uncertain the islands' shadow is. Not this item: the largest single
+  ray, 33-64% of a break's 5 m energy on some hours, is usually a CLEAR ray
+  carrying the islands' lit-side ripple (factors 1.2-1.7), under every
+  treatment, and stable.
+- **With items 13, 18 and 19 in the same rebuild** (BRIEFING §55): the 5 m
+  height a median +0.8 / +0.3 / +1.5% (N / C / S), single hours -19 ...
+  +28%, 41 / 26 / 266 hours over 5%, a one-off move of the hours one
+  re-traced ray had carried; afterwards the tip perturbation moves no hour
+  3%. The worked hour on docs.html (28 Sep 19Z), breaking: 1.071 / 0.882 /
+  0.882 -> 1.087 / 0.891 / 0.936 m, South's diffraction +3.9% -> +11%.
+  The pinned 3 Nov cases moved: North's 16Z rows SSW 1.06 m, W 0.69 ->
+  0.72 m; South's 22Z SSW row 1.16 ft at 16.7 s -> 1.36 ft at 13.3 s, the
+  island method alone (South's 5 m height 1.047 -> 1.068 m).
 - **The full table build ran again only after `trace`'s recorded paths got a
   name of their own** (2026-11-15): from 2026-11-10 they shared `rec` with
   the edge and island bookkeeping, and any call with edges failed. A rebuild
@@ -391,16 +423,23 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   (South, 25 Aug 11Z), more than 1% on 0 / 5 / 0 hours, never 5%; hard-edged,
   never 0.06%. No island ray was involved, unlike §52. The worked hour on
   docs.html moved by at most 4 mm (North's window 0.836 → 0.840 m).
-- **Open: the straight leg ignores `continues`.** `straight_line_blocker`
+- **The straight leg is walked over the grids** (owner's decision,
+  2026-11-15, group 2d, item 19; BRIEFING §54, §55). `straight_line_blocker`
   blocks a heading only inside the angular span of a blocker's `a`, `b` and
-  outline seen from the ray's exit, so a ray that leaves deep water near the
-  beach heading into the Mexican coast south of `b` counts as clear. Those
-  are short-period rays (only those under ~2 s are deep at the start; up to
-  ~3.4 s exit within a few hundred metres). Zeroing every ray that exits
-  within 2 km heading between the seaward limit and `b`'s bearing moves the
-  5 m height a median −0.002%, at worst −3.5% (North, 22 Oct 00Z): an upper
-  bound, since bearings were taken from the break, not each exit. Handoff
-  item 19.
+  outline seen from the ray's exit, so a short ray leaving deep water near
+  the beach and heading back across land outside that span counted as
+  clear. Measured, the gap was wider than "past `b`": of the rows a walk
+  over the grids blocks, 1,841 / 1,351 / 1,180 (N / C / S) cross the US
+  shore south of the breaks (the Silver Strand, Imperial Beach), 234 / 153
+  / 116 the Mexican coast between the border and the Baja tangent, 20-25
+  Point Loma north of its `b`, and ONE the Mexican coast south of `b`; all
+  but one are 3.4 s and under. `raytrace.leg_blockers` keeps the chart test
+  (it reaches past the grids) and walks each leg over the grids at the
+  tracer's own step (`leg_land`), any land not an island's blocking it;
+  `table` and `leg_table` use it. The 5 m height moved a median -0.01%,
+  worst -6.2% (North, 22 Oct 00Z), one hour over 5%. Rejected: the half
+  plane past `b`, which from exits far from the beach blocks long-period
+  rays that clear Baja (South median -3.4%, worst -47%).
 
 ## The transfer tables stop at 5 m
 

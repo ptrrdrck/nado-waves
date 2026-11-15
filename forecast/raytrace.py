@@ -264,8 +264,8 @@ class Bathymetry:
 # ------------------------------------------------------------------ islands as land
 
 #: The Coronado Islands' outlines, imaged (BRIEFING §55): GMRT's 90 m grid has
-#: only South Coronado as land, Middle Coronado reading 10-14 m deep and North
-#: Coronado 22 m and more, and its 400 m grid none. Until 2026-11-15 rays
+#: only South Coronado as land, Middle Coronado a shoal (its shallowest stored
+#: cell 5.2 m deep) and North Coronado 22 m and more, and its 400 m grid none. Until 2026-11-15 rays
 #: refracted over a shoal where North Coronado stands and carried up to 18% of
 #: North's 5 m energy on some hours across it, and the map drew open water.
 ISLANDS_FILE = "islands.json"

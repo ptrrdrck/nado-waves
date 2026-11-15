@@ -334,12 +334,18 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         clipped by its own query envelope on all four edges,
                         which is why the region is in the filename.
     data/bathymetry/    CoNED seabed grids (.npz, decimetres NAVD88) + a JSON
-                        sidecar each. Does NOT cover the Coronado Islands or
-                        Baja (south of 32.49 N); those stay charted blockers.
+                        sidecar each. CoNED does NOT cover the Coronado Islands
+                        or Baja (south of 32.49 N); GMRT's `outer`, `context`
+                        and `wide` do, at MSL. islands.json: the Coronado
+                        Islands' imaged outlines, burned into `outer` and
+                        `context` when they are loaded (raytrace.with_islands),
+                        GMRT having left two of them out; the grids as fetched
+                        are never edited.
     data/seabed_vector/ the Swell card map's seabed, <grid>.geojson and
                         manifest.json (forecast.seabedvector); derived but
                         tracked, redrawn by the bathymetry workflows (and
-                        by hand when NOAA's datums change: `--check` fails)
+                        by hand when NOAA's datums or the island outlines
+                        change: `--check` fails)
     data/nearshore/     per-break transfer tables from forecast.raytrace:
                         <break>.csv (one row per period x 0.5° heading at
                         5 m: hard-edged gain, diffracting gain and the heading

@@ -358,3 +358,21 @@ def test_a_switch_to_another_breaks_map_moves_as_the_mocks_one_map_does():
     assert 'this.map.once("render"' in body
     assert "around" not in body
     assert "faces.forEach((f) => f.preTurn());" in PAGE
+
+
+def test_a_changed_island_outline_asks_for_a_redraw_and_a_note_does_not(tmp_path):
+    """The map draws the imaged Coronado Islands burned into the grids
+    (BRIEFING §55), so the manifest fingerprints what is drawn: the
+    outlines, their heights and the grids they go into, not the notes."""
+
+    from forecast import seabedvector
+
+    data = json.loads((ROOT / "data" / "bathymetry" / "islands.json").read_text())
+    (tmp_path / "islands.json").write_text(json.dumps(data))
+    base = seabedvector.retrieved(tmp_path)["islands"]
+    data["_comment"] = "edited"
+    (tmp_path / "islands.json").write_text(json.dumps(data))
+    assert seabedvector.retrieved(tmp_path)["islands"] == base
+    data["islands"][0]["height_m"] += 1.0
+    (tmp_path / "islands.json").write_text(json.dumps(data))
+    assert seabedvector.retrieved(tmp_path)["islands"] != base

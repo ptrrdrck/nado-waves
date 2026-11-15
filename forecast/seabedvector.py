@@ -74,6 +74,7 @@ Derived but tracked, as `data/series/` is: a collection cannot build it.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import shutil
@@ -314,7 +315,12 @@ def retrieved(directory: Path = BATHY_DIR) -> dict[str, str | None]:
             out[name] = json.loads(path.read_text(encoding="utf-8")).get("retrieved_utc")
     islands = directory / ISLANDS_FILE
     if islands.exists():
-        out["islands"] = fingerprint(islands)
+        # What is drawn, not the file's notes: the outlines, their heights
+        # and the grids they go into.
+        data = json.loads(islands.read_text(encoding="utf-8"))
+        drawn = json.dumps({"burned_into": data.get("burned_into"), "islands": data.get("islands")},
+                           sort_keys=True, separators=(",", ":"))
+        out["islands"] = hashlib.sha256(drawn.encode("utf-8")).hexdigest()[:16]
     return out
 
 
@@ -358,7 +364,7 @@ def check(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> list[str]:
     manifest = json.loads(path.read_text(encoding="utf-8"))
     problems = []
     if manifest.get("grids") != retrieved(directory):
-        problems.append("a grid was fetched again since the seabed was drawn: "
+        problems.append("a grid was fetched again, or the islands changed, since the seabed was drawn: "
                         f"drawn from {manifest.get('grids')}, grids now {retrieved(directory)}")
     try:
         now = coast_datum()
