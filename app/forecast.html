@@ -10270,6 +10270,16 @@ Promise.all([
         const bb = this.svg.getBBox();
         if (bb.height > 0) { y0 = Math.max(0, bb.y); y1 = Math.min(vb.height, bb.y + bb.height); }
       } catch (e) { /* not laid out: the rim's top and the dot's foot */ }
+      // Room for every heading a pick can show, not only those showing now:
+      // getBBox skips the hidden ones, so a pick's headings above the rim
+      // were cut off (up to 7 px on North at 390) until a resize -- the
+      // phone's toolbar on scroll -- re-trimmed round them and the drawing
+      // dropped 18 px (owner's report, 2026-11-15).
+      this.svg.querySelectorAll("text.deg").forEach((t) => {
+        const y = parseFloat(t.getAttribute("y"));
+        const fs = parseFloat(getComputedStyle(t).fontSize) || 11;
+        if (isFinite(y)) y0 = Math.min(y0, Math.max(0, y - fs));
+      });
       this.foot = (y1 - cy) * s + PLATE_PAD;
       this.hDraw = (y1 - y0) * s + 2 * PLATE_PAD;
       this.hMap = Math.min(W, innerHeight * 0.7);

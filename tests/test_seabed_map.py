@@ -252,3 +252,15 @@ def test_a_face_opens_in_the_view_this_device_keeps():
     body = body[:body.index("    adopt(svg) {")]
     assert 'this.box.classList.toggle("on-map", view === "map");' in body
     assert 'this.el.hidden = view !== "map";' in body
+
+
+def test_the_plate_leaves_room_for_every_heading_a_pick_can_show():
+    """Owner's report, 2026-11-15: a pick's headings above the rim were cut off,
+    getBBox skipping the hidden ones, until a resize re-trimmed round them and
+    the drawing dropped. The trim takes every heading, shown or not, so the
+    plate is one height whatever is picked."""
+
+    body = PAGE[PAGE.index("    space() {"):]
+    body = body[:body.index("this.foot = ")]
+    assert 'querySelectorAll("text.deg")' in body
+    assert "y0 = Math.min(y0, Math.max(0, y - fs))" in body

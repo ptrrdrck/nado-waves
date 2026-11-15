@@ -158,3 +158,14 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    328 px) on every load; a face is now made in the view this device keeps.
    A refresh in Chromium still lands at the top: the cards arrive after its
    scroll restoration gives up, which is the page's, not the map's.
+
+   **A pick's headings were cut off, then the drawing dropped** (owner's
+   report, 2026-11-15). The plate is trimmed to the drawing's ink with
+   getBBox, which skips hidden elements, and a pick's headings (`text.deg`,
+   at r + 12) are hidden until picked: tapping North's island groups put
+   "187°"-"201°" up to 7 px over the plate's top at 390 (9 px at 430), and
+   the next `resize` -- iOS Safari's toolbar on scroll -- re-trimmed round
+   them, the plate 171 -> 189 px and the drawing 18 px lower. The trim now
+   takes every heading's baseline less its font size, shown or not: no cut
+   at 320-430 on any break or pick, the plate one height through pick,
+   resize and unpick, taller at rest (North 171 -> 193 px at 390).
