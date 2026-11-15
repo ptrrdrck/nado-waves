@@ -59,15 +59,22 @@ water a few metres deep carries the coast seaward: at the Point Loma tip it
 put the 32 m grid's coast 21-43 m farther out than the grid itself has it.
 A display, never a depth anyone reads: the chain reads the grids themselves.
 
-`manifest.json` holds each file's zoom, size and fingerprint and each grid's
-`retrieved_utc`, so a test can tell when a grid has been fetched again and the
-seabed not redrawn. The bathymetry workflows redraw it after every fetch.
+THE CORONADO ISLANDS ARE BURNED IN (owner's decision, 2026-11-15; BRIEFING
+§55): GMRT's 90 m grid has only South Coronado as land and its 400 m grid
+none, so `load_grid` reads each grid as the rays do, with the imaged outlines
+(`raytrace.ISLANDS_FILE`) raised to land in the grids that file names.
+
+`manifest.json` holds each file's zoom, size and fingerprint, each grid's
+`retrieved_utc` and the island outlines' fingerprint, so a test can tell when
+a grid has been fetched again, or the islands changed, and the seabed not
+redrawn. The bathymetry workflows redraw it after every fetch.
 Derived but tracked, as `data/series/` is: a collection cannot build it.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import shutil
@@ -80,7 +87,7 @@ from collector.datums import datums_path, mhw_above_msl_m
 
 from . import utm as U
 from .mapdata import fingerprint
-from .raytrace import BATHY_DIR, Bathymetry, Grid
+from .raytrace import BATHY_DIR, ISLANDS_FILE, Grid, with_islands
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "seabed_vector"
@@ -124,7 +131,9 @@ def load_grid(name: str, directory: Path = BATHY_DIR) -> Grid | None:
     shift = 0.0
     if meta["vertical_datum"] == "NAVD88":
         shift = meta["datum"].get("msl_above_navd88_m") or 0.0
-    return Bathymetry([Grid.from_elevation(raw / 10.0, left, top, a, shift)], None, (name,)).grids[0]
+    # The imaged Coronado Islands, burned in where GMRT left them out
+    # (BRIEFING §55): the map draws the land the rays stop on.
+    return with_islands(Grid.from_elevation(raw / 10.0, left, top, a, shift), name, directory)
 
 
 def coast_depth(data_dir: Path | None = None) -> float:
@@ -296,13 +305,22 @@ def strip_m(minzoom: int) -> float:
 
 
 def retrieved(directory: Path = BATHY_DIR) -> dict[str, str | None]:
-    """Each stored grid's `retrieved_utc`, the seabed's provenance."""
+    """Each stored grid's `retrieved_utc`, the seabed's provenance, and the
+    fingerprint of the island outlines burned into them (`islands`)."""
 
     out = {}
     for name in TIERS:
         path = directory / f"{name}.json"
         if path.exists():
             out[name] = json.loads(path.read_text(encoding="utf-8")).get("retrieved_utc")
+    islands = directory / ISLANDS_FILE
+    if islands.exists():
+        # What is drawn, not the file's notes: the outlines, their heights
+        # and the grids they go into.
+        data = json.loads(islands.read_text(encoding="utf-8"))
+        drawn = json.dumps({"burned_into": data.get("burned_into"), "islands": data.get("islands")},
+                           sort_keys=True, separators=(",", ":"))
+        out["islands"] = hashlib.sha256(drawn.encode("utf-8")).hexdigest()[:16]
     return out
 
 
@@ -346,7 +364,7 @@ def check(out: Path = OUT_DIR, directory: Path = BATHY_DIR) -> list[str]:
     manifest = json.loads(path.read_text(encoding="utf-8"))
     problems = []
     if manifest.get("grids") != retrieved(directory):
-        problems.append("a grid was fetched again since the seabed was drawn: "
+        problems.append("a grid was fetched again, or the islands changed, since the seabed was drawn: "
                         f"drawn from {manifest.get('grids')}, grids now {retrieved(directory)}")
     try:
         now = coast_datum()

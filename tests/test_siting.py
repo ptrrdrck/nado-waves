@@ -67,11 +67,11 @@ def test_the_guard_still_fires_for_a_spot_the_land_does_not_surround(
 @pytest.mark.parametrize(
     "spot_id,low,high",
     [
-        ("coronado_north", 200.6, 241.9),
-        ("coronado_center", 202.6, 250.2),
-        ("coronado_south", 205.2, 260.0),
-        ("nasni_breakers", 196.9, 220.0),
-        ("nab_gator", 207.8, 270.0),
+        ("coronado_north", 200.3, 241.9),
+        ("coronado_center", 202.2, 250.2),
+        ("coronado_south", 204.8, 260.0),
+        ("nasni_breakers", 196.6, 220.0),
+        ("nab_gator", 207.4, 270.0),
     ],
 )
 def test_the_west_window_reproduces_the_published_numbers(
@@ -88,7 +88,10 @@ def test_the_west_window_reproduces_the_published_numbers(
     themselves were read off the ENC the same day (BRIEFING §27)
     (were 41.6 / 47.7 / 54.7, and 42.8 / 49.1 / 56.3
     before the islands). Breakers moves most, 2.6 degrees, being nearest the
-    tip - and it is still standing on an estimated position.
+    tip - and it is still standing on an estimated position. The low edge
+    moved again, -0.30 to -0.41, when North Coronado's ends were read off
+    imagery on 2026-11-15 (BRIEFING §55): the chart drew the island 200-260 m
+    north-west of where it stands. Widths 41.7 / 48.0 / 55.3 since.
     """
 
     spots, blockers = spots_and_blockers

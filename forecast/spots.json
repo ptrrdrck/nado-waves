@@ -273,25 +273,39 @@
     {
       "name": "Coronado Islands (North group)",
       "a": [
-        32.4355617,
-        -117.2947326
+        32.43375,
+        -117.29414
       ],
       "b": [
-        32.4470062,
-        -117.3012743
+        32.44453,
+        -117.30044
       ],
       "continues": null,
       "tip_verified": true,
       "provenance": {
-        "method": "extreme-bearing vertices of the northern island, NOAA ENC approach band",
-        "by": "collector.shoreline region=baja",
-        "date": "2026-09-20",
-        "note": "Charted 2026-09-20 from NOAA's ENC approach band (enc_approach/88) via collector.shoreline region=baja, endpoints read by forecast.blockeredge. The coastal band (enc_coastal/70) agrees to within 0.05 degrees on every edge. Two candidate vertices existed for one endpoint of each island and they differ by at most 0.044 degrees; the wider-shadow pick was taken. This island is 1427 m across at 28.2 km, giving a Fresnel number of about 0.2 at 15 s - its shadow is very largely filled by diffraction and the hard edge here is close to fiction. Its HIGH-bearing edge is the low edge of the west swell window on every break, so the number is load-bearing even though the shadow is soft.",
-        "cells": [
-          "US4CA1BX.000",
-          "US4CA74M.000"
-        ],
-        "chart_product": "NOAA ENC, approach band (usage band 4)"
+        "method": "extreme-bearing points of North Coronado and its rocks, measured on Esri World Imagery, because the ENC approach band draws the island 200-260 m north-west of where it stands",
+        "by": "Esri World Imagery, measured 2026-11-15 (BRIEFING section 55); first charted 2026-09-20 by collector.shoreline region=baja",
+        "date": "2026-11-15",
+        "imagery": {
+          "end": [
+            "a",
+            "b"
+          ],
+          "label": "North Coronado",
+          "product": "Esri World Imagery",
+          "date": "2026-11-15",
+          "replaced": {
+            "a": [
+              32.4355617,
+              -117.2947326
+            ],
+            "b": [
+              32.4470062,
+              -117.3012743
+            ]
+          },
+          "note": "Measured 2026-11-15 (BRIEFING sections 53 and 55). The ENC approach band's outline (cells US4CA1BX.000, US4CA74M.000) has the island's shape, displaced north-west: its `b` stood in open water 150-200 m past the island's last rocks and its edges read 0.21-0.26 degrees (`a`) and 0.34-0.39 degrees (`b`) high. Both ends are the extreme-bearing pixels of land classified by colour (Esri World Imagery, zoom 16 and 17, openings of 6, 12 and 20 m, the method of South Coronado's tip and the Baja coast); one point per end is every spot's tangent within 0.001 degrees. `a` is the tip of a dry rock islet of 2,565 m2 about 100 m past the island's south-east end, across a gap of surf, sharp on a WorldView-2 capture of 2023-01-31 at 0.5 m, about 50 m north of its seam with one of 2022-01-19. Copernicus GLO-30 (land over 1 m) agrees with the imagery on the main island within 0.02 degrees at both ends; it does not carry the islet, which is under its 30 m posting. Without the islet `a` would be 0.15-0.17 degrees higher. The coastal band (US4CA74M.000) is between the two."
+        }
       },
       "notes": "Island, not a peninsula: the shadow closes on both sides."
     },

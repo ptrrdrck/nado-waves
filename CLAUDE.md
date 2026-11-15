@@ -139,8 +139,10 @@ forecaster actually verifies against, Surfline included.
 
 1. **Beach geometry** — done, `forecast/geometry.py`. Every coordinate the
    Coronado aperture uses comes from NOAA's ENC, except where along the coast
-   each break sits, South Coronado's south-east tip and the Baja coast
-   (imagery: the chart rounds the tip off and puts that coast out to sea).
+   each break sits, South Coronado's south-east tip, North Coronado and the
+   Baja coast (imagery: the chart rounds the tip off, draws North Coronado
+   off where it stands and puts that coast out to sea). The islands are land
+   in the seabed from their imaged outlines (`data/bathymetry/islands.json`).
    → `docs/design/geometry.md`
 2. **A verification series** — built and empty, `collector/beachlog.py` →
    `data/beach_log/`. Blocks every accuracy CLAIM, not construction; it

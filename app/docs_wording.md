@@ -47,7 +47,7 @@ From the top of the forecast page down. The figures are a real hour, noon on Mon
 [annotated card, row by row:]
 - “LIVE” / Forecast
 - North / Center / South / Buoy
-- 3.5 ft (1.07 m) breaking height ▾
+- 3.6 ft (1.09 m) breaking height ▾
 - the window drawing, and the swell trains under it
 - NDBC 46232 | 15 min ago | **Update in 59:12**
 - **Charts** ▴
@@ -148,7 +148,7 @@ The Observer switch at the foot of the page, after Docs. On a phone where it is 
 
 The last two settings at the foot of the page. Each is kept on your phone, as Observer is.
 
-**Units** shows what it is set to, and each tap moves it on: *Both*, the default, gives every number in feet, miles per hour, miles, °F and inches with the metric figure in parentheses, “3.5 ft (1.07 m)”; *Imperial* gives the first alone; *Metric* gives the parenthesised figure alone, “1.07 m”, in metres, knots, kilometres, °C, hectopascals and millimetres. A metric number is never rounded again: it is the same figure Both shows in parentheses. The chart axes and the rose's rings step in metres and knots on Metric. Wind stays in knots, as the buoys and the forecast models publish it. This page keeps both units throughout, because its worked numbers are checked against one another.
+**Units** shows what it is set to, and each tap moves it on: *Both*, the default, gives every number in feet, miles per hour, miles, °F and inches with the metric figure in parentheses, “3.6 ft (1.09 m)”; *Imperial* gives the first alone; *Metric* gives the parenthesised figure alone, “1.09 m”, in metres, knots, kilometres, °C, hectopascals and millimetres. A metric number is never rounded again: it is the same figure Both shows in parentheses. The chart axes and the rose's rings step in metres and knots on Metric. Wind stays in knots, as the buoys and the forecast models publish it. This page keeps both units throughout, because its worked numbers are checked against one another.
 
 **The theme** is the half-lit circle at the end of the line. A tap gives the other theme, light or dark; switch back to whichever your phone is set to and the page forgets the choice and follows the phone again. This page follows the same choice.
 
@@ -238,7 +238,7 @@ Monday 28 September 2026, 19:00 UTC (12:00 PM local), on the “LIVE” chain. T
 
 [table the page fills in: worked-table]
 
-The ordering is the point. Through the straight-line windows alone, South's was the biggest (0.90 m against North's 0.84 m), because its west window is widest. Over the seabed, North came out on top, 3.5 ft (1.07 m) against 2.9 ft (0.88 m) at Center and South. The window alone would have ranked them the other way round. That reversal is a *claim*, physically derived and unchecked. It is exactly the kind of claim the beach observation log exists to test. [The log](#confidence-log).
+The ordering is the point. Through the straight-line windows alone, South's was the biggest (0.90 m against North's 0.84 m), because its west window is widest. Over the seabed, North came out on top, 3.6 ft (1.09 m) against 2.9 ft (0.89 m) at Center and 3.1 ft (0.94 m) at South. The window alone would have ranked them the other way round. That reversal is a *claim*, physically derived and unchecked. It is exactly the kind of claim the beach observation log exists to test. [The log](#confidence-log).
 
 The steps below follow North. These figures were rebuilt from the archive with the chain as it stood on 2 October 2026. A test rebuilds the same hour on every change, so if the chain moves, this page has to move with it.
 
@@ -283,8 +283,8 @@ m₀,window = ∫∫ E(f,θ) · T(θ) dθ df     T = 1 inside a window, 0 outsid
 Hs,window = 4·√m₀,window = Hs · √(share)
 
 worked hour, North
-share     = (0.840 / 1.296)² = 0.420     42% of the energy is aimed through North's windows
-Hs        = 1.296 × √0.420 = 0.840 m      → 2.8 ft (0.84 m)
+share     = (0.839 / 1.296)² = 0.419     42% of the energy is aimed through North's windows
+Hs        = 1.296 × √0.419 = 0.839 m      → 2.8 ft (0.84 m)
 Center 0.875 m (46%), South 0.899 m (48%)
 ```
 
@@ -314,12 +314,12 @@ a swell 30° off the normal in deep water arrives 10° off it in 5 m
 The energy that arrives comes from S(f,θ)·c·c_g staying constant along each ray, which gives refraction and the height change together. The next rows split those apart. This row is refraction alone, with every window edge still a hard shadow, so its change from the Windows row is the seabed and nothing else.
 
 > **Model choice · backward rays over the whole seabed**
-> Tracing from the beach outward means every ray that reaches the break is found, and none is wasted on water that never arrives. The seabed is the USGS CoNED survey near shore with GMRT further out, the islands' own shelves included. Point Loma, the islands and Baja are land the rays stop on. The method is the one Scripps' CDIP uses for its coastal model, checked here against Snell's law on a flat test beach.
+> Tracing from the beach outward means every ray that reaches the break is found, and none is wasted on water that never arrives. The seabed is the USGS CoNED survey near shore with GMRT further out, the islands' own shelves included. Point Loma, the islands and Baja are land the rays stop on; GMRT leaves out two of the three Coronado Islands, so all three are drawn in from satellite imagery. The method is the one Scripps' CDIP uses for its coastal model, checked here against Snell's law on a flat test beach.
 
 ```
 worked hour
-North    0.840 → 0.833 m    −0.8%
-Center   0.875 → 0.628 m   −28%
+North    0.839 → 0.830 m    −1.1%
+Center   0.875 → 0.627 m   −28%
 South    0.899 → 0.691 m   −23%
 ```
 
@@ -344,16 +344,18 @@ at the edge itself a ray carries exactly a quarter of the open-water energy
 
 The islands use the same idea twice. By Babinet's principle an obstacle is open water minus the wave through a slit its shape, so each island is a slit subtracted from open water.
 
+A ray that runs into an island or a headland brings only what diffracts round it. It leaves along the heading of the nearest ray that clears the land, carrying the share the formula gives for its place in the shadow, which is small deep inside it.
+
 [drawing: islands] Caption: The two island screens. Each is diffracted as its own slit, so the channel between them stays open water.
 
 ```
 worked hour
-North    0.833 → 0.852 m    +2.3%
-Center   0.628 → 0.661 m    +5.3%
-South    0.691 → 0.718 m    +3.9%
+North    0.830 → 0.868 m    +4.6%
+Center   0.627 → 0.669 m    +6.7%
+South    0.691 → 0.766 m   +11%
 ```
 
-Diffraction added a little at all three: more leaked into the shadows than was lost along the edges.
+Diffraction added at all three, most at South: more leaked into the shadows than was lost along the edges.
 
 ### [calc-friction] Bottom friction
 
@@ -369,9 +371,9 @@ h = 15 m   98.1%
 h = 10 m   96.4%
 
 worked hour
-North    0.852 → 0.755 m   −11%     energy × 0.79
-Center   0.661 → 0.592 m   −10%
-South    0.718 → 0.658 m    −8.4%
+North    0.868 → 0.769 m   −11%     energy × 0.78
+Center   0.669 → 0.600 m   −10%
+South    0.766 → 0.701 m    −8.5%
 ```
 
 > **Model choice · the JONSWAP friction law, untuned**
@@ -388,9 +390,9 @@ Ks² = c_g,deep / c_g(h)
 Ks  = √(9.76 / 6.56) = 1.22           +22% in height
 
 worked hour, the whole spectrum
-North    0.755 → 0.928 m   +23%
-Center   0.592 → 0.713 m   +20%
-South    0.658 → 0.738 m   +12%
+North    0.769 → 0.946 m   +23%
+Center   0.600 → 0.722 m   +20%
+South    0.701 → 0.791 m   +13%
 ```
 
 > **Model choice · hand over at 5 m**
@@ -410,7 +412,7 @@ U₁₀ = 4.12 m/s,  C_D = 0.00124,  u* = 0.145 m/s
 Hm0 = 0.092 m,   Tp = 1.1 s           → 0.3 ft (0.09 m)
 
 chop and swell add in energy:
-√(0.928² + 0.092²) = 0.933 m          +0.5%
+√(0.946² + 0.092²) = 0.950 m          +0.4%
 ```
 
 > **Model choice · two kinds of fetch**
@@ -428,16 +430,16 @@ D = ¼·α·f_p·Qb·Hmax²,   α = 1,   Hmax = γ·h           Battjes & Jansse
 (1 − Qb) / ln Qb = −(Hrms / Hmax)²                    Qb: the share of waves breaking
 γ = 0.5 + 0.4·tanh(33·s₀),   s₀ = Hrms,deep / L₀      Battjes & Stive (1985)
 
-worked hour, North: 0.933 m at 5 m, 12.5 s
-Hrms,deep = 0.933/√2 × √(6.56/9.76) = 0.541 m
-s₀ = 0.541 / 244 = 0.0022  →  γ = 0.529
+worked hour, North: 0.950 m at 5 m, 12.5 s
+Hrms,deep = 0.950/√2 × √(6.56/9.76) = 0.551 m
+s₀ = 0.551 / 244 = 0.0023  →  γ = 0.530
 
 tide at the open coast: +1.022 m above mean sea level  (see the Tide card's math)
-largest Hs 87 m in from the start point, in h = 2.34 m of water
-Hmax = 0.529 × 2.34 = 1.238 m,   Hrms = 1.071/√2 = 0.757 m
-(Hrms/Hmax)² = 0.374  →  Qb = 0.087                   9% of waves breaking
+largest Hs 87 m in from the start point, in h = 2.36 m of water
+Hmax = 0.530 × 2.36 = 1.251 m,   Hrms = 1.087/√2 = 0.769 m
+(Hrms/Hmax)² = 0.378  →  Qb = 0.090                   9% of waves breaking
 
-Hs = 1.071 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 m) depth   +15%
+Hs = 1.087 m                         → 3.6 ft (1.09 m), breaking at 8 ft (2.4 m) depth   +14%
 ```
 
 > **Model choice · the standard 1-D surf zone, γ from the literature**
@@ -477,7 +479,7 @@ Each buoy's headline folds out, as a break's does: tap it, or the caret at its e
 
 ### [swell-headline] The headline
 
-The breaking height, in feet with metres in parentheses: “3.5 ft (1.07 m) breaking height”, or in one of the two by [the Units setting](#settings). The depth it breaks in is the last row of [the calculation](#calc-table), under Wave break: “at 8 ft (2.3 m) depth”. When there is no tide to break it at, the headline is the height in 5 m of water and says so. The caret at its end opens the calculation.
+The breaking height, in feet with metres in parentheses: “3.6 ft (1.09 m) breaking height”, or in one of the two by [the Units setting](#settings). The depth it breaks in is the last row of [the calculation](#calc-table), under Wave break: “at 8 ft (2.4 m) depth”. When there is no tide to break it at, the headline is the height in 5 m of water and says so. The caret at its end opens the calculation.
 
 ### [swell-drawing] The window drawing
 
@@ -489,7 +491,7 @@ The button in the drawing's top-left corner swaps it for a map of the same windo
 
 Each window edge is a line from the break to the charted point of land that forms it; tap that point for the land's name and its distance. The dashed lines are the coast the model has, as it has it: they show how few charted points the windows stand on. The breaks' shorelines, NDBC 46232, NDBC 46086 and NDBC 46047 at Tanner Bank are marked. Tap a window, a shadow or an arrow to pick it, as on the drawing; the train lights in the map's one warm colour, gold on the dark page and orange on the light one. Pick a train in the list and the map shows it too.
 
-The seabed is drawn from the same depth grids the swell is carried over: USGS CoNED 2016 near the beach, GMRT farther out. It is drawn as shapes, not pictures, so its edges stay sharp at any zoom: bands of depth, paler for shallower water, a contour line at 5, 10, 20, 50, 100, 200, 500, 1,000 and 2,000 m, the shoreline, and the land. Each grid is drawn from the zoom its cells are fine enough for: close in from 8 m cells; out past Tanner Bank, where the map stops zooming out, from 400 m cells, for context only. The shoreline is mean high water, the line a nautical chart draws, taken from the survey as it is; the deeper lines are drawn from depths smoothed over about one cell, so they do not trace each cell's noise. Only the sea is coloured as water. The swell calculation reads the grids themselves. The map follows the page's light or dark theme. Nothing on the map is a photograph. On a phone, one finger scrolls the page and two move the map; with a mouse, drag to move and hold Ctrl (⌘ on a Mac) while scrolling to zoom. The return button goes back to the opening view.
+The seabed is drawn from the same depth grids the swell is carried over: USGS CoNED 2016 near the beach, GMRT farther out, with the Coronado Islands drawn in from satellite imagery where GMRT leaves them out. It is drawn as shapes, not pictures, so its edges stay sharp at any zoom: bands of depth, paler for shallower water, a contour line at 5, 10, 20, 50, 100, 200, 500, 1,000 and 2,000 m, the shoreline, and the land. Each grid is drawn from the zoom its cells are fine enough for: close in from 8 m cells; out past Tanner Bank, where the map stops zooming out, from 400 m cells, for context only. The shoreline is mean high water, the line a nautical chart draws, taken from the survey as it is; the deeper lines are drawn from depths smoothed over about one cell, so they do not trace each cell's noise. Only the sea is coloured as water. The swell calculation reads the grids themselves. The map follows the page's light or dark theme. Nothing on the map is a photograph. On a phone, one finger scrolls the page and two move the map; with a mouse, drag to move and hold Ctrl (⌘ on a Mac) while scrolling to zoom. The return button goes back to the opening view.
 
 On the LIVE tab, picking a train on the map shows a play button and a timeline along the map's foot. Play it and the train comes in along its rays: each line is one of the rays the swell calculation traces over the seabed ([step 3](#calc-refraction)), drawn along the path it was traced on, stronger for more of the train's energy. On the dark page the light adds up where the rays crowd, as the energy does; on the light page the rays lie over each other. A ray starts as far out as the calculation can follow it: where the seabed it is traced over ends, up to about 60 km out, or nearer where land or water too shallow for it to run straight (half its deep-water wavelength) lies across its way. It runs straight in to where the seabed starts to bend it, then turns over the seabed to 5 m of water and on to the break. Each period travels at its own speed, so the longest arrive first. The timeline counts minutes after the same swell passed NDBC 46232, where the calculation takes the buoy's measurement to hold, so most rays start before 0; under the map, the periods in so far and the height so far, and at the end the minute by which almost all of it (98%) is in, with the train's own height. Drag the timeline to read any minute. A ray the land blocks carries nothing straight in; what diffraction brings round an edge is drawn on the nearest ray of the same period that clears it. These are the rays the calculation follows, not waves: nothing here is a crest, and nothing has observed it. Wherever rays cross, the ray method is at its limit, and swell wrapping round a headland tip is where it is least sure.
 
@@ -501,7 +503,7 @@ The table is the same calculation for one narrow swell at a time: 14.3 s, spread
 
 [table the page fills in: bendtable]
 
-At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3° at the median and 10° at most, over the 31 cells all three periods give.
+At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3° at the median and 11° at most, over the 31 cells all three periods give.
 
 Read down a column and a wide spread of offshore directions arrives inside a narrow one. By 5 m of water, the direction a swell came from offshore is mostly gone: from anywhere the windows let in, it arrives within about 20° of straight in.
 
@@ -853,8 +855,8 @@ The Shore direction “how often” bars and the Departure view are the “LIVE�
 | GEFS-Wave, NOAA | 31-member ensemble at the buoy, height only | Ensemble chart |
 | National Weather Service grid | Hourly forecast wind at the center break, 7 days | Forecast wind, offshore line |
 | USGS CoNED, GMRT | Surveyed seabed, beach profiles and Point Loma's land (2016) | Refraction, friction, shoaling, breaking, the Sun card's skyline |
-| NOAA electronic navigational charts | Coastline of Point Loma's tip, the islands and the break chords | The aperture |
-| Esri World Imagery | South Coronado's south-east tip and the Baja coast, where the charts are wrong | The aperture |
+| NOAA electronic navigational charts | Coastline of Point Loma's tip, Middle Coronado and the break chords | The aperture |
+| Esri World Imagery | South Coronado's south-east tip, North Coronado and the Baja coast, where the charts are wrong; the three Coronado Islands' outlines, which GMRT leaves out | The aperture, refraction, the map's seabed |
 | NOAA solar equations | Sunrise and sunset, computed | Night shading |
 | Meeus's solar theory | The sun's position, computed | The Sun card |
 | Meeus's lunar theory | The Moon's phase, distance and declination, computed | The tide's phase |
@@ -993,7 +995,7 @@ Until that record exists, no figure on the forecast page states how well it does
 - **GFS-Wave, GEFS-Wave**
   NOAA's global wave model, and the same model run as a 31-member ensemble.
 - **ENC**
-  NOAA's electronic navigational charts, the source of every coordinate in the aperture but three, which are read off Esri World Imagery: South Coronado's south-east tip, which the chart rounds off, and the two points on the Baja coast, which the chart puts out to sea.
+  NOAA's electronic navigational charts, the source of every coordinate in the aperture but five, which are read off Esri World Imagery: South Coronado's south-east tip, which the chart rounds off; North Coronado's two ends, which it draws a couple of hundred metres off; and the two points on the Baja coast, which it puts out to sea.
 - **CoNED**
   The USGS Coastal National Elevation Database, a seamless survey of land and seabed.
 - **NDBC 46232, KNZY, 9410170**

@@ -151,7 +151,15 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      GMRT coast was right and the Baja tangent wrong; the tangent moved to
      imagery on the same day (geometry.md, item 17, BRIEFING §54) and now
      sits 4 m from the drawn 90 m coast. GMRT lacks Middle and North
-     Coronado (items 13 and 18).
+     Coronado: since 2026-11-15 (group 2d, item 13; BRIEFING §55) the
+     map draws them burned in from their imaged outlines
+     (`data/bathymetry/islands.json`), as the rays see them,
+     `seabedvector.load_grid` reading each grid through
+     `raytrace.with_islands`; all three from zoom 8, South and North
+     below it (Middle is under a quarter of a 400 m cell). The manifest
+     carries the outlines' fingerprint (what is drawn, not the file's
+     notes), so a changed outline fails `--check` until the seabed is
+     redrawn.
 
    At MHW the stored grid makes low ground inland water (half a square
    kilometre of Coronado on 8 m cells; on the coarse grids the Salton Sea,

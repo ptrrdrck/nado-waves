@@ -325,9 +325,12 @@ class TestTipOutline:
         coronado = [s for s in spots if s.id.startswith("coronado_")]
         got = geometry_provenance(blockers, coronado)
         assert [(v["blocker"], v["end"]) for v in got["vertices_from_imagery"]] == [
-            ("Coronado Islands (South group)", "a"), ("Baja peninsula", ("a", "b"))]
+            ("Coronado Islands (South group)", "a"), ("Coronado Islands (North group)", ("a", "b")),
+            ("Baja peninsula", ("a", "b"))]
         line = geometry_line(blockers, coronado)
         assert "Esri World Imagery for South Coronado's south-east tip" in line
+        # North Coronado, both ends, since the same day (BRIEFING §55).
+        assert "Esri World Imagery for North Coronado" in line
         assert "US4CA74M.000" in line
 
     def test_a_blocker_imaged_at_both_ends_is_named_once(self):

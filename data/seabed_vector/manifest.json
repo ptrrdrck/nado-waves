@@ -34,7 +34,8 @@
   "context": "2026-11-11T20:13:16Z",
   "outer": "2026-09-25T20:16:19Z",
   "regional": "2026-09-25T20:16:12Z",
-  "nearshore": "2026-09-25T20:16:11Z"
+  "nearshore": "2026-09-25T20:16:11Z",
+  "islands": "3c0f744197bd9f03"
  },
  "tiers": [
   {
@@ -49,17 +50,17 @@
    "name": "context",
    "file": "context.geojson",
    "minzoom": 0,
-   "features": 561,
-   "bytes": 982628,
-   "sha": "d72c8eea77d4b439"
+   "features": 566,
+   "bytes": 984977,
+   "sha": "ad1e29994a3b3f47"
   },
   {
    "name": "outer",
    "file": "outer.geojson",
    "minzoom": 8,
-   "features": 140,
-   "bytes": 216195,
-   "sha": "660de1e446efdd94"
+   "features": 157,
+   "bytes": 223184,
+   "sha": "8ec9af285c58fcf3"
   },
   {
    "name": "regional",

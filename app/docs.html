@@ -420,7 +420,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       <div class="card mock" aria-hidden="true">
         <div class="row"><span class="pin">1</span><span class="tabs"><span class="on">&ldquo;LIVE&rdquo;</span><span>Forecast</span></span></div>
         <div class="row"><span class="pin">2</span><span class="tabs"><span class="on">North</span><span>Center</span><span>South</span><span>Buoy</span></span></div>
-        <div class="row"><span class="pin">3</span><span><span class="big">3.5 ft</span> <span class="unit">(1.07 m)</span> breaking height &#9662;</span></div>
+        <div class="row"><span class="pin">3</span><span><span class="big">3.6 ft</span> <span class="unit">(1.09 m)</span> breaking height &#9662;</span></div>
         <div class="row"><span class="pin">4</span><span>the window drawing, and the swell trains under it</span></div>
         <div class="row"><span class="pin">5</span><span class="source">NDBC 46232 | 15 min ago | <b>Update in 59:12</b></span></div>
         <div class="row"><span class="pin">6</span><span><b>Charts</b> &#9652;</span></div>
@@ -731,8 +731,8 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       <p>The last two settings at the foot of the page. Each is kept on your phone, as Observer is.</p>
       <p><b>Units</b> shows what it is set to, and each tap moves it on: <em>Both</em>, the
         default, gives every number in feet, miles per hour, miles, &deg;F and inches with the
-        metric figure in parentheses, &ldquo;3.5 ft (1.07 m)&rdquo;; <em>Imperial</em> gives the
-        first alone; <em>Metric</em> gives the parenthesised figure alone, &ldquo;1.07 m&rdquo;,
+        metric figure in parentheses, &ldquo;3.6 ft (1.09 m)&rdquo;; <em>Imperial</em> gives the
+        first alone; <em>Metric</em> gives the parenthesised figure alone, &ldquo;1.09 m&rdquo;,
         in metres, knots, kilometres, &deg;C, hectopascals and millimetres. A metric number is
         never rounded again: it is the same figure Both shows in parentheses. The chart axes and
         the rose's rings step in metres and knots on Metric. Wind stays in knots, as the buoys
@@ -906,7 +906,8 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       <div class="tablebox" id="worked-table"></div>
       <p>The ordering is the point. Through the straight-line windows alone, South's was the
         biggest (0.90 m against North's 0.84 m), because its west window is widest. Over the
-        seabed, North came out on top, 3.5 ft (1.07 m) against 2.9 ft (0.88 m) at Center and South.
+        seabed, North came out on top, 3.6 ft (1.09 m) against 2.9 ft (0.89 m) at Center and 3.1 ft
+        (0.94 m) at South.
         The window alone would have ranked them the other way round. That reversal is a
         <em>claim</em>, physically derived and unchecked. It is exactly the kind of claim the beach
         observation log exists to test. <a href="#confidence-log">The log</a>.</p>
@@ -956,8 +957,8 @@ MEM:      half-power width 10°, centred on 187–188°</pre>
 Hs,window = 4·√m₀,window = Hs · √(share)
 
 <span class="c">worked hour, North</span>
-share     = (0.840 / 1.296)² = 0.420     <span class="c">42% of the energy is aimed through North's windows</span>
-Hs        = 1.296 × √0.420 = 0.840 m      → 2.8 ft (0.84 m)
+share     = (0.839 / 1.296)² = 0.419     <span class="c">42% of the energy is aimed through North's windows</span>
+Hs        = 1.296 × √0.419 = 0.839 m      → 2.8 ft (0.84 m)
 <span class="c">Center 0.875 m (46%), South 0.899 m (48%)</span></pre>
       <div class="choice"><span class="lbl">Model choice · integrate, never test one direction</span>
         <p>Testing a single &ldquo;mean direction&rdquo; against the windows gives a yes or no:
@@ -999,11 +1000,12 @@ sin θ / c = constant along a ray     <span class="c">Snell's law, on a straight
         <p>Tracing from the beach outward means every ray that reaches the break is found, and
           none is wasted on water that never arrives. The seabed is the USGS CoNED survey near
           shore with GMRT further out, the islands' own shelves included. Point Loma, the islands
-          and Baja are land the rays stop on. The method is the one Scripps' CDIP uses for its
+          and Baja are land the rays stop on; GMRT leaves out two of the three Coronado Islands, so
+          all three are drawn in from satellite imagery. The method is the one Scripps' CDIP uses for its
           coastal model, checked here against Snell's law on a flat test beach.</p></div>
 <pre class="math"><span class="c">worked hour</span>
-North    0.840 → 0.833 m    −0.8%
-Center   0.875 → 0.628 m   −28%
+North    0.839 → 0.830 m    −1.1%
+Center   0.875 → 0.627 m   −28%
 South    0.899 → 0.691 m   −23%</pre>
       <p>This is the step that reversed the order. North's seabed delivered almost everything its
         window let in. Center's and South's lost a quarter. The table measures that difference; it
@@ -1029,17 +1031,20 @@ K   0.012   0.041   0.250   1.259   0.844
       <p>The islands use the same idea twice. By Babinet's principle an obstacle is open water
         minus the wave through a slit its shape, so each island is a slit subtracted from open
         water.</p>
+      <p>A ray that runs into an island or a headland brings only what diffracts round it. It
+        leaves along the heading of the nearest ray that clears the land, carrying the share the
+        formula gives for its place in the shadow, which is small deep inside it.</p>
       <figure>
         <div class="mapbox" data-map data-view="islands" data-dists="0"></div>
         <figcaption>The two island screens. Each is diffracted as its own slit, so the channel
           between them stays open water.</figcaption>
       </figure>
 <pre class="math"><span class="c">worked hour</span>
-North    0.833 → 0.852 m    +2.3%
-Center   0.628 → 0.661 m    +5.3%
-South    0.691 → 0.718 m    +3.9%</pre>
-      <p>Diffraction added a little at all three: more leaked into the shadows than was lost along
-        the edges.</p>
+North    0.830 → 0.868 m    +4.6%
+Center   0.627 → 0.669 m    +6.7%
+South    0.691 → 0.766 m   +11%</pre>
+      <p>Diffraction added at all three, most at South: more leaked into the shadows than was lost
+        along the edges.</p>
     </section>
 
     <section id="calc-friction">
@@ -1055,9 +1060,9 @@ h = 15 m   98.1%
 h = 10 m   96.4%
 
 <span class="c">worked hour</span>
-North    0.852 → 0.755 m   −11%     <span class="c">energy × 0.79</span>
-Center   0.661 → 0.592 m   −10%
-South    0.718 → 0.658 m    −8.4%</pre>
+North    0.868 → 0.769 m   −11%     <span class="c">energy × 0.78</span>
+Center   0.669 → 0.600 m   −10%
+South    0.766 → 0.701 m    −8.5%</pre>
       <div class="choice"><span class="lbl">Model choice · the JONSWAP friction law, untuned</span>
         <p>Its coefficient comes from the literature and has not been adjusted. It is linear in
           energy, so each ray's loss is a fixed factor that can be worked out once, ahead of time,
@@ -1075,9 +1080,9 @@ South    0.718 → 0.658 m    −8.4%</pre>
 Ks  = √(9.76 / 6.56) = 1.22           <span class="c">+22% in height</span>
 
 <span class="c">worked hour, the whole spectrum</span>
-North    0.755 → 0.928 m   +23%
-Center   0.592 → 0.713 m   +20%
-South    0.658 → 0.738 m   +12%</pre>
+North    0.769 → 0.946 m   +23%
+Center   0.600 → 0.722 m   +20%
+South    0.701 → 0.791 m   +13%</pre>
       <div class="choice"><span class="lbl">Model choice · hand over at 5 m</span>
         <p>The ray tables stop in 5 m of water, close in and still inside Point Loma's shadow.
           From there the surf zone takes over (step 8). A table that stopped further out would
@@ -1098,7 +1103,7 @@ U₁₀ = 4.12 m/s,  C_D = 0.00124,  u* = 0.145 m/s
 Hm0 = 0.092 m,   Tp = 1.1 s           → 0.3 ft (0.09 m)
 
 chop and swell add in energy:
-√(0.928² + 0.092²) = 0.933 m          +0.5%</pre>
+√(0.946² + 0.092²) = 0.950 m          +0.4%</pre>
       <div class="choice"><span class="lbl">Model choice · two kinds of fetch</span>
         <p>The growth law is the Coastal Engineering Manual's (US Army Corps of Engineers, 2002).
           Only a wind blowing from the sea toward the break makes chop that reaches it. When the
@@ -1124,16 +1129,16 @@ D = ¼·α·f_p·Qb·Hmax²,   α = 1,   Hmax = γ·h           <span class="c">
 (1 − Qb) / ln Qb = −(Hrms / Hmax)²                    <span class="c">Qb: the share of waves breaking</span>
 γ = 0.5 + 0.4·tanh(33·s₀),   s₀ = Hrms,deep / L₀      <span class="c">Battjes &amp; Stive (1985)</span>
 
-<span class="c">worked hour, North: 0.933 m at 5 m, 12.5 s</span>
-Hrms,deep = 0.933/√2 × √(6.56/9.76) = 0.541 m
-s₀ = 0.541 / 244 = 0.0022  →  γ = 0.529
+<span class="c">worked hour, North: 0.950 m at 5 m, 12.5 s</span>
+Hrms,deep = 0.950/√2 × √(6.56/9.76) = 0.551 m
+s₀ = 0.551 / 244 = 0.0023  →  γ = 0.530
 
 tide at the open coast: +1.022 m above mean sea level  <span class="c">(see the Tide card's math)</span>
-largest Hs 87 m in from the start point, in h = 2.34 m of water
-Hmax = 0.529 × 2.34 = 1.238 m,   Hrms = 1.071/√2 = 0.757 m
-(Hrms/Hmax)² = 0.374  →  Qb = 0.087                   <span class="c">9% of waves breaking</span>
+largest Hs 87 m in from the start point, in h = 2.36 m of water
+Hmax = 0.530 × 2.36 = 1.251 m,   Hrms = 1.087/√2 = 0.769 m
+(Hrms/Hmax)² = 0.378  →  Qb = 0.090                   <span class="c">9% of waves breaking</span>
 
-Hs = 1.071 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 m) depth   +15%</pre>
+Hs = 1.087 m                         → 3.6 ft (1.09 m), breaking at 8 ft (2.4 m) depth   +14%</pre>
       <div class="choice"><span class="lbl">Model choice · the standard 1-D surf zone, γ from the literature</span>
         <p>One line straight in, the same all along the beach, one period (the peak's). That is
           the textbook surf-zone model and no more. The breaker index γ is taken from Battjes
@@ -1256,10 +1261,10 @@ Hs = 1.071 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
 
     <section id="swell-headline">
       <h3>The headline</h3>
-      <p>The breaking height, in feet with metres in parentheses: &ldquo;3.5 ft (1.07 m)
+      <p>The breaking height, in feet with metres in parentheses: &ldquo;3.6 ft (1.09 m)
         breaking height&rdquo;, or in one of the two by <a href="#settings">the Units
         setting</a>. The depth it breaks in is the last row of
-        <a href="#calc-table">the calculation</a>, under Wave break: &ldquo;at 8 ft (2.3 m)
+        <a href="#calc-table">the calculation</a>, under Wave break: &ldquo;at 8 ft (2.4 m)
         depth&rdquo;. When there is no tide to break it at, the headline is the height in 5 m of
         water and says so. The caret at its end opens the calculation.</p>
     </section>
@@ -1291,7 +1296,8 @@ Hs = 1.071 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
         one warm colour, gold on the dark page and orange on the light one. Pick a train in the
         list and the map shows it too.</p>
       <p>The seabed is drawn from the same depth grids the swell is carried over: USGS CoNED 2016
-        near the beach, GMRT farther out. It is drawn as shapes, not pictures, so its edges stay
+        near the beach, GMRT farther out, with the Coronado Islands drawn in from satellite
+        imagery where GMRT leaves them out. It is drawn as shapes, not pictures, so its edges stay
         sharp at any zoom: bands of depth, paler for shallower water, a contour line at 5, 10, 20,
         50, 100, 200, 500, 1,000 and 2,000 m, the shoreline, and the land. Each grid is drawn from
         the zoom its cells are fine enough for: close in from 8 m cells; out past Tanner Bank,
@@ -1342,11 +1348,11 @@ Hs = 1.071 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
           <tr><th scope="row">Shore normal</th><td class="num">194&deg;</td><td class="num">214&deg;</td><td class="num">221&deg;</td></tr>
           <tr><th scope="row">S 180&deg;</th><td class="num">202&deg;</td><td class="num">&mdash;</td><td class="num">206&deg;</td></tr>
           <tr><th scope="row">S 190&deg;</th><td class="num">195&deg;</td><td class="num">&mdash;</td><td class="num">205&deg;</td></tr>
-          <tr><th scope="row">SSW 200&deg;</th><td class="num">191&deg;</td><td class="num">202&deg;</td><td class="num">&mdash;</td></tr>
-          <tr><th scope="row">SSW 210&deg;</th><td class="num">190&deg;</td><td class="num">205&deg;</td><td class="num">&mdash;</td></tr>
+          <tr><th scope="row">SSW 200&deg;</th><td class="num">191&deg;</td><td class="num">201&deg;</td><td class="num">&mdash;</td></tr>
+          <tr><th scope="row">SSW 210&deg;</th><td class="num">190&deg;</td><td class="num">205&deg;</td><td class="num">211&deg;</td></tr>
           <tr><th scope="row">SW 220&deg;</th><td class="num">192&deg;</td><td class="num">205&deg;</td><td class="num">212&deg;</td></tr>
-          <tr><th scope="row">SW 230&deg;</th><td class="num">197&deg;</td><td class="num">205&deg;</td><td class="num">213&deg;</td></tr>
-          <tr><th scope="row">WSW 240&deg;</th><td class="num">203&deg;</td><td class="num">206&deg;</td><td class="num">216&deg;</td></tr>
+          <tr><th scope="row">SW 230&deg;</th><td class="num">198&deg;</td><td class="num">205&deg;</td><td class="num">212&deg;</td></tr>
+          <tr><th scope="row">WSW 240&deg;</th><td class="num">203&deg;</td><td class="num">206&deg;</td><td class="num">215&deg;</td></tr>
           <tr><th scope="row">WSW 250&deg;</th><td class="num">205&deg;</td><td class="num">210&deg;</td><td class="num">217&deg;</td></tr>
           <tr><th scope="row">W 260&deg;</th><td class="num">206&deg;</td><td class="num">215&deg;</td><td class="num">221&deg;</td></tr>
           <tr><th scope="row">W 270&deg;</th><td class="num">208&deg;</td><td class="num">219&deg;</td><td class="num">226&deg;</td></tr>
@@ -1356,7 +1362,7 @@ Hs = 1.071 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 
           <tr><th scope="row">NW 310&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">229&deg;</td></tr>
           <tr><th scope="row">NW 320&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">229&deg;</td></tr>
         </tbody></table></div>
-      <p class="foot">At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3&deg; at the median and 10&deg; at most, over the 31 cells all three periods give.</p>
+      <p class="foot">At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3&deg; at the median and 11&deg; at most, over the 31 cells all three periods give.</p>
       <!-- bending:end -->
       <p>Read down a column and a wide spread of offshore directions arrives inside a narrow
         one. By 5 m of water, the direction a swell came from offshore is mostly gone: from
@@ -2185,8 +2191,8 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
           <tr><th scope="row">GEFS-Wave, NOAA</th><td>31-member ensemble at the buoy, height only</td><td>Ensemble chart</td></tr>
           <tr><th scope="row">National Weather Service grid</th><td>Hourly forecast wind at the center break, 7 days</td><td>Forecast wind, offshore line</td></tr>
           <tr><th scope="row">USGS CoNED, GMRT</th><td>Surveyed seabed, beach profiles and Point Loma's land (2016)</td><td>Refraction, friction, shoaling, breaking, the Sun card's skyline</td></tr>
-          <tr><th scope="row">NOAA electronic navigational charts</th><td>Coastline of Point Loma's tip, the islands and the break chords</td><td>The aperture</td></tr>
-          <tr><th scope="row">Esri World Imagery</th><td>South Coronado's south-east tip and the Baja coast, where the charts are wrong</td><td>The aperture</td></tr>
+          <tr><th scope="row">NOAA electronic navigational charts</th><td>Coastline of Point Loma's tip, Middle Coronado and the break chords</td><td>The aperture</td></tr>
+          <tr><th scope="row">Esri World Imagery</th><td>South Coronado's south-east tip, North Coronado and the Baja coast, where the charts are wrong; the three Coronado Islands' outlines, which GMRT leaves out</td><td>The aperture, refraction, the map's seabed</td></tr>
           <tr><th scope="row">NOAA solar equations</th><td>Sunrise and sunset, computed</td><td>Night shading</td></tr>
           <tr><th scope="row">Meeus's solar theory</th><td>The sun's position, computed</td><td>The Sun card</td></tr>
           <tr><th scope="row">Meeus's lunar theory</th><td>The Moon's phase, distance and declination, computed</td><td>The tide's phase</td></tr>
@@ -2360,9 +2366,9 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
       <dt>GFS-Wave, GEFS-Wave</dt><dd>NOAA's global wave model, and the same model run as a
         31-member ensemble.</dd>
       <dt>ENC</dt><dd>NOAA's electronic navigational charts, the source of every coordinate in the
-        aperture but three, which are read off Esri World Imagery: South Coronado's south-east
-        tip, which the chart rounds off, and the two points on the Baja coast, which the chart
-        puts out to sea.</dd>
+        aperture but five, which are read off Esri World Imagery: South Coronado's south-east
+        tip, which the chart rounds off; North Coronado's two ends, which it draws a couple of
+        hundred metres off; and the two points on the Baja coast, which it puts out to sea.</dd>
       <dt>CoNED</dt><dd>The USGS Coastal National Elevation Database, a seamless survey of land and
         seabed.</dd>
       <dt>NDBC 46232, KNZY, 9410170</dt><dd>The buoy, the airfield and the tide gauge. NDBC 46047
@@ -2387,12 +2393,12 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
  "wind":{"from_deg":270.0,"speed_kt":8.0},
  "tide":{"gauge_height_m":2.005,"height_m":1.893},
  "breaks":{
-  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.84,"refracted_hs_m":0.833,"diffracted_hs_m":0.852,"friction_hs_m":0.755,"shoaled_hs_m":0.928,"with_chop_hs_m":0.933,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":1.071,"depth_m":2.34,"distance_m":87.0,"tide_m":1.022,"gamma":0.529,"fraction_breaking":0.087,"outside_start":false}},
-  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.628,"diffracted_hs_m":0.661,"friction_hs_m":0.592,"shoaled_hs_m":0.713,"with_chop_hs_m":0.725,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":0.882,"depth_m":1.99,"distance_m":114.0,"tide_m":1.022,"gamma":0.509,"fraction_breaking":0.089,"outside_start":false}},
-  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.718,"friction_hs_m":0.658,"shoaled_hs_m":0.738,"with_chop_hs_m":0.752,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":0.882,"depth_m":2.28,"distance_m":141.0,"tide_m":1.022,"gamma":0.527,"fraction_breaking":0.027,"outside_start":false}}
+  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.839,"refracted_hs_m":0.83,"diffracted_hs_m":0.868,"friction_hs_m":0.769,"shoaled_hs_m":0.946,"with_chop_hs_m":0.95,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":1.087,"depth_m":2.36,"distance_m":86.5,"tide_m":1.022,"gamma":0.53,"fraction_breaking":0.09,"outside_start":false}},
+  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.627,"diffracted_hs_m":0.669,"friction_hs_m":0.6,"shoaled_hs_m":0.722,"with_chop_hs_m":0.734,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":0.891,"depth_m":1.99,"distance_m":114.0,"tide_m":1.022,"gamma":0.509,"fraction_breaking":0.095,"outside_start":false}},
+  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.766,"friction_hs_m":0.701,"shoaled_hs_m":0.791,"with_chop_hs_m":0.804,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":0.936,"depth_m":2.37,"distance_m":136.0,"tide_m":1.022,"gamma":0.529,"fraction_breaking":0.031,"outside_start":false}}
  }}
 </script>
 

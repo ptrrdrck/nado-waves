@@ -92,25 +92,64 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   south-east tip" beside the chart cells. Published windows: 187.4 → 187.3,
   189.1 → 189.0, 191.2 → 191.0; window energy 0.00% (no bin centre crossed,
   §26).
-- **The seabed grids are missing islands** (measured 2026-11-15, BRIEFING
-  §52; fix deferred to its own session by the owner). In GMRT's 90 m
-  `outer` grid only South Coronado is land: Middle Coronado reads 1.4 m deep
-  and North Coronado at least 22 m; in the 400 m `context` grid, the only
-  seabed the map draws below zoom 8, no island is land at all. Not
-  smoothing: GMRT does not carry them. The rays are traced over `outer`, so
-  they refract over a 22 m shoal where North Coronado stands; its shadow is
-  still in the numbers through the Babinet factor, which reads `spots.json`,
-  not the grid.
-- **North Coronado's charted outline sits ~100–200 m north-west of the
-  island** (measured 2026-11-15, BRIEFING §53; item 18). Against Esri World
-  Imagery its edges read −0.22 to −0.26° (`a`) and −0.34 to −0.38° (`b`);
-  Copernicus GLO-30 agrees at `b` (−0.29 to −0.46°) but not at `a` (−0.02 to
-  −0.08°), where a rocky spur runs ~150 m past the chart's end right at a
-  seam between two image captures (2023 and 2021). Middle Coronado's
-  charted edge agrees with imagery within 0.01° (§52's control), and GLO-30
-  backs §52's imaged South Coronado tip within 0.02–0.04°. Not changed: a
-  move shifts the main west window's low edge and the islands' see-through
-  disc, which item 14 found unstable.
+- **The islands are land in the seabed, from imagery** (owner's decision,
+  2026-11-15, group 2d, item 13; BRIEFING §52, §55). GMRT does not carry
+  them: in its 90 m `outer` grid only South Coronado was land (Middle
+  Coronado a shoal, its shallowest stored cell 5.2 m deep and the cells
+  now burned 10-14 m; North Coronado 22 m and more), in the 400 m
+  `context` grid none. The rays refracted over a 22 m shoal where North
+  Coronado stands: 20 rows of North's table, 15-40 s, crossed it, carrying a
+  median 0.85% of North's 5 m energy and up to 18% on some hours (two single
+  rays 11% and 13%); 163-216 short straight legs a break crossed Middle or
+  North, and still do (the islands are diffracted on the straight leg, never
+  blocked). `data/bathymetry/islands.json` holds the three islands' outlines
+  from Esri World Imagery (colour, a 12 m opening, zoom 17, simplified to
+  2 m; South Coronado's imaged tip 3 m inside it, North Coronado's ends
+  within 2 m) with a height each from Copernicus GLO-30 (median, 5 m
+  floor: GLO-30 does not resolve Middle Coronado). `raytrace.with_islands`
+  burns them in when a grid is LOADED, into `outer` and `context` only, a
+  cell becoming land where a quarter of it is island (153 and 15 cells);
+  the stored GMRT grids are never edited, so a fetch keeps them. The map
+  draws them too (`seabedvector.load_grid`, the outlines' fingerprint in
+  its manifest): all three from zoom 8, South and North below it (Middle
+  is under a quarter of a 400 m cell). North Coronado's south-east islet
+  (2,565 m2) is under a quarter of a 90 m cell: its shadow comes in through
+  `a`, the Babinet edge. Rejected: a map-only overlay, which would draw land
+  the rays refracted over as a shoal. What the islands' being land did to
+  the tables, with item 14's method: North's 5 m height a median +0.10%,
+  worst hours -8.6 / +7.0% (15 over 5%), Center and South within 0.9%; four
+  or five wind directions a break (189-204 degrees) now close their fetch
+  on Middle or North Coronado at about 30 km instead of running 50 km open.
+- **North Coronado is read off imagery, both ends** (owner's decision,
+  2026-11-15, group 2d, item 18; BRIEFING §53, §55). The ENC approach band
+  has the island's shape, displaced 200-260 m north-west: its `b` stood in
+  open water 150-200 m past the last rocks. Against Esri World Imagery
+  (solid land, zoom 16 and 17, openings of 6, 12 and 20 m) its edges read
+  0.21-0.26 degrees high at `a` and 0.34-0.39 at `b`. GLO-30 agrees with the
+  imagery on the main island within 0.02 degrees at both ends, so the
+  imagery is not misregistered; §53's disagreement at `a` is a dry rock
+  islet of 2,565 m2 about 100 m past the island's south-east end, across a
+  gap of surf, sharp on WorldView-2 of 2023-01-31 at 0.5 m and about 50 m
+  north of its seam with a 2022-01-19 capture (the cloudy 2021 GE01 lies
+  further south), under GLO-30's 30 m posting. The classifier's "rock"
+  variant reads the cloudy capture's water as rock there and was not used.
+  `a` 32.43375, -117.29414 (the islet's tip; 0.15-0.17 degrees lower than
+  the main island alone), `b` 32.44453, -117.30044; one point per end is
+  every spot's tangent within 0.001 degrees. `spots.json` carries an
+  `imagery` block naming the ENC vertices and no cells, as the Baja coast
+  does, and the "standing on" line names "Esri World Imagery for North
+  Coronado".
+
+  | | north | center | south | Breakers* | Gator* |
+  |---|---|---|---|---|---|
+  | channel's high edge (`a`) | 198.62 -> 198.39 | 200.53 -> 200.29 | 203.01 -> 202.76 | 195.06 -> 194.85 | 205.52 -> 205.24 |
+  | west window's low edge (`b`) | 200.61 -> 200.27 | 202.59 -> 202.24 | 205.18 -> 204.80 | 196.91 -> 196.61 | 207.82 -> 207.41 |
+  | window energy, 2,100 hours (max. entropy) | -0.05% | -0.08% | 0 | 0 | -0.07% |
+
+  \* estimated positions. Worst single hours of window energy: North
+  -39 / +12%, Center -9 / +28%, Gator -8 / +7%. West window widths 41.7 /
+  48.0 / 55.3 degrees. The 5 m height moved a median +0.3 / -0.2 / 0.0%
+  (N / C / S), worst -4.2% (South), no hour 5%.
 
 ## The swell-side window
 

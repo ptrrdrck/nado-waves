@@ -22,11 +22,13 @@ the depth changes (shoaling). This traces that, the way CDIP's MOP does
    0.001%; stopping at L0/2 left c 0.4% short and each heading ~0.2° short of
    Snell, measured on the planar control)
    and the rest of the path is a straight line, which is then tested against
-   the charted blockers in `spots.json`. Or it stops on land — Point Loma,
-   the Baja coast and the Coronado Islands are all land in the grids, and a
-   ray crossing an island's own shelf refracts over it — or at the grid's
-   edge, counted as deep if the water there is already past L0/2 and flagged
-   `grid edge` with its depth otherwise.
+   the charted blockers in `spots.json` and walked over the grids for any
+   other land (`leg_blockers`). Or it stops on land — Point Loma, the Baja
+   coast and the Coronado Islands are all land in the grids (the islands
+   burned in from their imaged outlines, `ISLANDS_FILE`, since GMRT lacks
+   two of them), and a ray crossing an island's own shelf refracts over
+   it — or at the grid's edge, counted as deep if the water there is already
+   past L0/2 and flagged `grid edge` with its depth otherwise.
 4. Energy along a ray: for stationary linear refraction S(f, θ)·c·c_g is
    invariant (Longuet-Higgins 1957), so the spectral density arriving at the
    start point from heading θn is S_off(f, θ0)·(c0·cg0)/(c·cg), with θ0 the
@@ -37,7 +39,9 @@ the depth changes (shoaling). This traces that, the way CDIP's MOP does
 5. Diffraction at every window edge, on those bent rays (`table`): the
    islands by the two-edge Babinet factor, the Point Loma tip and the Baja
    tangent by the straight-edge one. Each ray carries a hard-edged and a
-   diffracting answer, so the two effects are measured apart.
+   diffracting answer, so the two effects are measured apart. A ray that
+   lands on any of them gets energy only by diffraction, along the heading
+   of a ray that clears it.
 
 6. Bottom friction along each ray's path over the shelf (`friction_rate`,
    the JONSWAP law), stored as its own factor per ray beside the gain so the
@@ -170,7 +174,10 @@ class Grid:
     @classmethod
     def from_elevation(cls, elevation_m: np.ndarray, left: float, top: float,
                        cell: float, msl_above_navd88: float) -> "Grid":
-        depth = msl_above_navd88 - elevation_m
+        return cls.from_depth(msl_above_navd88 - elevation_m, left, top, cell)
+
+    @classmethod
+    def from_depth(cls, depth: np.ndarray, left: float, top: float, cell: float) -> "Grid":
         gy, gx = np.gradient(depth, cell)
         # Rows run north to south, so the row gradient is -d/d(northing).
         return cls(depth, gx, -gy, left, top, cell)
@@ -227,7 +234,8 @@ class Bathymetry:
                 shift = offset or 0.0
             else:
                 shift = 0.0          # already sea level
-            grids.append(Grid.from_elevation(raw / 10.0, left, top, a, shift))
+            grid = Grid.from_elevation(raw / 10.0, left, top, a, shift)
+            grids.append(with_islands(grid, name, directory))
             names.append(name)
         return cls(grids, offset, tuple(names))
 
@@ -253,6 +261,93 @@ class Bathymetry:
         return h, hx, hy, cell, ~todo
 
 
+# ------------------------------------------------------------------ islands as land
+
+#: The Coronado Islands' outlines, imaged (BRIEFING §55): GMRT's 90 m grid has
+#: only South Coronado as land, Middle Coronado a shoal (its shallowest stored
+#: cell 5.2 m deep) and North Coronado 22 m and more, and its 400 m grid none. Until 2026-11-15 rays
+#: refracted over a shoal where North Coronado stands and carried up to 18% of
+#: North's 5 m energy on some hours across it, and the map drew open water.
+ISLANDS_FILE = "islands.json"
+#: A grid cell is island where at least this share of it is inside an outline.
+ISLAND_COVER = 0.25
+#: The share is counted on this many points a side in each cell.
+ISLAND_SAMPLES = 8
+
+
+def island_outlines(directory: Path = BATHY_DIR) -> tuple[list[dict], tuple[str, ...]]:
+    """The imaged island outlines in UTM, and the grids they are burned into."""
+
+    path = directory / ISLANDS_FILE
+    if not path.exists():
+        return [], ()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    out = [{"name": isl["name"], "height_m": float(isl["height_m"]),
+            "parts": [np.array([to_utm(la, lo) for la, lo in ring]) for ring in isl["parts"]]}
+           for isl in data["islands"]]
+    return out, tuple(data.get("burned_into", ()))
+
+
+def _inside(ring: np.ndarray, x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Even-odd point-in-polygon test for points (x, y) against one ring."""
+
+    x0, y0 = ring[:, 0][None, :], ring[:, 1][None, :]
+    x1, y1 = np.roll(ring[:, 0], -1)[None, :], np.roll(ring[:, 1], -1)[None, :]
+    px, py = x[:, None], y[:, None]
+    straddles = (y0 > py) != (y1 > py)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        cross = x0 + (py - y0) * (x1 - x0) / (y1 - y0)
+    return (np.sum(straddles & (px < cross), axis=1) % 2) == 1
+
+
+def burn_islands(depth: np.ndarray, left: float, top: float, cell: float,
+                 outlines: list[dict]) -> int:
+    """Raise the cells an island covers (`ISLAND_COVER`) to land, in place.
+
+    A burned cell is the island's height or the grid's own elevation,
+    whichever is higher: GMRT's South Coronado peaks at 149 m and keeps it.
+    Returns how many cells changed."""
+
+    rows, cols = depth.shape
+    sub = (np.arange(ISLAND_SAMPLES) + 0.5) / ISLAND_SAMPLES
+    changed = 0
+    for isl in outlines:
+        pts = np.vstack(isl["parts"])
+        c0 = max(int((pts[:, 0].min() - left) // cell), 0)
+        c1 = min(int((pts[:, 0].max() - left) // cell), cols - 1)
+        r0 = max(int((top - pts[:, 1].max()) // cell), 0)
+        r1 = min(int((top - pts[:, 1].min()) // cell), rows - 1)
+        if c0 > c1 or r0 > r1:
+            continue
+        cc, rr = np.meshgrid(np.arange(c0, c1 + 1), np.arange(r0, r1 + 1))
+        px = left + (cc[..., None, None] + sub[None, None, None, :]) * cell
+        py = top - (rr[..., None, None] + sub[None, None, :, None]) * cell
+        px, py = np.broadcast_arrays(px, py)
+        inside = np.zeros(px.size, bool)
+        for ring in isl["parts"]:
+            inside |= _inside(ring, px.ravel(), py.ravel())
+        share = inside.reshape(px.shape).mean(axis=(2, 3))
+        r, c = np.nonzero(share >= ISLAND_COVER)
+        r, c = r + r0, c + c0
+        land = -isl["height_m"]
+        lower = ~(depth[r, c] <= land)          # deeper than the island, or no data
+        depth[r[lower], c[lower]] = land
+        changed += int(lower.sum())
+    return changed
+
+
+def with_islands(grid: "Grid", name: str, directory: Path = BATHY_DIR) -> "Grid":
+    """The grid with the imaged islands burned in, if it is one they are for;
+    the stored grid is never edited, so a fetch keeps them."""
+
+    outlines, into = island_outlines(directory)
+    if name not in into:
+        return grid
+    depth = grid.depth.copy()
+    burn_islands(depth, grid.left, grid.top, grid.cell, outlines)
+    return Grid.from_depth(depth, grid.left, grid.top, grid.cell)
+
+
 # ------------------------------------------------------------------ islands
 
 #: The Coronado Islands are diffracted, not blocked. Measured (BRIEFING §10,
@@ -260,11 +355,14 @@ class Bathymetry:
 #: it reaches Coronado, and the geometric block the aperture applies is a
 #: ceiling on their effect, not an estimate of it.
 ISLAND_PREFIX = "Coronado Islands"
-#: Island land is removed from the grid out to this far past the charted
-#: extent, so rays pass through and the Fresnel factor alone decides.
+#: An island reaches this far past its charted extent: the ring the wavelength
+#: it diffracts at is read in starts here, and land met inside it on a ray's
+#: straight leg is the island's (diffracted), not a blocker's. Until
+#: 2026-11-15 it also sized the "see-through" disc rays were re-traced over,
+#: and moving it 50 m moved single hours by up to a third (BRIEFING §52, §55).
 ISLAND_PAD_M = 400.0
-#: Depth sampled in this ring outside the disc sets the fill and the
-#: wavelength the islands diffract at.
+#: Depth sampled in this ring outside the island sets the wavelength the
+#: islands diffract at.
 ISLAND_RING_M = 2000.0
 
 
@@ -275,7 +373,7 @@ class Island:
     b: tuple[float, float]
     centre: tuple[float, float]
     radius: float
-    depth: float = float("nan")  # ring depth, set by `transparent`
+    depth: float = float("nan")  # ring depth, set by `ring_depths`
 
 
 def islands_from(blockers: list[Blocker]) -> list[Island]:
@@ -290,38 +388,24 @@ def islands_from(blockers: list[Blocker]) -> list[Island]:
     return out
 
 
-def transparent(bathy: "Bathymetry", islands: list[Island]) -> "Bathymetry":
-    """A copy with each island's disc filled at the depth of the water around it.
+def ring_depths(bathy: "Bathymetry", islands: list[Island]) -> None:
+    """Set each island's `depth`: the median water depth in the ring round it,
+    where the wavelength it diffracts at is read. The finest grid that
+    reaches the island sets it."""
 
-    Used ONLY to re-trace rays that land on an island, so the energy that
-    diffracts into the island's shadow has a path onward to deep water. Every
-    other ray crosses the real seabed, the islands' own shelves included,
-    since 2026-09-25 (it used to be every ray, which removed the shelf
-    refraction the locals' shadow-filling partly comes from).
-    """
-
-    grids = []
-    for grid in bathy.grids:
-        depth = grid.depth.copy()
-        rows, cols = depth.shape
-        ys = grid.top - (np.arange(rows) + 0.5) * grid.cell
-        xs = grid.left + (np.arange(cols) + 0.5) * grid.cell
-        for island in islands:
-            dx = xs[None, :] - island.centre[0]
-            dy = ys[:, None] - island.centre[1]
-            r = np.hypot(dx, dy)
-            disc = r <= island.radius
-            if not disc.any():
+    for island in islands:
+        for grid in bathy.grids:
+            rows, cols = grid.depth.shape
+            ys = grid.top - (np.arange(rows) + 0.5) * grid.cell
+            xs = grid.left + (np.arange(cols) + 0.5) * grid.cell
+            r = np.hypot(xs[None, :] - island.centre[0], ys[:, None] - island.centre[1])
+            if not (r <= island.radius).any():
                 continue
-            ring = (r > island.radius) & (r <= island.radius + ISLAND_RING_M) & (depth > H_LAND)
-            fill = float(np.nanmedian(depth[ring])) if ring.any() else float("nan")
-            if not math.isfinite(fill):
-                continue
-            depth[disc] = fill
-            island.depth = fill
-        gy, gx = np.gradient(depth, grid.cell)
-        grids.append(Grid(depth, gx, -gy, grid.left, grid.top, grid.cell))
-    return Bathymetry(grids, bathy.msl_offset_m, bathy.names)
+            ring = (r > island.radius) & (r <= island.radius + ISLAND_RING_M) & (grid.depth > H_LAND)
+            fill = float(np.nanmedian(grid.depth[ring])) if ring.any() else float("nan")
+            if math.isfinite(fill):
+                island.depth = fill
+                break
 
 
 _FRESNEL_U = np.linspace(-40.0, 40.0, 800_001)
@@ -403,6 +487,30 @@ def island_transmission(passes: dict[str, tuple], islands: list[Island],
     if field is None:
         return None, None
     return np.abs(field) ** 2, geo
+
+
+def shadow_factor(rec: tuple, side: tuple[int, int], w: float, island: Island,
+                  period_s: float) -> float:
+    """Babinet energy factor for a ray that lands on `island`, from the slit
+    geometry of the clear rays either side of it (`side`, indices into
+    `rec`, the island's `passes` record) interpolated a share `w` of the way
+    from the first to the second: each edge's offset from the ray's line and
+    the distance on to the break, as `island_transmission` takes them at the
+    point where a ray has the island abeam."""
+
+    qx, qy, beta, dist, _ = rec
+
+    def geometry(j):
+        ux, uy = math.cos(beta[j]), math.sin(beta[j])
+        return (ux * (island.a[1] - qy[j]) - uy * (island.a[0] - qx[j]),
+                ux * (island.b[1] - qy[j]) - uy * (island.b[0] - qx[j]), dist[j])
+
+    one, two = geometry(side[0]), geometry(side[1])
+    xa, xb, d = (p * (1.0 - w) + q * w for p, q in zip(one, two))
+    k = wavenumber(2.0 * math.pi / period_s,
+                   np.array([island.depth if math.isfinite(island.depth) else 1e4]))[0]
+    scale = math.sqrt(2.0 / ((2.0 * math.pi / k) * max(d, 1.0)))
+    return float(np.abs(1.0 - slit(np.array([xa * scale]), np.array([xb * scale])))[0] ** 2)
 
 
 #: Past this Fresnel distance from an edge the straight-edge factor is left at
@@ -631,6 +739,71 @@ def straight_line_blocker(blockers: list[Blocker], lat: float, lon: float,
     return None
 
 
+def leg_land(bathy: Bathymetry, islands: list[Island], x: np.ndarray, y: np.ndarray,
+             from_deg: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Whether each straight deep-water leg, walked back from its exit `(x, y)`
+    toward `from_deg` over the grids, meets land before they end, and where.
+
+    Land inside an island's reach (`ISLAND_PAD_M`) is the island's and is
+    passed over: the islands are diffracted on the straight leg, never
+    blocked. Walked at half the cell under each point, the tracer's own step.
+    """
+
+    th = np.radians(from_deg)
+    ux, uy = np.sin(th), np.cos(th)
+    run = np.zeros(x.size)
+    hit = np.zeros(x.size, bool)
+    hx, hy = np.full(x.size, np.nan), np.full(x.size, np.nan)
+    active = np.ones(x.size, bool)
+    while active.any():
+        idx = np.flatnonzero(active)
+        px, py = x[idx] + ux[idx] * run[idx], y[idx] + uy[idx] * run[idx]
+        h, _, _, cell, covered = bathy.sample(px, py)
+        land = covered & np.isfinite(h) & (h <= H_LAND)
+        for island in islands:
+            land &= np.hypot(px - island.centre[0], py - island.centre[1]) > island.radius
+        hit[idx[land]] = True
+        hx[idx[land]], hy[idx[land]] = px[land], py[land]
+        stop = land | ~covered | (run[idx] > MAX_PATH_M)
+        active[idx[stop]] = False
+        go = ~stop
+        run[idx[go]] += STEP_FRACTION * cell[go]
+    return hit, hx, hy
+
+
+def leg_blockers(bathy: Bathymetry, blockers: list[Blocker], islands: list[Island],
+                 rays: "Rays") -> list[str]:
+    """What stops each ray, "" for none: the charted land it landed on
+    (`landed_on`), or the land its straight deep-water leg runs into.
+
+    The leg is tested twice. Against the charted blockers' angular spans
+    (`straight_line_blocker`), which reach past the grids; and walked over
+    the grids themselves (`leg_land`), the land the rays stop on. Until
+    2026-11-15 only the first: a blocker that `continues` is land past its
+    end too, and the Coronado shore south of the breaks is no blocker at
+    all, so a short-period ray leaving deep water near the beach, heading
+    back across the Silver Strand, the Mexican coast north of the Baja
+    tangent or Point Loma north of its tip, counted as clear (BRIEFING §54,
+    §55; 1,300-2,100 rows a break, all but one of them 3.4 s and under).
+    """
+
+    out = [""] * rays.status.size
+    wet = np.flatnonzero(rays.status != LAND)
+    hit, hx, hy = leg_land(bathy, islands, rays.exit_x[wet], rays.exit_y[wet],
+                           rays.off_from_deg[wet])
+    walked = dict(zip(wet.tolist(), zip(hit, hx, hy)))
+    for i in range(rays.status.size):
+        if rays.status[i] == LAND:
+            out[i] = landed_on(blockers, rays.exit_x[i], rays.exit_y[i])
+            continue
+        lat, lon = from_utm(rays.exit_x[i], rays.exit_y[i])
+        out[i] = straight_line_blocker(blockers, lat, lon, float(rays.off_from_deg[i])) or ""
+        met, mx, my = walked[i]
+        if not out[i] and met:
+            out[i] = landed_on(blockers, mx, my)
+    return out
+
+
 # ------------------------------------------------------------------ starts
 
 def start_point(bathy: Bathymetry, spot: Spot, h_ref: float = H_REF) -> tuple[float, float, float]:
@@ -709,8 +882,9 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     - `diff_gain` at `diff_off_from_deg`: the same with every window edge
       DIFFRACTING. The Coronado Islands by the two-edge (Babinet) factor at
       the point each ray has them abeam; a ray that lands on an island takes
-      the path it would have had through it (re-traced with the island
-      see-through) and the same factor, which is small deep in its shadow.
+      the heading of the nearer clear ray either side of the island's shadow
+      and the factor for the slit geometry interpolated across it
+      (`shadow_factor`), small deep in the shadow.
       Point Loma's tip and the Baja tangent by the straight-edge factor: a ray
       clearing the edge gets its lit-side ripple, and a ray that lands on the
       headland gets the energy of the nearest ray that clears it, scaled by
@@ -723,7 +897,7 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     """
 
     islands = islands_from(blockers)
-    see_through = transparent(bathy, islands)    # also sets each island's ring depth
+    ring_depths(bathy, islands)
     edges = edge_points(blockers)
     xs, ys, hs = start_point(bathy, spot)
     near = (spot.normal - 90.0 + DIR_STEP_DEG / 2.0
@@ -737,15 +911,8 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
         c0 = G / omega
         gain = (c0 * 0.5 * c0) / float(c_n[0] * cg_n[0])
 
-        who, clear = [], np.zeros(near.size, bool)
-        for i in range(near.size):
-            if rays.status[i] == LAND:
-                who.append(landed_on(blockers, rays.exit_x[i], rays.exit_y[i]))
-            else:
-                lat, lon = from_utm(rays.exit_x[i], rays.exit_y[i])
-                who.append(straight_line_blocker(blockers, lat, lon,
-                                                 float(rays.off_from_deg[i])) or "")
-                clear[i] = not who[i]
+        who = leg_blockers(bathy, blockers, islands, rays)
+        clear = np.array([not w for w in who]) & (rays.status != LAND)
 
         # Diffraction, ray by ray.
         diff_off = rays.off_from_deg.copy()
@@ -760,20 +927,34 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                 edge_t[lit] *= edge_factor(dist[lit], depth[lit], along[lit], period)
         diff_t[clear] = (isl * edge_t)[clear]
 
-        on_island = np.array([w.startswith(ISLAND_PREFIX) for w in who]) & (rays.status == LAND)
-        if on_island.any():
-            again = trace(see_through, xs, ys, near[on_island], period, islands, edges)
-            f2, _ = island_transmission(again.passes or {}, islands, period)
-            f2 = np.ones(again.status.size) if f2 is None else f2
-            for k, i in enumerate(np.flatnonzero(on_island)):
-                if again.status[k] == LAND:
-                    continue
-                lat, lon = from_utm(again.exit_x[k], again.exit_y[k])
-                if straight_line_blocker(blockers, lat, lon, float(again.off_from_deg[k])):
-                    continue
-                diff_off[i] = again.off_from_deg[k]
-                diff_t[i] = f2[k]
-                diff_fric[i] = again.friction[k]
+        # A ray that lands on an island: the island is land and its shadow is
+        # diffraction only, as at Point Loma and Baja (owner's decision,
+        # 2026-11-15, BRIEFING §55). Until then it was re-traced over a
+        # "see-through" disc, a seabed made up where the island stands, and
+        # its heading through that disc jumped by tens of degrees when the
+        # disc moved 50 m. Now it takes the heading and friction of the
+        # nearer of the clear rays either side that have the island abeam,
+        # and the Babinet factor for the slit geometry interpolated between
+        # theirs, so nothing is read off where or how it lands.
+        by_name = {island.name: island for island in islands}
+        abeam = np.arange(near.size)
+        for i in np.flatnonzero(np.array([w.startswith(ISLAND_PREFIX) for w in who])
+                                & (rays.status == LAND)):
+            island = by_name.get(who[i])
+            rec = (rays.passes or {}).get(who[i])
+            if island is None or rec is None:
+                continue
+            seen = clear & rec[4]
+            lo, hi = np.flatnonzero(seen & (abeam < i)), np.flatnonzero(seen & (abeam > i))
+            if not lo.size or not hi.size:
+                continue                 # no clear ray past the island on one side: nothing
+            side = (lo[-1], hi[0])
+            w = (i - side[0]) / (side[1] - side[0])
+            got = shadow_factor(rec, side, w, island, period)
+            nearest = side[0] if w <= 0.5 else side[1]
+            diff_off[i] = rays.off_from_deg[nearest]
+            diff_fric[i] = rays.friction[nearest]
+            diff_t[i] = got * edge_t[nearest]
 
         clear_idx = np.flatnonzero(clear)
         for i in np.flatnonzero(rays.status == LAND):
@@ -938,6 +1119,7 @@ def leg_table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     xs, ys, _ = start_point(bathy, spot)
     near = (spot.normal - 90.0 + DIR_STEP_DEG / 2.0
             + DIR_STEP_DEG * np.arange(int(round(180.0 / DIR_STEP_DEG)))) % 360.0
+    islands = islands_from(blockers)
     rows = []
     for f in freqs:
         period = 1.0 / f
@@ -945,13 +1127,11 @@ def leg_table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
             continue
         rays = trace(bathy, xs, ys, near, period)
         cg0 = G * period / (4.0 * math.pi)
+        who = leg_blockers(bathy, blockers, islands, rays)
         for i in range(near.size):
-            if rays.status[i] == LAND:
+            if rays.status[i] == LAND or who[i]:
                 continue
-            lat, lon = from_utm(rays.exit_x[i], rays.exit_y[i])
             heading = float(rays.off_from_deg[i])
-            if straight_line_blocker(blockers, lat, lon, heading):
-                continue
             toward = math.radians(heading + 180.0)
             offset_s = ((rays.exit_x[i] - bx) * math.sin(toward)
                         + (rays.exit_y[i] - by) * math.cos(toward)) / cg0

@@ -230,15 +230,21 @@ class TestAgainstTheStoredExtract:
         rows = self.rows(feature, "enc_approach_88_baja")
         for sid in ("coronado_north", "coronado_center", "coronado_south"):
             low_move, high_move = rows[sid].moves
-            assert abs(high_move) < 0.1
             if feature.startswith("Coronado Islands (South"):
+                assert abs(high_move) < 0.1
                 # Except South Coronado's south-east tip, read off imagery
                 # since 2026-11-15 (BRIEFING §52): the approach band rounds
                 # that lobe off, and its tangent sits inside solid land,
                 # 0.08 / 0.10 / 0.13 degrees above the imagery's.
                 assert 0.05 < low_move < 0.2
             else:
-                assert abs(low_move) < 0.1
+                # North Coronado, both ends read off imagery since 2026-11-15
+                # (BRIEFING §55): the chart draws the island 200-260 m
+                # north-west of where it stands, every edge high, by 0.23 /
+                # 0.24 / 0.26 at `a` (an islet past the island's south-east
+                # end) and 0.34 / 0.36 / 0.38 at `b`.
+                assert 0.2 < low_move < 0.27
+                assert 0.33 < high_move < 0.39
 
     def test_the_south_groups_imagery_end_is_the_one_the_chart_rounds_off(self):
         """Only the south group's `a` is imagery, and it is the LOW edge for
@@ -247,9 +253,9 @@ class TestAgainstTheStoredExtract:
         _, blockers = load()
         south = next(b for b in blockers if b.name == "Coronado Islands (South group)")
         assert dict(south.imagery)["end"] == "a"
-        # The Baja coast is the other imaged blocker (BRIEFING §54), both ends.
-        assert all(not b.imagery for b in blockers
-                   if b is not south and not b.name.startswith("Baja"))
+        # The Baja coast (BRIEFING §54) and North Coronado (§55) are the other
+        # imaged blockers, both ends; Point Loma is charted.
+        assert all(not b.imagery for b in blockers if b.name.startswith("Point Loma"))
         rows = self.rows("Coronado Islands (South group)", "enc_approach_88_baja")
         spots = {s.id: s for s in load()[0]}
         for sid in ("coronado_north", "coronado_center", "coronado_south"):
@@ -276,6 +282,28 @@ class TestAgainstTheStoredExtract:
                           ("coronado_south", 0.91)):
             got = rows[sid].high.bearing_deg - initial_bearing(spots[sid].position, baja.a)
             assert got == pytest.approx(want, abs=0.006), sid
+
+    def test_north_coronado_is_imagery_at_both_ends(self):
+        """BRIEFING §53, §55: the approach band has North Coronado's shape,
+        displaced 200-260 m north-west; its `b` stood in open water past the
+        island's last rocks. Both ends were moved to Esri World Imagery, and
+        the blocker keeps no cells, as the Baja coast does. The channel to
+        its south narrows by the move at `a`, the west window opens by the
+        move at `b`."""
+
+        _, blockers = load()
+        north = next(b for b in blockers if b.name == "Coronado Islands (North group)")
+        assert dict(north.imagery)["end"] == ("a", "b")
+        assert dict(north.imagery)["product"] == "Esri World Imagery"
+        assert dict(north.imagery)["label"] == "North Coronado"
+        assert north.cells == ()
+        spots = {s.id: s for s in load()[0]}
+        rows = self.rows("Coronado Islands (North group)", "enc_approach_88_baja")
+        for sid, a_want, b_want in (("coronado_north", 0.227, 0.342), ("coronado_center", 0.238, 0.357),
+                                    ("coronado_south", 0.256, 0.381)):
+            pos = spots[sid].position
+            assert rows[sid].low.bearing_deg - initial_bearing(pos, north.a) == pytest.approx(a_want, abs=0.006)
+            assert rows[sid].high.bearing_deg - initial_bearing(pos, north.b) == pytest.approx(b_want, abs=0.006)
 
     @pytest.mark.parametrize("feature", ["Coronado Islands (South group)",
                                          "Coronado Islands (North group)"])
