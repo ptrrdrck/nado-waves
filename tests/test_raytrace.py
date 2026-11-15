@@ -283,3 +283,117 @@ def test_recording_paths_changes_nothing_the_tables_read():
         assert p[0][:2] == (x0, y0)
         assert p[-1][0] == rec.exit_x[i] and p[-1][1] == rec.exit_y[i]
         assert p[-1][2] == rec.time_s[i]
+
+
+def test_tracing_with_edges_and_islands_runs_and_recording_changes_nothing():
+    """The table build passes headland edges and islands to `trace`. From
+    2026-11-10 to -15 the recorded paths shared a name with the edge and island
+    bookkeeping, so any call with edges failed ('numpy.ndarray' object has no
+    attribute 'append') and `python -m forecast.raytrace` could not rebuild the
+    tables. With and without `record`, every ray and every edge and island
+    record must come out the same."""
+
+    from forecast.raytrace import Island
+
+    bathy = planar()
+    x0, y0 = start(bathy)
+    near = np.linspace(-40.0, 40.0, 9) % 360.0
+    edges = {"Point Loma": np.array([[x0 - 2_000.0, y0 + 3_000.0]])}
+
+    def islands():
+        return [Island("strip", (x0 + 1_000.0, 9_000.0), (x0 + 3_000.0, 9_000.0),
+                       (x0 + 2_000.0, 9_000.0), 1_400.0)]
+
+    plain = trace(bathy, x0, y0, near, 12.0, islands(), edges)
+    rec = trace(bathy, x0, y0, near, 12.0, islands(), edges, record=True)
+    assert plain.paths is None and len(rec.paths) == near.size
+    assert np.array_equal(plain.status, rec.status)
+    for a, b in ((plain.off_from_deg, rec.off_from_deg), (plain.exit_x, rec.exit_x),
+                 (plain.time_s, rec.time_s)):
+        assert np.array_equal(a, b)
+    for name in edges:
+        for a, b in zip(plain.edges[name], rec.edges[name]):
+            assert np.array_equal(a, b, equal_nan=True)
+    for a, b in zip(plain.passes["strip"], rec.passes["strip"]):
+        assert np.array_equal(a, b, equal_nan=True)
+    for i, p in enumerate(rec.paths):
+        assert p[0][:2] == (x0, y0)
+        assert p[-1][0] == rec.exit_x[i] and p[-1][1] == rec.exit_y[i]
+
+
+# ------------------------------------------------------------ the fill's starts
+
+from forecast.raytrace import PATH_LEG_DEPTH, deep_leg  # noqa: E402
+
+
+def test_a_deep_leg_runs_to_where_the_seabed_ends():
+    """Over water that only deepens, a ray's straight leg runs back from its
+    exit to the grid's edge: as far out as anything is traced."""
+
+    bathy = planar()
+    period = 8.0
+    l0 = G * period ** 2 / (2 * math.pi)
+    x0, y0 = WIDTH / 2.0, SHORE_Y + l0 / SLOPE           # the exit, at L0
+    got = float(deep_leg(bathy, np.array([x0]), np.array([y0]), np.array([0.0]), period)[0])
+    to_edge = HEIGHT - CELL - y0                          # `inside` keeps one cell clear
+    assert to_edge - CELL <= got <= to_edge
+
+
+def test_a_deep_leg_stops_short_of_water_that_would_bend_it():
+    """A bank shallower than L0/2 across the leg ends it on the near side: a
+    straight line over it would not be physics."""
+
+    bathy = planar()
+    period = 8.0
+    l0 = G * period ** 2 / (2 * math.pi)
+    grid = bathy.grids[0]
+    rows = grid.depth.shape[0]
+    ys = HEIGHT - (np.arange(rows) + 0.5) * CELL
+    bank = (ys > 12_000.0) & (ys < 12_500.0)
+    grid.depth[bank, :] = 0.4 * l0
+    x0, y0 = WIDTH / 2.0, SHORE_Y + l0 / SLOPE
+    got = float(deep_leg(bathy, np.array([x0]), np.array([y0]), np.array([0.0]), period)[0])
+    assert 12_000.0 - y0 - 2 * CELL <= got <= 12_000.0 - y0 + CELL
+    assert PATH_LEG_DEPTH == 0.5
+
+
+def test_every_drawn_ray_starts_as_far_out_as_it_is_traced():
+    """BRIEFING §52: a fill ray starts where the grids the rays are traced
+    over end, or where the next step out along its offshore heading is land
+    or water shallower than L0/2 -- never on the line through 46232 for its
+    own sake. Its clock there is still minutes after the swell passed 46232:
+    the plane-wave offset from that line, at the deep-water group speed."""
+
+    import json
+    from pathlib import Path
+
+    from forecast.raytrace import H_LAND, OUT_DIR, STEP_FRACTION, Bathymetry
+    from forecast.siting import load_coordinates
+    from forecast.utm import to_utm
+
+    bathy = Bathymetry.load()
+    bx, by = to_utm(*load_coordinates()["46232"])
+    step = STEP_FRACTION * max(g.cell for g in bathy.grids)
+    for break_id in ("coronado_north", "coronado_center", "coronado_south"):
+        paths = json.loads((Path(OUT_DIR) / f"{break_id}_paths.json").read_text())
+        assert paths["leg_depth_l0"] == PATH_LEG_DEPTH
+        for key, rays in paths["rays"].items():
+            period = 1.0 / float(key)
+            l0 = G * period ** 2 / (2 * math.pi)
+            cg0 = G * period / (4 * math.pi)
+            xs, ys, us, vs = [], [], [], []
+            for _, off, pts in rays:
+                sx, sy = to_utm(*pts[0][:2])
+                th = math.radians(off)
+                offset = (sx - bx) * -math.sin(th) + (sy - by) * -math.cos(th)
+                assert pts[0][2] == pytest.approx(offset / cg0 / 60.0, abs=0.02), (break_id, key, off)
+                xs.append(sx); ys.append(sy); us.append(math.sin(th)); vs.append(math.cos(th))
+            # One step out, with room for the file's rounding (1e-5 degree,
+            # about a metre, and 0.01 degree of heading): 5 m more, and 2% on
+            # the depth -- of ~7,000 rays, one starts that close to a grid's
+            # edge and one runs along the L0/2 contour itself (4.5 s, 16.1 m).
+            out = step + 5.0
+            x, y = np.array(xs) + out * np.array(us), np.array(ys) + out * np.array(vs)
+            h, _, _, _, covered = bathy.sample(x, y)
+            stopped = ~covered | ~np.isfinite(h) | (h <= H_LAND) | (h < 1.02 * PATH_LEG_DEPTH * l0)
+            assert stopped.all(), (break_id, key, int((~stopped).sum()))

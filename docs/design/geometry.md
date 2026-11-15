@@ -15,7 +15,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    the three break chords themselves, each endpoint the harbour-band vertex
    nearest the hand trace (BRIEFING §27). **Every coordinate the Coronado
    aperture uses now comes from NOAA's ENC** — except WHERE along the coast
-   each break sits, which is a surfer's choice and no chart can make. If a
+   each break sits, which is a surfer's choice and no chart can make, and,
+   since 2026-11-15, South Coronado's south-east tip, which the chart rounds
+   off (below). If a
    break is ever traced from imagery again, `breaks_from_imagery` names it on
    the surface.
 
@@ -63,6 +65,35 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   more right they are. **Never restore a binary open/shut test for them**, and
   **never merge them back into one blocker** — both are the same error, one
   scale apart.
+- **South Coronado's south-east tip is read off imagery, not the chart**
+  (owner's report and decision, 2026-11-15; BRIEFING §52). The owner saw the
+  south group's southern edge cross land on the map and on satellite. The
+  ENC approach band rounds the island's south-east lobe off: its vertex sat
+  48 / 58 / 71 m (north / center / south, across each line of sight at
+  32 km) inside solid land on Esri World Imagery, so the edge read 0.08 /
+  0.10 / 0.13° high; the coastal band is half way. Control: the imagery and
+  the chart agree within 7 m on both islands' west coasts and within
+  0.01–0.04° at the group's other edge, so this is generalisation of one
+  lobe, not misregistration. Not the cause: the blocker's shape (one vertex
+  is every Coronado break's tangent, in chart and imagery alike), the map's
+  drawing (the edge line ends on the vertex; the shaded wedge's 0.1°
+  rounding is ≤ 32 m there), or the map's seabed (GMRT's land at the tip
+  agrees with the imagery). The owner's Google Earth points were not in use:
+  §24 replaced them on 2026-09-20. `spots.json` carries the imagery vertex
+  with an `imagery` block naming the ENC vertex it replaced, and the
+  "standing on" line names "Esri World Imagery for South Coronado's
+  south-east tip" beside the chart cells. Published windows: 187.4 → 187.3,
+  189.1 → 189.0, 191.2 → 191.0; window energy 0.00% (no bin centre crossed,
+  §26).
+- **The seabed grids are missing islands** (measured 2026-11-15, BRIEFING
+  §52; fix deferred to its own session by the owner). In GMRT's 90 m
+  `outer` grid only South Coronado is land: Middle Coronado reads 1.4 m deep
+  and North Coronado at least 22 m; in the 400 m `context` grid, the only
+  seabed the map draws below zoom 8, no island is land at all. Not
+  smoothing: GMRT does not carry them. The rays are traced over `outer`, so
+  they refract over a 22 m shoal where North Coronado stands; its shadow is
+  still in the numbers through the Babinet factor, which reads `spots.json`,
+  not the grid.
 
 ## The swell-side window
 

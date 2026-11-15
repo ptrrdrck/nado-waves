@@ -311,6 +311,24 @@ class TestTipOutline:
         assert got["from_imagery"] == []
         assert "US4CA74M.000" in got["cells"]
 
+    def test_an_imagery_vertex_on_a_charted_blocker_is_named(self):
+        """Since 2026-11-15 (BRIEFING §52) South Coronado's south-east tip is
+        read off Esri World Imagery: the ENC approach band rounds that lobe off
+        and its vertex sat 48-71 m inside solid land. The blocker keeps its
+        cells for `b`, so the line must name the imagery beside them, or it
+        would claim the vertex was charted."""
+
+        from forecast.geometry import geometry_line, geometry_provenance
+
+        spots, blockers = load()
+        coronado = [s for s in spots if s.id.startswith("coronado_")]
+        got = geometry_provenance(blockers, coronado)
+        assert [(v["blocker"], v["end"]) for v in got["vertices_from_imagery"]] == [
+            ("Coronado Islands (South group)", "a")]
+        line = geometry_line(blockers, coronado)
+        assert "Esri World Imagery for South Coronado's south-east tip" in line
+        assert "US4CA74M.000" in line
+
     def test_the_break_positions_are_charted_and_named(self):
         """The aperture's observer end came off the ENC on 2026-09-22 (BRIEFING
         §27). Its cell must reach the provenance line beside the blockers'."""
@@ -323,7 +341,7 @@ class TestTipOutline:
         assert got["breaks_from_imagery"] == []
         for spot in coronado:
             assert spot.cells and set(spot.cells) <= set(got["cells"])
-        assert "imagery" not in geometry_line(blockers, coronado)
+        assert "imagery for the break positions" not in geometry_line(blockers, coronado)
 
     def test_an_imagery_break_is_still_named(self):
         """The guard stays: a digitised break with no chart cell is imagery,

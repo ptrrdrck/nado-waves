@@ -504,7 +504,11 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     edges = edges or {}
     near_edge = {name: [np.full(n, np.inf), np.zeros(n), np.full(n, np.nan)] for name in edges}
     lost = np.zeros(n)
-    rec = [[(float(x0), float(y0), 0.0)] for _ in range(n)] if record else None
+    # The recorded paths have a name of their own: the edge and island loops
+    # below each keep their bookkeeping in a local `rec`, and while the paths
+    # shared that name (2026-11-10 to -15) any call with edges appended to
+    # those arrays and failed, so the full table build could not run.
+    walked = [[(float(x0), float(y0), 0.0)] for _ in range(n)] if record else None
     elapsed = np.zeros(n)
 
     def ahead(island, xa, ya, ba):
@@ -569,9 +573,9 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
         y[idx] = ya + ds * np.sin(bm)
         beta[idx] = ba + ds * k2
         path[idx] += ds
-        if rec is not None:
+        if walked is not None:
             for j, xj, yj, ej in zip(idx.tolist(), x[idx].tolist(), y[idx].tolist(), elapsed[idx].tolist()):
-                rec[j].append((xj, yj, ej))
+                walked[j].append((xj, yj, ej))
         for island in islands:
             rec = abeam[island.name]
             passed = (~rec[4][idx]) & (ahead(island, xa, ya, ba) > 0) & (ahead(island, x[idx], y[idx], beta[idx]) <= 0)
@@ -598,7 +602,7 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     passes = {name: tuple(v) for name, v in abeam.items()} if islands else None
     return Rays(compass_from(beta), status, x, y, exit_depth, path, passes,
                 {name: tuple(v) for name, v in near_edge.items()} if edges else None,
-                np.exp(-lost), elapsed, rec)
+                np.exp(-lost), elapsed, walked)
 
 
 # ------------------------------------------------------------------ blockers
@@ -995,6 +999,38 @@ PATH_BAND_HZ = (0.03, 0.25)
 PATH_SIMPLIFY_M = 12.0
 #: The surf zone's middle depth, for how long 5 m to the break takes (m).
 SURF_MID_DEPTH_M = 2.5
+#: A drawn ray's straight deep-water leg runs back from its exit only over
+#: water at least this fraction of its deep-water wavelength deep: shallower,
+#: the seabed would be bending it, and a straight line there is no longer
+#: physics. L0/2, the same depth `trace` accepts as deep where a grid runs out
+#: (`edge_deep`; c within ~0.4% of deep water there, each heading ~0.2°).
+PATH_LEG_DEPTH = 0.5
+
+
+def deep_leg(bathy: Bathymetry, x: np.ndarray, y: np.ndarray, from_deg: np.ndarray,
+             period_s: float) -> np.ndarray:
+    """How far (m) each ray's straight deep-water leg runs back from its exit
+    `(x, y)` toward where it came from, `from_deg`, before the grids the rays
+    are traced over end or the water under it shoals past `PATH_LEG_DEPTH`
+    of L0, or meets land: as far out as the physics supports it (owner's
+    request, 2026-11-15, BRIEFING §52). Walked at half the coarsest cell, the
+    tracer's own step there, so a shoal no ray could cross is not stepped
+    over."""
+
+    l0 = G * period_s ** 2 / (2.0 * math.pi)
+    step = STEP_FRACTION * max(g.cell for g in bathy.grids)
+    th = np.radians(from_deg)
+    ux, uy = np.sin(th), np.cos(th)
+    run = np.zeros(x.size)
+    active = np.ones(x.size, bool)
+    while active.any():
+        idx = np.flatnonzero(active)
+        nxt = run[idx] + step
+        h, _, _, _, covered = bathy.sample(x[idx] + ux[idx] * nxt, y[idx] + uy[idx] * nxt)
+        ok = covered & np.isfinite(h) & (h > H_LAND) & (h >= PATH_LEG_DEPTH * l0) & (nxt <= MAX_PATH_M)
+        run[idx[ok]] = nxt[ok]
+        active[idx[~ok]] = False
+    return run
 
 
 def simplify(pts: np.ndarray, tol: float) -> np.ndarray:
@@ -1030,15 +1066,27 @@ def paths_table(bathy: Bathymetry, spot: Spot, buoy: tuple[float, float],
     Every row of `<break>.csv` with a hard gain, per frequency bin in
     `PATH_BAND_HZ`, re-traced with `trace(record=True)` -- the same start,
     headings and step -- and checked against the table: each ray's offshore
-    heading must equal its row's, or nothing is written. A path runs from the
-    line through `buoy` (46232) square to the ray's heading, where its clock
-    reads 0 (the chain takes the buoy's spectrum to hold all along that
-    line; an exit already up-swell of it starts at the exit), straight to the
-    ray's deep-water exit, along the traced path to the 5 m start, then along
-    the break's normal to the break -- the surf zone's own line, at the
-    shallow-water speed of its middle depth. Each point carries its minutes
-    after 46232, `leg_table`'s arithmetic. No gain is computed here: the fill
-    credits each ray from the table, as `nearshore.carry` does."""
+    heading must equal its row's, or nothing is written. A path runs from as
+    far out as the physics supports it (`deep_leg`: where the grids the rays
+    are traced over end, or nearer where water shallower than L0/2 or land
+    lies across its straight leg), straight to the ray's deep-water exit,
+    along the traced path to the 5 m start, then along the break's normal to
+    the break -- the surf zone's own line, at the shallow-water speed of its
+    middle depth. Each point carries its minutes after the swell passed
+    46232, the clock's 0, `leg_table`'s arithmetic: the plane-wave offset from
+    the line through `buoy` square to the ray's heading, where the chain
+    takes the buoy's spectrum to hold. No gain is computed here: the fill
+    credits each ray from the table, as `nearshore.carry` does.
+
+    Until 2026-11-15 a path started on that line, or at its exit where the
+    exit lay up-swell of it, so 20 / 21 / 28% of rays (north / center /
+    south) started past 46232 and the rest on its line -- south swell,
+    periods of 25 s and more, and rays bending round Point Loma the former.
+    Measured then (BRIEFING §52): most rays at 14 s and over at North, and
+    from about 10 s at Center and South, are still turning by more than 0.1°
+    where they leave the `outer` grid, so the traced physics
+    ends at that grid's edge, and the straight leg back from each exit stays
+    over water deeper than L0/2 to that edge for 89-95% of rays."""
 
     import csv as _csv
 
@@ -1063,6 +1111,9 @@ def paths_table(bathy: Bathymetry, spot: Spot, buoy: tuple[float, float],
         rays = trace(bathy, xs, ys, near, period, record=True)
         cg0 = G * period / (4.0 * math.pi)
         drawn = []
+        keep = [k for k, row in enumerate(rows) if float(row["gain"]) > 0]
+        leg = dict(zip(keep, deep_leg(bathy, rays.exit_x[keep], rays.exit_y[keep],
+                                      rays.off_from_deg[keep], period))) if keep else {}
         for k, row in enumerate(rows):
             if float(row["gain"]) <= 0:
                 continue
@@ -1075,8 +1126,9 @@ def paths_table(bathy: Bathymetry, spot: Spot, buoy: tuple[float, float],
             toward = math.radians(off + 180.0)
             offset_s = ((ex - bx) * math.sin(toward) + (ey - by) * math.cos(toward)) / cg0
             t_exit = offset_s / 60.0
-            back = max(0.0, offset_s * cg0)
-            pts = [(ex - back * math.sin(toward), ey - back * math.cos(toward), 0.0)] if back > 0 else []
+            back = float(leg[k])
+            pts = ([(ex - back * math.sin(toward), ey - back * math.cos(toward), t_exit - back / cg0 / 60.0)]
+                   if back > 0 else [])
             for x, y, e in simplify(p[::-1].copy(), PATH_SIMPLIFY_M):
                 pts.append((x, y, t_exit + (total - e) / 60.0))
             pts.append((sx, sy, pts[-1][2] + run / math.sqrt(G * SURF_MID_DEPTH_M) / 60.0))
@@ -1084,7 +1136,8 @@ def paths_table(bathy: Bathymetry, spot: Spot, buoy: tuple[float, float],
                                              for la, lo, t in ((*from_utm(x, y), t) for x, y, t in pts)]])
         out[key] = drawn
     return {"break": spot.id, "from_station": LEG_FROM, "band_hz": list(PATH_BAND_HZ),
-            "simplify_m": PATH_SIMPLIFY_M, "rays": out}
+            "simplify_m": PATH_SIMPLIFY_M, "leg_depth_l0": PATH_LEG_DEPTH,
+            "grids": list(bathy.names), "rays": out}
 
 
 def write_paths(paths: dict, break_id: str, out_dir: Path = OUT_DIR) -> Path:

@@ -348,9 +348,9 @@ The islands use the same idea twice. By Babinet's principle an obstacle is open 
 
 ```
 worked hour
-North    0.833 → 0.851 m    +2.2%
-Center   0.628 → 0.663 m    +5.6%
-South    0.691 → 0.718 m    +3.9%
+North    0.833 → 0.852 m    +2.3%
+Center   0.628 → 0.661 m    +5.3%
+South    0.691 → 0.719 m    +4.1%
 ```
 
 Diffraction added a little at all three: more leaked into the shadows than was lost along the edges.
@@ -369,9 +369,9 @@ h = 15 m   98.1%
 h = 10 m   96.4%
 
 worked hour
-North    0.851 → 0.754 m   −11%     energy × 0.79
-Center   0.663 → 0.594 m   −10%
-South    0.718 → 0.657 m    −8.5%
+North    0.852 → 0.755 m   −11%     energy × 0.79
+Center   0.661 → 0.593 m   −10%
+South    0.719 → 0.658 m    −8.5%
 ```
 
 > **Model choice · the JONSWAP friction law, untuned**
@@ -388,9 +388,9 @@ Ks² = c_g,deep / c_g(h)
 Ks  = √(9.76 / 6.56) = 1.22           +22% in height
 
 worked hour, the whole spectrum
-North    0.754 → 0.926 m   +23%
-Center   0.594 → 0.715 m   +20%
-South    0.657 → 0.737 m   +12%
+North    0.755 → 0.928 m   +23%
+Center   0.593 → 0.714 m   +20%
+South    0.658 → 0.739 m   +12%
 ```
 
 > **Model choice · hand over at 5 m**
@@ -410,7 +410,7 @@ U₁₀ = 4.12 m/s,  C_D = 0.00124,  u* = 0.145 m/s
 Hm0 = 0.092 m,   Tp = 1.1 s           → 0.3 ft (0.09 m)
 
 chop and swell add in energy:
-√(0.926² + 0.092²) = 0.931 m          +0.5%
+√(0.928² + 0.092²) = 0.933 m          +0.5%
 ```
 
 > **Model choice · two kinds of fetch**
@@ -428,16 +428,16 @@ D = ¼·α·f_p·Qb·Hmax²,   α = 1,   Hmax = γ·h           Battjes & Jansse
 (1 − Qb) / ln Qb = −(Hrms / Hmax)²                    Qb: the share of waves breaking
 γ = 0.5 + 0.4·tanh(33·s₀),   s₀ = Hrms,deep / L₀      Battjes & Stive (1985)
 
-worked hour, North: 0.931 m at 5 m, 12.5 s
-Hrms,deep = 0.931/√2 × √(6.56/9.76) = 0.540 m
-s₀ = 0.540 / 244 = 0.0022  →  γ = 0.529
+worked hour, North: 0.933 m at 5 m, 12.5 s
+Hrms,deep = 0.933/√2 × √(6.56/9.76) = 0.541 m
+s₀ = 0.541 / 244 = 0.0022  →  γ = 0.529
 
 tide at the open coast: +1.022 m above mean sea level  (see the Tide card's math)
-largest Hs 88 m in from the start point, in h = 2.32 m of water
-Hmax = 0.529 × 2.32 = 1.227 m,   Hrms = 1.069/√2 = 0.756 m
-(Hrms/Hmax)² = 0.380  →  Qb = 0.091                   9% of waves breaking
+largest Hs 87 m in from the start point, in h = 2.34 m of water
+Hmax = 0.529 × 2.34 = 1.238 m,   Hrms = 1.071/√2 = 0.757 m
+(Hrms/Hmax)² = 0.374  →  Qb = 0.087                   9% of waves breaking
 
-Hs = 1.069 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 m) depth   +15%
+Hs = 1.071 m                         → 3.5 ft (1.07 m), breaking at 8 ft (2.3 m) depth   +15%
 ```
 
 > **Model choice · the standard 1-D surf zone, γ from the literature**
@@ -491,7 +491,7 @@ Each window edge is a line from the break to the charted point of land that form
 
 The seabed is drawn from the same depth grids the swell is carried over: USGS CoNED 2016 near the beach, GMRT farther out. It is drawn as shapes, not pictures, so its edges stay sharp at any zoom: bands of depth, paler for shallower water, a contour line at 5, 10, 20, 50, 100, 200, 500, 1,000 and 2,000 m, the shoreline, and the land. Each grid is drawn from the zoom its cells are fine enough for: close in from 8 m cells; out past Tanner Bank, where the map stops zooming out, from 400 m cells, for context only. The depths are smoothed over about one cell before the lines are drawn, so a line does not trace each cell's noise; the swell calculation reads the grids themselves. The map follows the page's light or dark theme. Nothing on the map is a photograph. On a phone, one finger scrolls the page and two move the map; with a mouse, drag to move and hold Ctrl (⌘ on a Mac) while scrolling to zoom. The return button goes back to the opening view.
 
-On the LIVE tab, picking a train on the map shows a play button and a timeline along the map's foot. Play it and the train comes in along its rays: each line is one of the rays the swell calculation traces over the seabed ([step 3](#calc-refraction)), drawn along the path it was traced on, stronger for more of the train's energy. On the dark page the light adds up where the rays crowd, as the energy does; on the light page the rays lie over each other. A ray starts on the line through NDBC 46232 square to its direction, where the calculation takes the buoy's measurement to hold, runs straight in to where the seabed starts to bend it, then turns over the seabed to 5 m of water and on to the break. Each period travels at its own speed, so the longest arrive first. The timeline counts minutes after the same swell passed NDBC 46232; under the map, the periods in so far and the height so far, and at the end the minute by which almost all of it (98%) is in, with the train's own height. Drag the timeline to read any minute. A ray the land blocks carries nothing straight in; what diffraction brings round an edge is drawn on the nearest ray of the same period that clears it. These are the rays the calculation follows, not waves: nothing here is a crest, and nothing has observed it. Wherever rays cross, the ray method is at its limit, and swell wrapping round a headland tip is where it is least sure.
+On the LIVE tab, picking a train on the map shows a play button and a timeline along the map's foot. Play it and the train comes in along its rays: each line is one of the rays the swell calculation traces over the seabed ([step 3](#calc-refraction)), drawn along the path it was traced on, stronger for more of the train's energy. On the dark page the light adds up where the rays crowd, as the energy does; on the light page the rays lie over each other. A ray starts as far out as the calculation can follow it: where the seabed it is traced over ends, up to about 60 km out, or nearer where land or water too shallow for it to run straight (half its deep-water wavelength) lies across its way. It runs straight in to where the seabed starts to bend it, then turns over the seabed to 5 m of water and on to the break. Each period travels at its own speed, so the longest arrive first. The timeline counts minutes after the same swell passed NDBC 46232, where the calculation takes the buoy's measurement to hold, so most rays start before 0; under the map, the periods in so far and the height so far, and at the end the minute by which almost all of it (98%) is in, with the train's own height. Drag the timeline to read any minute. A ray the land blocks carries nothing straight in; what diffraction brings round an edge is drawn on the nearest ray of the same period that clears it. These are the rays the calculation follows, not waves: nothing here is a crest, and nothing has observed it. Wherever rays cross, the ray method is at its limit, and swell wrapping round a headland tip is where it is least sure.
 
 ### [swell-bend] Which way a swell arrives in 5 m of water
 
@@ -501,7 +501,7 @@ The table is the same calculation for one narrow swell at a time: 14.3 s, spread
 
 [table the page fills in: bendtable]
 
-At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3° at the median and 9° at most, over the 30 cells all three periods give.
+At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3° at the median and 10° at most, over the 31 cells all three periods give.
 
 Read down a column and a wide spread of offshore directions arrives inside a narrow one. By 5 m of water, the direction a swell came from offshore is mostly gone: from anywhere the windows let in, it arrives within about 20° of straight in.
 
@@ -992,7 +992,7 @@ Until that record exists, no figure on the forecast page states how well it does
 - **GFS-Wave, GEFS-Wave**
   NOAA's global wave model, and the same model run as a 31-member ensemble.
 - **ENC**
-  NOAA's electronic navigational charts, the source of every coordinate in the aperture.
+  NOAA's electronic navigational charts, the source of every coordinate in the aperture but one: South Coronado's south-east tip, which the chart rounds off, is read off Esri World Imagery.
 - **CoNED**
   The USGS Coastal National Elevation Database, a seamless survey of land and seabed.
 - **NDBC 46232, KNZY, 9410170**

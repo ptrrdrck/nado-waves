@@ -16,6 +16,7 @@ import pytest
 
 from forecast import blockeredge as mod
 from forecast.geometry import load
+from forecast.swell import initial_bearing
 
 SPOTS, BLOCKERS = load()
 BY_ID = {s.id: s for s in SPOTS}
@@ -229,7 +230,29 @@ class TestAgainstTheStoredExtract:
         rows = self.rows(feature, "enc_approach_88_baja")
         for sid in ("coronado_north", "coronado_center", "coronado_south"):
             low_move, high_move = rows[sid].moves
-            assert abs(low_move) < 0.1 and abs(high_move) < 0.1
+            assert abs(high_move) < 0.1
+            if feature.startswith("Coronado Islands (South"):
+                # Except South Coronado's south-east tip, read off imagery
+                # since 2026-11-15 (BRIEFING §52): the approach band rounds
+                # that lobe off, and its tangent sits inside solid land,
+                # 0.08 / 0.10 / 0.13 degrees above the imagery's.
+                assert 0.05 < low_move < 0.2
+            else:
+                assert abs(low_move) < 0.1
+
+    def test_the_south_groups_imagery_end_is_the_one_the_chart_rounds_off(self):
+        """Only the south group's `a` is imagery, and it is the LOW edge for
+        every Coronado break: the vertex the chart puts inside the island."""
+
+        _, blockers = load()
+        south = next(b for b in blockers if b.name == "Coronado Islands (South group)")
+        assert dict(south.imagery)["end"] == "a"
+        assert all(not b.imagery for b in blockers if b is not south)
+        rows = self.rows("Coronado Islands (South group)", "enc_approach_88_baja")
+        spots = {s.id: s for s in load()[0]}
+        for sid in ("coronado_north", "coronado_center", "coronado_south"):
+            got = (initial_bearing(spots[sid].position, south.a) - rows[sid].low.bearing_deg + 180) % 360 - 180
+            assert -0.2 < got < -0.05
 
     @pytest.mark.parametrize("feature", ["Coronado Islands (South group)",
                                          "Coronado Islands (North group)"])

@@ -123,12 +123,29 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    rays -- every row of the break's table that clears every edge, drawn
    where it was TRACED (`raytrace.trace(record=True)`, `--paths-only` ->
    `data/nearshore/<break>_paths.json`, each ray checked against its table
-   row; 2.8 MB, ~0.8 MB compressed, a break's fetched the first time a train
-   is picked there), from the line through 46232 square to its heading
-   (where the chain takes the buoy's spectrum to hold, the clock's 0) to
-   the exit, over the seabed to 5 m, then along the break's normal to the
-   break; long periods first, minutes after 46232 (`leg_table`'s
-   arithmetic). Each ray's share of the train is `forecast/fill.py`'s
+   row; 2.9 MB, ~0.8 MB compressed, a break's fetched the first time a train
+   is picked there), from as far out as the physics supports it -- where
+   the grids the rays are traced over end, or nearer where land or water
+   shallower than L0/2 lies across its straight deep-water leg
+   (`raytrace.deep_leg`; owner's request, 2026-11-15) -- straight to its
+   exit, over the seabed to 5 m, then along the break's normal to the
+   break; long periods first, minutes after the swell passed 46232, the
+   clock's 0 (`leg_table`'s arithmetic: the plane-wave offset from the
+   line through 46232 square to the ray's heading, where the chain takes
+   the buoy's spectrum to hold). Until 2026-11-15 a ray started on that
+   line, or at its exit where the exit lay up-swell of it: 20 / 21 / 28%
+   of rays (N / C / S) started past 46232 and the rest on its line (owner's
+   report; south swell 150-195 degrees, periods of 25 s and more, and rays
+   bending round Point Loma the former). Measured (BRIEFING §52) with
+   `trace(record=True)`: rays stop turning by more than 0.1 degree at about
+   L0/2 (14 m at 4 s, 147 m at 13 s), but most rays at 14 s and more at
+   North, and from about 10 s at Center and South, are still turning where
+   they leave the `outer` grid, so the traced physics ends at that grid's
+   edge; the straight leg back from each exit stays over water deeper than
+   L0/2 to that edge for 89-95% of rays. Now 93 / 98 / 99% start before 0,
+   a median 44-50 km from the break (61 at most), and the fill's view opens
+   about a zoom step wider; no arrival moved. Each ray's share of the train
+   is `forecast/fill.py`'s
    (`data/live/fill.json`, its own step after `forecast.now`, NEVER a key
    in now.json: owner's question, the per-ray energy would ride every
    refresh): the chain's carry re-run for now.json's own spectrum, credited

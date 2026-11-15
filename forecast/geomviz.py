@@ -109,6 +109,9 @@ def build(spots_path: Path | None = None, data_dir: Path = DEFAULT_DATA_DIR,
         out_blockers.append({
             "name": b.name, "a": b.a, "b": b.b, "continues": b.continues,
             "outline": list(b.outline), "cells": list(b.cells),
+            # An end read off imagery (BRIEFING §52), so the drawing does not
+            # call every vertex of a charted blocker charted.
+            "imagery": dict(b.imagery) if b.imagery else None,
             "method": prov.get("method", ""), "date": prov.get("date", ""),
             "span_km": km(b.a, b.b) if not b.continues else None,
         })

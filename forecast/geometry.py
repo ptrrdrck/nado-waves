@@ -81,6 +81,15 @@ class Blocker:
     #: correction the chart made to the imagery trace. So the edge is taken per
     #: observer, off the outline, by `a_seen_from`.
     outline: tuple[tuple[float, float], ...] = ()
+    #: An endpoint read off imagery rather than the chart the rest of the
+    #: blocker came from: ("end", "label", "product", "date") pairs from the
+    #: provenance's `imagery` block, empty for none (pairs, not a dict, so a
+    #: Blocker stays hashable). Since 2026-11-15 (BRIEFING §52)
+    #: South Coronado's south-east tip: the ENC approach band rounds that lobe
+    #: off and its vertex sat 48-71 m inside solid land, the edge 0.08-0.13
+    #: degrees high. The provenance line names it beside the cells, because a
+    #: line naming only charts would claim the vertex was charted.
+    imagery: tuple[tuple[str, str], ...] = ()
 
     def a_seen_from(self, position: tuple[float, float]) -> tuple[float, float]:
         """The vertex that forms the `a`-side edge, as seen from `position`.
@@ -183,6 +192,15 @@ def _position(spot: dict) -> tuple[float, float]:
     return ((la1 + la2) / 2.0, (lo1 + lo2) / 2.0)
 
 
+def _imagery(blocker: dict) -> tuple[tuple[str, str], ...]:
+    """The provenance's `imagery` block, the four fields the surface prints."""
+
+    got = blocker.get("provenance", {}).get("imagery")
+    if not got:
+        return ()
+    return tuple((k, got[k]) for k in ("end", "label", "product", "date"))
+
+
 def load(path: Path = SPOTS_FILE) -> tuple[list[Spot], list[Blocker]]:
     data = json.loads(path.read_text(encoding="utf-8"))
     spots = [
@@ -208,6 +226,7 @@ def load(path: Path = SPOTS_FILE) -> tuple[list[Spot], list[Blocker]]:
             cells=tuple(b.get("provenance", {}).get("cells", ()) or ()),
             chart_product=b.get("provenance", {}).get("chart_product", ""),
             outline=tuple(tuple(p) for p in b.get("outline", ()) or ()),
+            imagery=_imagery(b),
         )
         for b in data["blockers"]
     ]
@@ -447,8 +466,11 @@ def geometry_provenance(blockers: list[Blocker],
 
     cells: list[str] = []
     imagery: list[str] = []
+    vertices: list[dict] = []
     products: list[str] = []
     for blocker in blockers:
+        if blocker.imagery:
+            vertices.append({"blocker": blocker.name, **dict(blocker.imagery)})
         if blocker.cells:
             if blocker.chart_product and blocker.chart_product not in products:
                 products.append(blocker.chart_product)
@@ -471,6 +493,8 @@ def geometry_provenance(blockers: list[Blocker],
         "chart_product": product,
         "cells": sorted(cells),
         "from_imagery": imagery,
+        # A charted blocker with one end read off imagery (BRIEFING §52).
+        "vertices_from_imagery": vertices,
         "breaks_from_imagery": [s.id for s in (spots or [])
                                 if s.position_verified and not s.cells],
         "unverified": sorted(b.name for b in blockers if not b.tip_verified),
@@ -493,6 +517,8 @@ def geometry_line(blockers: list[Blocker], spots: list[Spot] | None = None) -> s
         parts.append(f"{product}, cells {', '.join(got['cells'])}")
     if got["from_imagery"]:
         parts.append("aerial imagery for " + ", ".join(got["from_imagery"]))
+    for v in got["vertices_from_imagery"]:
+        parts.append(f"{v['product']} for {v['label']}")
     if got["breaks_from_imagery"]:
         parts.append("aerial imagery for the break positions")
     line = " — ".join([parts[0], "; ".join(parts[1:])]) if len(parts) > 1 else parts[0]
