@@ -251,6 +251,14 @@ jobs:
         continue-on-error: true
         run: python -m collector.harcon --max-age-days 30
 
+      # NOAA's tidal datums for 9410170: the map draws its coast at their mean
+      # high water, the chart's coastline (forecast.seabedvector). They change
+      # only with a new tidal epoch, so the file is re-fetched once it is a
+      # month old; a failed fetch leaves the stored one.
+      - name: Tidal datums (9410170)
+        continue-on-error: true
+        run: python -m collector.datums --max-age-days 30
+
       # Each shown buoy's water depth, read off NDBC's station page for the
       # Buoys tab's station block (owner's request, 2026-11-10). It changes
       # only when a buoy is re-moored, so it is re-read once a month; a
