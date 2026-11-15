@@ -9745,7 +9745,15 @@ Promise.all([
       map.touchZoomRotate.disableRotation();
       map.keyboard.disableRotation();
       this.limits();
-      map.on("load", () => { this.land(); this.restyle(); this.draw(); });
+      map.on("load", () => {
+        this.land(); this.restyle(); this.draw();
+        // Another break's dot is a tab (owner's request, 2026-11-15): a mouse
+        // over it shows so.
+        map.on("mousemove", "sm-spots", (ev) => {
+          map.getCanvas().style.cursor = ev.features.some((f) => !f.properties.on) ? "pointer" : "";
+        });
+        map.on("mouseleave", "sm-spots", () => { map.getCanvas().style.cursor = ""; });
+      });
       // Unseen until its seabed is drawn: a new WebGL canvas paints black first.
       map.once("idle", () => this.el.classList.add("sm-ready"));
       map.on("render", () => { this.drawMarks(); this.paintFill(); });
@@ -9839,7 +9847,7 @@ Promise.all([
       map.addSource("sm-chords", {type: "geojson", data: fc(breaks.map((o) => line(o.chord.map(ll), {on: o.id === this.id})))});
       map.addLayer({id: "sm-chords-halo", type: "line", source: "sm-chords", paint: {"line-width": ["case", ["get", "on"], 6, 4]}});
       map.addLayer({id: "sm-chords", type: "line", source: "sm-chords", paint: {"line-width": ["case", ["get", "on"], 3, 2]}});
-      map.addSource("sm-spots", {type: "geojson", data: fc(breaks.map((o) => point(o.position, {on: o.id === this.id})))});
+      map.addSource("sm-spots", {type: "geojson", data: fc(breaks.map((o) => point(o.position, {on: o.id === this.id, id: o.id})))});
       map.addLayer({id: "sm-spots", type: "circle", source: "sm-spots", paint: {
         "circle-radius": ["case", ["get", "on"], 5, 3.5], "circle-stroke-width": ["case", ["get", "on"], 2, 1.5]}});
       map.addSource("sm-vertices", {type: "geojson", data: fc(edges.map((e) => point(e.vertex,
@@ -9908,6 +9916,14 @@ Promise.all([
     // caption), then a window or shadow; anywhere else returns to the
     // default drawing's state.
     click(e) {
+      // A tap on another break's dot opens that break's tab, through the
+      // switch its tab uses (owner's request, 2026-11-15). The dots are 3.5 px:
+      // a finger gets 14 px either way, a mouse 8.
+      const reach = TOUCH ? 14 : 8;
+      const spot = this.map.queryRenderedFeatures(
+        [[e.point.x - reach, e.point.y - reach], [e.point.x + reach, e.point.y + reach]], {layers: ["sm-spots"]})
+        .find((f) => !f.properties.on);
+      if (spot) { selectSwellTab(spot.properties.id); return; }
       const hit = this.arrowAt(e.point);
       if (hit) { togglePick(this.svg, hit); return; }
       const box = [[e.point.x - 6, e.point.y - 6], [e.point.x + 6, e.point.y + 6]];

@@ -14,9 +14,16 @@ _Read at the start of a session that picks up open work, and update it before st
 Re-worded and confirmed by the owner on 2026-11-15, grouped by area into one
 session per group. Numbers are the items' own and do not change as they close.
 
-### Group 1: map behaviour (Opus, usual effort) -- in progress
+### Group 1: map behaviour (Opus, usual effort) -- built, awaiting the owner
 
-Area: `docs/design/map.md`.
+Area: `docs/design/map.md`. Items 1, 5 and 10 are fixed on
+`claude/keen-cannon-29iuv0` (see map.md's last sections); item 6 waits on the
+owner's pick in the "Seabed Map Themes" mock (Switching break: Ease / Jump).
+The iPhone check is the "Swell Map Jump Check" artifact: before / after copies
+of the page with a badge that turns red when the page moves on its own. Still
+open from item 1: a refresh lands at the top in Chromium because the cards
+arrive after its scroll restoration gives up; that is page-wide, not the map's,
+and waits on the owner's iPhone result and call.
 
 1. **The page jumps** on refresh while scrolled below the map, and when the
    Units setting changes. Reproduce (scrollY before and after) before fixing;

@@ -169,3 +169,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    takes every heading's baseline less its font size, shown or not: no cut
    at 320-430 on any break or pick, the plate one height through pick,
    resize and unpick, taller at rest (North 171 -> 193 px at 390).
+
+   **Another break's dot is its tab** (owner's request, 2026-11-15): a tap
+   on another break's dot on the map calls `selectSwellTab`, as the tab
+   does, before any other hit; a finger reaches 14 px round the 3.5 px dot,
+   a mouse 8 px and gets a pointer over it. The break's own dot does
+   nothing new.

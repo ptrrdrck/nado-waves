@@ -264,3 +264,14 @@ def test_the_plate_leaves_room_for_every_heading_a_pick_can_show():
     body = body[:body.index("this.foot = ")]
     assert 'querySelectorAll("text.deg")' in body
     assert "y0 = Math.min(y0, Math.max(0, y - fs))" in body
+
+
+def test_another_breaks_dot_is_its_tab():
+    """Owner's request, 2026-11-15: tapping another break on the map opens its
+    tab, through the switch the tab itself uses, before any other hit."""
+
+    assert "point(o.position, {on: o.id === this.id, id: o.id})" in PAGE
+    body = PAGE[PAGE.index("    click(e) {"):]
+    body = body[:body.index("const hit = this.arrowAt(e.point);")]
+    assert 'layers: ["sm-spots"]' in body and "!f.properties.on" in body
+    assert "selectSwellTab(spot.properties.id)" in body
