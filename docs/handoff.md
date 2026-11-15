@@ -27,7 +27,7 @@ sensitivity, map.md's fill. South Coronado's south-east tip is now Esri
 imagery (the ENC rounds it off), and the fill's rays start where the traced
 seabed ends. Its two islands items, 13 and 14, are now in group 2d.
 
-### Group 2b: the map's coastline against the geometry's -- built (PR #226)
+### Group 2b: the map's coastline against the geometry's -- done (PR #226)
 
 Owner's report, 2026-11-15: on the LIVE map the edge vertices sat off the
 drawn coast. Measured per point and per grid, each vertex checked against
@@ -47,7 +47,7 @@ islands sections.
     `app/docs.html`'s map paragraph says so in the owner's approved
     wording.
 
-### Group 2c: the Baja tangent -- built (PR #227, stacked on #226)
+### Group 2c: the Baja tangent -- done (PR #227)
 
 17. **The Baja tangent from imagery** -- done (BRIEFING §54; geometry.md
     "The south window", chain.md "Baja's edge in the rays"). Both ends on
