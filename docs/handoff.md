@@ -44,8 +44,8 @@ islands sections.
 16. **The coast contoured unsmoothed, the sea's water only** -- done.
     Point Loma -57/-58/-67 -> -25/-25/-18 m on 32 m cells; low ground
     inland (and the Salton Sea, Laguna Salada, Death Valley) no longer sea.
-    Open: `app/docs.html`'s map paragraph still says every line is drawn
-    from depths smoothed over a cell; the owner was asked for the wording.
+    `app/docs.html`'s map paragraph says so in the owner's approved
+    wording.
 
 ### Group 2c: the Baja tangent -- built (PR #227, stacked on #226)
 
