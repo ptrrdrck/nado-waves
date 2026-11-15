@@ -27,7 +27,8 @@ sensitivity, map.md's fill. South Coronado's south-east tip is now Esri
 imagery (the ENC rounds it off), and the fill's rays start where the traced
 seabed ends. It left two items, both the islands':
 
-13. **The seabed grids are missing islands** (owner: its own session). GMRT's
+13. **The seabed grids are missing islands** (owner: its own session; now
+    part of group 2b). GMRT's
     90 m `outer` grid has only South Coronado as land (Middle reads 1.4 m
     deep, North Coronado at least 22 m); the 400 m `context` grid, the only
     seabed the map draws below zoom 8, has none. Rays use `outer`. Options
@@ -40,6 +41,36 @@ seabed ends. It left two items, both the islands':
     up to -29% / +34%. Measure what a smoother treatment (no step-edged disc;
     bounded single-ray gains; or the islands as land with diffraction only)
     does before choosing one. Strongest setting.
+
+### Group 2b: the map's coastline against the geometry's (strongest setting; before group 3)
+
+Owner's report, 2026-11-15, after group 2: on the LIVE map the edge
+vertices sit off the drawn coast -- Point Loma's over land, Baja's in the
+water, the breaks on land. The owner's frame: imagery is the ground truth,
+but a reader expects the measured geometry to sit on the map they are
+looking at. Area: `geometry.md`, `map.md` ("The map"), `seabedvector.py`,
+`collector/bathymetry.py`; BRIEFING §21-§22, §26-§27, §29, §52. Measured
+the same day (signed distance from each vertex to each tier's drawn coast,
+`data/seabed_vector/`):
+
+| point | context 400 m (< z8) | outer 90 m (z8+) | regional 32 m (z9+) | nearshore 8 m (z11+) |
+|---|---|---|---|---|
+| breaks (ENC harbour-band chord midpoints) | water 266-355 m | water 56-177 m | N water 3 m; C, S land 39-44 m | land 13-34 m |
+| Point Loma tangents (ENC approach) | water 473-560 m | land 22-75 m | land 57-67 m | -- |
+| Baja tangent (ENC approach) | water 536 m | water 301 m | -- | -- |
+| South Coronado tip (imagery, §52) | water 13.8 km | water 87 m | -- | -- |
+
+Not yet measured, the leads: (a) DATUM -- the chart's coastline is mean high
+water (§21: CoNED reads a median 1.4 m NAVD88 under charted vertices, MSL
+being 0.765 m above NAVD88), the drawn coast is the depth `raytrace.H_LAND`
+(0.3 m) below MSL, so about 0.9 m apart vertically, tens of metres on a
+beach; (b) each tier's ~1-cell smoothing and simplification (`TIERS`);
+(c) GMRT's own coast at Baja and the islands (§52: it lacks Middle and North
+Coronado). Item 13 (the islands missing from the grids; burning charted or
+imaged land in) belongs here, since it is the same question: what land the
+map and the rays stand on. Check each vertex against imagery as §52 did
+before deciding which side moves; a change to the grids moves the ray
+tables (item 14's sensitivity applies).
 
 ### Group 3: map layers (mock first)
 
