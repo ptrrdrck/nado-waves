@@ -397,3 +397,178 @@ def test_every_drawn_ray_starts_as_far_out_as_it_is_traced():
             h, _, _, _, covered = bathy.sample(x, y)
             stopped = ~covered | ~np.isfinite(h) | (h <= H_LAND) | (h < 1.02 * PATH_LEG_DEPTH * l0)
             assert stopped.all(), (break_id, key, int((~stopped).sum()))
+
+
+# ------------------------------------------------------------ islands as land
+#
+# Owner's decisions, 2026-11-15 (group 2d, BRIEFING §55): the imaged islands
+# are burned into the grids GMRT left them out of; a ray that lands on an
+# island gets energy by diffraction only, along a clear neighbour's heading,
+# instead of being re-traced over a made-up "see-through" seabed; and the
+# straight deep-water leg is walked over the grids for land.
+
+from forecast.raytrace import (  # noqa: E402
+    BATHY_DIR, ISLAND_PREFIX, H_LAND, burn_islands, island_outlines, leg_land,
+    shadow_factor, with_islands,
+)
+
+
+def _square(x0, y0, side):
+    return np.array([(x0, y0), (x0 + side, y0), (x0 + side, y0 + side), (x0, y0 + side)])
+
+
+def test_a_cell_is_burned_where_a_quarter_of_it_is_island():
+    """A 100 m cell grid at 30 m depth; an island 150 m square starting half
+    way into the top-left cell covers that cell by a quarter, the two beside
+    it by a half and the one diagonal to it whole: all island. The cells
+    beyond it are untouched, and land the grid already had higher than the
+    island keeps its own height."""
+
+    depth = np.full((4, 4), 30.0)
+    depth[3, 3] = -80.0                                   # a grid's own peak
+    island = {"name": "test", "height_m": 20.0,
+              "parts": [_square(50.0, 400.0 - 50.0 - 150.0, 150.0)]}
+    island2 = {"name": "peak", "height_m": 20.0, "parts": [_square(300.0, 0.0, 100.0)]}
+    changed = burn_islands(depth, 0.0, 400.0, 100.0, [island, island2])
+    assert (depth[0:2, 0:2] == -20.0).all()          # 25-50% covered: land
+    assert (depth[2:, :2] == 30.0).all() and (depth[:2, 2:] == 30.0).all()
+    assert depth[3, 3] == -80.0                      # higher land keeps its height
+    assert changed == 4
+
+
+def test_the_islands_are_burned_only_into_the_grids_named_for_them():
+    outlines, into = island_outlines()
+    assert {o["name"] for o in outlines} == {"South Coronado", "Middle Coronado", "North Coronado"}
+    assert into == ("outer", "context")
+    grid = Grid.from_elevation(np.zeros((3, 3)) - 10.0, 0.0, 300.0, 100.0, 0.0)
+    assert with_islands(grid, "regional") is grid
+
+
+def test_every_island_is_land_where_the_rays_are_traced():
+    """GMRT's 90 m grid had only South Coronado as land: Middle Coronado read
+    10-14 m deep and North Coronado 22 m and more (BRIEFING §52). Burned in,
+    each island's imaged vertex (spots.json) and the middle of its outline
+    are land for the rays."""
+
+    from forecast.utm import to_utm
+
+    bathy = Bathymetry.load()
+    _, blockers = load()
+    outlines, _ = island_outlines()
+    for o in outlines:
+        main = max(o["parts"], key=len)
+        x, y = main.mean(axis=0)
+        h, *_ = bathy.sample(np.array([x]), np.array([y]))
+        assert h[0] <= H_LAND, o["name"]
+    for b in blockers:
+        if b.name.startswith(ISLAND_PREFIX):
+            for p in (b.a, b.b):
+                x, y = to_utm(*p)
+                # within one 90 m cell of land, read the way the rays read it
+                xs = x + np.array([-45.0, 0.0, 45.0, 0.0, 0.0])
+                ys = y + np.array([0.0, 0.0, 0.0, -45.0, 45.0])
+                h, *_ = bathy.sample(xs, ys)
+                assert h.min() <= H_LAND, (b.name, p)
+
+
+def test_each_imaged_vertex_sits_on_its_islands_outline():
+    """The outlines and spots.json come from the same imagery: South
+    Coronado's tip and North Coronado's ends lie within a few metres of an
+    outline (measured 3, 1.5 and 0.2 m)."""
+
+    from forecast.utm import to_utm
+
+    _, blockers = load()
+    rings = [r for o in island_outlines()[0] for r in o["parts"]]
+
+    def gap(p):
+        x, y = to_utm(*p)
+        best = np.inf
+        for r in rings:
+            a, b = r, np.roll(r, -1, axis=0)
+            d = b - a
+            t = np.clip(((x - a[:, 0]) * d[:, 0] + (y - a[:, 1]) * d[:, 1]) / np.maximum((d ** 2).sum(1), 1e-9), 0, 1)
+            best = min(best, float(np.min(np.hypot(a[:, 0] + t * d[:, 0] - x, a[:, 1] + t * d[:, 1] - y))))
+        return best
+
+    south = next(b for b in blockers if b.name.startswith("Coronado Islands (South"))
+    north = next(b for b in blockers if b.name.startswith("Coronado Islands (North"))
+    for p in (south.a, north.a, north.b):
+        assert gap(p) < 8.0, p
+
+
+def test_a_leg_across_land_is_blocked_and_one_across_an_island_is_not():
+    """The straight leg is walked over the grids: a ray leaving deep water
+    and heading back across a spit of land is stopped by it, one crossing an
+    island's land is not (the island is diffracted on the leg), and open
+    water stays open."""
+
+    bathy = planar()
+    depth = bathy.grids[0].depth.copy()
+    rows, cols = depth.shape
+    ys = HEIGHT - (np.arange(rows) + 0.5) * CELL
+    xs = (np.arange(cols) + 0.5) * CELL
+    spit = (np.abs(xs[None, :] - 20_000.0) < 100.0) & (ys[:, None] > 5_000.0)
+    isle = (np.hypot(xs[None, :] - 10_000.0, ys[:, None] - 12_000.0) < 200.0)
+    depth[spit | isle] = -5.0
+    bathy = Bathymetry([Grid.from_depth(depth, 0.0, HEIGHT, CELL)], 0.0)
+    island = Island("isle", (9_800.0, 12_000.0), (10_200.0, 12_000.0), (10_000.0, 12_000.0), 600.0)
+    x = np.array([15_000.0, 15_000.0, 15_000.0])
+    y = np.array([12_000.0, 12_000.0, 12_000.0])
+    hit, hx, _ = leg_land(bathy, [island], x, y, np.array([90.0, 270.0, 0.0]))
+    assert hit.tolist() == [True, False, False]
+    assert 19_800.0 < hx[0] < 20_000.0
+
+
+def test_a_ray_heading_back_across_the_silver_strand_is_blocked():
+    """BRIEFING §55: from North's 5 m start point a short ray leaving deep
+    water from the south-east crosses the Coronado shore within a few
+    kilometres; the charted blockers' spans never saw that land. Swell from
+    the south-west stays open."""
+
+    from forecast.raytrace import islands_from, start_point
+    from forecast.utm import to_utm  # noqa: F401
+
+    spots, blockers = load()
+    bathy = Bathymetry.load()
+    north = next(s for s in spots if s.id == "coronado_north")
+    x0, y0, _ = start_point(bathy, north)
+    hit, _, _ = leg_land(bathy, islands_from(blockers), np.array([x0, x0]), np.array([y0, y0]),
+                         np.array([140.0, 230.0]))
+    assert hit.tolist() == [True, False]
+
+
+def test_a_shadowed_ray_takes_the_slit_geometry_between_its_neighbours():
+    """`shadow_factor` at either end of the interpolation is the Babinet factor
+    of that neighbour's own geometry, and half way across the shadow of a
+    wide, near island it is deep shadow."""
+
+    island = Island("strip", (-1_500.0, 0.0), (1_500.0, 0.0), (0.0, 0.0), 1_500.0, depth=5000.0)
+    beta = np.full(2, math.pi / 2)
+    rec = (np.array([-2_000.0, 2_000.0]), np.zeros(2), beta, np.full(2, 3_000.0), np.ones(2, bool))
+    for j in (0, 1):
+        one = {"strip": tuple(np.array([v[j]]) for v in rec)}
+        want, _ = island_transmission(one, [island], 12.0)
+        assert shadow_factor(rec, (0, 1), float(j), island, 12.0) == pytest.approx(float(want[0]))
+    assert shadow_factor(rec, (0, 1), 0.5, island, 12.0) < 0.05
+
+
+def test_every_shadowed_island_ray_carries_a_clear_neighbours_heading():
+    """In the committed tables, every row that landed on an island and still
+    carries energy goes out along the offshore heading of a clear row of the
+    same period: nothing comes through a made-up seabed any more."""
+
+    import csv
+
+    for brk in ("coronado_north", "coronado_center", "coronado_south"):
+        clear, shadowed = {}, []
+        path = BATHY_DIR.parent / "nearshore" / f"{brk}.csv"
+        with path.open(newline="", encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                if float(r["gain"]) > 0:
+                    clear.setdefault(r["freq_hz"], set()).add(r["off_from_deg"])
+                elif r["status"] == "land" and r["blocker"].startswith(ISLAND_PREFIX) and float(r["diff_gain"]) > 0:
+                    shadowed.append(r)
+        assert shadowed, brk
+        for r in shadowed:
+            assert r["diff_off_from_deg"] in clear[r["freq_hz"]], (brk, r["period_s"], r["near_from_deg"])
