@@ -226,3 +226,68 @@ def test_every_break_opens_at_one_scale():
     body = body[:body.index("const mpp")]
     assert "MAPDATA.geometry.breaks.flatMap" in body
     assert "this.b.windows" not in body
+
+
+def test_the_plates_go_back_before_anything_reads_the_layout():
+    """Owner's report, 2026-11-15: the page jumped on a Units change. The cards
+    are rewritten whole; left to the map's MutationObserver, the plates came
+    back only after `restorePicks` and the rest had laid the page out without
+    them (176 px shorter at 390 x 664 with the map open), and WebKit, with no
+    scroll anchoring, clamped a reader near the foot up by that much. So every
+    rewrite of the cards puts them back first."""
+
+    writes = PAGE.count('$("conditions").innerHTML = rows.join("");')
+    assert writes == PAGE.count('$("conditions").innerHTML = rows.join("");\n      replate();') + PAGE.count(
+        '$("conditions").innerHTML = rows.join("");\n  replate();')
+    assert writes == 2
+    assert "window.swellMapAttach = attach;" in PAGE
+
+
+def test_a_face_opens_in_the_view_this_device_keeps():
+    """Owner's report, 2026-11-15: made as a drawing, a face on a page opening
+    on the map slid from the drawing's height to the map's on every load and
+    moved everything under it ~100 px."""
+
+    body = PAGE[PAGE.index("  class Face {"):]
+    body = body[:body.index("    adopt(svg) {")]
+    assert 'this.box.classList.toggle("on-map", view === "map");' in body
+    assert 'this.el.hidden = view !== "map";' in body
+
+
+def test_the_plate_leaves_room_for_every_heading_a_pick_can_show():
+    """Owner's report, 2026-11-15: a pick's headings above the rim were cut off,
+    getBBox skipping the hidden ones, until a resize re-trimmed round them and
+    the drawing dropped. The trim takes every heading, shown or not, so the
+    plate is one height whatever is picked."""
+
+    body = PAGE[PAGE.index("    space() {"):]
+    body = body[:body.index("this.foot = ")]
+    assert 'querySelectorAll("text.deg")' in body
+    assert "y0 = Math.min(y0, Math.max(0, y - fs))" in body
+
+
+def test_another_breaks_dot_is_its_tab():
+    """Owner's request, 2026-11-15: tapping another break on the map opens its
+    tab, through the switch the tab itself uses, before any other hit."""
+
+    assert "point(o.position, {on: o.id === this.id, id: o.id})" in PAGE
+    body = PAGE[PAGE.index("    click(e) {"):]
+    body = body[:body.index("const hit = this.arrowAt(e.point);")]
+    assert 'layers: ["sm-spots"]' in body and "!f.properties.on" in body
+    assert "selectSwellTab(spot.properties.id)" in body
+
+
+def test_a_switch_to_another_breaks_map_turns_it_over_400_ms():
+    """Owner's pick, 2026-11-15, from the "Seabed Map Themes" mock: a switch to
+    another break's map turns it from the last break's bearing to its own over
+    400 ms, round the break, set in the click so it is never painted at its own
+    bearing first, and not at all under reduced motion."""
+
+    assert "const TURN_MS = 400;" in PAGE
+    body = PAGE[PAGE.index("    turnFrom(o, only = false) {"):]
+    body = body[:body.index("    make() {")]
+    assert "prefers-reduced-motion: reduce" in body
+    assert "this.map.easeTo({bearing: to, around, duration: TURN_MS})" in body
+    assert "this.map.panBy([q.x - p.x, q.y - p.y], {duration: 0})" in body
+    assert "faces.forEach((f) => f.preTurn());" in PAGE
+    assert "if (prev && prev !== this.id) this.turnFrom(brk(prev));" in PAGE

@@ -143,3 +143,44 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    weakest (§31, §45). The first version, on the window DRAWING, was
    dropped by the owner the same day: a view from the break can only draw
    swell bending round Point Loma's tip as energy crossing its shadow.
+
+## The page must not move under the reader
+
+   **The page jumped on a Units change and on a refresh** (owner's report,
+   2026-11-15). Measured at 390 x 664 with scroll anchoring off, as WebKit
+   has none: the cards are rewritten whole, and the map's plates came back
+   only on its MutationObserver, after `restorePicks` and the rest had laid
+   the page out without them, 176 px shorter, so a reader near the foot was
+   clamped up 176 px (533 -> 357). Chromium's anchoring hid it. Now every
+   rewrite calls `replate()` (the face IIFE's `attach`) before anything
+   reads the layout. And a face was made as a drawing, so a page opening on
+   the map slid its plate from the drawing's height to the map's (230 ->
+   328 px) on every load; a face is now made in the view this device keeps.
+   A refresh in Chromium still lands at the top: the cards arrive after its
+   scroll restoration gives up, which is the page's, not the map's.
+
+   **A pick's headings were cut off, then the drawing dropped** (owner's
+   report, 2026-11-15). The plate is trimmed to the drawing's ink with
+   getBBox, which skips hidden elements, and a pick's headings (`text.deg`,
+   at r + 12) are hidden until picked: tapping North's island groups put
+   "187°"-"201°" up to 7 px over the plate's top at 390 (9 px at 430), and
+   the next `resize` -- iOS Safari's toolbar on scroll -- re-trimmed round
+   them, the plate 171 -> 189 px and the drawing 18 px lower. The trim now
+   takes every heading's baseline less its font size, shown or not: no cut
+   at 320-430 on any break or pick, the plate one height through pick,
+   resize and unpick, taller at rest (North 171 -> 193 px at 390).
+
+   **Another break's dot is its tab** (owner's request, 2026-11-15): a tap
+   on another break's dot on the map calls `selectSwellTab`, as the tab
+   does, before any other hit; a finger reaches 14 px round the 3.5 px dot,
+   a mouse 8 px and gets a pointer over it. The break's own dot does
+   nothing new.
+
+   **A switch to another break's map turns it** (owner's pick, 2026-11-15,
+   400 ms ease in the "Seabed Map Themes" mock's Switching break option):
+   the map a tab switch or a dot tap shows is set, in the click itself, to
+   the last tab's break's bearing round its own break (`preTurn`), sized
+   then too -- hidden, it had kept a stale 400 x 300 canvas until a task
+   later, and its break jumped 36 px -- and `show` eases it to its own
+   normal over `TURN_MS`, the break fixed on screen. Never under reduced
+   motion, never on the wide layout, where no tab hides a break.

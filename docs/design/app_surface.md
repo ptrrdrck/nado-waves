@@ -446,3 +446,16 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   missing spectrum is a gap, never the hour beside it, and the newest hour
   reads "not in yet" until a later spectrum has passed it
   (`tests/test_app_surface.py` keeps "actual" off the page).
+
+## Refresh and redraw
+
+   **A refresh the reader makes opens at the top; the page's own redraws
+   are invisible where the reader is** (owner's call, 2026-11-15).
+   `history.scrollRestoration = "manual"`: the cards arrive after the
+   browser's restoration gives up, which had put the reader somewhere
+   between, differently in each browser. And `show()` is `holdPlace` round
+   `drawPage`: the element in view that a redraw can find again (an id, or a
+   card's data-card) keeps its place on screen, right after the redraw and
+   on the next two frames as charts settle, unless the reader scrolls
+   meanwhile. iPhone has no scroll anchoring; measured with it off and on,
+   120 px added above the reader moved nothing, with no double correction.
