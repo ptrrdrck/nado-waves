@@ -8687,6 +8687,7 @@ function renderConditions(step, cards) {
       </div>`);
       rows.push(sunCard(DATA, coastDay(Date.parse(step.valid_utc))));
       $("conditions").innerHTML = rows.join("");
+      replate();
       restorePicks();
       tickDue();
       weekPlace();
@@ -8729,6 +8730,7 @@ function renderConditions(step, cards) {
   }
 
   $("conditions").innerHTML = rows.join("");
+  replate();
   restorePicks();
   // Fill the countdowns now rather than leaving them blank until the first
   // second's tick lands.
@@ -8747,6 +8749,17 @@ function laidOut() {
     chartResize.disconnect();
     document.querySelectorAll("#conditions .break-cols, #conditions .chart-body").forEach((el) => chartResize.observe(el));
   }
+}
+
+// The Swell card's plates go back round its new drawings the moment the
+// cards are rewritten, before anything after reads the layout. Left to the
+// map's MutationObserver, the page was laid out once without them -- 176 px
+// shorter on a phone with the map open -- and a reader scrolled near the
+// foot was pulled up by the difference on a Units change or a refresh
+// (owner's report, 2026-11-15; Chromium's scroll anchoring hid it, iPhone has
+// none).
+function replate() {
+  if (window.swellMapAttach) window.swellMapAttach();
 }
 
 function renderBreaks(step) {
@@ -9622,6 +9635,12 @@ Promise.all([
       this.cap = this.box.querySelector(".sm-cap");
       this.el = this.box.querySelector(".sm-map");
       this.marks = this.box.querySelector(".sm-marks");
+      // Made in the view this device keeps, so a page opening on the map
+      // opens at the map's size: made as a drawing, it slid from the
+      // drawing's height to the map's on every load and moved everything
+      // under it ~100 px (owner's report, 2026-11-15).
+      this.box.classList.toggle("on-map", view === "map");
+      this.el.hidden = view !== "map";
       // One button: it shows what a tap turns to (owner's request, 2026-11-08).
       this.box.querySelector(".sm-switch").addEventListener("click", (e) => {
         e.stopPropagation();
@@ -10475,6 +10494,7 @@ Promise.all([
     if (records.some((r) => !(r.target.closest && r.target.closest(".sm-map")))) attach();
   }).observe(document.body, {childList: true, subtree: true});
   addEventListener("resize", () => faces.forEach((f) => f.space()));
+  window.swellMapAttach = attach;           // called as the cards are rewritten
   attach();
 })();
 </script>

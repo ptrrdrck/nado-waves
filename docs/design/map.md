@@ -143,3 +143,18 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    weakest (§31, §45). The first version, on the window DRAWING, was
    dropped by the owner the same day: a view from the break can only draw
    swell bending round Point Loma's tip as energy crossing its shadow.
+
+## The page must not move under the reader
+
+   **The page jumped on a Units change and on a refresh** (owner's report,
+   2026-11-15). Measured at 390 x 664 with scroll anchoring off, as WebKit
+   has none: the cards are rewritten whole, and the map's plates came back
+   only on its MutationObserver, after `restorePicks` and the rest had laid
+   the page out without them, 176 px shorter, so a reader near the foot was
+   clamped up 176 px (533 -> 357). Chromium's anchoring hid it. Now every
+   rewrite calls `replate()` (the face IIFE's `attach`) before anything
+   reads the layout. And a face was made as a drawing, so a page opening on
+   the map slid its plate from the drawing's height to the map's (230 ->
+   328 px) on every load; a face is now made in the view this device keeps.
+   A refresh in Chromium still lands at the top: the cards arrive after its
+   scroll restoration gives up, which is the page's, not the map's.

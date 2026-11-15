@@ -275,7 +275,7 @@ class TestTheDrawingIsInteractive:
         assert 'e.key !== "Enter" && e.key !== " "' in self.DRAW
 
     def test_the_pick_survives_a_re_render(self):
-        assert '$("conditions").innerHTML = rows.join("");\n  restorePicks();' in SOURCE
+        assert '$("conditions").innerHTML = rows.join("");\n  replate();\n  restorePicks();' in SOURCE
 
     def test_swell_aimed_behind_the_beach_is_the_sand_not_a_shadow(self):
         assert "taken(AWAY)" in self.DRAW and "nothing blocks it" in self.DRAW

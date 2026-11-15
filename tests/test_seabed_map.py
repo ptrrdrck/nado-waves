@@ -226,3 +226,29 @@ def test_every_break_opens_at_one_scale():
     body = body[:body.index("const mpp")]
     assert "MAPDATA.geometry.breaks.flatMap" in body
     assert "this.b.windows" not in body
+
+
+def test_the_plates_go_back_before_anything_reads_the_layout():
+    """Owner's report, 2026-11-15: the page jumped on a Units change. The cards
+    are rewritten whole; left to the map's MutationObserver, the plates came
+    back only after `restorePicks` and the rest had laid the page out without
+    them (176 px shorter at 390 x 664 with the map open), and WebKit, with no
+    scroll anchoring, clamped a reader near the foot up by that much. So every
+    rewrite of the cards puts them back first."""
+
+    writes = PAGE.count('$("conditions").innerHTML = rows.join("");')
+    assert writes == PAGE.count('$("conditions").innerHTML = rows.join("");\n      replate();') + PAGE.count(
+        '$("conditions").innerHTML = rows.join("");\n  replate();')
+    assert writes == 2
+    assert "window.swellMapAttach = attach;" in PAGE
+
+
+def test_a_face_opens_in_the_view_this_device_keeps():
+    """Owner's report, 2026-11-15: made as a drawing, a face on a page opening
+    on the map slid from the drawing's height to the map's on every load and
+    moved everything under it ~100 px."""
+
+    body = PAGE[PAGE.index("  class Face {"):]
+    body = body[:body.index("    adopt(svg) {")]
+    assert 'this.box.classList.toggle("on-map", view === "map");' in body
+    assert 'this.el.hidden = view !== "map";' in body
