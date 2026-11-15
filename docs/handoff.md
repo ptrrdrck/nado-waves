@@ -47,7 +47,7 @@ islands sections.
     Open: `app/docs.html`'s map paragraph still says every line is drawn
     from depths smoothed over a cell; the owner was asked for the wording.
 
-### Group 2c: the Baja tangent -- built (PR on branch claude/jolly-curie-t44nks)
+### Group 2c: the Baja tangent -- built (PR #227, stacked on #226)
 
 17. **The Baja tangent from imagery** -- done (BRIEFING §54; geometry.md
     "The south window", chain.md "Baja's edge in the rays"). Both ends on
