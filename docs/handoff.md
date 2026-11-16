@@ -137,6 +137,14 @@ wait for Tests, don't merge." to each.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
   cause and the truth before changing anything."
+- Group 3, item 20: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
+  Item 20 of docs/handoff.md, hide the window drawing. Read map.md (all of
+  it, the plate and the fill especially) and app_surface.md first. The map
+  reads the drawing (`readSvg`, `data-geo`), so the drawing stays, unseen,
+  as its source; show it only where the map cannot be drawn (no WebGL), and
+  drop the drawing/map switch. Put a working drawing on docs.html as the
+  project's history, replacing 'The window drawing' section; propose its
+  wording first. Strongest model setting: it is architecture."
 - Group 4: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 4 of docs/handoff.md (items 7, 8), Wind and Tide cards. Read
   tide_wind_sun.md and app_surface.md first; mock item 8 before building."
