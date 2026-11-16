@@ -1013,7 +1013,8 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    2026-11-11). */
 .rose-tray{background:var(--paper);border:1px solid var(--line);border-radius:0 0 7px 7px;
   padding:7px 12px 8px;display:flex;flex-direction:column;gap:0}
-/* Top-left, as the drawing / map toggle: 28 px, the card's colour. */
+/* Top-left, as the drawing / map toggle was until 2026-11-16: 28 px, the
+   card's colour. */
 .rose-switch{position:absolute;top:4px;left:4px;z-index:2;display:inline-flex;align-items:center;
   justify-content:center;box-sizing:border-box;width:28px;height:28px;padding:0;margin:0;border:0;
   border-radius:6px;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.35);
@@ -1419,11 +1420,13 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    row is its title alone there. */
 .cond.swell[data-buoy-pills][data-tab="buoy"] > .chead > :not(.lbl){display:none}
 /* ONE plate for the drawing and the map (owner's requests, 2026-11-11): the
-   drawing's trimmed to its ink with PLATE_PAD above and below, the map's
-   square (owner's request, 2026-11-08: room to move about in, never more
-   than most of a phone's screen). Its height is the script's (`space`), and
-   a switch grows or shrinks it from its foot as a fold slides, the drawing
-   and the map both standing on the foot so the break rides it. */
+   map's square (owner's request, 2026-11-08: room to move about in, never
+   more than most of a phone's screen). Its height is the script's (`space`),
+   the drawing and the map both standing on its foot so the break rides it.
+   Since 2026-11-16 the map is the only view (owner's request): the drawing
+   stays on the plate under it, unseen but in the Tab order and spoken, as
+   the map's source and its keyboard way in, and is shown, trimmed to its
+   ink with PLATE_PAD above and below, only where the map cannot be drawn. */
 /* White inside, as the drawing and the rose were before their plates
    (owner's call, 2026-11-11), the plate drawn by a hairline round it and
    its tray under it. */
@@ -1431,27 +1434,13 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
   border-radius:7px 7px 0 0;overflow:hidden;background:var(--card);isolation:isolate}
 .sm-plate > svg.aperture{position:absolute;left:0;width:100%;display:block}
 .sm-plate > svg.aperture text.faces{display:none}
-.sm-face.on-map .sm-plate > svg.aperture{visibility:hidden}
+.sm-face.on-map .sm-plate > svg.aperture{opacity:0;pointer-events:none}
 .sm-map{position:absolute;left:0;bottom:0;width:100%;overflow:hidden;background:var(--paper);font:inherit}
 .sm-map:not(.sm-ready) .maplibregl-canvas{visibility:hidden}
 .sm-map[hidden]{display:none!important}
 .sm-map .maplibregl-canvas{outline:none}
 .sm-marks{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
-/* One button: it shows what a tap turns to, at ONE place in both views, 4 px
-   in from the map's top-left corner; on the drawing the map symbol alone, on
-   the map the drawing symbol dressed as every map control is (owner's calls,
-   2026-11-08). The same 28 px box either way, so the symbol never moves. */
-.sm-switch{position:absolute;top:0;left:4px;z-index:5;display:inline-flex;align-items:center;
-  justify-content:center;box-sizing:border-box;width:28px;height:28px;padding:0;background:none;
-  color:var(--ink);border:1px solid transparent;border-radius:6px;cursor:pointer;
-  -webkit-appearance:none;appearance:none;margin:0;min-width:28px;min-height:28px;
-  max-width:28px;max-height:28px;font:inherit;line-height:0}
-/* The card's colour in both views, as every button on a plate (owner's
-   request, 2026-11-11). */
-.sm-face > .sm-switch{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.35)}
-.sm-switch:focus-visible,.sm-ctl button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
-.sm-switch svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.33;
-  stroke-linecap:round;stroke-linejoin:round}
+.sm-ctl button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .sm-attr{position:absolute;top:8px;left:40px;right:40px;text-align:right;z-index:4;color:var(--sm-ink,#fff);
   font:10px/1.2 Archivo,sans-serif;text-shadow:var(--sm-glow,none);pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -5446,7 +5435,7 @@ function roseLegend(mode) {
 }
 
 // The Height / Period toggle: one button showing what a tap turns to, as the
-// drawing / map one does (owner's request, 2026-11-11).
+// drawing / map one did until 2026-11-16 (owner's request, 2026-11-11).
 function roseSwitch() {
   const next = ROSE_MODES.find((m) => m.id !== ROSE_MODE);
   return `<button type="button" class="rose-switch" data-rose-mode="${next.id}"`
@@ -9482,10 +9471,13 @@ Promise.all([
 </script>
 <script>
 // The Swell card's map (owner's requests, 2026-11-06 to -10; MOCKED in
-// mocks/swell_map and mocks/swell_fill, shipped 2026-11-10): a toggle in the
-// corner of each break's drawing swaps it for the same geometry over the
-// seabed, in the drawing's own footprint and turned the drawing's way -- the
-// break's shore normal straight up, the break where the drawing puts it.
+// mocks/swell_map and mocks/swell_fill, shipped 2026-11-10): each break's
+// windows over the seabed, turned the drawing's way -- the break's shore
+// normal straight up, the break where the drawing puts it. Since 2026-11-16
+// it is the card's ONLY view (owner's request): the drawing it replaced
+// stays on the plate, unseen, as its source, and is shown in its place only
+// where the map cannot be drawn -- no WebGL (`GL`), or the library, map.json
+// or the map itself failing (`noMap`).
 //
 // It reads the DRAWING, never a payload of its own: the windows' and shadows'
 // angles (`data-geo`), each train's arrow and the captions are the svg's, and
@@ -9498,13 +9490,23 @@ Promise.all([
 // redraws (every minute on LIVE), never rebuilt by them.
 (function () {
   "use strict";
-  const VIEW_KEY = "nado-waves.swell-view";   // one choice for every tab, this device's
   const TOUCH = matchMedia("(pointer: coarse)").matches;
-  // The drawing in small: its half-circle, and a line out from the break to
-  // Baja's edge and Point Loma's as Center sees them (owner's design,
-  // 2026-11-08).
-  const ICON_DRAW = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 11.25A7 7 0 0 1 15 11.25Z"/><path d="M8 11.25L2.80 6.57M8 11.25L12.11 5.59"/></svg>';
-  const ICON_MAP = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5l4-1.5 5 2 4-1.5v10l-4 1.5-5-2-4 1.5z"/><path d="M5.5 2v10M10.5 4v10"/></svg>';
+  // The map needs WebGL, asked for as MapLibre 4.7.1 asks: WebGL 2, else
+  // WebGL 1. Without it every card shows the drawing in the map's place, at
+  // the drawing's size from the first paint, and nothing of the map is
+  // fetched (owner's request, 2026-11-16: until then a browser without WebGL
+  // that kept the map got an empty plate, MapLibre's throw uncaught). The
+  // probe's context is let go at once: a page may hold only so many.
+  const GL = (() => {
+    try {
+      const c = document.createElement("canvas");
+      const gl = c.getContext("webgl2") || c.getContext("webgl");
+      if (!gl) return false;
+      const lose = gl.getExtension("WEBGL_lose_context");
+      if (lose) lose.loseContext();
+      return true;
+    } catch (e) { return false; }
+  })();
   const ICON_PLUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
   const ICON_MINUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9"/></svg>';
   const ICON_LAYERS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2 14.2 5.4 8 8.6 1.8 5.4Z"/><path d="M1.8 8.1 8 11.3 14.2 8.1"/><path d="M1.8 10.8 8 14 14.2 10.8"/></svg>';
@@ -9564,7 +9566,7 @@ Promise.all([
   // The layer list (owner's picks, 2026-11-16): windows, shadows and the
   // window edges each on or off, and the look, colour unless Grayscale or
   // Lines only is on -- one at a time, so turning one on turns the other off.
-  // One choice for every map, this device's, as the drawing-or-map choice is.
+  // One choice for every map, this device's.
   const LAYERS_KEY = "nado-waves.map-layers";
   const LOOKS = ["grey", "lines"];
   const layers = (() => {
@@ -9614,7 +9616,10 @@ Promise.all([
   // MapLibre's zoom counts a 512 px world: metres per pixel at the equator.
   const MPP0 = 78271.51696;
 
-  let view = stored(VIEW_KEY) === "map" ? "map" : "drawing";
+  // "map" wherever the map can be drawn; "drawing" where it cannot, for the
+  // rest of the visit. No longer the reader's choice: the switch between the
+  // two went on 2026-11-16, and the choice it kept is not read.
+  let view = GL ? "map" : "drawing";
   let MAPDATA = null;                         // map.json, once fetched
   let LOADING = null;
   const VIEWS = {};                           // break id -> the view last left there
@@ -9767,23 +9772,16 @@ Promise.all([
         + `<div class="sm-ctl"><div class="sm-bar sm-fit"><button type="button" data-sm="fit" title="Back to the opening view" aria-label="Back to the opening view">${ICON_FIT}</button></div>`
         + `<div class="sm-bar sm-zoom"><button type="button" data-sm="in" title="Zoom in" aria-label="Zoom in">${ICON_PLUS}</button>`
         + `<button type="button" data-sm="out" title="Zoom out" aria-label="Zoom out">${ICON_MINUS}</button></div></div></div>`);
-      this.box.insertAdjacentHTML("beforeend",
-        `<div class="sm-cap" aria-live="polite"></div>`
-        + `<button type="button" class="sm-switch"></button>`);
+      this.box.insertAdjacentHTML("beforeend", `<div class="sm-cap" aria-live="polite"></div>`);
       this.cap = this.box.querySelector(".sm-cap");
       this.el = this.box.querySelector(".sm-map");
       this.marks = this.box.querySelector(".sm-marks");
-      // Made in the view this device keeps, so a page opening on the map
-      // opens at the map's size: made as a drawing, it slid from the
-      // drawing's height to the map's on every load and moved everything
-      // under it ~100 px (owner's report, 2026-11-15).
+      // Made in the view the page shows, so it opens at the map's size: made
+      // as a drawing, it slid from the drawing's height to the map's on every
+      // load and moved everything under it ~100 px (owner's report,
+      // 2026-11-15).
       this.box.classList.toggle("on-map", view === "map");
       this.el.hidden = view !== "map";
-      // One button: it shows what a tap turns to (owner's request, 2026-11-08).
-      this.box.querySelector(".sm-switch").addEventListener("click", (e) => {
-        e.stopPropagation();
-        setView(view === "map" ? "drawing" : "map");
-      });
       // The layer button and its list: nothing in them reaches the map.
       this.lyrBtn = this.box.querySelector(".sm-lyr");
       this.lyrs = this.box.querySelector(".sm-lyrs");
@@ -9853,10 +9851,6 @@ Promise.all([
 
     show() {
       const on = view === "map";
-      const btn = this.box.querySelector(".sm-switch");
-      btn.innerHTML = on ? ICON_DRAW : ICON_MAP;
-      btn.setAttribute("aria-label", on ? "Show the drawing" : "Show the map");
-      btn.title = on ? "Drawing" : "Map";
       this.slide(on);
       this.say(readSvg(this.svg).caption);
       if (!on) this.fillEnd();
@@ -9864,10 +9858,14 @@ Promise.all([
       if (inTab) lastTab = this;
       if (!on || !this.box.offsetWidth) return;
       ready().then((d) => {
-        if (!d || view !== "map" || !this.box.isConnected) return;
-        this.b = brk(this.id);
-        if (!this.b) return;
-        if (!this.map) this.make();
+        if (view !== "map" || !this.box.isConnected) return;
+        // The library or map.json would not load, or the map would not
+        // start (WebGL refused after all): the drawing, not an empty plate.
+        this.b = d && brk(this.id);
+        if (!this.b) { noMap(); return; }
+        if (!this.map) {
+          try { this.make(); } catch (e) { noMap(); return; }
+        }
         this.map.resize();
         if (!this.framed) {
           const v = VIEWS[this.id];
@@ -10485,11 +10483,10 @@ Promise.all([
       ctx.globalCompositeOperation = "source-over";
     }
 
-    // The plate's sizes (owner's requests, 2026-11-11): the drawing's
-    // trimmed to its ink, PLATE_PAD above and below; the map's square, at
-    // most 70vh. Both stand on the plate's foot: the drawing's break and the
-    // map's opening break the same `foot` above it. The toggle sits at one
-    // place in both views, 4 px in from the plate's corner.
+    // The plate's sizes (owner's requests, 2026-11-11): the map's square, at
+    // most 70vh; the drawing's, where it is shown, trimmed to its ink,
+    // PLATE_PAD above and below. Both stand on the plate's foot: the
+    // drawing's break and the map's opening break the same `foot` above it.
     space() {
       const W = this.plate.clientWidth || this.box.clientWidth;
       const vb = this.svg.viewBox.baseVal;
@@ -10521,15 +10518,12 @@ Promise.all([
       if (!this.sliding) {
         this.plate.style.height = `${(this.box.classList.contains("on-map") ? this.hMap : this.hDraw).toFixed(2)}px`;
       }
-      const sw = this.box.querySelector(".sm-switch");
-      // 4 px inside the plate's hairline, as the map's own controls sit.
-      sw.style.top = `${GAP_MAP + 5}px`;
-      sw.style.left = "5px";
     }
 
-    // Drawing to map or back: the plate grows or shrinks from its foot as a
-    // fold slides (FOLD_SLIDE), the view coming in faded over the one going
-    // out; at once when unseen or under reduced motion.
+    // Map to drawing, where the map turns out not to be drawable after the
+    // plate was made: the plate shrinks from its foot as a fold slides
+    // (FOLD_SLIDE), the drawing coming in faded over the map going out; at
+    // once when unseen or under reduced motion.
     slide(on) {
       const was = this.box.classList.contains("on-map");
       const seen = this.box.offsetParent && !matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -10567,11 +10561,30 @@ Promise.all([
   }
 
   const faces = new Map();                    // break id + where it sits -> Face
-  function setView(v) {
-    view = v;
-    store(VIEW_KEY, v);
+  // The map cannot be drawn here after all -- the library or map.json would
+  // not load, or a map would not start: every card shows the drawing for the
+  // rest of the visit, never an empty plate.
+  function noMap() {
+    if (view !== "map") return;
+    view = "drawing";
     faces.forEach((f) => f.show());
   }
+  // The hidden drawing is the map's text and keyboard way in, as it was the
+  // drawing's (owner's call, 2026-11-16): its windows, shadows and arrows
+  // stay in the Tab order and keep their spoken labels, Enter picks one
+  // (`wireDrawings`), and the part in focus lights on the map, as a mouse
+  // over the drawing lit it there.
+  const focusFace = (el) => el && el.closest && el.closest(".sm-face.on-map svg.aperture [data-pick]");
+  document.addEventListener("focusin", (e) => {
+    const part = focusFace(e.target);
+    if (part) showPick(part.closest("svg"), part.getAttribute("data-pick"));
+  });
+  document.addEventListener("focusout", (e) => {
+    const part = focusFace(e.target), next = focusFace(e.relatedTarget);
+    const svg = part && part.closest("svg");
+    if (!svg || (next && next.closest("svg") === svg)) return;
+    showPick(svg, PICKED[svg.getAttribute("data-break")] || null);
+  });
   window.swellMapFaces = faces;               // read by checks
   // The page's theme moves the map's with it: the foot's switch sets
   // data-theme, and the phone's own setting may change under it.

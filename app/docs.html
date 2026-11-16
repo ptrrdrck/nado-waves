@@ -298,6 +298,43 @@ dl.terms dd{margin:0;color:var(--ink)}
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .legend svg{flex:none}
 
+/* The window drawing (#swell-drawing), the card's until 2026-11-16 and kept
+   here working as the project's history. Its .aperture rules are the
+   forecast page's own, line for line (tests/test_docs.py), on a plate as the
+   card's was. */
+.drawbox{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:14px 12px 8px}
+.drawbox .empty{margin:0;font-size:14px;color:var(--soft)}
+.aperture{display:block;width:100%;max-width:420px;height:auto;margin:0 auto;overflow:visible;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.aperture [data-pick]{outline:none}
+.aperture .win{fill:var(--soft);fill-opacity:0;stroke:none}
+.aperture .win.on{fill-opacity:.3}
+.aperture .shadow.on{fill:var(--soft);fill-opacity:.6}
+.aperture.picked .shadow:not(.on){fill-opacity:.2}
+.aperture.picked .swell:not(.on){opacity:.15}
+.aperture .swell.on{opacity:1}
+.aperture .swell.on line{stroke-width:3}
+.aperture .ray,.aperture .deg,.aperture .faces,.aperture .chord,.aperture .spot{pointer-events:none}
+.aperture .sea{fill:none;stroke:var(--line-strong);stroke-width:1} /* = DRAW.rim */
+.aperture .shadow{fill:var(--faint);fill-opacity:.38;stroke:none}
+.aperture .ray{stroke:var(--soft);stroke-width:1}
+.aperture .deg{font-size:11px;font-weight:600;fill:var(--ink);
+               font-variant-numeric:tabular-nums;dominant-baseline:middle}
+/* The shoreline at the weight of the leading train's shaft, and the break's
+   dot scaled with it, twice its width across (owner's request, 2026-10-13:
+   4 and r 4 before). */
+.aperture .chord{stroke:var(--ink);stroke-width:3;stroke-linecap:round}
+.aperture .spot{fill:var(--ink)}
+.aperture .faces{font-size:11px;font-weight:600;fill:var(--ink);text-anchor:middle}
+/* Opacity on the group, so the leg and head fade as one shape rather than
+   darkening where they overlap. */
+.aperture .swell{opacity:.45}
+.aperture .swell line{stroke:var(--ink);stroke-width:1.75;stroke-linecap:round}
+.aperture .swell polygon{fill:var(--ink)}
+.aperture .swell.lead{opacity:1}
+.aperture .swell.lead line{stroke-width:3}
+
 /* the vertex drawing, small in the text and full size in 3.8 */
 figure{margin:0;display:flex;flex-direction:column;gap:8px}
 figcaption{font-size:13.5px;color:var(--soft)}
@@ -421,7 +458,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         <div class="row"><span class="pin">1</span><span class="tabs"><span class="on">&ldquo;LIVE&rdquo;</span><span>Forecast</span></span></div>
         <div class="row"><span class="pin">2</span><span class="tabs"><span class="on">North</span><span>Center</span><span>South</span><span>Buoy</span></span></div>
         <div class="row"><span class="pin">3</span><span><span class="big">3.6 ft</span> <span class="unit">(1.09 m)</span> breaking height &#9662;</span></div>
-        <div class="row"><span class="pin">4</span><span>the window drawing, and the swell trains under it</span></div>
+        <div class="row"><span class="pin">4</span><span>the swell trains, and the map under them</span></div>
         <div class="row"><span class="pin">5</span><span class="source">NDBC 46232 | 15 min ago | <b>Update in 59:12</b></span></div>
         <div class="row"><span class="pin">6</span><span><b>Charts</b> &#9652;</span></div>
         <div class="row"><span class="pin">7</span><span><b>Wind</b> 9 mph (8 kt) from the west, cross-shore at this break · <b>Tide</b> 6.2 ft (1.89 m)</span></div>
@@ -434,8 +471,9 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         <li><span class="pin">3</span><span><b>The headline</b>: the height where the waves
           break, and the depth they break in. The caret at its end folds out the calculation
           behind it. <a href="#calc-table">Reading the table</a>.</span></li>
-        <li><span class="pin">4</span><span><b>The windows</b>, drawn facing the way the break
-          faces, and the wave trains that make up the number. <a href="#swell-drawing">The window drawing</a>.</span></li>
+        <li><span class="pin">4</span><span><b>The wave trains</b> that make up the number, and
+          <b>the map</b>: the break's windows over the seabed, turned the way the break faces.
+          <a href="#swell-map">The map</a>.</span></li>
         <li><span class="pin">5</span><span><b>Where it came from, and when the next one is
           due.</b> <a href="#swell-countdown">Countdowns</a>.</span></li>
         <li><span class="pin">6</span><span><b>Charts</b>, closed until opened, the last line of
@@ -454,7 +492,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
           side by side under the Swell card.</li>
         <li><b>From 950 px</b>, the three breaks sit side by side: North, Center, South, in the
           order they sit on the sand, never ranked, so a column's place is its break's. Each
-          column's headline, calculation rows, trains and drawing sit level with the same ones
+          column's headline, calculation rows, trains and map sit level with the same ones
           beside it, and one caret opens all three calculations. The buoys get a card of their
           own, three across. <a href="#swell-origin">Origin</a> becomes one block for the beach.
           The swell's charts get a card of their own too, with the break or the buoys picked
@@ -844,7 +882,7 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         vertices, and its position is the chord's midpoint. The <em>shore normal</em> is the
         direction straight out to sea, at right angles to the chord. It is the reference for
         everything that depends on which way the beach faces: whether a wind is offshore, and
-        which way the window drawing on each card is turned.</p>
+        which way the map on each card is turned.</p>
       <div class="tablebox"><table id="geo-breaks"></table></div>
       <p>Where along the coast each break sits is a surfer's choice, not a chart's. Position
         matters: it sets the window. The chord's angle does not move the window at all (both
@@ -1271,28 +1309,58 @@ Hs = 1.087 m                         → 3.6 ft (1.09 m), breaking at 8 ft (2.4 
 
     <section id="swell-drawing">
       <h3>The window drawing</h3>
-      <p>The break's windows, drawn facing the way the break faces: open water above the shore,
-        the grey shadows of the land either side, and an arrow for each swell train, two for a
-        train arriving from two directions. Tap a shadow
-        for the land casting it and the share of this swell it takes; tap a window for the land
-        either side and its width; tap an arrow for that train. Tapping a train in the list above the drawing picks its
-        arrows the same way, and the train's row stays highlighted while it is picked. Tap it
-        again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with
-        Tab.</p>
+      <p>Until 16 November 2026 each break's card opened on this drawing, with the map a button
+        away. It is how this project first worked the beach out (window, shadow, then the energy
+        and its direction), and it is kept here, working, as that record. It has not left the
+        card: hidden there, it is what the map reads its windows, shadows, arrows and captions
+        from, and a browser that cannot draw the map (one without WebGL) shows it in the map's
+        place.</p>
+      <div class="seg" role="group" aria-label="Break" id="drawing-tabs"></div>
+      <div class="drawbox" id="window-drawing"></div>
+      <p class="source" id="drawing-when"></p>
+      <p>Tap a shadow for the land casting it and the share of this swell it takes; tap a window
+        for the land either side and its width; tap an arrow for that train. Tap it again, or the
+        sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches
+        every part with Tab.</p>
+      <p>The drawing stands at the break, facing straight out to sea. The half-circle above the
+        shoreline is every bearing the beach faces, and the land either side of the break closes
+        some of them off. What it leaves open is a window, the swell's only way in. A window is
+        named by the land either side of it, never by a direction: the land is what makes it, and
+        each time the land was charted more closely, the windows moved with it.</p>
+      <p>What the windows leave is shadow, grey, cast by the land that closes the window beside
+        it. A shadow is not the land: it is the swell that land keeps from this break, and it
+        differs at each break because each sees the land from its own place. Before 26 September
+        2026 the card gave the windows in one list and the land taking the swell in another; the
+        drawing put them in one picture. A swell spreads over many bearings, so no shadow simply
+        lets a swell through or stops it: each takes a share, and that share is what a tap on a
+        shadow gives.</p>
+      <p>Each arrow is a swell train, coming in from the rim along the direction its energy came
+        from offshore, the frame the windows are drawn in; the leading train's arrow is the
+        heaviest. A train from behind the beach gets no arrow, because it cannot arrive, and a
+        train fed from two directions gets one from each. From 22 October 2026 a picked train
+        also showed its direction in 5 m of water, as an arrowhead at the break. By 5 m nearly
+        every swell arrives within about 16&deg; of straight in, so on 10 November the drawing
+        went back to the offshore direction alone (<a href="#swell-bend">Which way a swell
+        arrives in 5 m of water</a>).</p>
+      <p>A view from the break has bearings but no distances. On 10 November 2026 the map put
+        the same windows at true scale over the seabed, turned the way the drawing is. A first
+        version of the swell filling in was drawn on this drawing that day and dropped: from the
+        break, swell bending round Point Loma's tip can only be drawn as energy crossing its
+        shadow. On the map it follows the rays the calculation traces. On 16 November 2026 the
+        map became the card's only view.</p>
     </section>
 
     <section id="swell-map">
       <h3>The map</h3>
-      <p>The button in the drawing's top-left corner swaps it for a map of the same windows, at
-        true scale, over the seabed the swell crosses on its way in. The map is turned the way the
-        drawing is, the break's shore facing up, so every window edge sits at its drawing angle,
-        and it opens zoomed in round the break, at one scale for all three breaks. The page remembers the choice on this device, for
-        every tab.</p>
+      <p>Each break's windows at true scale, over the seabed the swell crosses on its way in.
+        The map is turned the way the break faces, its shore up, and it opens zoomed in round the
+        break, at one scale for all three breaks. A browser that cannot draw it (one without
+        WebGL) shows <a href="#swell-drawing">the window drawing</a> in its place.</p>
       <p>Each window edge is a line from the break to the charted point of land that forms it;
         tap that point for the land's name and its distance. The dashed lines are the coast the
         model has, as it has it: they show how few charted points the windows stand on. The
         breaks' shorelines, NDBC 46232, NDBC 46086 and NDBC 46047 at Tanner Bank are marked. Tap a
-        window, a shadow or an arrow to pick it, as on the drawing; the train lights in the map's
+        window, a shadow or an arrow to pick it; the train lights in the map's
         one warm colour, gold on the dark page and orange on the light one. Pick a train in the
         list and the map shows it too.</p>
       <p>The seabed is drawn from the same depth grids the swell is carried over: USGS CoNED 2016
@@ -1332,7 +1400,7 @@ Hs = 1.087 m                         → 3.6 ft (1.09 m), breaking at 8 ft (2.4 
 
     <section id="swell-bend">
       <h3>Which way a swell arrives in 5 m of water</h3>
-      <p>Every arrow from the rim of the drawing is the direction a train's energy came from
+      <p>Every train's arrow on the map is the direction a train's energy came from
         offshore, the frame the windows are drawn in. On its way in, a swell slows over the
         shallowing seabed and turns toward the shallows (<a href="#calc-refraction">step 3</a>),
         so by 5 m of water it comes from much nearer straight out to sea: where each ray carrying
@@ -1442,7 +1510,7 @@ Hs = 1.087 m                         → 3.6 ft (1.09 m), breaking at 8 ft (2.4 
         made the two lines is not worked out, so the page does not say. Each line is energy that
         arrives, so each keeps its own line. The two lines sit together under a thin bracket, placed by the bigger of them, so on those
         hours the list is ordered by swell first and height second. Tapping either line lights
-        both, and both arrows on the drawing, with one caption naming the swell as the buoy
+        both, and both arrows on the map, with one caption naming the swell as the buoy
         read it.</p>
       <p>Lines are bracketed only when their energy came from one direction at the buoy as
         well: within 20&deg; of each other there, read in each line&rsquo;s own periods. One
@@ -1465,7 +1533,7 @@ Hs = 1.087 m                         → 3.6 ft (1.09 m), breaking at 8 ft (2.4 
         when a real dip separates their periods.</p>
       <p>Rarely, a single train still carries two directions it could not be divided by, and then
         both are given, &ldquo;WSW 258&deg; &amp; S 180&deg;&rdquo;, with an arrow from each on the
-        drawing. Every train keeps to one line, giving as much as fits beside its height and
+        map. Every train keeps to one line, giving as much as fits beside its height and
         period: the degrees when there is room, the compass points alone when there is not.</p>
       <p class="see">This replaced, on 8 October 2026, a split by period alone, which labelled a
         quarter of swell trains with two directions at one period and one height &mdash; and
@@ -1685,7 +1753,7 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         The publishing lag varies from hour to hour, so one deadline would either cry wolf on every
         slow hour or promise a time that almost never applies. Hence two figures.</p>
       <p>Three hours after a reading, if no newer one has come, the numbers made from it turn grey:
-        each break's height and trains and its drawing's leading arrow on 46232's reading, each
+        each break's height and trains on 46232's reading, each
         buoy's on its own, the Wind card's on KNZY's and the Tide card's height on the gauge's.
         They return to their usual colours when a newer reading lands. The calculation table,
         Origin, the provenance and the tide's predicted turn keep their colours. On a rose, a frame is
@@ -1980,7 +2048,7 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
       <p>The Forecast tab reaches 48 hours back. For each hour that has gone by,
         the forecast figure is what this page showed for that hour: the
         newest run that had been published before it, which is not always the
-        run on screen now. A past hour is drawn as it was published, with the drawing and the
+        run on screen now. A past hour is drawn as it was published, with its trains, map and
         calculation, from that build's own record. When an older build kept only the headline,
         the card says &ldquo;The calculation for this hour was not kept&rdquo; rather than
         borrowing another build's detail.</p>
@@ -2772,7 +2840,392 @@ function renderStanding(el, standing) {
     return `<dt>${label(key)}</dt><dd${bare}>${value}</dd>`;
   }).join("");
 }
+// ================================================================ the window drawing
+// Each break's window drawing as the forecast page drew it on the Swell card
+// until 2026-11-16, kept here working as the project's history (owner's
+// request, 2026-11-16); on the card it is now the map's unseen source. Every
+// line between the two markers is the forecast page's own, character for
+// character and unindented as it is there (tests/test_docs.py pins it), so
+// this is the drawing the card's map is read from. Units are both, as
+// everywhere on this page.
+const DRAWING = (() => {
+const UNITS = "both";
+// ---- from app/forecast.html ----
+const AWAY = "pointed away from this beach";
+const dualText = (imp, met) => (UNITS === "imperial" ? imp : UNITS === "metric" ? met : `${imp} (${met})`);
+const BLOCKER_SHORT = {
+  "Point Loma peninsula": "Point Loma",
+  "Coronado Islands (South group)": "Islands S",
+  "Coronado Islands (North group)": "Islands N",
+  "Baja peninsula": "Baja",
+};
+const shortBlocker = (name) => BLOCKER_SHORT[name] || name || "\u2014";
+function point(deg) {
+  if (deg == null) return "";
+  const points = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return points[Math.round(deg / 22.5) % 16];
+}
+function midBearing(from, to) {
+  const span = ((to - from) % 360 + 360) % 360;
+  return (from + span / 2) % 360;
+}
+function compass(deg) {
+  if (deg == null) return "—";
+  const points = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return points[Math.round(deg / 22.5) % 16] + " " + Math.round(deg) + "°";
+}
+function headings(t) {
+  return t && t.lobes && t.lobes.length >= 2 ? t.lobes.map((l) => l[0]) : [t ? t.from_deg : null];
+}
+function pointsText(t) {
+  return headings(t).map(point).join(" and ");
+}
+function swellCaption(group) {
+  const at = group.map((r) => r.t.swell_at_buoy).find(Boolean);
+  const n = ["", "", "two", "three", "four"][group.length] || String(group.length);
+  return (at ? `One swell at the buoy, ${pointsText(at)} at ${at.period_s.toFixed(1)} s,`
+    : "One swell at the buoy,") + `\nreaching this break as ${n} trains`;
+}
+function swellGroups(trains) {
+  const rows = trains.map((t, i) => ({t, i}));
+  const of = ({t}) => (!t.local && Number.isInteger(t.group) ? t.group : null);
+  const count = new Map();
+  rows.forEach((r) => { const k = of(r); if (k != null) count.set(k, (count.get(k) || 0) + 1); });
+  const out = [], placed = new Set();
+  for (const r of rows) {
+    if (placed.has(r.i)) continue;
+    const k = of(r);
+    const g = k != null && count.get(k) > 1 ? rows.filter((s) => of(s) === k) : [r];
+    g.forEach((s) => placed.add(s.i));
+    out.push(g);
+  }
+  return out;
+}
+const DRAW = {w: 320, h: 200, cx: 160, cy: 162, r: 140, rim: 1};
+const heightText = (m) => dualText(`${(m * FT_PER_M).toFixed(1)} ft`, `${m.toFixed(2)} m`);
+const svgText = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const shareText = (share) => {
+  const p = 100 * share;
+  return `${p < 1 ? p.toFixed(1) : Math.round(p)}%`;
+};
+function windowDrawing(c, aged = "") {
+  if (c.normal == null || !isFinite(c.normal)) return "";
+  const {w, h, cx, cy, r} = DRAW;
+  // Bearing -> angle off the normal, -180..180. Negative is the reader's left.
+  const rel = (b) => ((b - c.normal) % 360 + 540) % 360 - 180;
+  const bearing = (a) => ((c.normal + a) % 360 + 360) % 360;
+  const at = (a, rad) => {
+    const t = a * Math.PI / 180;
+    return [cx + rad * Math.sin(t), cy - rad * Math.cos(t)];
+  };
+  const xy = (p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+  const wedge = (a0, a1, rad = r) =>
+    `M${cx},${cy} L${xy(at(a0, rad))} A${rad},${rad} 0 0 1 ${xy(at(a1, rad))} Z`;
+  // The rim is a stroke centred on r, so anything ending AT r stops halfway
+  // through it. Shadows and rays run to its outer edge instead.
+  const outer = r + DRAW.rim / 2;
+
+  const wins = (c.swellWindow || [])
+    .filter((win) => win && isFinite(win.from) && isFinite(win.to))
+    .map((win) => ({...win, a0: rel(win.from), a1: rel(win.to)}))
+    .filter((win) => win.a0 >= -90 && win.a1 <= 90 && win.a0 < win.a1)
+    .sort((p, q) => p.a0 - q.a0);
+  if (!wins.length) return "";
+
+  // The shadows are whatever the windows leave, and each is cast by the land
+  // that closes the window before it -- the same name the blocker carries in
+  // `taken_by`, so its share is looked up, never typed.
+  const shadows = [];
+  let from = -90;
+  wins.forEach((win) => {
+    if (win.a0 > from) shadows.push({a0: from, a1: win.a0, blocker: win.opened_by});
+    from = win.a1;
+  });
+  if (from < 90) shadows.push({a0: from, a1: 90, blocker: wins[wins.length - 1].closed_by});
+  const taken = (name) => (c.takenBy || []).find((tb) => tb.blocker === name);
+
+  // Degree labels. At a chord end they sit just above it, inside the
+  // drawing: below it is the caption's line, and outside the box is the card.
+  // `side` is -1 for a section's low edge and +1 for its high edge; a pair
+  // closer than 16 degrees is pushed apart, low to the left and high to the
+  // right, or the 193° and 199° between the islands print on top of each other.
+  const label = (a, show, side = 0, tight = false) => {
+    const b = Math.round(bearing(a));
+    if (Math.abs(a) >= 89.5) {
+      const left = a < 0;
+      return `<text class="deg" data-show="${show}" x="${cx + (left ? 6 - r : r - 6)}" y="${cy - 7}"`
+        + ` text-anchor="${left ? "start" : "end"}"${show === "default" ? "" : " hidden"}>${b}°</text>`;
+    }
+    const [x, y] = at(a, r + 12);
+    const s = Math.sin(a * Math.PI / 180);
+    const anchor = tight ? (side < 0 ? "end" : "start")
+      : s > 0.25 ? "start" : s < -0.25 ? "end" : "middle";
+    return `<text class="deg" data-show="${show}" x="${x.toFixed(1)}" y="${y.toFixed(1)}"`
+      + ` text-anchor="${anchor}"${show === "default" ? "" : " hidden"}>${b}°</text>`;
+  };
+  // The line where "facing" sits. Two lines when one would run off the box,
+  // or where the text puts its own break ("\n": a train's 5 m heading).
+  const caption = (text, show) => {
+    const parts = text.includes("\n") ? text.split("\n")
+      : text.length > 50 && text.includes(", ")
+        ? [text.slice(0, text.indexOf(", ") + 1), text.slice(text.indexOf(", ") + 2)] : [text];
+    return `<text class="faces" data-show="${show}" x="${cx}" y="${cy + 20}"`
+      + `${show === "default" ? "" : " hidden"}>`
+      + parts.map((part, i) => `<tspan x="${cx}" dy="${i ? 13 : 0}">${svgText(part)}</tspan>`).join("")
+      + `</text>`;
+  };
+
+  const sections = [];      // what the pointer can pick, by angle
+  const labels = [label(wins[0].a0, "default"), label(wins[wins.length - 1].a1, "default")];
+  const captions = [caption(`facing ${compass(c.normal)}`, "default")];
+
+  const windowPaths = wins.map((win, i) => {
+    const key = `w${i}`;
+    const soft = win.confidence && win.confidence !== "high";
+    const text = `${shortBlocker(win.opened_by)} → ${shortBlocker(win.closed_by)}, `
+      + `${point(midBearing(win.from, win.to))}, ${Math.round(win.a1 - win.a0)}° wide`
+      + (soft ? ", one edge estimated" : "");
+    sections.push({key, a0: win.a0, a1: win.a1});
+    const tight = win.a1 - win.a0 < 16;
+    labels.push(label(win.a0, key, -1, tight), label(win.a1, key, 1, tight));
+    captions.push(caption(text, key));
+    return `<path class="win" data-pick="${key}" tabindex="0" role="button"`
+      + ` aria-label="${svgText(text)}" d="${wedge(win.a0, win.a1, outer)}"/>`;
+  }).join("");
+
+  const shading = shadows.map((sh, i) => {
+    const key = `s${i}`;
+    const tb = taken(sh.blocker);
+    const text = tb
+      ? `${sh.blocker}, blocking ${shareText(tb.share)} of this swell`
+        + (tb.verified === false ? " (estimated)" : "")
+      : `${sh.blocker}, blocking none of this swell`;
+    sections.push({key, a0: sh.a0, a1: sh.a1});
+    const tight = sh.a1 - sh.a0 < 16;
+    labels.push(label(sh.a0, key, -1, tight), label(sh.a1, key, 1, tight));
+    captions.push(caption(text, key));
+    return `<path class="shadow" data-pick="${key}" tabindex="0" role="button"`
+      + ` aria-label="${svgText(text)}" d="${wedge(sh.a0, sh.a1, outer)}"/>`;
+  }).join("");
+
+  // Every edge is a ray from the break to the rim.
+  const rays = wins.flatMap((win) => [win.a0, win.a1]).map((a) => {
+    const [x, y] = at(a, outer);
+    return `<line class="ray" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+  }).join("");
+
+  // Arrows come in from the rim along the heading each train arrives from,
+  // and stop well short of the break: trains a few degrees apart would
+  // otherwise meet in one knot of arrowheads at the centre. Drawn last so a
+  // train is never hidden under a shadow it has leaked past. A train from
+  // behind the beach is not drawn: it cannot arrive, and an arrow pointing out
+  // of the sand would say it could.
+  //
+  // The head is its own triangle rather than an SVG marker: a marker cannot
+  // take its colour from the line it sits on in every browser, and on some
+  // the heads came out black and grey. The leg stops inside the head, where
+  // the triangle is wider than the stroke, so it never shows either side of
+  // the tip.
+  // Local chop is made by the wind over the last few kilometres, not
+  // carried in from the ocean, so it gets no arrow from the rim.
+  const trains = [];
+  // No 5 m heading on the drawing (owner's call, 2026-11-10, after a month of
+  // the arrowhead and its caption line from 2026-10-22): by 5 m nearly every
+  // swell arrives within ~16 degrees of straight in (BRIEFING §45), and the
+  // map shows how the rays turn. Each train's `near_from_deg` is still
+  // computed and kept in the payload, and docs.html's swell-bend table stays.
+  // A swell the break shows as two rows (BRIEFING §49) has one caption of
+  // its own (`swellCaption`), shown when one of its rows is tapped and all of
+  // its arrows light. Pushed before the trains' captions: a pick shows only
+  // the first caption it lights.
+  for (const g of swellGroups((c.trains || []).slice(0, 4)).filter((g) => g.length > 1)) {
+    captions.push(caption(swellCaption(g), `g${g.map((r) => r.i).sort((a, b) => a - b).join(".")}`));
+  }
+  // A train from two directions gets an arrow from each (`headings`).
+  const arrows = (c.trains || [])
+    .flatMap((t, i) => headings(t).map((deg, j) => ({t, i, j, deg, a: rel(deg)})))
+    .filter(({t, deg, a}) => !t.local && isFinite(deg) && a > -90 && a < 90)
+    .reverse()
+    .map(({t, i, j, deg, a}) => {
+      const key = j ? `t${i}-${j}` : `t${i}`;
+      const lead = i === 0;
+      const len = lead ? 10 : 8, half = lead ? 4.5 : 3.5;
+      const tip = r * 0.62;
+      const [x0, y0] = at(a, r * 0.95);
+      const [x1, y1] = at(a, tip + 0.6 * len);
+      const th = a * Math.PI / 180;
+      const [bx, by] = at(a, tip + len);
+      const [px, py] = [Math.cos(th) * half, Math.sin(th) * half];
+      const head = `${xy(at(a, tip))} ${xy([bx + px, by + py])} ${xy([bx - px, by - py])}`;
+      const text = `${heightText(t.hs_m)} at ${t.period_s.toFixed(1)} s, ${pointsText(t)}`
+        + (t.wind_sea ? ", wind sea" : "");
+      const said = text;
+      const [ex, ey] = at(a, tip);
+      trains.push({key, x0: +x0.toFixed(1), y0: +y0.toFixed(1), x1: +ex.toFixed(1), y1: +ey.toFixed(1)});
+      labels.push(`<text class="deg" data-show="${key}" hidden x="${at(a, r + 12)[0].toFixed(1)}"`
+        + ` y="${at(a, r + 12)[1].toFixed(1)}" text-anchor="${Math.sin(th) > 0.25 ? "start"
+          : Math.sin(th) < -0.25 ? "end" : "middle"}">${Math.round(deg)}°</text>`);
+      captions.push(caption(text, key));
+      return `<g class="swell${lead ? " lead" : ""}" data-pick="${key}" tabindex="0" role="button"`
+        + ` aria-label="${svgText(said)}">`
+        + `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`
+        + `<polygon points="${head}"/></g>`;
+    }).join("");
+
+  const said = wins.map((win) => `${Math.round(win.from)} to ${Math.round(win.to)} degrees`).join(", ");
+  const heard = (c.trains || []).filter((t) => !t.local && isFinite(t.from_deg))
+    .map((t) => headings(t).map(Math.round).join(" and ")).join(", ");
+  const summary = `Swell windows facing ${compass(c.normal)}: ${said}.`
+    + (heard ? ` Swell arriving from ${heard} degrees.` : "")
+    + " Select a window, a shadow or an arrow for its detail.";
+  // Swell aimed behind the beach is not blocked by anything -- nothing is in
+  // the way, it is pointed elsewhere -- so it is no shadow. It belongs to the
+  // sand behind the chord, and a tap there says how much of it there is.
+  const away = taken(AWAY);
+  if (away) {
+    captions.push(caption(`${shareText(away.share)} of this swell is ${AWAY}; `
+      + `nothing blocks it`, "away"));
+  }
+  const geo = svgText(JSON.stringify({cx, cy, r: outer, sections, trains, away: !!away}));
+
+  return `<svg class="aperture" viewBox="0 0 ${w} ${h}" role="group" aria-label="${svgText(summary)}"
+    data-break="${c.id}" data-geo="${geo}"${aged}>
+    <path class="sea" d="${wedge(-90, 90)}"/>
+    ${windowPaths}${shading}${rays}${labels.join("")}${arrows}
+    <line class="chord" x1="${cx - r}" y1="${cy}" x2="${cx + r}" y2="${cy}"/>
+    <circle class="spot" cx="${cx}" cy="${cy}" r="3"/>
+    ${captions.join("")}
+  </svg>`;
+}
+const PICKED = {};
+const pickMatch = (key) => (key && /^T\d+$/.test(key)
+  ? (k) => k === `t${key.slice(1)}` || k.startsWith(`t${key.slice(1)}-`)
+  : key && /^G[\d.]+$/.test(key)
+    ? (k) => k === `g${key.slice(1)}` || key.slice(1).split(".").some((n) => k === `t${n}` || k.startsWith(`t${n}-`))
+    : (k) => k === key);
+const pickRows = (key, n) => !!key && (key === `T${n}` || key === `t${n}` || key.startsWith(`t${n}-`)
+  || (key[0] === "G" && key.slice(1).split(".").includes(n)));
+const pickDrawn = (svg, key) => !!key
+  && [...svg.querySelectorAll("[data-pick]")].some((el) => pickMatch(key)(el.getAttribute("data-pick")));
+function showPick(svg, key) {
+  const hit = pickMatch(key);
+  svg.classList.toggle("picked", !!key);
+  // The row of the train lit, whether picked from the list or by its arrow,
+  // reads as pressed, as a Buoys tab row does over its rose.
+  const pane = svg.closest(".pane");
+  if (pane) {
+    pane.querySelectorAll(".train[data-train]").forEach((row) => {
+      row.setAttribute("aria-pressed", String(pickRows(key, row.getAttribute("data-train"))));
+    });
+  }
+  svg.querySelectorAll("[data-pick]").forEach((el) =>
+    el.classList.toggle("on", !!key && hit(el.getAttribute("data-pick"))));
+  // Every arrow's bearing, but one caption: a train's arrows share its text.
+  let captioned = false;
+  svg.querySelectorAll("[data-show]").forEach((el) => {
+    const show = el.getAttribute("data-show");
+    let on = key ? hit(show) : show === "default";
+    if (on && el.classList.contains("faces")) { on = !captioned; captioned = true; }
+    if (on) el.removeAttribute("hidden"); else el.setAttribute("hidden", "");
+  });
+}
+function pickAt(svg, clientX, clientY) {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+  const geo = JSON.parse(svg.getAttribute("data-geo"));
+  const dx = pt.x - geo.cx, dy = geo.cy - pt.y;
+  // Behind the chord is the sand: the swell aimed away from the beach, if
+  // any of it is, and otherwise the way back to the default drawing.
+  if (dy < 0) return geo.away ? "away" : "";
+  if (Math.hypot(dx, dy) > geo.r + 14) return null;
+  for (const arrow of geo.trains) {
+    const vx = arrow.x1 - arrow.x0, vy = arrow.y1 - arrow.y0;
+    const k = Math.max(0, Math.min(1,
+      ((pt.x - arrow.x0) * vx + (pt.y - arrow.y0) * vy) / (vx * vx + vy * vy)));
+    if (Math.hypot(pt.x - (arrow.x0 + k * vx), pt.y - (arrow.y0 + k * vy)) < 9) return arrow.key;
+  }
+  const a = Math.atan2(dx, dy) * 180 / Math.PI;
+  const off = (s) => (a < s.a0 ? s.a0 - a : a > s.a1 ? a - s.a1 : 0);
+  const thin = geo.sections.filter((s) => s.a1 - s.a0 < 5 && off(s) <= 2.5)
+    .sort((p, q) => off(p) - off(q));
+  if (thin.length) return thin[0].key;
+  const hit = geo.sections.find((s) => off(s) === 0);
+  return hit ? hit.key : null;
+}
+function togglePick(svg, key) {
+  const id = svg.getAttribute("data-break");
+  PICKED[id] = key && PICKED[id] !== key ? key : null;
+  showPick(svg, PICKED[id]);
+}
+// ---- end ----
+return {windowDrawing, showPick, pickAt, pickDrawn, togglePick, PICKED};
+})();
+// This page's own: a break picked above it, and the drawing redrawn from
+// each now.json the page reads, a pick kept across the redraw as the card
+// kept it.
+const DRAWING_BREAKS = ["coronado_north", "coronado_center", "coronado_south"];
+let drawingId = DRAWING_BREAKS[0], drawingNow = null;
+function renderDrawing(observed) {
+  if (observed !== undefined) drawingNow = observed;
+  const b = drawingNow && (drawingNow.breaks || []).find((x) => x.id === drawingId);
+  const svg = b ? DRAWING.windowDrawing({id: b.id, normal: b.shore_normal_deg,
+    swellWindow: b.swell_window || [], takenBy: b.taken_by || [], trains: b.trains || []}) : "";
+  if (svg) {
+    $("window-drawing").innerHTML = svg;
+    const el = $("window-drawing").querySelector("svg.aperture");
+    const key = DRAWING.PICKED[drawingId];
+    DRAWING.showPick(el, DRAWING.pickDrawn(el, key) ? key : null);
+    $("drawing-when").innerHTML = `Drawn from the latest &ldquo;LIVE&rdquo; reading, `
+      + `<b>${when(drawingNow.observed_utc)}</b>, as the card's map is.`;
+  } else {
+    $("window-drawing").innerHTML = `<p class="empty">The drawing is filled in from the
+      &ldquo;LIVE&rdquo; tab's latest reading (<code>python -m forecast.now</code>), and there is
+      none to draw from yet.</p>`;
+    $("drawing-when").textContent = "";
+  }
+  document.querySelectorAll("#drawing-tabs button")
+    .forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.id === drawingId)));
+}
+for (const id of DRAWING_BREAKS) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.id = id; b.textContent = NAME[id];
+  b.onclick = () => { drawingId = id; renderDrawing(); };
+  $("drawing-tabs").appendChild(b);
+}
+// As the card wired it: a tap picks, the same tap again or the sand returns;
+// a mouse previews; Enter or Space picks the part in focus.
+(() => {
+  const box = $("window-drawing");
+  const settle = (svg) => DRAWING.showPick(svg, DRAWING.PICKED[svg.getAttribute("data-break")] || null);
+  box.addEventListener("click", (e) => {
+    const svg = e.target.closest("svg.aperture");
+    if (!svg) return;
+    const own = e.target.closest("[data-pick]");
+    const key = e.detail === 0 && own ? own.getAttribute("data-pick") : DRAWING.pickAt(svg, e.clientX, e.clientY);
+    if (key !== null) DRAWING.togglePick(svg, key);
+  });
+  box.addEventListener("pointermove", (e) => {
+    const svg = e.target.closest("svg.aperture");
+    if (!svg || e.pointerType !== "mouse") return;
+    DRAWING.showPick(svg, DRAWING.pickAt(svg, e.clientX, e.clientY) || DRAWING.PICKED[svg.getAttribute("data-break")] || null);
+  });
+  box.addEventListener("pointerout", (e) => {
+    const svg = e.target.closest("svg.aperture");
+    if (svg && !svg.contains(e.relatedTarget)) settle(svg);
+  });
+  box.addEventListener("keydown", (e) => {
+    const el = e.target.closest("svg.aperture [data-pick]");
+    if (!el || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    DRAWING.togglePick(el.closest("svg"), el.getAttribute("data-pick"));
+  });
+})();
+renderDrawing(null);
+
 function renderNow(NOW) {
+  renderDrawing(NOW);
   if (!NOW || !NOW.breaks || !NOW.breaks.length) {
     renderStanding($("standing-now"), (NOW && NOW.standing_on) || {});
     $("foot-now").innerHTML = `<b class="none">No current observation.</b> `
@@ -2910,7 +3363,7 @@ const GEO = {
     .find((e) => e.blocker === "Baja peninsula").range_km),
   "normals": () => MODEL.breaks.map((b) => fmtBrg(b.normal)).join(", ").replace(/, ([^,]*)$/, " and $1"),
 };
-document.querySelectorAll("[data-geo]").forEach((el) => {
+document.querySelectorAll("span[data-geo]").forEach((el) => {
   const [key, ...args] = el.dataset.geo.split(":");
   try { if (MODEL) el.textContent = GEO[key](...args); } catch (err) { el.textContent = "—"; }
 });

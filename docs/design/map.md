@@ -328,3 +328,54 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    before the mock (a ray past `raytrace.deep_leg`'s start is not traced),
    and so were Contours and Origins in the layer list (origins:
    origin.md's last section).
+
+## The map, the only view
+
+   **The drawing left the card for the map** (owner's request and calls,
+   2026-11-16, group 3, item 20). The drawing / map switch is gone, and with
+   it the choice it kept (`nado-waves.swell-view`, no longer read; left on
+   devices that have it, since localStorage is pinned to the page's two
+   helpers, `stored` / `store`, and a third to delete it would be a
+   page-wide helper for one stale key). What "Map layers" above calls "as
+   the drawing-or-map choice is" now means as the choice WAS.
+
+   - **The drawing stays, unseen, as the map's source**: on the plate under
+     the map, at opacity 0 with no pointer events -- never `visibility` or
+     `display`, which would take it out of the Tab order and the spoken page.
+     `readSvg`, `data-geo`, `togglePick`, the row picks and the observer that
+     redraws the map all read it as before. It is also the map's keyboard and
+     screen-reader way in (owner's call): its windows, shadows and arrows
+     keep their place in the Tab order and their labels, Enter picks one
+     (`wireDrawings`), and the part in focus lights on the map as a mouse
+     over the drawing lit it there (`focusin` / `focusout` in the map's
+     module). Checked at 390 and 1300 px: focus on North's first window
+     lights `w0` on the map and puts its caption in the tray; Enter keeps it.
+   - **Shown only where the map cannot be drawn.** `GL` asks for WebGL as
+     MapLibre 4.7.1 does (WebGL 2, else 1; a test reads both in the bundled
+     library) and lets the probe's context go. Without it every card opens
+     on the drawing at the drawing's size, and no map file is fetched. The
+     library or map.json failing to load, or the map failing to start, falls
+     back the same way for the rest of the visit (`noMap`), the plate sliding
+     from the map's height to the drawing's as a fold does. Before this, a
+     browser without WebGL that kept the map got an EMPTY 328 px plate at
+     390 px, MapLibre's "Failed to initialize WebGL" uncaught (reproduced in
+     Chromium with `--disable-3d-apis`). Now, at 390 px: the map 328 px;
+     without WebGL the drawing 188 px with nothing of the map fetched;
+     the library blocked, or map.json, the drawing 188 px; no page error.
+   - **A stale reading's arrow** (owner's call): the drawing greys its
+     leading arrow when 46232's reading is past `STALE_HOURS`; the map's
+     arrows never did, and a grey for them would be a new design to mock.
+     docs.html's countdown section no longer names the arrow; the heights
+     and trains still grey.
+   - **docs.html keeps the drawing working, as the project's history**
+     ("The window drawing", same id): how the project worked the beach out,
+     window, shadow, then the energy and its direction, in the owner's
+     approved wording, over a working drawing of the latest "LIVE" reading
+     (now.json, a North / Center / South switch, units both). Its code is the
+     forecast page's own, 23 pieces copied line for line, and its `.aperture`
+     rules likewise; `tests/test_docs.py` pins both, so it is exactly the
+     drawing the card's map reads. Its own wiring (tap, hover, Enter) is
+     docs.html's, as the card's was the conditions strip's. The page's
+     geometry facts are read from `span[data-geo]`, so the drawing's own
+     `data-geo` is never overwritten. The other docs.html lines that put the
+     drawing on the card now put the map there.

@@ -229,7 +229,11 @@ class TestItFoldsInGeometry:
         assert DOCS.count("data-map ") >= 6
 
     def test_every_geometry_fact_in_the_prose_has_a_reader(self):
-        keys = set(re.findall(r'data-geo="([^":]+)', DOCS))
+        # A fact is a span; the window drawing's svg carries a data-geo of its
+        # own (its angles, as on the card), which the reader never touches.
+        assert 'document.querySelectorAll("span[data-geo]")' in DOCS
+        keys = set(re.findall(r'<span data-geo="([^":]+)', DOCS))
+        assert len(keys) >= 6
         block = DOCS[DOCS.index("const GEO = {"):DOCS.index("};", DOCS.index("const GEO = {"))]
         for key in keys:
             assert f'"{key}":' in block, key
@@ -239,6 +243,66 @@ class TestItFoldsInGeometry:
 
         page = geomviz.render(geomviz.build(), template=ROOT / "app" / "docs.html")
         assert "const MODEL = {" in page and "/*__MODEL__*/" not in page
+
+
+# The card's window drawing, kept on docs.html as the project's history.
+DRAWING_PIECES = (
+    "const AWAY = ", "const dualText = ", "const BLOCKER_SHORT = {", "const shortBlocker = ",
+    "function point(", "function midBearing(", "function compass(", "function headings(",
+    "function pointsText(", "function swellCaption(", "function swellGroups(",
+    "const DRAW = ", "const heightText = ", "const svgText = ", "const shareText = ",
+    "function windowDrawing(", "const PICKED = ", "const pickMatch = ", "const pickRows = ",
+    "const pickDrawn = ", "function showPick(", "function pickAt(", "function togglePick(",
+)
+
+
+def _piece(src: str, start: str) -> str:
+    """The statement starting at column 0 with `start`, to where its brackets
+    close on a line ending the statement."""
+
+    lines = src.split("\n")
+    hits = [i for i, line in enumerate(lines) if line.startswith(start)]
+    assert len(hits) == 1, (start, len(hits))
+    depth, out = 0, []
+    for line in lines[hits[0]:]:
+        out.append(line)
+        depth += sum(line.count(c) for c in "({[") - sum(line.count(c) for c in ")}]")
+        if depth == 0 and line.rstrip().endswith((";", "}")):
+            return "\n".join(out)
+    raise AssertionError(start)
+
+
+class TestTheWindowDrawing:
+    """Owner's request, 2026-11-16: the drawing left the Swell card for the
+    map, and stays on this page, working, as the project's history -- the
+    drawing the card's map still reads, so its code and its look are the
+    forecast page's own."""
+
+    def test_it_replaces_the_old_section_under_the_same_id(self):
+        sec = DOCS[DOCS.index('<section id="swell-drawing">'):]
+        sec = sec[:sec.index("</section>")]
+        assert "<h3>The window drawing</h3>" in sec
+        for el in ('id="drawing-tabs"', 'id="window-drawing"', 'id="drawing-when"'):
+            assert el in sec, el
+        assert "Until 16 November 2026" in sec and "without WebGL" in sec
+        assert '<a href="#swell-drawing">' in DOCS
+
+    def test_its_code_is_the_forecast_pages_own(self):
+        block = DOCS[DOCS.index("// ---- from app/forecast.html ----"):DOCS.index("// ---- end ----")]
+        expected = "\n".join(_piece(PAGE, start) for start in DRAWING_PIECES)
+        assert block.strip("\n").split("\n", 1)[1] == expected
+        assert 'const UNITS = "both";' in DOCS
+
+    def test_its_look_is_the_forecast_pages_own(self):
+        rules = [line for line in DOCS.split("\n") if line.startswith(".aperture")]
+        assert len(rules) >= 15
+        for line in rules:
+            assert line in PAGE.split("\n"), line
+
+    def test_it_is_drawn_from_the_live_reading(self):
+        render = DOCS[DOCS.index("function renderNow(NOW) {"):]
+        assert render.index("renderDrawing(NOW);") < render.index("if (!NOW")
+        assert "drawingNow.observed_utc" in DOCS
 
 
 class TestTheWorkedHour:

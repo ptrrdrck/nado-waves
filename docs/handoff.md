@@ -90,7 +90,7 @@ Not done, noted: the largest single ray still carries 33-64% of a break's
 5 m energy on some narrow-swell hours (a clear ray with the islands'
 lit-side ripple), under every island treatment; stable, so not item 14.
 
-### Group 3: map layers -- items 2 and 11 done (branch claude/gracious-rubin-6x5o2g)
+### Group 3: map layers -- items 2, 11 and 20 done (branches claude/gracious-rubin-6x5o2g, claude/awesome-rubin-b550ps)
 
 Mocked in "Seabed Map Themes" and picked by the owner on 2026-11-16; map.md
 "Map layers".
@@ -103,11 +103,12 @@ Mocked in "Seabed Map Themes" and picked by the owner on 2026-11-16; map.md
 12. **Origins as a map layer** -- set aside by the owner for a session of
     their own; the mock keeps it, origin.md's last section the notes (and
     the whole Pacific).
-20. **Hide the window drawing** (owner's request, 2026-11-16) -- next, a
-    second PR: the map the only view and its switch gone; the drawing kept,
-    unseen, as the map's source and shown only where the map cannot be drawn
-    (no WebGL); a working drawing on docs.html as the project's history, how
-    the owner thought through window, shadow and energy direction.
+20. **Hide the window drawing** (owner's request, 2026-11-16) -- done: the
+    map the only view, its switch gone; the drawing kept, unseen, as the
+    map's source and its keyboard way in, shown only where the map cannot be
+    drawn (no WebGL, or the library, map.json or the map failing); a working
+    drawing on docs.html as the project's history, its code pinned to the
+    page's. map.md "The map, the only view".
 
 ### Group 4: Wind and Tide cards
 
@@ -137,14 +138,6 @@ wait for Tests, don't merge." to each.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
   cause and the truth before changing anything."
-- Group 3, item 20: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
-  Item 20 of docs/handoff.md, hide the window drawing. Read map.md (all of
-  it, the plate and the fill especially) and app_surface.md first. The map
-  reads the drawing (`readSvg`, `data-geo`), so the drawing stays, unseen,
-  as its source; show it only where the map cannot be drawn (no WebGL), and
-  drop the drawing/map switch. Put a working drawing on docs.html as the
-  project's history, replacing 'The window drawing' section; propose its
-  wording first. Strongest model setting: it is architecture."
 - Group 4: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 4 of docs/handoff.md (items 7, 8), Wind and Tide cards. Read
   tide_wind_sun.md and app_surface.md first; mock item 8 before building."

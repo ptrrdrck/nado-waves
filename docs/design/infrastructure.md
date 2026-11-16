@@ -70,7 +70,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   break's line) by KNZY, Tide's height by the gauge. NOT the calculation
   table or Origin (right for the reading they were made from), the
   provenance, or the tide's predicted turn; on the drawing only the leading
-  train's arrow. A rose frame greys only if it was itself the stale
+  train's arrow (the drawing is shown only where the map cannot be drawn
+  since 2026-11-16, and the map's arrows never grey). A rose frame greys only if it was itself the stale
   reading (`roseAged`): more than 3 h from its stamp to the NEXT frame's
   stamp, or to now for the newest — petals and the line under them,
   Period's bands kept in order up to `--faint` — never the rings or

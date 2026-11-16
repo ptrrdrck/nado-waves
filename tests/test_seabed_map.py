@@ -214,12 +214,43 @@ def test_no_gpl_code_ships_with_the_page():
             assert "GNU GENERAL PUBLIC LICENSE" not in path.read_text(encoding="utf-8", errors="ignore")
 
 
-def test_the_map_view_is_a_device_setting_through_the_pages_helpers():
-    """One choice for every tab, kept on this device (the mock's), through
-    `stored` / `store` like the page's other device settings."""
+def test_the_map_is_the_only_view_and_the_drawing_its_unseen_source():
+    """Owner's request, 2026-11-16: no drawing / map switch and no kept choice;
+    the drawing stays on the plate as what the map reads, unseen but in the
+    Tab order and spoken (opacity, never visibility or display, which would
+    take it out of both), and the part in focus lights on the map."""
 
-    assert 'const VIEW_KEY = "nado-waves.swell-view";' in PAGE
-    assert 'stored(VIEW_KEY) === "map"' in PAGE and "store(VIEW_KEY, v);" in PAGE
+    assert "sm-switch" not in PAGE and "VIEW_KEY" not in PAGE and "setView" not in PAGE
+    assert "nado-waves.swell-view" not in PAGE
+    assert 'let view = GL ? "map" : "drawing";' in PAGE
+    assert ".sm-face.on-map .sm-plate > svg.aperture{opacity:0;pointer-events:none}" in PAGE
+    assert not re.search(r"\.on-map[^{]*svg\.aperture\{[^}]*(visibility|display)", PAGE)
+    assert 'document.addEventListener("focusin"' in PAGE
+    assert ".sm-face.on-map svg.aperture [data-pick]" in PAGE
+
+
+def test_the_drawing_shows_only_where_the_map_cannot_be_drawn():
+    """Owner's request, 2026-11-16. No WebGL, asked for as MapLibre 4.7.1 asks
+    (WebGL 2, else 1): the drawing from the first paint and nothing of the
+    map fetched. The library or map.json failing to load, or the map failing
+    to start, falls back the same way rather than leave an empty plate (before
+    this, MapLibre's "Failed to initialize WebGL" went uncaught)."""
+
+    lib = (VENDOR / "maplibre-gl-4.7.1" / "maplibre-gl.js").read_text(encoding="utf-8")
+    assert 'getContext("webgl2",t)||this._canvas.getContext("webgl",t)' in lib
+    probe = PAGE[PAGE.index("  const GL = (() => {"):]
+    probe = probe[:probe.index("})();")]
+    assert 'c.getContext("webgl2") || c.getContext("webgl")' in probe
+    assert "loseContext()" in probe
+    show = PAGE[PAGE.index("    show() {"):]
+    show = show[:show.index("    turnFrom(prev) {")]
+    assert "if (!on || !this.box.offsetWidth) return;" in show
+    assert show.index("if (!on || !this.box.offsetWidth) return;") < show.index("ready()")
+    assert "if (!this.b) { noMap(); return; }" in show
+    assert "try { this.make(); } catch (e) { noMap(); return; }" in show
+    body = PAGE[PAGE.index("  function noMap() {"):]
+    body = body[:body.index("  }\n")]
+    assert 'view = "drawing";' in body and "faces.forEach((f) => f.show());" in body
 
 
 def test_the_map_is_turned_to_the_shore_normal_and_never_by_the_reader():
@@ -306,10 +337,11 @@ def test_the_plates_go_back_before_anything_reads_the_layout():
     assert "window.swellMapAttach = attach;" in PAGE
 
 
-def test_a_face_opens_in_the_view_this_device_keeps():
+def test_a_face_opens_in_the_view_the_page_shows():
     """Owner's report, 2026-11-15: made as a drawing, a face on a page opening
     on the map slid from the drawing's height to the map's on every load and
-    moved everything under it ~100 px."""
+    moved everything under it ~100 px. Since 2026-11-16 that view is the map,
+    or the drawing where the map cannot be drawn."""
 
     body = PAGE[PAGE.index("  class Face {"):]
     body = body[:body.index("    adopt(svg) {")]
