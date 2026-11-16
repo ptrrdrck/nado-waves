@@ -48,7 +48,7 @@ From the top of the forecast page down. The figures are a real hour, noon on Mon
 - “LIVE” / Forecast
 - North / Center / South / Buoy
 - 3.6 ft (1.09 m) breaking height ▾
-- the window drawing, and the swell trains under it
+- the swell trains, and the map under them
 - NDBC 46232 | 15 min ago | **Update in 59:12**
 - **Charts** ▴
 - **Wind** 9 mph (8 kt) from the west, cross-shore at this break · **Tide** 6.2 ft (1.89 m)
@@ -56,7 +56,7 @@ From the top of the forecast page down. The figures are a real hour, noon on Mon
 1. **Two tabs.** “LIVE” is built only from measurements, Forecast only from a model. [Two tabs, two chains](#chains).
 2. **One tab per break**, ranked by how much swell each one's windows let in, with the buoy itself always last. [Break tabs](#swell-tabs).
 3. **The headline**: the height where the waves break, and the depth they break in. The caret at its end folds out the calculation behind it. [Reading the table](#calc-table).
-4. **The windows**, drawn facing the way the break faces, and the wave trains that make up the number. [The window drawing](#swell-drawing).
+4. **The wave trains** that make up the number, and **the map**: the break's windows over the seabed, turned the way the break faces. [The map](#swell-map).
 5. **Where it came from, and when the next one is due.** [Countdowns](#swell-countdown).
 6. **Charts**, closed until opened, the last line of every card. [Charts](#charts).
 7. **Wind and Tide**, cards of their own because one station feeds all three breaks. [Wind](#wind), [Tide](#tide).
@@ -66,7 +66,7 @@ From the top of the forecast page down. The figures are a real hour, noon on Mon
 The page above is a phone's. Wider than a phone, the same cards are laid out to use the room; what they say does not change.
 
 - **A tablet held upright** (700 to 949 px wide) keeps the tabs, with Wind and Tide side by side under the Swell card.
-- **From 950 px**, the three breaks sit side by side: North, Center, South, in the order they sit on the sand, never ranked, so a column's place is its break's. Each column's headline, calculation rows, trains and drawing sit level with the same ones beside it, and one caret opens all three calculations. The buoys get a card of their own, three across. [Origin](#swell-origin) becomes one block for the beach. The swell's charts get a card of their own too, with the break or the buoys picked above the plot. The Wind card gives every break's offshore, cross-shore or onshore line, and the Sun card every break's sunset, each under its break's name.
+- **From 950 px**, the three breaks sit side by side: North, Center, South, in the order they sit on the sand, never ranked, so a column's place is its break's. Each column's headline, calculation rows, trains and map sit level with the same ones beside it, and one caret opens all three calculations. The buoys get a card of their own, three across. [Origin](#swell-origin) becomes one block for the beach. The swell's charts get a card of their own too, with the break or the buoys picked above the plot. The Wind card gives every break's offshore, cross-shore or onshore line, and the Sun card every break's sunset, each under its break's name.
 - **From 1280 px**, what the whole beach shares sits in a column at the left: the tabs, the Briefing, then Wind, Tide and Sun. The breaks, the buoys and the charts sit beside it.
 
 On a wide screen the [Briefing](#briefing) is always open. Its green dot then marks an update you have not been at the page for, and goes at your next touch, click, key or scroll anywhere on it. And every chart has a button beside its menu that opens it full screen; the same button, or Escape, closes it.
@@ -198,7 +198,7 @@ So a west swell reaches South more easily than North. That is the window. The se
 
 ### [aperture-chords] Breaks, chords and shore normals
 
-Each break is a short stretch of shoreline, a *chord* between two charted vertices, and its position is the chord's midpoint. The *shore normal* is the direction straight out to sea, at right angles to the chord. It is the reference for everything that depends on which way the beach faces: whether a wind is offshore, and which way the window drawing on each card is turned.
+Each break is a short stretch of shoreline, a *chord* between two charted vertices, and its position is the chord's midpoint. The *shore normal* is the direction straight out to sea, at right angles to the chord. It is the reference for everything that depends on which way the beach faces: whether a wind is offshore, and which way the map on each card is turned.
 
 [table the page fills in: geo-breaks]
 
@@ -483,13 +483,23 @@ The breaking height, in feet with metres in parentheses: “3.6 ft (1.09 m) brea
 
 ### [swell-drawing] The window drawing
 
-The break's windows, drawn facing the way the break faces: open water above the shore, the grey shadows of the land either side, and an arrow for each swell train, two for a train arriving from two directions. Tap a shadow for the land casting it and the share of this swell it takes; tap a window for the land either side and its width; tap an arrow for that train. Tapping a train in the list above the drawing picks its arrows the same way, and the train's row stays highlighted while it is picked. Tap it again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with Tab.
+Until 16 November 2026 each break's card opened on this drawing, with the map a button away. It is how this project first worked the beach out (window, shadow, then the energy and its direction), and it is kept here, working, as that record. It has not left the card: hidden there, it is what the map reads its windows, shadows, arrows and captions from, and a browser that cannot draw the map (one without WebGL) shows it in the map's place.
+
+Tap a shadow for the land casting it and the share of this swell it takes; tap a window for the land either side and its width; tap an arrow for that train. Tap it again, or the sand below the shoreline, to return. A mouse previews on hover, and the keyboard reaches every part with Tab.
+
+The drawing stands at the break, facing straight out to sea. The half-circle above the shoreline is every bearing the beach faces, and the land either side of the break closes some of them off. What it leaves open is a window, the swell's only way in. A window is named by the land either side of it, never by a direction: the land is what makes it, and each time the land was charted more closely, the windows moved with it.
+
+What the windows leave is shadow, grey, cast by the land that closes the window beside it. A shadow is not the land: it is the swell that land keeps from this break, and it differs at each break because each sees the land from its own place. Before 26 September 2026 the card gave the windows in one list and the land taking the swell in another; the drawing put them in one picture. A swell spreads over many bearings, so no shadow simply lets a swell through or stops it: each takes a share, and that share is what a tap on a shadow gives.
+
+Each arrow is a swell train, coming in from the rim along the direction its energy came from offshore, the frame the windows are drawn in; the leading train's arrow is the heaviest. A train from behind the beach gets no arrow, because it cannot arrive, and a train fed from two directions gets one from each. From 22 October 2026 a picked train also showed its direction in 5 m of water, as an arrowhead at the break. By 5 m nearly every swell arrives within about 16° of straight in, so on 10 November the drawing went back to the offshore direction alone ([Which way a swell arrives in 5 m of water](#swell-bend)).
+
+A view from the break has bearings but no distances. On 10 November 2026 the map put the same windows at true scale over the seabed, turned the way the drawing is. A first version of the swell filling in was drawn on this drawing that day and dropped: from the break, swell bending round Point Loma's tip can only be drawn as energy crossing its shadow. On the map it follows the rays the calculation traces. On 16 November 2026 the map became the card's only view.
 
 ### [swell-map] The map
 
-The button in the drawing's top-left corner swaps it for a map of the same windows, at true scale, over the seabed the swell crosses on its way in. The map is turned the way the drawing is, the break's shore facing up, so every window edge sits at its drawing angle, and it opens zoomed in round the break, at one scale for all three breaks. The page remembers the choice on this device, for every tab.
+Each break's windows at true scale, over the seabed the swell crosses on its way in. The map is turned the way the break faces, its shore up, and it opens zoomed in round the break, at one scale for all three breaks. A browser that cannot draw it (one without WebGL) shows [the window drawing](#swell-drawing) in its place.
 
-Each window edge is a line from the break to the charted point of land that forms it; tap that point for the land's name and its distance. The dashed lines are the coast the model has, as it has it: they show how few charted points the windows stand on. The breaks' shorelines, NDBC 46232, NDBC 46086 and NDBC 46047 at Tanner Bank are marked. Tap a window, a shadow or an arrow to pick it, as on the drawing; the train lights in the map's one warm colour, gold on the dark page and orange on the light one. Pick a train in the list and the map shows it too.
+Each window edge is a line from the break to the charted point of land that forms it; tap that point for the land's name and its distance. The dashed lines are the coast the model has, as it has it: they show how few charted points the windows stand on. The breaks' shorelines, NDBC 46232, NDBC 46086 and NDBC 46047 at Tanner Bank are marked. Tap a window, a shadow or an arrow to pick it; the train lights in the map's one warm colour, gold on the dark page and orange on the light one. Pick a train in the list and the map shows it too.
 
 The seabed is drawn from the same depth grids the swell is carried over: USGS CoNED 2016 near the beach, GMRT farther out, with the Coronado Islands drawn in from satellite imagery where GMRT leaves them out. It is drawn as shapes, not pictures, so its edges stay sharp at any zoom: bands of depth, paler for shallower water, a contour line at 5, 10, 20, 50, 100, 200, 500, 1,000 and 2,000 m, the shoreline, and the land. Each grid is drawn from the zoom its cells are fine enough for: close in from 8 m cells; out past Tanner Bank, where the map stops zooming out, from 400 m cells, for context only. The shoreline is mean high water, the line a nautical chart draws, taken from the survey as it is; the deeper lines are drawn from depths smoothed over about one cell, so they do not trace each cell's noise. Only the sea is coloured as water. The swell calculation reads the grids themselves. The map follows the page's light or dark theme. Nothing on the map is a photograph. On a phone, one finger scrolls the page and two move the map; with a mouse, drag to move and hold Ctrl (⌘ on a Mac) while scrolling to zoom. The return button goes back to the opening view.
 
@@ -497,7 +507,7 @@ On the LIVE tab, picking a train on the map shows a play button and a timeline a
 
 ### [swell-bend] Which way a swell arrives in 5 m of water
 
-Every arrow from the rim of the drawing is the direction a train's energy came from offshore, the frame the windows are drawn in. On its way in, a swell slows over the shallowing seabed and turns toward the shallows ([step 3](#calc-refraction)), so by 5 m of water it comes from much nearer straight out to sea: where each ray carrying a train's energy arrives from at the start point, averaged by the energy each carries.
+Every train's arrow on the map is the direction a train's energy came from offshore, the frame the windows are drawn in. On its way in, a swell slows over the shallowing seabed and turns toward the shallows ([step 3](#calc-refraction)), so by 5 m of water it comes from much nearer straight out to sea: where each ray carrying a train's energy arrives from at the start point, averaged by the energy each carries.
 
 The table is the same calculation for one narrow swell at a time: 14.3 s, spread ±10° about each offshore heading, through the soft window edges and bottom friction as a train is. A dash means less than a tenth of that heading's energy reaches 5 m, too little for its direction to tell you anything.
 
@@ -525,13 +535,13 @@ The biggest train at the buoy need not be the biggest at a break, because the wi
 
 So at a break there is one more step. The windows trim each of the buoy's trains differently, and what is left of two of them can sit side by side with no dip and no second direction for the split to find. On 3 November 2026, North's one train, 16.7 s from 228°, was the buoy's south-south-west swell at 14.3 s with three tenths of its energy from the buoy's west swell at 18.2 s, and its period and heading were neither swell's. Every train at a break is therefore checked against the buoy's own trains, and where a second one of them carried a twentieth of its energy or more, it is divided into them: each its own line, with its own height, period and direction. A twentieth of the energy is about a fifth of the height, because height goes as the square root of energy. One more check comes first. The buoy separates two swells by drawing a line between their headings, so the edge of one swell's spread can fall on the other's side. A divided piece is shown as the second swell only when its own heading is nearer that swell's heading at the buoy than the first's; otherwise its energy stays with the first swell. In tests on made-up swells where the right answer is known, this showed fewer false second swells than the rule it replaced, and missed fewer real ones. It cannot part two swells the buoy itself read as one; nothing at the break can.
 
-The reverse is kept. One swell at the buoy can reach a break as two lines. It may come through two windows, such as the gap between Baja and the islands and the open water past them; or partly through a window and partly bent round its edge; or the windows and the seabed may leave its energy in two parts with a dip between them. Which of these made the two lines is not worked out, so the page does not say. Each line is energy that arrives, so each keeps its own line. The two lines sit together under a thin bracket, placed by the bigger of them, so on those hours the list is ordered by swell first and height second. Tapping either line lights both, and both arrows on the drawing, with one caption naming the swell as the buoy read it.
+The reverse is kept. One swell at the buoy can reach a break as two lines. It may come through two windows, such as the gap between Baja and the islands and the open water past them; or partly through a window and partly bent round its edge; or the windows and the seabed may leave its energy in two parts with a dip between them. Which of these made the two lines is not worked out, so the page does not say. Each line is energy that arrives, so each keeps its own line. The two lines sit together under a thin bracket, placed by the bigger of them, so on those hours the list is ordered by swell first and height second. Tapping either line lights both, and both arrows on the map, with one caption naming the swell as the buoy read it.
 
 Lines are bracketed only when their energy came from one direction at the buoy as well: within 20° of each other there, read in each line’s own periods. One train at the buoy is not always one swell. When nothing in its spectrum dips, the buoy keeps a small south swell under a big west one as a single train, and the windows can then show the two at a break as separate lines. On 5 November 2026 North read a SW 16.7 s line and a W 10.5 s line from what the buoy held as one train; at the buoy their energy came from 247° and 281°, so they are not bracketed. In tests on made-up swells where the right answer is known, single swells kept their bracket 107 times in 111, and wrong brackets fell from 79 to 5 where a weak swell sat under a big one. A bracket is all of a train’s lines or none. Two swells less than about 30° apart that the buoy read as one are still bracketed: at the buoy they look like one swell.
 
 What the buoy cannot tell apart, no split can. A buoy reports four numbers about direction for each band, and from those one swell 20° wide and two narrow swells 30° apart look the same. Read by maximum entropy, a single swell 20–35° wide even comes back as two equal peaks 32–60° apart. So two equal directions closer than 60° are kept as one swell. Two swells of the same period are told apart only when they are far apart in direction, and two from the same direction only when a real dip separates their periods.
 
-Rarely, a single train still carries two directions it could not be divided by, and then both are given, “WSW 258° & S 180°”, with an arrow from each on the drawing. Every train keeps to one line, giving as much as fits beside its height and period: the degrees when there is room, the compass points alone when there is not.
+Rarely, a single train still carries two directions it could not be divided by, and then both are given, “WSW 258° & S 180°”, with an arrow from each on the map. Every train keeps to one line, giving as much as fits beside its height and period: the degrees when there is room, the compass points alone when there is not.
 
 This replaced, on 8 October 2026, a split by period alone, which labelled a quarter of swell trains with two directions at one period and one height — and the two directions’ own peaks sat a second or more apart on most of them.
 
@@ -599,7 +609,7 @@ then the page adds its own refresh, every 5 minutes.
 
 It reads “Update in m:ss” (h:mm:ss past an hour, and seconds alone, as in “42 s”, under a minute: no countdown starts with a zero), then “Update due” once the typical time has passed. Only past the late time does it turn red and say “Overdue m:ss”, and not until 5 minutes after it plus the page's refresh: a collection takes a few minutes to publish what it fetched, and the update is due, not late, while it does. The publishing lag varies from hour to hour, so one deadline would either cry wolf on every slow hour or promise a time that almost never applies. Hence two figures.
 
-Three hours after a reading, if no newer one has come, the numbers made from it turn grey: each break's height and trains and its drawing's leading arrow on 46232's reading, each buoy's on its own, the Wind card's on KNZY's and the Tide card's height on the gauge's. They return to their usual colours when a newer reading lands. The calculation table, Origin, the provenance and the tide's predicted turn keep their colours. On a rose, a frame is grey, its petals and the line under it, only if it went more than three hours without a newer spectrum: the newest frame once it is past three hours, and a frame left that long before a gap. A frame replaced in time stays in its usual colours however old it grows in the loop.
+Three hours after a reading, if no newer one has come, the numbers made from it turn grey: each break's height and trains on 46232's reading, each buoy's on its own, the Wind card's on KNZY's and the Tide card's height on the gauge's. They return to their usual colours when a newer reading lands. The calculation table, Origin, the provenance and the tide's predicted turn keep their colours. On a rose, a frame is grey, its petals and the line under it, only if it went more than three hours without a newer spectrum: the newest frame once it is past three hours, and a frame left that long before a gap. A frame replaced in time stays in its usual colours however old it grows in the loop.
 
 ## [wind] The Wind card
 
@@ -758,7 +768,7 @@ Whenever the cards are on any hour but the one the tab opens on, the first hour 
 
 ### [time-past] Past hours: what the page showed then
 
-The Forecast tab reaches 48 hours back. For each hour that has gone by, the forecast figure is what this page showed for that hour: the newest run that had been published before it, which is not always the run on screen now. A past hour is drawn as it was published, with the drawing and the calculation, from that build's own record. When an older build kept only the headline, the card says “The calculation for this hour was not kept” rather than borrowing another build's detail.
+The Forecast tab reaches 48 hours back. For each hour that has gone by, the forecast figure is what this page showed for that hour: the newest run that had been published before it, which is not always the run on screen now. A past hour is drawn as it was published, with its trains, map and calculation, from that build's own record. When an older build kept only the headline, the card says “The calculation for this hour was not kept” rather than borrowing another build's detail.
 
 ### [time-observed] The blue “Observed at” line
 
