@@ -280,3 +280,51 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    break sliding off as the new one arrives at its place, ending exactly on
    North's opening view. Never under reduced motion, never on the wide
    layout, where no tab hides a break.
+
+## Map layers
+
+   **A layer button and two other looks** (owner's picks, 2026-11-16, group
+   3, items 2 and 11, mocked in "Seabed Map Themes"). A button top right, 4 px
+   inside the hairline and dressed as every map control is (the source line
+   now stops 40 px from the right, left of it), opens a list: **Windows**,
+   **Shadows**, **Window edges**, then **Grayscale** and **Lines only**. One
+   choice for every map, this device's (`nado-waves.map-layers`, through
+   `stored` / `store`), as the drawing-or-map choice is; a tap anywhere else,
+   or Escape, shuts the list, and nothing in the button or the list reaches
+   the map.
+
+   - **Windows and Shadows** each switch their tint, separately (owner's
+     request). Switched off, a window or shadow is still there to tap and
+     still lights when picked: the pick is the reader's own.
+   - **Window edges** switch the edge lines, their halo, the dashed lines
+     past each vertex and the vertices with them.
+   - **The looks, one at a time**: turning one on turns the other off;
+     neither is the colour themes (`MAP_THEMES`), the default. GRAYSCALE
+     (`MAP_LOOKS.grey`) is the colour themes with their colour taken out,
+     every colour at its own OKLab lightness (a = b = 0, the page's own
+     conversion; a test recomputes each), but the light page's rays: the
+     orange's own lightness is a mid grey lost on the pale sea there, so they
+     are near-black, #25292c. On the light page land and shallow water come
+     out nearly the same grey (#e1e1e1, #e7e7e7), the shoreline between
+     them. LINES ONLY (`MAP_LOOKS.lines`) is the mock's "Lines only" pair as
+     the mock drew it (its halo at 0.35, the shipped rays).
+   - **The window edges run to the map's edge** (item 2): each dashed line
+     runs `EDGE_KM` (1,500 km) from the break along its bearing, a point
+     every ~20 km so it stays the great circle it is. Before, it stopped at
+     1.6 times the break's farthest edge vertex, ~40-50 km, past the edge at
+     the opening view but part way across the map zoomed out. The farthest
+     ground any view shows -- the widest zoom `limits` allows, panned as far
+     as `pull` lets it -- is 1,028 km (North, a 260 px map), 680-780 km at
+     390 px; a test recomputes it. The window and shadow TINTS were mocked
+     running to the edge too and stay as they were, at 1.6 times (owner's
+     pick).
+
+   **Mocked and dropped** (same day): masking the tints over land. MapLibre
+   cannot cut one layer by another, and each grid's land is only its
+   outline under its sea (band -1 under band 0), so the mock computed each
+   grid's land (shapely, +164 KB on the seabed's 2.22 MB, 4-17% a grid) and
+   drew each grid, then the tints, then that grid's land; the owner saw it
+   fail in places and at some zooms. Rays to the map's edge were dropped
+   before the mock (a ray past `raytrace.deep_leg`'s start is not traced),
+   and so were Contours and Origins in the layer list (origins:
+   origin.md's last section).

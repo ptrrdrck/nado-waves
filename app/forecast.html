@@ -1452,7 +1452,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 .sm-switch:focus-visible,.sm-ctl button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .sm-switch svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.33;
   stroke-linecap:round;stroke-linejoin:round}
-.sm-attr{position:absolute;top:8px;left:40px;right:8px;text-align:right;z-index:4;color:var(--sm-ink,#fff);
+.sm-attr{position:absolute;top:8px;left:40px;right:40px;text-align:right;z-index:4;color:var(--sm-ink,#fff);
   font:10px/1.2 Archivo,sans-serif;text-shadow:var(--sm-glow,none);pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The caption sits under the drawing or the map as plain text, in a lead
@@ -1480,6 +1480,23 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 .sm-ctl .sm-zoom > button:first-child{border-right:1px solid var(--line)}
 .sm-ctl svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;display:block}
 .sm-ctl .sm-zoom svg{width:16px;height:16px;stroke-width:1.5}
+/* The layer button (owner's picks, 2026-11-16, from the "Seabed Map Themes"
+   mock): top right, 4 px inside the hairline, dressed as every map control
+   is; its list under it, the page's card, one switch a line. The source line
+   stops left of it. */
+.sm-lyr{position:absolute;top:4px;right:4px;z-index:5;display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;padding:0;margin:0;border:0;border-radius:6px;cursor:pointer;background:var(--card);
+  color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.35);-webkit-appearance:none;appearance:none}
+.sm-lyr svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linejoin:round;display:block}
+.sm-lyr[aria-expanded="true"]{color:var(--surf)}
+.sm-lyr:focus-visible,.sm-lyrs input:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.sm-lyrs{position:absolute;top:36px;right:4px;z-index:6;min-width:160px;padding:5px 4px;border-radius:8px;
+  background:var(--card);color:var(--ink);box-shadow:0 2px 10px rgba(0,0,0,.35);font:400 14px/1.2 Archivo,sans-serif}
+.sm-lyrs[hidden]{display:none!important}
+.sm-lyrs label{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;min-height:22px}
+.sm-lyrs input{width:16px;height:16px;margin:0;flex:none;accent-color:var(--surf)}
+.sm-lyrs .sw{width:14px;height:10px;flex:none;border-radius:2px;border:1px solid var(--line)}
+.sm-lyrs hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
 /* MapLibre's own "two fingers" screen, in the page's type. */
 .sm-map .maplibregl-cooperative-gesture-screen{background:rgba(0,0,0,.45);color:#fff;
   font:600 15px/1.3 Archivo,sans-serif;padding:0 24px;z-index:6}
@@ -9490,6 +9507,7 @@ Promise.all([
   const ICON_MAP = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5l4-1.5 5 2 4-1.5v10l-4 1.5-5-2-4 1.5z"/><path d="M5.5 2v10M10.5 4v10"/></svg>';
   const ICON_PLUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
   const ICON_MINUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9"/></svg>';
+  const ICON_LAYERS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2 14.2 5.4 8 8.6 1.8 5.4Z"/><path d="M1.8 8.1 8 11.3 14.2 8.1"/><path d="M1.8 10.8 8 14 14.2 10.8"/></svg>';
   const ICON_FIT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>';
   // The map's two themes, the page's light or dark one's (owner's picks,
   // 2026-11-11, from the mock "Seabed map themes"): the seabed's colours (the
@@ -9511,7 +9529,51 @@ Promise.all([
       ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
       rays: "#ffd84d", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true},
   };
-  const theme = () => MAP_THEMES[shownTheme()] || MAP_THEMES.dark;
+  // The map's two other looks, one at a time and each in the page's light or
+  // dark (owner's picks, 2026-11-16, from the same mock): GRAYSCALE, the
+  // themes above with their colour taken out, every colour at its own OKLab
+  // lightness -- but the light page's rays, whose orange is a mid grey lost
+  // on the pale sea there, near-black -- and LINES ONLY, the mock's "Lines
+  // only" pair. Picked from the layer list (`layers.look`).
+  const MAP_LOOKS = {
+    grey: {
+      light: {land: "#e1e1e1", shallow: "#e7e7e7", deep: "#5d5d5d", curve: 0.95,
+        contour: "#3b3b3b", contourOpacity: 0.22, contourWidth: 0.8, coast: "#6f6f6f", coastWidth: 1,
+        window: "#ffffff", windowOpacity: 0.1, shadow: "#282828", shadowOpacity: 0.1,
+        ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
+        rays: "#25292c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false},
+      dark: {land: "#363636", shallow: "#666666", deep: "#191919", curve: 0.85,
+        contour: "#c6c6c6", contourOpacity: 0.28, contourWidth: 0.8, coast: "#cfcfcf", coastWidth: 1.1,
+        window: "#ffffff", windowOpacity: 0.1, shadow: "#000000", shadowOpacity: 0.1,
+        ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
+        rays: "#dbdbdb", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true},
+    },
+    lines: {
+      light: {land: "#e3e8e6", shallow: "#f6f8f7", deep: "#f6f8f7", curve: 1,
+        contour: "#16232b", contourOpacity: 0.35, contourWidth: 0.8, coast: "#16232b", coastWidth: 1.3,
+        window: "#ffffff", windowOpacity: 0, shadow: "#16232b", shadowOpacity: 0.1,
+        ink: "#16232b", halo: "#ffffff", haloOpacity: 0.35, inkOpacity: 1,
+        rays: "#e8590c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false},
+      dark: {land: "#1d2c34", shallow: "#132029", deep: "#132029", curve: 1,
+        contour: "#c9d7dd", contourOpacity: 0.45, contourWidth: 0.8, coast: "#e4ece9", coastWidth: 1.4,
+        window: "#ffffff", windowOpacity: 0.08, shadow: "#000000", shadowOpacity: 0.3,
+        ink: "#ffffff", halo: "#0e1a20", haloOpacity: 0.35, inkOpacity: 1,
+        rays: "#ffd84d", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true},
+    },
+  };
+  // The layer list (owner's picks, 2026-11-16): windows, shadows and the
+  // window edges each on or off, and the look, colour unless Grayscale or
+  // Lines only is on -- one at a time, so turning one on turns the other off.
+  // One choice for every map, this device's, as the drawing-or-map choice is.
+  const LAYERS_KEY = "nado-waves.map-layers";
+  const LOOKS = ["grey", "lines"];
+  const layers = (() => {
+    let kept = {};
+    try { kept = JSON.parse(stored(LAYERS_KEY)) || {}; } catch (e) { kept = {}; }
+    return {win: kept.win !== false, shade: kept.shade !== false, edges: kept.edges !== false,
+      look: LOOKS.includes(kept.look) ? kept.look : "colour"};
+  })();
+  const theme = () => (MAP_LOOKS[layers.look] || {})[shownTheme()] || MAP_THEMES[shownTheme()] || MAP_THEMES.dark;
   // A picked window or shadow, this much stronger than its own (the 2026-11-10
   // map's 0.13 -> 0.3 and 0.22 -> 0.5).
   const LIT_GAIN = 2.3;
@@ -9585,6 +9647,19 @@ Promise.all([
   const deg = (b) => `${Math.round(((b % 360) + 360) % 360)}°`;
   const dist = (k) => dualText(`${(k * MI_PER_KM).toFixed(k * MI_PER_KM < 10 ? 1 : 0)} mi`,
     `${k.toFixed(k < 10 ? 1 : 0)} km`);
+  // A line from p along a bearing, k0 to k1 km out, with a point every ~20 km
+  // so a long one stays the great circle it is.
+  function radial(p, brg, k0, k1) {
+    const n = Math.max(1, Math.ceil((k1 - k0) / 20)), pts = [];
+    for (let i = 0; i <= n; i++) pts.push(ll(dest(p, brg, k0 + (k1 - k0) * i / n)));
+    return pts;
+  }
+  // How far a window edge's dashed line runs: to the map's edge at any zoom
+  // and pan the map allows (owner's pick, 2026-11-16). At the widest, just
+  // past Tanner Bank and panned as far as `pull` lets it, a 260 px map shows
+  // ground up to ~1,030 km from the break; tests/test_seabed_map.py pins
+  // that this reaches past it.
+  const EDGE_KM = 1500;
   function fan(p, from, to, k) {
     const span = ((to - from) % 360 + 360) % 360, n = Math.max(2, Math.ceil(span)), pts = [ll(p)];
     for (let i = 0; i <= n; i++) pts.push(ll(dest(p, from + span * i / n, k)));
@@ -9681,6 +9756,13 @@ Promise.all([
       this.plate.append(svg);
       this.plate.insertAdjacentHTML("beforeend",
         `<div class="sm-map" hidden><div class="sm-attr">Seabed USGS CoNED, GMRT</div>`
+        + `<button type="button" class="sm-lyr" aria-label="Map layers" aria-expanded="false" title="Layers">${ICON_LAYERS}</button>`
+        + `<div class="sm-lyrs" role="group" aria-label="Map layers" hidden>`
+        + `<label><input type="checkbox" data-lyr="win"><span class="sw" data-sw="win"></span>Windows</label>`
+        + `<label><input type="checkbox" data-lyr="shade"><span class="sw" data-sw="shade"></span>Shadows</label>`
+        + `<label><input type="checkbox" data-lyr="edges">Window edges</label><hr>`
+        + `<label><input type="checkbox" data-look="grey">Grayscale</label>`
+        + `<label><input type="checkbox" data-look="lines">Lines only</label></div>`
         + `<canvas class="sm-marks" aria-hidden="true"></canvas>`
         + `<div class="sm-ctl"><div class="sm-bar sm-fit"><button type="button" data-sm="fit" title="Back to the opening view" aria-label="Back to the opening view">${ICON_FIT}</button></div>`
         + `<div class="sm-bar sm-zoom"><button type="button" data-sm="in" title="Zoom in" aria-label="Zoom in">${ICON_PLUS}</button>`
@@ -9702,6 +9784,19 @@ Promise.all([
         e.stopPropagation();
         setView(view === "map" ? "drawing" : "map");
       });
+      // The layer button and its list: nothing in them reaches the map.
+      this.lyrBtn = this.box.querySelector(".sm-lyr");
+      this.lyrs = this.box.querySelector(".sm-lyrs");
+      [this.lyrBtn, this.lyrs].forEach((el) => ["pointerdown", "mousedown", "touchstart", "click", "dblclick", "wheel"]
+        .forEach((t) => el.addEventListener(t, (e) => e.stopPropagation(), {passive: true})));
+      this.lyrBtn.addEventListener("click", () => this.lyrOpen(this.lyrs.hidden));
+      this.lyrs.addEventListener("change", (e) => {
+        const box = e.target;
+        if (box.dataset.lyr) layers[box.dataset.lyr] = box.checked;
+        else if (box.dataset.look) layers.look = box.checked ? box.dataset.look : "colour";
+        setLayers();
+      });
+      this.syncLyrs();
       this.box.querySelector(".sm-ctl").addEventListener("click", (e) => {
         const b = e.target.closest("[data-sm]");
         if (!b || !this.map) return;
@@ -9721,6 +9816,25 @@ Promise.all([
       }).observe(this.box);
       this.observer = new MutationObserver(() => this.sync());
       this.adopt(svg);
+    }
+
+    // The layer list open or shut; the button says which.
+    lyrOpen(open) {
+      this.lyrs.hidden = !open;
+      this.lyrBtn.setAttribute("aria-expanded", String(open));
+    }
+    // The list's switches as the layers stand, and each tint's swatch in this
+    // look's colour.
+    syncLyrs() {
+      if (!this.lyrs) return;
+      this.lyrs.querySelectorAll("[data-lyr]").forEach((el) => { el.checked = !!layers[el.dataset.lyr]; });
+      this.lyrs.querySelectorAll("[data-look]").forEach((el) => { el.checked = layers.look === el.dataset.look; });
+      const th = theme(), sw = (k, c, a) => {
+        const el = this.lyrs.querySelector(`[data-sw="${k}"]`);
+        if (el) el.style.background = rgba(c, Math.min(1, a * 3));
+      };
+      sw("win", th.window, th.windowOpacity);
+      sw("shade", th.shadow, th.shadowOpacity);
     }
 
     // The page redrew the card: this break's new drawing takes the old one's
@@ -9928,7 +10042,8 @@ Promise.all([
       map.addLayer({id: "sm-sections", type: "fill", source: "sm-sections", paint: {"fill-antialias": false}});
       const edges = b.windows.flatMap((w) => w.edges);
       map.addSource("sm-edges", {type: "geojson", data: fc(edges.map((e) => line([ll(p), ll(e.vertex)])))});
-      map.addSource("sm-beyond", {type: "geojson", data: fc(edges.map((e) => line([ll(e.vertex), ll(dest(p, e.bearing, far))])))});
+      map.addSource("sm-beyond", {type: "geojson", data: fc(edges.map((e) =>
+        line([ll(e.vertex), ...radial(p, e.bearing, e.range_km, EDGE_KM).slice(1)])))});
       map.addLayer({id: "sm-edges-halo", type: "line", source: "sm-edges", paint: {"line-width": 3.5}});
       map.addLayer({id: "sm-edges", type: "line", source: "sm-edges", paint: {"line-width": 1.5}});
       map.addLayer({id: "sm-beyond", type: "line", source: "sm-beyond", paint: {"line-width": 1, "line-dasharray": [3, 5]}});
@@ -9984,9 +10099,15 @@ Promise.all([
       });
       const lit = (o) => Math.min(1, o * LIT_GAIN);
       P("sm-sections", "fill-color", ["case", ["get", "shadow"], th.shadow, th.window]);
+      // A window or shadow switched off in the layer list is still there to
+      // tap, and lights when picked: the pick is the reader's own.
       P("sm-sections", "fill-opacity", ["case", ["get", "shadow"],
-        ["case", ["get", "lit"], lit(th.shadowOpacity), th.shadowOpacity],
-        ["case", ["get", "lit"], lit(th.windowOpacity), th.windowOpacity]]);
+        ["case", ["get", "lit"], lit(th.shadowOpacity), layers.shade ? th.shadowOpacity : 0],
+        ["case", ["get", "lit"], lit(th.windowOpacity), layers.win ? th.windowOpacity : 0]]);
+      ["sm-edges-halo", "sm-edges", "sm-beyond", "sm-vertices"].forEach((id) => {
+        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", layers.edges ? "visible" : "none");
+      });
+      this.syncLyrs();
       ["sm-edges", "sm-beyond", "sm-blockers", "sm-chords"].forEach((id) => P(id, "line-color", th.ink));
       P("sm-edges", "line-opacity", 0.95 * k); P("sm-beyond", "line-opacity", 0.6 * k);
       P("sm-blockers", "line-opacity", 0.85 * k);
@@ -10455,6 +10576,20 @@ Promise.all([
   // The page's theme moves the map's with it: the foot's switch sets
   // data-theme, and the phone's own setting may change under it.
   const retheme = () => faces.forEach((f) => { f.restyle(); if (f.map) f.map.triggerRepaint(); });
+  // A switch in any map's layer list is every map's, and kept on this device.
+  function setLayers() {
+    store(LAYERS_KEY, JSON.stringify(layers));
+    faces.forEach((f) => { f.syncLyrs(); f.restyle(); if (f.fillSync) f.fillSync(); });
+  }
+  // A tap anywhere else, or Escape, shuts an open list.
+  document.addEventListener("pointerdown", (e) => {
+    if (e.target.closest && e.target.closest(".sm-lyrs, .sm-lyr")) return;
+    faces.forEach((f) => { if (f.lyrs && !f.lyrs.hidden) f.lyrOpen(false); });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    faces.forEach((f) => { if (f.lyrs && !f.lyrs.hidden) { f.lyrOpen(false); f.lyrBtn.focus(); } });
+  });
   new MutationObserver(retheme).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
   if (DARK_MQ && DARK_MQ.addEventListener) DARK_MQ.addEventListener("change", retheme);
 
