@@ -175,3 +175,52 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    each collection writes `data/live/origins.json` from it plus the last 21
    days' arrivals, the named moments since its end (≤ 7 days), and now.json's
    own hurricanes (~1 s, more while a band is open).
+
+## Origins on the map: not built
+
+   **Set aside by the owner, 2026-11-16** (group 3, item 12), to be thought
+   through in a session of its own; nothing in the handoff. Mocked in "Seabed
+   Map Themes" (its Origins section): for each arrival still arriving on a
+   tab's card (never a past one, never an unplaced storm), an arrow on the
+   map's rim where the great-circle bearing from the break to the place
+   leaves the map, and a two-line label, the card's name and "about N mi";
+   crowded labels stacked toward the map's middle, clear of the map's own
+   buttons; a dashed bearing line from the break to each mark (the owner's
+   pick: on). LIVE only: on Forecast, no marks and no switch. Real archived
+   days in the mock: 14 Nov (Center only), 7 Nov (three at once from
+   304-313 degrees), 30 Sep (Hurricane Rachel at NHC's fix, 17.8 N 107.5 W,
+   with an Aleutian reading), 16 Oct (the Southern Ocean, near the normal).
+
+   **The whole Pacific on the map** (owner's question, same day), so a zoom
+   out shows roughly where every origin and storm track lies. What it takes:
+
+   - **The extent.** The 23 archived origins with a place run 67 S to 48 N
+     and 173 E across the dateline to 167 W; storms are 500-10,000 mi out,
+     the map today reaches just past Tanner Bank and the seabed ~1,200 km.
+   - **A Pacific seabed.** Either Natural Earth's 1:10m bathymetry
+     (public-domain polygons at 0, 200, 1,000 ... 10,000 m; the project
+     already uses its coastline, `collector/coastline.py`; at ocean scale the
+     map's 5-4,000 m bands would not show anyway), the cheapest; or a coarse
+     GMRT grid (10-20 km cells) fetched from Actions like the others, which
+     needs a geographic path in `seabedvector` (every grid is UTM 11N today),
+     estimated 1-4 MB, kept on the device after the first load; measure
+     before choosing.
+   - **The projection.** MapLibre 4.7.1 draws Web Mercator only: Southern
+     Ocean storms at 55-67 S drawn 1.7-2.5 times too big, and a straight
+     line on the map is not the swell's great-circle path. Either stay on
+     Mercator, drawing each path as a densified great circle and carrying
+     longitudes past 180 so the dateline does not split anything (the
+     recommendation), or move to MapLibre 5's globe, which changes the
+     bundled library and its cache keys and means re-checking every map
+     behaviour already checked on the owner's iPhone.
+   - **Zoom.** `limits` and `pull` hold only until the reader zooms out past
+     Tanner Bank; past that the Pacific opens, the shore normal still up.
+   - **Honest placement.** A reading's place is "about": distance rounded to
+     500 mi, two buoys reading one storm 18-25% apart, the card naming a
+     sea. Draw it as an AREA, its bearing and a band of about +/-25% in
+     distance, never a dot; a hurricane at NHC's fix, a measured position.
+     `forensics.REGIONS` are latitude-longitude boxes for naming, not
+     measured storm tracks: at most faint and labelled, only if wanted.
+   - **Scope.** The bathymetry workflow, `seabedvector`, its tests and
+     manifest, the map's limits and the files kept on the device: more than
+     the layer itself.

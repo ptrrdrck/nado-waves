@@ -376,3 +376,102 @@ def test_a_changed_island_outline_asks_for_a_redraw_and_a_note_does_not(tmp_path
     data["islands"][0]["height_m"] += 1.0
     (tmp_path / "islands.json").write_text(json.dumps(data))
     assert seabedvector.retrieved(tmp_path)["islands"] != base
+
+
+def test_the_layer_list_is_the_owners_and_kept_on_the_device():
+    """Owner's picks, 2026-11-16, from the "Seabed Map Themes" mock: a layer
+    button top right, 4 px inside the hairline, the source line left of it;
+    Windows, Shadows and Window edges, then Grayscale and Lines only, one look
+    at a time; one choice for every map, kept through `stored` / `store`."""
+
+    assert 'const LAYERS_KEY = "nado-waves.map-layers";' in PAGE
+    assert "stored(LAYERS_KEY)" in PAGE and "store(LAYERS_KEY, JSON.stringify(layers));" in PAGE
+    body = PAGE[PAGE.index('class="sm-lyrs"'):]
+    body = body[:body.index("</div>`")]
+    labels = re.findall(r"</span>([A-Z][\w ]+)</label>|data-(?:lyr|look)=\"\w+\">([A-Z][\w ]+)</label>", body)
+    assert [a or b for a, b in labels] == ["Windows", "Shadows", "Window edges", "Grayscale", "Lines only"]
+    # One look at a time: a look switched on replaces the other, off is colour.
+    assert 'layers.look = box.checked ? box.dataset.look : "colour";' in PAGE
+    assert ".sm-lyr{position:absolute;top:4px;right:4px;" in PAGE
+    assert ".sm-attr{position:absolute;top:8px;left:40px;right:40px;" in PAGE
+    # A switched-off window or shadow still lights when picked.
+    assert '["case", ["get", "lit"], lit(th.windowOpacity), layers.win ? th.windowOpacity : 0]' in PAGE
+    assert 'map.setLayoutProperty(id, "visibility", layers.edges ? "visible" : "none")' in PAGE
+
+
+def test_the_maps_looks_are_the_owners():
+    """Grayscale is the shipped themes at their own OKLab lightness, but the
+    light page's rays near-black; Lines only is the mock's pair. The colour
+    themes stay the default."""
+
+    body = PAGE[PAGE.index("const MAP_LOOKS = {"):]
+    body = body[:body.index("\n  };") + 4]
+    grey, lines = body[:body.index("lines: {")], body[body.index("lines: {"):]
+    assert 'land: "#e1e1e1"' in grey and 'land: "#363636"' in grey
+    assert 'rays: "#25292c"' in grey and 'rays: "#dbdbdb"' in grey
+    assert 'land: "#e3e8e6"' in lines and 'land: "#1d2c34"' in lines
+    assert 'ink: "#16232b"' in lines
+    assert "(MAP_LOOKS[layers.look] || {})[shownTheme()] || MAP_THEMES[shownTheme()]" in PAGE
+
+
+def test_the_grey_look_is_each_colour_at_its_own_lightness():
+    """Every grey in Grayscale is its colour theme's colour with a and b set to
+    zero in OKLab (the page's own conversion), but the light page's rays."""
+
+    def lab_l(h):
+        lin = lambda c: c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+        r, g, b = (lin(int(h[i:i + 2], 16) / 255) for i in (1, 3, 5))
+        l = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+        m = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+        s = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+        return 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s
+
+    def grey(h):
+        L = lab_l(h)
+        v = L ** 3                       # a = b = 0: l = m = s = L, so each channel is L^3
+        c = 12.92 * v if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055
+        return "#" + f"{round(max(0, min(1, c)) * 255):02x}" * 3
+
+    def block(src, start, mode):
+        body = src[src.index(start):]
+        body = body[body.index(f"{mode}: {{"):]
+        return dict(re.findall(r'(\w+): "(#[0-9a-f]{6})"', body[:body.index("}")]))
+
+    for mode in ("light", "dark"):
+        colour = block(PAGE, "const MAP_THEMES = {", mode)
+        looks = block(PAGE, "grey: {", mode)
+        for key, hexval in colour.items():
+            if mode == "light" and key == "rays":
+                continue
+            assert looks[key] == grey(hexval), (mode, key)
+
+
+def test_window_edges_run_past_the_widest_view():
+    """The dashed edge lines run EDGE_KM, past the farthest ground any view
+    shows: the widest zoom `limits` allows, panned as far as `pull` lets it,
+    on a 260 px map (map.md: ~1,030 km)."""
+
+    import math
+
+    from forecast import geomviz
+    from forecast.siting import load_coordinates
+
+    edge_km = int(re.search(r"const EDGE_KM = (\d+);", PAGE).group(1))
+    assert "radial(p, e.bearing, e.range_km, EDGE_KM)" in PAGE
+    tanner = load_coordinates()["46047"]
+
+    def bearing(a, b):
+        la1, lo1, la2, lo2 = map(math.radians, (*a, *b))
+        y = math.sin(lo2 - lo1) * math.cos(la2)
+        x = math.cos(la1) * math.sin(la2) - math.sin(la1) * math.cos(la2) * math.cos(lo2 - lo1)
+        return math.degrees(math.atan2(y, x))
+
+    for b in geomviz.build()["breaks"]:
+        p = b["position"]
+        reach = geomviz.km(p, tanner) + 25
+        rel = math.radians(bearing(p, tanner) - b["normal"])
+        for w in (260, 390, 600):
+            across, along = abs(math.sin(rel)) * reach, max(0.0, math.cos(rel)) * reach
+            mpp = max(across * 1000 / (0.5 * w - 76), along * 1000 / (0.85 * w), 1)
+            farthest = reach + math.hypot(w / 2, w / 2) * mpp / 1000
+            assert farthest < edge_km, (b["id"], w, farthest)

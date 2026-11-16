@@ -90,20 +90,24 @@ Not done, noted: the largest single ray still carries 33-64% of a break's
 5 m energy on some narrow-swell hours (a clear ray with the islands'
 lit-side ripple), under every island treatment; stable, so not item 14.
 
-### Group 3: map layers (mock first)
+### Group 3: map layers -- items 2 and 11 done (branch claude/gracious-rubin-6x5o2g)
 
-Area: `docs/design/map.md`, `origin.md`. Groups 2c and 2d are done, so
-the islands and Baja are on imagery before shadows reach the map's edge.
+Mocked in "Seabed Map Themes" and picked by the owner on 2026-11-16; map.md
+"Map layers".
 
-2. **Extend the window edges (dashed lines) to the map's edges when zoomed
-   out**; add toggles to the map colours mock ("Seabed Map Themes") for rays /
-   windows / shadows extending to the edge, and one to mask the shadow over
-   land.
-11. **A map layer control**, built from item 2's toggles.
-12. **Origins as a map layer.** Storms are 500–10,000 mi out; the map zooms
-    only to just past Tanner Bank and the seabed reaches ~1,200 km. Mock a
-    bearing mark at the map's edge against a wider zoom. Origins are LIVE
-    only; the map is on both tabs.
+2. **Window edges to the map's edge** -- done: the dashed lines run 1,500 km,
+   past the widest view (1,028 km at most). The tints stay at 1.6 times the
+   farthest vertex; masking them over land was mocked and dropped.
+11. **A map layer control** -- done: top right, Windows, Shadows, Window
+    edges, then Grayscale and Lines only, one look at a time.
+12. **Origins as a map layer** -- set aside by the owner for a session of
+    their own; the mock keeps it, origin.md's last section the notes (and
+    the whole Pacific).
+20. **Hide the window drawing** (owner's request, 2026-11-16) -- next, a
+    second PR: the map the only view and its switch gone; the drawing kept,
+    unseen, as the map's source and shown only where the map cannot be drawn
+    (no WebGL); a working drawing on docs.html as the project's history, how
+    the owner thought through window, shadow and energy direction.
 
 ### Group 4: Wind and Tide cards
 
@@ -133,9 +137,14 @@ wait for Tests, don't merge." to each.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
   cause and the truth before changing anything."
-- Group 3: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
-  Group 3 of docs/handoff.md (items 2, 11, 12), map layers. Read map.md and
-  origin.md first; mock before building."
+- Group 3, item 20: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
+  Item 20 of docs/handoff.md, hide the window drawing. Read map.md (all of
+  it, the plate and the fill especially) and app_surface.md first. The map
+  reads the drawing (`readSvg`, `data-geo`), so the drawing stays, unseen,
+  as its source; show it only where the map cannot be drawn (no WebGL), and
+  drop the drawing/map switch. Put a working drawing on docs.html as the
+  project's history, replacing 'The window drawing' section; propose its
+  wording first. Strongest model setting: it is architecture."
 - Group 4: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 4 of docs/handoff.md (items 7, 8), Wind and Tide cards. Read
   tide_wind_sun.md and app_surface.md first; mock item 8 before building."
@@ -146,7 +155,7 @@ wait for Tests, don't merge." to each.
 ### Working efficiently
 
 - Read only the design doc and BRIEFING sections a group names.
-- Mock design calls (2, 8, 9, 11, 12) before building.
+- Mock design calls (8, 9) before building.
 - iPhone-only bugs get a diagnostic page before any code changes.
 - Measure rendering; one screenshot at the end. `app/forecast.html` is
   ~10,500 lines: grep it, never read it whole.
