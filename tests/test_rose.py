@@ -200,27 +200,69 @@ class TestOnThePage:
                     [sc["step"] * (k + 1) for k in range(len(sc["rings"]))])
 
     def test_the_rose_sits_on_a_plate_its_readout_in_the_tray(self):
-        """Owner's requests, 2026-10-07 and 2026-11-11: no figure on the plot;
-        play / pause left of the six hours along the plate's foot; the scale
-        line and the Period legend in the tray under the plate."""
+        """Owner's requests, 2026-10-07, 2026-11-11 and 2026-11-17: no
+        figure on the plot; along the plate's foot the bar -- play / pause,
+        the six hours, then ft / s; the scale line and the Period legend in
+        the tray under the plate."""
 
         block = PAGE[PAGE.index("function roseBlock("):]
         block = block[:block.index("\n}\n")]
-        assert (block.index('class="rose-plate">${roseSwitch()}') < block.index('class="rose-plot"')
-                < block.index('class="rose-time">${rosePlayButton()}')
-                < block.index('class="rose-line"') < block.index('class="rose-tray"')
+        assert (block.index('class="rose-plate">') < block.index('class="rose-plot"')
+                < block.index('class="rose-bar">${rosePlayButton()}')
+                < block.index('class="rose-track" data-rose-scrub') < block.index('class="rose-when"')
+                < block.index('class="rose-rail"') < block.index("${roseSwitch()}</div>")
+                < block.index('class="rose-tray"')
                 < block.index('class="rose-scale') < block.index("${roseLegend(ROSE_MODE)}"))
 
-    def test_the_switch_is_one_toggle_at_the_plates_corner(self):
-        """Owner's request, 2026-11-11 (replacing 2026-10-08's "ft | s" right
-        of the six hours): one button at the plate's top-left, as the drawing
-        / map toggle, showing what a tap turns to, named to a screen reader."""
+    def test_the_bar_is_the_break_maps_fill_bar(self):
+        """Owner's request, 2026-11-17: the bar under the rose looks as the
+        break tab's ray animation bar does -- play, the six hours in a
+        card-coloured pill with the moment shown, then ft / s in the
+        bottom-right corner -- each 28 px, 4 px apart and 4 px inside the
+        hairline, 6 px under the rose so the plate keeps its height."""
+
+        css = lambda sel: PAGE[PAGE.index(sel + "{") + len(sel) + 1:].split("}", 1)[0]
+        bar = css(".rose .rose-bar")
+        assert "gap:4px;height:28px;margin:6px 4px 4px" in bar
+        both = css(".rose .rose-play,.rose .rose-switch")
+        assert "width:28px;height:28px" in both and "border-radius:6px" in both
+        assert "box-shadow:0 1px 3px rgba(0,0,0,.35)" in both
+        # The pill as the fill bar's .sf-track, its line and dot as .sf-line,
+        # .sf-past and .sf-head.
+        for rose_sel, fill_sel in ((".rose .rose-track", ".sf-track"), (".rose .rose-rail", ".sf-line"),
+                                   (".rose .rose-past", ".sf-past"), (".rose .rose-head", ".sf-head")):
+            ours, theirs = css(rose_sel), css(fill_sel)
+            for decl in theirs.replace("\n", "").split(";"):
+                decl = decl.strip()
+                if decl and not decl.startswith(("cursor", "touch-action", "-webkit")):
+                    assert decl in ours.replace("\n  ", ""), (rose_sel, decl)
+        # The old top-left corner and the SVG timeline are gone.
+        assert ".rose-switch{position:absolute" not in PAGE and "rose-line" not in PAGE
+        # A tick for every spectrum still: a missing one is a missing tick.
+        line = PAGE[PAGE.index("function roseLine("):]
+        line = line[:line.index("\n}\n")]
+        assert "(rose.frames || []).map(" in line and 'class="rose-tk' in line
+
+    def test_the_six_hours_are_tapped_dragged_or_stepped(self):
+        """A tap goes to a moment, a drag scrubs, as the fill bar's does; the
+        arrow keys still step half an hour."""
+
+        wire = PAGE[PAGE.index("function wireRoses("):]
+        wire = wire[:wire.index("\n}\n")]
+        assert 'strip.addEventListener("pointerdown"' in wire and '"pointermove"' in wire
+        assert 'querySelector(".rose-rail").getBoundingClientRect()' in wire
+        assert '(x - box.left) / box.width * ROSE_PLAY_MS' in wire
+        assert 'e.key === "ArrowRight" ? half : e.key === "ArrowLeft" ? -half : null' in wire
+
+    def test_the_switch_is_one_toggle_at_the_bars_end(self):
+        """Owner's requests, 2026-11-11 (one toggle showing what a tap turns
+        to, named to a screen reader) and 2026-11-17 (back in the bottom-right
+        corner, the bar's right end)."""
 
         sw = PAGE[PAGE.index("function roseSwitch("):]
         sw = sw[:sw.index("\n}\n")]
         assert "ROSE_MODES.find((m) => m.id !== ROSE_MODE)" in sw
         assert 'aria-label="Show the ${next.label} rose"' in sw and "${roseSymbol(next)}</button>" in sw
-        assert ".rose-switch{position:absolute;top:4px;left:4px;" in PAGE
         # "m | s" on Metric (owner's call, 2026-10-28).
         assert 'const roseSymbol = (m) => (m.id === "height" && UNITS === "metric" ? "m" : m.symbol);' in PAGE
         assert 'const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];' in PAGE
@@ -238,25 +280,22 @@ class TestOnThePage:
         assert "paint-order:stroke" in PAGE[PAGE.index(".rose-svg .pt{"):PAGE.index(".rose-svg .rp{")]
 
     def test_switching_views_never_moves_the_page(self):
-        """Owner's request, 2026-10-08: the Period legend's row is kept on
-        Height too, laid out but unseen; and since 2026-11-11 play / pause is
-        the map's controls' 28 px, as the toggle is."""
+        """Owner's request, 2026-10-08, and since 2026-11-11 Height takes no
+        legend room: the tray grows with its words, as the drawing's and the
+        map's does."""
 
         legend = PAGE[PAGE.index("function roseLegend("):]
         legend = legend[:legend.index("\n}\n")]
         assert 'if (mode !== "period") return ""' not in legend
         assert '" off"' in legend and 'aria-hidden="true"' in legend
-        # Since 2026-11-11 Height takes no legend room: the tray grows with
-        # its words, as the drawing's and the map's does.
         assert ".rose .legend.off{display:none}" in PAGE
-        play = PAGE[PAGE.index(".rose .rose-play{"):PAGE.index(".rose .rose-track{")]
-        assert "width:28px;height:28px" in play
-        assert "width:28px;height:28px" in PAGE[PAGE.index(".rose-switch{"):PAGE.index(".rose .ranges{")]
 
-    def test_one_line_under_the_rose_carries_the_scale_and_the_frame(self):
-        """Owner's request, 2026-10-08: "Rings every 1 ft (0.30 m) · 11:00 AM
-        · 4.6 ft (1.39 m) combined" under the rose, no values line above it,
-        and the ring line without its "to 4 ft" ending."""
+    def test_one_line_under_the_rose_carries_the_scale_the_reach_and_the_height(self):
+        """Owner's requests, 2026-10-08 ("Rings every 1 ft (0.30 m) · ...
+        combined", no values line above it, no "to 4 ft" ending) and
+        2026-11-17: the seabed's reach said after the rings, so a ring is not
+        read as a distance; the frame's time left to the bar; the combined
+        height kept, as it changes while the loop plays."""
 
         block = PAGE[PAGE.index("function roseBlock("):]
         block = block[:block.index("\n}\n")]
@@ -264,13 +303,100 @@ class TestOnThePage:
         assert '<div class="rose-scale${roseAged(rose, v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>' in block
         read = PAGE[PAGE.index("function roseReadout("):]
         read = read[:read.index("\n}\n")]
-        assert read.index("roseScaleLine(ROSE_MODE, station)") < read.index("clock(f.time_utc)")
+        assert "clock(" not in read
+        assert "roseScaleLine(ROSE_MODE, station))\n    + (roseOnSea() ? sep + seg(roseReach()) : \"\")" in read
+        assert read.index("roseReach()") < read.index("combined")
+        assert ("const roseReach = () => `Map ${dualText(`${Math.round(ROSE_SEA_KM * MI_PER_KM)} mi`,"
+                " `${ROSE_SEA_KM} km`)} to the edge`;") in PAGE
+        # The time is the bar's: the frame's own, or the moment a gap is named by.
+        assert "const roseWhen = (state) => (state.at ? clock(state.at) : \"\");" in PAGE
         line = PAGE[PAGE.index("function roseScaleLine("):]
         line = line[:line.index("\n}\n")]
         assert " to " not in line and "of the energy" not in line
         plot = PAGE[PAGE.index("function rosePlot("):]
         assert 'class="rl"' not in plot[:plot.index("\n}\n")]
         assert 'aria-label="${ROSE_PLAYING ? "Pause" : "Play"}"' in PAGE
+
+
+class TestTheSeabedBehindTheRose:
+    """Group 5, item 9 (owner's picks, 2026-11-17, from the mock "Buoy Rose
+    Seabed"): the swell map's seabed behind each rose, centred on the buoy
+    and north up, the rose's edge 40 km out, filling the plate, no marks, as
+    a still image."""
+
+    SEA = PAGE[PAGE.index("// THE SEABED BEHIND EACH BUOY'S ROSE"):PAGE.index("window.roseSea = {")]
+
+    def test_one_scale_for_every_buoy_40_km(self):
+        assert "const ROSE_SEA_KM = 40;" in PAGE
+        assert ("const seaZoom = (at, g) => Math.log2(MPP0 * Math.cos(rad(at[0])) * g.r"
+                " / (ROSE_SEA_KM * 1000));") in self.SEA
+        # The outer ring's radius on the plate: the drawing's own geometry.
+        assert "r: r.width * ROSE.r / 240" in self.SEA
+
+    def test_the_zoom_puts_the_outer_ring_40_km_out(self):
+        """Run in node: at the zoom chosen, MapLibre's metres a pixel at the
+        buoy's latitude times the ring's radius in pixels is 40 km."""
+
+        import subprocess
+
+        zoom = re.search(r"const seaZoom = [^\n]+", self.SEA).group(0)
+        script = ("const MPP0 = 78271.51696, ROSE_SEA_KM = 40, rad = (d) => d * Math.PI / 180;\n" + zoom + "\n"
+                  "const out = [[32.517, 128.9], [32.418, 100], [32.504, 64]].map(([lat, r]) => {\n"
+                  "  const z = seaZoom([lat, 0], {r});\n"
+                  "  return MPP0 * Math.cos(rad(lat)) / 2 ** z * r; });\n"
+                  "console.log(JSON.stringify(out));\n")
+        got = json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True,
+                                        check=True).stdout)
+        assert got == pytest.approx([40000.0] * 3)
+        assert "const MPP0 = 78271.51696;" in PAGE
+
+    def test_centred_on_the_buoy_north_up_never_a_typed_coordinate(self):
+        assert "bearing: 0" in self.SEA
+        assert "if (b && b.id === station) return b.position || null;" in self.SEA
+        assert "return (MAPDATA.buoys || {})[station] || null;" in self.SEA
+        assert not re.search(r"-?1\d\d\.\d{2,}|3[23]\.\d{2,}", self.SEA)
+
+    def test_the_colour_theme_never_the_layer_lists_looks_and_no_marks(self):
+        assert "const seaTheme = () => MAP_THEMES[shownTheme()] || MAP_THEMES.light;" in self.SEA
+        assert "MAP_LOOKS" not in self.SEA and "layers.look" not in self.SEA
+        assert "circle" not in self.SEA and "Marker" not in self.SEA
+
+    def test_a_still_image_from_one_map_let_go(self):
+        """Owner's call, 2026-11-17: still images, not three live maps."""
+
+        assert "interactive: false" in self.SEA and "preserveDrawingBuffer: true" in self.SEA
+        assert 'map.getCanvas().toBlob(ok, "image/png")' in self.SEA
+        assert "if (map) map.remove();                     // lets its WebGL context go" in self.SEA
+        assert self.SEA.count("new maplibregl.Map(") == 1
+        block = PAGE[PAGE.index("function roseBlock("):]
+        block = block[:block.index("\n}\n")]
+        assert '<img class="rose-sea" alt="" aria-hidden="true" draggable="false"' in block
+        assert "window.roseSea.src(station)" in block
+
+    def test_only_where_the_map_can_be_drawn(self):
+        """No WebGL, or the map failing: the rose on the card in the page's
+        colours, the line without the reach."""
+
+        assert "const seaOk = () => GL && !SEA.failed;" in self.SEA
+        fail = self.SEA[self.SEA.index("function seaFail("):]
+        fail = fail[:fail.index("\n  }\n")]
+        assert 'el.classList.remove("sea")' in fail and 'el.setAttribute("data-k", "")' in fail
+        assert "const roseOnSea = () => !!(window.roseSea && window.roseSea.ok());" in PAGE
+        assert '<div class="rose${sea ? " sea" : ""}"' in PAGE
+
+    def test_the_dark_themes_rose_on_both_themes(self):
+        """Owner's request, 2026-11-17: over the seabed the petals, rings,
+        points and Period bands in the dark theme's colours, light page or
+        dark ("white dominant") -- the dark theme's own tokens."""
+
+        rule = re.search(r"\.rose\.sea \.rose-svg,\.rose\.sea \.legend \.sw\{([^}]*)\}", PAGE).group(1)
+        dark = PAGE[PAGE.index(':root[data-theme="dark"]{'):]
+        dark = dark[:dark.index("}")]
+        for name in ("ink", "soft", "faint", "line-strong", "card"):
+            want = re.search(rf"--{name}:(#[0-9A-Fa-f]{{6}})", dark).group(1)
+            assert f"--{name}:{want}" in rule, name
+        assert ".rose.sea .rose-svg .ring{stroke:var(--ink);stroke-opacity:.38}" in PAGE
+        assert ".rose.sea .legend .sw{box-shadow:0 0 0 1px var(--sw-hair)}" in PAGE
 
 
 class TestTheLoopsStart:

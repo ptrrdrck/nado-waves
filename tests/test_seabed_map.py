@@ -163,7 +163,9 @@ def test_the_map_multisamples_and_draws_no_fill_outlines():
 
     assert "cooperativeGestures: true, fadeDuration: 0, antialias: true," in PAGE
     fills = re.findall(r'type: "fill",[^;]*?paint: \{([^}]*)\}', PAGE)
-    assert len(fills) == 2 and all('"fill-antialias": false' in f for f in fills)
+    # The swell map's two, and since 2026-11-17 the roses' seabed's one.
+    assert len(fills) == 3 and all('"fill-antialias": false' in f for f in fills)
+    assert "attributionControl: false, fadeDuration: 0, antialias: true, preserveDrawingBuffer: true," in PAGE
 
 
 def test_the_maps_files_are_kept_on_the_device_by_their_version():

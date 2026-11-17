@@ -171,3 +171,72 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    without the trains, MEM's bins summing to one by its pole test alone
    (`spreadmethod.realisable`) — 0.7 s for two months, where `at_buoy` took
    ~90.
+
+## The seabed behind the rose, and the bar
+
+   **Each rose stands on the seabed round its buoy** (owner's request and
+   picks, 2026-11-17, group 5, item 9; mocked in "Buoy Rose Seabed" with
+   the shipped seabed vectors, not satellite imagery). The swell map's
+   seabed (map.md) in its COLOUR theme, the page's light or dark -- never
+   the layer list's Grayscale or Lines only -- centred on the buoy and north
+   up as the rose is, the rose's outer ring `ROSE_SEA_KM` (40 km) out for
+   every buoy, filling the whole plate, no marks. Picked over 120 km (the
+   islands), 250 km (the Bight) and each buoy's own scale to Center break
+   (29 / 82 / 222 km, not comparable buoy to buoy); over Faded, Grayscale
+   and Lines only; over the map inside the rose's circle only; over dots
+   and names for the breaks and the other buoys. At 40 km 46232's plate
+   holds Point Loma, the Coronado Islands and the beach; 46047's Tanner and
+   Cortes Banks; the plate's corners reach ~57 km. The buoys' coordinates
+   are map.json's (NDBC's fetched, `seaWhere`), never typed.
+
+   - **A STILL IMAGE** (owner's call): nothing on it moves and a tap goes to
+     the rose, so `roseSea` (in the map's module) draws every shown rose
+     with ONE offscreen MapLibre map -- `preserveDrawingBuffer`, the plate's
+     size, the device's pixel ratio, the buoy at the rose's centre by the
+     map's padding -- reads each into a PNG and removes the map, letting its
+     WebGL context go. A new size or theme draws again (keyed by buoy,
+     theme, size, centre, ring and pixel ratio); each image is kept for the
+     visit, so a refresh, which rewrites the cards every minute, puts the
+     same image straight back (`roseSea.src`). Until it lands the plate is
+     the seabed's 1,000-2,000 m colour. Measured in Chromium (software GL):
+     at 390 px one image, 328 x 310, the offscreen host gone after; at
+     1300 px both roses shown drawn by one map, 281 x 310; a theme switch
+     redraws both in the new theme.
+   - **The rose in the dark theme's colours on both themes** (owner's
+     request, same day, "white dominant"): over the seabed `--ink`,
+     `--soft`, `--faint`, `--line-strong` and `--card` are the dark theme's
+     own inside the rose and the legend's swatches (a test holds them to the
+     dark tokens), so petals, points and the Period bands run dark slate to
+     white and a stale frame greys in the dark theme's grey; the rings in
+     ink at .38 (the grey rule vanished on the sea in the mock). The tray is
+     still the page's paper: each swatch gets a hairline in the page's rule
+     so the near-white one shows on the light page. The legend now says
+     "shortest faintest".
+   - **Where no map can be drawn** (no WebGL, or the library, map.json or
+     the map failing: `seaFail`), the rose stays on the plain card in the
+     page's colours and its line drops the reach, as before this change.
+     Measured with Chromium's 3D APIs off: no image, card colours, "Rings
+     every 2 ft · 8.9 ft combined".
+   - **The line under the rose** (owner's requests, same day): "Rings every
+     2 ft (0.61 m) · Map 25 mi (40 km) to the edge · 8.9 ft (2.70 m)
+     combined" -- the reach said, through `dualText`, so a ring is not read
+     as a distance (first left off, then asked back); the frame's time left
+     to the bar, which shows it; the combined height kept, as it changes
+     while the loop plays.
+   - **"Seabed GMRT"** at the plate's top right, in the swell map's source
+     line's type, white with a soft shadow (it can sit over land): GMRT's
+     licence asks for the credit, and at the roses' zoom only GMRT's grids
+     are drawn.
+
+   **THE BAR, as the break map's fill bar** (owner's request, same day):
+   along the plate's foot, play / pause, then the six hours in a
+   card-coloured pill -- the shown spectrum's time (or the moment a gap or
+   a stamp not in yet is named by), the line filled to the moment and a dot
+   on it -- then ft / s in the bottom-right corner, where it was before
+   2026-11-11. Each 28 px, 4 px apart and 4 px inside the hairline, 6 px
+   under the rose, so the plate keeps its height (311 px at 390, as
+   before). The tick for every spectrum stays on the line, so a missing
+   spectrum is still a missing tick (the fill bar has none); the shown
+   frame's tick in ink. A tap goes to a moment, a drag scrubs (pointer
+   capture), the arrow keys still step half an hour. This supersedes the
+   2026-11-11 top-left toggle and the SVG timeline above.

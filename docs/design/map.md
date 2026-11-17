@@ -379,3 +379,13 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      geometry facts are read from `span[data-geo]`, so the drawing's own
      `data-geo` is never overwritten. The other docs.html lines that put the
      drawing on the card now put the map there.
+
+## The roses' seabed
+
+   **The Buoys tab draws this seabed too** (owner's picks, 2026-11-17,
+   group 5, item 9): behind each buoy's rose, as a still image from one
+   offscreen map in the colour theme (`roseSea`, in this module, reusing
+   `ready`, `kept`'s files, `MAP_THEMES` and `bandColours`). It adds a third
+   fill layer, multisampled with no outline as the swell map's are (a test
+   counts them), and never a live map. buoys.md "The seabed behind the rose,
+   and the bar".
