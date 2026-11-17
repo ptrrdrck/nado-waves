@@ -100,6 +100,49 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   Chosen over KNZY's TAF: a TAF runs 24–30 h in coded change groups written
   for the runway.
 
+## The Wind card's rose
+
+- **A rose beside the reading, turned to the break** (owner's design,
+  2026-11-17, handoff group 4 item 8; mocked as "Wind Card Rose", two
+  rounds; `windRose`, `windRoses`, `windReading`). The ring's top is the
+  break's facing heading, its seaward shore normal; its four "cardinals"
+  are the headings 90° from it, named by compass point (owner's pick over
+  degrees), so North reads SSW / WNW / NNE / ESE clockwise and Center and
+  South SW / NW / NE / SE. A classic arrow (filled head, two pairs of tail
+  feathers) fills the ring side to side, pointing where the wind blows TO:
+  up is offshore, down onshore, sideways cross-shore -- the verdict line's
+  picture, made against the same normal, so it is per break as that line
+  is, and the measurement is still hoisted. **The arrow's length never
+  shows speed** (owner's pick of fixed over speed-scaled: the words give
+  it, and a 5 mph arrow was hard to read in a 54 px ring). Every point in
+  ink at one weight, every tick grey (owner's call, second round). A light
+  wind (`LIGHT_KT` or less) draws the arrow faint; calm draws a small
+  circle, the station-plot convention; a wind with no direction (VRB)
+  draws none. An old reading greys the arrow with the card, never the
+  points: they are the break's headings, not the reading.
+- **Which break.** On a phone or tablet ONE rose, the open swell tab's
+  break's, beside the reading (owner's choice of A over three in a row),
+  following the tab as the verdict line does (`data-wind-for`); the buoy's
+  tab shows none. Wide (stack, console), where no tab picks a break, the
+  three in a row North to South, each named, between the headline and the
+  three verdict lines; at the console rail's 312 px they draw at ~80%, the
+  points ~9 px.
+- **The headline never moves** (owner's note on the mock, where it shifted
+  between a break's tab and the buoy's): the reading and the rose share one
+  row on EVERY tab, the rose column empty on the buoy's. Measured at 390
+  and 800 px on both tabs, the headline's top is 43 px into the card on
+  North, Center, South and the buoy's, as on master. The card grows 42 px
+  under a break's tab (145 → 187 on "LIVE"), and is master's on the buoy's.
+- **The rose is 122 × 96** with the ring 54 px across. A side point starts
+  6 px off the ring; the widest of the sixteen, WNW (North's right point),
+  measures 27.6 px in Archivo 500 at 10.5 px (Chromium, 2026-11-17), so it
+  ends 0.4 px inside the card's content edge, level with the pills' end
+  (owner's report: WNW reached into the margin in the first round), and the
+  ring sits in one place for every break. A test pins the fit both sides.
+- **On Forecast the rose draws the NWS wind on the sand**, the one the
+  verdict reads, never GFS-Wave's at the buoy (owner's confirmation, same
+  day); under a past hour KNZY's observed wind stays the blue line only.
+
 ## Tide direction from the next turn
 
 - **The tide's direction is read off the next turn, never differenced from the
@@ -166,6 +209,18 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   at 7:18 AM", tagged predicted — and never says rising or falling, so the
   card's one direction is the measured one (`turnLine`'s `named`). The
   Forecast tab keeps "falling to": nothing measured sits beside it.
+- **22 px between the height and the rate** (owner's pick, 2026-11-17,
+  handoff group 4 item 7, from 10 px; mocked at 10 / 14 / 18 / 22). A flex
+  column gap on the tide's `.val` (`.tide-val`), not the rate's margin, so
+  a reading too wide for one line wraps the rate under the height FLUSH
+  LEFT: measured, a low below zero in "Both" at 320 px ("−0.8 ft (−0.25 m)
+  ▼ 1.2 ft/h (0.37 m/h)") wraps on master indented 10 px and now starts at
+  0; a typical reading in "Both" stays on one line at 320–390 px. The
+  height is one flex item with its metric inside, so no gap opens inside
+  "3.8 ft (1.16 m)"; `top: -1px` stands in for the `vertical-align: 1px`
+  a flex item ignores, and the rate's text and arrowhead sit exactly where
+  they did, against the height, in both units. A wrapped reading is 42.5 px
+  tall, not 47.5: the second line is the rate's own 15 px line.
 
 ## 9410170 is inside the bay
 

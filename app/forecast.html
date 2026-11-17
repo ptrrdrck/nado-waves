@@ -412,12 +412,50 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    2026-11-04: B of a mock of five): the Briefing's arrowhead, or its dash
    for slack, then the speed at the value's 15 px in ink, metric grey. It is
    the gauge's last 30 minutes (forecast.tiderate, BRIEFING §50), so it greys
-   with the height it was measured beside. */
-.cond .val .rate{display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:15px;
-                 white-space:nowrap;vertical-align:1px}
+   with the height it was measured beside.
+   22 px from the height (owner's pick, 2026-11-17, from 10), as a flex
+   column gap rather than a margin: where "Both" is too wide for one line
+   (a 320 px phone) the rate wraps under the height flush left, never
+   indented by the gap. The height is one item, its metric inside it, so no
+   gap opens inside "3.8 ft (1.16 m)"; `top` stands in for the inline
+   `vertical-align` it had, which a flex item ignores. */
+.cond .val.tide-val{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:22px}
+.cond .val .rate{display:inline-flex;align-items:center;gap:5px;font-size:15px;
+                 white-space:nowrap;position:relative;top:-1px}
 .cond .val .rate .unit{font-size:15px}
 .rate-arr{display:block;flex:none;width:9px;height:9px;fill:var(--ink)}
 #conditions [data-aged-at].aged .rate-arr{fill:var(--faint)}
+/* THE WIND ROSE (owner's design, 2026-11-17, mocked as "Wind Card Rose";
+   `windRose`): the ring turned so its top is the break's facing heading, its
+   shore normal, the four 90-degree headings named by compass point, and a
+   fixed-length arrow pointing where the wind blows TO -- up offshore, down
+   onshore, sideways cross-shore. Ticks grey, every point in ink at one
+   weight; the points are the break's own headings, not the reading, so they
+   never grey with it. A light wind's arrow is faint, calm a small circle,
+   a wind with no direction no arrow. On a phone or tablet the open tab's
+   break's rose sits beside the reading, the others hidden as the verdict
+   lines are (`data-wind-for`), none on the buoy's tab; the reading and the
+   rose share one row on every tab, so the headline never moves when the
+   rose comes and goes. Wide, the three in a row, North to South. */
+.wind-read{display:flex;align-items:flex-start;gap:10px}
+.wind-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.wind-rose{flex:none;display:flex}
+/* The rose's own top margin lifts its top point toward the headline's line;
+   its right edge is the content edge, where the pills end. */
+.wind-rose > [data-wind-for]{display:block;margin:-6px 0 -2px}
+.wind-three{display:flex;justify-content:space-between;gap:6px;margin:8px 0 4px}
+.wind-three figure{margin:0;flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center}
+.wind-three .wrose{width:100%;max-width:122px;height:auto}
+.wind-three figcaption{font-size:12px;line-height:1.2;color:var(--soft)}
+.wrose{display:block;overflow:visible}
+.wrose .ring{fill:none;stroke:var(--line-strong);stroke-width:1.25}
+.wrose .tick{stroke:var(--line-strong);stroke-width:1.25}
+.wrose text{font-family:Archivo,system-ui,sans-serif;font-size:10.5px;font-weight:500;fill:var(--ink)}
+.wrose .arrow{fill:var(--ink);stroke:var(--ink)}
+.wrose.light .arrow{fill:var(--faint);stroke:var(--faint)}
+.wrose .calm{fill:none;stroke:var(--ink);stroke-width:1.4}
+#conditions [data-aged-at].aged .wrose .arrow{fill:var(--faint);stroke:var(--faint)}
+#conditions [data-aged-at].aged .wrose .calm{stroke:var(--faint)}
 /* THE TIDE PHASE folds out like Origin, from its own line under a rule of
    its own, right above "Charts" (owner's request, 2026-10-11): the line is
    a fixed title, the fold paragraphs set as Origin's entries are, never
@@ -8421,6 +8459,87 @@ function windAtBreaks(cards, aged = "") {
   }).join("");
 }
 
+// The Wind card's rose for one break (owner's design, 2026-11-17, mocked as
+// "Wind Card Rose"): the ring turned so its top is the break's facing
+// heading, its seaward shore normal, the four 90-degree headings named by
+// compass point, and a fixed-length arrow pointing where the wind blows TO.
+// Up is offshore, down onshore, sideways cross-shore -- the picture of the
+// verdict line under the headline, made against the same normal, so it is
+// per break as that line is. The arrow is the same length at any speed (the
+// owner's pick): the words give the speed. A light wind (LIGHT_KT or less)
+// draws it faint; calm (0 kt) draws a small circle, the station-plot
+// convention; a wind with no direction (VRB) draws none.
+//
+// Drawn at 1 unit = 1 px, 122 x 96, the ring 54 px across. A side point
+// starts 6 px off the ring; the widest of the sixteen, WNW (North's right
+// point), measures 27.6 px in Archivo 500 at 10.5 px, so it ends inside 122
+// and the ring sits in the same place for every break (owner's report on
+// the mock: WNW must not reach into the card's margin).
+const WROSE = {w: 122, h: 96, cx: 61, cy: 48, r: 27};
+function windRose(from, kt, normal) {
+  if (normal == null) return "";
+  const {w, h, cx, cy, r} = WROSE;
+  const deg = (d) => ((d % 360) + 360) % 360;
+  const heads = [0, 90, 180, 270].map((k) => point(deg(normal + k)));
+  const label = kt === 0 ? "calm" : from == null ? "no direction"
+    : `the wind blows toward ${point(deg(from + 180))}`;
+  const light = kt != null && kt > 0 && kt <= LIGHT_KT;
+  let s = `<svg class="wrose${light ? " light" : ""}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"`
+    + ` role="img" aria-label="Facing ${heads[0]}: ${label}">`
+    + `<circle class="ring" cx="${cx}" cy="${cy}" r="${r}"/>`;
+  [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(([x, y]) => {
+    s += `<line class="tick" x1="${cx + x * (r - 4)}" y1="${cy + y * (r - 4)}" x2="${cx + x * (r + 2)}" y2="${cy + y * (r + 2)}"/>`;
+  });
+  s += `<text x="${cx}" y="${cy - r - 6}" text-anchor="middle">${heads[0]}</text>`
+    + `<text x="${cx + r + 6}" y="${cy + 3.7}" text-anchor="start">${heads[1]}</text>`
+    + `<text x="${cx}" y="${cy + r + 14}" text-anchor="middle">${heads[2]}</text>`
+    + `<text x="${cx - r - 6}" y="${cy + 3.7}" text-anchor="end">${heads[3]}</text>`;
+  if (kt === 0) {
+    s += `<circle class="calm" cx="${cx}" cy="${cy}" r="3.6"/>`;
+  } else if (from != null) {
+    // Drawn pointing up, centred: a filled head, the shaft, two pairs of
+    // feathers at the tail, then turned to the heading it blows toward,
+    // measured clockwise from the break's facing heading.
+    const half = r - 3, head = 9, hw = 4.6;
+    let a = `<path d="M0 ${-half} L${hw} ${-half + head} L${-hw} ${-half + head}Z" stroke="none"/>`
+      + `<line x1="0" y1="${-half + head - 1}" x2="0" y2="${half}" stroke-width="1.7" fill="none"/>`;
+    [0, 5].forEach((k) => {
+      const y = half - 1 - k;
+      a += `<path d="M0 ${y - 4.5} L-4 ${y} M0 ${y - 4.5} L4 ${y}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+    });
+    s += `<g class="arrow" transform="translate(${cx} ${cy}) rotate(${deg(from + 180 - normal).toFixed(1)})">${a}</g>`;
+  }
+  return s + "</svg>";
+}
+
+// Every break's rose for one wind. On a phone or tablet each sits in the
+// side column with the verdict lines' `data-wind-for`, so `selectSwellTab`
+// shows the open tab's and the buoy's tab shows none; wide, where no tab
+// picks a break, the three in a row North to South, each naming its break.
+// `aged` greys the arrow with the reading it was drawn from.
+function windRoses(cards, from, kt, aged = "") {
+  if (from == null && kt == null) return "";
+  if (WIDE()) {
+    return `<div class="wind-three"${aged}>` + ORDER.map((id) => (cards || []).find((c) => c.id === id))
+      .filter((c) => c && c.normal != null)
+      .map((c) => `<figure>${windRose(from, kt, c.normal)}<figcaption>${SHORT[c.id] || c.name}</figcaption></figure>`)
+      .join("") + `</div>`;
+  }
+  return `<div class="wind-rose"${aged}>` + (cards || []).filter((c) => c.normal != null)
+    .map((c) => `<span data-wind-for="${c.id}"${c.id === SWELL_TAB ? "" : " hidden"}>${windRose(from, kt, c.normal)}</span>`)
+    .join("") + `</div>`;
+}
+
+// The reading and its rose. On a phone or tablet they share one row on
+// EVERY tab, the rose column empty on the buoy's, so the headline sits at
+// the same height whether a rose is shown or not (owner's note, 2026-11-17:
+// in the mock it moved between a break's tab and the buoy's). Wide, the
+// roses go between the headline and the three verdict lines.
+function windReading(val, lines, roses) {
+  if (WIDE()) return `${val}${roses}${lines}`;
+  return `<div class="wind-read"><div class="wind-txt">${val}${lines}</div>${roses}</div>`;
+}
+
 // Switching tabs flips attributes rather than re-rendering, so focus stays on
 // the tab the reader is on and the countdowns keep their place.
 function selectSwellTab(id, {focus = false} = {}) {
@@ -8538,8 +8657,10 @@ function localWindBlock(hour, cards, past, seen = "") {
   const L = (DATA && DATA.local_wind) || {};
   if (hour && hour.local_wind_from_deg != null) {
     const gust = hour.local_gust_kt ? ` <span class="unit">gusting ${gustSpeed(hour.local_gust_kt)}</span>` : "";
-    return `<span class="val">${windVal(hour.local_wind_from_deg, hour.local_wind_kt)}${gust}</span>
-      ${windAtBreaks(cards)}
+    // The rose draws this wind, the one the verdict reads, never the
+    // model's at the buoy (owner's confirmation, 2026-11-17).
+    return `${windReading(`<span class="val">${windVal(hour.local_wind_from_deg, hour.local_wind_kt)}${gust}</span>`,
+      windAtBreaks(cards), windRoses(cards, hour.local_wind_from_deg, hour.local_wind_kt))}
       ${seen}`;
   }
   const why = past ? "" : L.available === false && L.why ? L.why : "no local forecast for this hour";
@@ -8606,11 +8727,12 @@ function renderConditions(step, cards) {
       <div class="chead"><span class="lbl">Wind</span>${windHeard(wind)
         // Across from the title (owner's design, 2026-11-08), as the swell card's.
         ? feedPills(`METAR ${wind.station}`, wind.observed_utc, due.wind, late.wind) : ""}</div>
-      <span class="val"${windAged}>${windHeard(wind)
+      ${windReading(`<span class="val"${windAged}>${windHeard(wind)
         ? windVal(wind.from_deg, wind.speed_kt)
           + (wind.gust_kt ? ` <span class="unit">gusting ${gustSpeed(wind.gust_kt)}</span>` : "")
-        : '<span class="unit">not collected</span>'}</span>
-      ${windHeard(wind) ? windAtBreaks(cards, windAged) : ""}
+        : '<span class="unit">not collected</span>'}</span>`,
+        windHeard(wind) ? windAtBreaks(cards, windAged) : "",
+        windHeard(wind) ? windRoses(cards, wind.from_deg, wind.speed_kt, windAged) : "")}
       ${windHeard(wind)
         ? srcLines([placeWhen(wind.station_name, wind.observed_utc)])
         : srcLines(wind.note)}
@@ -8622,8 +8744,10 @@ function renderConditions(step, cards) {
       <div class="chead"><span class="lbl">Tide</span>${tide.height_m != null
         // The gauge the numbers are carried from, across from the title.
         ? feedPills(`NOAA ${NOW.tide_station}`, tide.observed_utc, due.tide, late.tide) : ""}</div>
-      <span class="val"${tide.height_m != null ? agedAttr(tide.observed_utc) : ""}>${tide.height_m != null
-        ? height(tide.height_m) + tideRate(tide)
+      <span class="val${tide.height_m != null ? " tide-val" : ""}"${tide.height_m != null ? agedAttr(tide.observed_utc) : ""}>${tide.height_m != null
+        // One flex item for the height, metric and all, one for the rate,
+        // 22 px apart and flush left if the rate wraps (.tide-val).
+        ? `<span>${height(tide.height_m)}</span>` + tideRate(tide)
         : '<span class="unit">not collected</span>'}</span>
       ${turnLine((NOW && NOW.tide_turns) || [], new Date().toISOString(), {tagged: true, named: true})}
       ${tide.height_m != null

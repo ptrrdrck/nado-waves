@@ -110,17 +110,25 @@ Mocked in "Seabed Map Themes" and picked by the owner on 2026-11-16; map.md
     drawing on docs.html as the project's history, its code pinned to the
     page's. map.md "The map, the only view".
 
-### Group 4: Wind and Tide cards
+### Group 4: Wind and Tide cards -- done (branch claude/affectionate-keller-e0tse2)
 
-Area: `docs/design/tide_wind_sun.md`, `app_surface.md`.
+Mocked in "Wind Card Rose" (two rounds) and picked by the owner on
+2026-11-17; tide_wind_sun.md "The Wind card's rose" and "The LIVE tide's
+measured rate".
 
-7. **Space between the tide height and its rising/falling rate** (`tideRate`'s
-   `.rate`), tide card only. Routine: a lighter model is enough.
-8. **Wind symbol**: a rose whose top heading is the break's facing direction,
-   its four "cardinals" the 90° headings from it, the centre filled side to
-   side with a classic wind arrow pointing where the wind blows TOWARD. Mock
-   first; settle per break vs the picked break (wide layouts pick none) and
-   whether length shows speed.
+7. **Space between the tide height and its rate** -- done: 22 px (from 10),
+   a flex column gap, so a reading too wide for one line (a low below zero
+   in "Both" at 320 px) wraps the rate flush left, not indented.
+8. **Wind symbol** -- done: a rose whose top is the break's facing heading,
+   its four 90° headings by compass point (all ink, ticks grey), a
+   fixed-length arrow pointing where the wind blows TO. One rose, the picked
+   break's, on a phone or tablet, none on the buoy's tab; three in a row
+   wide. Sized so WNW stays inside the card; the headline sits at the same
+   height on every tab (measured). On Forecast it draws the NWS wind.
+
+Not done, asked: a sentence on the rose in docs.html's Wind card section
+("Offshore, cross-shore, onshore or light") -- docs.html is out of the
+group's area, so it waits for the owner's yes.
 
 ### Group 5: Buoys tab (after group 3)
 
@@ -138,9 +146,6 @@ wait for Tests, don't merge." to each.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
   cause and the truth before changing anything."
-- Group 4: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
-  Group 4 of docs/handoff.md (items 7, 8), Wind and Tide cards. Read
-  tide_wind_sun.md and app_surface.md first; mock item 8 before building."
 - Group 5: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 5 of docs/handoff.md (item 9), Buoys tab. Read buoys.md and map.md
   first; mock before building."
@@ -148,7 +153,7 @@ wait for Tests, don't merge." to each.
 ### Working efficiently
 
 - Read only the design doc and BRIEFING sections a group names.
-- Mock design calls (8, 9) before building.
+- Mock design calls (9) before building.
 - iPhone-only bugs get a diagnostic page before any code changes.
 - Measure rendering; one screenshot at the end. `app/forecast.html` is
   ~10,500 lines: grep it, never read it whole.
