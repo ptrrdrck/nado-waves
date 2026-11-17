@@ -1,0 +1,103 @@
+# Archive CDIP MOP at the three Coronado breaks and set the chain's wrap
+# against it (BRIEFING §56; §29 named this as "Next" and it was never done).
+#
+# This exists because of where it runs. Both CDIP hosts are refused at CONNECT
+# by a Claude session's egress proxy (BRIEFING §8, collector/probe_mop.py's
+# DENIAL_NOTE); a runner has no such policy in front of it.
+#
+# MOP is a MODEL. The report is a cross-check of one ray model against
+# another, never a verification series, and nothing reads it: no forecast
+# number changes because of it (CLAUDE.md, "Verification must be an
+# observation, not another model").
+#
+# On demand only. collector.mop discovers the dataset names and checks every
+# variable against the file's own DDS before reading it, and exits 1 with
+# what it found when they differ, so a first run that stops is a finding
+# about CDIP's layout, not a failure to retry.
+
+name: MOP cross-check
+
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: "MOP product: nowcast (driven by the buoys' observed spectra, as LIVE is) or hindcast"
+        required: false
+        default: "nowcast"
+      since:
+        description: "First day to archive (YYYY-MM-DD); the 46232 spectra archive starts 2026-08-04"
+        required: false
+        default: "2026-08-04"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mop-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Archive MOP at the breaks
+        # Dispatch inputs go through the environment, never interpolated into
+        # the shell command.
+        env:
+          PRODUCT: ${{ inputs.product }}
+          SINCE: ${{ inputs.since }}
+        run: |
+          set -euo pipefail
+          python -m collector.mop --product "${PRODUCT:-nowcast}" --since "${SINCE:-2026-08-04}"
+
+      - name: Set the chain against it
+        run: |
+          set -euo pipefail
+          python -m forecast.mopcheck --out docs/mop_check.md
+          cat docs/mop_check.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and push
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "nado-waves forecast"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Deliberately scoped: MOP's series and the report, nothing else.
+          git add data/mop docs/mop_check.md 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+            exit 0
+          fi
+
+          git commit \
+            -m "data: archive CDIP MOP at the breaks and regenerate the MOP cross-check" \
+            -m "Automated commit from .github/workflows/mop-check.yml."
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}); rebasing and retrying."
+            if ! git pull -q --rebase --autostash origin "${BRANCH}"; then
+              git rebase --abort || true
+              echo "::error title=MOP check rebase conflict::Another job changed data/mop or the report"
+              exit 1
+            fi
+            sleep $((2 ** attempt))
+          done
+
+          echo "::error title=MOP check push failed::Could not push the report"
+          exit 1
