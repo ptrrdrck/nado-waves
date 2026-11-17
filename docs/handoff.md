@@ -130,12 +130,19 @@ Not done, asked: a sentence on the rose in docs.html's Wind card section
 ("Offshore, cross-shore, onshore or light") -- docs.html is out of the
 group's area, so it waits for the owner's yes.
 
-### Group 5: Buoys tab (after group 3)
+### Group 5: Buoys tab -- done (branch claude/peaceful-lamport-8a5hfz)
 
-Area: `docs/design/buoys.md`, `map.md`.
+Mocked in "Buoy Rose Seabed" (four rounds) and picked by the owner on
+2026-11-17; buoys.md "The seabed behind the rose, and the bar", map.md "The
+roses' seabed"; docs.html's roses section updated (owner's yes).
 
-9. **Map imagery behind the buoy rose, centred on the buoy.** Mock first:
-   seabed vectors or satellite, and the scale.
+9. **Map imagery behind the buoy rose, centred on the buoy** -- done: the
+   seabed vectors (not satellite) in the colour theme, north up, 40 km at
+   the rose's edge for every buoy, the whole plate, no marks; a still image
+   from one offscreen map, let go. The rose in the dark theme's colours on
+   both themes; the line under it says the map's reach and drops the time;
+   the bar redrawn as the break map's fill bar, ft / s back in the
+   bottom-right corner. Without WebGL the rose stays on the card as before.
 
 ### Carryover prompts
 
@@ -146,9 +153,6 @@ wait for Tests, don't merge." to each.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
   cause and the truth before changing anything."
-- Group 5: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
-  Group 5 of docs/handoff.md (item 9), Buoys tab. Read buoys.md and map.md
-  first; mock before building."
 
 ### Working efficiently
 

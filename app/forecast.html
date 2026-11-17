@@ -1046,46 +1046,66 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .rose{display:flex;flex-direction:column;gap:0;margin-top:5.25px;margin-bottom:10px}
 .rose-plate{position:relative;background:var(--card);border:1px solid var(--line);border-bottom:0;
   border-radius:7px 7px 0 0;padding:12px 0 0}
+/* THE SEABED behind the rose (owner's picks, 2026-11-17, group 5, item 9,
+   from the mock "Buoy Rose Seabed"): the swell map's seabed in its colour
+   theme, centred on the buoy and north up as the rose is, the rose's edge 40
+   km out (`ROSE_SEA_KM`), filling the whole plate, no marks. A still image,
+   drawn once per buoy, size and theme by one offscreen map that is then let
+   go (`roseSea`), never a live map. Until it lands the plate is the seabed's
+   deep-water colour (`--rose-sea`); where no map can be drawn the rose stays
+   on the card, in the page's colours. */
+.rose.sea .rose-plate{background:var(--rose-sea,var(--card))}
+.rose-plate > .rose-sea{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:6px 6px 0 0;
+  pointer-events:none;user-select:none;-webkit-user-select:none}
+.rose-plate > .rose-sea:not([src]){visibility:hidden}
+.rose-plate > .rose-attr{position:absolute;top:8px;right:8px;z-index:1;color:#fff;font:10px/1.2 Archivo,sans-serif;
+  text-shadow:0 0 2px rgba(0,0,0,.55);pointer-events:none;white-space:nowrap}
+.rose:not(.sea) .rose-attr{display:none}
+.rose .rose-plot{position:relative;z-index:1}
 /* The tray as the drawing's and the map's: its words in that caption's type
    and line, and a line more when they need one (owner's request,
    2026-11-11). */
 .rose-tray{background:var(--paper);border:1px solid var(--line);border-radius:0 0 7px 7px;
   padding:7px 12px 8px;display:flex;flex-direction:column;gap:0}
-/* Top-left, as the drawing / map toggle was until 2026-11-16: 28 px, the
-   card's colour. */
-.rose-switch{position:absolute;top:4px;left:4px;z-index:2;display:inline-flex;align-items:center;
-  justify-content:center;box-sizing:border-box;width:28px;height:28px;padding:0;margin:0;border:0;
-  border-radius:6px;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.35);
-  font:600 12px/1 Archivo,sans-serif}
 .pane .rose + .srcs{margin-top:3px}
 .rose .ranges{display:flex;gap:2px}
 .rose .rose-modes{flex:none}
 .rose .ranges button{font:inherit;font-size:12px;font-weight:600;height:22px;padding:0 9px;border:0;
   border-radius:6px;cursor:pointer;background:transparent;color:var(--soft)}
-/* Under the rose: play / pause, the six hours, then the ft / s switch, all
-   three buttons one height (22 px). */
-/* One line under the rose: the ring spacing, then the frame's time and what
-   it holds; in the tray, which takes a line more when a frame's words wrap
-   (owner's request, 2026-11-11, as the drawing's and the map's tray does). */
+/* One line under the rose: the ring spacing, how far the seabed reaches, and
+   what the frame holds -- its time is the bar's (owner's request,
+   2026-11-17); in the tray, which takes a line more when a frame's words
+   wrap (owner's request, 2026-11-11, as the drawing's and the map's tray
+   does). */
 .rose .rose-scale{font:400 14px/21px Archivo,sans-serif;color:var(--ink);text-align:center;text-wrap:balance;
   font-variant-numeric:tabular-nums}
 .rose .rose-scale .rs{white-space:nowrap}
-/* Along the plate's foot: play / pause at the map's controls' size, a 28 px
-   button in the card's colour 4 px from the plate's corner as the map's are,
-   and the six hours giving up the width for their margins (owner's
-   requests, 2026-11-11). */
-.rose .rose-time{display:flex;align-items:center;gap:8px;margin:6px 12px 4px 4px}
-.rose .rose-play{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
-  padding:0;border:0;border-radius:6px;cursor:pointer;background:var(--card);color:var(--ink);
-  box-shadow:0 1px 3px rgba(0,0,0,.35)}
-.rose .rose-track{flex:1 1 auto;min-width:0;display:block}
-.rose .rose-track .rose-line{width:100%}
+/* THE BAR along the plate's foot, as the break map's fill bar (`.sf-bar`)
+   is (owner's request, 2026-11-17): play / pause, then the six hours in a
+   card-coloured pill with the moment shown, then ft / s in the bottom-right
+   corner; each 28 px, 4 px apart and 4 px inside the hairline, 6 px under
+   the rose so the plate keeps its height. A tick for every spectrum the
+   buoy sent stays on the line, so a missing one is still a missing tick. */
+.rose .rose-bar{position:relative;z-index:2;display:flex;align-items:center;gap:4px;height:28px;margin:6px 4px 4px}
+.rose .rose-play,.rose .rose-switch{flex:none;display:inline-flex;align-items:center;justify-content:center;
+  box-sizing:border-box;width:28px;height:28px;padding:0;margin:0;border:1px solid transparent;border-radius:6px;
+  cursor:pointer;background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.rose .rose-switch{font:600 12px/1 Archivo,sans-serif}
 .rose .rose-play svg{width:12px;height:12px;fill:currentColor}
+.rose .rose-track{flex:1 1 auto;min-width:0;height:28px;box-sizing:border-box;display:flex;align-items:center;gap:8px;
+  padding:0 10px 0 8px;border:1px solid transparent;border-radius:6px;background:var(--card);color:var(--ink);
+  box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none;-webkit-tap-highlight-color:transparent}
+.rose .rose-when{flex:none;min-width:4.9em;text-align:right;font:600 12px/1 Archivo,sans-serif;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.rose .rose-rail{position:relative;flex:1 1 auto;height:2px;border-radius:1px;background:var(--line-strong)}
+.rose .rose-past{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:1px;background:var(--soft)}
+.rose .rose-head{position:absolute;top:50%;left:0;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;
+  background:var(--ink)}
+.rose .rose-tk{position:absolute;top:-3px;width:1.5px;height:8px;margin-left:-.75px;background:var(--faint)}
+.rose .rose-tk.on{background:var(--ink)}
 .rose .ranges button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
-.rose button:focus-visible,.rose .rose-line:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
-/* A tap focuses the timeline too, and the browser rings an SVG on any focus;
-   only the keyboard's focus is ringed, in the page's blue. */
-.rose .rose-line:focus:not(:focus-visible){outline:none}
+.rose button:focus-visible,.rose .rose-track:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
+.rose .rose-track:focus:not(:focus-visible){outline:none}
 /* 260 px across: the circle 21% wider than when the compass points sat
    outside it, the block 20 px shorter (owner's choice C, 2026-10-08). */
 .rose-svg{display:block;width:100%;max-width:260px;height:auto;margin:0 auto;overflow:visible}
@@ -1107,13 +1127,17 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .rose-svg .rb3,.rose .legend .sw.rb3{fill:color-mix(in srgb,var(--soft),var(--ink));
   background:color-mix(in srgb,var(--soft),var(--ink))}
 .rose-svg .rb4,.rose .legend .sw.rb4{fill:var(--ink);background:var(--ink)}
-.rose-line{display:block;flex:1;min-width:0;height:auto;cursor:pointer;
-  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.rose-line .base{stroke:var(--line-strong);stroke-width:1}
-.rose-line .tk{stroke:var(--faint);stroke-width:1.5}
-.rose-line .tk.on{stroke:var(--ink);stroke-width:2.5}
-.rose-line .head{stroke:var(--soft);stroke-width:1;stroke-dasharray:2 2}
-.rose-line .tt{font-size:9px;fill:var(--faint);font-variant-numeric:tabular-nums}
+/* Over the seabed the rose takes the DARK theme's colours on both themes
+   (owner's request, same day: "white dominant"): petals, rings, points and
+   the Period bands, and the legend's swatches with them; the rings in ink
+   at .38, as the grey rule vanished on the sea. The values are the dark
+   theme's own tokens (a test holds them to it). */
+.rose.sea .rose-svg,.rose.sea .legend .sw{--ink:#E4ECE9;--soft:#9DB0B7;--faint:#7A8D95;--line-strong:#3A525E;--card:#152630}
+.rose.sea .rose-svg .ring{stroke:var(--ink);stroke-opacity:.38}
+/* The tray is the page's paper: a hairline round each swatch, in the page's
+   rule, so the near-white one shows on the light page. */
+.rose.sea .legend{--sw-hair:var(--line-strong)}
+.rose.sea .legend .sw{box-shadow:0 0 0 1px var(--sw-hair)}
 .rose .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:0 10px;font:400 14px/21px Archivo,sans-serif;
   color:var(--ink);font-variant-numeric:tabular-nums}
 .rose .legend span{white-space:nowrap}
@@ -5231,6 +5255,14 @@ const ROSE_BAND_KEYS = ["<8", "8–11", "11–14", "14–17", "17+ s"];
 // The outer ring is the drawing's edge, N, E, S and W just inside it (owner's
 // choice, 2026-10-08): no band of empty card around the circle.
 const ROSE = {c: 120, r: 119};
+// The seabed behind each rose reaches this far at the rose's edge, the same
+// for every buoy (owner's pick, 2026-11-17, of 40, 120 and 250 km and one
+// scale a buoy): each buoy's own ground -- 46232's Point Loma, the Coronado
+// Islands and the beach; 46047's Tanner and Cortes Banks.
+const ROSE_SEA_KM = 40;
+// Whether the roses stand on the seabed: wherever the map module can draw it
+// (`roseSea`, in the map's code), and not after it failed.
+const roseOnSea = () => !!(window.roseSea && window.roseSea.ok());
 // The train row tapped on each buoy's reading, by index into the newest
 // spectrum's trains (owner's request, 2026-10-08), or none. Its period range
 // is lit on that buoy's rose in every frame: the same range, not the same
@@ -5322,13 +5354,15 @@ function roseAt(rose, t) {
   frames.forEach((f, i) => { if (roseTime(f) <= t + 1000) k = i; });
   const every = (rose.interval_min || 60) * 60000;
   if (k < 0) {
-    return {key: "none", note: "No spectrum yet at " + clock(new Date(t).toISOString())};
+    const at = new Date(t).toISOString();
+    return {key: "none", at, note: "No spectrum yet at " + clock(at)};
   }
   // The newest is shown until a newer one lands, under its own time: a stamp
   // not published yet is not a gap, and a paused rose rests on the newest.
   const due = roseTime(frames[k]) + every;
-  if (k === frames.length - 1 || t + 1000 < due) return {key: String(k), frame: frames[k], k};
-  return {key: "gap" + k, note: `No spectrum at ${clock(new Date(due).toISOString())}`};
+  if (k === frames.length - 1 || t + 1000 < due) return {key: String(k), frame: frames[k], k, at: frames[k].time_utc};
+  const at = new Date(due).toISOString();
+  return {key: "gap" + k, at, note: `No spectrum at ${clock(at)}`};
 }
 
 const rosePt = (r, deg) => {
@@ -5423,57 +5457,71 @@ function rosePlot(state, mode, station) {
 }
 
 // The one line under the rose (owner's request, 2026-10-08): its ring
-// spacing, then the frame's time and what it holds -- "Rings every 1 ft
-// (0.30 m) · 11:00 AM · 4.6 ft (1.39 m) combined". Each part keeps to
+// spacing, how far the seabed behind it reaches, and what the frame holds --
+// "Rings every 1 ft (0.30 m) · Map 25 mi (40 km) to the edge · 4.6 ft (1.39
+// m) combined" (owner's requests, 2026-11-17: the reach said, so a ring is
+// not read as a distance; the frame's time left to the bar, the combined
+// height kept, as it changes while the loop plays). Each part keeps to
 // itself, so a narrow phone breaks the line only at a "·". With a row
 // picked it names the period range, never "the train": in an older frame
 // that range may hold another swell.
 function roseReadout(state, station) {
   const seg = (html, cls = "") => `<span class="rs${cls}">${html}</span>`;
-  const sep = " \u00b7 ";
-  const scale = seg(roseScaleLine(ROSE_MODE, station));
+  const sep = " · ";
+  const scale = seg(roseScaleLine(ROSE_MODE, station))
+    + (roseOnSea() ? sep + seg(roseReach()) : "");
   if (!state.frame) return scale + sep + seg(state.note);
   const f = state.frame;
-  const when = seg(clock(f.time_utc), " v");
   const k = rosePick(station);
   const share = k != null && f.train_share && f.train_share[k];
   if (share) {
     const sum = share.reduce((a, b) => a + b, 0);
-    return scale + sep + when + sep + seg(`${roseRange(station, k)}: `
+    return scale + sep + seg(`${roseRange(station, k)}: `
       + (ROSE_MODE === "height" ? height(f.hs_m * Math.sqrt(sum))
         : `${rosePct(sum)} <span class="unit">of the energy</span>`), " v");
   }
-  return scale + sep + when + sep
-    + seg(`${height(f.hs_m)} <span class="unit">combined</span>`, " v");
+  return scale + sep + seg(`${height(f.hs_m)} <span class="unit">combined</span>`, " v");
 }
+const roseReach = () => `Map ${dualText(`${Math.round(ROSE_SEA_KM * MI_PER_KM)} mi`, `${ROSE_SEA_KM} km`)} to the edge`;
 
-// The six hours under the rose: a tick for every spectrum this buoy sent, so
-// a missing one is a missing tick; the moment shown, and a tap to go to one.
+// The six hours under the rose, in the bar's pill (owner's request,
+// 2026-11-17, as the break map's fill bar): a tick for every spectrum this
+// buoy sent, so a missing one is a missing tick, the shown frame's in ink;
+// the line filled to the moment shown and a dot on it. A tap or a drag goes
+// to a moment, the arrow keys step it.
+const roseFrac = (span, ms) => (span.t1 > span.t0
+  ? Math.max(0, Math.min(1, (ms - span.t0) / (span.t1 - span.t0))) : 1);
 function roseLine(rose, span, t, state) {
   // A frame stamped before the loop starts (the earlier buoy's first) sits at
   // the line's left end: it is the one shown there.
-  const x = (ms) => (8 + 224 * (span.t1 > span.t0
-    ? Math.max(0, Math.min(1, (ms - span.t0) / (span.t1 - span.t0))) : 1)).toFixed(1);
-  const ticks = (rose.frames || []).map((f, i) =>
-    `<line class="tk${state.k === i ? " on" : ""}" x1="${x(roseTime(f))}" y1="4" x2="${x(roseTime(f))}" y2="14"/>`).join("");
-  const ends = `<text class="tt" x="8" y="25">${clock(new Date(span.t0).toISOString())}</text>`
-    + `<text class="tt" x="232" y="25" text-anchor="end">${clock(new Date(span.t1).toISOString())}</text>`;
-  return `<line class="base" x1="8" y1="14" x2="232" y2="14"/>${ticks}`
-    + `<line class="head" x1="${x(t)}" y1="1" x2="${x(t)}" y2="16"/>${ends}`;
+  return (rose.frames || []).map((f, i) =>
+    `<span class="rose-tk${state.k === i ? " on" : ""}" style="left:${(100 * roseFrac(span, roseTime(f))).toFixed(2)}%"></span>`).join("")
+    + `<span class="rose-past"></span><span class="rose-head"></span>`;
 }
+// The moment's place on the line, every tick.
+function roseHead(el, v) {
+  const at = `${(100 * roseFrac(v.span, v.t)).toFixed(2)}%`;
+  const past = el.querySelector(".rose-past"), head = el.querySelector(".rose-head");
+  if (past) past.style.width = at;
+  if (head) head.style.left = at;
+}
+// The pill's words: the shown frame's time, or the moment a gap or a stamp
+// not in yet is named by.
+const roseWhen = (state) => (state.at ? clock(state.at) : "");
 
 // The Period legend, in the rose's tray; on Height it takes no room, the
 // tray a line shorter (owner's request, 2026-11-11, replacing 2026-10-08's
 // row kept unseen so the switch never moved the page).
 function roseLegend(mode) {
   const off = mode !== "period";
-  return `<div class="legend${off ? " off" : ""}"${off ? ' aria-hidden="true"' : ' aria-label="Periods, shortest palest"'}>`
+  return `<div class="legend${off ? " off" : ""}"${off ? ' aria-hidden="true"' : ' aria-label="Periods, shortest faintest"'}>`
     + `${ROSE_BAND_KEYS.map((b, i) =>
       `<span title="${ROSE_BANDS[i]}"><i class="sw rb rb${i}"></i>${b}</span>`).join("")}</div>`;
 }
 
 // The Height / Period toggle: one button showing what a tap turns to, as the
-// drawing / map one did until 2026-11-16 (owner's request, 2026-11-11).
+// drawing / map one did until 2026-11-16 (owner's request, 2026-11-11); since
+// 2026-11-17 at the bar's right end, the plate's bottom-right corner.
 function roseSwitch() {
   const next = ROSE_MODES.find((m) => m.id !== ROSE_MODE);
   return `<button type="button" class="rose-switch" data-rose-mode="${next.id}"`
@@ -5486,7 +5534,7 @@ function roseView(station) {
   if (!rose || !span) return null;
   const t = roseMoment(span);
   const state = roseAt(rose, t);
-  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}:${rosePick(station)}:${roseAged(rose, state) ? "aged" : ""}`,
+  return {key: `${ROSE_MODE}:${state.key}:${span.t0}:${span.t1}:${rosePick(station)}:${roseAged(rose, state) ? "aged" : ""}:${roseOnSea()}`,
     rose, span, t, state, station};
 }
 
@@ -5504,17 +5552,21 @@ function roseBlock(station) {
     return `<p class="quiet buoy-note rose-none">No spectrum from ${buoyFeed(station)} in the last six hours.</p>`;
   }
   // On a plate as the swell's drawing and map are (owner's requests,
-  // 2026-11-11): the Height / Period toggle at its top-left corner as theirs
-  // is, showing what a tap turns to; play / pause and the six hours along its
-  // foot at the map's controls' size; the readout and the Period legend in
-  // the tray under it.
-  return `<div class="rose" data-rose="${station}" data-k="${v.key}">
-    <div class="rose-plate">${roseSwitch()}
+  // 2026-11-11), over the seabed where it can be drawn (2026-11-17): its
+  // image is the one already drawn for this buoy, so a refresh never shows
+  // the plate bare. Along its foot the bar, as the break map's fill bar:
+  // play / pause, the six hours, then the Height / Period toggle showing
+  // what a tap turns to; the readout and the Period legend in the tray.
+  const sea = roseOnSea();
+  const src = sea ? window.roseSea.src(station) : null;
+  return `<div class="rose${sea ? " sea" : ""}" data-rose="${station}" data-k="${v.key}">
+    <div class="rose-plate">${sea ? `<img class="rose-sea" alt="" aria-hidden="true" draggable="false"${src ? ` src="${src}"` : ""}>`
+      + `<span class="rose-attr" aria-hidden="true">Seabed GMRT</span>` : ""}
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
-    <div class="rose-time">${rosePlayButton()}<span class="rose-track">
-    <svg class="rose-line" data-rose-live data-rose-scrub viewBox="0 0 240 28" role="slider"
+    <div class="rose-bar">${rosePlayButton()}<div class="rose-track" data-rose-scrub role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
-      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}">${roseLine(rose, v.span, v.t, v.state)}</svg></span></div>
+      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}"><span
+      class="rose-when" data-rose-live>${roseWhen(v.state)}</span><span class="rose-rail" data-rose-live>${roseLine(rose, v.span, v.t, v.state)}</span></div>${roseSwitch()}</div>
     </div>
     <div class="rose-tray">
     <div class="rose-scale${roseAged(rose, v.state) ? " aged" : ""}" data-rose-live aria-live="off">${roseReadout(v.state, station)}</div>
@@ -5523,8 +5575,8 @@ function roseBlock(station) {
   </div>`;
 }
 
-// Redraw a rose in place: the petals only when the frame or view changed,
-// the playhead every tick.
+// Redraw a rose in place: the petals, words and ticks only when the frame or
+// view changed, the moment's place every tick.
 function roseUpdate(el) {
   if (el.offsetParent === null) return;
   const v = roseView(el.getAttribute("data-rose"));
@@ -5534,12 +5586,15 @@ function roseUpdate(el) {
     el.querySelector(".rose-plot").innerHTML = rosePlot(v.state, ROSE_MODE, el.getAttribute("data-rose"));
     el.querySelector(".rose-scale").innerHTML = roseReadout(v.state, el.getAttribute("data-rose"));
     el.querySelector(".rose-scale").classList.toggle("aged", roseAged(v.rose, v.state));
-    el.querySelector(".rose-line").setAttribute("aria-valuenow", rosePercent(v));
-    el.querySelector(".rose-line").setAttribute("aria-valuetext",
-      v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);
+    el.querySelector(".rose-when").textContent = roseWhen(v.state);
+    el.querySelector(".rose-rail").innerHTML = roseLine(v.rose, v.span, v.t, v.state);
+    const track = el.querySelector(".rose-track");
+    track.setAttribute("aria-valuetext", v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);
   }
-  el.querySelector(".rose-line").innerHTML = roseLine(v.rose, v.span, v.t, v.state);
+  el.querySelector(".rose-track").setAttribute("aria-valuenow", rosePercent(v));
+  roseHead(el, v);
 }
+
 
 function roseTick() {
   const at = performance.now();
@@ -5574,6 +5629,8 @@ function roseShown() {
   ROSE_PHASE = ROSE_PLAY_MS;
   setRosePlaying(false);
   document.querySelectorAll("[data-rose]").forEach(roseUpdate);
+  // A rose hidden when it was made has its seabed drawn once it shows.
+  if (window.roseSea) window.roseSea.paint();
 }
 
 // A tap or an arrow key on the six hours goes to that moment and pauses.
@@ -5622,12 +5679,29 @@ function wireRoses() {
       setRosePlaying(!ROSE_PLAYING);
       return;
     }
-    const line = e.target.closest("[data-rose-scrub]");
-    if (line) {
-      const box = line.getBoundingClientRect();
-      const x = (e.clientX - box.left) / box.width * 240;
-      roseSeek((x - 8) / 224 * ROSE_PLAY_MS);
-    }
+  });
+  // The six hours: a tap goes to that moment, a drag along them scrubs, as
+  // the break map's fill bar does (owner's request, 2026-11-17).
+  const seekAt = (track, x) => {
+    const box = track.querySelector(".rose-rail").getBoundingClientRect();
+    if (box.width > 0) roseSeek((x - box.left) / box.width * ROSE_PLAY_MS);
+  };
+  strip.addEventListener("pointerdown", (e) => {
+    const track = e.target.closest("[data-rose-scrub]");
+    if (!track || (e.pointerType === "mouse" && e.button !== 0)) return;
+    e.preventDefault();
+    track.focus({preventScroll: true});
+    seekAt(track, e.clientX);
+    try { track.setPointerCapture(e.pointerId); } catch (err) { /* an older WebKit: the tap still seeks */ }
+    const move = (m) => seekAt(track, m.clientX);
+    const done = () => {
+      track.removeEventListener("pointermove", move);
+      track.removeEventListener("pointerup", done);
+      track.removeEventListener("pointercancel", done);
+    };
+    track.addEventListener("pointermove", move);
+    track.addEventListener("pointerup", done);
+    track.addEventListener("pointercancel", done);
   });
   strip.addEventListener("keydown", (e) => {
     if (!e.target.closest("[data-rose-scrub]")) return;
@@ -10730,6 +10804,174 @@ Promise.all([
   new MutationObserver(retheme).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
   if (DARK_MQ && DARK_MQ.addEventListener) DARK_MQ.addEventListener("change", retheme);
 
+  // ---------------------------------------------------------------- the roses' seabed
+  // THE SEABED BEHIND EACH BUOY'S ROSE (owner's picks, 2026-11-17, group 5,
+  // item 9, from the mock "Buoy Rose Seabed"): the swell map's seabed in its
+  // colour theme -- the page's light or dark, never the layer list's looks --
+  // centred on the buoy and north up as the rose is, the rose's outer ring
+  // `ROSE_SEA_KM` out, filling the plate, no marks. A STILL IMAGE (owner's
+  // call): nothing on it moves and a tap goes to the rose, so ONE offscreen
+  // map draws every rose that needs it, each at its plate's size and the
+  // device's pixel ratio, and is let go -- three live maps would hold three
+  // WebGL contexts for pictures. Drawn again only for a new size or theme;
+  // each image is kept for the visit under that key, so a refresh (the cards
+  // are rewritten every minute) puts the same one straight back.
+  const SEA = {failed: false, shots: new Map(), last: {}, queue: [], busy: false, frame: 0};
+  const seaOk = () => GL && !SEA.failed;
+  const seaTheme = () => MAP_THEMES[shownTheme()] || MAP_THEMES.light;
+  // Where a buoy is: map.json's, NDBC's fetched coordinates, never typed.
+  function seaWhere(station) {
+    if (!MAPDATA) return null;
+    const b = MAPDATA.geometry && MAPDATA.geometry.buoy;
+    if (b && b.id === station) return b.position || null;
+    return (MAPDATA.buoys || {})[station] || null;
+  }
+  // The plate's inside and where the rose's centre and outer ring sit on it.
+  function seaGeom(el) {
+    const plate = el.querySelector(".rose-plate"), svg = el.querySelector(".rose-svg");
+    if (!plate || !svg || el.offsetParent === null) return null;
+    const p = plate.getBoundingClientRect(), r = svg.getBoundingClientRect();
+    const w = Math.round(p.width - 2), h = Math.round(p.height - 1);
+    if (!(w > 0 && h > 0 && r.width > 0)) return null;
+    return {w, h, cx: r.left - p.left - 1 + r.width / 2, cy: r.top - p.top - 1 + r.height / 2,
+      r: r.width * ROSE.r / 240};
+  }
+  const seaKey = (station, g, th) =>
+    `${station}|${th}|${g.w}x${g.h}|${g.cx.toFixed(1)},${g.cy.toFixed(1)},${g.r.toFixed(1)}|${devicePixelRatio || 1}`;
+  // The deep water's colour (the 1,000-2,000 m band, where all three buoys
+  // sit) is the plate's until its image lands.
+  const seaTint = () => bandColours(seaTheme(), 12)[8];
+  function seaShow(el, key, url) {
+    const img = el.querySelector("img.rose-sea");
+    if (!img || img.getAttribute("data-key") === key) return;
+    img.setAttribute("data-key", key);
+    img.src = url;
+  }
+  // Every rose shown: its image if drawn, else a place in the queue.
+  function seaPaint() {
+    SEA.frame = 0;
+    if (!seaOk()) return;
+    const th = shownTheme(), tint = seaTint();
+    document.querySelectorAll(".rose.sea[data-rose]").forEach((el) => {
+      el.style.setProperty("--rose-sea", tint);
+      const g = seaGeom(el);
+      if (!g) return;
+      const station = el.getAttribute("data-rose"), key = seaKey(station, g, th);
+      const img = el.querySelector("img.rose-sea");
+      if (img && img.getAttribute("data-key") === key) return;
+      if (SEA.shots.has(key)) { seaShow(el, key, SEA.shots.get(key)); return; }
+      if (!SEA.queue.some((j) => j.key === key)) SEA.queue.push({station, key, g, th});
+    });
+    if (SEA.queue.length && !SEA.busy) seaRun();
+  }
+  // Coalesced: the observer and a resize can each ask many times a frame.
+  const seaSoon = () => { if (!SEA.frame) SEA.frame = requestAnimationFrame(seaPaint); };
+  // The map can't draw here after all: every rose goes back to the card, in
+  // the page's colours, its line without the reach.
+  function seaFail() {
+    SEA.failed = true;
+    SEA.queue = [];
+    document.querySelectorAll(".rose.sea[data-rose]").forEach((el) => {
+      el.classList.remove("sea");
+      el.querySelectorAll(".rose-sea, .rose-attr").forEach((n) => n.remove());
+      el.setAttribute("data-k", "");
+    });
+  }
+  function seaStyle(th, z) {
+    const tiers = ((MAPDATA.seabed || {}).tiers || []).filter((tr) => tr.minzoom <= z);
+    const cols = bandColours(th, 12);
+    const fill = ["match", ["get", "b"], -1, th.land, ...cols.flatMap((c, i) => [i, c]), th.land];
+    const sources = {}, layers = [{id: "bg", type: "background", paint: {"background-color": th.land}}];
+    tiers.forEach((tr) => {
+      sources[tr.name] = {type: "geojson", data: tr.url || seabedUrl(tr.file), tolerance: 0.2, buffer: 64};
+      const at = {source: tr.name, minzoom: tr.minzoom};
+      layers.push({id: `${tr.name}-fill`, type: "fill", ...at, filter: ["==", ["get", "k"], "fill"],
+        paint: {"fill-antialias": false, "fill-color": fill}});
+      layers.push({id: `${tr.name}-line`, type: "line", ...at, filter: ["==", ["get", "k"], "line"],
+        layout: {"line-join": "round", "line-cap": "round"},
+        paint: {"line-color": th.contour, "line-opacity": th.contourOpacity, "line-width": lineWidth(th.contourWidth)}});
+      layers.push({id: `${tr.name}-coast`, type: "line", ...at, filter: ["==", ["get", "k"], "coast"],
+        layout: {"line-join": "round", "line-cap": "round"},
+        paint: {"line-color": th.coast, "line-width": lineWidth(th.coastWidth)}});
+    });
+    return {version: 8, sources, layers};
+  }
+  // The rose's edge at ROSE_SEA_KM: metres a pixel at the buoy's latitude.
+  const seaZoom = (at, g) => Math.log2(MPP0 * Math.cos(rad(at[0])) * g.r / (ROSE_SEA_KM * 1000));
+  async function seaRun() {
+    SEA.busy = true;
+    let host = null, map = null;
+    try {
+      const d = await ready();
+      if (!d || !window.maplibregl) throw new Error("no map library or map.json");
+      while (SEA.queue.length) {
+        const job = SEA.queue.shift();
+        if (job.th !== shownTheme()) continue;          // a theme change queued its own
+        const at = seaWhere(job.station);
+        if (!at) continue;
+        const z = seaZoom(at, job.g), th = MAP_THEMES[job.th] || MAP_THEMES.light;
+        if (!host) {
+          host = document.createElement("div");
+          host.setAttribute("aria-hidden", "true");
+          host.style.cssText = "position:fixed;left:-10000px;top:0;pointer-events:none;";
+          document.body.appendChild(host);
+        }
+        host.style.width = `${job.g.w}px`;
+        host.style.height = `${job.g.h}px`;
+        // The buoy at the rose's centre: the map's middle is the padded box's.
+        const view = {center: ll(at), zoom: z, bearing: 0,
+          padding: {top: Math.max(0, 2 * job.g.cy - job.g.h), bottom: Math.max(0, job.g.h - 2 * job.g.cy),
+            left: Math.max(0, 2 * job.g.cx - job.g.w), right: Math.max(0, job.g.w - 2 * job.g.cx)}};
+        const style = seaStyle(th, z);
+        if (!map || map.__seaTheme !== job.th || map.__seaTiers !== Object.keys(style.sources).join()) {
+          if (map) map.remove();
+          map = new maplibregl.Map({container: host, style, ...view, interactive: false,
+            attributionControl: false, fadeDuration: 0, antialias: true, preserveDrawingBuffer: true,
+            pixelRatio: devicePixelRatio || 1});
+          map.__seaTheme = job.th;
+          map.__seaTiers = Object.keys(style.sources).join();
+          await new Promise((ok, fail) => { map.once("load", ok); map.once("error", (e) => fail(e.error || e)); });
+        } else {
+          map.resize();
+          map.jumpTo(view);
+        }
+        await new Promise((ok) => { map.once("idle", ok); map.triggerRepaint(); });
+        const blob = await new Promise((ok) => map.getCanvas().toBlob(ok, "image/png"));
+        if (!blob) throw new Error("the seabed would not draw");
+        const url = URL.createObjectURL(blob);
+        SEA.shots.set(job.key, url);
+        SEA.last[`${job.station}|${job.th}`] = url;
+        // Kept for the visit, the oldest let go past a dozen.
+        while (SEA.shots.size > 12) {
+          const [old, oldUrl] = SEA.shots.entries().next().value;
+          SEA.shots.delete(old);
+          if (!Object.values(SEA.last).includes(oldUrl)) URL.revokeObjectURL(oldUrl);
+        }
+        document.querySelectorAll(`.rose.sea[data-rose="${job.station}"]`).forEach((el) => {
+          const g = seaGeom(el);
+          if (g && seaKey(job.station, g, shownTheme()) === job.key) seaShow(el, job.key, url);
+        });
+      }
+    } catch (e) {
+      seaFail();
+    } finally {
+      if (map) map.remove();                     // lets its WebGL context go
+      if (host) host.remove();
+      SEA.busy = false;
+    }
+    if (SEA.queue.length && !SEA.failed) seaRun();
+  }
+  window.roseSea = {
+    ok: seaOk,
+    paint: seaSoon,
+    // The image last drawn for a buoy in this theme, put in a rewritten
+    // card's plate at once; `paint` replaces it if the size has changed.
+    src: (station) => SEA.last[`${station}|${shownTheme()}`] || null,
+  };
+  new MutationObserver(seaSoon).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+  if (DARK_MQ && DARK_MQ.addEventListener) DARK_MQ.addEventListener("change", seaSoon);
+  addEventListener("resize", seaSoon);
+
   // ---------------------------------------------------------------- the fill's data
   const FILL_ICON = {
     play: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z"/></svg>',
@@ -10868,6 +11110,7 @@ Promise.all([
   // The page redraws its cards on every refresh and every hour picked: each
   // break's new drawing is handed to its face, which keeps its map.
   function attach() {
+    seaSoon();
     document.querySelectorAll("svg.aperture[data-break]").forEach((svg) => {
       if (svg.parentElement && svg.parentElement.classList.contains("sm-plate")) return;
       const key = `${svg.closest(".break-cols") ? "wide" : "tab"}:${svg.getAttribute("data-break")}`;
@@ -10883,6 +11126,7 @@ Promise.all([
     setTimeout(() => faces.forEach((f) => {
       if (f.box.isConnected && (view === "map" || !f.el.hidden)) f.show();
     }), 0);
+    seaSoon();                               // a tab that shows a rose
   });
   // The plate follows its own break's trains (owner's call, 2026-11-11,
   // reversing 2026-11-08's one start height across the break tabs): a tab
