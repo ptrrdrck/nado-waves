@@ -12,7 +12,7 @@ import math
 
 import pytest
 
-from forecast.surfzone import (Profile, break_on, breaker_index, celerities,
+from forecast.surfzone import (START_GAIN, Profile, break_on, breaker_index, celerities,
                                fraction_breaking, load_profiles)
 
 SLOPE = 0.03
@@ -97,6 +97,39 @@ def test_waves_already_breaking_at_the_start_are_flagged():
     got = break_on(planar(), hs_start_m=3.0, period_s=16.0, start_depth_m=5.0,
                    angle_deg=0.0, tide_m=-0.5)
     assert got.outside_start
+
+
+def test_a_maximum_a_step_inside_the_start_is_still_already_breaking():
+    """BRIEFING §56: a maximum 1 m in, with shoaling adding 0.002% before
+    breaking overtook it, is the start point's figure, not a break the
+    profile found. Until 2026-11-17 only a maximum exactly at the first point
+    was flagged, and a third of the big-swell hours at Center and South were
+    not."""
+
+    path = []
+    got = break_on(planar(), hs_start_m=2.1, period_s=16.0, start_depth_m=5.0,
+                   angle_deg=0.0, tide_m=0.0, path=path)
+    assert got.distance_m > 0.0
+    assert got.hs_m <= path[0][2] * (1 + START_GAIN)
+    assert got.outside_start
+
+
+def test_the_flag_is_the_gain_over_the_start_and_nothing_else():
+    """Control: across a sweep of start heights the flag is exactly 'the
+    maximum is within START_GAIN of the first point', so it turns on where
+    the gain falls through it and not at some distance; and the smaller
+    waves, which shoal well past it before breaking, are never flagged."""
+
+    flags = []
+    for i in range(30):
+        hs = 1.6 + 0.02 * i
+        path = []
+        got = break_on(planar(), hs_start_m=hs, period_s=16.0, start_depth_m=5.0,
+                       angle_deg=0.0, tide_m=0.0, path=path)
+        assert got.outside_start == (got.hs_m <= path[0][2] * (1 + START_GAIN))
+        flags.append(got.outside_start)
+    assert not flags[0] and flags[-1]
+    assert flags == sorted(flags)          # once on, stays on as the sea grows
 
 
 def test_no_tide_no_answer():

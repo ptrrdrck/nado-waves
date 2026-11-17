@@ -29,7 +29,8 @@ it; the maximum is where the larger waves are breaking, and is the height a
 break-point observer would compare. `outside_start` flags a maximum at the
 start point itself: the waves were already breaking in 5 m of water, the
 linear figure there is an upper bound (raytrace.H_REF), and the true break
-point is further out than this profile starts.
+point is further out than this profile starts. "At the start point" means
+within `START_GAIN` of the height there, not only at it.
 
 WHAT IT IS NOT. One line straight in, alongshore-uniform, bulk (one period,
 the peak's): the standard 1-D surf-zone model and no more. The 2016 CoNED
@@ -54,6 +55,16 @@ H_DRY = 0.05
 #: March step. The profile is every 2 m; four steps across each keeps the
 #: second-order march converged (tests/test_surfzone.py).
 STEP_M = 0.5
+#: A maximum no more than this far above the height at the first point is no
+#: break point of the profile's own: shoaling added less than the march can
+#: resolve before dissipation overtook it, so the waves were already breaking
+#: where the profile starts. The march's own convergence tolerance
+#: (`test_the_march_is_converged_at_its_step`), not a fitted number. Before
+#: 2026-11-17 only a maximum exactly AT the first point counted, which missed
+#: one big-swell hour in three: a maximum 1 m in, at 5.6 m of water with
+#: shoaling still adding 0.1% (South, 17 Nov 22Z), read as a break found
+#: (BRIEFING §56).
+START_GAIN = 0.005
 
 
 @dataclass
@@ -191,6 +202,7 @@ def break_on(profile: Profile, *, hs_start_m: float, period_s: float, start_dept
 
     x, end = profile.distance_m[0], profile.distance_m[-1]
     best = None
+    first = None
     while x <= end:
         s = state(x, flux)
         if s is None:
@@ -198,8 +210,10 @@ def break_on(profile: Profile, *, hs_start_m: float, period_s: float, start_dept
         h, hrms, qb, d1, cgc = s
         flux = min(flux, hrms * hrms / 8.0 * cgc)
         hs = math.sqrt(2) * hrms
+        if first is None:
+            first = hs
         if best is None or hs > best.hs_m:
-            best = Breaking(hs, h, x, tide_m, gamma, qb, x == profile.distance_m[0])
+            best = Breaking(hs, h, x, tide_m, gamma, qb, False)
         # Heun: Euler predictor, trapezoidal corrector.
         if path is not None:
             path.append((x, h, hs))
@@ -208,6 +222,8 @@ def break_on(profile: Profile, *, hs_start_m: float, period_s: float, start_dept
             break
         flux -= 0.5 * step_m * (d1 + s2[3])
         x += step_m
+    if best is not None:
+        best.outside_start = best.hs_m <= first * (1.0 + START_GAIN)
     return best
 
 
