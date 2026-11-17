@@ -1,0 +1,97 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d93635166ecfb5b494ed52ea2a03d3a620053be2.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d93635166ecfb5b494ed52ea2a03d3a620053be2.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.d93635166ecfb5b494ed52ea2a03d3a620053be2.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.1b44116f179a70b8e52fa8449e5a54a13a1c2d6c.001.1",
+                "identifier": "urn:oid:2.49.0.1.840.0.1b44116f179a70b8e52fa8449e5a54a13a1c2d6c.001.1",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-16T13:24:00-08:00"
+            }
+        ],
+        "sent": "2026-11-17T03:19:00-08:00",
+        "effective": "2026-11-17T03:19:00-08:00",
+        "onset": "2026-11-17T03:19:00-08:00",
+        "expires": "2026-11-17T14:30:00-08:00",
+        "ends": "2026-11-18T04:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Update",
+        "category": "Met",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "High Surf Advisory",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "High Surf Advisory issued November 17 at 3:19AM PST until November 18 at 4:00AM PST by NWS San Diego CA",
+        "description": "* WHAT...Large breaking waves of of 6 to 10 feet along west-\nfacing beaches and very strong rip currents.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...Until 4 AM PST Wednesday.\n\n* IMPACTS...Dangerous swimming and surfing conditions and\nlocalized beach erosion.\n\n* ADDITIONAL DETAILS...Minor coastal flooding during high tides.",
+        "instruction": "Inexperienced swimmers should remain out of the water due to\ndangerous surf conditions.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 171119"
+            ],
+            "NWSheadline": [
+                "HIGH SURF ADVISORY REMAINS IN EFFECT UNTIL 4 AM PST WEDNESDAY"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.CON.KSGX.SU.Y.0007.000000T0000Z-261118T1200Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-18T04:00:00-08:00"
+            ],
+            "expiredReferences": [
+                "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.350888446671cb5f212d18de2decdade4b9aad1d.001.1,2026-11-16T00:47:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.f3f3633c6caae38a3a13039c0a857d97b3f01984.001.1,2026-11-15T14:04:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.506f64cd52ab0ad3543a98b00199b1352af268df.001.1,2026-11-15T00:51:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.c1f1dd5f44a1e8f0d9539b77a514eb16f3288182.001.2,2026-11-14T14:41:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.61d0cebe8437c319d297cd9930a5631baa2963fb.001.1,2026-11-14T05:14:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.2d0a6c7f224fa916d78a5a757a275168d447c940.001.1,2026-11-13T19:36:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.548e85b6a8072258559f748dd9e1282478d8cdb1.001.2,2026-11-13T12:15:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.d9f5f95c4d13d56c8e428d79f540ead0438d172e.001.1,2026-11-13T01:23:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.0ca489d46bf1522f21949f82db35fd4f3855c265.001.1,2026-11-12T11:51:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.e7968e549fb1adffd64fb8eab956c30610f190b1.001.1,2026-11-13T05:22:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.1b7b5b50afdceeddeed246b1b8f7408d2f30c980.001.2,2026-11-13T03:02:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.31909a6db8c96b67fceb93f99bfb60b647de0a06.001.2,2026-11-13T05:18:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.8d30ef6d379887bd752deda979abc6a4a4efdabe.001.1,2026-11-12T21:35:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "SUY"
+            ]
+        }
+    }
+}
