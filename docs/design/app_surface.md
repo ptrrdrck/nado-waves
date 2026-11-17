@@ -346,7 +346,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    every chart drawn at its own width (`chartDims`: 320 units on a phone,
    its CSS pixels wider, so the text stays the phone's size) with a
    full-screen button (`setChartMax`, Escape closes); the Wind card every
-   break's verdict, each naming its break, and the Sun card every break's
+   break's rose and verdict, each naming its break (tide_wind_sun.md, "The
+   Wind card's rose"), and the Sun card every break's
    sunset. Console adds a rail: the tabs, the Briefing ALWAYS OPEN with no
    caret, then Wind, Tide and Sun, the main column one grid item spanning
    every row (`grid-template-rows: repeat(14, auto) 1fr`) so the rail

@@ -2002,7 +2002,7 @@ class TestTheTideSaysWhichWayItIsGoing:
         `rate_m_h` and never differences the level (the test above keeps
         "slope(" off the page)."""
 
-        assert "height(tide.height_m) + tideRate(tide)" in SOURCE
+        assert "`<span>${height(tide.height_m)}</span>` + tideRate(tide)" in SOURCE
         body = SOURCE[SOURCE.index("function tideRate("):]
         body = body[:body.index("\n}\n")]
         assert "tide.motion" in body and "tide.rate_m_h" in body
@@ -2014,6 +2014,20 @@ class TestTheTideSaysWhichWayItIsGoing:
         """It is the same reading, so its arrowhead greys as its text does."""
 
         assert "#conditions [data-aged-at].aged .rate-arr{fill:var(--faint)}" in SOURCE
+
+    def test_the_rate_sits_22px_from_the_height_and_wraps_flush_left(self):
+        """Owner's pick, 2026-11-17: 22 px between the height and the rate,
+        from 10. A flex column gap, not a margin, so a reading too wide for
+        one line (a low below zero in "Both" at 320 px) wraps the rate under
+        the height flush left; a margin indented it. The height is one item,
+        its metric inside, so no gap opens inside "3.8 ft (1.16 m)"."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert ".cond .val.tide-val{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:22px}" in css
+        rate = css[css.index(".cond .val .rate{"):]
+        rate = rate[:rate.index("}")]
+        assert "margin" not in rate and "vertical-align" not in rate
+        assert '<span class="val${tide.height_m != null ? " tide-val" : ""}"' in SOURCE
 
     def test_a_far_off_turn_carries_its_weekday(self):
         """'at 11:42 AM' is not an answer six days out. Run in node against a
@@ -3282,7 +3296,7 @@ class TestTheProvenanceDivider:
 
         local = SOURCE[SOURCE.index("function localWindBlock"):]
         local = local[:local.index("\n}\n")]
-        assert local.index("${windAtBreaks(cards)}") < local.index("${seen}")
+        assert local.index("windAtBreaks(cards)") < local.index("${seen}")
         render = SOURCE[SOURCE.index("function renderConditions"):]
         assert "localWindBlock(hour, cards, past, seenWind)" in render
 
@@ -3373,8 +3387,11 @@ class TestTheLocalWindOnTheForecastTab:
             "let DATA = {local_wind: {available: true, office: 'SGX', grid_x: 55, grid_y: 12,"
             " updated_utc: '2026-09-30T04:00:00Z'}};\n"
         )
-        body = "".join(fn(n) for n in ("compass", "sense", "windAtBreaks", "localWindBlock",
-                                       "localWindPills", "modelPills", "headPills"))
+        body = "".join(fn(n) for n in ("compass", "point", "sense", "windAtBreaks", "localWindBlock",
+                                       "localWindPills", "modelPills", "headPills",
+                                       "windRose", "windRoses", "windReading"))
+        body += (SOURCE[SOURCE.index("const ORDER = "):SOURCE.index("\n", SOURCE.index("const SHORT = ")) + 1]
+                 + SOURCE[SOURCE.index("const WROSE = "):SOURCE.index("\n", SOURCE.index("const WROSE = ")) + 1])
         start = SOURCE.index("const windVal")
         body += "const LIGHT_KT = 3;\n" + SOURCE[start:SOURCE.index(";\n", start) + 2]
         start = SOURCE.index("const windHeard")
@@ -3467,6 +3484,115 @@ class TestTheLocalWindOnTheForecastTab:
         cards = cards[:cards.index("\n}\n")]
         assert "windOffshore: h.local_wind_offshore" in cards
         assert "windOffshore: b.wind_offshore" not in cards
+
+
+class TestTheWindRose:
+    """The Wind card's rose (owner's design, 2026-11-17, mocked as "Wind Card
+    Rose"): its top is the break's facing heading, the four 90-degree
+    headings named by compass point, and a fixed-length arrow pointing where
+    the wind blows TO, so up is offshore and down onshore -- the verdict
+    line's picture, per break as that line is."""
+
+    _run = TestTheLocalWindOnTheForecastTab._run
+
+    @staticmethod
+    def _parts(svg):
+        import re
+        labels = re.findall(r">([A-Z]+)</text>", svg)
+        turn = re.findall(r"rotate\(([\d.]+)\)", svg)
+        return labels, (float(turn[0]) if turn else None)
+
+    def test_its_top_faces_the_sea_and_the_arrow_points_downwind(self):
+        got = self._run(
+            "console.log(windRose(210, 4, 194.1));\n"
+            "console.log(windRose(14.1, 10, 194.1));\n"
+            "console.log(windRose(194.1, 10, 194.1));\n"
+            "console.log(windRose(290, 10, 213.9));"
+        ).splitlines()
+        labels, turn = self._parts(got[0])
+        # North faces 194.1: SSW at the top, then clockwise WNW, NNE, ESE.
+        assert labels == ["SSW", "WNW", "NNE", "ESE"]
+        assert turn == 195.9                          # from 210 blows toward 30
+        assert self._parts(got[1])[1] == 0.0           # straight off the land: up
+        assert self._parts(got[2])[1] == 180.0         # straight off the sea: down
+        labels, turn = self._parts(got[3])
+        assert labels == ["SW", "NW", "NE", "SE"] and turn == 256.1   # sideways
+        assert 'aria-label="Facing SSW: the wind blows toward NNE"' in got[0]
+
+    def test_light_calm_and_no_direction(self):
+        """A light wind's arrow is faint, calm a small circle (the station-plot
+        convention) and a wind with no direction no arrow; the arrow is the
+        same length at any speed (owner's pick, 2026-11-17)."""
+        light, calm, vrb, strong, slow = self._run(
+            "console.log(windRose(30, 3, 213.9));\n"
+            "console.log(windRose(0, 0, 213.9));\n"
+            "console.log(windRose(null, 6, 213.9));\n"
+            "console.log(windRose(30, 23, 213.9));\n"
+            "console.log(windRose(30, 8, 213.9));"
+        ).splitlines()
+        assert 'class="wrose light"' in light and 'class="arrow"' in light
+        assert 'class="calm"' in calm and 'class="arrow"' not in calm and "Facing SW: calm" in calm
+        assert 'class="arrow"' not in vrb and 'class="calm"' not in vrb and "no direction" in vrb
+        assert 'class="wrose"' in strong
+        assert strong.split('class="arrow"')[1] == slow.split('class="arrow"')[1]   # fixed length
+
+    def test_the_points_are_ink_and_the_ticks_grey(self):
+        """Owner's call, 2026-11-17: every point in ink at one weight, every
+        tick grey. The points are the break's headings, not the reading, so
+        an old reading greys the arrow and never them."""
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert ".wrose text{font-family:Archivo,system-ui,sans-serif;font-size:10.5px;font-weight:500;fill:var(--ink)}" in css
+        assert ".wrose .tick{stroke:var(--line-strong);" in css
+        assert "#conditions [data-aged-at].aged .wrose .arrow{fill:var(--faint);stroke:var(--faint)}" in css
+        assert ".wrose text.face" not in css and "aged .wrose text" not in css
+
+    def test_the_widest_point_fits_inside_the_rose(self):
+        """WNW (North's right point) measures 27.6 px in Archivo 500 at 10.5 px,
+        the widest of the sixteen (measured in Chromium, 2026-11-17). The
+        rose's box must hold it on both sides, so it never reaches the card's
+        margin (owner's report on the mock) and the ring stays put across
+        breaks."""
+        import re
+        line = SOURCE[SOURCE.index("const WROSE = "):]
+        line = line[:line.index("\n")]
+        v = {k: float(x) for k, x in re.findall(r"(\w+): ([\d.]+)", line)}
+        assert v["w"] - (v["cx"] + v["r"] + 6) >= 27.6
+        assert v["cx"] - v["r"] - 6 >= 27.6
+
+    def test_one_rose_per_break_follows_the_tab_and_wide_shows_three(self):
+        cards = ("[{id: 'coronado_north', normal: 194.1}, {id: 'coronado_center', normal: 213.9},"
+                 " {id: 'coronado_south', normal: 220.9}]")
+        phone, buoy, read, wide, none = self._run(
+            f"const cards = {cards};\n"
+            "console.log(windRoses(cards, 210, 4));\n"
+            "SWELL_TAB = 'buoy'; console.log(windRoses(cards, 210, 4));\n"
+            "console.log(windReading('<v>', '<l>', windRoses(cards, 210, 4)).slice(0, 60));\n"
+            "LAYOUT = 'console'; console.log(windRoses(cards, 210, 4));\n"
+            "console.log(JSON.stringify(windRoses(cards, null, null)));"
+        ).splitlines()
+        assert phone.count("data-wind-for=") == 3 and phone.count(" hidden>") == 2
+        assert 'data-wind-for="coronado_north">' in phone          # the open tab's
+        assert buoy.count(" hidden>") == 3                          # none on the buoy's
+        # The reading and the rose share one row on every tab, so the
+        # headline never moves when the rose comes and goes (owner's note,
+        # 2026-11-17).
+        assert read.startswith('<div class="wind-read"><div class="wind-txt"><v><l></div>')
+        assert "data-wind-for" not in wide and wide.startswith('<div class="wind-three">')
+        assert [x.split("</figcaption>")[0] for x in wide.split("<figcaption>")[1:]] == ["North", "Center", "South"]
+        assert none == '""'
+
+    def test_it_draws_the_wind_the_verdict_reads(self):
+        """KNZY's on "LIVE"; on Forecast the NWS wind on the sand, never the
+        model's wind at the buoy (owner's confirmation, 2026-11-17)."""
+        local = SOURCE[SOURCE.index("function localWindBlock"):]
+        local = local[:local.index("\n}\n")]
+        assert "windRoses(cards, hour.local_wind_from_deg, hour.local_wind_kt)" in local
+        assert "hour.wind_from_deg" not in local
+        now = SOURCE[SOURCE.index('if (MODE === "now") {'):]
+        now = now[:now.index("  } else {")]
+        assert "windRoses(cards, wind.from_deg, wind.speed_kt, windAged)" in now
+        select = SOURCE[SOURCE.index("function selectSwellTab"):]
+        assert "[data-wind-for]" in select[:select.index("\n}\n")]
 
 
 class TestOrigin:
