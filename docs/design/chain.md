@@ -484,7 +484,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   (the surf zone's own Battjes–Janssen and γ, applied over the shelf) and
   Madsen's height-dependent friction (SWAN's form, k_N = 0.05 m, its
   default) would take, beside the shipped chain, with three controls. It
-  reports and never edits; numbers in BRIEFING §56.
+  reports and never edits. Over 285 archived hours (2026-11-17): Madsen
+  takes 4–8% of the breaking height on the smallest days and 13–18% with
+  46232 at 2.5 m or more (median, all three breaks), the share growing with
+  size; shelf breaking alone takes nothing below 2 m and ~5% above 2.5 m,
+  and adds nothing measurable on top of Madsen. Whether either ships is the
+  owner's call, after the MOP report (BRIEFING §56).
 - **The westerly half of the excess is the wrap round Point Loma**: rays
   passing ~1 km south of the tip and bending north-east over the shelf, at
   14.3 s about twice a planar beach's acceptance per offshore degree at
