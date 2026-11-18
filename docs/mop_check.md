@@ -1,6 +1,6 @@
 # The chain's wrap against CDIP MOP's
 
-Generated 2026-11-18 20:27 UTC by `python -m forecast.mopcheck`; MOP from `collector.mop` (Actions). **A model against a model**: MOP is a cross-check, not a verification series, and nothing here is fitted or shipped (BRIEFING §56).
+Generated 2026-11-18 21:25 UTC by `python -m forecast.mopcheck`; MOP from `collector.mop` (Actions). **A model against a model**: MOP is a cross-check, not a verification series, and nothing here is fitted or shipped (BRIEFING §56).
 
 Each cell: deep-water-equivalent Hs over 46232's Hs, median [10th, 90th], for MOP (de-shoaled from its point's depth at its own Tp) and the chain (`hs_equivalent`: refraction and diffraction, shoaling divided out, before friction, which MOP does not apply); then chain / MOP per hour. Sector is 46232's energy-weighted mean direction of its swell (≥ 8 s).
 
