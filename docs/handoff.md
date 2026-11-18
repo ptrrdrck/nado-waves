@@ -162,10 +162,23 @@ sections).
     `docs/mop_check.md`, `data/mop/`, BRIEFING §56a). Chain over MOP,
     deep-water-equivalent before friction: Center 1.17-1.22 on S-W, 1.34 on
     W-WNW; South 1.29-1.39 and 1.43. Re-dispatch to extend the series.
-24. **Next measurement (not started)**: trace the chain's own rays from
-    MOP's three points (10 m, D0181 / D0179 / D0168) and repeat the
-    comparison, to separate the 5 m vs 10 m difference from a fault in the
-    tables.
+24. **The chain's own rays from MOP's points** -- done, report only
+    (`python -m forecast.mopdepth --out docs/mop_depth.md`; ~25 min to build
+    the 12 tables into `data/live/mopdepth/`, ~4 min once cached; BRIEFING
+    §56b). Not the place: over the same water the chain is 1.19-1.41 x MOP
+    at all three points, not diffraction, fills or direction. Open, in
+    order:
+    a. **MOP's own spectrum and metadata, on Actions** (`collector.mop`):
+       its energy density by frequency (and direction moments if the files
+       carry them) to say which band MOP is short in; `metaWaterDepth`'s
+       attributes for the datum (inferred NAVD88/MLLW from the seabed); the
+       files' global attributes for whether MOP diffracts and which buoys
+       drive the nowcast. Needs a merge to master to dispatch.
+    b. **An exposed MOP point** (out of Point Loma's shadow, e.g. Imperial
+       Beach) through the same comparison: if the chain is over MOP there
+       too, the excess is the input or the spreading, not the shadow.
+    c. **The buoy's directional reading**: MEM against Fourier moves the
+       ratio 0.1-0.3; what MOP does with its input's moments is part of (a).
 25. **Madsen's friction ships** -- done (branch claude/madsen-friction,
     BRIEFING §57, chain.md "Bottom friction is Madsen's"). Both chains;
     `<break>_madsen.json` beside unchanged tables; the docs page's friction

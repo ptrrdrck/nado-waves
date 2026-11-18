@@ -18,7 +18,8 @@ as shipped, no Madsen (before friction, as MOP):
 - `break_5m`   — the shipped start (and the control: it must give the
   committed `data/nearshore/<break>.csv` back row for row);
 - `normal_mop` — the break's own normal, out to the seabed's depth at the
-  MOP point (the 10 m -> 5 m leg on the chain's own line);
+  MOP point: beside the MOP point at South, but ~3 km out on the open shelf
+  at Center and North, where the ~11 m contour on the normal lies;
 - `mop`        — at the MOP point itself (2 m seaward of it along the break's
   normal, `MOP_H_REF`), fan centred on the break's normal; plus `mop_back`,
   the opposite half-fan, so a point whose seabed faces another way is not
@@ -53,6 +54,9 @@ MOP_H_REF = 10.0
 #: Swell period bands (s) of 46232's swell peak for the by-period split.
 PERIOD_BANDS = ((8, 11), (11, 14), (14, 17), (17, 26))
 KINDS = ("clear", "island fill", "Point Loma fill", "Baja fill")
+#: Upper frequency (Hz) of the chain-at-MOP energy set against MOP's whole
+#: Hs: where in frequency the excess builds (0.58 is everything).
+CUTS_HZ = (0.1, 0.125, 0.15, 0.2, 0.25, 0.58)
 
 
 # ------------------------------------------------------------------ build
@@ -267,6 +271,16 @@ def hours(break_id: str, mop: dict, spectra, tables: dict[str, Arrays], mop_dept
             row[f"{v}_eq"] = 4 * math.sqrt(max(p["eq"], 0.0)) / buoy
             row[f"{v}_hard"] = 4 * math.sqrt(max(p["hard"], 0.0)) / buoy
             row[f"{v}_dir"] = arrives_from(p, tp_mop)
+        p = row["parts"]["mop"]
+        for fc in CUTS_HZ:
+            e = sum(v for f, v in p["by_f"].items() if f <= fc + 1e-9)
+            row[("cut", fc)] = 4 * math.sqrt(max(e, 0.0)) / buoy
+        dens = {f: v / mem.bin_width(mem.frequencies.index(f)) for f, v in p["by_f"].items() if v > 0}
+        row["mop_peak_s"] = 1.0 / max(dens, key=dens.get) if dens else float("nan")
+        k = max(range(len(sp.c11)), key=lambda k: sp.c11[k] if sp.c11[k] == sp.c11[k] else -1.0)
+        row["buoy_peak_s"] = 1.0 / sp.frequencies[k]
+        four = sp.with_spread("fourier")
+        row["mop_eq_fourier"] = 4 * math.sqrt(max(carry_parts(four, density_grids(four), tables["mop"])["eq"], 0.0)) / buoy
         out.append(row)
     return out
 
@@ -321,6 +335,19 @@ def report(results: dict, metas: dict, controls: dict, points: dict, combs: dict
          "Starts: `break_5m` the shipped table; `normal_mop` the break's normal out to the seabed's "
          "depth at the MOP point; `mop` at the MOP point (both half-fans).",
          ""]
+    L += ["## How to read it", "",
+          "- chain-at-MOP / MOP near 1 would put the 5 m excess between 10 m and 5 m (the place); "
+          "above 1 puts it in the tables over the same water. `5 m / chain-at-MOP` is what the leg "
+          "from MOP's point to the break adds.",
+          "- `normal_mop` is the break's own normal out to the MOP point's depth. At South it is "
+          "beside the MOP point; at Center and North the ~11 m contour on the normal is 3 km out, "
+          "on the open shelf, so there it is a third place, not the 10 m → 5 m leg.",
+          "- The frequency table sets the chain's energy up to a cut against MOP's WHOLE Hs. Near 1 "
+          "at ≤ 0.1 Hz says the chain's swell alone is as big as all of MOP; it does not say the "
+          "swell agrees. Which band MOP is short in needs MOP's own spectrum.",
+          "- Fourier against maximum entropy is the buoy's directional reading alone: the same "
+          "tables, a different spread.",
+          ""]
     L += ["## Controls", ""]
     for b, (bad, n) in controls.items():
         L.append(f"- {b}: `break_5m` against the committed table: {bad} of {n} rows differ.")
@@ -368,6 +395,27 @@ def report(results: dict, metas: dict, controls: dict, points: dict, combs: dict
                 s = [r for r in rows if lo <= r["from"] < hi and a <= r["tp"] < bb and r["mop"] > 0]
                 cells.append(f"{q([r['mop_eq'] / r['mop'] for r in s], .5):.2f} (n {len(s)})" if s else "–")
             L.append(f"| {name} | " + " | ".join(cells) + " |")
+        # By frequency: the chain's energy up to a cut, against MOP's whole Hs.
+        L += ["", "chain-at-MOP (eq, maximum entropy) with only its energy up to a frequency, over MOP's "
+              "whole Hs; and with the whole spectrum read by Fourier instead:", "",
+              "| 46232 from | " + " | ".join(f"≤ {fc:g} Hz" for fc in CUTS_HZ) + " | Fourier, all |",
+              "|---|" + "---|" * (len(CUTS_HZ) + 1)]
+        for name, lo, hi in sectors():
+            s = [r for r in rows if lo <= r["from"] < hi and r["mop"] > 0]
+            if s:
+                L.append(f"| {name} | " + " | ".join(f"{q([r[('cut', fc)] / r['mop'] for r in s], .5):.2f}"
+                                                     for fc in CUTS_HZ)
+                         + f" | {q([r['mop_eq_fourier'] / r['mop'] for r in s], .5):.2f} |")
+        L += ["", "Peak period over the same water (MOP's Tp; chain-at-MOP's densest bin), by 46232's "
+              "overall peak:", "",
+              "| 46232 peak | n | MOP Tp | chain-at-MOP peak | hours MOP Tp < 9 s | hours chain peak < 9 s |",
+              "|---|---:|---|---|---:|---:|"]
+        for name, lo, hi in (("< 9 s", 0, 9), ("9–12 s", 9, 12), ("≥ 12 s", 12, 99)):
+            s = [r for r in rows if lo <= r["buoy_peak_s"] < hi]
+            if s:
+                L.append(f"| {name} | {len(s)} | {cell([r['tp_mop'] for r in s])} | "
+                         f"{cell([r['mop_peak_s'] for r in s])} | {sum(r['tp_mop'] < 9 for r in s)} | "
+                         f"{sum(r['mop_peak_s'] < 9 for r in s)} |")
         # By kind of ray.
         L += ["", "Share of chain-at-MOP's diffracted energy by kind of ray (sector totals), and "
               "chain-at-MOP / MOP with only the clear rays:", "",

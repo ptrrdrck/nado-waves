@@ -654,3 +654,26 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   more from every direction, chain / MOP 1.17-1.22 (Center) and 1.29-1.39
   (South) on S-W, 1.34 and 1.43 on W-WNW. The 5 m vs 10 m difference is not
   yet separated from a fault in the tables (BRIEFING §56a).
+- **The chain's own rays from MOP's points, 2026-11-18 (`forecast.mopdepth`,
+  `docs/mop_depth.md`, BRIEFING §56b).** Report-only and precompute-side
+  (numpy; no workflow runs it). `raytrace.table(..., h_ref=)` builds the
+  tables at each MOP point (2 m seaward of it, at the seabed's own depth,
+  10.77-11.0 m MSL), with the shipped frequencies, headings, islands and
+  edges and no Madsen; cached in `data/live/mopdepth/` (~2 min a table).
+  Control: each break's own start gives the committed table back row for
+  row (0 of 23,040 differ, all three). **It is not the place**: over the
+  same water the chain gives 1.24-1.40 x MOP at Center, 1.19-1.41 at South,
+  1.24-1.40 at North, as high as or higher than from 5 m; from MOP's point
+  to the break adds 0.94-0.95 (Center), 0.98-1.15 (South, the most on
+  W-WNW). Not diffraction (hard edges alone 1.14-1.37), not the fill rays
+  except South's W-WNW (Point Loma fill 19% of its energy), not direction
+  (arrival within ~3 degrees of MOP's Dp at Center). Common to all three
+  points, and it moves with the buoy's directional reading (Fourier
+  1.27-1.70). The chain's energy up to 0.1 Hz alone is as big as MOP's whole
+  Hs (0.86-1.08; Center W-WNW 1.25): which band MOP is short in needs MOP's
+  own spectrum.
+- **MOP's depth datum** is not in `points.json` (`metaWaterDepth`, 10.0).
+  The seabed reads 10.77 / 10.98 / 10.95 m below MSL at D0181 / D0179 /
+  D0168: 10 m NAVD88 is 10.77 m MSL, so NAVD88 (or MLLW, ~the same here) and
+  not MSL. Inferred, not read: CDIP is unreachable from a session. It moves
+  the comparison by 0.01-0.02.
