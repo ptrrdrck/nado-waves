@@ -43,9 +43,13 @@ the depth changes (shoaling). This traces that, the way CDIP's MOP does
    lands on any of them gets energy only by diffraction, along the heading
    of a ray that clears it.
 
-6. Bottom friction along each ray's path over the shelf (`friction_rate`,
-   the JONSWAP law), stored as its own factor per ray beside the gain so the
-   surface can state it as its own effect.
+6. Bottom friction along each ray's path over the shelf, stored apart from
+   the gain so the surface can state it as its own effect. What ships is
+   Madsen's law (BRIEFING §57), which depends on the sea's height, period and
+   the tide: marched along every carrying path for a grid of all three
+   (`madsen_losses`) into `<break>_madsen.json`, which `nearshore.carry`
+   interpolates. The JONSWAP law (`friction_rate`), a fixed factor per ray,
+   stays in the table's `friction` columns as the control.
 
 7. How long a wave group takes from 46232 to each break (`leg_table`, into
    `<break>_leg.csv`): ∫ ds / cg along each unblocked ray from its exit to the
@@ -106,12 +110,46 @@ H_LAND = 0.3
 STEP_FRACTION = 0.5
 #: Rays longer than this without reaching deep water are stopped and flagged.
 MAX_PATH_M = 80_000.0
-#: Bottom friction, the JONSWAP coefficient (Hasselmann et al. 1973), m²/s³.
+#: Bottom friction, the JONSWAP coefficient (Hasselmann et al. 1973), m²/s³:
+#: the table's `friction` columns, shipped until BRIEFING §57 and now the
+#: control `nearshore.carry(friction="jonswap")` reads.
 #: 0.038 is SWAN's default and what Zijlema, van Vledder & Holthuijsen (2012)
 #: recommend for swell and wind sea alike. Taken from the literature, never
 #: tuned: fitting it to anything is calibration, and there is nothing
 #: observed at these beaches to fit it to.
 C_BOTTOM = 0.038
+#: Madsen bottom friction (Madsen, Poon & Graber 1988) as SWAN implements it,
+#: what ships (owner's decision 2026-11-18, BRIEFING §57): C = f_w·g·U_rms/√2
+#: in place of C_BOTTOM, f_w from the bed's roughness and the near-bed orbital
+#: excursion. k_N = 0.05 m and m_f = −0.08 are SWAN's defaults. Literature
+#: values, never tuned.
+MADSEN_K_N = 0.05
+MADSEN_M_F = -0.08
+#: The Madsen survival table's nodes (`madsen_losses`). Madsen's rate depends
+#: on the sea the ray crosses, so the share a path keeps is tabulated against
+#: the break's linear (frictionless) 5 m Hs, its peak period and the tide, and
+#: `nearshore.carry` interpolates: the loss linearly in Hs (zero at zero),
+#: in PERIOD between peak nodes (three times more accurate than in frequency
+#: at the same nodes) and in tide. Sized by measurement against the exact
+#: march over 290 archived hours (BRIEFING §57): worst 0.25% of the 5 m
+#: height, 99th percentile 0.19%. Coarser grids missed: 3 tide nodes 0.47%,
+#: 6 period nodes 0.6-0.8%. Hs above 6 m extrapolates (the loss is near
+#: linear in Hs there); the peak clamps outside 5-25 s and the tide outside
+#: −1.5 to +2.25 m on MSL (the highest king tides are about +1.7 m).
+MADSEN_HS_M = (0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0)
+MADSEN_PEAK_HZ = (0.04, 0.05, 0.06, 0.07, 0.085, 0.1, 0.13, 0.17, 0.2)
+MADSEN_TIDE_M = (-1.5, -0.75, 0.0, 0.75, 1.5, 2.25)
+#: Each frequency's loss table (−ln survival, path × node) is stored as the
+#: fewest singular components that give every path's loss back within this
+#: at EVERY node, after the stored values are rounded (`compress_losses`):
+#: 0.25% of one path's height at its worst node. In the sizing, keeping
+#: three or four components already left the hourly 5 m height as the full
+#: grid gives it; the runtime control (`forecast.shelfloss`) measures what
+#: ships. A mechanical compression of the march, not a fit to anything.
+MADSEN_LOSS_TOL = 0.005
+#: Losses past this are the same to the chain (survival under 1e-5) and
+#: are capped before compressing, so a dead path costs no components.
+MADSEN_LOSS_CAP = 12.0
 
 
 # ------------------------------------------------------------------ physics
@@ -135,9 +173,10 @@ def friction_rate(omega: float, h: np.ndarray) -> np.ndarray:
 
     The JONSWAP source term is S = −C_b·ω²/(g²·sinh²(kh))·E, linear in E, so
     along a ray d(flux)/ds = −flux·C_b·ω²/(g²·sinh²(kh)·cg). Linear is what
-    makes it a per-ray FACTOR that can be stored in the table with the rest
-    of the transfer; a friction law that depends on the orbital velocity
-    (Madsen's) depends on the wave height and could not be precomputed.
+    makes it a per-ray FACTOR stored in the table's `friction` columns. What
+    ships is Madsen's law, which depends on the wave height and is stored
+    as a table over the sea's height, period and tide instead
+    (`madsen_losses`); this JONSWAP factor stays as its control.
     """
 
     h = np.maximum(h, 1e-3)
@@ -158,6 +197,136 @@ def speeds(omega: float, h: np.ndarray):
     cg = 0.5 * c * (1.0 + 2.0 * kh / np.sinh(np.minimum(2.0 * kh, 700.0)))
     dc_dh = omega * sech2 / (th + kh * sech2)
     return c, cg, dc_dh
+
+
+def madsen_fw(ab: np.ndarray) -> np.ndarray:
+    """Madsen et al. (1988) as SWAN solves it:
+    1/(4√fw) + log10(1/(4√fw)) = m_f + log10(a_b/k_N), and 0.3 below a_b/k_N = 1.57."""
+
+    ab = np.asarray(ab, float)
+    rhs = MADSEN_M_F + np.log10(np.maximum(ab, 1e-9) / MADSEN_K_N)
+    y = np.maximum(rhs, 0.5)               # y = 1/(4√fw); Newton on y + log10 y = rhs
+    for _ in range(30):
+        y = y - (y + np.log10(y) - rhs) / (1.0 + 1.0 / (y * math.log(10)))
+        y = np.maximum(y, 1e-3)
+    fw = 1.0 / (16.0 * y * y)
+    return np.where(ab / MADSEN_K_N > 1.57, fw, 0.3)
+
+
+_FW_LOG_AB = np.linspace(-4.0, 2.0, 3001)          # log10 of a_b in metres
+_FW = None
+
+
+def fw_lookup(ab: np.ndarray) -> np.ndarray:
+    """madsen_fw on a table in log10(a_b), the form `forecast.shelfloss`
+    measured with (pinned to the solved form by its control and a test)."""
+
+    global _FW
+    if _FW is None:
+        _FW = madsen_fw(10.0 ** _FW_LOG_AB)
+    return np.interp(np.log10(np.maximum(ab, 1e-4)), _FW_LOG_AB, _FW)
+
+
+def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
+                  hs_m=MADSEN_HS_M, peak_hz=MADSEN_PEAK_HZ, tide_m=MADSEN_TIDE_M,
+                  law: str = "madsen") -> np.ndarray:
+    """−ln(survival) per path at every node, shape (paths, peak, tide, hs).
+
+    `steps` is each path's wet steps as `trace(..., steps=True)` records them,
+    start point outward: the depth below MSL at the start of each step and its
+    length, the same quadrature as the table's JONSWAP `friction`. Marched
+    deep water inward, one step at a time, at depth h + tide (no shallower
+    than H_LAND), with
+
+        d ln F / ds = −C·ω²/(g²·sinh²(kh)·cg)      (SWAN's form, this ray's ω)
+        C = f_w(a_b)·g·U_rms/√2                    (Madsen)
+        U_rms = ω_p·H_loc/(4·sinh(k_p h)),  a_b = √2·H_loc/(4·sinh(k_p h))
+        H_loc = Hs5·√(cg_p(5 m + tide)/cg_p(h))·√F
+
+    the sea around the ray taken as the break's linear 5 m Hs at the peak
+    period, de-shoaled to the local depth and reduced by the ray's own losses
+    so far: `forecast.shelfloss`'s mean-field estimate, the same discrete
+    equation its fixed point solves, here solved exactly in one forward pass.
+    With law="jonswap" C is C_BOTTOM and, at tide 0, the result is the
+    table's `friction` back (the control `tests/test_raytrace.py` holds).
+    """
+
+    hs_m = np.asarray(hs_m, float)
+    peak_hz = np.asarray(peak_hz, float)
+    n_p, n_t, n_h = peak_hz.size, len(tide_m), hs_m.size
+    out = np.zeros((len(steps), n_p, n_t, n_h))
+    lengths = np.array([len(h) for h, _ in steps], int)
+    if not len(steps) or lengths.max() == 0:
+        return out
+    # Longest path first, right-aligned (every path ENDS at the start point
+    # together): at column c the live paths are a leading block of rows.
+    order = np.argsort(-lengths, kind="stable")
+    n, width = len(steps), int(lengths.max())
+    depth = np.full((n, width), H_REF)
+    ds = np.zeros((n, width))
+    for row, j in enumerate(order):
+        h, d = steps[j]
+        if len(h):
+            depth[row, width - len(h):] = h[::-1]
+            ds[row, width - len(d):] = d[::-1]
+    first = width - lengths[order]                 # first live column per row, ascending
+    # live_rows[c]: rows 0..live_rows[c]-1 have a step at column c.
+    live_rows = np.searchsorted(first, np.arange(width), side="right")
+    w_p = 2.0 * math.pi * peak_hz
+    for it, tide in enumerate(tide_m):
+        ht = np.maximum(depth + tide, H_LAND)
+        k = wavenumber(omega, ht)
+        _, cg, _ = speeds(omega, ht)
+        shape = omega ** 2 / (G ** 2 * np.sinh(np.minimum(k * ht, 300.0)) ** 2 * cg) * ds
+        if law == "jonswap":
+            out[order, :, it, :] = (C_BOTTOM * shape.sum(axis=1))[:, None, None]
+            continue
+        shp = np.empty((n_p, n, width))
+        unit = np.empty((n_p, n, width))
+        for ip, wp in enumerate(w_p):
+            kp = wavenumber(wp, ht)
+            _, cgp, _ = speeds(wp, ht)
+            _, cg5, _ = speeds(wp, np.array([H_REF + tide]))
+            shp[ip] = np.sinh(np.minimum(kp * ht, 300.0))
+            unit[ip] = np.sqrt(cg5[0] / cgp)
+        ln_f = np.zeros((n_p, n_h, n))
+        for c in range(width):
+            m = int(live_rows[c])
+            if m == 0:
+                continue
+            hs_loc = hs_m[None, :, None] * unit[:, None, :m, c] * np.exp(0.5 * ln_f[:, :, :m])
+            excursion = hs_loc / (4.0 * shp[:, None, :m, c])
+            ab = math.sqrt(2.0) * excursion
+            urms = w_p[:, None, None] * excursion
+            ln_f[:, :, :m] -= fw_lookup(ab) * G * urms / math.sqrt(2.0) * shape[None, None, :m, c]
+        out[order, :, it, :] = -ln_f.transpose(2, 0, 1)
+    return out
+
+
+def compress_losses(loss: np.ndarray, tol: float = MADSEN_LOSS_TOL,
+                    cap: float = MADSEN_LOSS_CAP) -> tuple[list, list, float]:
+    """(weights per path, basis rows, worst |Δloss| at any node) for a
+    (paths, nodes) loss table: the fewest singular components whose ROUNDED
+    stored values give every path's (capped) loss back within `tol` at
+    every node. A path's loss is Σ_r weight_r·basis_r. Basis values are
+    stored to 1e-5, weights (each column of unit length) to 1e-6."""
+
+    x = np.minimum(np.asarray(loss, float), cap)
+    if x.size == 0 or not np.any(x > 0):
+        return [[] for _ in range(x.shape[0])], [], 0.0
+    u, s, vt = np.linalg.svd(x, full_matrices=False)
+
+    def fmt(v: float, n: int) -> float:
+        v = round(float(v), n)
+        return 0 if v == 0 else v
+
+    for r in range(1, s.size + 1):
+        basis = [[fmt(v, 5) for v in row] for row in (s[:r, None] * vt[:r])]
+        weights = [[fmt(v, 6) for v in row] for row in u[:, :r]]
+        err = float(np.max(np.abs(np.array(weights) @ np.array(basis) - x)))
+        if err <= tol:
+            return weights, basis, err
+    return weights, basis, err
 
 
 # ------------------------------------------------------------------ grids
@@ -582,11 +751,16 @@ class Rays:
     #: (x, y, elapsed seconds) per step, for the Swell card map's fill
     #: (`paths_table`). None otherwise; no gain or table reads it.
     paths: list | None = None
+    #: With `steps`, each ray's wet steps, start point outward: (depth below
+    #: MSL at the start of each step, step length), exactly the terms the
+    #: `friction` integral sums, for the Madsen table (`madsen_losses`).
+    steps: list | None = None
 
 
 def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
           period_s: float, islands: list[Island] | None = None,
-          edges: dict[str, np.ndarray] | None = None, record: bool = False) -> Rays:
+          edges: dict[str, np.ndarray] | None = None, record: bool = False,
+          steps: bool = False) -> Rays:
     """Trace every heading at one period, seaward, until deep water, land or edge.
 
     With `islands`, also records where each ray has each island abeam — the
@@ -617,6 +791,7 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     # shared that name (2026-11-10 to -15) any call with edges appended to
     # those arrays and failed, so the full table build could not run.
     walked = [[(float(x0), float(y0), 0.0)] for _ in range(n)] if record else None
+    stepped: list | None = [] if steps else None
     elapsed = np.zeros(n)
 
     def ahead(island, xa, ya, ba):
@@ -668,6 +843,8 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
         wet = covered[go] & np.isfinite(h[go])
         if wet.any():
             lost[idx[wet]] += friction_rate(omega, h[go][wet]) * ds[wet]
+            if stepped is not None:
+                stepped.append((idx[wet], h[go][wet], ds[wet]))
             _, cg_here, _ = speeds(omega, h[go][wet])
             elapsed[idx[wet]] += ds[wet] / cg_here
 
@@ -708,9 +885,20 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
         rec[4][status == LAND] = False
 
     passes = {name: tuple(v) for name, v in abeam.items()} if islands else None
+    per_ray = None
+    if stepped is not None:
+        per_ray = [(np.zeros(0), np.zeros(0)) for _ in range(n)]
+        if stepped:
+            who = np.concatenate([a for a, _, _ in stepped])
+            hh = np.concatenate([b for _, b, _ in stepped])
+            dd = np.concatenate([c for _, _, c in stepped])
+            order = np.argsort(who, kind="stable")      # each ray's steps stay in step order
+            who, hh, dd = who[order], hh[order], dd[order]
+            cuts = np.searchsorted(who, np.arange(n + 1))
+            per_ray = [(hh[cuts[j]:cuts[j + 1]], dd[cuts[j]:cuts[j + 1]]) for j in range(n)]
     return Rays(compass_from(beta), status, x, y, exit_depth, path, passes,
                 {name: tuple(v) for name, v in near_edge.items()} if edges else None,
-                np.exp(-lost), elapsed, walked)
+                np.exp(-lost), elapsed, walked, per_ray)
 
 
 # ------------------------------------------------------------------ blockers
@@ -869,8 +1057,26 @@ def edge_points(blockers: list[Blocker]) -> dict[str, np.ndarray]:
     return out
 
 
+def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: float) -> dict:
+    """One frequency's Madsen table: each carrying path's weights on this
+    frequency's basis, which path each carrying row (by its place k among the
+    frequency's rows) crosses the shelf on, the basis over the nodes (peak,
+    tide, hs; C order), the components kept and the worst |Δloss| at any node
+    after rounding."""
+
+    rows = np.flatnonzero(carries)
+    src = sorted({int(path_of[i]) for i in rows})
+    if not src:
+        return {"rank": 0, "basis": [], "paths": [], "rows": {}, "max_error": 0.0}
+    loss = madsen_losses([rays.steps[j] for j in src], omega)
+    weights, basis, err = compress_losses(loss.reshape(len(src), -1))
+    at_src = {j: n for n, j in enumerate(src)}
+    return {"rank": len(basis), "basis": basis, "max_error": err, "paths": weights,
+            "rows": {str(int(i)): at_src[int(path_of[i])] for i in rows}}
+
+
 def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
-          freqs: list[float]) -> tuple[list[dict], dict]:
+          freqs: list[float], madsen_out: dict | None = None) -> tuple[list[dict], dict]:
     """One break's transfer table, with every window edge both hard and soft.
 
     For each ray, two answers:
@@ -894,6 +1100,12 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     that grazes an edge is itself refracted between the edge and the beach,
     and that bent ray is where the shadow boundary sits as seen from the
     break. Hard minus window is the seabed; soft minus hard is diffraction.
+
+    With `madsen_out`, the Madsen survival table is built from the same
+    traces and put there by frequency (`madsen_freq`): every row that carries
+    energy, along the path whose friction the row takes — its own, or the
+    clear ray's a diffracted fill takes. Tracing with `steps` changes no
+    arithmetic, so the rows are the table's own.
     """
 
     islands = islands_from(blockers)
@@ -906,7 +1118,7 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     for f in freqs:
         period = 1.0 / f
         omega = 2.0 * math.pi * f
-        rays = trace(bathy, xs, ys, near, period, islands, edges)
+        rays = trace(bathy, xs, ys, near, period, islands, edges, steps=madsen_out is not None)
         c_n, cg_n, _ = speeds(omega, np.array([hs]))
         c0 = G / omega
         gain = (c0 * 0.5 * c0) / float(c_n[0] * cg_n[0])
@@ -918,6 +1130,9 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
         diff_off = rays.off_from_deg.copy()
         diff_t = np.zeros(near.size)
         diff_fric = rays.friction.copy()
+        # Whose path each row's energy crosses the shelf on: the ray whose
+        # friction it takes (its own, or a diffracted fill's nearest clear ray).
+        path_of = np.arange(near.size)
         isl, _ = island_transmission(rays.passes or {}, islands, period)
         isl = np.ones(near.size) if isl is None else isl
         edge_t = np.ones(near.size)
@@ -954,6 +1169,7 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
             nearest = side[0] if w <= 0.5 else side[1]
             diff_off[i] = rays.off_from_deg[nearest]
             diff_fric[i] = rays.friction[nearest]
+            path_of[i] = nearest
             diff_t[i] = got * edge_t[nearest]
 
         clear_idx = np.flatnonzero(clear)
@@ -969,9 +1185,12 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
             # The energy that bends round the edge crosses the shelf beside the
             # ray that clears it, and takes that ray's friction.
             diff_fric[i] = rays.friction[nearest]
+            path_of[i] = nearest
             diff_t[i] = float(edge_factor(np.array([-dist[i]]), np.array([depth[i]]),
                                           np.array([along[i]]), period)[0]) * isl[nearest]
 
+        if madsen_out is not None:
+            madsen_out[f"{f:.4f}"] = madsen_freq(rays, path_of, diff_t > 0, omega)
         for i, theta in enumerate(near):
             rows.append({
                 "period_s": f"{period:.3f}", "freq_hz": f"{f:.4f}",
@@ -1089,6 +1308,44 @@ def write(rows: list[dict], meta: dict, out_dir: Path = OUT_DIR) -> Path:
         writer.writerows(rows)
     (out_dir / f"{meta['break']}.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def madsen_meta() -> dict:
+    """What a Madsen table's numbers mean; `nearshore.MadsenTable` reads it."""
+
+    return {"law": "Madsen (Madsen, Poon & Graber 1988), as SWAN implements it",
+            "k_n_m": MADSEN_K_N, "m_f": MADSEN_M_F,
+            "quantity": "-ln(energy flux surviving bottom friction), deep water to the start depth",
+            "nodes": "peak_hz x tide_m x hs_m, C order (hs fastest)",
+            "hs_m": list(MADSEN_HS_M), "peak_hz": list(MADSEN_PEAK_HZ), "tide_m": list(MADSEN_TIDE_M),
+            "hs": "the break's linear (frictionless) Hs at the start depth",
+            "tide": "coast level on MSL; depths along the path are h + tide, no shallower than H_LAND",
+            "loss_tol": MADSEN_LOSS_TOL, "loss_cap": MADSEN_LOSS_CAP,
+            "rows": "row k (its place among its frequency's rows in <break>.csv) -> the path "
+                    "it crosses the shelf on; a path's loss = sum of its weights times the "
+                    "frequency's basis rows"}
+
+
+def write_madsen(by_freq: dict, break_id: str, out_dir: Path = OUT_DIR) -> Path:
+    """`<break>_madsen.json`: one line per frequency so a rebuild diffs by frequency."""
+
+    meta = madsen_meta()
+    meta["break"] = break_id
+    meta["max_error"] = max((v["max_error"] for v in by_freq.values()), default=0.0)
+    lines = ["{", f'"meta": {json.dumps(meta)},', '"freqs": {']
+    keys = sorted(by_freq, key=float)
+    for n, key in enumerate(keys):
+        lines.append(f"{json.dumps(key)}: {json.dumps(by_freq[key], separators=(',', ':'))}"
+                     + ("," if n < len(keys) - 1 else ""))
+    lines += ["}", "}"]
+    path = out_dir / f"{break_id}_madsen.json"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def committed_rows(break_id: str, out_dir: Path = OUT_DIR) -> list[dict]:
+    with (out_dir / f"{break_id}.csv").open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
 
 
 LEG_FIELDS = ["period_s", "freq_hz", "off_from_deg", "ray_min", "from_buoy_min"]
@@ -1337,6 +1594,9 @@ def main(argv: list[str] | None = None) -> int:
                         help=f"rebuild the {LEG_FROM}-to-break travel times and nothing else")
     parser.add_argument("--paths-only", action="store_true",
                         help="rebuild the map fill's ray paths and nothing else")
+    parser.add_argument("--madsen-only", action="store_true",
+                        help="rebuild the Madsen friction tables and nothing else; refuses "
+                             "unless the re-trace gives the committed table back row for row")
     args = parser.parse_args(argv)
 
     bathy = Bathymetry.load()
@@ -1358,6 +1618,22 @@ def main(argv: list[str] | None = None) -> int:
             leg = write_leg(leg_table(bathy, by_id[sid], blockers, freqs, buoy), sid, buoy)
             print(f"{sid}: leg -> {leg}")
             continue
+        if args.madsen_only:
+            madsen: dict = {}
+            rows, _ = table(bathy, by_id[sid], blockers, freqs, madsen_out=madsen)
+            old = committed_rows(sid)
+            bad = sum(1 for a, b in zip(rows, old) if {k: str(v) for k, v in a.items()} != b)
+            if len(rows) != len(old) or bad:
+                print(f"{sid}: the re-trace does not give the committed table back "
+                      f"({bad} rows differ, {len(rows)} vs {len(old)}): rebuild the table, "
+                      f"not only its Madsen friction", file=sys.stderr)
+                return 1
+            out = write_madsen(madsen, sid)
+            ranks = [v["rank"] for v in madsen.values()]
+            print(f"{sid}: madsen -> {out} ({out.stat().st_size / 1e3:.0f} KB; components "
+                  f"{min(ranks)}-{max(ranks)}; worst |Δloss| "
+                  f"{max(v['max_error'] for v in madsen.values()):.4f})")
+            continue
         prof = write_profile(profile(bathy, by_id[sid]), sid)
         print(f"{sid}: profile -> {prof}")
         if args.profile_only:
@@ -1366,8 +1642,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{sid}: fetch -> {fetch}")
         if args.fetch_only:
             continue
-        rows, meta = table(bathy, by_id[sid], blockers, freqs)
+        madsen = {}
+        rows, meta = table(bathy, by_id[sid], blockers, freqs, madsen_out=madsen)
         path = write(rows, meta)
+        write_madsen(madsen, sid)
         kept = sum(1 for r in rows if r["gain"] != "0")
         print(f"{sid}: start {meta['start_depth_m']} m at {meta['start_lat']}, {meta['start_lon']}; "
               f"{len(rows)} rays, {kept} reach deep water unblocked -> {path}")

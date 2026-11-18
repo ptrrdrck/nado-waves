@@ -14,7 +14,7 @@ import pytest
 
 from forecast import bending
 from forecast.geometry import load
-from forecast.nearshore import BREAKS, Table, carry
+from forecast.nearshore import BREAKS, Table, at, carry
 
 TABLES = {b: Table.load(b) for b in BREAKS}
 
@@ -40,7 +40,16 @@ def test_it_is_carry_for_one_narrow_swell(break_id, heading):
 
     table = TABLES[break_id]
     deg, _ = bending.arriving(table, bending.PERIOD_HZ, heading)
-    got = carry(_OneBin(bending.PERIOD_HZ), table, {0: bending.swell_grid(heading)})
+    # Scaled so carry's linear 5 m Hs is the table's stated sea: Madsen's
+    # friction is then evaluated for the same sea in both (at MSL).
+    grid = bending.swell_grid(heading)
+    near = min(table.by_freq, key=lambda f: abs(f - bending.PERIOD_HZ))
+    e_lin = sum(at(grid, r.diff_off_from) * 0.005 * r.width_rad * r.diff_gain
+                for r in table.by_freq[near] if r.diff_gain > 0)
+    scale = (bending.HS_M / 4.0) ** 2 / e_lin
+    got = carry(_OneBin(bending.PERIOD_HZ), table, {0: [v * scale for v in grid]})
+    assert got.friction_law == "madsen"
+    assert got.friction_hs_lin == pytest.approx(bending.HS_M)
     assert got.trains, "the swell reached the break"
     assert _off(got.trains[0].near_from_deg, deg) < 1e-6
 

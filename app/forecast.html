@@ -4422,7 +4422,7 @@ function calculationTable(c) {
   row("Refraction", refracted, e.window_hs_m);
   row("Diffraction", diffracted, refracted);
   // Bottom friction along the rays' paths over the shelf, before shoaling
-  // divides back in (forecast.raytrace.friction_rate). Absent from a payload
+  // divides back in (Madsen's, forecast.raytrace.madsen_losses). Absent from a payload
   // built before it was modelled.
   let before = diffracted;
   if (e.friction_hs_m != null) {

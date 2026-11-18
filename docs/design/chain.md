@@ -49,7 +49,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    the two-edge Babinet factor, the Point Loma tip and the Baja tangent by the
    straight-edge one), each ray carrying a hard-edged and a diffracting
    answer, and bottom friction along each ray's path (JONSWAP, C_b = 0.038,
-   from the literature and never tuned; its own factor per ray) — into
+   from the literature and never tuned; its own factor per ray — until
+   2026-11-18, when Madsen's height-dependent friction replaced it, below
+   "Bottom friction is Madsen's") — into
    `data/nearshore/` tables; `forecast/nearshore.py` (pure Python) carries a
    spectrum through them and adds fetch-limited local chop: fresh over
    fetches closed by land, and — since 2026-09-30 (owner's point, BRIEFING
@@ -473,6 +475,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   calculation table already marks the row and says the figure is an upper
   bound; the HEADLINE still shows the number, and how it should read when
   flagged is the owner's call (asked 2026-11-17).
+- **After Madsen's friction (2026-11-18, §57; `docs/friction_shift.md`)**,
+  over 1,476 archived hours with a measured tide: flagged with 46232 at
+  2.5 m or more, Center 11 of 68 hours (41 before), South 32 (56), North
+  none; 2–2.5 m, Center 1 of 56 (13), South 4 (20); none below 1.5 m but
+  one at Center. The headline's reading when flagged is unchanged: the next
+  session replaces that ceiling with a real break point.
 
 ## On big westerly days the 5 m figure carries nothing that grows with height
 
@@ -488,8 +496,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   takes 4–8% of the breaking height on the smallest days and 13–18% with
   46232 at 2.5 m or more (median, all three breaks), the share growing with
   size; shelf breaking alone takes nothing below 2 m and ~5% above 2.5 m,
-  and adds nothing measurable on top of Madsen. Whether either ships is the
-  owner's call, after the MOP report (BRIEFING §56).
+  and adds nothing measurable on top of Madsen. **Madsen shipped on
+  2026-11-18** (owner's decision, BRIEFING §57; next section). Shelf
+  breaking did not: letting waves break before 5 m is the surf zone's next
+  job, a real break point in place of the `outside_start` ceiling.
 - **The westerly half of the excess is the wrap round Point Loma**: rays
   passing ~1 km south of the tip and bending north-east over the shelf, at
   14.3 s about twice a planar beach's acceptance per offshore degree at
@@ -497,6 +507,55 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   so it depends on direction, not size; big days here are westerly, so the
   two compound. Breaking over the straight-line window figure: 1.1–1.3× on
   south swell, 1.9–2.45× on W–WNW.
+
+## Bottom friction is Madsen's, tabulated
+
+- **Madsen's friction ships, on both chains, since 2026-11-18** (owner's
+  decision, BRIEFING §57): SWAN's form with C = f_w·g·U_rms/√2 (Madsen,
+  Poon & Graber 1988), k_N = 0.05 m and m_f = −0.08, SWAN's defaults.
+  Physics from the literature, never "calibration", nothing fitted. It
+  depends on the sea's height, so it cannot be one factor per ray: the
+  precompute tabulates it and the runtime interpolates.
+- **Precompute** (`raytrace.table(madsen_out=...)`, `--madsen-only`):
+  `trace(steps=True)` records each ray's wet steps exactly as the JONSWAP
+  integral sums them (the control: JONSWAP marched over those steps gives
+  the stored friction to 1e-15). `madsen_losses` marches every carrying
+  path deep water inward on those steps for a grid of the break's linear
+  5 m Hs (0.25–6 m, 9 nodes), peak frequency (0.04–0.2 Hz, 9) and coast
+  tide on MSL (−1.5 to +2.25 m, 6), the local sea shelfloss's mean-field
+  estimate (H5 de-shoaled at the peak, reduced by the ray's own losses),
+  solved exactly in one forward pass. A diffracted fill takes the path of
+  the clear ray whose friction the table already gives it. Each frequency's
+  loss table is stored as the fewest singular components that give every
+  path back within 0.005 in −ln(energy) at every node after rounding
+  (`compress_losses`): `<break>_madsen.json`, 1.7–2.3 MB a break, beside an
+  unchanged CSV. `--madsen-only` refuses unless its re-trace gives the
+  committed table back row for row (it did, all three breaks).
+- **Grid sized by measurement** against the exact march over 290 archived
+  hours (BRIEFING §57): worst 0.25% of the 5 m height. Tide is an axis
+  (3–4% of the 5 m height per metre of tide, up to 7%); interpolating the
+  peak in PERIOD is three times better than in frequency; 3 tide nodes or
+  6 period nodes missed.
+- **Runtime** (`nearshore.carry`, pure Python): a first pass gives the
+  linear 5 m Hs and the linear peak (the bin with most energy before
+  friction); the loss is interpolated linearly in Hs (zero at zero,
+  extrapolated past 6 m), in period and in tide (both clamped), once per
+  frequency per hour, and each ray keeps exp(−loss). `tide_m` is the
+  measured coast tide on LIVE (the gauge at that hour for past trains) and
+  the forecast coast tide on Forecast, MSL when there is none.
+  `carry(friction="jonswap")` is the chain before §57, kept as the
+  control: identical to it in every field over all 2,161 archived hours.
+  `Table.load` refuses a break without its Madsen table.
+- **Everything that rebuilds carry's energies takes carry's own factors**
+  (`Nearshore.ray_friction`), never the table's column: the map fill
+  (with the tide `effects.friction_tide_m` records), `trainmerge._rays`.
+  `bending`'s docs table states its sea: 1 m at 5 m, its period the peak,
+  at MSL.
+- **What it does not fix**: the local sea is a mean field from the peak bin;
+  when two swells' peaks are close in energy the peak can flip between
+  them from one hour to the next, and the friction with it (up to 12% of
+  the 5 m height at Center on 3 of 290 hours, §57). SWAN integrates the
+  orbital velocity over the whole spectrum; that is a later change.
 
 ## The MOP cross-check
 

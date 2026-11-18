@@ -63,23 +63,26 @@ def test_the_buoy_split_floored_is_the_buoys_own_trains():
 def test_north_on_3_november_is_two_swells_not_one():
     """The owner's example: 46232 held a W 18.2 s and an SSW 14.3 s over the
     same periods; North's own split made one row of them, 16.7 s from 228°
-    (229° since the tables of 2026-11-15, BRIEFING §55), neither swell's.
-    Divided, it is each swell's own row."""
+    (229° with the tables of 2026-11-15, BRIEFING §55; 228° again with
+    Madsen's friction, §57), neither swell's. Divided, it is each swell's
+    own row."""
 
     sp, grids, split = _at(NORTH_DAY)
     north = _tables()["coronado_north"]
     whole = carry(sp, north, grids)
-    assert len(whole.trains) == 1 and round(whole.trains[0].from_deg) == 229
+    assert len(whole.trains) == 1 and round(whole.trains[0].from_deg) == 228
     rows = carry(sp, north, grids, split).trains
     assert len(rows) == 2
     ssw = next(t for t in rows if t.from_deg < 230)
     w = next(t for t in rows if t.from_deg > 240)
     # 1.03 m at 20%; 1.05 since the back-check (2026-11-04) returns to the SSW
-    # the energy credited to the W whose heading sits nearer the SSW.
-    assert round(ssw.period_s, 1) == 14.3 and ssw.hs_m == pytest.approx(1.05, abs=0.01)
+    # the energy credited to the W whose heading sits nearer the SSW; 0.92
+    # with Madsen's friction at MSL (2026-11-18, BRIEFING §57).
+    assert round(ssw.period_s, 1) == 14.3 and ssw.hs_m == pytest.approx(0.92, abs=0.01)
     # 0.69 m until the islands became land, their shadow diffraction only
-    # (2026-11-15, BRIEFING §55); the SSW 1.06.
-    assert w.hs_m == pytest.approx(0.72, abs=0.01)
+    # (2026-11-15, BRIEFING §55); 0.72 then, the SSW 1.06. 0.60 with Madsen's
+    # friction (§57), which takes most from the long W over North's shelf.
+    assert w.hs_m == pytest.approx(0.60, abs=0.01)
     assert split[ssw.buoy].from_deg < 230 < split[w.buoy].from_deg
     # The two rows are the row they came from, in energy, or a little less:
     # a piece under the floors leaves the list, as a band under them does.
@@ -116,7 +119,8 @@ def test_the_owners_case_shows_each_breaks_smaller_swell():
     ssw = next(n for n, t in enumerate(split) if round(t.period_s, 1) == 13.3)
     north, south = rows["coronado_north"], rows["coronado_south"]
     assert [t.buoy for t in north[:2]] == [ssw, w]
-    assert north[1].hs_m == pytest.approx(1.24 / 3.28084, abs=0.01)
+    # 1.24 ft until Madsen's friction (2026-11-18, BRIEFING §57): 1.01 ft.
+    assert north[1].hs_m == pytest.approx(1.01 / 3.28084, abs=0.01)
     assert [t.buoy for t in south[:2]] == [w, ssw]
     # 1.11 ft at 14.3 s until the tables were rebuilt on 2026-11-15 with South
     # Coronado's imagery tip (BRIEFING §52): 1.16 ft, its peak 16.7 s. Not
@@ -125,7 +129,8 @@ def test_the_owners_case_shows_each_breaks_smaller_swell():
     # the disc went (BRIEFING §55): a ray that lands on an island takes a
     # clear neighbour's heading, and this row is 1.36 ft at 13.3 s, the
     # island method alone moving South's 5 m height 1.047 -> 1.068 m.
-    assert south[1].hs_m == pytest.approx(1.36 / 3.28084, abs=0.01)
+    # Madsen's friction (2026-11-18, BRIEFING §57): 1.28 ft.
+    assert south[1].hs_m == pytest.approx(1.28 / 3.28084, abs=0.01)
 
 
 def test_the_back_check_sends_another_swells_spread_back_to_the_lead():
@@ -204,7 +209,7 @@ def test_rows_of_one_buoy_train_are_one_swell_only_from_one_direction_there():
     assert [r["period_s"] for r in rows] == [16.7, 10.5, 6.7]
     assert len({r["swell"] for r in rows}) == 1
     heads = [round(t.buoy_from_deg) for t in near.trains[:3]]
-    assert heads == [247, 281, 272]
+    assert heads == [246, 281, 272]          # 247° for the SW before Madsen (§57)
     assert not any("group" in r or "swell_at_buoy" in r for r in rows)
     # The W's own two rows are one swell's when the SW row is not shown.
     two = train_dicts(near.trains[1:3], near.buoy)

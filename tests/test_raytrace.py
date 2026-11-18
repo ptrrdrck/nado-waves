@@ -321,6 +321,136 @@ def test_tracing_with_edges_and_islands_runs_and_recording_changes_nothing():
         assert p[-1][0] == rec.exit_x[i] and p[-1][1] == rec.exit_y[i]
 
 
+# ------------------------------------------------------------ Madsen friction (BRIEFING §57)
+
+from forecast import raytrace as RT  # noqa: E402
+
+
+def test_recording_steps_changes_nothing_and_gives_the_friction_back():
+    """`trace(steps=True)` records each ray's wet steps exactly as the
+    friction integral sums them: every ray comes out the same, and the
+    JONSWAP law marched over those steps at tide 0 is the stored friction to
+    rounding — the control the Madsen table is built on."""
+
+    bathy = planar()
+    x0, y0 = start(bathy)
+    near = np.linspace(-50.0, 50.0, 11)
+    plain = trace(bathy, x0, y0, near, 13.0)
+    rec = trace(bathy, x0, y0, near, 13.0, steps=True)
+    assert plain.steps is None and len(rec.steps) == near.size
+    for a, b in ((plain.status, rec.status), (plain.off_from_deg, rec.off_from_deg),
+                 (plain.friction, rec.friction), (plain.time_s, rec.time_s)):
+        assert np.array_equal(a, b)
+    loss = RT.madsen_losses(rec.steps, 2 * math.pi / 13.0, tide_m=(0.0,), law="jonswap")
+    assert np.allclose(np.exp(-loss[:, 0, 0, 0]), rec.friction, rtol=1e-12, atol=0)
+
+
+def _madsen_by_depth(period, hs5, slope, h_start, tide=0.0, n=400_001):
+    """Madsen's survival straight out from a planar beach, integrated here
+    independently: over depth (ds = dh/slope), deep water inward, f_w solved
+    (not looked up), the local height de-shoaled at the peak (= the period)."""
+
+    omega = 2 * math.pi / period
+    h = np.linspace(G * period ** 2 / (2 * math.pi), h_start, n)    # deep -> start
+    hh = np.maximum(h + tide, RT.H_LAND)
+    k = RT.wavenumber(omega, hh)
+    _, cg, _ = speeds(omega, hh)
+    _, cg5, _ = speeds(omega, np.array([RT.H_REF + tide]))
+    sh = np.sinh(np.minimum(k * hh, 300.0))
+    shape = omega ** 2 / (G ** 2 * sh ** 2 * cg)
+    ln_f = 0.0
+    ds = abs(h[1] - h[0]) / slope
+    for i in range(h.size - 1):
+        hs_loc = hs5 * math.sqrt(cg5[0] / cg[i]) * math.exp(0.5 * ln_f)
+        exc = hs_loc / (4.0 * sh[i])
+        c = float(RT.madsen_fw(np.array([math.sqrt(2.0) * exc]))[0]) * G * omega * exc / math.sqrt(2.0)
+        ln_f -= c * shape[i] * ds
+    return math.exp(ln_f)
+
+
+@pytest.mark.parametrize("period,hs5", [(10.0, 1.0), (16.0, 2.5)])
+def test_madsen_along_a_ray_is_the_madsen_integral(period, hs5):
+    """The table's march on the tracer's own steps against an independent
+    integral of the same law over depth: the same survival to 1%."""
+
+    bathy = planar()
+    x0, y0 = start(bathy)
+    rays = trace(bathy, x0, y0, np.array([0.0]), period, steps=True)
+    got = RT.madsen_losses(rays.steps, 2 * math.pi / period, hs_m=(hs5,),
+                           peak_hz=(1.0 / period,), tide_m=(0.0,))
+    expected = _madsen_by_depth(period, hs5, SLOPE, 10.0)
+    assert math.exp(-float(got[0, 0, 0, 0])) == pytest.approx(expected, rel=0.01)
+    assert expected < 1.0
+
+
+def test_madsen_takes_more_from_a_bigger_sea_and_less_at_high_tide():
+    """Madsen's loss grows with the height (the orbital velocity), JONSWAP's
+    does not; deeper water at high tide takes less."""
+
+    bathy = planar()
+    x0, y0 = start(bathy)
+    rays = trace(bathy, x0, y0, np.array([0.0, 20.0]), 14.0, steps=True)
+    loss = RT.madsen_losses(rays.steps, 2 * math.pi / 14.0, hs_m=(0.5, 1.0, 2.0, 4.0),
+                            peak_hz=(1 / 14.0,), tide_m=(-1.0, 0.0, 1.0))
+    assert np.all(np.diff(loss, axis=3) > 0)          # with height
+    assert np.all(np.diff(loss, axis=2) < 0)          # with tide
+    jons = RT.madsen_losses(rays.steps, 2 * math.pi / 14.0, hs_m=(0.5, 4.0),
+                            peak_hz=(1 / 14.0,), tide_m=(0.0,), law="jonswap")
+    assert np.allclose(jons[..., 0], jons[..., 1])
+
+
+def test_the_looked_up_friction_factor_is_madsens():
+    ab = np.geomspace(1e-3, 50.0, 997)
+    assert np.max(np.abs(RT.fw_lookup(ab) / RT.madsen_fw(ab) - 1)) < 1e-3
+
+
+def test_the_compressed_table_gives_every_path_back_within_tolerance():
+    bathy = planar()
+    x0, y0 = start(bathy)
+    rays = trace(bathy, x0, y0, np.linspace(-60.0, 60.0, 25), 12.0, steps=True)
+    loss = RT.madsen_losses(rays.steps, 2 * math.pi / 12.0).reshape(25, -1)
+    weights, basis, err = RT.compress_losses(loss)
+    rebuilt = np.array(weights) @ np.array(basis)
+    assert err <= RT.MADSEN_LOSS_TOL
+    assert np.max(np.abs(rebuilt - np.minimum(loss, RT.MADSEN_LOSS_CAP))) == pytest.approx(err)
+    assert len(basis) < loss.shape[1]
+
+
+@pytest.mark.parametrize("break_id", RT.BREAKS)
+def test_the_committed_madsen_tables_describe_their_nodes(break_id):
+    import json
+
+    doc = json.loads((RT.OUT_DIR / f"{break_id}_madsen.json").read_text())
+    meta = doc["meta"]
+    assert meta["hs_m"] == list(RT.MADSEN_HS_M)
+    assert meta["peak_hz"] == list(RT.MADSEN_PEAK_HZ)
+    assert meta["tide_m"] == list(RT.MADSEN_TIDE_M)
+    assert meta["k_n_m"] == RT.MADSEN_K_N and meta["m_f"] == RT.MADSEN_M_F
+    assert meta["max_error"] <= RT.MADSEN_LOSS_TOL
+    nodes = len(RT.MADSEN_HS_M) * len(RT.MADSEN_PEAK_HZ) * len(RT.MADSEN_TIDE_M)
+    for v in doc["freqs"].values():
+        assert len(v["basis"]) == v["rank"]
+        assert all(len(row) == nodes for row in v["basis"])
+        assert all(len(w) == v["rank"] for w in v["paths"])
+
+
+def test_the_committed_madsen_table_is_what_the_code_builds():
+    """One frequency of one break rebuilt from the seabed: the same table,
+    number for number, so the committed file is the code's."""
+
+    import json
+
+    from forecast.geometry import load as load_geometry
+
+    bathy = Bathymetry.load()
+    spots, blockers = load_geometry()
+    spot = {s.id: s for s in spots}["coronado_center"]
+    built: dict = {}
+    rows, _ = RT.table(bathy, spot, blockers, [0.101], madsen_out=built)
+    doc = json.loads((RT.OUT_DIR / "coronado_center_madsen.json").read_text())
+    assert built["0.1010"] == doc["freqs"]["0.1010"]
+
+
 # ------------------------------------------------------------ the fill's starts
 
 from forecast.raytrace import PATH_LEG_DEPTH, deep_leg  # noqa: E402

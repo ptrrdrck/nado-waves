@@ -48,6 +48,18 @@ Controls, all three must hold before any number is read:
 
 No local chop in any column, so "shipped" here is the swell's figure; local
 chop is a few centimetres on these hours (§36).
+
+Since BRIEFING §57 Madsen's friction (no breaking) is what ships, tabulated by
+`raytrace.madsen_losses` and interpolated by `nearshore.carry`; this module is
+its reference. The "runtime" column is that shipped carry, and a fourth
+control holds it to the "Madsen" column hour by hour. Two changes with it:
+the re-trace now starts from the table's own headings (the CSV rounds them to
+0.01°, which flipped 2–5 grazing rays per frequency, Center's main 18 s
+westerly ray among them, onto Point Loma) with the islands and edges as the
+table traces them, so every ray's status and friction come back; and the
+march's sea takes the LINEAR peak (`carry`'s `friction_peak_hz`, the bin
+with the most energy before friction), each column breaking at its own
+peak and mean heading.
 """
 
 from __future__ import annotations
@@ -70,10 +82,9 @@ from .surfzone import breaker_index, load_profiles, break_on
 
 ROOT = Path(__file__).resolve().parent.parent
 G = 9.81
-#: Madsen's bed roughness, SWAN's default (m). Literature, never tuned.
-K_N = 0.05
-#: SWAN's Madsen constant m_f.
-M_F = -0.08
+#: Madsen's bed roughness and SWAN's m_f: the shipped constants (raytrace).
+K_N = R.MADSEN_K_N
+M_F = R.MADSEN_M_F
 #: Battjes & Janssen's α, as in forecast.surfzone.
 ALPHA = 1.0
 #: Thin each recorded path to steps of at least this (m): dissipation is
@@ -149,17 +160,26 @@ def build_paths(break_id: str, bathy=None) -> tuple[dict[float, FreqPaths], dict
     from .geometry import load
 
     bathy = bathy or R.Bathymetry.load()
-    spots, _ = load()
+    spots, blockers = load()
     spot = {s.id: s for s in spots}[break_id]
     xs, ys, _ = R.start_point(bathy, spot)
+    # The table's own headings and the islands and edges as it traces them:
+    # the CSV's headings are rounded to 0.01°, and that is enough to flip a
+    # ray grazing Point Loma onto the land (BRIEFING §57).
+    islands = R.islands_from(blockers)
+    R.ring_depths(bathy, islands)
+    edges = R.edge_points(blockers)
+    near = (spot.normal - 90.0 + R.DIR_STEP_DEG / 2.0
+            + R.DIR_STEP_DEG * np.arange(int(round(180.0 / R.DIR_STEP_DEG)))) % 360.0
     rows: dict[float, list[dict]] = {}
     with (TABLE_DIR / f"{break_id}.csv").open(newline="", encoding="utf-8") as fh:
         for r in csv.DictReader(fh):
             rows.setdefault(float(r["freq_hz"]), []).append(r)
     out = {}
     for f, rr in rows.items():
-        near = np.array([float(r["near_from_deg"]) for r in rr])
-        rays = R.trace(bathy, xs, ys, near, 1.0 / f, record=True)
+        if len(rr) != near.size or any(f"{a:.2f}" != r["near_from_deg"] for a, r in zip(near, rr)):
+            raise ValueError(f"{break_id} {f}: the table's headings are not the spot's")
+        rays = R.trace(bathy, xs, ys, near, 1.0 / f, islands, edges, record=True)
         fric = np.array([float(r["friction"]) for r in rr])
         dfric = np.array([float(r["diff_friction"]) for r in rr])
         # Which path each ray's energy travels: its own, unless the table gave
@@ -202,18 +222,9 @@ def fraction_breaking_v(ratio: np.ndarray) -> np.ndarray:
     return np.where(r >= 1.0, 1.0, np.where(r <= 0.2, 0.0, q))
 
 
-def madsen_fw(ab: np.ndarray) -> np.ndarray:
-    """Madsen et al. (1988) as SWAN solves it:
-    1/(4√fw) + log10(1/(4√fw)) = m_f + log10(a_b/K_N), and 0.3 below a_b/K_N = 1.57."""
-
-    ab = np.asarray(ab, float)
-    rhs = M_F + np.log10(np.maximum(ab, 1e-9) / K_N)
-    y = np.maximum(rhs, 0.5)               # y = 1/(4√fw); Newton on y + log10 y = rhs
-    for _ in range(30):
-        y = y - (y + np.log10(y) - rhs) / (1.0 + 1.0 / (y * math.log(10)))
-        y = np.maximum(y, 1e-3)
-    fw = 1.0 / (16.0 * y * y)
-    return np.where(ab / K_N > 1.57, fw, 0.3)
+#: Madsen's f_w, solved and on its lookup table: the shipped forms (raytrace).
+madsen_fw = R.madsen_fw
+fw_lookup = R.fw_lookup
 
 
 #: Fixed-point passes for the ray's own losses inside its local height. The
@@ -228,8 +239,6 @@ TOL = 1e-3
 
 _QB_R = np.linspace(0.0, 1.0, 4001)
 _QB = None
-_FW_LOG_AB = np.linspace(-4.0, 2.0, 3001)          # log10 of a_b in metres
-_FW = None
 
 
 def qb_lookup(ratio: np.ndarray) -> np.ndarray:
@@ -239,15 +248,6 @@ def qb_lookup(ratio: np.ndarray) -> np.ndarray:
     if _QB is None:
         _QB = fraction_breaking_v(_QB_R)
     return np.interp(np.minimum(ratio, 1.0), _QB_R, _QB)
-
-
-def fw_lookup(ab: np.ndarray) -> np.ndarray:
-    """madsen_fw on a table in log10(a_b) (pinned by the control)."""
-
-    global _FW
-    if _FW is None:
-        _FW = madsen_fw(10.0 ** _FW_LOG_AB)
-    return np.interp(np.log10(np.maximum(ab, 1e-4)), _FW_LOG_AB, _FW)
 
 
 def march(fp: FreqPaths, hs5_lin: float, tide_m: float, peak: FreqPaths, gamma: float,
@@ -307,9 +307,9 @@ def march(fp: FreqPaths, hs5_lin: float, tide_m: float, peak: FreqPaths, gamma: 
 # ------------------------------------------------------------------ one hour
 
 VARIANTS = (
-    ("shipped (JONSWAP, no breaking)", "jonswap", False, 1.0),
+    ("JONSWAP (shipped before §57)", "jonswap", False, 1.0),
     ("JONSWAP + shelf breaking", "jonswap", True, 1.0),
-    ("Madsen, no breaking", "madsen", False, 1.0),
+    ("Madsen, no breaking (ships, §57)", "madsen", False, 1.0),
     ("Madsen + shelf breaking", "madsen", True, 1.0),
     (f"Madsen + breaking, local Hs -{SENSITIVITY:.0%}", "madsen", True, 1.0 - SENSITIVITY),
     (f"Madsen + breaking, local Hs +{SENSITIVITY:.0%}", "madsen", True, 1.0 + SENSITIVITY),
@@ -319,7 +319,9 @@ VARIANTS = (
 def hour(spectrum, break_id: str, paths: dict[float, FreqPaths], rows: dict[float, list[dict]],
          table, profile, tide_m: float, normal_deg: float, grids=None) -> dict:
     grids = grids or density_grids(spectrum)
-    near = carry(spectrum, table, grids)
+    near = carry(spectrum, table, grids, friction="jonswap")
+    # What ships (§57): Madsen from the table, at this tide.
+    run = carry(spectrum, table, grids, tide_m=tide_m)
     freqs = sorted(rows)
     per_f = {}                       # freq -> (energies per ray, stored diff friction)
     for i, f in enumerate(spectrum.frequencies):
@@ -338,14 +340,16 @@ def hour(spectrum, break_id: str, paths: dict[float, FreqPaths], rows: dict[floa
     e_lin = sum(float(e.sum()) for e, _ in per_f.values())
     e_ship = sum(float((e * fr).sum()) for e, fr in per_f.values())
     hs5_lin = 4.0 * math.sqrt(e_lin)
-    tp = near.peak_period_s
-    peak = paths[min(paths, key=lambda f: abs(f - 1.0 / tp))]
+    # The sea the march crosses: the linear peak, as the runtime takes it.
+    peak_hz = run.friction_peak_hz if run.friction_peak_hz else 1.0 / near.peak_period_s
+    tp = 1.0 / peak_hz
+    peak = paths[min(paths, key=lambda f: abs(f - peak_hz))]
     # surfzone's γ: deep-water Hrms from the 5 m figure, shoaling divided out.
     cg5 = float(np.interp(5.0, _DEPTHS, peak.cg_tab))
     hrms0 = hs5_lin / math.sqrt(2) * math.sqrt(cg5 / (0.5 * G / peak.omega))
     gamma = breaker_index(hrms0, tp)
-    angle = (((near.near_from_deg - normal_deg + 180.0) % 360.0) - 180.0
-             if near.near_from_deg == near.near_from_deg else 0.0)
+    def angle_of(deg: float) -> float:
+        return ((deg - normal_deg + 180.0) % 360.0) - 180.0 if deg == deg else 0.0
     # Control: the march with JONSWAP, no breaking, at MSL (where the table's
     # friction was computed) must give the stored friction back.
     e_ctrl = 0.0
@@ -359,10 +363,16 @@ def hour(spectrum, break_id: str, paths: dict[float, FreqPaths], rows: dict[floa
                         fp.traced_friction, fp.path_of)
         F = march(sub, hs5_lin, 0.0, peak, gamma, "jonswap", False)
         e_ctrl += float((e[ok] * F[np.searchsorted(used, fp.path_of[ok])]).sum())
+    rb = break_on(profile, hs_start_m=run.hs_ref, period_s=run.peak_period_s,
+                  start_depth_m=table.start_depth_m, angle_deg=angle_of(run.near_from_deg), tide_m=tide_m)
     out = {"carry_hs5": near.hs_ref, "rebuilt_hs5": 4.0 * math.sqrt(e_ship), "lin_hs5": hs5_lin,
-           "march_msl_hs5": 4.0 * math.sqrt(e_ctrl), "tp": tp, "variants": {}}
+           "march_msl_hs5": 4.0 * math.sqrt(e_ctrl), "tp": tp, "variants": {},
+           "runtime": (run.hs_ref, rb.hs_m if rb else float("nan"), bool(rb and rb.outside_start)),
+           "runtime_lin_hs5": run.friction_hs_lin}
     for name, fric, brk, scale in VARIANTS:
         e5 = 0.0
+        by_tf: dict[float, float] = {}
+        sn = cn = 0.0
         for tf, (e, _) in per_f.items():
             fp = paths[tf]
             idx = fp.path_of
@@ -376,10 +386,17 @@ def hour(spectrum, break_id: str, paths: dict[float, FreqPaths], rows: dict[floa
             F = march(sub, hs5_lin, tide_m, peak, gamma, fric, brk, scale, trace=conv)
             out["last_pass"] = max(out.get("last_pass", 0.0), conv[-1])
             where = np.searchsorted(used, idx[ok])
-            e5 += float((e[ok] * F[where]).sum())
+            got = e[ok] * F[where]
+            e5 += float(got.sum())
+            by_tf[tf] = float(got.sum())
+            heads = np.radians([float(rows[tf][j]["near_from_deg"]) for j in np.flatnonzero(ok)])
+            sn += float((got * np.sin(heads)).sum()); cn += float((got * np.cos(heads)).sum())
         hs5 = 4.0 * math.sqrt(e5)
-        b = break_on(profile, hs_start_m=hs5, period_s=tp, start_depth_m=table.start_depth_m,
-                     angle_deg=angle, tide_m=tide_m)
+        # Each column breaks at its own peak and mean 5 m heading, as summarise does.
+        tp_v = 1.0 / max(by_tf, key=by_tf.get) if by_tf else tp
+        heading = math.degrees(math.atan2(sn, cn)) % 360.0 if e5 > 0 else float("nan")
+        b = break_on(profile, hs_start_m=hs5, period_s=tp_v, start_depth_m=table.start_depth_m,
+                     angle_deg=angle_of(heading), tide_m=tide_m)
         out["variants"][name] = (hs5, b.hs_m if b else float("nan"), bool(b and b.outside_start))
     return out
 
@@ -418,6 +435,40 @@ def controls(paths_by_break, rows_by_break) -> list[str]:
     return lines
 
 
+MADSEN = VARIANTS[2][0]
+
+
+def runtime_control(results: list[dict]) -> list[str]:
+    """The runtime against the march, per break: the linear 5 m Hs both
+    evaluate Madsen for; the 5 m height with the march's own path-thinning
+    error divided out (its JONSWAP march at MSL over the table's carry, the
+    same paths and steps, so what is left is the runtime's interpolation);
+    and the breaking height as each gives it, thinning and all."""
+
+    lines = []
+    for b in BREAKS:
+        lin, five, brk = [], [], []
+        for r in results:
+            x = r[b]
+            if not x["carry_hs5"] > 0 or not x["march_msl_hs5"] > 0:
+                continue
+            m5, mb, _ = x["variants"][MADSEN]
+            r5, rbk, _ = x["runtime"]
+            lin.append((x["runtime_lin_hs5"] / x["lin_hs5"] - 1, r["time"]))
+            five.append((r5 / (m5 * x["carry_hs5"] / x["march_msl_hs5"]) - 1, r["time"]))
+            if mb > 0 and rbk == rbk:
+                brk.append((rbk / mb - 1, r["time"]))
+        for label, v in (("linear 5 m Hs", lin), ("5 m Hs, thinning out", five), ("breaking Hs", brk)):
+            if not v:
+                continue
+            a = sorted(abs(d) for d, _ in v)
+            worst = max(v, key=lambda t: abs(t[0]))
+            lines.append(f"  {b:16s} {label:22s} median |Δ| {a[len(a) // 2]:.2%}  99th "
+                         f"{a[min(len(a) - 1, int(0.99 * len(a)))]:.2%}  worst {worst[0]:+.2%} "
+                         f"({worst[1]:%Y-%m-%d %HZ}), n={len(v)}")
+    return lines
+
+
 def main(argv: list[str] | None = None) -> int:
     from .geometry import load
     from .tidesite import BAY, _read, coast_level, msl_above_mllw
@@ -428,6 +479,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--every", type=int, default=1, help="below --big, keep every n-th hour")
     ap.add_argument("--big", type=float, default=2.0, help="hours at or above this buoy Hs are all kept")
     ap.add_argument("--hours", nargs="*", default=None, help="ISO hour prefixes to run instead")
+    ap.add_argument("--out", type=Path, default=None, help="write every hour's columns here (JSON)")
     ap.add_argument("--cache", type=Path, default=None,
                     help="pickle of the re-traced paths (~4 min to build); written if absent")
     args = ap.parse_args(argv)
@@ -500,10 +552,18 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  march (JONSWAP, no breaking, at MSL) vs nearshore.carry, worst |Δ| {worstm:.2%}")
     lastp = max((r[b].get("last_pass", 0.0) for r in results for b in BREAKS), default=float("nan"))
     print(f"  fixed point: the last pass changed a ray's survival by at most {lastp:.1e} (stops at {TOL:g}, or {PASSES} passes)")
+    print("\nThe shipped runtime (nearshore.carry, Madsen table) against the Madsen march, hour by hour:")
+    for line in runtime_control(results):
+        print(line)
+    if args.out:
+        import json
+        args.out.write_text(json.dumps([{**{k: (v.isoformat() if k == "time" else v) for k, v in r.items()
+                                            if k not in BREAKS},
+                                         **{b: r[b] for b in BREAKS}} for r in results], default=str))
     if args.hours:
         return 0
 
-    print("\nBreaking height under each variant over the shipped (JONSWAP) breaking height, median [10th, 90th],"
+    print("\nBreaking height under each variant over the JONSWAP breaking height, median [10th, 90th],"
           " by 46232's Hs. No local chop in either.")
     bands = ((0.0, 1.0), (1.0, 1.5), (1.5, 2.0), (2.0, 2.5), (2.5, 9.0))
     for b in BREAKS:
