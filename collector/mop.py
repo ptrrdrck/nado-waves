@@ -74,7 +74,8 @@ DODS = f"{SERVER}/thredds/dodsC/"
 #: Politeness, as `probe_mop`: a university research server, not a CDN.
 REQUEST_DELAY = 2.0
 #: Run 1 used 88 of 90 on the series alone; the spectrum and the small
-#: variables add two a point, four if THREDDS refuses a combined request.
+#: variables add two a point, four if THREDDS refuses a combined request, and
+#: the inputs one more (run 2 used 94 without them).
 MAX_REQUESTS = 110
 #: The variables used, by CDIP's naming. Checked against each file's DDS.
 LAT, LON, DEPTH = "metaLatitude", "metaLongitude", "metaWaterDepth"
@@ -83,6 +84,9 @@ TIME, HS, TP, DP = "waveTime", "waveHs", "waveTp", "waveDp"
 FREQ, ENERGY = "waveFrequency", "waveEnergyDensity"
 BOUNDS, BANDWIDTH = "waveFrequencyBounds", "waveBandwidth"
 MOMENTS = ("waveA1Value", "waveB1Value", "waveA2Value", "waveB2Value")
+#: What drove each hour (run 2 found both declared): the input sources, a
+#: string an hour, and the weighted input coverage of each band.
+SOURCE, COVERAGE = "waveModelInputSource", "waveModelBinInputCoverage"
 #: A variable off the time axis with at most this many values is fetched
 #: whole into the meta file (positions, depth, shore normal, labels, bands).
 SMALL_MAX = 2000
@@ -282,6 +286,37 @@ def parse_das(das: str) -> dict[str, dict]:
             i = j + 1
             continue
         i += 1
+    return out
+
+
+def parse_ascii_strings(body: str, name: str) -> list[str]:
+    """The quoted values of one String array in an OPeNDAP ASCII response
+    (bare or as a Grid's array, `name.name[n]`), in order. A quote inside a
+    value comes escaped, `\\"`."""
+
+    if "---" not in body:
+        raise ValueError("not an OPeNDAP ASCII response (no dashed rule)")
+    lines = body.split("\n")
+    start = next(i for i, line in enumerate(lines) if line.startswith("---")) + 1
+    head = re.compile(rf"^(?:{name}\.)?{name}(\[\d+\])*\s*(,(.*))?$")
+    out: list[str] = []
+    inside = False
+    for line in lines[start:]:
+        t = line.strip()
+        if not t:
+            continue
+        m = head.match(t)
+        if m:
+            inside = True
+            if m.group(3):
+                out += [re.sub(r'\\(.)', r"\1", x) for x in re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(3))]
+            continue
+        if re.match(r"^[A-Za-z_]", t):
+            if inside:
+                break
+            continue
+        if inside:
+            out += [re.sub(r'\\(.)', r"\1", x) for x in re.findall(r'"((?:[^"\\]|\\.)*)"', t)]
     return out
 
 
@@ -536,6 +571,11 @@ def save_extras(budget: Budget, break_id: str, pid: str, url_path: str, dds: str
                                                             for x in arrays[m][k]) + "\n")
             elif mom_path.exists():
                 mom_path.unlink()
+            if SOURCE in dims or COVERAGE in dims:
+                write_inputs(budget, break_id, url_path, dims, attrs, (times[0], times[1]), stamps, nf, out, meta)
+            if meta.get("inputs", {}).get("sources") is not None:
+                top = list(meta["inputs"]["sources"].items())[:6]
+                lines.append(f"  - input sources (hours): {top}")
             lines.append(f"  - spectrum: {nf} bands {bands[0][1]:.4f}–{bands[-1][2]:.4f} Hz (edges from "
                          f"{schema['edges_from']}), moments {'saved' if schema['moments'] else 'not in the file'}; "
                          f"gaps {masked}; read-back 4√m0 / Hs median {rb.get('median')}, worst {rb.get('worst')} "
@@ -549,6 +589,48 @@ def save_extras(budget: Budget, break_id: str, pid: str, url_path: str, dds: str
     lines.append(f"  - {DEPTH} attributes: {json.dumps(depth_attrs)}")
     (out / f"{break_id}_meta.json").write_text(json.dumps(meta, indent=1) + "\n", encoding="utf-8")
     return lines, ok
+
+
+def write_inputs(budget: Budget, break_id: str, url_path: str, dims: dict, attrs: dict,
+                 span: tuple[int, int], stamps: list[str], nf: int, out: Path, meta: dict) -> None:
+    """`<break>_inputs.csv`: what drove each hour (the input sources) and how
+    much of each band had input (weighted coverage), as the file says.
+    A fill is a gap; a source string is kept exactly."""
+
+    i0, i1 = span
+    n = i1 - i0 + 1
+    parts = []
+    if SOURCE in dims and [d for d, _ in dims[SOURCE]["dims"]] == [TIME]:
+        parts.append(f"{SOURCE}[{i0}:1:{i1}]")
+    cov_ok = COVERAGE in dims and dims[COVERAGE]["dims"] == dims[ENERGY]["dims"]
+    if cov_ok:
+        e_dims = dims[COVERAGE]["dims"]
+        parts.append(COVERAGE + "".join(f"[{i0}:1:{i1}]" if d == TIME else f"[0:1:{nf - 1}]" for d, _ in e_dims))
+    if not parts:
+        meta["inputs"] = {"problems": [f"{SOURCE} {dims.get(SOURCE)}, {COVERAGE} {dims.get(COVERAGE)}"]}
+        return
+    body = budget.fetch(f"{DODS}{url_path}.ascii?{','.join(parts)}", timeout=600.0)
+    src = parse_ascii_strings(body, SOURCE) if SOURCE in parts[0] else []
+    fill_s = attrs.get(SOURCE, {}).get("_FillValue")
+    src = [None if (x == fill_s or x == "") else x for x in src]
+    if src and len(src) != n:
+        raise ValueError(f"{SOURCE}: {len(src)} values for {n} hours")
+    cov = None
+    if cov_ok:
+        fills = fill_values(attrs.get(COVERAGE, {}))
+        cov = [[None if is_gap(x, fills) else x for x in r]
+               for r in unpack(parse_ascii(body).get(COVERAGE, []), n, nf, dims[ENERGY]["dims"][0][0] == TIME)]
+    with (out / f"{break_id}_inputs.csv").open("w", encoding="utf-8") as fh:
+        fh.write("valid_utc,input_source" + "".join(f",cov{i:02d}" for i in range(nf if cov else 0)) + "\n")
+        for k in range(n):
+            s = "" if not src or src[k] is None else '"' + src[k].replace('"', '""') + '"'
+            c = "" if cov is None else "," + ",".join("" if x is None else f"{x:.3f}" for x in cov[k])
+            fh.write(f"{stamps[k]},{s}{c}\n")
+    counts: dict[str, int] = {}
+    for x in src:
+        counts[x or ""] = counts.get(x or "", 0) + 1
+    meta["inputs"] = {"sources": dict(sorted(counts.items(), key=lambda kv: -kv[1])),
+                      "coverage": bool(cov), "hours": n}
 
 
 # ------------------------------------------------------------------ main

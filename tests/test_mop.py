@@ -181,6 +181,8 @@ SPEC_DDS = """Dataset {
     Float32 waveB1Value[waveTime = 2][waveFrequency = 3];
     Float32 waveA2Value[waveTime = 2][waveFrequency = 3];
     Float32 waveB2Value[waveTime = 2][waveFrequency = 3];
+    String waveModelInputSource[waveTime = 2];
+    Float32 waveModelBinInputCoverage[waveTime = 2][waveFrequency = 3];
 } cdip/model/MOP_alongshore/D0101_nowcast.nc;"""
 
 SPEC_DAS = r"""Attributes {
@@ -199,6 +201,9 @@ SPEC_DAS = r"""Attributes {
     }
     waveA1Value {
         Float32 _FillValue -999.99;
+    }
+    waveModelInputSource {
+        String _FillValue "_";
     }
     NC_GLOBAL {
         String title "MOP nowcast";
@@ -318,6 +323,10 @@ def test_save_extras_writes_the_meta_and_spectrum_files(tmp_path):
 
         def fetch(self, url, timeout=120.0):
             self.urls.append(url)
+            if "waveModelInputSource[" in url:
+                return ("x\n---------------------------------------------\n"
+                        "waveModelInputSource[2]\n\"46232 46225\", \"_\"\n"
+                        "waveModelBinInputCoverage[2][3]\n[0], 1.0, 0.9, 0.5\n[1], 1.0, -999.99, 0.0\n")
             if "waveEnergyDensity[" in url:
                 return GRID_ASCII.replace("[1], 0.4, -999.99, 0.6", "[1], 0.4, 0.5, 0.6") + (
                     "waveB1Value[2][3]\n[0], 0, 0, 0\n[1], 0, 0, 0\n"
@@ -335,7 +344,7 @@ def test_save_extras_writes_the_meta_and_spectrum_files(tmp_path):
     lines, ok = mop.save_extras(f, "coronado_center", "D0101", "cdip/x.nc", SPEC_DDS, SPEC_DAS,
                                 (0, 1, [1785801600, 1785805200]), [4 * math.sqrt(m) for m in m0], tmp_path)
     assert ok, lines
-    assert len(f.urls) == 2
+    assert len(f.urls) == 3
     assert "waveEnergyDensity[0:1:1][0:1:2]" in f.urls[1]
     meta = json.loads((tmp_path / "coronado_center_meta.json").read_text())
     assert meta["metaWaterDepth"]["comment"] == 'Depth below "NAVD88", rounded'
@@ -348,6 +357,11 @@ def test_save_extras_writes_the_meta_and_spectrum_files(tmp_path):
     assert spec[0]["valid_utc"] == "2026-08-04T00:00:00Z" and spec[1]["e01"] == "0.5"
     mom = list(csv.DictReader((tmp_path / "coronado_center_moments.csv").open()))
     assert mom[0]["a1_02"] == "0.700" and mom[1]["b2_00"] == "0.000"
+    # What drove each hour, as the file says; a fill is a gap.
+    inp = list(csv.DictReader((tmp_path / "coronado_center_inputs.csv").open()))
+    assert inp[0]["input_source"] == "46232 46225" and inp[1]["input_source"] == ""
+    assert inp[0]["cov02"] == "0.500" and inp[1]["cov01"] == ""
+    assert meta["inputs"]["sources"] == {"46232 46225": 1, "": 1}
 
 
 def test_main_end_to_end_against_a_fake_server(tmp_path, monkeypatch):
@@ -385,6 +399,9 @@ def test_main_end_to_end_against_a_fake_server(tmp_path, monkeypatch):
         if q.startswith("waveHs["):
             hs = ", ".join(f"{4 * math.sqrt(m):.6f}" for m in m0)
             return f"x{rule}waveHs.waveHs[2]\n{hs}\nwaveHs.waveTime[2]\n{t0}, {t0 + 3600}\nwaveTp.waveTp[2]\n14.3, 14.3\nwaveDp.waveDp[2]\n250, 251\n"
+        if q.startswith("waveModelInputSource["):
+            return (f"x{rule}waveModelInputSource[2]\n\"46232\", \"46232\"\n"
+                    "waveModelBinInputCoverage[2][3]\n[0], 1, 1, 1\n[1], 1, 1, 1\n")
         if "waveEnergyDensity[" in q:
             zeros = "[0], 0, 0, 0\n[1], 0, 0, 0\n"
             return (GRID_ASCII.replace("-999.99", "0.5") + f"waveB1Value[2][3]\n{zeros}waveA2Value[2][3]\n{zeros}"
@@ -400,7 +417,16 @@ def test_main_end_to_end_against_a_fake_server(tmp_path, monkeypatch):
         assert (tmp_path / f"{b}.csv").exists()
         assert json.loads((tmp_path / f"{b}_meta.json").read_text())["spectrum"]["readback"]["ok"]
         assert (tmp_path / f"{b}_moments.csv").exists()
+        assert json.loads((tmp_path / f"{b}_meta.json").read_text())["inputs"]["sources"] == {"46232": 2}
     # A spectrum that does not read back: the series stand, the run says 3.
     monkeypatch.setattr(mop, "READBACK_TOL", -1.0)
     assert mop.main(["--out", str(tmp_path)]) == 3
     assert (tmp_path / "coronado_center.csv").exists()
+
+
+def test_string_values_are_read_whole_with_their_commas_and_quotes():
+    body = ("x\n---------------------------------------------\n"
+            "waveModelInputSource.waveModelInputSource[3]\n"
+            '"46225, 46232", "a\\"b",\n"_"\n'
+            "waveModelInputSource.waveTime[3]\n1, 2, 3\n")
+    assert mop.parse_ascii_strings(body, "waveModelInputSource") == ["46225, 46232", 'a"b', "_"]
