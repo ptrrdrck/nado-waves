@@ -734,3 +734,27 @@ def test_every_shadowed_island_ray_carries_a_clear_neighbours_heading():
         assert shadowed, brk
         for r in shadowed:
             assert r["diff_off_from_deg"] in clear[r["freq_hz"]], (brk, r["period_s"], r["near_from_deg"])
+
+
+def test_the_committed_profiles_are_what_the_code_builds():
+    """BRIEFING §58: each profile now starts SURF_START_M of water seaward of
+    the table's start point. Rebuilt from the seabed it is the committed CSV
+    row for row, and its rows from the start point in are the ones every
+    breaking height before §58 was computed on (the --profile-only guard).
+    tests/test_surfzone.py keeps a copy of SURF_START_M, since it runs
+    without numpy; the two must agree."""
+
+    from tests.test_surfzone import SURF_START_M
+
+    assert RT.SURF_START_M == SURF_START_M
+    bathy = Bathymetry.load()
+    spots = {s.id: s for s in load()[0]}
+    for break_id in RT.BREAKS:
+        rows = RT.profile(bathy, spots[break_id])
+        assert rows == RT.committed_profile(break_id), break_id
+        _, _, h0 = RT.start_point(bathy, spots[break_id])
+        inshore = RT.inshore(rows)
+        assert float(inshore[0]["distance_m"]) == 0.0
+        assert float(inshore[0]["depth_m"]) == pytest.approx(h0, abs=5e-4)
+        assert float(rows[0]["depth_m"]) >= RT.SURF_START_M[break_id]
+        assert float(rows[1]["depth_m"]) < RT.SURF_START_M[break_id]

@@ -19,8 +19,10 @@ Two tables:
   reads MOP);
 - how many hours `surfzone` still flags `outside_start` (the sea already
   breaking where the profile starts, `surfzone.START_GAIN`) after Madsen,
-  per break and buoy-size band, beside the count before. The next session
-  replaces that ceiling with a real break point.
+  per break and buoy-size band, beside the count before. Since BRIEFING §58
+  the profiles start seaward of 5 m and a rerun flags no archived hour;
+  `docs/friction_shift.md` is the run of 2026-11-18, on the 5 m profiles,
+  and `forecast.breakshift` reports that change.
 
 Physics on surveyed inputs, observed by nothing: a change in a model's
 output, not an accuracy figure. Pure Python.

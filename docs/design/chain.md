@@ -64,9 +64,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    row reads "<period> s, <fetch> of fetch" (owner's call, 2026-10-15): its
    kind and whose wind are on docs.html, not in the row.
    **Then the surf zone, SHIPPED 2026-09-26** (BRIEFING §32):
-   `forecast/surfzone.py` carries that sea from 5 m in over each break's
-   surveyed profile (`<break>_profile.csv`, the 2016 CoNED beach, not this
-   season's bars) at the tide of the moment, Battjes–Janssen breaking with
+   `forecast/surfzone.py` carries that sea in over each break's surveyed
+   profile (`<break>_profile.csv`, the 2016 CoNED beach, not this season's
+   bars; since 2026-11-18 it starts seaward of 5 m, "The surf zone starts
+   seaward of the tables" below) at the tide of the moment, Battjes–Janssen breaking with
    Battjes–Stive's γ, and reports the largest Hs and the depth it breaks in.
    **The number on every break card is that breaking height**, labelled
    "breaking height" on both chains, the depth it breaks in under the
@@ -450,6 +451,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   Point Loma's shadow, and described a different place (BRIEFING §29). Moving
   `raytrace.H_REF` moves where the tables hand over to `surfzone`; rebuild
   the tables AND the profiles and re-read §29 and §32 before doing it.
+- **Where the surf zone STARTS is a different number** (`raytrace.SURF_START_M`,
+  2026-11-18, BRIEFING §58): its profiles run seaward of the tables' start
+  point, and the 5 m sea is carried back out to there linearly. Moving it
+  rebuilds the profiles only (`--profile-only`, which refuses unless the rows
+  from the start point in come back as committed); the tables, the Madsen
+  tables and `H_REF` do not move.
 
 ## The breaking height is a significant height
 
@@ -481,6 +488,68 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   none; 2–2.5 m, Center 1 of 56 (13), South 4 (20); none below 1.5 m but
   one at Center. The headline's reading when flagged is unchanged: the next
   session replaces that ceiling with a real break point.
+- **Replaced by a break point, 2026-11-18 (BRIEFING §58)**: the profiles now
+  start seaward of 5 m (next section) and no archived hour is flagged. The
+  flag keeps its definition, at the profile's first point, as the guard for
+  a sea bigger than the new starts can hold; the card's "or deeper" then
+  quotes the surf zone's own depth (`b.depth_m`), no longer the tables' 5 m.
+
+## The surf zone starts seaward of the tables
+
+- **Each break's surf-zone profile starts seaward of the tables' 5 m start
+  point, since 2026-11-18** (owner's yes, BRIEFING §58): North in 7 m of
+  water (66 m out), Center 10 m (526 m), South 10 m (378 m),
+  `raytrace.SURF_START_M`. The profile's `distance_m` is still measured from
+  the table's start point (negative seaward), and its rows from 0 in are
+  byte-identical to before. `surfzone.break_on` fixes the flux and Snell's
+  invariant by the table's 5 m figure (after the rays' friction) at the
+  table's start depth, as before; the march starts where the profile does.
+  So the deeper start's sea is the 5 m sea carried back out linearly
+  (de-shoaled, de-refracted over straight contours along the normal), and
+  it may break on the way in. γ and the dissipation stay Battjes–Janssen /
+  Battjes–Stive; nothing fitted.
+- **The depths are measured, not chosen** (over 1,484 archived hours): at
+  these starts no hour has more than 1.1e-4 of its waves breaking (Qb), and
+  a 12 m start changes no breaking height by more than 0.04% (South; Center
+  0.01%, North 0.00%). Shallower starts did not converge at South (8 m:
+  0.83%, 9 m: 0.19%). They flag again only above 46232 ≈ 8.9 / 6.6 / 5.8 m
+  (North / Center / South; archive max 3.64 m). Center's and South's
+  contours stay within 1° of the chord normal over the extension (plane fit)
+  and the Point Loma edge of the straight-line window moves 3–4° there.
+- **North stops at 7 m**: it never breaks deeper than 3.5 m in the archive
+  and is converged by 7 m. Its 10 m water is 2.1 km out on the flat 7–10 m
+  shelf, where the Point Loma edge has moved 26° and the contours have
+  rotated: outside the shadow, the reason the tables stop at 5 m (§29). The
+  furthest it could go is the 8 m contour, 248 m out (edge +3°, contours
+  ~7°).
+- **Friction between the deeper start and 5 m** is in the 5 m figure, so it
+  acts before the breaking rather than with it: 1.4–2.8% of height (median)
+  over the extensions. Moving it into the march (Madsen, bulk, the start
+  raised so the 5 m flux still comes back) changed the breaking height by
+  0.00% median, at most +1.0% on one hour.
+- **Controls**: with breaking off (`break_on(breaking=False)`) the march
+  gives the 5 m figure back at x = 0 to the digit, on every stored profile;
+  a sea nothing breaks seaward of 5 m breaks exactly as before; on the
+  extended planar beach the tide moves the break point and not the break,
+  for a sea that breaks inside 5 m and one that now breaks outside it.
+  `raytrace --profile-only` refuses unless the rows from the start point in
+  come back as committed.
+- **What it did (`docs/break_shift.md`, `python -m forecast.breakshift
+  --write`, ~3 min)**: below 1.5 m at 46232 nothing changes; flagged with
+  46232 at 2.5 m or more, Center 11 → 0 of 68 hours and South 32 → 0, and
+  none anywhere. On the formerly flagged hours the breaking height falls a
+  median 2.2% (Center) and 2.9% (South), at most 6.1% and 10.0%, on
+  long-period westerly hours (20 s peaks) that now break seaward of 5 m, in
+  up to 6.0 m (Center) and 6.7 m (South) of water. On hours not flagged
+  before: unchanged where no wave broke at 5 m with the old start; within
+  0.1% where under one in a thousand did; up to 1.25% where more did (9–14
+  hours a break): the new physics, not an error. **The ceiling was close to
+  the real break**: breaking that starts before 5 m on these profiles is
+  gentle, and shoaling still nearly balances it to about 5 m. It is not the
+  big-day overstatement; that is the westerly wrap (§56a, handoff item 24).
+- **Cost**: the longer profiles made `Profile.depth_at`'s scan from the
+  first row quadratic in their length; it is a bisection now, identical
+  values.
 
 ## On big westerly days the 5 m figure carries nothing that grows with height
 
@@ -498,8 +567,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   size; shelf breaking alone takes nothing below 2 m and ~5% above 2.5 m,
   and adds nothing measurable on top of Madsen. **Madsen shipped on
   2026-11-18** (owner's decision, BRIEFING §57; next section). Shelf
-  breaking did not: letting waves break before 5 m is the surf zone's next
-  job, a real break point in place of the `outside_start` ceiling.
+  breaking did not: letting waves break before 5 m is the surf zone's job,
+  and since §58 it starts seaward of 5 m to do it ("The surf zone starts
+  seaward of the tables").
 - **The westerly half of the excess is the wrap round Point Loma**: rays
   passing ~1 km south of the tip and bending north-east over the shelf, at
   14.3 s about twice a planar beach's acceptance per offshore degree at
