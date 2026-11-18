@@ -144,7 +144,7 @@ roses' seabed"; docs.html's roses section updated (owner's yes).
    the bar redrawn as the break map's fill bar, ft / s back in the
    bottom-right corner. Without WebGL the rose stays on the card as before.
 
-### Group 6: the height overstated on big westerly days (branches claude/sharp-turing-3iyub6, claude/madsen-friction)
+### Group 6: the height overstated on big westerly days (branches claude/sharp-turing-3iyub6, claude/madsen-friction, claude/surfzone-breaking-depth-71qxse)
 
 The owner's report, 2026-11-17, with no logged observation: the LIVE
 headline reads high across the beach, more so as a share on big days.
@@ -174,17 +174,25 @@ sections).
     (`python -m forecast.frictionshift --write`, ~10 min). Rebuild the
     Madsen tables with `python -m forecast.raytrace --madsen-only` (~12 min
     a break) whenever the tables are rebuilt; a full build writes them too.
-26. **Next: let waves break before 5 m, in the surf zone (not started).**
-    Replace the `outside_start` ceiling with a real break point. After
-    Madsen, still flagged with 46232 at 2.5 m or more: Center 11 of 68
-    hours, South 32 of 68, North none (chain.md, "Already breaking at
-    5 m"). Shelf breaking added nothing measurable on top of Madsen
-    (§56), so this is the surf zone's job, not the rays'.
+26. **Let waves break before 5 m, in the surf zone** -- done (branch
+    claude/surfzone-breaking-depth-71qxse, BRIEFING §58, chain.md "The surf
+    zone starts seaward of the tables"). The profiles start at
+    `raytrace.SURF_START_M` (North 7 m, Center and South 10 m), measured so
+    that no archived hour is breaking there yet; the tables and `H_REF` do
+    not move. No archived hour is flagged `outside_start` now (Center was 11
+    and South 32 of 68 at 46232 ≥ 2.5 m). Formerly flagged hours fall a
+    median 2–3%, at most 6% (Center) and 10% (South): the ceiling was close
+    to the real break. Archive-wide: `docs/break_shift.md`
+    (`python -m forecast.breakshift --write`, ~3 min). Rebuild the profiles
+    with `python -m forecast.raytrace --profile-only`, which refuses unless
+    the rows from 5 m in come back as committed; the docs page's step 8 and
+    the hand-over box were updated (owner's yes, 2026-11-18).
 
 Open, the owner's calls:
 
-- How the HEADLINE reads when `outside_start` is true (now: the number,
-  with the note under the calculation table only) -- item 26 replaces it.
+- How the HEADLINE reads when `outside_start` is true: moot on the archive
+  since item 26 (no hour flagged); it would take a sea above 46232 ≈ 5.8 m
+  at South. Still the number, with the note under the calculation table.
 - The westerly half of the excess (the wrap round Point Loma): item 24
   first, so a table fault is not credited to the friction or the reverse.
 
@@ -193,19 +201,15 @@ Open, the owner's calls:
 Each assumes a fresh session; add "Confirm each item before building. PR,
 wait for Tests, don't merge." to each.
 
-- Group 6, item 26 (open design; the strongest model at high effort,
-  because it changes the number on every big-day card): "Repo
-  ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes and read BRIEFING
-  §32, §56 and §57 only, chain.md's sections on the surf zone,
-  outside_start and Madsen, and docs/handoff.md group 6. Task: when
-  surfzone flags outside_start, the sea is already breaking where the
-  profile starts and the headline is a ceiling; find the real break
-  point instead, in the surf zone (not on the rays: shelf breaking added
-  nothing measurable on top of Madsen). Propose the method and its
-  controls before building; the headline's wording when it changes is
-  the owner's call."
 - Group 6, item 24 (careful measurement; the strongest model, medium
-  effort): as written in item 24, report only.
+  effort, because it decides whether the tables or the depth explain the
+  chain's excess over MOP): "Repo ptrrdrck/nado-waves; attach
+  ptrrdrck/nado-waves-notes and read BRIEFING §29, §56a, §57 and §58 only,
+  chain.md's MOP section, and docs/handoff.md group 6. Task: item 24, trace
+  the chain's own rays from MOP's three points (10 m; D0181 / D0179 /
+  D0168) and repeat the MOP comparison, to separate the 5 m vs 10 m
+  difference from a fault in the tables. Report only; propose before
+  building anything."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
