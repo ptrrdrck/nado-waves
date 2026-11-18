@@ -155,8 +155,9 @@ sections).
 21. **The "already breaking" flag** -- done. `surfzone.START_GAIN`; heights
     unchanged, the card's upper-bound note now on the hours it belongs to.
 22. **Shelf losses on big days, measured** -- done, report only
-    (`python -m forecast.shelfloss --cache <pkl> --every 8`, ~1 h; the paths
-    take ~4 min to re-trace and the pickle keeps them).
+    (`python -m forecast.shelfloss --cache <pkl> --every 8`, ~1.5 h; the
+    paths take ~10 min to re-trace from the table's own headings and the
+    pickle keeps them). Since §57 it is the Madsen runtime's reference.
 23. **The MOP cross-check** -- run 2026-11-18 (`mop-check.yml` run 1;
     `docs/mop_check.md`, `data/mop/`, BRIEFING §56a). Chain over MOP,
     deep-water-equivalent before friction: Center 1.17-1.22 on S-W, 1.34 on

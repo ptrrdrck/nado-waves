@@ -546,6 +546,14 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   `carry(friction="jonswap")` is the chain before §57, kept as the
   control: identical to it in every field over all 2,161 archived hours.
   `Table.load` refuses a break without its Madsen table.
+- **Controls (2026-11-18, §57)**: the runtime against `shelfloss`'s Madsen
+  march, hour by hour over 293 archived hours, worst 0.23% of the 5 m
+  height (thinning divided out) and 0.22% of the breaking height, against
+  a stated 0.3%. `shelfloss` now re-traces from the table's own headings
+  with its islands and edges: from the CSV's headings (rounded to 0.01°)
+  2–5 grazing rays per frequency flipped status, which, not the 20 m
+  thinning, was §56's 4.1% control; on the table's own paths the march at
+  MSL gives carry's 5 m height to 0.08%.
 - **Everything that rebuilds carry's energies takes carry's own factors**
   (`Nearshore.ray_friction`), never the table's column: the map fill
   (with the tide `effects.friction_tide_m` records), `trainmerge._rays`.
