@@ -511,3 +511,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   not apply), by 46232's swell direction. A model against a model: never a
   verification series, never read by anything that ships. North is shown and
   not read (its 10 m water is outside Point Loma's shadow, §29).
+- **First run, 2026-11-18** (nowcast, 2,154 matched hours from 4 Aug; points
+  D0181 / D0179 / D0168, 10 m, 0.8-1.4 km off): MOP takes W-WNW swell into
+  Center and South at 0.53-0.55 of the buoy, as much as SW; the chain takes
+  more from every direction, chain / MOP 1.17-1.22 (Center) and 1.29-1.39
+  (South) on S-W, 1.34 and 1.43 on W-WNW. The 5 m vs 10 m difference is not
+  yet separated from a fault in the tables (BRIEFING §56a).

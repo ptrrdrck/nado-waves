@@ -157,18 +157,23 @@ sections).
 22. **Shelf losses on big days, measured** -- done, report only
     (`python -m forecast.shelfloss --cache <pkl> --every 8`, ~1 h; the paths
     take ~4 min to re-trace and the pickle keeps them).
-23. **The MOP cross-check** -- built, NOT RUN: Actions only. Dispatch
-    "MOP cross-check" (nowcast, since 2026-08-04); it commits `data/mop/`
-    and `docs/mop_check.md`. If the collector stops on names or variables,
-    its step summary says what CDIP serves; adapt `collector/mop.py` to that.
+23. **The MOP cross-check** -- run 2026-11-18 (`mop-check.yml` run 1;
+    `docs/mop_check.md`, `data/mop/`, BRIEFING §56a). Chain over MOP,
+    deep-water-equivalent before friction: Center 1.17-1.22 on S-W, 1.34 on
+    W-WNW; South 1.29-1.39 and 1.43. Re-dispatch to extend the series.
+24. **Next measurement (not started)**: trace the chain's own rays from
+    MOP's three points (10 m, D0181 / D0179 / D0168) and repeat the
+    comparison, to separate the 5 m vs 10 m difference from a fault in the
+    tables.
 
 Open, the owner's calls:
 
 - How the HEADLINE reads when `outside_start` is true (now: the number,
   with the note under the calculation table only).
 - Whether height-dependent dissipation ships, and which: it is physics from
-  the literature, not calibration, but it moves every big-day number; wait
-  for the MOP report first, so the wrap and the dissipation are judged apart.
+  the literature, not calibration, but it moves every big-day number. MOP
+  has now run (§56a); item 24 would say how much of the chain's excess over
+  MOP is the tables before either half ships.
 
 ### Carryover prompts
 
