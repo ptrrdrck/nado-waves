@@ -399,7 +399,7 @@ South    0.655 → 0.739 m   +13%
 ```
 
 > **Model choice · hand over at 5 m**
-> The ray tables stop in 5 m of water, close in and still inside Point Loma's shadow. From there the surf zone takes over (step 8). A table that stopped further out would describe water outside the shadow, a different place.
+> The ray tables stop in 5 m of water, close in and still inside Point Loma's shadow. From there the surf zone takes over (step 8). A table that stopped further out would describe water outside the shadow, a different place. The surf zone itself starts a little further out than the tables stop, because on big days the waves are already breaking before 5 m.
 
 ### [calc-chop] Local chop
 
@@ -425,7 +425,7 @@ On the “LIVE” tab the wind is KNZY's; on the Forecast tab it is the National
 
 ### [calc-break] Wave break
 
-From 5 m of water the sea is carried in along the surveyed beach profile, the depth every 2 m straight in along the shore normal to dry sand. The tide is added to that depth. As the water shallows the waves grow until the biggest start breaking and lose energy faster than shoaling adds it. The reported height is the largest along the way, and the depth where that happens.
+The sea at 5 m is carried along the surveyed beach profile, the depth every 2 m straight in along the shore normal to dry sand. The profile starts further out than 5 m: in 10 m of water at Center and South (about 530 m and 380 m out) and 7 m at North (about 70 m out). The 5 m sea is first carried back out to there as if nothing broke, then in again, so a sea that is already breaking before 5 m breaks where it does. The tide is added to the depth. As the water shallows the waves grow until the biggest start breaking and lose energy faster than shoaling adds it. The reported height is the largest along the way, and the depth where that happens. On the biggest days that can be deeper than 5 m.
 
 ```
 d(E·c_g·cos θ)/dx = −D,   E = Hrms²/8                energy flux in, minus breaking
@@ -446,9 +446,9 @@ Hs = 0.997 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 
 ```
 
 > **Model choice · the standard 1-D surf zone, γ from the literature**
-> One line straight in, the same all along the beach, one period (the peak's). That is the textbook surf-zone model and no more. The breaker index γ is taken from Battjes & Stive and not tuned. Fitting it to anything here would be calibration, and there is nothing observed at these beaches to fit it to.
+> One line straight in, the same all along the beach, one period (the peak's). That is the textbook surf-zone model and no more. The breaker index γ is taken from Battjes & Stive and not tuned. Fitting it to anything here would be calibration, and there is nothing observed at these beaches to fit it to. Where the profile starts is measured, not tuned: deep enough that no recorded hour has its waves breaking there yet, and close enough in that the depth contours still run along the beach and North stays inside Point Loma's shadow. Bottom friction between there and 5 m is already in the 5 m figure, so here it acts before the breaking rather than with it; that changed no recorded hour by more than 1%.
 
-If the waves are already breaking at the start point, the true break is further out than the profile begins. The Wave break row then says “at 16 ft (5.0 m) depth or deeper”, and its height is marked ≤ as an upper bound. Without a measured tide no breaking height is computed at all, and the card shows the 5 m figure, labelled with its depth. That is why no hour before 17 September 2026 has one.
+If the waves were already breaking where the profile starts, the true break would be further out still. The Wave break row would then say “at 33 ft (10 m) depth or deeper”, and its height would be marked ≤ as an upper bound. No recorded hour does this since the profile was extended on 18 November 2026; with the profile starting at 5 m, some of the biggest days did. Without a measured tide no breaking height is computed at all, and the card shows the 5 m figure, labelled with its depth. That is why no hour before 17 September 2026 has one.
 
 ### [calc-table] Reading the calculation table
 

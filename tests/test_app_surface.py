@@ -1075,6 +1075,7 @@ class TestTheCalculationTable:
         assert "bound: !!b.outside_start" in self.LINE
         assert '${bound ? "\\u2264 " : ""}' in self.LINE
         assert "is an upper bound" in self.LINE
+        assert "const depth = depthText(b.depth_m);" in self.LINE
 
     def test_the_caret_folds_the_table_under_the_headline(self):
         """Owner's design, 2026-09-26: a caret at the right end of the
@@ -1118,7 +1119,10 @@ class TestTheCalculationTable:
         where = SOURCE[SOURCE.index("function breakDepth"):]
         where = where[:where.index("\n}\n")]
         assert "`at ${depthText(b.depth_m)} depth`" in where
-        assert "`at ${depthText(n.depth_m)} depth or deeper`" in where
+        # BRIEFING §58: the surf zone starts seaward of the rays' 5 m, so
+        # "or deeper" quotes the surf zone's own depth, not the table's.
+        assert "`at ${depthText(b.depth_m)} depth or deeper`" in where
+        assert "n.depth_m" not in where.split("{", 1)[1]
         assert 'row("Wave break", b.hs_m, withChop, {note: breakDepth(n), bound: !!b.outside_start});' in self.LINE
 
     def test_the_trains_still_sum_to_the_breaking_headline(self):

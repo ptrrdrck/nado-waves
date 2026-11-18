@@ -4362,12 +4362,14 @@ function depthLabel(c) {
 }
 
 // Where the headline's breaking height breaks, under "Wave break": the
-// depth found, or the start depth "or deeper" when it is already breaking
-// there and the break is further out.
+// depth found, or "or deeper" when it is already breaking where the surf
+// zone's profile starts and the break is further out. Since BRIEFING §58 the
+// profile starts seaward of the rays' 5 m (`n.depth_m`), so the depth is the
+// surf zone's own (`b.depth_m`), and a break found may be deeper than 5 m.
 function breakDepth(n) {
   const b = (n || {}).breaking;
   if (!b || b.depth_m == null) return "";
-  return b.outside_start ? `at ${depthText(n.depth_m)} depth or deeper`
+  return b.outside_start ? `at ${depthText(b.depth_m)} depth or deeper`
     : `at ${depthText(b.depth_m)} depth`;
 }
 
@@ -4445,14 +4447,14 @@ function calculationTable(c) {
     row("Local chop", withChop, e.shoaled_hs_m, {note});
   }
   // Then in to where it breaks, at this tide (forecast.surfzone). Already
-  // breaking at the start depth means the break is further out, and the
-  // figure is an upper bound rather than a break point found.
+  // breaking where the surf zone's profile starts means the break is further
+  // out, and the figure is an upper bound rather than a break point found.
   const b = n.breaking;
   let foot = "";
   if (b && b.hs_m != null && withChop != null) {
     row("Wave break", b.hs_m, withChop, {note: breakDepth(n), bound: !!b.outside_start});
     if (b.outside_start) {
-      const depth = n.depth_m != null ? depthText(n.depth_m) : "shallow";
+      const depth = depthText(b.depth_m);
       foot = `<div class="quiet">At this tide it is already breaking in ${depth}`
         + ` of water, so the break is further out and the last height is an upper bound.</div>`;
     }

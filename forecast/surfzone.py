@@ -1,9 +1,11 @@
-"""From 5 m of water to the break: shoaling on, and breaking, on each break's profile.
+"""From the 5 m sea to the break: shoaling on, and breaking, on each break's profile.
 
 Pure Python. Reads `data/nearshore/<break>_profile.csv` (`forecast.raytrace
 --profile-only`, depth below MSL every 2 m straight in along the normal, from
-the table's start point to dry sand) and carries the wave energy flux the
-transfer table delivers at the start point across it:
+`raytrace.SURF_START_M` of water seaward of the table's start point to dry
+sand; `distance_m` from the table's start point, negative seaward of it) and
+carries the wave energy flux the transfer table delivers at the start point
+across it:
 
     d(E·cg·cos θ)/dx = −D,     E = Hrms²/8   (per ρg)
 
@@ -23,14 +25,31 @@ Depth is the profile's depth below MSL PLUS the tide at the open coast
 No tide, no answer: running it at mean sea level instead would be a missing
 observation filled with a constant.
 
+WHERE IT STARTS (BRIEFING §58, 2026-11-18). The flux and Snell's invariant
+are fixed by the table's linear 5 m figure, after the rays' friction, at the
+table's start depth, as before. The march begins further out, where the
+profile begins: with no dissipation the flux is the same everywhere, so that
+is the 5 m sea carried back out linearly (de-shoaled and de-refracted over
+straight contours along the normal), and with breaking on it is the same sea
+allowed to break before it reaches 5 m. With breaking off the march gives the
+5 m figure back at x = 0 exactly (`breaking=False`, the control). On big days
+the sea is breaking before 5 m (the largest Hs as deep as 6.0 m at Center and
+6.7 m at South over the archive); a profile that began at 5 m found it already
+breaking there and reported the 5 m figure as a ceiling. The bottom friction
+between the deeper start and 5 m is in the 5 m figure, so here it acts before
+the breaking rather than along with it: moving it into the march changed no
+archived breaking height by more than 1% (median 0.00%).
+
 WHAT IS REPORTED. The largest Hs along the profile, where it is, and how deep
 the water is there. Shoaling raises Hs until breaking dissipation overtakes
 it; the maximum is where the larger waves are breaking, and is the height a
 break-point observer would compare. `outside_start` flags a maximum at the
-start point itself: the waves were already breaking in 5 m of water, the
-linear figure there is an upper bound (raytrace.H_REF), and the true break
-point is further out than this profile starts. "At the start point" means
-within `START_GAIN` of the height there, not only at it.
+profile's first point itself: the waves were already breaking where the
+profile starts, the figure there is an upper bound, and the true break point
+is further out. "At the first point" means within `START_GAIN` of the height
+there, not only at it. Since the profiles start deeper no archived hour is
+flagged; a sea beyond the starts' headroom (46232 at about 5.8 m for South,
+6.6 m Center, 8.9 m North) would be.
 
 WHAT IT IS NOT. One line straight in, alongshore-uniform, bulk (one period,
 the peak's): the standard 1-D surf-zone model and no more. The 2016 CoNED
@@ -40,6 +59,7 @@ one to the other is still unfitted, and only the observation log can fit it.
 
 from __future__ import annotations
 
+import bisect
 import csv
 import math
 from dataclasses import dataclass
@@ -83,14 +103,24 @@ class Profile:
         return cls(break_id, d, h)
 
     def depth_at(self, x: float) -> float:
+        # By bisection: the profiles now start up to 526 m seaward of the
+        # table's start point, and a scan from the first row made every march
+        # quadratic in their length (333 ms an hour for a 12 m start).
         if x <= self.distance_m[0]:
             return self.depth_m[0]
-        for i in range(1, len(self.distance_m)):
-            if x <= self.distance_m[i]:
-                x0, x1 = self.distance_m[i - 1], self.distance_m[i]
-                w = (x - x0) / (x1 - x0)
-                return self.depth_m[i - 1] * (1 - w) + self.depth_m[i] * w
-        return self.depth_m[-1]
+        i = bisect.bisect_left(self.distance_m, x)
+        if i >= len(self.distance_m):
+            return self.depth_m[-1]
+        x0, x1 = self.distance_m[i - 1], self.distance_m[i]
+        w = (x - x0) / (x1 - x0)
+        return self.depth_m[i - 1] * (1 - w) + self.depth_m[i] * w
+
+    def inshore(self) -> "Profile":
+        """The profile from the table's start point in, as it was before the
+        surf zone started further out (BRIEFING §58): the report's 'before'."""
+
+        k = bisect.bisect_left(self.distance_m, 0.0)
+        return Profile(self.break_id, self.distance_m[k:], self.depth_m[k:])
 
 
 def load_profiles(directory: Path = TABLE_DIR, breaks=None) -> dict[str, Profile]:
@@ -165,12 +195,18 @@ class Breaking:
 
 def break_on(profile: Profile, *, hs_start_m: float, period_s: float, start_depth_m: float,
              angle_deg: float, tide_m: float, step_m: float = STEP_M,
-             path: list | None = None) -> Breaking | None:
-    """March the energy flux in from the start point.
+             path: list | None = None, breaking: bool = True) -> Breaking | None:
+    """March the energy flux in from the profile's first point.
 
     `hs_start_m` is Hs at `start_depth_m` below MSL (the transfer table's
-    figure); `angle_deg` its mean heading off the shore normal there. The flux
-    at the start is fixed by those; the tide changes the depth it then crosses.
+    figure, at the table's start point, x = 0); `angle_deg` its mean heading
+    off the shore normal there. The flux and Snell's invariant are fixed by
+    those; the march starts where the profile does, seaward of x = 0 when it
+    extends further out, and the tide changes the depth it crosses.
+
+    `breaking=False` switches off the dissipation and Hmax's cap: linear
+    shoaling and refraction only, the control that the march gives the 5 m
+    figure back at x = 0 to the digit.
     """
 
     if not (hs_start_m > 0) or not (period_s > 0) or tide_m is None:
@@ -192,11 +228,14 @@ def break_on(profile: Profile, *, hs_start_m: float, period_s: float, start_dept
         c, cg = celerities(omega, h)
         cos_t = math.sqrt(max(1e-6, 1.0 - (snell * c) ** 2))
         hmax = gamma * h
+        hrms = math.sqrt(8.0 * f / (cg * cos_t))
+        if not breaking:
+            return h, hrms, 0.0, 0.0, cg * cos_t
         # Battjes & Janssen's distribution is truncated at Hmax, so Hrms
         # cannot exceed it. Near the shoreline linear cg goes to zero and a
         # finite march cannot drain the flux as fast as the depth shrinks;
         # without the cap the height runs away at the waterline.
-        hrms = min(math.sqrt(8.0 * f / (cg * cos_t)), hmax)
+        hrms = min(hrms, hmax)
         qb = fraction_breaking(hrms / hmax)
         return h, hrms, qb, 0.25 * ALPHA * (1.0 / period_s) * qb * hmax * hmax, cg * cos_t
 
@@ -208,7 +247,8 @@ def break_on(profile: Profile, *, hs_start_m: float, period_s: float, start_dept
         if s is None:
             break
         h, hrms, qb, d1, cgc = s
-        flux = min(flux, hrms * hrms / 8.0 * cgc)
+        if breaking:
+            flux = min(flux, hrms * hrms / 8.0 * cgc)
         hs = math.sqrt(2) * hrms
         if first is None:
             first = hs
@@ -298,7 +338,7 @@ def report(limit: int | None = None) -> str:
         out.append(f"    depth it breaks in:        {pct(depth, .5):.2f} m [{pct(depth, .1):.2f}, {pct(depth, .9):.2f}]")
         out.append(f"    MHHW vs MLLW, height:      {100 * pct(swing, .5):+.1f}% [{100 * pct(swing, .1):+.1f}, {100 * pct(swing, .9):+.1f}]")
         out.append(f"    MHHW vs MLLW, break point: {pct(moved, .5):+.0f} m shoreward [{pct(moved, .1):+.0f}, {pct(moved, .9):+.0f}]")
-        out.append(f"    already breaking at 5 m:   {outside} of {len(r)}")
+        out.append(f"    already breaking where the profile starts: {outside} of {len(r)}")
     south, north = rows.get("coronado_south"), rows.get("coronado_north")
     if south and north and len(south) == len(north):
         at5 = [s[0] / n[0] for s, n in zip(south, north)]

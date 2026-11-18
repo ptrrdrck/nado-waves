@@ -59,8 +59,9 @@ the depth changes (shoaling). This traces that, the way CDIP's MOP does
 
 WHAT IT IS NOT. Refraction and diffraction are computed separately and
 combined per ray, not solved together as the mild-slope equation would; no
-currents, no wind input. Breaking is inshore of the table's start depth and
-lives in `forecast.surfzone`.
+currents, no wind input. Breaking lives in `forecast.surfzone`, on a profile
+that starts seaward of the table's start depth (`SURF_START_M`, BRIEFING §58):
+the rays carry none, and on big days the sea is already breaking before 5 m.
 The result is the spectrum at `H_REF` (5) metres of water off each break — still
 not a face height at the sand, and still unverified: nothing observes the
 beach. Depth is below MSL when the sidecar carries CO-OPS's MSL/NAVD88 offset,
@@ -97,8 +98,11 @@ G = 9.81
 #: so the 10 m contour straight out from it lay 2.2 km away, level with the
 #: Point Loma tip and OUTSIDE its shadow — the table described a different
 #: place, and made north 21% bigger than south. The 5 m contour is 130-230 m
-#: off all three breaks. Linear and unbroken there while Hs stays under about
-#: 3.5 m (a breaker index of ~0.7); above that the figure is an upper bound.
+#: off all three breaks. The figure there is linear and unbroken; on big days
+#: the sea is already breaking before 5 m, so the surf zone does not start at
+#: H_REF: its profile runs further out (`SURF_START_M`, BRIEFING §58), the 5 m
+#: sea is carried back out to it linearly and broken on the way in. Moving
+#: where the surf zone starts moves nothing here.
 H_REF = 5.0
 #: Arrival headings are sampled this finely. Behind Point Loma the offshore
 #: heading changes fast with the nearshore one, and the table has to resolve
@@ -1261,22 +1265,59 @@ PROFILE_STEP_M = 2.0
 #: recorded (MHHW is about 0.85 m above MSL at 9410170, and the present
 #: anomaly adds ~0.3 m).
 PROFILE_DRY_M = 2.5
+#: Where the surf zone STARTS, per break: the depth below MSL its profile runs
+#: seaward to from the table's start point (BRIEFING §58, 2026-11-18). The
+#: tables still stop at H_REF; the surf zone takes the 5 m sea, carries it
+#: back out linearly to here, and lets it break on the way in, so a sea already
+#: breaking at 5 m finds its break point instead of a ceiling there.
+#: Measured, not chosen: over 1,484 archived hours no hour has more than
+#: 1.1e-4 of its waves breaking at these starts (Battjes-Janssen's Qb), a
+#: 12 m start changes no breaking height by more than 0.04%, and the start
+#: flags again only above about 6.6 m (Center) and 5.8 m (South) at 46232.
+#: Center's and South's contours run within 1 degree of the chord normal over
+#: the extension (526 m and 378 m out). North never breaks deeper than 3.5 m
+#: in the archive and is converged by 7 m (66 m out); its 10 m water is 2.1 km
+#: out on the flat shelf, outside Point Loma's shadow (the edge moves 26
+#: degrees), the same reason the tables stop at 5 m (§29), so it stops at 7.
+SURF_START_M = {"coronado_north": 7.0, "coronado_center": 10.0, "coronado_south": 10.0}
+#: A seaward walk that finds no such water within this distance is an error,
+#: never a shallower start (Center's 10 m is the furthest, 526 m out).
+SURF_SEAWARD_MAX_M = 1000.0
 
 
 def profile(bathy: Bathymetry, spot: Spot) -> list[dict]:
-    """Depth below MSL along the break's normal, from the table's start point
-    shoreward until the sand is `PROFILE_DRY_M` above MSL.
+    """Depth below MSL along the break's normal, from `SURF_START_M` of water
+    seaward of the table's start point to where the sand is `PROFILE_DRY_M`
+    above MSL.
 
-    What `forecast.surfzone` breaks the waves on. One line, straight in: the
-    wave field inside 5 m is treated as alongshore-uniform, which is the
-    assumption every 1-D surf-zone model makes. It is the 2016 CoNED survey's
-    beach; sandbars move with the seasons and nothing here knows where they
-    are now.
+    What `forecast.surfzone` breaks the waves on. `distance_m` is measured
+    from the table's start point, shoreward: the rows seaward of it (where the
+    surf zone starts, BRIEFING §58) are negative, and the rows from 0 in are
+    exactly the profile that started at the table's start point before (the
+    `--profile-only` guard holds them to it). One line, straight in: the wave
+    field is treated as alongshore-uniform, which is the assumption every 1-D
+    surf-zone model makes. It is the 2016 CoNED survey's beach; sandbars move
+    with the seasons and nothing here knows where they are now.
     """
 
     xs, ys, _ = start_point(bathy, spot)
-    shoreward = float(beta_from_compass(np.array([spot.normal]))[0]) + math.pi
-    rows = []
+    seaward = float(beta_from_compass(np.array([spot.normal]))[0])
+    shoreward = seaward + math.pi
+    target = SURF_START_M[spot.id]
+    outside = []
+    for i in range(1, int(SURF_SEAWARD_MAX_M / PROFILE_STEP_M) + 1):
+        d = i * PROFILE_STEP_M
+        h, *_, covered = bathy.sample(np.array([xs + d * math.cos(seaward)]),
+                                      np.array([ys + d * math.sin(seaward)]))
+        if not covered[0] or not np.isfinite(h[0]):
+            raise ValueError(f"{spot.id}: the seabed ends {d:.0f} m seaward of the start point")
+        outside.append({"distance_m": f"{-d:.1f}", "depth_m": f"{h[0]:.3f}"})
+        if h[0] >= target:
+            break
+    else:
+        raise ValueError(f"{spot.id}: no {target} m water within {SURF_SEAWARD_MAX_M:.0f} m "
+                         f"seaward of the start point")
+    rows = outside[::-1]
     for i in range(5000):
         d = i * PROFILE_STEP_M
         h, *_ , covered = bathy.sample(np.array([xs + d * math.cos(shoreward)]),
@@ -1297,6 +1338,17 @@ def write_profile(rows: list[dict], break_id: str, out_dir: Path = OUT_DIR) -> P
         writer.writeheader()
         writer.writerows(rows)
     return path
+
+
+def committed_profile(break_id: str, out_dir: Path = OUT_DIR) -> list[dict]:
+    with (out_dir / f"{break_id}_profile.csv").open(newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
+
+
+def inshore(rows: list[dict]) -> list[dict]:
+    """A profile's rows from the table's start point in (distance ≥ 0)."""
+
+    return [r for r in rows if float(r["distance_m"]) >= 0.0]
 
 
 def write(rows: list[dict], meta: dict, out_dir: Path = OUT_DIR) -> Path:
@@ -1634,8 +1686,21 @@ def main(argv: list[str] | None = None) -> int:
                   f"{min(ranks)}-{max(ranks)}; worst |Δloss| "
                   f"{max(v['max_error'] for v in madsen.values()):.4f})")
             continue
-        prof = write_profile(profile(bathy, by_id[sid]), sid)
-        print(f"{sid}: profile -> {prof}")
+        rows = profile(bathy, by_id[sid])
+        if args.profile_only:
+            # Moving where the surf zone starts must not move anything from the
+            # table's start point in: those rows are what every breaking height
+            # before BRIEFING §58 was computed on.
+            old = inshore(committed_profile(sid))
+            if inshore(rows) != old:
+                print(f"{sid}: the profile from the start point in does not come back as "
+                      f"committed ({len(inshore(rows))} vs {len(old)} rows): the seabed or the "
+                      f"start point changed, so rebuild the tables, not only the profile",
+                      file=sys.stderr)
+                return 1
+        prof = write_profile(rows, sid)
+        print(f"{sid}: profile -> {prof} ({len(rows) - len(inshore(rows))} rows seaward of "
+              f"the start point, to {rows[0]['depth_m']} m)")
         if args.profile_only:
             continue
         fetch = write_fetch(fetch_table(bathy, by_id[sid]), sid)

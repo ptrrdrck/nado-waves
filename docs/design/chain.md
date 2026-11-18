@@ -64,9 +64,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    row reads "<period> s, <fetch> of fetch" (owner's call, 2026-10-15): its
    kind and whose wind are on docs.html, not in the row.
    **Then the surf zone, SHIPPED 2026-09-26** (BRIEFING §32):
-   `forecast/surfzone.py` carries that sea from 5 m in over each break's
-   surveyed profile (`<break>_profile.csv`, the 2016 CoNED beach, not this
-   season's bars) at the tide of the moment, Battjes–Janssen breaking with
+   `forecast/surfzone.py` carries that sea in over each break's surveyed
+   profile (`<break>_profile.csv`, the 2016 CoNED beach, not this season's
+   bars; since 2026-11-18 it starts seaward of 5 m, "The surf zone starts
+   seaward of the tables" below) at the tide of the moment, Battjes–Janssen breaking with
    Battjes–Stive's γ, and reports the largest Hs and the depth it breaks in.
    **The number on every break card is that breaking height**, labelled
    "breaking height" on both chains, the depth it breaks in under the
@@ -450,6 +451,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   Point Loma's shadow, and described a different place (BRIEFING §29). Moving
   `raytrace.H_REF` moves where the tables hand over to `surfzone`; rebuild
   the tables AND the profiles and re-read §29 and §32 before doing it.
+- **Where the surf zone STARTS is a different number** (`raytrace.SURF_START_M`,
+  2026-11-18, BRIEFING §58): its profiles run seaward of the tables' start
+  point, and the 5 m sea is carried back out to there linearly. Moving it
+  rebuilds the profiles only (`--profile-only`, which refuses unless the rows
+  from the start point in come back as committed); the tables, the Madsen
+  tables and `H_REF` do not move.
 
 ## The breaking height is a significant height
 
@@ -481,6 +488,11 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   none; 2–2.5 m, Center 1 of 56 (13), South 4 (20); none below 1.5 m but
   one at Center. The headline's reading when flagged is unchanged: the next
   session replaces that ceiling with a real break point.
+- **Replaced by a break point, 2026-11-18 (BRIEFING §58)**: the profiles now
+  start seaward of 5 m (next section) and no archived hour is flagged. The
+  flag keeps its definition, at the profile's first point, as the guard for
+  a sea bigger than the new starts can hold; the card's "or deeper" then
+  quotes the surf zone's own depth (`b.depth_m`), no longer the tables' 5 m.
 
 ## On big westerly days the 5 m figure carries nothing that grows with height
 
