@@ -168,17 +168,28 @@ sections).
     §56b). Not the place: over the same water the chain is 1.19-1.41 x MOP
     at all three points, not diffraction, fills or direction. Open, in
     order:
-    a. **MOP's own spectrum and metadata, on Actions** (`collector.mop`):
-       its energy density by frequency (and direction moments if the files
-       carry them) to say which band MOP is short in; `metaWaterDepth`'s
-       attributes for the datum (inferred NAVD88/MLLW from the seabed); the
-       files' global attributes for whether MOP diffracts and which buoys
-       drive the nowcast. Needs a merge to master to dispatch.
+    a. **MOP's own spectrum and metadata, on Actions** -- done (branch
+       claude/loving-cerf-1cllei, BRIEFING §56c, chain.md's MOP section).
+       `collector.mop` saves the spectrum, moments, inputs and every
+       attribute; `mop-check.yml` runs on a branch (no merge needed). The
+       datum is not in the file (inference stands); the file says nothing
+       about diffraction; the inputs are CDIP 191 (46232) with 067, 071,
+       220, 100, 045. De-shoaled band by band, chain-at-MOP / MOP is
+       1.11-1.30 by sector (not 1.19-1.41): broad in frequency, ~1.1-1.25
+       from 27 s to 5 s, plus W-WNW 13-16.7 s at 1.37-1.39 at all three
+       points, arriving 3-10° further west than MOP. Left open: the CDIP ids
+       named (CDIP's station list, from Actions), what the colon in the
+       input string separates, whether MOP diffracts (its v1.1 page, from
+       Actions), and `mopcheck` still de-shoals at Tp (§56a's figures are
+       ~0.1 high for that reason).
     b. **An exposed MOP point** (out of Point Loma's shadow, e.g. Imperial
-       Beach) through the same comparison: if the chain is over MOP there
-       too, the excess is the input or the spreading, not the shadow.
+       Beach) through the same comparison, now band by band: if the chain is
+       ~1.15 over MOP there too in every band, the broad part is the input
+       or the spreading, not the shadow; the W-WNW long-period part should
+       vanish there if it is the wrap.
     c. **The buoy's directional reading**: MEM against Fourier moves the
-       ratio 0.1-0.3; what MOP does with its input's moments is part of (a).
+       ratio 0.1-0.3. MOP blends six buoys (a), so "the same input" is
+       not; how MOP combines them is part of this.
 25. **Madsen's friction ships** -- done (branch claude/madsen-friction,
     BRIEFING §57, chain.md "Bottom friction is Madsen's"). Both chains;
     `<break>_madsen.json` beside unchanged tables; the docs page's friction
@@ -214,15 +225,15 @@ Open, the owner's calls:
 Each assumes a fresh session; add "Confirm each item before building. PR,
 wait for Tests, don't merge." to each.
 
-- Group 6, item 24 (careful measurement; the strongest model, medium
-  effort, because it decides whether the tables or the depth explain the
-  chain's excess over MOP): "Repo ptrrdrck/nado-waves; attach
-  ptrrdrck/nado-waves-notes and read BRIEFING §29, §56a, §57 and §58 only,
-  chain.md's MOP section, and docs/handoff.md group 6. Task: item 24, trace
-  the chain's own rays from MOP's three points (10 m; D0181 / D0179 /
-  D0168) and repeat the MOP comparison, to separate the 5 m vs 10 m
-  difference from a fault in the tables. Report only; propose before
-  building anything."
+- Group 6, item 24b (careful measurement; the strongest model, high
+  effort, because it decides whether the broad part of the chain's excess
+  over MOP is the shadow or the input): "Repo ptrrdrck/nado-waves; attach
+  ptrrdrck/nado-waves-notes and read BRIEFING §56a-§56c only, chain.md's MOP
+  section, docs/mop_depth.md and docs/handoff.md item 24. Task: item 24b,
+  an exposed MOP point (out of Point Loma's shadow, e.g. Imperial Beach)
+  through the same band-by-band comparison: collector.mop on Actions
+  (`mop-check.yml` dispatches on the branch), then forecast.mopdepth at that
+  point. Report only; propose before building anything."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
