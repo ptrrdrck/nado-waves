@@ -345,7 +345,23 @@ def test_recording_steps_changes_nothing_and_gives_the_friction_back():
     assert np.allclose(np.exp(-loss[:, 0, 0, 0]), rec.friction, rtol=1e-12, atol=0)
 
 
-def _madsen_by_depth(period, hs5, slope, h_start, tide=0.0, n=400_001):
+def _fw(ab: float, y: float) -> tuple[float, float]:
+    """Madsen's f_w solved by scalar Newton from `y` (warm start):
+    y + log10 y = m_f + log10(a_b/k_N), f_w = 1/(16 y²); 0.3 below a_b/k_N = 1.57."""
+
+    if ab / RT.MADSEN_K_N <= 1.57:
+        return 0.3, y
+    rhs = RT.MADSEN_M_F + math.log10(ab / RT.MADSEN_K_N)
+    y = max(y, 0.5)
+    for _ in range(50):
+        step = (y + math.log10(y) - rhs) / (1.0 + 1.0 / (y * math.log(10)))
+        y = max(y - step, 1e-3)
+        if abs(step) < 1e-12:
+            break
+    return 1.0 / (16.0 * y * y), y
+
+
+def _madsen_by_depth(period, hs5, slope, h_start, tide=0.0, n=40_001):
     """Madsen's survival straight out from a planar beach, integrated here
     independently: over depth (ds = dh/slope), deep water inward, f_w solved
     (not looked up), the local height de-shoaled at the peak (= the period)."""
@@ -357,21 +373,23 @@ def _madsen_by_depth(period, hs5, slope, h_start, tide=0.0, n=400_001):
     _, cg, _ = speeds(omega, hh)
     _, cg5, _ = speeds(omega, np.array([RT.H_REF + tide]))
     sh = np.sinh(np.minimum(k * hh, 300.0))
-    shape = omega ** 2 / (G ** 2 * sh ** 2 * cg)
-    ln_f = 0.0
+    shape = (omega ** 2 / (G ** 2 * sh ** 2 * cg)).tolist()
+    unit = np.sqrt(cg5[0] / cg).tolist()
+    sh = sh.tolist()
+    ln_f, y = 0.0, 0.5
     ds = abs(h[1] - h[0]) / slope
     for i in range(h.size - 1):
-        hs_loc = hs5 * math.sqrt(cg5[0] / cg[i]) * math.exp(0.5 * ln_f)
-        exc = hs_loc / (4.0 * sh[i])
-        c = float(RT.madsen_fw(np.array([math.sqrt(2.0) * exc]))[0]) * G * omega * exc / math.sqrt(2.0)
-        ln_f -= c * shape[i] * ds
+        exc = hs5 * unit[i] * math.exp(0.5 * ln_f) / (4.0 * sh[i])
+        fw, y = _fw(math.sqrt(2.0) * exc, y)
+        ln_f -= fw * G * omega * exc / math.sqrt(2.0) * shape[i] * ds
     return math.exp(ln_f)
 
 
 @pytest.mark.parametrize("period,hs5", [(10.0, 1.0), (16.0, 2.5)])
 def test_madsen_along_a_ray_is_the_madsen_integral(period, hs5):
     """The table's march on the tracer's own steps against an independent
-    integral of the same law over depth: the same survival to 1%."""
+    integral of the same law over depth: the same survival to 0.2% (they
+    agreed to 0.06% when written)."""
 
     bathy = planar()
     x0, y0 = start(bathy)
@@ -379,7 +397,7 @@ def test_madsen_along_a_ray_is_the_madsen_integral(period, hs5):
     got = RT.madsen_losses(rays.steps, 2 * math.pi / period, hs_m=(hs5,),
                            peak_hz=(1.0 / period,), tide_m=(0.0,))
     expected = _madsen_by_depth(period, hs5, SLOPE, 10.0)
-    assert math.exp(-float(got[0, 0, 0, 0])) == pytest.approx(expected, rel=0.01)
+    assert math.exp(-float(got[0, 0, 0, 0])) == pytest.approx(expected, rel=0.002)
     assert expected < 1.0
 
 
