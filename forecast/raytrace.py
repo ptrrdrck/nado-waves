@@ -1080,7 +1080,8 @@ def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: flo
 
 
 def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
-          freqs: list[float], madsen_out: dict | None = None) -> tuple[list[dict], dict]:
+          freqs: list[float], madsen_out: dict | None = None,
+          h_ref: float = H_REF) -> tuple[list[dict], dict]:
     """One break's transfer table, with every window edge both hard and soft.
 
     For each ray, two answers:
@@ -1110,12 +1111,16 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     energy, along the path whose friction the row takes — its own, or the
     clear ray's a diffracted fill takes. Tracing with `steps` changes no
     arithmetic, so the rows are the table's own.
+
+    `h_ref` is the start depth along the normal; what ships is H_REF.
+    `forecast.mopdepth` starts at CDIP MOP's 10 m points with it, report
+    only (BRIEFING §56b).
     """
 
     islands = islands_from(blockers)
     ring_depths(bathy, islands)
     edges = edge_points(blockers)
-    xs, ys, hs = start_point(bathy, spot)
+    xs, ys, hs = start_point(bathy, spot, h_ref)
     near = (spot.normal - 90.0 + DIR_STEP_DEG / 2.0
             + DIR_STEP_DEG * np.arange(int(round(180.0 / DIR_STEP_DEG)))) % 360.0
     rows = []
@@ -1211,7 +1216,7 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
             })
     lat, lon = from_utm(xs, ys)
     meta = {"break": spot.id, "start_lat": round(lat, 6), "start_lon": round(lon, 6),
-            "start_depth_m": round(hs, 2), "h_ref_m": H_REF, "dir_step_deg": DIR_STEP_DEG,
+            "start_depth_m": round(hs, 2), "h_ref_m": h_ref, "dir_step_deg": DIR_STEP_DEG,
             "depth_datum": "MSL" if bathy.msl_offset_m is not None else
             "NAVD88 (MSL offset not fetched; depths about a metre shallow)",
             "msl_above_navd88_m": bathy.msl_offset_m, "grids": list(bathy.names),
