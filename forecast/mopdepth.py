@@ -456,6 +456,10 @@ def chain_band_direction(near_dir: dict, freqs: list[float], coarse) -> list[flo
     return [math.degrees(math.atan2(x, y)) % 360 if (x or y) else float("nan") for x, y in zip(s, c)]
 
 
+def source_label(src: str | None) -> str:
+    return "(gap)" if not src else src.rstrip("_") or "(gap)"
+
+
 def circ(d: float) -> float:
     return ((d + 180) % 360) - 180
 
@@ -638,13 +642,21 @@ def band_report(rows: list[dict], spec: dict | None, why: str, coarse, conv, con
             if sel:
                 L.append(f"| {name} | " + " | ".join(cell([r["band"]["coverage"][k] for r in sel])
                                                      for k in range(len(coarse))) + " |")
-    srcs: dict[str, int] = {}
+    srcs: dict[str, list[dict]] = {}
     for r in rows:
         if "source" in r["band"]:
-            srcs[r["band"]["source"] or "(gap)"] = srcs.get(r["band"]["source"] or "(gap)", 0) + 1
+            srcs.setdefault(source_label(r["band"]["source"]), []).append(r)
     if srcs:
-        L += ["", "MOP's input sources over these hours (`waveModelInputSource`, as written; hours): "
-              + "; ".join(f"`{k}` {v}" for k, v in sorted(srcs.items(), key=lambda kv: -kv[1])) + "."]
+        L += ["", "By MOP's input sources (`waveModelInputSource` as written, trailing padding dropped; "
+              "CDIP station ids): whole-spectrum chain-at-MOP / MOP (MOP de-shoaled by band), median "
+              "[10th, 90th] and hours, by 46232's sector:", "",
+              "| inputs | " + " | ".join(n for n, _, _ in sectors()) + " |", "|---|" + "---|" * len(sectors())]
+        for k, rs in sorted(srcs.items(), key=lambda kv: -len(kv[1])):
+            cells = []
+            for name, lo, hi in sectors():
+                v = [r["mop_eq"] / r["mop_bandwise"] for r in rs if lo <= r["from"] < hi and r["mop_bandwise"] > 0]
+                cells.append(f"{cell(v)} n {len(v)}" if v else "–")
+            L.append(f"| `{k}` | " + " | ".join(cells) + " |")
     if spec["moments"] is None:
         L += ["", "Direction by band: MOP's files carry no moments.", ""]
         return L

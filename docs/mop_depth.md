@@ -1,6 +1,6 @@
 # The chain's own rays from MOP's points
 
-Generated 2026-11-18 21:20 UTC by `python -m forecast.mopdepth` (precompute-side, numpy; not run by any workflow). **A model against a model**: MOP is a cross-check, not a verification series; nothing here is fitted or shipped (BRIEFING §56b).
+Generated 2026-11-18 21:30 UTC by `python -m forecast.mopdepth` (precompute-side, numpy; not run by any workflow). **A model against a model**: MOP is a cross-check, not a verification series; nothing here is fitted or shipped (BRIEFING §56b).
 
 Each start is a transfer table built by `raytrace.table` itself (same frequencies, 0.5° headings, islands and diffracting edges as shipped; no Madsen), carried hour by hour through the archived 46232 spectra (maximum entropy). Every figure is deep-water-equivalent Hs over 46232's Hs, before friction: `eq` with diffraction (`hs_equivalent`), `hard` with hard edges (`hs_hard`). MOP is de-shoaled at its own Tp from 10 m (as `mopcheck`) and, in brackets in the ratio tables, from 10.77 m (10 m NAVD88 on MSL).
 
@@ -122,7 +122,7 @@ Acceptance per offshore degree at 14.3 s (Σ width·diff_gain/Ks² per radian, 1
 
 ### MOP's own spectrum, band by band
 
-MOP's 20 bands, 0.0375–0.4500 Hz (edges from `waveFrequencyBounds`); read-back 4·sqrt(Σ E·df) / MOP's Hs median 1.0, worst 1.0 over 2564 hours. Common bands 0.0375–0.4500 Hz. 2174 matched hours with a complete MOP spectrum; a band-hour is compared when 46232 has ≥ 0.05 m in the band.
+MOP's 20 bands, 0.0375–0.4500 Hz (edges from `waveFrequencyBounds`); read-back 4·sqrt(Σ E·df) / MOP's Hs median 1.0, worst 1.0 over 2565 hours. Common bands 0.0375–0.4500 Hz. 2174 matched hours with a complete MOP spectrum; a band-hour is compared when 46232 has ≥ 0.05 m in the band.
 
 Whole spectrum, MOP de-shoaled band by band at each band's frequency (10.77 m in brackets) against at its Tp as above; MOP's spectrum summed over its own Hs at the point:
 
@@ -164,6 +164,22 @@ Share of the deep-water-equivalent energy by band (sector totals): MOP / chain-a
 | W-WNW | 18 / 16 / 12% | 35 / 44 / 33% | 17 / 18 / 22% | 12 / 10 / 13% | 8 / 6 / 8% | 6 / 4 / 7% | 2 / 1 / 3% | 2 / 1 / 2% |
 | all | 15 / 14 / 9% | 34 / 37 / 27% | 17 / 20 / 21% | 11 / 10 / 12% | 8 / 7 / 9% | 8 / 7 / 11% | 3 / 3 / 6% | 4 / 2 / 5% |
 
+MOP's own weighted input coverage per band (`waveModelBinInputCoverage`, overlap-weighted mean of its bands), median [10th, 90th]:
+
+| 46232 from | 16.7–26.7 s | 13.0–16.7 s | 10.0–13.0 s | 8.0–10.0 s | 6.7–8.0 s | 5.0–6.7 s | 4.0–5.0 s | 2.2–4.0 s |
+|---|---|---|---|---|---|---|---|---|
+| S | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| SSW-SW | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| WSW-W | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| W-WNW | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| all | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+
+By MOP's input sources (`waveModelInputSource` as written, trailing padding dropped; CDIP station ids): whole-spectrum chain-at-MOP / MOP (MOP de-shoaled by band), median [10th, 90th] and hours, by 46232's sector:
+
+| inputs | S | SSW-SW | WSW-W | W-WNW | all |
+|---|---|---|---|---|---|
+| `191p1-067p1-071p1:191p1-220p1-100p1-045p1` | 1.15 [1.01, 1.36] n 653 | 1.15 [1.01, 1.31] n 961 | 1.19 [1.02, 1.41] n 335 | 1.27 [1.08, 1.55] n 225 | 1.16 [1.02, 1.37] n 2174 |
+
 MOP's a1/b1 convention, read off its own Dp at its peak band (median |difference|): from, clockwise from north: atan2(b1, a1) 0.0°; toward, clockwise from north: atan2(b1, a1) + 180 180.0°; toward, counter-clockwise from east: 270 - atan2(b1, a1) 128.9°; from, counter-clockwise from east: 90 - atan2(b1, a1) 51.1°. Taken: **from, clockwise from north: atan2(b1, a1)**.
 
 Direction by band: chain-at-MOP's arrival heading minus MOP's mean direction from (°), median [10th, 90th]; MOP's mean direction in brackets:
@@ -173,7 +189,7 @@ Direction by band: chain-at-MOP's arrival heading minus MOP's mean direction fro
 | S | 0.99 [-2.21, 5.69] (200°) | -1.35 [-6.37, 2.49] (199°) | -2.65 [-9.97, 3.22] (203°) | -5.83 [-18.12, 2.94] (214°) | 5.44 [-3.80, 10.31] (221°) | 5.69 [-0.29, 10.20] (229°) | 2.88 [-1.35, 5.80] (235°) | 4.47 [-0.42, 7.66] (234°) |
 | SSW-SW | 1.08 [-2.01, 6.64] (200°) | 0.11 [-3.46, 4.24] (199°) | 1.44 [-4.05, 7.85] (204°) | 2.92 [-4.50, 9.40] (219°) | 7.73 [2.41, 11.79] (224°) | 6.42 [1.77, 10.84] (229°) | 2.94 [-1.16, 6.02] (234°) | 3.91 [-1.43, 7.43] (233°) |
 | WSW-W | 3.62 [-1.89, 11.43] (201°) | 3.14 [-1.39, 10.44] (203°) | 5.77 [-0.19, 11.14] (210°) | 4.37 [-1.39, 10.41] (220°) | 7.14 [2.70, 11.08] (225°) | 5.86 [1.70, 9.50] (229°) | 1.86 [-2.48, 5.04] (233°) | 3.34 [-2.64, 6.81] (232°) |
-| W-WNW | 9.41 [4.11, 16.50] (212°) | 10.23 [4.80, 15.26] (213°) | 7.28 [3.45, 11.96] (215°) | 7.53 [2.41, 11.49] (221°) | 7.59 [4.02, 10.16] (226°) | 5.93 [1.63, 9.44] (229°) | 2.19 [-3.04, 5.60] (232°) | 3.25 [-2.81, 7.04] (232°) |
+| W-WNW | 9.41 [4.11, 16.50] (212°) | 10.23 [4.80, 15.26] (213°) | 7.28 [3.47, 11.96] (215°) | 7.53 [2.41, 11.49] (221°) | 7.59 [4.02, 10.16] (226°) | 5.93 [1.63, 9.44] (229°) | 2.19 [-3.04, 5.60] (232°) | 3.25 [-2.81, 7.04] (232°) |
 | all | 1.67 [-1.96, 9.41] (200°) | 0.41 [-3.94, 9.11] (200°) | 1.33 [-6.06, 9.08] (205°) | 1.89 [-9.83, 9.31] (218°) | 7.08 [0.73, 11.28] (224°) | 6.10 [1.35, 10.21] (229°) | 2.71 [-1.65, 5.73] (234°) | 3.96 [-1.51, 7.40] (233°) |
 
 ## coronado_center
@@ -278,7 +294,7 @@ Acceptance per offshore degree at 14.3 s (Σ width·diff_gain/Ks² per radian, 1
 
 ### MOP's own spectrum, band by band
 
-MOP's 20 bands, 0.0375–0.4500 Hz (edges from `waveFrequencyBounds`); read-back 4·sqrt(Σ E·df) / MOP's Hs median 1.0, worst 1.0 over 2564 hours. Common bands 0.0375–0.4500 Hz. 2174 matched hours with a complete MOP spectrum; a band-hour is compared when 46232 has ≥ 0.05 m in the band.
+MOP's 20 bands, 0.0375–0.4500 Hz (edges from `waveFrequencyBounds`); read-back 4·sqrt(Σ E·df) / MOP's Hs median 1.0, worst 1.0 over 2565 hours. Common bands 0.0375–0.4500 Hz. 2174 matched hours with a complete MOP spectrum; a band-hour is compared when 46232 has ≥ 0.05 m in the band.
 
 Whole spectrum, MOP de-shoaled band by band at each band's frequency (10.77 m in brackets) against at its Tp as above; MOP's spectrum summed over its own Hs at the point:
 
@@ -319,6 +335,22 @@ Share of the deep-water-equivalent energy by band (sector totals): MOP / chain-a
 | WSW-W | 9 / 8 / 5% | 32 / 35 / 25% | 25 / 29 / 23% | 12 / 11 / 15% | 8 / 6 / 10% | 8 / 7 / 12% | 3 / 2 / 5% | 4 / 2 / 4% |
 | W-WNW | 15 / 16 / 12% | 37 / 43 / 33% | 21 / 21 / 22% | 10 / 8 / 13% | 7 / 5 / 8% | 6 / 4 / 7% | 2 / 1 / 3% | 2 / 1 / 2% |
 | all | 12 / 13 / 9% | 33 / 36 / 27% | 21 / 22 / 21% | 10 / 9 / 12% | 7 / 7 / 9% | 9 / 8 / 11% | 4 / 3 / 6% | 5 / 3 / 5% |
+
+MOP's own weighted input coverage per band (`waveModelBinInputCoverage`, overlap-weighted mean of its bands), median [10th, 90th]:
+
+| 46232 from | 16.7–26.7 s | 13.0–16.7 s | 10.0–13.0 s | 8.0–10.0 s | 6.7–8.0 s | 5.0–6.7 s | 4.0–5.0 s | 2.2–4.0 s |
+|---|---|---|---|---|---|---|---|---|
+| S | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| SSW-SW | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| WSW-W | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| W-WNW | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| all | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+
+By MOP's input sources (`waveModelInputSource` as written, trailing padding dropped; CDIP station ids): whole-spectrum chain-at-MOP / MOP (MOP de-shoaled by band), median [10th, 90th] and hours, by 46232's sector:
+
+| inputs | S | SSW-SW | WSW-W | W-WNW | all |
+|---|---|---|---|---|---|
+| `191p1-067p1-071p1:191p1-220p1-100p1-045p1` | 1.16 [1.02, 1.35] n 653 | 1.15 [1.03, 1.31] n 961 | 1.20 [1.04, 1.42] n 335 | 1.30 [1.08, 1.59] n 225 | 1.17 [1.03, 1.38] n 2174 |
 
 MOP's a1/b1 convention, read off its own Dp at its peak band (median |difference|): from, clockwise from north: atan2(b1, a1) 0.0°; toward, clockwise from north: atan2(b1, a1) + 180 180.0°; toward, counter-clockwise from east: 270 - atan2(b1, a1) 134.5°; from, counter-clockwise from east: 90 - atan2(b1, a1) 45.5°. Taken: **from, clockwise from north: atan2(b1, a1)**.
 
@@ -434,7 +466,7 @@ Acceptance per offshore degree at 14.3 s (Σ width·diff_gain/Ks² per radian, 1
 
 ### MOP's own spectrum, band by band
 
-MOP's 20 bands, 0.0375–0.4500 Hz (edges from `waveFrequencyBounds`); read-back 4·sqrt(Σ E·df) / MOP's Hs median 1.0, worst 1.0 over 2564 hours. Common bands 0.0375–0.4500 Hz. 2174 matched hours with a complete MOP spectrum; a band-hour is compared when 46232 has ≥ 0.05 m in the band.
+MOP's 20 bands, 0.0375–0.4500 Hz (edges from `waveFrequencyBounds`); read-back 4·sqrt(Σ E·df) / MOP's Hs median 1.0, worst 1.0 over 2565 hours. Common bands 0.0375–0.4500 Hz. 2174 matched hours with a complete MOP spectrum; a band-hour is compared when 46232 has ≥ 0.05 m in the band.
 
 Whole spectrum, MOP de-shoaled band by band at each band's frequency (10.77 m in brackets) against at its Tp as above; MOP's spectrum summed over its own Hs at the point:
 
@@ -476,6 +508,22 @@ Share of the deep-water-equivalent energy by band (sector totals): MOP / chain-a
 | W-WNW | 18 / 18 / 12% | 29 / 41 / 33% | 23 / 17 / 22% | 13 / 10 / 13% | 7 / 7 / 8% | 5 / 5 / 7% | 2 / 2 / 3% | 3 / 1 / 2% |
 | all | 11 / 11 / 9% | 23 / 31 / 27% | 21 / 19 / 21% | 14 / 11 / 12% | 10 / 11 / 9% | 9 / 9 / 11% | 5 / 4 / 6% | 7 / 4 / 5% |
 
+MOP's own weighted input coverage per band (`waveModelBinInputCoverage`, overlap-weighted mean of its bands), median [10th, 90th]:
+
+| 46232 from | 16.7–26.7 s | 13.0–16.7 s | 10.0–13.0 s | 8.0–10.0 s | 6.7–8.0 s | 5.0–6.7 s | 4.0–5.0 s | 2.2–4.0 s |
+|---|---|---|---|---|---|---|---|---|
+| S | 0.99 [0.99, 0.99] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| SSW-SW | 0.99 [0.99, 0.99] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| WSW-W | 0.99 [0.99, 0.99] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| W-WNW | 0.99 [0.99, 0.99] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| all | 0.99 [0.99, 0.99] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+
+By MOP's input sources (`waveModelInputSource` as written, trailing padding dropped; CDIP station ids): whole-spectrum chain-at-MOP / MOP (MOP de-shoaled by band), median [10th, 90th] and hours, by 46232's sector:
+
+| inputs | S | SSW-SW | WSW-W | W-WNW | all |
+|---|---|---|---|---|---|
+| `191p1-067p1-071p1:191p1-220p1-100p1-045p1` | 1.26 [1.11, 1.56] n 653 | 1.18 [1.04, 1.35] n 961 | 1.11 [0.96, 1.33] n 335 | 1.17 [0.97, 1.38] n 225 | 1.20 [1.03, 1.41] n 2174 |
+
 MOP's a1/b1 convention, read off its own Dp at its peak band (median |difference|): from, clockwise from north: atan2(b1, a1) 0.0°; toward, clockwise from north: atan2(b1, a1) + 180 180.0°; toward, counter-clockwise from east: 270 - atan2(b1, a1) 159.3°; from, counter-clockwise from east: 90 - atan2(b1, a1) 20.7°. Taken: **from, clockwise from north: atan2(b1, a1)**.
 
 Direction by band: chain-at-MOP's arrival heading minus MOP's mean direction from (°), median [10th, 90th]; MOP's mean direction in brackets:
@@ -494,16 +542,16 @@ Read from each file's DAS and from its small variables (`collector.mop`, Actions
 
 ### Global attributes (D0181)
 
-- `history`: "2026-11-18T20:08:17Z: dataset created; Net_model version 2.1. Runtime arguments: /project/f90_bin/net_model_gf -s 202611181200 -h 8 -c socal_alongshore_ref.nc -i socal_alongshore_nowcast.INPUT -z nowcast -e -S If date_modified is after date_created, contact CDIP for details of changes."
-- `date_created`: "2026-11-18T20:08:17Z"
-- `date_modified`: "2026-11-18T20:08:17Z"
+- `history`: "2026-11-18T21:09:10Z: dataset created; Net_model version 2.1. Runtime arguments: /project/f90_bin/net_model_gf -s 202611181300 -h 8 -c socal_alongshore_ref.nc -i socal_alongshore_nowcast.INPUT -z nowcast -e -S If date_modified is after date_created, contact CDIP for details of changes."
+- `date_created`: "2026-11-18T21:09:10Z"
+- `date_modified`: "2026-11-18T21:09:10Z"
 - `title`: "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0181."
-- `summary`: "The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0181 from 04/01/2025 00:00 to 11/18/2026 19:00 UTC."
+- `summary`: "The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0181 from 04/01/2025 00:00 to 11/18/2026 20:00 UTC."
 - `contributor_name`: "CDIP"
 - `contributor_role`: "model design and implementation"
 - `comment`: "Details on the MOP wave model are provided in OReilly, W.C. et al (2016). The California Coastal Wave Monitoring and Prediction System. Manuscript submitted to Coastal Engineering."
 - `keywords`: "EARTH SCIENCE, OCEANS, OCEAN WAVES, GRAVITY WAVES, WIND WAVES, SIGNIFICANT WAVE HEIGHT, WAVE FREQUENCY, WAVE PERIOD, WAVE SPECTRA, OCEAN, PACIFIC OCEAN, EASTERN PACIFIC OCEAN"
-- `id`: "MOPv1.1_D0181_2025040100-2026111819"
+- `id`: "MOPv1.1_D0181_2025040100-2026111820"
 - `MOP_initialization_file`: "socal_alongshore_nowcast.INPUT"
 - `MOP_output_site_definitions`: "D0181"
 - `acknowledgment`: "CDIP is primarily supported by the U.S. Army Corps of Engineers (USACE)."
@@ -524,13 +572,13 @@ Read from each file's DAS and from its small variables (`collector.mop`, Actions
 - `geospatial_vertical_positive`: "up"
 - `geospatial_vertical_resolution`: 1.0
 - `time_coverage_start`: "2025-03-31T23:30:00Z"
-- `time_coverage_end`: "2026-11-18T19:30:00Z"
-- `time_coverage_duration`: "P596DT20H00M"
+- `time_coverage_end`: "2026-11-18T20:30:00Z"
+- `time_coverage_duration`: "P596DT21H00M"
 - `time_coverage_resolution`: "PT01H00M"
 - `source`: "model output"
 - `naming_authority`: "edu.ucsd.cdip"
 - `keywords_vocabulary`: "Global Change Master Directory (GCMD) Earth Science Keywords"
-- `date_issued`: "2026-11-18T20:08:17Z"
+- `date_issued`: "2026-11-18T21:09:10Z"
 - `creator_name`: "Coastal Data Information Program, SIO/UCSD"
 - `creator_url`: "http://cdip.ucsd.edu"
 - `creator_email`: "www@cdip.ucsd.edu"
@@ -552,33 +600,37 @@ Read from each file's DAS and from its small variables (`collector.mop`, Actions
 - `featureType`: "timeSeries"
 - `ncei_template_version`: "NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0"
 - `references`: "http://cdip.ucsd.edu/documentation"
-- `uuid`: "3A54BBDB-AF99-46A8-91B8-52680564DE8C"
+- `uuid`: "EB46E4C1-4F3C-4652-92FF-7195D82BF195"
 
 Differing at D0179 (coronado_center):
+- `history`: "2026-11-18T21:09:09Z: dataset created; Net_model version 2.1. Runtime arguments: /project/f90_bin/net_model_gf -s 202611181300 -h 8 -c socal_alongshore_ref.nc -i socal_alongshore_nowcast.INPUT -z nowcast -e -S If date_modified is after date_created, contact CDIP for details of changes."
+- `date_created`: "2026-11-18T21:09:09Z"
+- `date_modified`: "2026-11-18T21:09:09Z"
 - `title`: "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0179."
-- `summary`: "The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0179 from 04/01/2025 00:00 to 11/18/2026 19:00 UTC."
-- `id`: "MOPv1.1_D0179_2025040100-2026111819"
+- `summary`: "The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0179 from 04/01/2025 00:00 to 11/18/2026 20:00 UTC."
+- `id`: "MOPv1.1_D0179_2025040100-2026111820"
 - `MOP_output_site_definitions`: "D0179"
 - `geospatial_lat_min`: 32.67395
 - `geospatial_lat_max`: 32.67395
 - `geospatial_lon_min`: -117.18846
 - `geospatial_lon_max`: -117.18846
-- `uuid`: "3A557323-AF99-4464-921B-CCFFDED392E7"
+- `date_issued`: "2026-11-18T21:09:09Z"
+- `uuid`: "EB4714D1-5833-4E1E-9DEB-3838305D72CB"
 
 Differing at D0168 (coronado_south):
-- `history`: "2026-11-18T20:08:15Z: dataset created; Net_model version 2.1. Runtime arguments: /project/f90_bin/net_model_gf -s 202611181200 -h 8 -c socal_alongshore_ref.nc -i socal_alongshore_nowcast.INPUT -z nowcast -e -S If date_modified is after date_created, contact CDIP for details of changes."
-- `date_created`: "2026-11-18T20:08:15Z"
-- `date_modified`: "2026-11-18T20:08:15Z"
+- `history`: "2026-11-18T21:09:07Z: dataset created; Net_model version 2.1. Runtime arguments: /project/f90_bin/net_model_gf -s 202611181300 -h 8 -c socal_alongshore_ref.nc -i socal_alongshore_nowcast.INPUT -z nowcast -e -S If date_modified is after date_created, contact CDIP for details of changes."
+- `date_created`: "2026-11-18T21:09:07Z"
+- `date_modified`: "2026-11-18T21:09:07Z"
 - `title`: "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0168."
-- `summary`: "The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0168 from 04/01/2025 00:00 to 11/18/2026 19:00 UTC."
-- `id`: "MOPv1.1_D0168_2025040100-2026111819"
+- `summary`: "The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0168 from 04/01/2025 00:00 to 11/18/2026 20:00 UTC."
+- `id`: "MOPv1.1_D0168_2025040100-2026111820"
 - `MOP_output_site_definitions`: "D0168"
 - `geospatial_lat_min`: 32.66898
 - `geospatial_lat_max`: 32.66898
 - `geospatial_lon_min`: -117.17891
 - `geospatial_lon_max`: -117.17891
-- `date_issued`: "2026-11-18T20:08:15Z"
-- `uuid`: "39570B89-93E2-4AC0-9351-21B8C92191D9"
+- `date_issued`: "2026-11-18T21:09:07Z"
+- `uuid`: "EA4749CA-5D2E-4C14-92D8-D159CBF6CF70"
 
 ### Per point
 
