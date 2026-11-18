@@ -138,10 +138,13 @@ SHIPPED = "5% + check"
 
 def _rays(spectrum, table, grids, extra=()) -> list[tuple]:
     """(bin, offshore heading, energy at 5 m, [each extra grid's energy]) per
-    diffracting ray, as `nearshore.carry` integrates them."""
+    diffracting ray, as `nearshore.carry` integrates them — with the share
+    bottom friction left each ray in that carry (Madsen's at MSL, BRIEFING
+    §57; it depends on the sea, so it is read off the carry, not the table)."""
 
-    from .nearshore import at
+    from .nearshore import at, carry
 
+    kept = carry(spectrum, table, grids).ray_friction
     freqs = sorted(table.by_freq)
     out = []
     for i, f in enumerate(spectrum.frequencies):
@@ -152,10 +155,10 @@ def _rays(spectrum, table, grids, extra=()) -> list[tuple]:
         if abs(near - f) > 0.05 * f:
             continue
         w = spectrum.bin_width(i)
-        for r in table.by_freq[near]:
+        for j, r in enumerate(table.by_freq[near]):
             if r.diff_gain <= 0:
                 continue
-            k = w * r.width_rad * r.diff_gain * r.diff_friction
+            k = w * r.width_rad * r.diff_gain * kept[near][j]
             e = at(g, r.diff_off_from) * k
             if e > 0:
                 out.append((i, r.diff_off_from, e,

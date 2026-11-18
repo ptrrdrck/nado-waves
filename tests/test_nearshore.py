@@ -258,3 +258,109 @@ def test_a_trains_held_headings_are_the_narrowest_arc_holding_its_share():
     assert _held(SimpleNamespace(bins=(3,), arc=()), {3: [0.0] * 360}) == ()
     divided = _held(SimpleNamespace(bins=(3,), arc=(205, 215)), {3: hist})
     assert divided[0] >= 205 and divided[1] <= 215
+
+
+# ------------------------------------------------------------ Madsen friction (BRIEFING §57)
+
+from forecast.nearshore import BREAKS, MadsenTable, density_grids, load_tables  # noqa: E402
+
+
+def _archived(n_from_end=0, min_hs=0.0):
+    """A recent archived 46232 spectrum with MEM spread, at least `min_hs`."""
+
+    from pathlib import Path
+
+    from forecast.transform import load_spectra
+
+    root = Path(__file__).resolve().parent.parent
+    spectra = load_spectra(root / "data" / "spectra" / "46232", limit=400)
+    big = [s for s in spectra
+           if 4 * math.sqrt(sum(c * s.bin_width(i) for i, c in enumerate(s.c11) if c == c and c > 0)) >= min_hs]
+    return big[-1 - n_from_end].with_spread("mem")
+
+
+@pytest.fixture(scope="module")
+def tables():
+    return load_tables()
+
+
+def _madsen_as_jonswap(table: Table) -> Table:
+    """The same table with its Madsen table replaced by the JONSWAP factor:
+    one basis row of ones, each ray's weight −ln(its diff_friction)."""
+
+    # One node at a vanishing height, so every hour's sea clamps onto it.
+    meta = {"hs_m": [1e-9], "peak_hz": [0.1], "tide_m": [0.0]}
+    madsen = MadsenTable(meta, {f: [[1.0]] for f in table.by_freq})
+    by_freq = {f: [Ray(r.near_from, r.width_rad, r.off_from, r.gain, r.diff_off_from, r.diff_gain,
+                       r.friction, r.diff_friction, r.k,
+                       (-math.log(r.diff_friction),) if r.diff_gain > 0 else None) for r in rays]
+               for f, rays in table.by_freq.items()}
+    return Table(table.break_id, table.start_depth_m, by_freq, table.fetch, madsen)
+
+
+@pytest.mark.parametrize("break_id", BREAKS)
+def test_with_the_jonswap_factor_in_place_of_madsen_carry_is_unchanged(tables, break_id):
+    """The control: the Madsen path, handed the JONSWAP factor, gives the
+    chain that shipped before §57 — and so does friction="jonswap"."""
+
+    sp = _archived(min_hs=1.5)
+    grids = density_grids(sp)
+    table = tables[break_id]
+    before = carry(sp, table, grids, friction="jonswap")
+    swapped = carry(sp, _madsen_as_jonswap(table), grids, tide_m=0.7)
+    assert swapped.friction_law == "madsen"
+    for a, b in ((before.hs_ref, swapped.hs_ref), (before.hs_friction, swapped.hs_friction),
+                 (before.near_from_deg, swapped.near_from_deg)):
+        assert a == pytest.approx(b, rel=1e-12)
+    assert before.peak_period_s == swapped.peak_period_s
+    assert [round(t.hs_m, 6) for t in before.trains] == [round(t.hs_m, 6) for t in swapped.trains]
+    assert before.hs_equivalent == swapped.hs_equivalent and before.hs_hard == swapped.hs_hard
+
+
+@pytest.mark.parametrize("break_id", BREAKS)
+def test_madsen_ships_and_takes_more_than_jonswap_on_a_big_day(tables, break_id):
+    sp = _archived(min_hs=2.0)
+    grids = density_grids(sp)
+    madsen = carry(sp, tables[break_id], grids, tide_m=0.0)
+    jonswap = carry(sp, tables[break_id], grids, friction="jonswap")
+    assert madsen.friction_law == "madsen" and jonswap.friction_law == "jonswap"
+    assert madsen.hs_equivalent == jonswap.hs_equivalent          # before friction: the same
+    assert madsen.hs_friction < jonswap.hs_friction
+    assert madsen.friction_hs_lin > madsen.hs_ref                # the sea before friction
+
+
+def test_high_tide_leaves_more_than_low(tables):
+    sp = _archived(min_hs=1.5)
+    grids = density_grids(sp)
+    for b in BREAKS:
+        low = carry(sp, tables[b], grids, tide_m=-0.5).hs_ref
+        high = carry(sp, tables[b], grids, tide_m=1.5).hs_ref
+        assert high > low, b
+    no_tide = carry(sp, tables[BREAKS[0]], grids)
+    assert no_tide.friction_tide_m == 0.0                         # MSL when none is given
+
+
+def test_the_interpolation_weights():
+    m = MadsenTable({"hs_m": [0.5, 1.0, 2.0], "peak_hz": [0.05, 0.1], "tide_m": [-1.0, 1.0]}, {})
+    on_node = m.node_weights(1.0, 0.1, -1.0)
+    assert on_node == [((1 * 2 + 0) * 3 + 1, 1.0)]
+    # Halfway in period (15 s between 20 s and 10 s), a quarter of the way in tide.
+    w = dict(m.node_weights(1.5, 1 / 15.0, -0.5))
+    assert sum(w.values()) == pytest.approx(1.0)
+    assert w[(0 * 2 + 0) * 3 + 1] == pytest.approx(0.5 * 0.75 * 0.5)
+    # Below the first height node the loss falls to zero at zero height.
+    assert sum(m.node_weights(0.25, 0.1, 0.0)[k][1] for k in range(2)) == pytest.approx(0.5)
+    # Past the last height node it extrapolates; peak and tide clamp.
+    far = dict(m.node_weights(3.0, 0.2, 5.0))
+    assert far[(1 * 2 + 1) * 3 + 2] == pytest.approx(2.0) and far[(1 * 2 + 1) * 3 + 1] == pytest.approx(-1.0)
+
+
+def test_a_break_without_its_madsen_table_will_not_load(tmp_path):
+    import shutil
+
+    from forecast.nearshore import TABLE_DIR
+
+    for suffix in (".csv", ".json"):
+        shutil.copy(TABLE_DIR / f"coronado_north{suffix}", tmp_path / f"coronado_north{suffix}")
+    with pytest.raises(FileNotFoundError, match="Madsen"):
+        Table.load("coronado_north", tmp_path)

@@ -359,25 +359,28 @@ Diffraction added at all three, most at South: more leaked into the shadows than
 
 ### [calc-friction] Bottom friction
 
-Swell crossing shallow water loses energy to the seabed. The loss is computed along each ray's own path.
+Swell crossing shallow water loses energy to the seabed, and a bigger sea loses a bigger share of it: the water moves faster over the bed. The loss is computed along each ray's own path, for the sea arriving that hour and at that hour's tide.
 
 ```
-d(flux)/ds = −flux · C_b·ω² / (g²·sinh²(kh)·c_g),    C_b = 0.038 m²/s³
+d(flux)/ds = −flux · C·ω² / (g²·sinh²(kh)·c_g),    C = f_w·g·U_rms/√2
+U_rms = ω_p·H/(4·sinh(k_p·h))                the water's speed at the bed
+f_w from U_rms/ω_p and the bed's roughness k_N = 0.05 m     Madsen et al. (1988)
 
-12.5 s, energy kept per kilometre of ray
-h = 30 m   99.4%
-h = 20 m   98.8%
-h = 15 m   98.1%
-h = 10 m   96.4%
+12.5 s, energy kept per kilometre of ray, at mean sea level
+           a 1 m sea   a 3 m sea
+h = 30 m     98.8%       98.3%
+h = 20 m     97.4%       96.0%
+h = 15 m     95.7%       93.1%
+h = 10 m     91.1%       85.7%
 
-worked hour
-North    0.868 → 0.769 m   −11%     energy × 0.78
-Center   0.669 → 0.600 m   −10%
-South    0.766 → 0.701 m    −8.5%
+worked hour, tide +1.02 m
+North    0.868 → 0.691 m   −20%     energy × 0.63
+Center   0.669 → 0.576 m   −14%
+South    0.766 → 0.655 m   −14.5%
 ```
 
-> **Model choice · the JONSWAP friction law, untuned**
-> Its coefficient comes from the literature and has not been adjusted. It is linear in energy, so each ray's loss is a fixed factor that can be worked out once, ahead of time, with the rest of the seabed tables. A law that depends on the wave height could not be precomputed that way.
+> **Model choice · Madsen's friction law, untuned**
+> The law and the bed's roughness are SWAN's defaults, from the literature, and have not been adjusted. Because the loss depends on the sea, it is worked out ahead of time along every ray for a range of heights, periods and tides, and read off for the hour's own: the break's height in 5 m of water before friction, its peak period and the tide. The sea each ray crosses is estimated from that height, not modelled wave by wave. Until November 2026 the chain used the JONSWAP law, a fixed share whatever the height, which took less from every sea and least from the biggest.
 
 ### [calc-shoaling] Shoaling
 
@@ -390,9 +393,9 @@ Ks² = c_g,deep / c_g(h)
 Ks  = √(9.76 / 6.56) = 1.22           +22% in height
 
 worked hour, the whole spectrum
-North    0.769 → 0.946 m   +23%
-Center   0.600 → 0.722 m   +20%
-South    0.701 → 0.791 m   +13%
+North    0.691 → 0.848 m   +23%
+Center   0.576 → 0.693 m   +20%
+South    0.655 → 0.739 m   +13%
 ```
 
 > **Model choice · hand over at 5 m**
@@ -412,7 +415,7 @@ U₁₀ = 4.12 m/s,  C_D = 0.00124,  u* = 0.145 m/s
 Hm0 = 0.092 m,   Tp = 1.1 s           → 0.3 ft (0.09 m)
 
 chop and swell add in energy:
-√(0.946² + 0.092²) = 0.950 m          +0.4%
+√(0.848² + 0.092²) = 0.853 m          +0.6%
 ```
 
 > **Model choice · two kinds of fetch**
@@ -430,16 +433,16 @@ D = ¼·α·f_p·Qb·Hmax²,   α = 1,   Hmax = γ·h           Battjes & Jansse
 (1 − Qb) / ln Qb = −(Hrms / Hmax)²                    Qb: the share of waves breaking
 γ = 0.5 + 0.4·tanh(33·s₀),   s₀ = Hrms,deep / L₀      Battjes & Stive (1985)
 
-worked hour, North: 0.950 m at 5 m, 12.5 s
-Hrms,deep = 0.950/√2 × √(6.56/9.76) = 0.551 m
-s₀ = 0.551 / 244 = 0.0023  →  γ = 0.530
+worked hour, North: 0.853 m at 5 m, 12.5 s
+Hrms,deep = 0.853/√2 × √(6.56/9.76) = 0.494 m
+s₀ = 0.494 / 244 = 0.0020  →  γ = 0.527
 
 tide at the open coast: +1.022 m above mean sea level  (see the Tide card's math)
-largest Hs 87 m in from the start point, in h = 2.36 m of water
-Hmax = 0.530 × 2.36 = 1.251 m,   Hrms = 1.087/√2 = 0.769 m
-(Hrms/Hmax)² = 0.378  →  Qb = 0.090                   9% of waves breaking
+largest Hs 93 m in from the start point, in h = 2.11 m of water
+Hmax = 0.527 × 2.11 = 1.112 m,   Hrms = 0.997/√2 = 0.705 m
+(Hrms/Hmax)² = 0.402  →  Qb = 0.11                    11% of waves breaking
 
-Hs = 1.087 m                         → 3.6 ft (1.09 m), breaking at 8 ft (2.4 m) depth   +14%
+Hs = 0.997 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 m) depth   +17%
 ```
 
 > **Model choice · the standard 1-D surf zone, γ from the literature**
@@ -509,11 +512,11 @@ On the LIVE tab, picking a train on the map shows a play button and a timeline a
 
 Every train's arrow on the map is the direction a train's energy came from offshore, the frame the windows are drawn in. On its way in, a swell slows over the shallowing seabed and turns toward the shallows ([step 3](#calc-refraction)), so by 5 m of water it comes from much nearer straight out to sea: where each ray carrying a train's energy arrives from at the start point, averaged by the energy each carries.
 
-The table is the same calculation for one narrow swell at a time: 14.3 s, spread ±10° about each offshore heading, through the soft window edges and bottom friction as a train is. A dash means less than a tenth of that heading's energy reaches 5 m, too little for its direction to tell you anything.
+The table is the same calculation for one narrow swell at a time: 14.3 s, spread ±10° about each offshore heading, through the soft window edges and bottom friction as a train is, the friction for a sea 1 m high in 5 m of water at mean sea level. A dash means less than a tenth of that heading's energy reaches 5 m, too little for its direction to tell you anything.
 
 [table the page fills in: bendtable]
 
-At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3° at the median and 11° at most, over the 31 cells all three periods give.
+At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3° at the median and 12° at most, over the 27 cells all three periods give.
 
 Read down a column and a wide spread of offshore directions arrives inside a narrow one. By 5 m of water, the direction a swell came from offshore is mostly gone: from anywhere the windows let in, it arrives within about 20° of straight in.
 

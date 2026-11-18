@@ -9,9 +9,9 @@ long periods first. The paths are static (`raytrace --paths-only` ->
 much of each train each ray carries, and that is this file.
 
 For now.json's own spectrum (its `observed_utc`) it re-runs the LIVE chain's
-carry (`nearshore.buoy_split`, `nearshore.carry`, maximum entropy) and, for
-each train a break card lists, credits every ray's 5 m energy as `carry`
-does: the row's bins, its arc, and -- for a row divided by the buoy's trains
+carry (`nearshore.buoy_split`, `nearshore.carry`, maximum entropy, Madsen's
+friction at the tide now.json records) and, for each train a break card
+lists, credits every ray's 5 m energy as `carry` does: the row's bins, its arc, and -- for a row divided by the buoy's trains
 -- only the buoy swell(s) it is. A ray the land stops carries nothing hard;
 what diffraction gives it is credited to the clearing ray of the same period
 whose offshore heading is nearest the one the table credits it to,
@@ -53,8 +53,12 @@ def _ang(a: float, b: float) -> float:
     return abs((a - b + 180.0) % 360.0 - 180.0)
 
 
-def rows_for(spectrum, table, grids, split, owner, trains, shown) -> tuple[list, list]:
-    """The fill rows for one break: (rows, notes)."""
+def rows_for(spectrum, table, grids, split, owner, trains, shown,
+             friction: dict) -> tuple[list, list]:
+    """The fill rows for one break: (rows, notes). `friction` is the carry's
+    own share of each ray's energy that bottom friction left
+    (`Nearshore.ray_friction`): Madsen's depends on the hour's sea, so it
+    comes from the same carry as `trains`, never from the table."""
 
     from .nearshore import _arc_degrees, at, shoaling_squared
 
@@ -79,13 +83,14 @@ def rows_for(spectrum, table, grids, split, owner, trains, shown) -> tuple[list,
             rays = table.by_freq[near_f]
             clear = [r for r in rays if r.gain > 0]
             drawn = PATH_BAND_HZ[0] <= near_f <= PATH_BAND_HZ[1]
-            for ray in rays:
+            kept_by = friction[near_f]
+            for j, ray in enumerate(rays):
                 if ray.diff_gain <= 0:
                     continue
                 kk = int(ray.diff_off_from) % 360
                 if kk not in arc or (divided and owner(i, kk) not in mine):
                     continue
-                e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain * ray.diff_friction
+                e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain * kept_by[j]
                 five += e
                 if not drawn:
                     continue
@@ -136,8 +141,12 @@ def build(data_dir: Path = DEFAULT_DATA_DIR) -> dict:
         shown = (b.get("nearshore") or {}).get("trains") or []
         if table is None or not shown:
             continue
-        carried = carry(spectrum, table, grids, split)
-        rows, notes = rows_for(spectrum, table, grids, split, owner, carried.trains[:3], shown)
+        # The same carry now.json's card was built with: Madsen's friction
+        # at the tide it records (MSL when it records none).
+        tide = ((b.get("nearshore") or {}).get("effects") or {}).get("friction_tide_m")
+        carried = carry(spectrum, table, grids, split, tide_m=tide)
+        rows, notes = rows_for(spectrum, table, grids, split, owner, carried.trains[:3], shown,
+                               carried.ray_friction)
         out["breaks"][b["id"]] = rows
         out["notes"] += notes
     return out

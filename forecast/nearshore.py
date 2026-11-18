@@ -14,7 +14,11 @@ WHAT IT GIVES, per break and spectrum:
 - `hs_equivalent` — the same with shoaling divided back out, per frequency,
   and without bottom friction.
 - `hs_friction` — `hs_equivalent` after bottom friction along each ray's
-  path (JONSWAP law, `raytrace.friction_rate`). `hs_ref` includes it.
+  path: Madsen's law, which depends on the sea's height, period and the tide
+  (`raytrace.madsen_losses`, tabulated in `<break>_madsen.json` and
+  interpolated here, `MadsenTable`). `hs_ref` includes it. The table's own
+  JONSWAP column (`raytrace.friction_rate`) is the control,
+  `carry(friction="jonswap")`.
 - `hs_hard` — refraction with every window edge a HARD shadow and shoaling
   divided out. Against the aperture's `hs_in_window_m` (straight lines, hard
   edges) it is the seabed alone; `hs_equivalent` against it is diffraction
@@ -75,6 +79,78 @@ class Ray:
     #: names the ray in `<break>_paths.json` (the map's fill). -1 for a ray
     #: built some other way.
     k: int = -1
+    #: The row's weights on its frequency's Madsen basis (`MadsenTable`):
+    #: its path's loss is their sum against the basis interpolated at the
+    #: hour's sea. None for a ray with no Madsen table.
+    madsen: tuple[float, ...] | None = None
+
+
+class MadsenTable:
+    """`<break>_madsen.json` (`raytrace.write_madsen`): Madsen's friction loss
+    along every carrying path, against the break's linear 5 m Hs, its peak
+    period and the tide, stored per frequency as basis rows over the nodes.
+
+    `nearshore` interpolates: the loss linearly in Hs with zero at zero
+    (extrapolated past the top node), in PERIOD between peak nodes and in
+    tide, both clamped at their ends. Pure Python."""
+
+    def __init__(self, meta: dict, basis: dict[float, list[list[float]]]):
+        self.meta = meta
+        self.hs = [float(v) for v in meta["hs_m"]]
+        self.peak_hz = [float(v) for v in meta["peak_hz"]]
+        self.tide = [float(v) for v in meta["tide_m"]]
+        self.basis = basis
+
+    @staticmethod
+    def _bracket(nodes: list[float], x: float, *, zero: bool = False) -> list[tuple[int, float]]:
+        """Linear weights on ascending nodes: clamped at both ends, or with
+        `zero` an implicit node of value 0 at x = 0 below the first and
+        extrapolated past the last."""
+
+        n = len(nodes)
+        if x <= nodes[0]:
+            return [(0, max(x, 0.0) / nodes[0])] if zero else [(0, 1.0)]
+        if x >= nodes[-1]:
+            if zero and n > 1:
+                t = (x - nodes[-2]) / (nodes[-1] - nodes[-2])
+                return [(n - 2, 1.0 - t), (n - 1, t)]
+            return [(n - 1, 1.0)]
+        j = 0
+        while nodes[j + 1] < x:
+            j += 1
+        t = (x - nodes[j]) / (nodes[j + 1] - nodes[j])
+        return [(j, 1.0 - t), (j + 1, t)]
+
+    def node_weights(self, hs_m: float, peak_hz: float, tide_m: float) -> list[tuple[int, float]]:
+        """(flat node index, weight) for this hour's sea; nodes are peak ×
+        tide × hs, C order, as the file stores them."""
+
+        periods = [1.0 / f for f in self.peak_hz]                 # descending
+        asc = periods[::-1]
+        on_p = [(len(periods) - 1 - j, w) for j, w in self._bracket(asc, 1.0 / peak_hz)]
+        on_t = self._bracket(self.tide, tide_m)
+        on_h = self._bracket(self.hs, hs_m, zero=True)
+        n_t, n_h = len(self.tide), len(self.hs)
+        return [((ip * n_t + it) * n_h + ih, wp * wt * wh)
+                for ip, wp in on_p for it, wt in on_t for ih, wh in on_h if wp * wt * wh != 0.0]
+
+    def coefficients(self, freq: float, weights: list[tuple[int, float]]) -> list[float]:
+        """This frequency's basis rows interpolated at the hour's sea."""
+
+        return [sum(w * row[node] for node, w in weights) for row in self.basis.get(freq, [])]
+
+    @classmethod
+    def load(cls, path: Path) -> tuple["MadsenTable", dict[float, dict[int, tuple[float, ...]]]]:
+        """The table and, per frequency, each carrying row's weights by its k."""
+
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        basis, rows = {}, {}
+        for key, v in doc["freqs"].items():
+            f = float(key)
+            basis[f] = v["basis"]
+            paths = [tuple(w) for w in v["paths"]]
+            rows[f] = {int(k): paths[j] for k, j in v["rows"].items()}
+        return cls(doc["meta"], basis), rows
 
 
 @dataclass
@@ -83,10 +159,19 @@ class Table:
     start_depth_m: float
     by_freq: dict[float, list[Ray]]
     fetch: list[tuple[float, bool]] = field(default_factory=list)   # index = wind_from_deg
+    #: Madsen's friction (`MadsenTable`). A table built in code without one
+    #: carries its own `diff_friction` column; `load` refuses a break that
+    #: has none, so what ships always has it.
+    madsen: MadsenTable | None = None
 
     @classmethod
     def load(cls, break_id: str, directory: Path = TABLE_DIR) -> "Table":
         meta = json.loads((directory / f"{break_id}.json").read_text())
+        madsen_path = directory / f"{break_id}_madsen.json"
+        if not madsen_path.exists():
+            raise FileNotFoundError(f"{madsen_path}: no Madsen friction table for {break_id} "
+                                    f"(python -m forecast.raytrace --madsen-only)")
+        madsen, weights = MadsenTable.load(madsen_path)
         by_freq: dict[float, list[Ray]] = {}
         with (directory / f"{break_id}.csv").open(newline="", encoding="utf-8") as fh:
             place: dict[float, int] = {}
@@ -101,13 +186,19 @@ class Table:
                     float(row["off_from_deg"]), gain,
                     float(row["diff_off_from_deg"]), diff_gain,
                     float(row.get("friction") or 1.0),
-                    float(row.get("diff_friction") or 1.0), k))
+                    float(row.get("diff_friction") or 1.0), k,
+                    weights.get(f, {}).get(k)))
         fetch = []
         path = directory / f"{break_id}_fetch.csv"
         if path.exists():
             with path.open(newline="", encoding="utf-8") as fh:
                 fetch = [(float(r["fetch_km"]), r["closed"] == "1") for r in csv.DictReader(fh)]
-        return cls(break_id, float(meta["start_depth_m"]), by_freq, fetch)
+        missing = sum(1 for f, rays in by_freq.items() for r in rays
+                      if r.diff_gain > 0 and r.madsen is None)
+        if missing:
+            raise ValueError(f"{madsen_path}: {missing} carrying rows have no Madsen weights; "
+                             f"it does not match {break_id}.csv")
+        return cls(break_id, float(meta["start_depth_m"]), by_freq, fetch, madsen)
 
 
 # ------------------------------------------------------------------ physics
@@ -183,6 +274,17 @@ class Nearshore:
     #: The buoy's own split it was handed (`buoy_split`), which each train's
     #: `buoy` indexes; empty when it was handed none.
     buoy: list = field(default_factory=list)
+    #: Which friction law carried it ("madsen" or "jonswap"), and for Madsen
+    #: the sea it was evaluated for: the linear (frictionless) 5 m Hs, the
+    #: linear peak frequency and the coast tide on MSL (0 when none was given).
+    friction_law: str = "jonswap"
+    friction_hs_lin: float | None = None
+    friction_peak_hz: float | None = None
+    friction_tide_m: float | None = None
+    #: Per table frequency, the share of each ray's energy friction left,
+    #: aligned with `table.by_freq[f]` (None for a ray carrying nothing):
+    #: what `forecast.fill` credits ray by ray.
+    ray_friction: dict = field(default_factory=dict)
 
 
 #: A break's train is divided by the buoy's own trains when a second one of
@@ -405,19 +507,64 @@ def _divide_by_buoy(trains: list[Train], buoy: list[Train], frequencies, hists, 
 def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
           buoy: list[Train] | None = None, divide_share: float = BUOY_DIVIDE_SHARE,
           divide_need_two: bool = BUOY_DIVIDE_NEEDS_TWO,
-          divide_own_heading: bool = BUOY_DIVIDE_CHECKS_HEADING) -> Nearshore:
+          divide_own_heading: bool = BUOY_DIVIDE_CHECKS_HEADING,
+          tide_m: float | None = None, friction: str = "madsen") -> Nearshore:
     """Integrate S_off(f, θ0)·gain over the nearshore headings, per frequency.
 
     With `buoy`, the buoy's own split of the same spectrum (`buoy_split`),
     each train is credited to the buoy trains that carried it and divided
     where a second carried `divide_share` of it (`_divide_by_buoy`, BRIEFING
     §49; any other share is for `forecast.trainmerge` to measure). The
-    heights are the same either way: only the rows change."""
+    heights are the same either way: only the rows change.
+
+    Bottom friction is Madsen's (BRIEFING §57): each ray keeps the share its
+    path's loss leaves at this hour's sea — the break's linear 5 m Hs (every
+    ray's energy before friction), the linear peak (the bin with the most of
+    it) and `tide_m`, the coast tide on MSL (MSL when None) — read off the
+    table's `MadsenTable`. `friction="jonswap"` is the table's fixed JONSWAP
+    column instead: the chain as it was before, kept as the control."""
 
     from .transform import split_trains
 
+    if friction not in ("madsen", "jonswap"):
+        raise ValueError(f"friction is 'madsen' or 'jonswap', not {friction!r}")
     grids = density_grids(spectrum) if grids is None else grids
     freqs = sorted(table.by_freq)
+    use_madsen = friction == "madsen" and table.madsen is not None
+    factors: dict[float, list] = {f: [None] * len(rays) for f, rays in table.by_freq.items()}
+    hs_lin = peak_hz = None
+    if use_madsen:
+        # First pass: the sea Madsen's rate depends on, before any friction.
+        e_lin, by_bin = 0.0, []
+        for i, f in enumerate(spectrum.frequencies):
+            grid = grids.get(i)
+            if grid is None:
+                continue
+            near = min(freqs, key=lambda t: abs(t - f))
+            if abs(near - f) > 0.05 * f:
+                continue
+            width = spectrum.bin_width(i)
+            bin_e = 0.0
+            for ray in table.by_freq[near]:
+                if ray.diff_gain > 0:
+                    bin_e += at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain
+            e_lin += bin_e
+            by_bin.append((bin_e, f))
+        hs_lin = 4.0 * math.sqrt(max(e_lin, 0.0))
+        best = max(by_bin) if by_bin else (0.0, float("nan"))
+        peak_hz = best[1] if best[0] > 0 else None
+        if peak_hz is not None:
+            weights = table.madsen.node_weights(hs_lin, peak_hz, tide_m or 0.0)
+            for f, rays in table.by_freq.items():
+                coef = table.madsen.coefficients(f, weights)
+                out = factors[f]
+                for j, ray in enumerate(rays):
+                    if ray.diff_gain > 0:
+                        loss = sum(a * b for a, b in zip(ray.madsen, coef)) if coef else 0.0
+                        out[j] = math.exp(-max(loss, 0.0))
+    if not use_madsen or peak_hz is None:
+        for f, rays in table.by_freq.items():
+            factors[f] = [ray.diff_friction if ray.diff_gain > 0 else None for ray in rays]
     e10 = e_eq = e_hard = e_fric = e_short = 0.0
     sn = cn = so = co = 0.0
     per_bin: list[tuple[int, float]] = []
@@ -445,14 +592,15 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
         hist = hists[i] = [0.0] * 360
         ns = near_sin[i] = [0.0] * 360
         nc = near_cos[i] = [0.0] * 360
-        for ray in table.by_freq[near]:
+        fac = factors[near]
+        for j, ray in enumerate(table.by_freq[near]):
             if ray.gain > 0:
                 e_hard += at(grid, ray.off_from) * width * ray.width_rad * ray.gain / ks2
             if ray.diff_gain <= 0:
                 continue
             e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain
             e_eq += e / ks2
-            e *= ray.diff_friction
+            e *= fac[j]
             e_fric += e / ks2
             e10 += e
             if short:
@@ -496,6 +644,10 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
         trains,
         hs(e_short),
         list(buoy or ()),
+        "madsen" if use_madsen and peak_hz is not None else "jonswap",
+        hs_lin, peak_hz,
+        (tide_m or 0.0) if use_madsen and peak_hz is not None else None,
+        factors,
     )
 
 
@@ -852,6 +1004,11 @@ def summarise(near: Nearshore, local: LocalSea | None, *, buoy_hs_m: float,
             # Bottom friction along each ray's path, shoaling still out.
             "friction_hs_m": round(near.hs_friction if near.hs_friction is not None
                                    else near.hs_equivalent, 3),
+            # The coast tide on MSL Madsen's friction was evaluated at (None
+            # when the JONSWAP column carried it), so `forecast.fill` can
+            # re-run the same carry.
+            "friction_tide_m": (round(near.friction_tide_m, 3)
+                                if near.friction_tide_m is not None else None),
             "shoaled_hs_m": round(near.hs_ref, 3),
             # Swell and local chop together at the start depth: what breaking
             # starts from.

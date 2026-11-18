@@ -58,10 +58,12 @@ def test_the_rays_rebuild_every_trains_5_m_height():
     split = buoy_split(spectrum, grids)
     owner = _buoy_owner(split)
     for break_id, table in load_tables().items():
-        trains = carry(spectrum, table, grids, split).trains[:3]
+        carried = carry(spectrum, table, grids, split, tide_m=0.8)
+        trains = carried.trains[:3]
         shown = [{"period_s": round(t.period_s, 1), "from_deg": round(t.from_deg), "hs_m": t.hs_m}
                  for t in trains]
-        rows, notes = fill.rows_for(spectrum, table, grids, split, owner, trains, shown)
+        rows, notes = fill.rows_for(spectrum, table, grids, split, owner, trains, shown,
+                                    carried.ray_friction)
         assert notes == [] and len(rows) == len(trains)
         for row in rows:
             assert 0.5 < row["drawn_share"] <= 1.0
@@ -79,9 +81,11 @@ def test_a_row_that_does_not_match_now_json_gets_no_fill():
     grids = density_grids(spectrum)
     split = buoy_split(spectrum, grids)
     table = load_tables()["coronado_center"]
-    trains = carry(spectrum, table, grids, split).trains[:1]
+    carried = carry(spectrum, table, grids, split)
+    trains = carried.trains[:1]
     shown = [{"period_s": round(trains[0].period_s, 1) + 1.0, "from_deg": 0, "hs_m": 1.0}]
-    rows, notes = fill.rows_for(spectrum, table, grids, split, _buoy_owner(split), trains, shown)
+    rows, notes = fill.rows_for(spectrum, table, grids, split, _buoy_owner(split), trains, shown,
+                                carried.ray_friction)
     assert rows == [] and "disagree" in notes[0]
 
 

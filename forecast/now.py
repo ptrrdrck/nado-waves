@@ -796,7 +796,8 @@ def build(
         near_hs, near = None, {}
         if break_id in tables:
             table = tables[break_id]
-            carried = carry(spectrum, table, grids, split)
+            # Madsen's friction at the measured coast tide; MSL without one.
+            carried = carry(spectrum, table, grids, split, tide_m=tide_coast)
             label_live(carried.trains, sea_winds)
             # KNZY's wind on the water off the break: fresh over a closed
             # fetch, grown on from the carried wind sea over an open one.
@@ -877,6 +878,19 @@ def trains_builder(spectra, by_id: dict, blockers, tables: dict,
     made at the beach, never a train with an origin."""
 
     by_time = {s.time: s for s in spectra}
+    # Madsen's friction needs the tide at that hour: the gauge's own reading
+    # then, at the open coast; MSL where the gauge has none.
+    from .tidesite import BAY, _read, interpolate as tide_interpolate
+    observed = _read(Path(data_dir) / "tide" / f"{BAY}_observed.csv") if tables else []
+    observed_times = [t for t, _ in observed]
+    try:
+        msl = msl_above_mllw(data_dir) if observed else None
+    except (FileNotFoundError, KeyError, ValueError):
+        msl = None
+
+    def tide_then(moment: datetime) -> float | None:
+        level = tide_interpolate(observed, moment, times=observed_times) if msl is not None else None
+        return coast_level(level, msl) if level is not None else None
 
     def trains_at(moment: datetime) -> dict:
         past = by_time.get(moment)
@@ -889,9 +903,10 @@ def trains_builder(spectra, by_id: dict, blockers, tables: dict,
         out = {"buoy": as_trains(buoy_trains)}
         grids = density_grids(past) if tables else {}
         split = buoy_split(past, grids) if tables else []
+        tide = tide_then(past.time) if tables else None
         for break_id in BREAKS:
             if break_id in tables:
-                near = carry(past, tables[break_id], grids, split)
+                near = carry(past, tables[break_id], grids, split, tide_m=tide)
                 label_live(near.trains, winds)
                 out[break_id] = train_dicts(near.trains[:3], near.buoy)
             else:

@@ -52,6 +52,11 @@ SPREAD_DEG = 10.0
 #: heading is given.
 MIN_REACH = 0.10
 
+#: Madsen's friction depends on the sea (BRIEFING §57), so the table states
+#: one: the swell 1 m high in 5 m of water (linear, before friction), its
+#: own period the peak, at mean sea level.
+HS_M = 1.0
+
 BEGIN = "<!-- bending:begin -->"
 END = "<!-- bending:end -->"
 
@@ -67,23 +72,28 @@ def swell_grid(from_deg: float, spread_deg: float = SPREAD_DEG) -> list[float]:
 
 
 def arriving(table: Table, freq_hz: float, from_deg: float,
-             spread_deg: float = SPREAD_DEG) -> tuple[float, float]:
+             spread_deg: float = SPREAD_DEG, hs_m: float = HS_M) -> tuple[float, float]:
     """(heading FROM at the start depth, share of the swell's energy that
     reaches it with shoaling divided out) for a swell from `from_deg` at the
     table frequency nearest `freq_hz`. The heading is NaN when nothing does.
 
     Ray by ray as `nearshore.carry` takes energy: density at the ray's
     diffracting offshore heading, times its width and diffracting gain,
-    times bottom friction."""
+    times bottom friction — Madsen's, for a sea `hs_m` high at 5 m with this
+    period its peak, at MSL."""
 
     near = min(table.by_freq, key=lambda f: abs(f - freq_hz))
     grid = swell_grid(from_deg, spread_deg)
     ks2 = shoaling_squared(near, table.start_depth_m)
+    coef = (table.madsen.coefficients(near, table.madsen.node_weights(hs_m, freq_hz, 0.0))
+            if table.madsen is not None else None)
     e = s = c = 0.0
     for ray in table.by_freq[near]:
         if ray.diff_gain <= 0:
             continue
-        got = at(grid, ray.diff_off_from) * ray.width_rad * ray.diff_gain * ray.diff_friction
+        kept = (math.exp(-max(sum(a * b for a, b in zip(ray.madsen, coef)) if coef else 0.0, 0.0))
+                if coef is not None else ray.diff_friction)
+        got = at(grid, ray.diff_off_from) * ray.width_rad * ray.diff_gain * kept
         t = math.radians(ray.near_from)
         e += got; s += got * math.sin(t); c += got * math.cos(t)
     heading = math.degrees(math.atan2(s, c)) % 360.0 if e > 0 else math.nan

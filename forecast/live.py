@@ -898,14 +898,16 @@ def build(
                 # wind is 29 km offshore, too strong for Point Loma's lee and
                 # blind to the near-shore wind the open-water growth is for.
                 here = local_hours.get(row.valid_utc.strftime(ISO))
-                carried = carry(sp, table, grids, split)
+                level = (forecast_level(tide_series, row.valid_utc, departure, msl)
+                         if profiles else None)
+                # Madsen's friction at the hour's forecast coast tide (the
+                # one breaking uses); MSL when there is none.
+                carried = carry(sp, table, grids, split, tide_m=level)
                 labeller(carried.trains)
                 chop = (local_sea(table, spot.normal, here["speed_kt"], here["from_deg"],
                                   carried_short_hs=carried.hs_short,
                                   buoy=buoy_offsets.get(break_id), wind="NWS forecast")
                         if here else None)
-                level = (forecast_level(tide_series, row.valid_utc, departure, msl)
-                         if profiles else None)
                 near = summarise(carried, chop, buoy_hs_m=hs_offshore,
                                  window_hs_m=hs_window, depth_m=table.start_depth_m,
                                  profile=profiles.get(break_id), tide_m=level,
