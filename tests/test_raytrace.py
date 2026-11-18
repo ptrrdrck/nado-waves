@@ -453,8 +453,11 @@ def test_the_committed_madsen_tables_describe_their_nodes(break_id):
 
 
 def test_the_committed_madsen_table_is_what_the_code_builds():
-    """One frequency of one break rebuilt from the seabed: the same table,
-    number for number, so the committed file is the code's."""
+    """One frequency of one break rebuilt from the seabed: the same rows, and
+    every row's loss at every node within the tolerance of the rebuild's.
+    Not number for number: the singular vectors differ in their last digits
+    between machines (this failed on CI by rounding alone), and each side is
+    within MADSEN_LOSS_TOL of the march."""
 
     import json
 
@@ -466,7 +469,16 @@ def test_the_committed_madsen_table_is_what_the_code_builds():
     built: dict = {}
     rows, _ = RT.table(bathy, spot, blockers, [0.101], madsen_out=built)
     doc = json.loads((RT.OUT_DIR / "coronado_center_madsen.json").read_text())
-    assert built["0.1010"] == doc["freqs"]["0.1010"]
+    fresh, kept = built["0.1010"], doc["freqs"]["0.1010"]
+    assert fresh["rows"].keys() == kept["rows"].keys()
+
+    def losses(v):
+        basis = np.array(v["basis"])
+        return {k: np.array(v["paths"][j]) @ basis for k, j in v["rows"].items()}
+
+    a, b = losses(fresh), losses(kept)
+    worst = max(float(np.max(np.abs(a[k] - b[k]))) for k in a)
+    assert worst <= 2 * RT.MADSEN_LOSS_TOL
 
 
 # ------------------------------------------------------------ the fill's starts
