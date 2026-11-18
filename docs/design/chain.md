@@ -457,3 +457,57 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   range moves the break point 34–53 m while changing the height under 2% —
   on a barless profile the tide decides WHERE it breaks, not how big. A
   season's sandbar would change that, and nothing here knows where it is.
+
+## "Already breaking at 5 m" is the gain over the start
+
+- **`surfzone.Breaking.outside_start` is true when the profile's largest Hs
+  is within `START_GAIN` (0.5%) of the height at its first point**, not only
+  when it sits exactly there (BRIEFING §56, 2026-11-17). On big westerly days
+  the maximum lands a step or two in — South, 17 Nov 22Z, 1 m in at 5.6 m of
+  water, shoaling adding 0.1% before breaking overtook it — and the card
+  showed the linear 5 m figure as a break found, with no upper-bound note.
+  0.5% is the march's own convergence tolerance
+  (`test_the_march_is_converged_at_its_step`), not a fitted number. Heights
+  unchanged on all 4,404 archived break-hours; flagged with 46232 at 2.5 m or
+  more, Center 39% → 66%, South 66% → 87%, none below 1.5 m. The card's
+  calculation table already marks the row and says the figure is an upper
+  bound; the HEADLINE still shows the number, and how it should read when
+  flagged is the owner's call (asked 2026-11-17).
+
+## On big westerly days the 5 m figure carries nothing that grows with height
+
+- **Both terms that would make the excess grow with size are missing
+  between deep water and 5 m**: the rays carry no breaking (§29, §31), and
+  their friction is JONSWAP's, the same share of energy at every height
+  (§32: 0.88–0.91 of Hs at every buoy size). Neither can live in the table,
+  which is linear in energy. `forecast/shelfloss.py` measures what breaking
+  (the surf zone's own Battjes–Janssen and γ, applied over the shelf) and
+  Madsen's height-dependent friction (SWAN's form, k_N = 0.05 m, its
+  default) would take, beside the shipped chain, with three controls. It
+  reports and never edits. Over 285 archived hours (2026-11-17): Madsen
+  takes 4–8% of the breaking height on the smallest days and 13–18% with
+  46232 at 2.5 m or more (median, all three breaks), the share growing with
+  size; shelf breaking alone takes nothing below 2 m and ~5% above 2.5 m,
+  and adds nothing measurable on top of Madsen. Whether either ships is the
+  owner's call, after the MOP report (BRIEFING §56).
+- **The westerly half of the excess is the wrap round Point Loma**: rays
+  passing ~1 km south of the tip and bending north-east over the shelf, at
+  14.3 s about twice a planar beach's acceptance per offshore degree at
+  Center (230–249°: 2.0 against ~0.9; 280–289°: 0.95 against ~0.45). Linear,
+  so it depends on direction, not size; big days here are westerly, so the
+  two compound. Breaking over the straight-line window figure: 1.1–1.3× on
+  south swell, 1.9–2.45× on W–WNW.
+
+## The MOP cross-check
+
+- **`collector/mop.py` + `forecast/mopcheck.py`, on Actions only
+  (`.github/workflows/mop-check.yml`, on demand)**: CDIP is refused at
+  CONNECT from a session. The collector discovers dataset names from the
+  THREDDS catalogue and checks every variable and the time units against the
+  file's own DDS/DAS, stopping with what it found when they differ — a first
+  run that stops is a finding about CDIP's layout. The report compares
+  deep-water-equivalent Hs over 46232's, MOP de-shoaled at its own Tp and
+  depth against the chain's `hs_equivalent` (before friction, which MOP does
+  not apply), by 46232's swell direction. A model against a model: never a
+  verification series, never read by anything that ships. North is shown and
+  not read (its 10 m water is outside Point Loma's shadow, §29).

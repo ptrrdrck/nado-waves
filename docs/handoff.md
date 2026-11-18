@@ -144,6 +144,32 @@ roses' seabed"; docs.html's roses section updated (owner's yes).
    the bar redrawn as the break map's fill bar, ft / s back in the
    bottom-right corner. Without WebGL the rose stays on the card as before.
 
+### Group 6: the height overstated on big westerly days (branch claude/sharp-turing-3iyub6)
+
+The owner's report, 2026-11-17, with no logged observation: the LIVE
+headline reads high across the beach, more so as a share on big days.
+Diagnosed and measured, nothing fitted (BRIEFING §56; scripts in the notes
+repository, `evidence/2026-11-17-overstatement/`; chain.md's last three
+sections).
+
+21. **The "already breaking" flag** -- done. `surfzone.START_GAIN`; heights
+    unchanged, the card's upper-bound note now on the hours it belongs to.
+22. **Shelf losses on big days, measured** -- done, report only
+    (`python -m forecast.shelfloss --cache <pkl> --every 8`, ~1 h; the paths
+    take ~4 min to re-trace and the pickle keeps them).
+23. **The MOP cross-check** -- built, NOT RUN: Actions only. Dispatch
+    "MOP cross-check" (nowcast, since 2026-08-04); it commits `data/mop/`
+    and `docs/mop_check.md`. If the collector stops on names or variables,
+    its step summary says what CDIP serves; adapt `collector/mop.py` to that.
+
+Open, the owner's calls:
+
+- How the HEADLINE reads when `outside_start` is true (now: the number,
+  with the note under the calculation table only).
+- Whether height-dependent dissipation ships, and which: it is physics from
+  the literature, not calibration, but it moves every big-day number; wait
+  for the MOP report first, so the wrap and the dissipation are judged apart.
+
 ### Carryover prompts
 
 Each assumes a fresh session; add "Confirm each item before building. PR,
