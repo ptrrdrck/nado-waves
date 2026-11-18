@@ -1,7 +1,7 @@
 {
   "source": "https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/model/MOP_alongshore/catalog.xml",
-  "retrieved_utc": "2026-11-18T00:50:18+00:00",
-  "requests_used": 88,
+  "retrieved_utc": "2026-11-18T20:20:36+00:00",
+  "requests_used": 94,
   "breaks": {
     "coronado_north": {
       "point": "D0181",
@@ -11,9 +11,9 @@
       "lat": 32.67358,
       "lon": -117.1912,
       "depth_m": 10.0,
-      "hours": 2544,
+      "hours": 2564,
       "first_utc": "2026-08-04T00:00:00+00:00",
-      "last_utc": "2026-11-17T23:00:00+00:00"
+      "last_utc": "2026-11-18T19:00:00+00:00"
     },
     "coronado_center": {
       "point": "D0179",
@@ -23,9 +23,9 @@
       "lat": 32.67395,
       "lon": -117.18846,
       "depth_m": 10.0,
-      "hours": 2544,
+      "hours": 2564,
       "first_utc": "2026-08-04T00:00:00+00:00",
-      "last_utc": "2026-11-17T23:00:00+00:00"
+      "last_utc": "2026-11-18T19:00:00+00:00"
     },
     "coronado_south": {
       "point": "D0168",
@@ -35,9 +35,9 @@
       "lat": 32.66898,
       "lon": -117.17891,
       "depth_m": 10.0,
-      "hours": 2544,
+      "hours": 2564,
       "first_utc": "2026-08-04T00:00:00+00:00",
-      "last_utc": "2026-11-17T23:00:00+00:00"
+      "last_utc": "2026-11-18T19:00:00+00:00"
     }
   }
 }
