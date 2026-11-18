@@ -351,7 +351,16 @@ def read_mop_spectrum(mop_dir: Path, break_id: str) -> tuple[dict | None, str]:
     energy = table(spec_path)
     mom_path = mop_dir / f"{break_id}_moments.csv"
     moments = table(mom_path) if mom_path.exists() else None
-    return {"bands": bands, "energy": energy, "moments": moments, "meta": meta}, ""
+    inputs = None
+    in_path = mop_dir / f"{break_id}_inputs.csv"
+    if in_path.exists():
+        inputs = {}
+        with in_path.open(newline="", encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                t = datetime.fromisoformat(r["valid_utc"].replace("Z", "+00:00"))
+                cov = [float(r[k]) if r[k] else None for k in r if k.startswith("cov")]
+                inputs[t] = (r["input_source"] or None, cov)
+    return {"bands": bands, "energy": energy, "moments": moments, "inputs": inputs, "meta": meta}, ""
 
 
 def overlap(lo: float, hi: float, a: float, b: float) -> float:
@@ -501,6 +510,15 @@ def add_bands(row: dict, sp, spec: dict, t_mop, coarse, depth_m: float, navd_m: 
         band["mop_dir"] = mop_band_direction(e_row, spec["moments"][t_mop], spec["bands"], coarse,
                                              CONVENTIONS[conv])
         band["chain_dir"] = chain_band_direction(row["parts"]["mop"]["near_dir"], sp.frequencies, coarse)
+    inp = (spec.get("inputs") or {}).get(t_mop)
+    if inp is not None:
+        band["source"] = inp[0]
+        cov = inp[1]
+        if cov and len(cov) == len(spec["bands"]):
+            band["coverage"] = [
+                (sum(c * overlap(lo, hi, a, b) for c, (_, lo, hi) in zip(cov, spec["bands"]) if c is not None)
+                 / max(sum(overlap(lo, hi, a, b) for c, (_, lo, hi) in zip(cov, spec["bands"]) if c is not None),
+                       1e-30)) for a, b in coarse]
     row["band"] = band
     row["mop_bandwise"] = 4 * math.sqrt(sum(mop_e)) / row["buoy"]
     row["mop_bandwise_navd"] = 4 * math.sqrt(sum(mop_n)) / row["buoy"]
@@ -610,6 +628,23 @@ def band_report(rows: list[dict], spec: dict | None, why: str, coarse, conv, con
         sh = {k: [x / max(sum(v), 1e-30) for x in v] for k, v in tot.items()}
         L.append(f"| {name} | " + " | ".join(f"{100 * sh['mop'][j]:.0f} / {100 * sh['chain'][j]:.0f} / "
                                              f"{100 * sh['buoy'][j]:.0f}%" for j in range(len(coarse))) + " |")
+    with_cov = [r for r in rows if "coverage" in r["band"]]
+    if with_cov:
+        L += ["", "MOP's own weighted input coverage per band (`waveModelBinInputCoverage`, overlap-weighted "
+              "mean of its bands), median [10th, 90th]:", "",
+              "| 46232 from | " + " | ".join(labels) + " |", "|---|" + "---|" * len(labels)]
+        for name, lo, hi in sectors():
+            sel = [r for r in with_cov if lo <= r["from"] < hi]
+            if sel:
+                L.append(f"| {name} | " + " | ".join(cell([r["band"]["coverage"][k] for r in sel])
+                                                     for k in range(len(coarse))) + " |")
+    srcs: dict[str, int] = {}
+    for r in rows:
+        if "source" in r["band"]:
+            srcs[r["band"]["source"] or "(gap)"] = srcs.get(r["band"]["source"] or "(gap)", 0) + 1
+    if srcs:
+        L += ["", "MOP's input sources over these hours (`waveModelInputSource`, as written; hours): "
+              + "; ".join(f"`{k}` {v}" for k, v in sorted(srcs.items(), key=lambda kv: -kv[1])) + "."]
     if spec["moments"] is None:
         L += ["", "Direction by band: MOP's files carry no moments.", ""]
         return L
