@@ -112,3 +112,93 @@ def test_a_mop_series_made_from_the_chain_at_mop_compares_as_exactly_one(tmp_pat
         assert r["mop_eq"] / r["mop"] == pytest.approx(1.0, rel=1e-6)
         # De-shoaled from deeper water, MOP's deep-water figure is larger.
         assert r["mop_navd"] > r["mop"]
+
+
+def test_splitting_into_bands_keeps_every_bit_of_energy():
+    freqs = [0.025 + 0.005 * i for i in range(20)] + [0.13 + 0.01 * i for i in range(20)]
+    edges = mopdepth.bin_edges(freqs)
+    assert all(abs(edges[i][1] - edges[i + 1][0]) < 1e-12 for i in range(len(edges) - 1))
+    vals = [(1.0 + i, lo, hi) for i, (lo, hi) in enumerate(edges)]
+    coarse = [(edges[0][0], 0.06), (0.06, 0.1), (0.1, 0.2), (0.2, edges[-1][1])]
+    assert sum(mopdepth.split(vals, coarse)) == pytest.approx(sum(v for v, _, _ in vals), rel=1e-12)
+    # The common range is clipped to what both sides cover.
+    got = mopdepth.common_bands([(0.05, 0.04, 0.06), (0.3, 0.29, 0.31)], freqs)
+    assert got[0][0] == pytest.approx(0.04) and got[-1][1] == pytest.approx(0.31)
+
+
+def _spec_from_chain(spectra, arrays, depth, moments_from=None):
+    """A MOP spectrum on 46232's own bins that says exactly what chain-at-MOP
+    says, shoaled to MOP's depth band by band."""
+
+    from forecast.nearshore import density_grids
+
+    freqs = spectra[0].frequencies
+    bands = [(f, lo, hi) for f, (lo, hi) in zip(freqs, mopdepth.bin_edges(freqs))]
+    energy, moments, series = {}, {}, {}
+    for sp in spectra:
+        mem = sp.with_spread("mem")
+        by_f = mopdepth.carry_parts(mem, density_grids(mem), arrays)["by_f"]
+        row = [by_f.get(f, 0.0) / (hi - lo) * mopdepth.rt_shoaling(f, depth) for f, lo, hi in bands]
+        energy[sp.time] = row
+        hs = 4 * math.sqrt(sum(e * (hi - lo) for e, (_, lo, hi) in zip(row, bands)))
+        series[sp.time] = (hs, 13.0, 250.0)
+        if moments_from is not None:
+            th = math.radians(moments_from)
+            moments[sp.time] = [math.cos(th)] * len(bands) + [math.sin(th)] * len(bands) + [0.0] * (2 * len(bands))
+    spec = {"bands": bands, "energy": energy, "moments": moments or None,
+            "meta": {"spectrum": {"readback": {"ok": True}}}}
+    return spec, series
+
+
+def test_a_mop_spectrum_made_from_the_chain_compares_as_exactly_one_in_every_band():
+    """Known answer: catches a de-shoaling, a band width or a bin edge
+    applied on one side only."""
+
+    from forecast.transform import load_spectra
+
+    rows, meta = committed("coronado_south")
+    arrays = mopdepth.Arrays(rows, float(meta["start_depth_m"]))
+    spectra = list(load_spectra(Path(mopcheck.ROOT) / "data" / "spectra" / "46232", limit=4))
+    depth = 10.0
+    spec, series = _spec_from_chain(spectra, arrays, depth, moments_from=250.0)
+    coarse = mopdepth.common_bands(spec["bands"], spectra[0].frequencies)
+    conv, med = mopdepth.convention(spec, series)
+    assert conv.startswith("from, clockwise from north") and med[conv] == pytest.approx(0.0, abs=1e-6)
+    tables = {v: arrays for v in ("break_5m", "normal_mop", "mop")}
+    out = mopdepth.hours("coronado_south", series, spectra, tables, depth, depth + 0.765, spec, coarse, conv)
+    assert len(out) == len(spectra)
+    for r in out:
+        b = r["band"]
+        for k in range(len(coarse)):
+            assert b["chain"][k] == pytest.approx(b["mop"][k], rel=1e-9, abs=1e-15)
+        assert r["mop_eq"] / r["mop_bandwise"] == pytest.approx(1.0, rel=1e-9)
+        assert b["point_hs"] == pytest.approx(r["hs_mop"], rel=1e-12)
+        assert r["mop_bandwise_navd"] > r["mop_bandwise"]
+        assert all(d == pytest.approx(250.0) for d in b["mop_dir"])
+    text = "\n".join(mopdepth.band_report(out, spec, "", coarse, conv, med))
+    assert "1.00 [1.00, 1.00]" in text
+
+
+def test_the_direction_convention_is_read_off_mops_own_dp():
+    from forecast.transform import load_spectra
+
+    rows, meta = committed("coronado_south")
+    arrays = mopdepth.Arrays(rows, float(meta["start_depth_m"]))
+    spectra = list(load_spectra(Path(mopcheck.ROOT) / "data" / "spectra" / "46232", limit=2))
+    # Moments that point the way the waves go: the "toward" mapping is taken.
+    spec, series = _spec_from_chain(spectra, arrays, 10.0, moments_from=70.0)
+    conv, med = mopdepth.convention(spec, series)
+    assert conv.startswith("toward, clockwise from north")
+    # Moments unrelated to Dp: none is taken, rather than the least bad.
+    spec, series = _spec_from_chain(spectra, arrays, 10.0, moments_from=10.0)
+    series = {t: (h, tp, 205.0 if i % 2 else 115.0) for i, (t, (h, tp, _)) in enumerate(series.items())}
+    assert mopdepth.convention(spec, series)[0] is None
+
+
+def test_a_spectrum_that_did_not_read_back_is_refused(tmp_path):
+    (tmp_path / "coronado_center_meta.json").write_text(json.dumps({"spectrum": {"readback": {"ok": False}}}))
+    (tmp_path / "coronado_center_spectrum.csv").write_text("valid_utc,e00\n")
+    (tmp_path / "coronado_center_bands.csv").write_text("band,freq_hz,lower_hz,upper_hz,bandwidth_hz\n")
+    spec, why = mopdepth.read_mop_spectrum(tmp_path, "coronado_center")
+    assert spec is None and "read-back" in why
+    assert mopdepth.read_mop_spectrum(tmp_path, "coronado_south")[0] is None
