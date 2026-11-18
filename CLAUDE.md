@@ -117,7 +117,10 @@ forecaster actually verifies against, Surfline included.
 - **Sessions.** When a PR has merged and the next request is unrelated, or the
   conversation has run long, say so and suggest a new session. Give a
   ready-to-paste carryover prompt (task, context, where things are, what's
-  open), and update `docs/handoff.md` before stopping.
+  open), and update `docs/handoff.md` before stopping. **Every carryover or
+  handoff prompt names the model and effort level to run it at**, with a line
+  on why (routine, careful, or open design), and the order when there are
+  several.
 - **Confirm before building.** For a request with several items, or one open
   to more than one reading, restate each item in a line with how you'll
   approach it, and wait for a yes. Say when items span different areas and
