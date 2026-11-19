@@ -26,6 +26,16 @@ as shipped, no Madsen (before friction, as MOP):
   short of headings (its rays are added to `mop`'s).
 
 Built tables go to `data/live/mopdepth/` (gitignored; ~3 min a table).
+
+**MOP's own spectrum** (handoff item 24a), when `collector.mop` has saved it
+and its read-back passed: both sides are set on common period bands
+(`BAND_EDGES_HZ`), each side's bins split by where their edges overlap.
+MOP is de-shoaled band by band at each band's own frequency from its depth;
+chain-at-MOP is already deep-water-equivalent per 46232 bin. Per band:
+chain-at-MOP over MOP, and each over 46232's own energy in the band, so a
+band MOP is short in reads apart from one the chain is long in. With the
+moments, MOP's mean direction per band beside the heading chain-at-MOP's
+energy arrives on, once MOP's a1/b1 convention has been read off its own Dp.
 """
 
 from __future__ import annotations
@@ -57,6 +67,22 @@ KINDS = ("clear", "island fill", "Point Loma fill", "Baja fill")
 #: Upper frequency (Hz) of the chain-at-MOP energy set against MOP's whole
 #: Hs: where in frequency the excess builds (0.58 is everything).
 CUTS_HZ = (0.1, 0.125, 0.15, 0.2, 0.25, 0.58)
+#: Period bands for the per-band comparison, as frequency edges (Hz): > 16.7,
+#: 13–16.7, 10–13, 8–10, 6.7–8, 5–6.7, 4–5, < 4 s. The outer two are clipped
+#: to the range both MOP's bands and 46232's bins cover.
+BAND_EDGES_HZ = (0.0, 0.06, 1 / 13, 0.1, 0.125, 0.15, 0.2, 0.25, 1.0)
+#: A band-hour is compared only when 46232 has at least this height in it (m).
+BAND_MIN_HS = 0.05
+#: How MOP's a1/b1 might map to a direction FROM, clockwise from north; the
+#: one that agrees with MOP's own Dp at its peak band is used (`convention`).
+CONVENTIONS = {
+    "from, clockwise from north: atan2(b1, a1)": lambda t: t % 360,
+    "toward, clockwise from north: atan2(b1, a1) + 180": lambda t: (t + 180) % 360,
+    "toward, counter-clockwise from east: 270 - atan2(b1, a1)": lambda t: (270 - t) % 360,
+    "from, counter-clockwise from east: 90 - atan2(b1, a1)": lambda t: (90 - t) % 360,
+}
+#: The convention is taken only if its median |difference| from Dp is below this (°).
+CONVENTION_MAX_DEG = 10.0
 
 
 # ------------------------------------------------------------------ build
@@ -240,8 +266,10 @@ def swell_peak_s(spectrum) -> float:
 
 
 def hours(break_id: str, mop: dict, spectra, tables: dict[str, Arrays], mop_depth_m: float,
-          navd88_depth_msl_m: float) -> list[dict]:
-    """One row per matched hour: MOP and each start's chain, over 46232's Hs."""
+          navd88_depth_msl_m: float, spec: dict | None = None, coarse=None,
+          conv: str | None = None) -> list[dict]:
+    """One row per matched hour: MOP and each start's chain, over 46232's Hs;
+    with MOP's saved spectrum (`spec`), its per-band figures too."""
 
     from .nearshore import density_grids
     import bisect
@@ -254,7 +282,8 @@ def hours(break_id: str, mop: dict, spectra, tables: dict[str, Arrays], mop_dept
                 and abs((times[j] - sp.time).total_seconds()) <= MATCH_S]
         if not near:
             continue
-        hs_mop, tp_mop, dp_mop = mop[times[min(near, key=lambda j: abs(times[j] - sp.time))]]
+        t_mop = times[min(near, key=lambda j: abs(times[j] - sp.time))]
+        hs_mop, tp_mop, dp_mop = mop[t_mop]
         m0 = sum(c * sp.bin_width(k) for k, c in enumerate(sp.c11) if c == c and c > 0)
         buoy = 4 * math.sqrt(m0)
         if buoy <= 0 or tp_mop <= 0:
@@ -281,8 +310,222 @@ def hours(break_id: str, mop: dict, spectra, tables: dict[str, Arrays], mop_dept
         row["buoy_peak_s"] = 1.0 / sp.frequencies[k]
         four = sp.with_spread("fourier")
         row["mop_eq_fourier"] = 4 * math.sqrt(max(carry_parts(four, density_grids(four), tables["mop"])["eq"], 0.0)) / buoy
+        row["hs_mop"] = hs_mop
+        if spec is not None and coarse:
+            add_bands(row, mem, spec, t_mop, coarse, mop_depth_m, navd88_depth_msl_m, conv)
         out.append(row)
     return out
+
+
+# ------------------------------------------------------------------ MOP's own spectrum
+
+def read_mop_spectrum(mop_dir: Path, break_id: str) -> tuple[dict | None, str]:
+    """MOP's saved spectrum for one point, or (None, why not).
+
+    Refused unless the collector's read-back (4·sqrt(Σ E·df) over MOP's own
+    Hs) passed: a unit or band-width misread is a factor, and nothing here
+    should be built on one."""
+
+    meta_path = mop_dir / f"{break_id}_meta.json"
+    spec_path = mop_dir / f"{break_id}_spectrum.csv"
+    bands_path = mop_dir / f"{break_id}_bands.csv"
+    if not (meta_path.exists() and spec_path.exists() and bands_path.exists()):
+        return None, "no saved spectrum (run `collector.mop` on Actions)"
+    meta = json.loads(meta_path.read_text())
+    rb = meta.get("spectrum", {}).get("readback", {})
+    if not rb.get("ok"):
+        return None, f"read-back failed or absent: {rb}"
+    with bands_path.open(newline="", encoding="utf-8") as fh:
+        bands = [(float(r["freq_hz"]), float(r["lower_hz"]), float(r["upper_hz"])) for r in csv.DictReader(fh)]
+
+    def table(path: Path) -> dict[datetime, list[float | None]]:
+        out = {}
+        with path.open(newline="", encoding="utf-8") as fh:
+            rd = csv.reader(fh)
+            next(rd)
+            for r in rd:
+                t = datetime.fromisoformat(r[0].replace("Z", "+00:00"))
+                out[t] = [float(x) if x else None for x in r[1:]]
+        return out
+
+    energy = table(spec_path)
+    mom_path = mop_dir / f"{break_id}_moments.csv"
+    moments = table(mom_path) if mom_path.exists() else None
+    inputs = None
+    in_path = mop_dir / f"{break_id}_inputs.csv"
+    if in_path.exists():
+        inputs = {}
+        with in_path.open(newline="", encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                t = datetime.fromisoformat(r["valid_utc"].replace("Z", "+00:00"))
+                cov = [float(r[k]) if r[k] else None for k in r if k.startswith("cov")]
+                inputs[t] = (r["input_source"] or None, cov)
+    return {"bands": bands, "energy": energy, "moments": moments, "inputs": inputs, "meta": meta}, ""
+
+
+def overlap(lo: float, hi: float, a: float, b: float) -> float:
+    return max(0.0, min(hi, b) - max(lo, a))
+
+
+def bin_edges(freqs: list[float]) -> list[tuple[float, float]]:
+    """46232's bins as `Spectrum.bin_width` reads them: edges at midpoints,
+    the end bins as wide as their one neighbour's gap."""
+
+    n = len(freqs)
+    out = []
+    for i, f in enumerate(freqs):
+        lo = (freqs[i - 1] + f) / 2 if i > 0 else f - (freqs[1] - f) / 2
+        hi = (f + freqs[i + 1]) / 2 if i < n - 1 else f + (f - freqs[i - 1]) / 2
+        out.append((lo, hi))
+    return out
+
+
+def common_bands(mop_bands: list[tuple[float, float, float]], buoy_freqs: list[float]) -> list[tuple[float, float]]:
+    """`BAND_EDGES_HZ`, clipped to the range both sides cover."""
+
+    edges = bin_edges(buoy_freqs)
+    lo = max(min(b[1] for b in mop_bands), edges[0][0])
+    hi = min(max(b[2] for b in mop_bands), edges[-1][1])
+    out = []
+    for a, b in zip(BAND_EDGES_HZ[:-1], BAND_EDGES_HZ[1:]):
+        a, b = max(a, lo), min(b, hi)
+        if b > a:
+            out.append((a, b))
+    return out
+
+
+def band_label(a: float, b: float) -> str:
+    return f"{1 / b:.1f}–{1 / a:.1f} s" if a > 0 else f"> {1 / b:.1f} s"
+
+
+def split(values: list[tuple[float, float, float]], coarse: list[tuple[float, float]]) -> list[float]:
+    """Sum (energy, lo, hi) bins into coarse bands, each by its overlap share."""
+
+    out = [0.0] * len(coarse)
+    for e, lo, hi in values:
+        w = hi - lo
+        if w <= 0 or not e:
+            continue
+        for k, (a, b) in enumerate(coarse):
+            ov = overlap(lo, hi, a, b)
+            if ov > 0:
+                out[k] += e * ov / w
+    return out
+
+
+def mop_band_energy(row: list[float | None], bands, depth_m: float, coarse) -> list[float] | None:
+    """MOP's deep-water-equivalent energy (m²) per coarse band: each MOP
+    band de-shoaled at its own frequency. None if the hour has a gap."""
+
+    if any(x is None for x in row):
+        return None
+    return split([(e * (hi - lo) / rt_shoaling(fc, depth_m), lo, hi)
+                  for e, (fc, lo, hi) in zip(row, bands)], coarse)
+
+
+def mop_band_direction(row, mom, bands, coarse, conv) -> list[float]:
+    """MOP's energy-weighted mean direction FROM per coarse band (°)."""
+
+    nf = len(bands)
+    a1, b1 = mom[:nf], mom[nf:2 * nf]
+    out = []
+    for a, b in coarse:
+        sa = sb = 0.0
+        for i, (fc, lo, hi) in enumerate(bands):
+            ov = overlap(lo, hi, a, b)
+            if ov > 0 and row[i] and a1[i] is not None and b1[i] is not None:
+                sa += row[i] * ov * a1[i]
+                sb += row[i] * ov * b1[i]
+        out.append(conv(math.degrees(math.atan2(sb, sa))) if (sa or sb) else float("nan"))
+    return out
+
+
+def chain_band_direction(near_dir: dict, freqs: list[float], coarse) -> list[float]:
+    """The heading chain-at-MOP's energy arrives on, per coarse band (°)."""
+
+    edges = dict(zip(freqs, bin_edges(freqs)))
+    s = [0.0] * len(coarse)
+    c = [0.0] * len(coarse)
+    for f, (ss, cc) in near_dir.items():
+        lo, hi = edges[f]
+        for k, (a, b) in enumerate(coarse):
+            ov = overlap(lo, hi, a, b)
+            if ov > 0:
+                s[k] += ss * ov / (hi - lo)
+                c[k] += cc * ov / (hi - lo)
+    return [math.degrees(math.atan2(x, y)) % 360 if (x or y) else float("nan") for x, y in zip(s, c)]
+
+
+def source_label(src: str | None) -> str:
+    return "(gap)" if not src else src.rstrip("_") or "(gap)"
+
+
+def circ(d: float) -> float:
+    return ((d + 180) % 360) - 180
+
+
+def convention(spec: dict, mop: dict) -> tuple[str | None, dict[str, float]]:
+    """Which a1/b1 → direction mapping agrees with MOP's own Dp at its peak
+    band: {name: median |difference|}, and the one taken (None if none is
+    within CONVENTION_MAX_DEG). Read off the file, not assumed."""
+
+    mom = spec["moments"]
+    if not mom:
+        return None, {}
+    nf = len(spec["bands"])
+    diffs: dict[str, list[float]] = {k: [] for k in CONVENTIONS}
+    for t, row in spec["energy"].items():
+        m = mom.get(t)
+        if m is None or t not in mop or any(x is None for x in row):
+            continue
+        dp = mop[t][2]
+        i = max(range(nf), key=lambda j: row[j])
+        a1, b1 = m[i], m[nf + i]
+        if dp != dp or a1 is None or b1 is None or not (a1 or b1):
+            continue
+        theta = math.degrees(math.atan2(b1, a1))
+        for k, f in CONVENTIONS.items():
+            diffs[k].append(abs(circ(f(theta) - dp)))
+    med = {k: q(v, .5) for k, v in diffs.items() if v}
+    if not med:
+        return None, {}
+    best = min(med, key=med.get)
+    return (best if med[best] <= CONVENTION_MAX_DEG else None), med
+
+
+def add_bands(row: dict, sp, spec: dict, t_mop, coarse, depth_m: float, navd_m: float, conv) -> None:
+    """Per-band figures for one matched hour, into `row["band"]`."""
+
+    e_row = spec["energy"].get(t_mop)
+    if e_row is None:
+        return
+    mop_e = mop_band_energy(e_row, spec["bands"], depth_m, coarse)
+    if mop_e is None:
+        return
+    mop_n = mop_band_energy(e_row, spec["bands"], navd_m, coarse)
+    edges = bin_edges(sp.frequencies)
+    buoy = split([(c * sp.bin_width(i), *edges[i]) for i, c in enumerate(sp.c11) if c == c and c > 0], coarse)
+    by_f = row["parts"]["mop"]["by_f"]
+    idx = {f: i for i, f in enumerate(sp.frequencies)}
+    chain = split([(e, *edges[idx[f]]) for f, e in by_f.items()], coarse)
+    band = {"mop": mop_e, "mop_navd": mop_n, "chain": chain, "buoy": buoy,
+            "point_hs": 4 * math.sqrt(sum(e * (hi - lo) for e, (_, lo, hi) in zip(e_row, spec["bands"])))}
+    if conv is not None and spec["moments"] and spec["moments"].get(t_mop):
+        band["mop_dir"] = mop_band_direction(e_row, spec["moments"][t_mop], spec["bands"], coarse,
+                                             CONVENTIONS[conv])
+        band["chain_dir"] = chain_band_direction(row["parts"]["mop"]["near_dir"], sp.frequencies, coarse)
+    inp = (spec.get("inputs") or {}).get(t_mop)
+    if inp is not None:
+        band["source"] = inp[0]
+        cov = inp[1]
+        if cov and len(cov) == len(spec["bands"]):
+            band["coverage"] = [
+                (sum(c * overlap(lo, hi, a, b) for c, (_, lo, hi) in zip(cov, spec["bands"]) if c is not None)
+                 / max(sum(overlap(lo, hi, a, b) for c, (_, lo, hi) in zip(cov, spec["bands"]) if c is not None),
+                       1e-30)) for a, b in coarse]
+    row["band"] = band
+    row["mop_bandwise"] = 4 * math.sqrt(sum(mop_e)) / row["buoy"]
+    row["mop_bandwise_navd"] = 4 * math.sqrt(sum(mop_n)) / row["buoy"]
 
 
 # ------------------------------------------------------------------ report
@@ -318,7 +561,171 @@ def acceptance(rows: list[dict], start_depth_m: float, period_s: float,
     return {b: v / math.radians(step) for b, v in sorted(out.items())}, 1.0 / f
 
 
-def report(results: dict, metas: dict, controls: dict, points: dict, combs: dict) -> str:
+def ok_band(r: dict, k: int) -> bool:
+    b = r["band"]
+    return b["mop"][k] > 0 and b["chain"][k] > 0 and 4 * math.sqrt(b["buoy"][k]) >= BAND_MIN_HS
+
+
+def band_report(rows: list[dict], spec: dict | None, why: str, coarse, conv, conv_med: dict) -> list[str]:
+    """The per-band section for one break."""
+
+    L = ["", "### MOP's own spectrum, band by band", ""]
+    if spec is None:
+        return L + [f"Not compared: {why}.", ""]
+    rows = [r for r in rows if "band" in r]
+    m = spec["meta"]["spectrum"]
+    bands = spec["bands"]
+    rb = m.get("readback", {})
+    L += [f"MOP's {len(bands)} bands, {bands[0][1]:.4f}–{bands[-1][2]:.4f} Hz (edges from "
+          f"`{(m.get('schema') or {}).get('edges_from')}`); read-back 4·sqrt(Σ E·df) / MOP's Hs "
+          f"median {rb.get('median')}, worst {rb.get('worst')} over {rb.get('hours')} hours. Common bands "
+          f"{coarse[0][0]:.4f}–{coarse[-1][1]:.4f} Hz. {len(rows)} matched hours with a complete MOP "
+          f"spectrum; a band-hour is compared when 46232 has ≥ {BAND_MIN_HS} m in the band.", ""]
+    if not rows:
+        return L
+    labels = [band_label(a, b) for a, b in coarse]
+    # Whole spectrum, de-shoaled band by band against at Tp.
+    L += ["Whole spectrum, MOP de-shoaled band by band at each band's frequency (10.77 m in brackets) "
+          "against at its Tp as above; MOP's spectrum summed over its own Hs at the point:", "",
+          "| 46232 from | n | MOP, by band | MOP, at Tp | chain-at-MOP / MOP, by band | at Tp | spectrum Hs / MOP Hs |",
+          "|---|---:|---|---|---|---|---|"]
+    for name, lo, hi in sectors():
+        sel = [r for r in rows if lo <= r["from"] < hi and r["mop_bandwise"] > 0]
+        if sel:
+            L.append(f"| {name} | {len(sel)} | {cell([r['mop_bandwise'] for r in sel])} | "
+                     f"{cell([r['mop'] for r in sel])} | {cell([r['mop_eq'] / r['mop_bandwise'] for r in sel])} "
+                     f"({q([r['mop_eq'] / r['mop_bandwise_navd'] for r in sel], .5):.2f}) | "
+                     f"{q([r['mop_eq'] / r['mop'] for r in sel], .5):.2f} | "
+                     f"{cell([r['band']['point_hs'] / r['hs_mop'] for r in sel])} |")
+    L += ["", "chain-at-MOP / MOP in each band, as heights (√ of the energy ratio, both deep-water-equivalent, "
+          "before friction), median [10th, 90th] and hours:", "",
+          "| 46232 from | " + " | ".join(labels) + " |", "|---|" + "---|" * len(labels)]
+    for name, lo, hi in sectors():
+        sel = [r for r in rows if lo <= r["from"] < hi]
+        cells = []
+        for k in range(len(coarse)):
+            v = [math.sqrt(r["band"]["chain"][k] / r["band"]["mop"][k]) for r in sel if ok_band(r, k)]
+            cells.append(f"{cell(v)} n {len(v)}" if v else "–")
+        if sel:
+            L.append(f"| {name} | " + " | ".join(cells) + " |")
+    L += ["", "Each over 46232 in the same band, as heights (√ energy ratio), median: MOP / chain-at-MOP. "
+          "Where MOP is lower than the chain, this says whether MOP takes less of the buoy's band or "
+          "the chain takes more:", "",
+          "| 46232 from | " + " | ".join(labels) + " |", "|---|" + "---|" * len(labels)]
+    for name, lo, hi in sectors():
+        sel = [r for r in rows if lo <= r["from"] < hi]
+        cells = []
+        for k in range(len(coarse)):
+            s2 = [r for r in sel if ok_band(r, k)]
+            cells.append(f"{q([math.sqrt(r['band']['mop'][k] / r['band']['buoy'][k]) for r in s2], .5):.2f} / "
+                         f"{q([math.sqrt(r['band']['chain'][k] / r['band']['buoy'][k]) for r in s2], .5):.2f}"
+                         if s2 else "–")
+        if sel:
+            L.append(f"| {name} | " + " | ".join(cells) + " |")
+    L += ["", "Share of the deep-water-equivalent energy by band (sector totals): MOP / chain-at-MOP / 46232:", "",
+          "| 46232 from | " + " | ".join(labels) + " |", "|---|" + "---|" * len(labels)]
+    for name, lo, hi in sectors():
+        sel = [r for r in rows if lo <= r["from"] < hi]
+        if not sel:
+            continue
+        tot = {k: [sum(r["band"][k][j] for r in sel) for j in range(len(coarse))] for k in ("mop", "chain", "buoy")}
+        sh = {k: [x / max(sum(v), 1e-30) for x in v] for k, v in tot.items()}
+        L.append(f"| {name} | " + " | ".join(f"{100 * sh['mop'][j]:.0f} / {100 * sh['chain'][j]:.0f} / "
+                                             f"{100 * sh['buoy'][j]:.0f}%" for j in range(len(coarse))) + " |")
+    with_cov = [r for r in rows if "coverage" in r["band"]]
+    if with_cov:
+        L += ["", "MOP's own weighted input coverage per band (`waveModelBinInputCoverage`, overlap-weighted "
+              "mean of its bands), median [10th, 90th]:", "",
+              "| 46232 from | " + " | ".join(labels) + " |", "|---|" + "---|" * len(labels)]
+        for name, lo, hi in sectors():
+            sel = [r for r in with_cov if lo <= r["from"] < hi]
+            if sel:
+                L.append(f"| {name} | " + " | ".join(cell([r["band"]["coverage"][k] for r in sel])
+                                                     for k in range(len(coarse))) + " |")
+    srcs: dict[str, list[dict]] = {}
+    for r in rows:
+        if "source" in r["band"]:
+            srcs.setdefault(source_label(r["band"]["source"]), []).append(r)
+    if srcs:
+        L += ["", "By MOP's input sources (`waveModelInputSource` as written, trailing padding dropped; "
+              "CDIP station ids): whole-spectrum chain-at-MOP / MOP (MOP de-shoaled by band), median "
+              "[10th, 90th] and hours, by 46232's sector:", "",
+              "| inputs | " + " | ".join(n for n, _, _ in sectors()) + " |", "|---|" + "---|" * len(sectors())]
+        for k, rs in sorted(srcs.items(), key=lambda kv: -len(kv[1])):
+            cells = []
+            for name, lo, hi in sectors():
+                v = [r["mop_eq"] / r["mop_bandwise"] for r in rs if lo <= r["from"] < hi and r["mop_bandwise"] > 0]
+                cells.append(f"{cell(v)} n {len(v)}" if v else "–")
+            L.append(f"| `{k}` | " + " | ".join(cells) + " |")
+    if spec["moments"] is None:
+        L += ["", "Direction by band: MOP's files carry no moments.", ""]
+        return L
+    L += ["", "MOP's a1/b1 convention, read off its own Dp at its peak band (median |difference|): "
+          + "; ".join(f"{k} {v:.1f}°" for k, v in conv_med.items()) + "."
+          + (f" Taken: **{conv}**." if conv else f" None within {CONVENTION_MAX_DEG:g}°: no direction table.")]
+    if conv is None:
+        return L + [""]
+    L += ["", "Direction by band: chain-at-MOP's arrival heading minus MOP's mean direction from (°), "
+          "median [10th, 90th]; MOP's mean direction in brackets:", "",
+          "| 46232 from | " + " | ".join(labels) + " |", "|---|" + "---|" * len(labels)]
+    for name, lo, hi in sectors():
+        sel = [r for r in rows if lo <= r["from"] < hi and "mop_dir" in r["band"]]
+        cells = []
+        for k in range(len(coarse)):
+            s2 = [r for r in sel if ok_band(r, k) and r["band"]["mop_dir"][k] == r["band"]["mop_dir"][k]
+                  and r["band"]["chain_dir"][k] == r["band"]["chain_dir"][k]]
+            d = [circ(r["band"]["chain_dir"][k] - r["band"]["mop_dir"][k]) for r in s2]
+            cells.append(f"{cell(d)} ({q([r['band']['mop_dir'][k] for r in s2], .5):.0f}°)" if d else "–")
+        if sel:
+            L.append(f"| {name} | " + " | ".join(cells) + " |")
+    return L + [""]
+
+
+def files_report(points: dict, specs: dict) -> list[str]:
+    """What MOP's files say about themselves: global attributes in full for
+    the first point (and any that differ elsewhere), `metaWaterDepth`'s
+    attributes and the small variables for every point."""
+
+    L = ["## What MOP's files say about themselves", "",
+         "Read from each file's DAS and from its small variables (`collector.mop`, Actions), verbatim. "
+         "This is where MOP's depth datum, its method and the buoys that drive the nowcast are read; "
+         "nothing in this section is inferred.", ""]
+    metas = {}
+    for b in points:
+        mp = MOP_DIR / f"{b}_meta.json"
+        if mp.exists():
+            metas[b] = json.loads(mp.read_text())
+    if not metas:
+        return L + ["No `<break>_meta.json` yet: run `collector.mop` on Actions.", ""]
+    first = next(iter(metas))
+    g0 = metas[first].get("global", {})
+    L += [f"### Global attributes ({metas[first]['point']})", ""]
+    for k, v in g0.items():
+        L.append(f"- `{k}`: {json.dumps(v, ensure_ascii=False)}")
+    for b, m in metas.items():
+        if b == first:
+            continue
+        diff = {k: v for k, v in m.get("global", {}).items() if g0.get(k) != v}
+        if diff:
+            L += ["", f"Differing at {m['point']} ({b}):"] + [f"- `{k}`: {json.dumps(v, ensure_ascii=False)}"
+                                                               for k, v in diff.items()]
+    L += ["", "### Per point", ""]
+    for b, m in metas.items():
+        sv = m.get("small_variables", {})
+        body = sv.get("ascii", "")
+        body = body.split("---------------------------------------------", 1)[-1].strip()
+        sp = m.get("spectrum", {})
+        L += [f"**{m['point']}** ({b}) — `metaWaterDepth` attributes: "
+              f"{json.dumps(m.get('metaWaterDepth', {}), ensure_ascii=False)}. Spectrum: "
+              f"{'read' if specs.get(b, (None, ''))[0] else 'not read'}"
+              f"{'' if not sp.get('problems') else ' (' + '; '.join(sp['problems']) + ')'}; "
+              f"variables declared: {', '.join(sorted(m.get('variables', {})))}.", "",
+              "Small variables (off the time axis), as served:", "", "```", body[:6000], "```", ""]
+    return L
+
+
+def report(results: dict, metas: dict, controls: dict, points: dict, combs: dict,
+           bands: dict | None = None, files: list[str] | None = None) -> str:
     L = ["# The chain's own rays from MOP's points",
          "",
          f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC by `python -m forecast.mopdepth` "
@@ -344,7 +751,12 @@ def report(results: dict, metas: dict, controls: dict, points: dict, combs: dict
           "on the open shelf, so there it is a third place, not the 10 m → 5 m leg.",
           "- The frequency table sets the chain's energy up to a cut against MOP's WHOLE Hs. Near 1 "
           "at ≤ 0.1 Hz says the chain's swell alone is as big as all of MOP; it does not say the "
-          "swell agrees. Which band MOP is short in needs MOP's own spectrum.",
+          "swell agrees. Which band MOP is short in is the per-band section under each break, "
+          "from MOP's own spectrum.",
+          "- Per band, both sides are deep-water-equivalent before friction: MOP de-shoaled band by "
+          "band at each band's own frequency, chain-at-MOP as carried. `MOP / chain-at-MOP` over "
+          "46232 in the same band says which side moves: MOP taking less of the buoy's band, or the "
+          "chain taking more.",
           "- Fourier against maximum entropy is the buoy's directional reading alone: the same "
           "tables, a different spread.",
           ""]
@@ -464,6 +876,10 @@ def report(results: dict, metas: dict, controls: dict, points: dict, combs: dict
             if 150 <= k < 320:
                 L.append(f"| {k}–{k + 10}° | " + " | ".join(f"{c.get(k, 0.0):.2f}" for c, _ in comb.values()) + " |")
         L.append("")
+        if bands and b in bands:
+            L += bands[b]
+    if files:
+        L += files
     return "\n".join(L)
 
 
@@ -490,6 +906,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     spectra = list(load_spectra(ROOT / "data" / "spectra" / "46232"))
     results, metas, combs = {}, {}, {}
+    band_sections, specs = {}, {}
     for b in breaks:
         built = {v: build(b, v, points[b], refresh=args.refresh) for v in VARIANTS}
         metas[b] = {v: m for v, (_, m) in built.items()}
@@ -499,10 +916,16 @@ def main(argv: list[str] | None = None) -> int:
         combs[b] = {v: acceptance(rows, float(m["start_depth_m"]), 14.3)
                     for v, (rows, m) in (("break_5m", built["break_5m"]), ("normal_mop", built["normal_mop"]),
                                          ("mop", (built["mop"][0] + built["mop_back"][0], built["mop"][1])))}
-        results[b] = hours(b, read_mop(MOP_DIR / f"{b}.csv"), spectra, tables,
-                           float(points[b]["depth_m"]), float(points[b]["depth_m"]) + msl)
-        print(f"{b}: {len(results[b])} hours", flush=True)
-    text = report(results, metas, controls, points, combs)
+        mop = read_mop(MOP_DIR / f"{b}.csv")
+        spec, why = read_mop_spectrum(MOP_DIR, b)
+        coarse = common_bands(spec["bands"], spectra[0].frequencies) if spec else None
+        conv, conv_med = convention(spec, mop) if spec else (None, {})
+        results[b] = hours(b, mop, spectra, tables, float(points[b]["depth_m"]),
+                           float(points[b]["depth_m"]) + msl, spec, coarse, conv)
+        band_sections[b] = band_report(results[b], spec, why, coarse, conv, conv_med)
+        specs[b] = (spec, why)
+        print(f"{b}: {len(results[b])} hours; spectrum {'read' if spec else why}; convention {conv}", flush=True)
+    text = report(results, metas, controls, points, combs, band_sections, files_report(points, specs))
     if args.out:
         args.out.write_text(text, encoding="utf-8")
         print(f"Wrote {args.out}")

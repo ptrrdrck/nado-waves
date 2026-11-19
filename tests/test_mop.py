@@ -147,3 +147,286 @@ def test_the_report_names_the_comparison_a_model_against_a_model():
     assert "model against a model" in text
     assert "| W-WNW (270–295°) | 1 |" in text
     assert "1.50" in text
+
+
+# ------------------------------------------------------------------ spectrum and metadata
+
+SPEC_DDS = """Dataset {
+    Float32 metaLatitude;
+    Float32 metaWaterDepth;
+    String metaSiteLabel;
+    Float32 waveFrequency[waveFrequency = 3];
+    Grid {
+      ARRAY:
+        Float32 waveBandwidth[waveFrequency = 3];
+      MAPS:
+        Float32 waveFrequency[waveFrequency = 3];
+    } waveBandwidth;
+    Float32 waveFrequencyBounds[waveFrequency = 3][metaBoundsCount = 2];
+    Int32 waveTime[waveTime = 2];
+    Grid {
+      ARRAY:
+        Float32 waveHs[waveTime = 2];
+      MAPS:
+        Int32 waveTime[waveTime = 2];
+    } waveHs;
+    Grid {
+      ARRAY:
+        Float32 waveEnergyDensity[waveTime = 2][waveFrequency = 3];
+      MAPS:
+        Int32 waveTime[waveTime = 2];
+        Float32 waveFrequency[waveFrequency = 3];
+    } waveEnergyDensity;
+    Float32 waveA1Value[waveTime = 2][waveFrequency = 3];
+    Float32 waveB1Value[waveTime = 2][waveFrequency = 3];
+    Float32 waveA2Value[waveTime = 2][waveFrequency = 3];
+    Float32 waveB2Value[waveTime = 2][waveFrequency = 3];
+    String waveModelInputSource[waveTime = 2];
+    Float32 waveModelBinInputCoverage[waveTime = 2][waveFrequency = 3];
+} cdip/model/MOP_alongshore/D0101_nowcast.nc;"""
+
+SPEC_DAS = r"""Attributes {
+    metaWaterDepth {
+        String long_name "water depth";
+        String units "meters";
+        String comment "Depth below \"NAVD88\", rounded";
+        Float32 _FillValue -999.99;
+    }
+    waveFrequency {
+        String units "Hz";
+    }
+    waveEnergyDensity {
+        String units "meter^2 second";
+        Float32 _FillValue -999.99;
+    }
+    waveA1Value {
+        Float32 _FillValue -999.99;
+    }
+    waveModelInputSource {
+        String _FillValue "_";
+    }
+    NC_GLOBAL {
+        String title "MOP nowcast";
+        String history "line one
+line two";
+        Float32 geospatial_vertical_min 10.0, 10.5;
+        Int32 count 4;
+    }
+    DODS_EXTRA {
+        String Unlimited_Dimension "waveTime";
+    }
+}"""
+
+GRID_ASCII = """Dataset {
+    Grid { ARRAY: Float32 waveEnergyDensity[waveTime = 2][waveFrequency = 3]; } waveEnergyDensity;
+} x;
+---------------------------------------------
+waveEnergyDensity.waveEnergyDensity[2][3]
+[0], 0.1, 0.2, 0.3
+[1], 0.4, -999.99, 0.6
+
+waveEnergyDensity.waveTime[2]
+1785801600, 1785805200
+
+waveEnergyDensity.waveFrequency[3]
+0.05, 0.1, 0.2
+
+waveA1Value[2][3]
+[0], 0.5, 0.6, 0.7
+[1], 0.1, 0.2, 0.3
+"""
+
+
+def test_a_grid_response_keeps_the_array_and_its_maps_apart():
+    v = mop.parse_ascii(GRID_ASCII)
+    assert v["waveEnergyDensity"] == pytest.approx([0.1, 0.2, 0.3, 0.4, -999.99, 0.6])
+    # The maps do not land in a variable of the same name fetched beside it.
+    assert "waveFrequency" not in v and v["waveEnergyDensity.waveFrequency"] == pytest.approx([0.05, 0.1, 0.2])
+    assert v["waveA1Value"] == pytest.approx([0.5, 0.6, 0.7, 0.1, 0.2, 0.3])
+
+
+def test_the_dds_is_read_by_name_and_shape():
+    d = mop.parse_dds(SPEC_DDS)
+    assert d["waveEnergyDensity"]["dims"] == [("waveTime", 2), ("waveFrequency", 3)]
+    assert d["waveFrequencyBounds"]["dims"] == [("waveFrequency", 3), ("metaBoundsCount", 2)]
+    assert d["metaSiteLabel"] == {"type": "String", "dims": []}
+    assert set(mop.small_variables(d)) == {"metaLatitude", "metaWaterDepth", "metaSiteLabel", "waveFrequency",
+                                           "waveBandwidth", "waveFrequencyBounds"}
+
+
+def test_the_das_keeps_every_attribute_exactly():
+    a = mop.parse_das(SPEC_DAS)
+    assert a["metaWaterDepth"]["comment"] == 'Depth below "NAVD88", rounded'
+    assert a["metaWaterDepth"]["_FillValue"] == pytest.approx(-999.99)
+    assert a["NC_GLOBAL"]["history"] == "line one\nline two"
+    assert a["NC_GLOBAL"]["geospatial_vertical_min"] == [10.0, 10.5]
+    assert a["NC_GLOBAL"]["count"] == 4
+    assert a["DODS_EXTRA"]["Unlimited_Dimension"] == "waveTime"
+    assert list(mop.fill_values(a["waveEnergyDensity"])) == [pytest.approx(-999.99)]
+
+
+def test_the_spectral_schema_is_read_from_the_file_and_a_missing_piece_is_reported():
+    d, a = mop.parse_dds(SPEC_DDS), mop.parse_das(SPEC_DAS)
+    schema, problems = mop.spectral_schema(d, a)
+    assert problems == []
+    assert schema["nf"] == 3 and schema["time_first"] and schema["moments"]
+    assert schema["edges_from"] == "waveFrequencyBounds"
+    # No bounds: the bandwidth, centred.
+    no_bounds = {k: v for k, v in d.items() if k != "waveFrequencyBounds"}
+    assert mop.spectral_schema(no_bounds, a)[0]["edges_from"] == "waveBandwidth"
+    # One moment missing: none are taken.
+    no_b2 = {k: v for k, v in d.items() if k != "waveB2Value"}
+    assert mop.spectral_schema(no_b2, a)[0]["moments"] is False
+    # No energy, or frequency in other units: reported, never guessed past.
+    schema, problems = mop.spectral_schema({k: v for k, v in d.items() if k != "waveEnergyDensity"}, a)
+    assert schema is None and "waveEnergyDensity" in problems[0]
+    a2 = dict(a, waveFrequency={"units": "rad/s"})
+    schema, problems = mop.spectral_schema(d, a2)
+    assert schema is None and "rad/s" in problems[0]
+
+
+def test_band_edges_come_from_the_bounds_else_centred_on_the_bandwidth():
+    vals = {"waveFrequency": [0.05, 0.1, 0.2], "waveBandwidth": [0.02, 0.05, 0.1],
+            "waveFrequencyBounds": [0.04, 0.06, 0.08, 0.13, 0.15, 0.25]}
+    e = mop.band_edges({"edges_from": "waveFrequencyBounds"}, vals)
+    assert e[1] == (0.1, 0.08, 0.13, 0.05)
+    e = mop.band_edges({"edges_from": "waveBandwidth"}, vals)
+    assert e[2] == pytest.approx((0.2, 0.15, 0.25, 0.1))
+
+
+def test_unpacking_follows_the_declared_order_and_a_fill_is_a_gap():
+    flat = [1, 2, 3, 4, 5, 6]
+    assert mop.unpack(flat, 2, 3, True) == [[1, 2, 3], [4, 5, 6]]
+    assert mop.unpack(flat, 2, 3, False) == [[1, 3, 5], [2, 4, 6]]
+    with pytest.raises(ValueError):
+        mop.unpack(flat, 3, 3, True)
+    fills = {-999.99}
+    assert mop.is_gap(-999.99, fills) and mop.is_gap(float("nan"), fills) and mop.is_gap(-9999.0, set())
+    assert not mop.is_gap(0.0, fills)
+
+
+def test_the_read_back_catches_a_unit_or_a_band_width_misread():
+    widths = [0.01] * 10
+    energy = [[0.5] * 10, [1.0] * 10]
+    hs = [4 * math.sqrt(0.05), 4 * math.sqrt(0.1)]
+    rb = mop.readback(energy, widths, hs)
+    assert rb["ok"] and rb["median"] == pytest.approx(1.0) and rb["hours"] == 2
+    assert not mop.readback(energy, [0.02] * 10, hs)["ok"]          # bandwidth doubled
+    # An hour with a gap in it is not read back, rather than read as zero.
+    assert mop.readback([[None] + [0.5] * 9, [1.0] * 10], widths, hs)["hours"] == 1
+
+
+def test_save_extras_writes_the_meta_and_spectrum_files(tmp_path):
+    class Fake:
+        def __init__(self):
+            self.urls = []
+
+        def fetch(self, url, timeout=120.0):
+            self.urls.append(url)
+            if "waveModelInputSource[" in url:
+                return ("x\n---------------------------------------------\n"
+                        "waveModelInputSource[2]\n\"46232 46225\", \"_\"\n"
+                        "waveModelBinInputCoverage[2][3]\n[0], 1.0, 0.9, 0.5\n[1], 1.0, -999.99, 0.0\n")
+            if "waveEnergyDensity[" in url:
+                return GRID_ASCII.replace("[1], 0.4, -999.99, 0.6", "[1], 0.4, 0.5, 0.6") + (
+                    "waveB1Value[2][3]\n[0], 0, 0, 0\n[1], 0, 0, 0\n"
+                    "waveA2Value[2][3]\n[0], 0, 0, 0\n[1], 0, 0, 0\n"
+                    "waveB2Value[2][3]\n[0], 0, 0, 0\n[1], 0, 0, 0\n")
+            return ("Dataset { } x;\n---------------------------------------------\n"
+                    "metaLatitude, 32.6\nmetaWaterDepth, 10.0\nmetaSiteLabel, \"D0101 Coronado\"\n"
+                    "waveFrequency[3]\n0.05, 0.1, 0.2\n"
+                    "waveBandwidth.waveBandwidth[3]\n0.02, 0.05, 0.1\n"
+                    "waveBandwidth.waveFrequency[3]\n0.05, 0.1, 0.2\n"
+                    "waveFrequencyBounds[3][2]\n[0], 0.04, 0.06\n[1], 0.08, 0.13\n[2], 0.15, 0.25\n")
+
+    f = Fake()
+    m0 = [0.1 * 0.02 + 0.2 * 0.05 + 0.3 * 0.1, 0.4 * 0.02 + 0.5 * 0.05 + 0.6 * 0.1]
+    lines, ok = mop.save_extras(f, "coronado_center", "D0101", "cdip/x.nc", SPEC_DDS, SPEC_DAS,
+                                (0, 1, [1785801600, 1785805200]), [4 * math.sqrt(m) for m in m0], tmp_path)
+    assert ok, lines
+    assert len(f.urls) == 3
+    assert "waveEnergyDensity[0:1:1][0:1:2]" in f.urls[1]
+    meta = json.loads((tmp_path / "coronado_center_meta.json").read_text())
+    assert meta["metaWaterDepth"]["comment"] == 'Depth below "NAVD88", rounded'
+    assert meta["global"]["title"] == "MOP nowcast"
+    assert "D0101 Coronado" in meta["small_variables"]["ascii"]
+    assert meta["spectrum"]["readback"]["ok"]
+    bands = list(csv.DictReader((tmp_path / "coronado_center_bands.csv").open()))
+    assert [b["lower_hz"] for b in bands] == ["0.04", "0.08", "0.15"]
+    spec = list(csv.DictReader((tmp_path / "coronado_center_spectrum.csv").open()))
+    assert spec[0]["valid_utc"] == "2026-08-04T00:00:00Z" and spec[1]["e01"] == "0.5"
+    mom = list(csv.DictReader((tmp_path / "coronado_center_moments.csv").open()))
+    assert mom[0]["a1_02"] == "0.700" and mom[1]["b2_00"] == "0.000"
+    # What drove each hour, as the file says; a fill is a gap.
+    inp = list(csv.DictReader((tmp_path / "coronado_center_inputs.csv").open()))
+    assert inp[0]["input_source"] == "46232 46225" and inp[1]["input_source"] == ""
+    assert inp[0]["cov02"] == "0.500" and inp[1]["cov01"] == ""
+    assert meta["inputs"]["sources"] == {"46232 46225": 1, "": 1}
+
+
+def test_main_end_to_end_against_a_fake_server(tmp_path, monkeypatch):
+    """The whole run, offline: discovery, the series, then the meta and
+    spectrum files for each break, and exit 0 only when all read back."""
+
+    from forecast.geometry import load
+    from forecast.nearshore import BREAKS
+
+    spots = {s.id: s for s in load()[0]}
+    pos = {f"D{i + 101:04d}": spots[b].position for i, b in enumerate(BREAKS)}
+    t0 = 1785801600                                       # 2026-08-04T00Z
+    dds = SPEC_DDS.replace("} cdip", "    Float32 metaLongitude;\n    Float32 waveTp[waveTime = 2];\n"
+                           "    Float32 waveDp[waveTime = 2];\n} cdip")
+    das = SPEC_DAS.replace("    NC_GLOBAL {", '    waveTime {\n        String units "seconds since 1970-01-01 00:00:00 UTC";\n'
+                           "    }\n    NC_GLOBAL {")
+    m0 = [0.1 * 0.02 + 0.2 * 0.05 + 0.3 * 0.1, 0.4 * 0.02 + 0.5 * 0.05 + 0.6 * 0.1]
+    rule = "\n---------------------------------------------\n"
+
+    def fetch(self, url, timeout=120.0):
+        self.left -= 1
+        if url.endswith("catalog.xml"):
+            return "<catalog>" + "".join(f'<dataset name="{p}_nowcast.nc" urlPath="cdip/m/{p}_nowcast.nc"/>'
+                                         for p in pos) + "</catalog>"
+        pid = url.split("/m/")[1][:5]
+        if url.endswith(".dds"):
+            return dds
+        if url.endswith(".das"):
+            return das
+        q = url.split("?", 1)[1]
+        if q.startswith("metaLatitude,metaLongitude,metaWaterDepth"):
+            return f"x{rule}metaLatitude, {pos[pid][0]}\nmetaLongitude, {pos[pid][1]}\nmetaWaterDepth, 10.0\n"
+        if q == "waveTime":
+            return f"x{rule}waveTime[2]\n{t0}, {t0 + 3600}\n"
+        if q.startswith("waveHs["):
+            hs = ", ".join(f"{4 * math.sqrt(m):.6f}" for m in m0)
+            return f"x{rule}waveHs.waveHs[2]\n{hs}\nwaveHs.waveTime[2]\n{t0}, {t0 + 3600}\nwaveTp.waveTp[2]\n14.3, 14.3\nwaveDp.waveDp[2]\n250, 251\n"
+        if q.startswith("waveModelInputSource["):
+            return (f"x{rule}waveModelInputSource[2]\n\"46232\", \"46232\"\n"
+                    "waveModelBinInputCoverage[2][3]\n[0], 1, 1, 1\n[1], 1, 1, 1\n")
+        if "waveEnergyDensity[" in q:
+            zeros = "[0], 0, 0, 0\n[1], 0, 0, 0\n"
+            return (GRID_ASCII.replace("-999.99", "0.5") + f"waveB1Value[2][3]\n{zeros}waveA2Value[2][3]\n{zeros}"
+                    f"waveB2Value[2][3]\n{zeros}")
+        return (f"x{rule}metaLatitude, 32.6\nwaveFrequency[3]\n0.05, 0.1, 0.2\n"
+                "waveBandwidth.waveBandwidth[3]\n0.02, 0.05, 0.1\n"
+                "waveFrequencyBounds[3][2]\n[0], 0.04, 0.06\n[1], 0.08, 0.13\n[2], 0.15, 0.25\n")
+
+    monkeypatch.setattr(mop.Budget, "fetch", fetch)
+    monkeypatch.setattr(mop, "write_step_summary", lambda text: None)
+    assert mop.main(["--out", str(tmp_path)]) == 0
+    for b in BREAKS:
+        assert (tmp_path / f"{b}.csv").exists()
+        assert json.loads((tmp_path / f"{b}_meta.json").read_text())["spectrum"]["readback"]["ok"]
+        assert (tmp_path / f"{b}_moments.csv").exists()
+        assert json.loads((tmp_path / f"{b}_meta.json").read_text())["inputs"]["sources"] == {"46232": 2}
+    # A spectrum that does not read back: the series stand, the run says 3.
+    monkeypatch.setattr(mop, "READBACK_TOL", -1.0)
+    assert mop.main(["--out", str(tmp_path)]) == 3
+    assert (tmp_path / "coronado_center.csv").exists()
+
+
+def test_string_values_are_read_whole_with_their_commas_and_quotes():
+    body = ("x\n---------------------------------------------\n"
+            "waveModelInputSource.waveModelInputSource[3]\n"
+            '"46225, 46232", "a\\"b",\n"_"\n'
+            "waveModelInputSource.waveTime[3]\n1, 2, 3\n")
+    assert mop.parse_ascii_strings(body, "waveModelInputSource") == ["46225, 46232", 'a"b', "_"]

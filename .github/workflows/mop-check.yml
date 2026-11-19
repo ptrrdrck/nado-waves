@@ -39,7 +39,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v5
@@ -54,9 +54,15 @@ jobs:
         env:
           PRODUCT: ${{ inputs.product }}
           SINCE: ${{ inputs.since }}
+        # Exit 3: every series written, but a spectrum or metadata step
+        # stopped. What was written is committed (the meta file says why it
+        # stopped) and the last step turns the run red.
         run: |
-          set -euo pipefail
+          set -uo pipefail
           python -m collector.mop --product "${PRODUCT:-nowcast}" --since "${SINCE:-2026-08-04}"
+          code=$?
+          echo "MOP_STATUS=${code}" >> "$GITHUB_ENV"
+          if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
 
       - name: Set the chain against it
         run: |
@@ -82,7 +88,7 @@ jobs:
           fi
 
           git commit \
-            -m "data: archive CDIP MOP at the breaks and regenerate the MOP cross-check" \
+            -m "data: archive CDIP MOP at the breaks (series, spectrum, metadata) and regenerate the MOP cross-check" \
             -m "Automated commit from .github/workflows/mop-check.yml."
 
           for attempt in 1 2 3 4; do
@@ -100,4 +106,10 @@ jobs:
           done
 
           echo "::error title=MOP check push failed::Could not push the report"
+          exit 1
+
+      - name: A spectrum or metadata step stopped
+        if: env.MOP_STATUS == '3'
+        run: |
+          echo "::error title=MOP spectrum or metadata incomplete::collector.mop exited 3; the series are committed, data/mop/<break>_meta.json says what stopped"
           exit 1

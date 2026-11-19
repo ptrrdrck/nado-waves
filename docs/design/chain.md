@@ -676,4 +676,31 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   The seabed reads 10.77 / 10.98 / 10.95 m below MSL at D0181 / D0179 /
   D0168: 10 m NAVD88 is 10.77 m MSL, so NAVD88 (or MLLW, ~the same here) and
   not MSL. Inferred, not read: CDIP is unreachable from a session. It moves
-  the comparison by 0.01-0.02.
+  the comparison by 0.01-0.02. **Run 2 read the file, and it does not say**
+  (below): the inference stands.
+- **MOP's own spectrum and what its files say, 2026-11-18 (handoff item
+  24a, BRIEFING §56c; `mop-check.yml` runs 2 and 4 on the branch, run 3
+  refused at CDIP's catalogue with a 403).** `collector.mop` now saves, per
+  point, `<break>_meta.json` (DDS and DAS verbatim, every attribute, the
+  small variables), `_bands.csv`, `_spectrum.csv`, `_moments.csv` and
+  `_inputs.csv`, each checked against the file's own DDS/DAS first; the
+  read-back 4·sqrt(Σ E·df) over MOP's Hs is 1.000 every hour, and
+  `mopdepth` refuses a spectrum that fails it. What the files say: MOP v1.1
+  (Net_model 2.1, O'Reilly et al. 2016), 20 bands 0.0375-0.45 Hz with a1-b2;
+  `metaWaterDepth` is CF `sea_floor_depth_below_sea_level` with no datum,
+  10.0 at every point; **nothing about diffraction**; the inputs per hour by
+  CDIP station id, `191p1-067p1-071p1:191p1-220p1-100p1-045p1` on 2,182 of
+  2,565 hours (191 is 46232, `collector/stations.json`; the others are not
+  named here), 46232 absent 1-17 Sep only, input coverage 1.00 in every band.
+  a1/b1 are "from, clockwise from north" (median 0.0° from MOP's Dp).
+- **Band by band (`forecast.mopdepth`, both deep-water-equivalent before
+  friction, MOP de-shoaled at each band's own frequency).** De-shoaling MOP's
+  whole Hs at its Tp, as §56a and §56b did, understated MOP's
+  deep-water-equivalent by 6-14%: chain-at-MOP / MOP falls to 1.15-1.30
+  (Center), 1.11-1.26 (South), 1.15-1.27 (North) by sector. What is left
+  is broad in frequency, 1.11-1.24 in every band from 27 s to 5 s at Center
+  on S-W (North 1.03-1.26), about 1 at 4-5 s and below 1 under 4 s, plus a
+  W-WNW long-period part: 13-16.7 s is 1.37-1.39 at all three points, and
+  over 10 s the chain's energy arrives 3-10° further west than MOP's mean
+  direction. MOP takes less of
+  46232's energy in each band; nothing here says which model is right.
