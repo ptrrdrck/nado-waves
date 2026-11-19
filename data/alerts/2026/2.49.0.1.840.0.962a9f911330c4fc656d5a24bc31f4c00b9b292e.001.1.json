@@ -1,0 +1,118 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.962a9f911330c4fc656d5a24bc31f4c00b9b292e.001.1",
+    "type": "Feature",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [
+                    -117.37,
+                    33.29
+                ],
+                [
+                    -117.42,
+                    33.34
+                ],
+                [
+                    -117.24,
+                    33.43
+                ],
+                [
+                    -117.14,
+                    33.35
+                ],
+                [
+                    -117.37,
+                    33.29
+                ]
+            ]
+        ]
+    },
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.962a9f911330c4fc656d5a24bc31f4c00b9b292e.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.962a9f911330c4fc656d5a24bc31f4c00b9b292e.001.1",
+        "areaDesc": "San Diego County Coastal Areas; San Diego County Inland Valleys",
+        "geocode": {
+            "SAME": [
+                "006073"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ050"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ050"
+        ],
+        "references": [],
+        "sent": "2026-11-19T13:17:00-08:00",
+        "effective": "2026-11-19T13:17:00-08:00",
+        "onset": "2026-11-19T13:17:00-08:00",
+        "expires": "2026-11-19T14:00:00-08:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Observed",
+        "urgency": "Expected",
+        "event": "Special Weather Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Special Weather Statement issued November 19 at 1:17PM PST by NWS San Diego CA",
+        "description": "At 117 PM PST, Doppler radar was tracking gusty showers capable of\nproducing a landspout over southeastern Camp Pendleton, moving\nnortheast at 25 mph.\n\nHAZARD...Small chance for a brief, weak tornado and wind gusts up to\n50 mph.\n\nSOURCE...Radar indicated.\n\nIMPACT...Minor damage to outdoor objects is possible. Gusty winds\ncould knock down tree limbs and blow around unsecured\nobjects.\n\nLocations impacted include...\nFallbrook, eastern Camp Pendleton, Camp Pendleton North, and De Luz.",
+        "instruction": "If outdoors, consider seeking shelter inside a building.",
+        "response": "Execute",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "SPSSGX"
+            ],
+            "WMOidentifier": [
+                "WWUS86 KSGX 192117"
+            ],
+            "NWSheadline": [
+                "GUSTY SHOWERS WILL IMPACT NORTHWESTERN SAN DIEGO COUNTY THROUGH 200 PM PST"
+            ],
+            "eventMotionDescription": [
+                "2026-11-19T21:17:00-00:00...storm...247DEG...21KT...33.34,-117.34"
+            ],
+            "maxWindGust": [
+                "50 MPH"
+            ],
+            "maxHailSize": [
+                "0.00"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "EAS-ORG": [
+                "WXR"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "SPS"
+            ],
+            "NationalWeatherService": [
+                "SPS"
+            ]
+        }
+    }
+}
