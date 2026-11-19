@@ -373,6 +373,8 @@ def test_main_end_to_end_against_a_fake_server(tmp_path, monkeypatch):
 
     spots = {s.id: s for s in load()[0]}
     pos = {f"D{i + 101:04d}": spots[b].position for i, b in enumerate(BREAKS)}
+    pos["D0050"] = mop.EXTRA_POINTS["imperial_beach"][0]
+    pos = dict(sorted(pos.items()))
     t0 = 1785801600                                       # 2026-08-04T00Z
     dds = SPEC_DDS.replace("} cdip", "    Float32 metaLongitude;\n    Float32 waveTp[waveTime = 2];\n"
                            "    Float32 waveDp[waveTime = 2];\n} cdip")
@@ -418,6 +420,15 @@ def test_main_end_to_end_against_a_fake_server(tmp_path, monkeypatch):
         assert json.loads((tmp_path / f"{b}_meta.json").read_text())["spectrum"]["readback"]["ok"]
         assert (tmp_path / f"{b}_moments.csv").exists()
         assert json.loads((tmp_path / f"{b}_meta.json").read_text())["inputs"]["sources"] == {"46232": 2}
+    # The point that is not a break: its own files, filed under "points",
+    # and the breaks still in points.json.
+    assert mop.main(["--out", str(tmp_path), "--points", "extra"]) == 0
+    doc = json.loads((tmp_path / "points.json").read_text())
+    assert set(doc["breaks"]) == set(BREAKS)
+    assert doc["points"]["imperial_beach"]["point"] == "D0050"
+    assert doc["points"]["imperial_beach"]["search_from"] == list(mop.EXTRA_POINTS["imperial_beach"][0])
+    assert (tmp_path / "imperial_beach_spectrum.csv").exists()
+    assert json.loads((tmp_path / "imperial_beach_meta.json").read_text())["spectrum"]["readback"]["ok"]
     # A spectrum that does not read back: the series stand, the run says 3.
     monkeypatch.setattr(mop, "READBACK_TOL", -1.0)
     assert mop.main(["--out", str(tmp_path)]) == 3
@@ -430,3 +441,54 @@ def test_string_values_are_read_whole_with_their_commas_and_quotes():
             '"46225, 46232", "a\\"b",\n"_"\n'
             "waveModelInputSource.waveTime[3]\n1, 2, 3\n")
     assert mop.parse_ascii_strings(body, "waveModelInputSource") == ["46225, 46232", 'a"b', "_"]
+
+
+def test_points_json_merges_so_one_set_never_drops_the_other(tmp_path):
+    """Handoff 24b: a run for a point that is not a break must not drop the
+    breaks from `points.json` (mopcheck and mopdepth read them), nor a run
+    for the breaks drop the points."""
+
+    path = tmp_path / "points.json"
+    mop.write_points(path, {"breaks": {"coronado_center": {"point": "D0179"}}, "points": {}}, 90)
+    doc = mop.write_points(path, {"breaks": {}, "points": {"imperial_beach": {"point": "D0050"}}}, 30)
+    assert doc["breaks"] == {"coronado_center": {"point": "D0179"}}
+    assert doc["points"] == {"imperial_beach": {"point": "D0050"}}
+    doc = mop.write_points(path, {"breaks": {"coronado_center": {"point": "D0180"}}, "points": {}}, 90)
+    assert doc["breaks"]["coronado_center"]["point"] == "D0180"
+    assert doc["points"] == {"imperial_beach": {"point": "D0050"}}
+    assert json.loads(path.read_text()) == doc
+
+
+def test_the_breaks_stay_the_default_and_a_point_is_never_filed_as_a_break(tmp_path, monkeypatch):
+    """`--points` defaults to the breaks, so the workflow's default dispatch
+    is today's run; `extra` fetches only `EXTRA_POINTS`, files them under
+    "points" with the search target and why, and leaves the breaks alone."""
+
+    from forecast.nearshore import BREAKS
+
+    seen = []
+
+    def nearest(ids, position, where):
+        seen.append(tuple(position))
+        return "D0050", 120.0, {"lat": position[0], "lon": position[1], "depth_m": 10.0}
+
+    monkeypatch.setattr(mop, "nearest", nearest)
+    monkeypatch.setattr(mop, "write_step_summary", lambda text: None)
+
+    class Stop(Exception):
+        pass
+
+    def fetch(self, url, timeout=120.0):
+        if url.endswith("catalog.xml"):
+            return '<catalog><dataset name="D0050_nowcast.nc" urlPath="cdip/m/D0050_nowcast.nc"/></catalog>'
+        raise Stop(url)
+
+    monkeypatch.setattr(mop.Budget, "fetch", fetch)
+    mop.main(["--out", str(tmp_path)])
+    from forecast.geometry import load
+    spots = {s.id: s for s in load()[0]}
+    assert seen == [tuple(spots[b].position) for b in BREAKS]
+    seen.clear()
+    mop.main(["--out", str(tmp_path), "--points", "extra"])
+    assert seen == [tuple(pos) for pos, _ in mop.EXTRA_POINTS.values()]
+    assert "imperial_beach" in mop.EXTRA_POINTS and not set(mop.EXTRA_POINTS) & set(BREAKS)

@@ -1,4 +1,5 @@
-# Archive CDIP MOP at the three Coronado breaks and set the chain's wrap
+# Archive CDIP MOP at the three Coronado breaks (and, with `points`, at points
+# that are not breaks: collector.mop's EXTRA_POINTS) and set the chain's wrap
 # against it (BRIEFING §56; §29 named this as "Next" and it was never done).
 #
 # This exists because of where it runs. Both CDIP hosts are refused at CONNECT
@@ -28,6 +29,10 @@ on:
         description: "First day to archive (YYYY-MM-DD); the 46232 spectra archive starts 2026-08-04"
         required: false
         default: "2026-08-04"
+      points:
+        description: "breaks (the three Coronado breaks), extra (collector.mop's EXTRA_POINTS: points that are not breaks, handoff 24b), or all"
+        required: false
+        default: "breaks"
 
 permissions:
   contents: write
@@ -54,12 +59,13 @@ jobs:
         env:
           PRODUCT: ${{ inputs.product }}
           SINCE: ${{ inputs.since }}
+          POINTS: ${{ inputs.points }}
         # Exit 3: every series written, but a spectrum or metadata step
         # stopped. What was written is committed (the meta file says why it
         # stopped) and the last step turns the run red.
         run: |
           set -uo pipefail
-          python -m collector.mop --product "${PRODUCT:-nowcast}" --since "${SINCE:-2026-08-04}"
+          python -m collector.mop --product "${PRODUCT:-nowcast}" --since "${SINCE:-2026-08-04}" --points "${POINTS:-breaks}"
           code=$?
           echo "MOP_STATUS=${code}" >> "$GITHUB_ENV"
           if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi

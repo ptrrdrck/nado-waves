@@ -45,6 +45,14 @@ What this does, and why it discovers rather than assumes:
    file: it is what says the units and band widths were read right, and
    `forecast.mopdepth` refuses a spectrum whose read-back failed.
 
+7. **A point that is not a break** (`EXTRA_POINTS`, `--points extra|all`):
+   the same files under the point's own name, filed in `points.json` under
+   `"points"`, never `"breaks"`, and merged into the file so a run for one
+   set never drops the other. Its position is only where the nearest-point
+   search starts; the MOP point's own position, depth and shore normal come
+   from its file. Handoff item 24b: Imperial Beach, outside Point Loma's
+   shadow, to tell the shadow from the input (BRIEFING §56c).
+
 Exit status: 0 everything written; 1 a break's series stopped; 2 CDIP not
 reachable; 3 every series written but a spectrum or metadata step stopped
 (the workflow commits what it has and then goes red).
@@ -97,6 +105,17 @@ READBACK_TOL, READBACK_WORST = 0.03, 0.15
 DAP_TYPES = "Byte|Int16|UInt16|Int32|UInt32|Float32|Float64|String|Url"
 #: San Diego county's MOP points carry this prefix.
 REGION = "D"
+#: Points that are not breaks, by name: (lat, lon) WHERE THE SEARCH STARTS,
+#: and why. A search target, not a claim about where anything is: the MOP
+#: point found, and its position, depth and shore normal, are read from its
+#: own file. Imperial Beach (handoff 24b): the straight-line Point Loma edge
+#: there is 314.1°, against 258.8-265.8° at the Coronado MOP points, so all
+#: of W-WNW (270-295°) arrives without wrapping (`geometry.open_windows`).
+EXTRA_POINTS = {
+    "imperial_beach": ((32.5785, -117.140),
+                       "Imperial Beach, near the pier: outside Point Loma's shadow (handoff 24b)"),
+}
+POINT_SETS = ("breaks", "extra", "all")
 
 DATASET = re.compile(r'<dataset\b[^>]*\bname="([^"]+)"[^>]*\burlPath="([^"]+)"', re.I)
 DATASET_ALT = re.compile(r'<dataset\b[^>]*\burlPath="([^"]+)"[^>]*\bname="([^"]+)"', re.I)
@@ -635,6 +654,22 @@ def write_inputs(budget: Budget, break_id: str, url_path: str, dims: dict, attrs
 
 # ------------------------------------------------------------------ main
 
+def write_points(path: Path, chosen: dict[str, dict], requests_used: int) -> dict:
+    """Merge this run's points into `points.json`: a run for the breaks never
+    drops the points that are not breaks, nor the other way round. Within a
+    section, only the entries this run fetched are replaced."""
+
+    old = json.loads(path.read_text()) if path.exists() else {}
+    doc = {"source": CATALOG, "retrieved_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "requests_used": requests_used}
+    for section in ("breaks", "points"):
+        merged = {**old.get(section, {}), **chosen.get(section, {})}
+        if merged:
+            doc[section] = merged
+    path.write_text(json.dumps(doc, indent=2) + "\n")
+    return doc
+
+
 def main(argv: list[str] | None = None) -> int:
     from forecast.geometry import load
     from forecast.nearshore import BREAKS
@@ -643,10 +678,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--product", default="nowcast")
     ap.add_argument("--since", default="2026-08-04", help="first day to keep (UTC)")
     ap.add_argument("--out", type=Path, default=OUT_DIR)
+    ap.add_argument("--points", choices=POINT_SETS, default="breaks",
+                    help="the three breaks (default), the points that are not breaks (EXTRA_POINTS), or both")
     args = ap.parse_args(argv)
 
     budget = Budget()
-    report = [f"## CDIP MOP at the Coronado breaks ({args.product})", ""]
+    title = {"breaks": "the Coronado breaks", "extra": "points that are not breaks",
+             "all": "the Coronado breaks and points that are not breaks"}[args.points]
+    report = [f"## CDIP MOP at {title} ({args.product})", ""]
     try:
         catalog = budget.fetch(CATALOG)
     except Exception as exc:  # noqa: BLE001 - reports, never raises
@@ -669,13 +708,17 @@ def main(argv: list[str] | None = None) -> int:
 
     spots, _ = load()
     by_id = {s.id: s for s in spots}
+    targets: list[tuple[str, tuple[float, float], str]] = []
+    if args.points in ("breaks", "all"):
+        targets += [(b, tuple(by_id[b].position), "breaks") for b in BREAKS]
+    if args.points in ("extra", "all"):
+        targets += [(name, tuple(pos), "points") for name, (pos, _) in EXTRA_POINTS.items()]
     since = datetime.fromisoformat(args.since).replace(tzinfo=timezone.utc).timestamp()
     args.out.mkdir(parents=True, exist_ok=True)
-    chosen = {}
+    chosen: dict[str, dict] = {"breaks": {}, "points": {}}
     status = 0
     extras_failed = False
-    for b in BREAKS:
-        pos = tuple(by_id[b].position)
+    for b, pos, section in targets:
         try:
             pid, dist, meta = nearest(ids, pos, where)
             dds = budget.fetch(f"{DODS}{points[pid]}.dds")
@@ -712,11 +755,14 @@ def main(argv: list[str] | None = None) -> int:
                     # CDIP's fill values are large negatives; a gap stays a gap.
                     cells = ["" if (x != x or x < -900 or x > 900) else f"{x:.3f}" for x in (hs, tp, dp)]
                     fh.write(f"{when},{','.join(cells)}\n")
-            chosen[b] = {"point": pid, "url_path": points[pid], "distance_m": round(dist),
-                         "product": args.product, **meta, "hours": n,
-                         "first_utc": datetime.fromtimestamp(t[i0], tz=timezone.utc).isoformat(),
-                         "last_utc": datetime.fromtimestamp(t[i1], tz=timezone.utc).isoformat()}
-            report.append(f"- {b}: {pid}, {dist:.0f} m from the break, {meta['depth_m']:.1f} m deep, {n} hours.")
+            chosen[section][b] = {"point": pid, "url_path": points[pid], "distance_m": round(dist),
+                                  "product": args.product, **meta, "hours": n,
+                                  "first_utc": datetime.fromtimestamp(t[i0], tz=timezone.utc).isoformat(),
+                                  "last_utc": datetime.fromtimestamp(t[i1], tz=timezone.utc).isoformat()}
+            if section == "points":
+                chosen[section][b].update({"search_from": list(pos), "why": EXTRA_POINTS[b][1]})
+            what = "the break" if section == "breaks" else "the search target"
+            report.append(f"- {b}: {pid}, {dist:.0f} m from {what}, {meta['depth_m']:.1f} m deep, {n} hours.")
             try:
                 hs_vals = [None if is_gap(x, fill_values(parse_das(das).get(HS, {}))) else x for x in v[HS]]
                 extra, ok = save_extras(budget, b, pid, points[pid], dds, das, (i0, i1, t[i0:i1 + 1]),
@@ -730,10 +776,8 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:  # noqa: BLE001
             report.append(f"- {b}: failed, {exc.__class__.__name__}: {exc}")
             status = 2 if isinstance(exc, urllib.error.URLError) else 1
-    if chosen:
-        (args.out / "points.json").write_text(json.dumps(
-            {"source": CATALOG, "retrieved_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-             "requests_used": MAX_REQUESTS - budget.left, "breaks": chosen}, indent=2) + "\n")
+    if chosen["breaks"] or chosen["points"]:
+        write_points(args.out / "points.json", chosen, MAX_REQUESTS - budget.left)
     report.append(f"\n{MAX_REQUESTS - budget.left} requests of {MAX_REQUESTS}.")
     print("\n".join(report))
     write_step_summary("\n".join(report))
