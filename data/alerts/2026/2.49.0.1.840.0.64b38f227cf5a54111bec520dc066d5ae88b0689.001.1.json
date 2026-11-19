@@ -1,0 +1,122 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.64b38f227cf5a54111bec520dc066d5ae88b0689.001.1",
+    "type": "Feature",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [
+                    -117.39,
+                    33.38
+                ],
+                [
+                    -117.31,
+                    33.29
+                ],
+                [
+                    -117.43,
+                    33.25
+                ],
+                [
+                    -117.49,
+                    33.32
+                ],
+                [
+                    -117.48,
+                    33.33
+                ],
+                [
+                    -117.39,
+                    33.38
+                ]
+            ]
+        ]
+    },
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.64b38f227cf5a54111bec520dc066d5ae88b0689.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.64b38f227cf5a54111bec520dc066d5ae88b0689.001.1",
+        "areaDesc": "San Diego County Coastal Areas; San Diego County Inland Valleys",
+        "geocode": {
+            "SAME": [
+                "006073"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ050"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ050"
+        ],
+        "references": [],
+        "sent": "2026-11-19T12:54:00-08:00",
+        "effective": "2026-11-19T12:54:00-08:00",
+        "onset": "2026-11-19T12:54:00-08:00",
+        "expires": "2026-11-19T13:30:00-08:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Observed",
+        "urgency": "Expected",
+        "event": "Special Weather Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Special Weather Statement issued November 19 at 12:54PM PST by NWS San Diego CA",
+        "description": "At 1253 PM PST, Doppler radar was tracking gusty showers capable of\nproducing a landspout near Camp Pendleton South, or 7 miles southwest\nof Camp Pendleton, moving northeast at 25 mph.\n\nHAZARD...Possible waterspout north of Oceanside may move ashore\nand wind gusts of 50 to 55 mph.\n\nSOURCE...Radar indicated.\n\nIMPACT...Minor damage to outdoor objects is possible. Gusty winds\ncould knock down tree limbs and blow around unsecured\nobjects.\n\nLocations impacted include...\nCamp Pendleton and Camp Pendleton North.",
+        "instruction": "If outdoors, consider seeking shelter inside a building.",
+        "response": "Execute",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "SPSSGX"
+            ],
+            "WMOidentifier": [
+                "WWUS86 KSGX 192054"
+            ],
+            "NWSheadline": [
+                "GUSTY SHOWERS WILL IMPACT WESTERN SAN DIEGO COUNTY THROUGH 130 PM PST"
+            ],
+            "eventMotionDescription": [
+                "2026-11-19T20:53:00-00:00...storm...244DEG...23KT...33.28,-117.48"
+            ],
+            "maxWindGust": [
+                "55 MPH"
+            ],
+            "maxHailSize": [
+                "0.00"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "EAS-ORG": [
+                "WXR"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "SPS"
+            ],
+            "NationalWeatherService": [
+                "SPS"
+            ]
+        }
+    }
+}
