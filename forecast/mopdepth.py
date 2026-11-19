@@ -27,6 +27,15 @@ as shipped, no Madsen (before friction, as MOP):
 
 Built tables go to `data/live/mopdepth/` (gitignored; ~3 min a table).
 
+**A point that is not a break** (handoff 24b; `collector.mop --points
+extra`, filed under `points.json`'s `"points"`): there is no break, so no
+`break_5m` or `normal_mop`; `mop` and `mop_back` only, the fan centred on
+MOP's own `metaShoreNormal`, held exactly (`PointSpot`), so nothing is
+digitised for it. Its hours are cut to those in every break's MOP series,
+and "Exposed against shadowed" sets its band ratios beside the breaks' on
+the hours all of them share. Control: the same path, given Center's MOP
+point and Center's normal, gives Center's `mop` table back row for row.
+
 **MOP's own spectrum** (handoff item 24a), when `collector.mop` has saved it
 and its read-back passed: both sides are set on common period bands
 (`BAND_EDGES_HZ`), each side's bins split by where their edges overlap.
@@ -52,6 +61,7 @@ from pathlib import Path
 import numpy as np
 
 from . import raytrace as rt
+from .geometry import Spot, open_windows
 from .mopcheck import MATCH_S, SECTORS, ks, mean_from, read_mop
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -97,6 +107,49 @@ def spot_for(variant: str, spot, point: dict):
     return moved
 
 
+@dataclasses.dataclass(frozen=True)
+class PointSpot(Spot):
+    """A MOP point that is not a break (handoff 24b). Its normal is MOP's own
+    `metaShoreNormal`, held exactly: nothing about the point is digitised
+    here. The chord is synthesised perpendicular to it only so that anything
+    reading one finds a consistent one; `raytrace.table` reads the position,
+    the normal and the id."""
+
+    fixed_normal: float = 0.0
+
+    @property
+    def normal(self) -> float:
+        return self.fixed_normal % 360.0
+
+
+#: Half-length (m) of the synthesised chord. It sets nothing: the normal is
+#: held, and `raytrace.table` does not read the chord.
+CHORD_HALF_M = 100.0
+
+
+def point_spot(name: str, point: dict, normal: float, back: bool = False) -> PointSpot:
+    """The spot `raytrace.table` traces from at a MOP point that is not a
+    break; `back` turns the fan round (the opposite half, as `mop_back`)."""
+
+    n = (normal + (180.0 if back else 0.0)) % 360.0
+    lat, lon = float(point["lat"]), float(point["lon"])
+    along = math.radians(n - 90.0)          # the chord runs at normal − 90°
+    dlat = CHORD_HALF_M * math.cos(along) / 111_320.0
+    dlon = CHORD_HALF_M * math.sin(along) / (111_320.0 * math.cos(math.radians(lat)))
+    chord = ((lat - dlat, lon - dlon), (lat + dlat, lon + dlon))
+    return PointSpot(id=name, name=name, position=(lat, lon), shoreline=chord,
+                     notes=f"MOP {point.get('point')}: normal {n:.2f}° from its own metaShoreNormal",
+                     fixed_normal=n)
+
+
+def mop_normal(meta: dict) -> float | None:
+    """MOP's own shore normal (°) from the point's saved small variables."""
+
+    import re
+    m = re.search(r"metaShoreNormal,\s*(-?[\d.]+)", meta.get("small_variables", {}).get("ascii", ""))
+    return float(m.group(1)) if m else None
+
+
 def seabed_at(bathy, lat: float, lon: float) -> float:
     x, y = rt.to_utm(lat, lon)
     h, *_ = bathy.sample(np.array([x]), np.array([y]))
@@ -111,8 +164,15 @@ def h_ref_for(variant: str, bathy, point: dict) -> float:
     return MOP_H_REF
 
 
-def build(break_id: str, variant: str, point: dict, cache: Path = CACHE, refresh: bool = False):
-    """(rows, meta) for one start, from the cache or `raytrace.table`."""
+def build(break_id: str, variant: str, point: dict, cache: Path = CACHE, refresh: bool = False,
+          normal: float | None = None):
+    """(rows, meta) for one start, from the cache or `raytrace.table`.
+
+    With `normal`, `break_id` names a point that is not a break: only `mop`
+    and `mop_back`, traced from `point_spot` at MOP_H_REF."""
+
+    if normal is not None and variant not in ("mop", "mop_back"):
+        raise ValueError(f"{break_id} is not a break: no {variant} start")
 
     csv_path = cache / f"{break_id}_{variant}.csv"
     meta_path = cache / f"{break_id}_{variant}.json"
@@ -121,10 +181,16 @@ def build(break_id: str, variant: str, point: dict, cache: Path = CACHE, refresh
             return list(csv.DictReader(fh)), json.loads(meta_path.read_text())
     bathy = rt.Bathymetry.load()
     spots, blockers = rt.load()
-    spot = {s.id: s for s in spots}[break_id]
-    rows, meta = rt.table(bathy, spot_for(variant, spot, point), blockers, rt.frequencies(),
-                          h_ref=h_ref_for(variant, bathy, point))
+    if normal is None:
+        spot = spot_for(variant, {s.id: s for s in spots}[break_id], point)
+        h_ref = h_ref_for(variant, bathy, point)
+    else:
+        spot, h_ref = point_spot(break_id, point, normal, back=variant == "mop_back"), MOP_H_REF
+    rows, meta = rt.table(bathy, spot, blockers, rt.frequencies(), h_ref=h_ref)
     meta["variant"] = variant
+    if normal is not None:
+        meta["normal_deg"] = round(spot.normal, 4)
+        meta["normal_from"] = "MOP's metaShoreNormal"
     meta["mop_point"] = point.get("point")
     meta["seabed_at_mop_msl_m"] = round(seabed_at(bathy, point["lat"], point["lon"]), 2)
     cache.mkdir(parents=True, exist_ok=True)
@@ -143,6 +209,32 @@ def control(break_id: str, point: dict, cache: Path = CACHE) -> tuple[int, int]:
     old = rt.committed_rows(break_id)
     bad = sum(1 for a, b in zip(rows, old) if a != b) + abs(len(rows) - len(old))
     return bad, len(old)
+
+
+def point_control(points: dict, cache: Path = CACHE) -> tuple[int, int] | None:
+    """The point path against the break path: Center's MOP point traced by
+    `point_spot` with Center's own normal must give Center's `mop` table
+    back row for row (rows differing, rows). None without Center."""
+
+    if "coronado_center" not in points:
+        return None
+    spot = {s.id: s for s in rt.load()[0]}["coronado_center"]
+    want, _ = build("coronado_center", "mop", points["coronado_center"], cache)
+    got, _ = build("control_point_path_center", "mop", points["coronado_center"], cache, normal=spot.normal)
+    bad = sum(1 for a, b in zip(got, want) if a != b) + abs(len(got) - len(want))
+    return bad, len(want)
+
+
+def windows_at(name: str, point: dict, normal: float) -> list[str]:
+    """The open arcs at a MOP point, each edge with what forms it (straight
+    lines to the charted blockers, `geometry.open_windows`)."""
+
+    _, blockers = rt.load()
+    out = []
+    for w in open_windows(point_spot(name, point, normal), blockers):
+        src = [getattr(e.source, "name", e.source) for e in (w.low, w.high)]
+        out.append(f"{w.low.bearing:.1f}° ({src[0]}) – {w.high.bearing:.1f}° ({src[1]})")
+    return out
 
 
 # ------------------------------------------------------------------ carry
@@ -724,8 +816,88 @@ def files_report(points: dict, specs: dict) -> list[str]:
     return L
 
 
+def band_ratio(r: dict, k: int) -> float | None:
+    """chain-at-MOP / MOP in coarse band k as a height, or None."""
+
+    return math.sqrt(r["band"]["chain"][k] / r["band"]["mop"][k]) if "band" in r and ok_band(r, k) else None
+
+
+def exposed_report(places: dict[str, list[dict]], coarse, edges: dict[str, str]) -> list[str]:
+    """Handoff 24b: the band ratios at each place side by side, on the hours
+    every place has a complete MOP spectrum for, by 46232's sector."""
+
+    rows = {k: {r["time"]: r for r in v if "band" in r} for k, v in places.items()}
+    common = set.intersection(*(set(v) for v in rows.values())) if rows else set()
+    labels = [band_label(a, b) for a, b in coarse]
+    L = ["## Exposed against shadowed (handoff 24b)", "",
+         f"chain-at-MOP / MOP in each band as heights (√ energy ratio, both deep-water-equivalent before "
+         f"friction, MOP de-shoaled band by band), median, on the {len(common)} hours every place below "
+         f"has a matched 46232 spectrum and a complete MOP spectrum for. Straight-line Point Loma edge at "
+         f"each MOP point in brackets (`geometry.open_windows`, MOP's own normal). A band-hour is "
+         f"compared when 46232 has ≥ {BAND_MIN_HS} m in it. Whole spectrum: chain-at-MOP / MOP, MOP "
+         "de-shoaled by band.", "",
+         "| 46232 from | place | n | whole | " + " | ".join(labels) + " |",
+         "|---|---|---:|---|" + "---|" * len(labels)]
+    for name, lo, hi in sectors():
+        for place, by_t in rows.items():
+            sel = [by_t[t] for t in common if lo <= by_t[t]["from"] < hi]
+            if not sel:
+                continue
+            whole = [r["mop_eq"] / r["mop_bandwise"] for r in sel if r["mop_bandwise"] > 0]
+            cells = []
+            for k in range(len(coarse)):
+                v = [x for x in (band_ratio(r, k) for r in sel) if x is not None]
+                cells.append(f"{q(v, .5):.2f}" if v else "–")
+            L.append(f"| {name} | {place} ({edges.get(place, '?')}) | {len(sel)} | {q(whole, .5):.2f} | "
+                     + " | ".join(cells) + " |")
+    return L + [""]
+
+
+def point_report(name: str, p: dict, normal: float, meta: dict, rows: list[dict], windows: list[str],
+                 seabed: tuple[float, float], cut: tuple[int, int]) -> list[str]:
+    """The section for one point that is not a break: where it is, what its
+    window is, and the whole-spectrum comparison (the band section follows)."""
+
+    m, mb = meta["mop"], meta["mop_back"]
+    L = [f"## {name} — a MOP point that is not a break (handoff 24b)", "",
+         f"MOP {p['point']} at {p['lat']}, {p['lon']}, {p['distance_m']} m from the search target "
+         f"{p.get('search_from')} ({p.get('why', '')}). MOP's `metaWaterDepth` {p['depth_m']}; the seabed "
+         f"reads {seabed[0]:.2f} m below MSL there, from the {seabed[1]:g} m grid (the Coronado points "
+         f"sit in the 8 m one). Fan centred on MOP's own `metaShoreNormal`, {normal:.2f}°; `mop` starts "
+         f"{m['start_depth_m']} m at {m['start_lat']}, {m['start_lon']}, `mop_back` (the opposite half) "
+         f"{mb['start_depth_m']} m. {len(rows)} matched hours, cut to the {cut[0]} of its {cut[1]} MOP "
+         "hours that every break's MOP series also has.", "",
+         "Open arcs there, straight lines to the charted blockers: " + "; ".join(windows) + ".", "",
+         "| 46232 from | n | MOP (at Tp) | chain-at-MOP eq | chain-at-MOP / MOP, eq (at Tp) | hard / MOP | "
+         "back half's share | Fourier / MOP |",
+         "|---|---:|---|---|---|---|---|---|"]
+    for sname, lo, hi in sectors():
+        sel = [r for r in rows if lo <= r["from"] < hi and r["mop"] > 0]
+        if not sel:
+            continue
+        back = [r["parts"]["mop_back"]["eq"] / r["parts"]["mop"]["eq"] for r in sel if r["parts"]["mop"]["eq"] > 0]
+        L.append(f"| {sname} | {len(sel)} | {cell([r['mop'] for r in sel])} | {cell([r['mop_eq'] for r in sel])} | "
+                 f"{cell([r['mop_eq'] / r['mop'] for r in sel])} | {cell([r['mop_hard'] / r['mop'] for r in sel])} | "
+                 f"{100 * q(back, .5):.1f}% | {cell([r['mop_eq_fourier'] / r['mop'] for r in sel])} |")
+    L += ["", "Share of chain-at-MOP's diffracted energy by kind of ray (sector totals), and "
+          "chain-at-MOP / MOP (at Tp) with only the clear rays:", "",
+          "| 46232 from | " + " | ".join(KINDS) + " | clear only / MOP |",
+          "|---|" + "---|" * (len(KINDS) + 1)]
+    for sname, lo, hi in sectors():
+        sel = [r for r in rows if lo <= r["from"] < hi and r["mop"] > 0]
+        if not sel:
+            continue
+        tot = sum(r["parts"]["mop"]["kinds"] for r in sel)
+        share = tot / max(tot.sum(), 1e-30)
+        clear = [4 * math.sqrt(r["parts"]["mop"]["kinds"][0]) / r["buoy"] / r["mop"] for r in sel]
+        L.append(f"| {sname} | " + " | ".join(f"{100 * share[k]:.1f}%" for k in range(len(KINDS)))
+                 + f" | {cell(clear)} |")
+    return L
+
+
 def report(results: dict, metas: dict, controls: dict, points: dict, combs: dict,
-           bands: dict | None = None, files: list[str] | None = None) -> str:
+           bands: dict | None = None, files: list[str] | None = None,
+           extra: list[str] | None = None) -> str:
     L = ["# The chain's own rays from MOP's points",
          "",
          f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC by `python -m forecast.mopdepth` "
@@ -762,9 +934,17 @@ def report(results: dict, metas: dict, controls: dict, points: dict, combs: dict
           ""]
     L += ["## Controls", ""]
     for b, (bad, n) in controls.items():
-        L.append(f"- {b}: `break_5m` against the committed table: {bad} of {n} rows differ.")
+        if b == "point path":
+            L.append(f"- The point path (`point_spot`, the normal held), given Center's MOP point and "
+                     f"Center's normal, against Center's `mop` table: {bad} of {n} rows differ.")
+        else:
+            L.append(f"- {b}: `break_5m` against the committed table: {bad} of {n} rows differ.")
     L.append("")
+    if extra:
+        L += extra
     for b, rows in results.items():
+        if b not in points:
+            continue
         p = points[b]
         m = metas[b]
         L += [f"## {b}" + (" — shown, not read (§29)" if b == "coronado_north" else ""), "",
@@ -892,11 +1072,25 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--control", action="store_true", help="build and check break_5m only")
     ap.add_argument("--refresh", action="store_true", help="rebuild cached tables")
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--point", dest="points", action="append", default=None,
+                    help="a point that is not a break, from points.json's \"points\" (default: every one; "
+                         "repeatable); none with --break")
     args = ap.parse_args(argv)
-    points = json.loads((MOP_DIR / "points.json").read_text())["breaks"]
-    msl = rt.Bathymetry.load().msl_offset_m
+    doc = json.loads((MOP_DIR / "points.json").read_text())
+    points = doc["breaks"]
+    extra_pts = {k: v for k, v in doc.get("points", {}).items()
+                 if not args.only and (args.points is None or k in args.points)}
+    if args.points and set(args.points) - set(extra_pts):
+        print(f"not in points.json's points: {sorted(set(args.points) - set(extra_pts))}", file=sys.stderr)
+        return 1
+    bathy = rt.Bathymetry.load()
+    msl = bathy.msl_offset_m
     breaks = [b for b in BREAKS if b in points and (not args.only or b == args.only)]
     controls = {b: control(b, points[b]) for b in breaks}
+    if extra_pts:
+        pc = point_control(points)
+        if pc is not None:
+            controls["point path"] = pc
     for b, (bad, n) in controls.items():
         print(f"{b}: control {bad} of {n} rows differ", flush=True)
     if args.control:
@@ -925,7 +1119,52 @@ def main(argv: list[str] | None = None) -> int:
         band_sections[b] = band_report(results[b], spec, why, coarse, conv, conv_med)
         specs[b] = (spec, why)
         print(f"{b}: {len(results[b])} hours; spectrum {'read' if spec else why}; convention {conv}", flush=True)
-    text = report(results, metas, controls, points, combs, band_sections, files_report(points, specs))
+    extra: list[str] = []
+    if extra_pts:
+        all_t = [set(read_mop(MOP_DIR / f"{b}.csv")) for b in BREAKS if (MOP_DIR / f"{b}.csv").exists()]
+        common_t = set.intersection(*all_t) if all_t else None
+        places, edges, sections, coarse_any = {}, {}, [], None
+        for b in breaks:
+            n = mop_normal(json.loads((MOP_DIR / f"{b}_meta.json").read_text())) \
+                if (MOP_DIR / f"{b}_meta.json").exists() else None
+            pl = [w for w in (windows_at(b, points[b], n) if n is not None else []) if "Point Loma" in w]
+            edges[b] = f"Point Loma {pl[-1].split(' – ')[-1].split('°')[0]}°" if pl else "?"
+            places[b] = results[b]
+        for name, p in extra_pts.items():
+            meta_path = MOP_DIR / f"{name}_meta.json"
+            normal = mop_normal(json.loads(meta_path.read_text())) if meta_path.exists() else None
+            if normal is None:
+                sections += [f"## {name}", "", "Not compared: no `metaShoreNormal` in its saved meta file "
+                             "(run `collector.mop --points extra` on Actions).", ""]
+                continue
+            built = {v: build(name, v, p, refresh=args.refresh, normal=normal) for v in ("mop", "mop_back")}
+            arrays = {v: Arrays(rows, float(m["start_depth_m"])) for v, (rows, m) in built.items()}
+            tables = {"mop": arrays["mop"].merged(arrays["mop_back"]), "mop_back": arrays["mop_back"]}
+            mop_all = read_mop(MOP_DIR / f"{name}.csv")
+            mop = {t: v for t, v in mop_all.items() if common_t is None or t in common_t}
+            spec, why = read_mop_spectrum(MOP_DIR, name)
+            coarse = common_bands(spec["bands"], spectra[0].frequencies) if spec else None
+            conv, conv_med = convention(spec, mop) if spec else (None, {})
+            rows = hours(name, mop, spectra, tables, float(p["depth_m"]), float(p["depth_m"]) + msl,
+                         spec, coarse, conv)
+            x, y = rt.to_utm(float(p["lat"]), float(p["lon"]))
+            h, _, _, cellm, _ = bathy.sample(np.array([x]), np.array([y]))
+            wins = windows_at(name, p, normal)
+            pl = [w for w in wins if "Point Loma" in w]
+            edges[name] = f"Point Loma {pl[-1].split(' – ')[-1].split('°')[0]}°" if pl else "?"
+            sections += point_report(name, p, normal, {v: m for v, (_, m) in built.items()}, rows, wins,
+                                     (float(h[0]), float(cellm[0])), (len(mop), len(mop_all)))
+            sections += band_report(rows, spec, why, coarse, conv, conv_med)
+            places[name] = rows
+            coarse_any = coarse_any or coarse
+            specs[name] = (spec, why)
+            print(f"{name}: {len(rows)} hours; normal {normal}; spectrum {'read' if spec else why}", flush=True)
+        if coarse_any and len(places) > 1:
+            extra = exposed_report(places, coarse_any, edges) + sections
+        else:
+            extra = sections
+    text = report(results, metas, controls, points, combs, band_sections,
+                  files_report({**points, **extra_pts}, specs), extra)
     if args.out:
         args.out.write_text(text, encoding="utf-8")
         print(f"Wrote {args.out}")
