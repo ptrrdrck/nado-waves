@@ -704,3 +704,30 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   over 10 s the chain's energy arrives 3-10° further west than MOP's mean
   direction. MOP takes less of
   46232's energy in each band; nothing here says which model is right.
+- **An exposed point, 2026-11-20 (handoff item 24b, BRIEFING §56d;
+  `mop-check.yml` run 6 on the branch, `--points extra`; `docs/mop_depth.md`
+  "Exposed against shadowed").** `collector.mop` takes points that are not
+  breaks (`EXTRA_POINTS`, filed under `points.json`'s `"points"`, merged so
+  neither set drops the other); `forecast.mopdepth` traces them from the MOP
+  point on MOP's own `metaShoreNormal`, held exactly, `mop` and `mop_back`
+  only, on the hours every break's MOP series shares. Imperial Beach: D0052,
+  10.46 m MSL, normal 264.48°, the straight-line Point Loma edge at 315.6°
+  (258.8-265.8° at the Coronado points), driven by the same six buoys.
+  Controls: the point path given Center's point and normal gives Center's
+  `mop` table back (0 of 23,040 rows); Center traced on the 32 m grid alone,
+  as IB is, moves its band ratios by 0.00-0.08. **Neither expectation
+  held.** Below 8 s IB is Coronado's (1.02-1.12 at 5-8 s, ~0.95 at 4-5 s,
+  0.72-0.85 under 4 s, all four points): that part is common. Above 8 s IB
+  is 1.21-1.88 by sector and band (1.30-1.63 all sectors), above every
+  Coronado point, so the long-period excess grows where nothing shadows.
+  W-WNW 13-16.7 s is 1.75 at IB against 1.36-1.39: it does not vanish, so
+  it is not (only) the wrap round Point Loma. MOP keeps 0.48-0.75 of
+  46232's height per band above 8 s at IB, the chain 0.82-1.03. On S-SW
+  swell the chain's long-period energy arrives 13-25° further south than
+  MOP's mean direction, where straight contours at IB's normal put it;
+  MOP's is 261-266°, ~20° nearer the normal. The chain's acceptance at
+  14.3 s is lumpy (2.52 per degree at 270-280°, 1.5-1.7 at 180-200°, ~0.1
+  at 230-240° and 280-330°; 143° in all against straight contours' 113°);
+  10% of its S-swell energy at IB comes from past the seaward limit,
+  alongside the Baja tangent, and leaving it out takes S from 1.37 to 1.28.
+  A model against a model; which one is right is not decided here.

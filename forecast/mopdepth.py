@@ -870,8 +870,25 @@ def exposed_report(places: dict[str, list[dict]], coarse, edges: dict[str, str])
     return L + [""]
 
 
+def planar(off_deg: float, period_s: float, depth_m: float) -> tuple[float, float]:
+    """A beach of straight parallel contours: (Kr², arrival off the normal in
+    degrees) at `depth_m` for swell `off_deg` off the normal in deep water
+    (Snell). The reference for an acceptance comb, not a claim about any
+    real seabed."""
+
+    if abs(off_deg) >= 90:
+        return 0.0, float("nan")
+    k0 = 4 * math.pi ** 2 / (9.81 * period_s ** 2)
+    k = k0
+    for _ in range(200):
+        k = k0 / math.tanh(k * depth_m)
+    th = math.asin(math.sin(math.radians(off_deg)) * k0 / k)
+    return math.cos(math.radians(off_deg)) / math.cos(th), math.degrees(th)
+
+
 def point_report(name: str, p: dict, normal: float, meta: dict, rows: list[dict], windows: list[str],
-                 seabed: tuple[float, float], cut: tuple[int, int]) -> list[str]:
+                 seabed: tuple[float, float], cut: tuple[int, int],
+                 comb: tuple[dict[int, float], float] | None = None) -> list[str]:
     """The section for one point that is not a break: where it is, what its
     window is, and the whole-spectrum comparison (the band section follows)."""
 
@@ -896,6 +913,25 @@ def point_report(name: str, p: dict, normal: float, meta: dict, rows: list[dict]
         L.append(f"| {sname} | {len(sel)} | {cell([r['mop'] for r in sel])} | {cell([r['mop_eq'] for r in sel])} | "
                  f"{cell([r['mop_eq'] / r['mop'] for r in sel])} | {cell([r['mop_hard'] / r['mop'] for r in sel])} | "
                  f"{100 * q(back, .5):.1f}% | {cell([r['mop_eq_fourier'] / r['mop'] for r in sel])} |")
+    # Energy arriving from offshore headings more than 90° off the normal:
+    # past the seaward limit, alongside the coast (at Imperial Beach, the
+    # Baja coast, which the chain has only as a tangent; BRIEFING §12).
+    lim = (normal - 90.0) % 360.0
+    behind = np.array([((5 * k + 2.5 - normal + 180) % 360 - 180) < -90 or
+                       ((5 * k + 2.5 - normal + 180) % 360 - 180) > 90 for k in range(72)])
+    L += ["", f"From past the seaward limit: the share of chain-at-MOP's energy arriving from offshore "
+          f"headings more than 90° off the normal (below {lim:.1f}° or above {(normal + 90) % 360:.1f}°, "
+          "5° bins by centre), median, and chain-at-MOP / MOP (MOP de-shoaled by band) with and without "
+          "those rays:", "",
+          "| 46232 from | n | share past the limit | chain-at-MOP / MOP | without them |", "|---|---:|---|---|---|"]
+    for sname, lo, hi in sectors():
+        sel = [r for r in rows if lo <= r["from"] < hi and r.get("mop_bandwise", 0) > 0 and r["parts"]["mop"]["eq"] > 0]
+        if not sel:
+            continue
+        share = [float(r["parts"]["mop"]["heading"][behind].sum()) / r["parts"]["mop"]["eq"] for r in sel]
+        L.append(f"| {sname} | {len(sel)} | {100 * q(share, .5):.1f}% [{100 * q(share, .1):.1f}, "
+                 f"{100 * q(share, .9):.1f}] | {cell([r['mop_eq'] / r['mop_bandwise'] for r in sel])} | "
+                 f"{cell([r['mop_eq'] * math.sqrt(max(1 - x, 0.0)) / r['mop_bandwise'] for r, x in zip(sel, share)])} |")
     L += ["", "Share of chain-at-MOP's diffracted energy by kind of ray (sector totals), and "
           "chain-at-MOP / MOP (at Tp) with only the clear rays:", "",
           "| 46232 from | " + " | ".join(KINDS) + " | clear only / MOP |",
@@ -909,6 +945,21 @@ def point_report(name: str, p: dict, normal: float, meta: dict, rows: list[dict]
         clear = [4 * math.sqrt(r["parts"]["mop"]["kinds"][0]) / r["buoy"] / r["mop"] for r in sel]
         L.append(f"| {sname} | " + " | ".join(f"{100 * share[k]:.1f}%" for k in range(len(KINDS)))
                  + f" | {cell(clear)} |")
+    if comb:
+        acc, period = comb
+        depth = float(m["start_depth_m"])
+        L += ["", f"Acceptance per offshore degree at {period:.1f} s (Σ width·diff_gain/Ks² per radian, "
+              f"10° bins, both half-fans), beside a beach of straight parallel contours at MOP's normal "
+              f"({normal:.2f}°) and the start's depth ({depth} m): Snell's Kr² and arrival off the normal. "
+              "A reference, not a claim about this seabed:", "",
+              "| offshore from | chain | straight contours Kr² | their arrival off normal |", "|---|---|---|---|"]
+        tot_c = tot_p = 0.0
+        for k in range(150, 330, 10):
+            kr2, th = planar(k + 5 - normal, period, depth)
+            v = acc.get(k, 0.0)
+            tot_c, tot_p = tot_c + 10 * v, tot_p + 10 * kr2
+            L.append(f"| {k}–{k + 10}° | {v:.2f} | {kr2:.2f} | {'' if th != th else f'{th:+.0f}°'} |")
+        L.append(f"| 150–330°, Σ × 10° | {tot_c:.0f}° | {tot_p:.0f}° | |")
     return L
 
 
@@ -1187,8 +1238,9 @@ def main(argv: list[str] | None = None) -> int:
             wins = windows_at(name, p, normal)
             pl = [w for w in wins if "Point Loma" in w]
             edges[name] = f"Point Loma {pl[-1].split(' – ')[-1].split('°')[0]}°" if pl else "?"
+            comb = acceptance(built["mop"][0] + built["mop_back"][0], float(built["mop"][1]["start_depth_m"]), 14.3)
             sections += point_report(name, p, normal, {v: m for v, (_, m) in built.items()}, rows, wins,
-                                     (float(h[0]), float(cellm[0])), (len(mop), len(mop_all)))
+                                     (float(h[0]), float(cellm[0])), (len(mop), len(mop_all)), comb)
             sections += band_report(rows, spec, why, coarse, conv, conv_med)
             places[name] = rows
             coarse_any = coarse_any or coarse

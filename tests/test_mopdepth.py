@@ -268,3 +268,15 @@ def test_the_side_by_side_is_on_the_hours_every_place_shares():
     assert "on the 2 hours" in text
     assert "| W-WNW | a (x) | 2 | 1.20 | 1.20 | 1.20 |" in text
     assert "| W-WNW | b (y) | 2 | 1.00 | 1.00 | 1.00 |" in text
+
+
+def test_the_straight_contour_reference_is_snell():
+    """Normal incidence passes whole; deep water is no refraction; the
+    arrival turns toward the normal in shallow water, more at long period."""
+
+    assert mopdepth.planar(0.0, 14.3, 10.0) == pytest.approx((1.0, 0.0))
+    kr2, th = mopdepth.planar(30.0, 4.0, 1000.0)
+    assert kr2 == pytest.approx(1.0, abs=1e-9) and th == pytest.approx(30.0, abs=1e-9)
+    long_, short = mopdepth.planar(50.0, 16.0, 10.0), mopdepth.planar(50.0, 7.0, 10.0)
+    assert 0 < long_[1] < short[1] < 50 and long_[0] < short[0] < 1
+    assert mopdepth.planar(95.0, 14.3, 10.0)[0] == 0.0
