@@ -1,0 +1,90 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.61e41461528412bb9d9bc52c2353f1434a0d1a4a.001.2",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.61e41461528412bb9d9bc52c2353f1434a0d1a4a.001.2",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.61e41461528412bb9d9bc52c2353f1434a0d1a4a.001.2",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [],
+        "sent": "2026-11-20T10:56:00-08:00",
+        "effective": "2026-11-20T10:56:00-08:00",
+        "onset": "2026-11-24T04:00:00-08:00",
+        "expires": "2026-11-20T19:00:00-08:00",
+        "ends": "2026-11-26T13:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Possible",
+        "urgency": "Future",
+        "event": "Coastal Flood Watch",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Coastal Flood Watch issued November 20 at 10:56AM PST until November 26 at 1:00PM PST by NWS San Diego CA",
+        "description": "* WHAT...For the Coastal Flood Advisory, minor coastal flooding\nexpected. For the Coastal Flood Watch, significant coastal\nflooding possible.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...For the Coastal Flood Advisory, from 4 AM Sunday to 4 AM\nPST Tuesday. For the Coastal Flood Watch, from 4 AM PST Tuesday\nthrough Thursday afternoon.\n\n* IMPACTS...Numerous roads may be closed. Low lying property\nincluding homes, businesses, and some critical infrastructure\nmay be inundated. Some shoreline erosion may occur.\n\n* ADDITIONAL DETAILS...Morning high tides will be on the increase\nnext week, exceeding 7 feet by Sunday. Highest tides will be\nTuesday through Thursday, peaking Wednesday. Daily high tides\neach morning on Tuesday through Thursday will reach 7.9-8.2\nfeet. Background surf on top of the tides will remain around 3-5\nfeet through Wednesday, but an incoming swell Wednesday into\nThursday could bring notably higher surf beginning on Thursday.\nNOTE: Tides have been adjusted above baseline astronomical\npredictions based on trends in recent observations.",
+        "instruction": "If travel is required, allow extra time as some roads may be\nclosed. Do not drive around barricades or through water of\nunknown depth. Take the necessary actions to protect flood-prone\nproperty.",
+        "response": "Prepare",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 201856"
+            ],
+            "NWSheadline": [
+                "COASTAL FLOOD ADVISORY IN EFFECT FROM 4 AM SUNDAY TO 4 AM PST TUESDAY... ...COASTAL FLOOD WATCH IN EFFECT FROM LATE MONDAY NIGHT THROUGH THURSDAY AFTERNOON"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "EAS-ORG": [
+                "WXR"
+            ],
+            "VTEC": [
+                "/O.NEW.KSGX.CF.A.0001.261124T1200Z-261126T2100Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-26T13:00:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "CFA"
+            ],
+            "NationalWeatherService": [
+                "CFA"
+            ]
+        }
+    }
+}
