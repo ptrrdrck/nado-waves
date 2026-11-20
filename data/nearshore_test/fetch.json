@@ -1,0 +1,79 @@
+{
+ "rule": "12 consecutive calendar months inside one MOP product's coverage with the most clock hours on which both buoys have a record; ties to the latest",
+ "mop_point": "D0043",
+ "mop_point_from": "data/nearshore_census/census.json (run 8)",
+ "window": {
+  "start": "2024-01-01T00:00:00Z",
+  "end": "2025-01-01T00:00:00Z",
+  "product": "hindcast",
+  "joint_hours": 8781
+ },
+ "buoys": {
+  "imperial_beach_nearshore": {
+   "records": 17562,
+   "readback": {
+    "hours": 17562,
+    "median": 0.99994,
+    "p01": 0.99292,
+    "p99": 1.00734,
+    "worst": 0.98915,
+    "ok": true
+   },
+   "flags": {
+    "1": 17562
+   },
+   "first": "2024-01-01T00:00:00Z",
+   "last": "2024-12-31T23:30:00Z"
+  },
+  "point_loma_south": {
+   "records": 17568,
+   "readback": {
+    "hours": 17568,
+    "median": 1.0,
+    "p01": 0.99443,
+    "p99": 1.00568,
+    "worst": 1.00861,
+    "ok": true
+   },
+   "flags": {
+    "1": 17568
+   },
+   "first": "2024-01-01T00:00:00Z",
+   "last": "2024-12-31T23:30:00Z"
+  },
+  "point_loma_south_control": {
+   "records": 1344,
+   "readback": {
+    "hours": 1344,
+    "median": 0.99982,
+    "p01": 0.99438,
+    "p99": 1.00565,
+    "worst": 1.0074,
+    "ok": true
+   },
+   "flags": {
+    "1": 1344
+   },
+   "first": "2026-08-04T00:00:00Z",
+   "last": "2026-08-31T23:30:00Z"
+  }
+ },
+ "mop": {
+  "point": "D0043",
+  "product": "hindcast",
+  "hours": 8784,
+  "ok": true,
+  "lines": [
+   "  - input sources (hours): [('191p1-067p1-071p1:191p1-220p1-100p1-045p1___________________________________________________________', 8750), ('191p1-067p1-071p1:191p1-100p1-045p1_________________________________________________________________', 34)]",
+   "  - spectrum: 20 bands 0.0375\u20130.4500 Hz (edges from waveFrequencyBounds), moments saved; gaps {'waveEnergyDensity': 0, 'waveA1Value': 0, 'waveB1Value': 0, 'waveA2Value': 0, 'waveB2Value': 0}; read-back 4\u221am0 / Hs median 1.0, worst 1.0 over 8784 hours.",
+   "  - metaWaterDepth attributes: {\"standard_name\": \"sea_floor_depth_below_sea_level\", \"long_name\": \"water depth\", \"units\": \"meter\", \"_FillValue\": -999.99, \"ncei_name\": \"DEPTH - BOTTOM\", \"coverage_content_type\": \"referenceInformation\"}"
+  ],
+  "inputs": {
+   "191p1-067p1-071p1:191p1-220p1-100p1-045p1___________________________________________________________": 8750,
+   "191p1-067p1-071p1:191p1-100p1-045p1_________________________________________________________________": 34
+  },
+  "hours_driven_by_the_observed_buoy": 0
+ },
+ "cdip_requests": 41,
+ "failed": []
+}
