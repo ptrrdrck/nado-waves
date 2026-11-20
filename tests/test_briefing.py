@@ -187,6 +187,25 @@ def test_alerts_and_water_quality_are_read_off_the_build():
     assert _kinds(b(), b(sample="2026-10-30")) == ["water.sample"]
 
 
+def test_the_countys_lift_time_under_a_status_that_held_is_named_and_quiet():
+    """2026-11-20: "Advisory until 5 PM Thu" at 00:38Z, plain "Advisory" at
+    01:07Z as a new Advisory took over -- no status changed, no sample."""
+    def b(at, lift=None, status="Advisory", fresh=True):
+        return {**_built(at), "built_utc": at,
+                "text": {**_built(at)["text"], "water_quality": [status, str(lift), str(fresh)]},
+                "water_quality": {"fresh": fresh, "breaks": [{"id": "coronado_north", "status": status,
+                                                               "event": {"type": "Advisory", "lifted_utc": lift}}]}}
+    set_ = bf.changes(b("2026-11-20T00:28:00Z"), b("2026-11-20T00:38:00Z", "2026-11-20T01:00:00Z"))
+    assert set_ == [{"kind": "water.lift", "break": "coronado_north", "from": None, "to": "2026-11-20T01:00:00Z"}]
+    assert _kinds(b("2026-11-20T00:47:00Z", "2026-11-20T01:00:00Z"), b("2026-11-20T01:07:00Z")) == ["water.lift"]
+    # a lift time already past is not said, so nothing about it changed
+    assert _kinds(b("2026-11-20T02:00:00Z", "2026-11-20T01:00:00Z"), b("2026-11-20T02:10:00Z")) == ["water.other"]
+    # a status change explains its own lift time
+    assert _kinds(b("2026-11-20T00:00:00Z", status="Open"),
+                  b("2026-11-20T01:00:00Z", "2026-11-21T01:00:00Z")) == ["water.status"]
+    assert "water.lift" not in bf.SHOWN and not bf.announced(set_)
+
+
 def test_the_shown_kinds_come_first_in_the_lines_order():
     old = {**_built("t", swell=_sw("SW at 13.3 s, holding."), tides=("a",)), "tide": {"day": "1"}}
     new = {**_built("t", swell=_sw("SW at 13.3 s, holding.", "W at 9.1 s, holding.", head="3–5 ft (0.9–1.5 m)."),

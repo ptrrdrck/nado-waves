@@ -251,7 +251,8 @@ def announced(got: list[dict]) -> bool:
 #: page's line names these, in this order, as many as fit, then "+N". A
 #: change none of them names is no update (`settle`): kept, never said --
 #: the range only widening or narrowing (`surf.range`), a new sample
-#: (`water.sample`), an offshore line's due time (`offshore.changed.due`),
+#: (`water.sample`), the county's lift time set, moved or cleared under a
+#: status that held (`water.lift`), an offshore line's due time (`offshore.changed.due`),
 #: the day's turn times (`tide.turns`), the same trains in a new order
 #: (`swell.order`), and a section whose words changed in a way none of
 #: these names (`<section>.other`).
@@ -289,8 +290,8 @@ def changes(kept: dict | None, built: dict) -> list[dict]:
     if a.get("alerts") != b.get("alerts"):
         out += _alert_changes(kept.get("alerts") or [], built.get("alerts") or []) or [{"kind": "alert.other"}]
     if a.get("water_quality") != b.get("water_quality"):
-        out += _water_changes(kept.get("water_quality") or {}, built.get("water_quality") or {}) \
-            or [{"kind": "water.other"}]
+        out += _water_changes(kept.get("water_quality") or {}, built.get("water_quality") or {},
+                              kept.get("built_utc"), built.get("built_utc")) or [{"kind": "water.other"}]
     if a.get("swell") != b.get("swell"):
         out += _swell_changes(a.get("swell") or [], b.get("swell") or []) or [{"kind": "swell.other"}]
     if a.get("tides") != b.get("tides"):
@@ -315,12 +316,31 @@ def _water_status(w: dict) -> dict:
     return {r.get("id"): (r.get("status") if w.get("fresh") else None) for r in w.get("breaks") or []}
 
 
-def _water_changes(old: dict, new: dict) -> list[dict]:
+def _water_lift(w: dict, built_utc: str | None) -> dict:
+    """Each break's lift time as the line says it, "until 5 PM Thu": its
+    event's `lifted_utc` while that lies after the build, as the page reads
+    it, and none past `WQ_FRESH_H`."""
+
+    out = {}
+    for r in w.get("breaks") or []:
+        lift = (r.get("event") or {}).get("lifted_utc")
+        out[r.get("id")] = lift if (w.get("fresh") and lift and built_utc and lift > built_utc) else None
+    return out
+
+
+def _water_changes(old: dict, new: dict, old_utc: str | None = None, new_utc: str | None = None) -> list[dict]:
     out = []
     was, now = _water_status(old), _water_status(new)
     for brk in now:
         if brk in was and was[brk] != now[brk]:
             out.append({"kind": "water.status", "break": brk, "from": was[brk], "to": now[brk]})
+    # The county's lift time under a status that held (2026-11-20: set at
+    # 00:38Z, cleared at 01:07Z as a new Advisory took over); a status change
+    # already explains its own.
+    lift_was, lift_now = _water_lift(old, old_utc), _water_lift(new, new_utc)
+    for brk in now:
+        if brk in was and was[brk] == now[brk] and lift_was.get(brk) != lift_now[brk]:
+            out.append({"kind": "water.lift", "break": brk, "from": lift_was.get(brk), "to": lift_now[brk]})
     samples = {r.get("id"): r.get("sample") for r in old.get("breaks") or []}
     for r in new.get("breaks") or []:
         s, t = samples.get(r.get("id")), r.get("sample")
