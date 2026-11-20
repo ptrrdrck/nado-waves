@@ -546,7 +546,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   hours a break): the new physics, not an error. **The ceiling was close to
   the real break**: breaking that starts before 5 m on these profiles is
   gentle, and shoaling still nearly balances it to about 5 m. It is not the
-  big-day overstatement; that is the westerly wrap (§56a, handoff item 24).
+  big-day overstatement. §56a put that on the westerly wrap; §56d (handoff
+  item 24b) finds the long-period W-WNW excess over MOP larger at an
+  exposed point, so it is not the wrap alone, and what it is stays open
+  (handoff item 24).
 - **Cost**: the longer profiles made `Profile.depth_at`'s scan from the
   first row quadratic in their length; it is a bisection now, identical
   values.
