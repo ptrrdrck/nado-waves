@@ -37,6 +37,7 @@ import json
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -77,6 +78,8 @@ CDIP_REQUESTS = 90
 #: NDBC is not throttled like CDIP, but station pages are fetched one by one.
 NDBC_DELAY = 0.5
 PAGE_LIMIT = 60
+#: Waits before each retry of a THREDDS catalogue that answered 504; None ends it.
+CATALOG_RETRY_S = (30, 90, None)
 INPUT = "46232"
 
 
@@ -215,8 +218,18 @@ def census(log: list[str]) -> dict:
 
     table = attempt(log, "NDBC station table", lambda: parse_station_table(get(STATION_TABLE_URL))) or {}
     meta = attempt(log, "NDBC station metadata", lambda: parse_station_metadata(get(STATION_META_URL))) or {}
-    hist = merge_historical([attempt(log, f"NDBC historical {kind}",
-                                     lambda kind=kind: parse_historical(get(HISTORICAL_URL.format(kind=kind)))) or {}
+    def listing(kind: str) -> dict:
+        body = get(HISTORICAL_URL.format(kind=kind))
+        got = parse_historical(body)
+        if not got:
+            # Zero files is a finding about NDBC's layout, not "no years":
+            # say what was served instead of reporting "none" everywhere.
+            excerpt = re.sub(r"\s+", " ", body)[:400]
+            log.append(f"NDBC historical {kind}: no `<id><letter><year>.txt.gz` names in {len(body)} "
+                       f"characters served; it began: {excerpt!r}")
+        return got
+
+    hist = merge_historical([attempt(log, f"NDBC historical {kind}", lambda kind=kind: listing(kind)) or {}
                              for kind in KINDS])
 
     stations: dict[str, dict] = {}
@@ -279,7 +292,21 @@ def census(log: list[str]) -> dict:
 
 def cdip(out: dict, log: list[str]) -> None:
     budget = mop.Budget(limit=CDIP_REQUESTS)
-    catalog = attempt(log, "MOP catalogue", lambda: budget.fetch(mop.CATALOG))
+
+    def patient(url: str) -> str:
+        # The catalogue answered 504 on runs 5 and 7 and then served the next
+        # run: a gateway timeout is retried, anything else is not.
+        for wait in CATALOG_RETRY_S:
+            try:
+                return budget.fetch(url)
+            except urllib.error.HTTPError as exc:
+                if exc.code != 504 or wait is None:
+                    raise
+                log.append(f"{url}: 504, retried after {wait} s")
+                time.sleep(wait)
+        raise RuntimeError("unreachable")
+
+    catalog = attempt(log, "MOP catalogue", lambda: patient(mop.CATALOG))
     if catalog:
         # Distinct (point, product) pairs: each dataset is named in both its
         # `name` and its `urlPath`.
@@ -289,7 +316,7 @@ def cdip(out: dict, log: list[str]) -> None:
             products[product] = products.get(product, 0) + 1
         out["mop_products"] = dict(sorted(products.items()))
     archive = attempt(log, "CDIP archive catalogue",
-                      lambda: budget.fetch(f"{mop.SERVER}/thredds/catalog/cdip/archive/catalog.xml"))
+                      lambda: patient(f"{mop.SERVER}/thredds/catalog/cdip/archive/catalog.xml"))
     realtime = attempt(log, "CDIP realtime catalogue",
                        lambda: budget.fetch(f"{mop.SERVER}/thredds/catalog/cdip/realtime/catalog.xml"))
     folders = set(FOLDER.findall(archive or ""))
@@ -309,7 +336,11 @@ def cdip(out: dict, log: list[str]) -> None:
     shallow = [r for r in out["stations"].values()
                if r["id"] != INPUT and (r.get("water_depth_m") is None or r["water_depth_m"] <= SHALLOW_M)]
     shallow.sort(key=lambda r: r["distance_km"]["imperial_beach"])
-    for rec in shallow:
+    # The input's own CDIP archive too: if NDBC's historical files fall short,
+    # CDIP's record of 46232 is the other place its old spectra live. No MOP
+    # lookup for it: it is the chain's input, not a test site.
+    first = [out["stations"][INPUT]] if INPUT in out["stations"] else []
+    for rec in first + shallow:
         cid = rec.get("cdip_id")
         if cid:
             folder = f"{cid}p1"
@@ -324,7 +355,7 @@ def cdip(out: dict, log: list[str]) -> None:
                     f"{mop.DODS}cdip/archive/{folder}/{folder}_historic.nc.das"))
                 if das:
                     rec["cdip"]["historic"] = coverage(mop.parse_das(das))
-        if nowcast and rec["positions"]:
+        if nowcast and rec["positions"] and rec["id"] != INPUT:
             p = rec["positions"][-1]
             found = attempt(log, f"MOP point nearest {rec['id']}",
                             lambda: mop.nearest(list(nowcast), (p["lat"], p["lon"]), where))

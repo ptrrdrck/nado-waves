@@ -84,9 +84,12 @@ jobs:
       - name: Census of observed nearshore spectra
         if: inputs.points == 'census'
         run: |
-          set -uo pipefail
+          # Actions runs bash -e: without +e an exit 3 ends the step here,
+          # before anything is committed (run 7).
+          set +e
           python -m collector.nearshore_census
           code=$?
+          set -e
           echo "CENSUS_STATUS=${code}" >> "$GITHUB_ENV"
           if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
 

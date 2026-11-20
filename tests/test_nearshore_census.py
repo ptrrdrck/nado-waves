@@ -139,7 +139,9 @@ def test_census_end_to_end(monkeypatch):
     assert ib["mop"]["point"] == "D0052" and ib["mop"]["distance_m"] < 20
     assert ib["mop"]["hindcast"]["time_coverage_start"].startswith("2000")
     assert "46225" not in data["stations"]                 # Torrey Pines: outside every grid
-    assert "46232" in data["stations"] and "cdip" not in data["stations"]["46232"]   # the input: no lookups
+    inp = data["stations"]["46232"]
+    assert inp["cdip"] == {"in_archive": False, "reporting_now": True}   # the input: CDIP's record, no MOP
+    assert "mop" not in inp
     # 46232's station page has no fixture: reported, and its position still the table's.
     assert any("station page 46232" in x for x in log)
 
@@ -147,3 +149,36 @@ def test_census_end_to_end(monkeypatch):
     assert "| 46235 | 155 |" in text and "2020–2021" in text
     assert "## What failed" in text and "station page 46232" in text
     json.dumps(data)                                         # what main() writes
+
+
+def test_an_empty_listing_is_reported_not_read_as_no_years(monkeypatch):
+    def get(url, timeout=60.0):
+        if "historical" in url:
+            return "<html>Moved: see the new data access page</html>"
+        raise OSError("not needed")
+
+    monkeypatch.setattr(nc, "get", get)
+    monkeypatch.setattr(nc, "cdip", lambda out, log: None)
+    log: list[str] = []
+    nc.census(log)
+    assert sum("no `<id><letter><year>.txt.gz` names" in x for x in log) == len(nc.KINDS)
+    assert any("Moved: see the new data access page" in x for x in log)
+
+
+def test_a_catalogue_504_is_retried(monkeypatch):
+    import urllib.error
+
+    calls = []
+
+    def fetch(self, url, timeout=120.0):
+        calls.append(url)
+        if url == mop.CATALOG and calls.count(url) == 1:
+            raise urllib.error.HTTPError(url, 504, "Gateway Time-out", {}, None)
+        raise OSError("stop here")
+
+    monkeypatch.setattr(mop.Budget, "fetch", fetch)
+    monkeypatch.setattr(nc.time, "sleep", lambda s: None)
+    log: list[str] = []
+    nc.cdip({"stations": {}}, log)
+    assert calls.count(mop.CATALOG) == 2
+    assert any("504, retried" in x for x in log)
