@@ -400,7 +400,9 @@ def report(data: dict, log: list[str]) -> str:
              "deep-water-to-10 m leg the two models disagree on (BRIEFING §56a–§56d); it is not a "
              "verification series for any break.", "",
              f"46232 (the chain's input), years with all five NDBC spectral files: "
-             f"**{span(data['input']['directional_years'])}**.", ""]
+             + (f"**{span(data['input']['directional_years'])}**." if data["input"]["historical"]
+                else "**NDBC's historical listings hold no spectral file for it**; its old spectra "
+                     "are in CDIP's archive (CDIP 191, below)."), ""]
     if "mop_products" in data:
         lines += ["MOP products CDIP lists for San Diego county (datasets): "
                   + ", ".join(f"`{k}` {v}" for k, v in data["mop_products"].items()), ""]
@@ -418,7 +420,8 @@ def report(data: dict, log: list[str]) -> str:
             r["id"] + (" (input)" if r["id"] == INPUT else ""), r.get("cdip_id") or "—",
             (r["name"] or "—").replace("|", "/"), depth, ", ".join(r["grids"]),
             f"{r['distance_km']['imperial_beach']} / {r['distance_km']['coronado_center']}",
-            span(r["directional_years"]), span(sorted(inp & set(r["directional_years"]))),
+            span(r["directional_years"]) if r["historical"] else "no NDBC files",
+            span(sorted(inp & set(r["directional_years"]))) if r["historical"] else "—",
             cov(c.get("historic")) if c.get("in_archive") else ("not in archive" if c else "—"),
             ("yes" if c.get("reporting_now") else "no") if c else "—",
             f"{m['point']} ({m['distance_m']}, {m.get('depth_m', float('nan')):.1f} m)" if m else "—",
@@ -435,7 +438,13 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--out", type=Path, default=OUT_DIR)
     ap.add_argument("--report", type=Path, default=REPORT)
+    ap.add_argument("--render", action="store_true",
+                    help="re-render the report from the committed census.json; fetches nothing")
     args = ap.parse_args(argv)
+    if args.render:
+        data = json.loads((args.out / "census.json").read_text(encoding="utf-8"))
+        args.report.write_text(report(data, data.pop("failed", [])), encoding="utf-8")
+        return 0
     log: list[str] = []
     data = census(log)
     args.out.mkdir(parents=True, exist_ok=True)
