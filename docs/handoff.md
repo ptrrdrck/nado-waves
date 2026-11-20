@@ -203,7 +203,38 @@ sections).
        finer headings, against MOP), and what IB's Baja-side rays stand on.
     c. **The buoy's directional reading**: MEM against Fourier moves the
        ratio 0.1-0.3. MOP blends six buoys (a), so "the same input" is
-       not; how MOP combines them is part of this.
+       not; how MOP combines them is part of this. Not pursued: the
+       owner's question is which model is right, and only (d) answers it.
+    d. **Both models against an observation** -- done, report only
+       (branch claude/youthful-fermi-q19fhe, PR #245; `docs/nearshore_test.md`,
+       `docs/nearshore_census.md`). The owner asked whether to give up the
+       chain's deep-water-to-10 m leg for MOP's; model against model cannot
+       say. `collector.nearshore_census` (mop-check.yml `points=census`, run
+       8) found Imperial Beach Nearshore, CDIP 155 / NDBC 46235, 21 m, inside
+       the 32 m grid; NDBC holds no historical spectra for it or 46232, CDIP
+       does. MOP publishes `forecast` and `ecmwf_fc` for all 1,210 San Diego
+       points. `collector.nearshore_test` (`points=nearshore_test`, run 9)
+       fetched 2024 (its fixed rule's year): 155, 191 (46232) and MOP D0043
+       (hindcast; 155 never among its inputs). `python -m
+       forecast.nearshoretest` (~8 min, tables cached in
+       `data/live/nearshoretest/`, ~15 min cold) scores them.
+       **Verification series CDIP 155, 2024, 8,782 hours**: the chain at the
+       buoy, exactly, Hs 1.09x observed [0.95, 1.27], +0.10 m, RMS 0.17 m
+       before friction; 1.07x, +0.08 m, RMS 0.15 m with the table's JONSWAP
+       friction (Madsen not tabulated there). The excess is long-period:
+       > 13 s 1.19 (south swell 1.23-1.33, W-WNW 1.09-1.14), under 13 s
+       1.04-1.08; it does not grow with size (>= 2 m: 1.06). Direction at the
+       buoy within 2-4 degrees in every band. MOP, at D0043 (10 m, 1.9 km
+       inshore) and de-shoaled, so approximate: 0.99x [0.85, 1.14]; low on
+       long-period south swell (0.70-0.80), 1.01-1.12 on W-WNW; the chain's
+       own two tables put D0043 6% above the buoy's spot. The observation
+       sits between the models, nearer MOP in total. One exposed site, one
+       year, not Coronado's shadow. Controls: CDIP's 191 against this
+       repository's NDBC archive, same hours, +0.9% Hs at >= 8 s (+6.6%
+       below 8 s: NDBC's feed is quantised and its small bins read low --
+       the shipped chain's input is low there); read-backs 1.000; a second
+       buoy position 1.00. Data: ~90 MB of CSVs committed by run 9 (owner
+       to decide before merging).
 25. **Madsen's friction ships** -- done (branch claude/madsen-friction,
     BRIEFING §57, chain.md "Bottom friction is Madsen's"). Both chains;
     `<break>_madsen.json` beside unchanged tables; the docs page's friction
@@ -233,6 +264,9 @@ Open, the owner's calls:
   at South. Still the number, with the note under the calculation table.
 - The westerly half of the excess (the wrap round Point Loma): item 24
   first, so a table fault is not credited to the friction or the reverse.
+- Item 24d: whether to switch any leg to MOP. At the one observed site
+  neither model wins outright (chain +9%, MOP about right in total but
+  ~25% low on long-period south swell); nothing is fitted or shipped.
 
 ### Carryover prompts
 
