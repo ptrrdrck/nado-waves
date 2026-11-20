@@ -202,3 +202,81 @@ def test_a_spectrum_that_did_not_read_back_is_refused(tmp_path):
     spec, why = mopdepth.read_mop_spectrum(tmp_path, "coronado_center")
     assert spec is None and "read-back" in why
     assert mopdepth.read_mop_spectrum(tmp_path, "coronado_south")[0] is None
+
+
+# ------------------------------------------------------------------ a point that is not a break (24b)
+
+def test_a_point_that_is_not_a_break_holds_mops_own_normal_exactly():
+    """`point_spot` takes MOP's metaShoreNormal as the normal, exactly; the
+    back half is +180 exactly; the synthesised chord agrees with it (it is
+    only there so anything reading a chord finds a consistent one)."""
+
+    for b, p in POINTS.items():
+        n = mopdepth.mop_normal(json.loads((mopdepth.MOP_DIR / f"{b}_meta.json").read_text()))
+        assert n is not None and 200 < n < 230, b
+        s = mopdepth.point_spot("somewhere", p, n)
+        assert s.normal == n % 360 and s.id == "somewhere"
+        assert mopdepth.point_spot("somewhere", p, n, back=True).normal == pytest.approx((n + 180) % 360, abs=1e-12)
+        assert (s.shore_bearing + 90) % 360 == pytest.approx(n, abs=1e-3)
+        assert not s.position_verified and not s.shoreline_verified
+    assert mopdepth.mop_normal({"small_variables": {"ascii": "metaSiteLabel, \"D0001\"\n"}}) is None
+
+
+def test_the_point_path_starts_where_the_break_path_does():
+    """Given Center's MOP point and Center's own normal, the point path starts
+    at the same place and depth as the break path's `mop` start (the full
+    row-for-row table control is in the report: ~2 min a table)."""
+
+    bathy = RT.Bathymetry.load()
+    spots = {s.id: s for s in load()[0]}
+    for b, p in POINTS.items():
+        a = RT.start_point(bathy, mopdepth.spot_for("mop", spots[b], p), mopdepth.MOP_H_REF)
+        c = RT.start_point(bathy, mopdepth.point_spot(b, p, spots[b].normal), mopdepth.MOP_H_REF)
+        assert a == c, b
+
+
+def test_a_point_that_is_not_a_break_has_no_break_starts():
+    p = POINTS["coronado_center"]
+    for v in ("break_5m", "normal_mop"):
+        with pytest.raises(ValueError):
+            mopdepth.build("imperial_beach", v, p, normal=250.0)
+
+
+def test_the_windows_at_the_coronado_mop_points_are_56bs():
+    """The straight-line Point Loma edge at D0181 / D0179 / D0168 is
+    BRIEFING §56b's 258.8 / 258.9 / 265.8°, with MOP's own normals."""
+
+    want = {"coronado_north": "258.8", "coronado_center": "258.9", "coronado_south": "265.8"}
+    for b, p in POINTS.items():
+        n = mopdepth.mop_normal(json.loads((mopdepth.MOP_DIR / f"{b}_meta.json").read_text()))
+        pl = [w for w in mopdepth.windows_at(b, p, n) if "Point Loma" in w]
+        assert pl[-1].split(" – ")[-1].startswith(want[b] + "°"), (b, pl)
+
+
+def test_the_side_by_side_is_on_the_hours_every_place_shares():
+    from datetime import datetime, timedelta, timezone
+
+    t0 = datetime(2026, 8, 4, tzinfo=timezone.utc)
+    coarse = [(0.05, 0.1), (0.1, 0.2)]
+
+    def row(h, ratio):
+        return {"time": t0 + timedelta(hours=h), "from": 280.0, "mop_eq": ratio, "mop_bandwise": 1.0,
+                "band": {"mop": [1.0, 1.0], "chain": [ratio ** 2, ratio ** 2], "buoy": [1.0, 1.0]}}
+
+    places = {"a": [row(0, 1.2), row(1, 1.2), row(2, 9.0)], "b": [row(0, 1.0), row(1, 1.0)]}
+    text = "\n".join(mopdepth.exposed_report(places, coarse, {"a": "x", "b": "y"}))
+    assert "on the 2 hours" in text
+    assert "| W-WNW | a (x) | 2 | 1.20 | 1.20 | 1.20 |" in text
+    assert "| W-WNW | b (y) | 2 | 1.00 | 1.00 | 1.00 |" in text
+
+
+def test_the_straight_contour_reference_is_snell():
+    """Normal incidence passes whole; deep water is no refraction; the
+    arrival turns toward the normal in shallow water, more at long period."""
+
+    assert mopdepth.planar(0.0, 14.3, 10.0) == pytest.approx((1.0, 0.0))
+    kr2, th = mopdepth.planar(30.0, 4.0, 1000.0)
+    assert kr2 == pytest.approx(1.0, abs=1e-9) and th == pytest.approx(30.0, abs=1e-9)
+    long_, short = mopdepth.planar(50.0, 16.0, 10.0), mopdepth.planar(50.0, 7.0, 10.0)
+    assert 0 < long_[1] < short[1] < 50 and long_[0] < short[0] < 1
+    assert mopdepth.planar(95.0, 14.3, 10.0)[0] == 0.0

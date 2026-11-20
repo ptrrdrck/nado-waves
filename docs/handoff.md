@@ -182,11 +182,25 @@ sections).
        input string separates, whether MOP diffracts (its v1.1 page, from
        Actions), and `mopcheck` still de-shoals at Tp (§56a's figures are
        ~0.1 high for that reason).
-    b. **An exposed MOP point** (out of Point Loma's shadow, e.g. Imperial
-       Beach) through the same comparison, now band by band: if the chain is
-       ~1.15 over MOP there too in every band, the broad part is the input
-       or the spreading, not the shadow; the W-WNW long-period part should
-       vanish there if it is the wrap.
+    b. **An exposed MOP point** -- done, report only (branch
+       claude/mop-imperial-beach-comparison-twsnli, BRIEFING §56d, chain.md's
+       MOP section; `collector.mop --points extra` on Actions, run 6, then
+       `python -m forecast.mopdepth --out docs/mop_depth.md`, ~4 min once
+       the 12 break tables are cached, ~30 min cold). Imperial Beach, D0052,
+       Point Loma edge 315.6°. Neither expectation held: below 8 s the
+       ratio is much the same at all four points (5-8 s 1.02-1.28),
+       common and placeless; above 8 s IB is 1.2-1.9, higher than any Coronado
+       point, and W-WNW 13-16.7 s is 1.75 there (Coronado 1.36-1.39), so
+       the long-period excess is not the shadow and not (only) the wrap.
+       Grid control: Center on the 32 m grid alone moves 0.00-0.08. On S-SW
+       swell the chain's long-period energy at IB arrives 13-25° south of
+       MOP's, where straight contours put it; MOP's sits near the normal.
+       The chain's 14.3 s acceptance at IB is lumpy (to 2.5 per degree,
+       143° in all against straight contours' 113°), and 10% of its S-swell
+       energy comes from past the seaward limit (the Baja tangent). Next,
+       for the owner to choose: whether the long-period excess is the ray
+       comb's focusing (the comb smoothed in offshore heading, or traced at
+       finer headings, against MOP), and what IB's Baja-side rays stand on.
     c. **The buoy's directional reading**: MEM against Fourier moves the
        ratio 0.1-0.3. MOP blends six buoys (a), so "the same input" is
        not; how MOP combines them is part of this.
@@ -225,15 +239,15 @@ Open, the owner's calls:
 Each assumes a fresh session; add "Confirm each item before building. PR,
 wait for Tests, don't merge." to each.
 
-- Group 6, item 24b (careful measurement; the strongest model, high
-  effort, because it decides whether the broad part of the chain's excess
-  over MOP is the shadow or the input): "Repo ptrrdrck/nado-waves; attach
-  ptrrdrck/nado-waves-notes and read BRIEFING §56a-§56c only, chain.md's MOP
-  section, docs/mop_depth.md and docs/handoff.md item 24. Task: item 24b,
-  an exposed MOP point (out of Point Loma's shadow, e.g. Imperial Beach)
-  through the same band-by-band comparison: collector.mop on Actions
-  (`mop-check.yml` dispatches on the branch), then forecast.mopdepth at that
-  point. Report only; propose before building anything."
+- Group 6, after item 24b (diagnosis; the strongest model, high effort,
+  because it is open which model's long-period refraction is wrong and the
+  next measurement has to be chosen, not just run): "Repo
+  ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes and read BRIEFING
+  §56b-§56d only, chain.md's MOP section, docs/mop_depth.md ('Exposed
+  against shadowed' and the imperial_beach section) and docs/handoff.md item
+  24. Task: propose the measurement that separates the chain's ray-comb
+  focusing from MOP's long-period refraction (24b's 'Next'), and item 24c.
+  Report only; propose before building anything."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
