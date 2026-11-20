@@ -1,7 +1,7 @@
 {
   "source": "https://thredds.cdip.ucsd.edu/thredds/catalog/cdip/model/MOP_alongshore/catalog.xml",
-  "retrieved_utc": "2026-11-18T21:20:23+00:00",
-  "requests_used": 97,
+  "retrieved_utc": "2026-11-20T01:02:03+00:00",
+  "requests_used": 34,
   "breaks": {
     "coronado_north": {
       "point": "D0181",
@@ -38,6 +38,25 @@
       "hours": 2565,
       "first_utc": "2026-08-04T00:00:00+00:00",
       "last_utc": "2026-11-18T20:00:00+00:00"
+    }
+  },
+  "points": {
+    "imperial_beach": {
+      "point": "D0052",
+      "url_path": "cdip/model/MOP_alongshore/D0052_nowcast.nc",
+      "distance_m": 216,
+      "product": "nowcast",
+      "lat": 32.57851,
+      "lon": -117.1423,
+      "depth_m": 10.0,
+      "hours": 2592,
+      "first_utc": "2026-08-04T00:00:00+00:00",
+      "last_utc": "2026-11-19T23:00:00+00:00",
+      "search_from": [
+        32.5785,
+        -117.14
+      ],
+      "why": "Imperial Beach, near the pier: outside Point Loma's shadow (handoff 24b)"
     }
   }
 }

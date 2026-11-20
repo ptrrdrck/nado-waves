@@ -1,0 +1,776 @@
+{
+ "point": "D0052",
+ "url_path": "cdip/model/MOP_alongshore/D0052_nowcast.nc",
+ "retrieved_utc": "2026-11-20T01:01:56+00:00",
+ "global": {
+  "history": "2026-11-20T00:07:50Z: dataset created; Net_model version 2.1. Runtime arguments: /project/f90_bin/net_model_gf -s 202611191600 -h 8 -c socal_alongshore_ref.nc -i socal_alongshore_nowcast.INPUT -z nowcast -e -S If date_modified is after date_created, contact CDIP for details of changes.",
+  "date_created": "2026-11-20T00:07:50Z",
+  "date_modified": "2026-11-20T00:07:50Z",
+  "title": "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0052.",
+  "summary": "The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0052 from 04/01/2025 00:00 to 11/19/2026 23:00 UTC.",
+  "contributor_name": "CDIP",
+  "contributor_role": "model design and implementation",
+  "comment": "Details on the MOP wave model are provided in OReilly, W.C. et al (2016). The California Coastal Wave Monitoring and Prediction System. Manuscript submitted to Coastal Engineering.",
+  "keywords": "EARTH SCIENCE, OCEANS, OCEAN WAVES, GRAVITY WAVES, WIND WAVES, SIGNIFICANT WAVE HEIGHT, WAVE FREQUENCY, WAVE PERIOD, WAVE SPECTRA, OCEAN, PACIFIC OCEAN, EASTERN PACIFIC OCEAN",
+  "id": "MOPv1.1_D0052_2025040100-2026111923",
+  "MOP_initialization_file": "socal_alongshore_nowcast.INPUT",
+  "MOP_output_site_definitions": "D0052",
+  "acknowledgment": "CDIP is primarily supported by the U.S. Army Corps of Engineers (USACE).",
+  "metadata_link": "http://cdip.ucsd.edu/MOP_v1.1/",
+  "infoUrl": "http://cdip.ucsd.edu/MOP_v1.1/",
+  "geospatial_lat_min": 32.57851,
+  "geospatial_lat_max": 32.57851,
+  "geospatial_lat_units": "degrees_north",
+  "geospatial_lat_resolution": 0.0001,
+  "geospatial_lon_min": -117.1423,
+  "geospatial_lon_max": -117.1423,
+  "geospatial_lon_units": "degrees_east",
+  "geospatial_lon_resolution": 0.0001,
+  "geospatial_vertical_min": 0.0,
+  "geospatial_vertical_max": 0.0,
+  "geospatial_vertical_units": "meters",
+  "geospatial_vertical_origin": "sea surface",
+  "geospatial_vertical_positive": "up",
+  "geospatial_vertical_resolution": 1.0,
+  "time_coverage_start": "2025-03-31T23:30:00Z",
+  "time_coverage_end": "2026-11-19T23:30:00Z",
+  "time_coverage_duration": "P598DT00H00M",
+  "time_coverage_resolution": "PT01H00M",
+  "source": "model output",
+  "naming_authority": "edu.ucsd.cdip",
+  "keywords_vocabulary": "Global Change Master Directory (GCMD) Earth Science Keywords",
+  "date_issued": "2026-11-20T00:07:50Z",
+  "creator_name": "Coastal Data Information Program, SIO/UCSD",
+  "creator_url": "http://cdip.ucsd.edu",
+  "creator_email": "www@cdip.ucsd.edu",
+  "creator_institution": "Scripps Institution of Oceanography, UCSD",
+  "creator_country": "USA",
+  "creator_sector": "academic",
+  "publisher_name": "Coastal Data Information Program, SIO/UCSD",
+  "publisher_url": "http://cdip.ucsd.edu",
+  "publisher_email": "www@cdip.ucsd.edu",
+  "publisher_country": "USA",
+  "publisher_institution": "Scripps Institution of Oceanography, UCSD",
+  "institution": "Scripps Institution of Oceanography, University of California San Diego",
+  "project": "Coastal Data Information Program (CDIP)",
+  "processing_level": "QA/QC information available at http://cdip.ucsd.edu/documentation",
+  "standard_name_vocabulary": "CF Standard Name Table v79",
+  "Conventions": "ACDD-1.3, CF-1.8, IOOS-1.2",
+  "license": "These data may be redistributed and used without restriction.",
+  "cdm_data_type": "Station",
+  "featureType": "timeSeries",
+  "ncei_template_version": "NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0",
+  "references": "http://cdip.ucsd.edu/documentation",
+  "uuid": "6AE3DDD2-5137-48EC-983F-3B49CEB6C7D4"
+ },
+ "metaWaterDepth": {
+  "standard_name": "sea_floor_depth_below_sea_level",
+  "long_name": "water depth",
+  "units": "meter",
+  "_FillValue": -999.99,
+  "ncei_name": "DEPTH - BOTTOM",
+  "coverage_content_type": "referenceInformation"
+ },
+ "attributes": {
+  "waveTime": {
+   "long_name": "UTC prediction time",
+   "standard_name": "time",
+   "units": "seconds since 1970-01-01 00:00:00 UTC",
+   "calendar": "standard",
+   "axis": "T",
+   "coverage_content_type": "coordinate"
+  },
+  "waveTimeBounds": {
+   "long_name": "time cell bounds",
+   "units": "seconds since 1970-01-01 00:00:00 UTC",
+   "calendar": "standard",
+   "coverage_content_type": "auxiliaryInformation"
+  },
+  "waveFlagPrimary": {
+   "_Unsigned": "false",
+   "long_name": "primary wave QC flag",
+   "_FillValue": -127,
+   "valid_min": 1,
+   "valid_max": 9,
+   "flag_values": [
+    1,
+    2,
+    3,
+    4,
+    9
+   ],
+   "flag_meanings": "good not_evaluated questionable bad missing",
+   "reference": "Ocean Data Standards, UNESCO 2013 - IOC Manuals and Guides, 54, Volume 3 Version 1",
+   "ancillary_variables": "waveFlagSecondary"
+  },
+  "waveFlagSecondary": {
+   "_Unsigned": "false",
+   "long_name": "secondary model QC flag",
+   "_FillValue": -127,
+   "valid_min": 0,
+   "valid_max": 2,
+   "flag_values": [
+    0,
+    1,
+    2
+   ],
+   "flag_meanings": "unspecified insufficient_input low_energy",
+   "reference": "http://cdip.ucsd.edu/documentation"
+  },
+  "waveHs": {
+   "long_name": "significant wave height",
+   "units": "meter",
+   "_FillValue": -999.99,
+   "standard_name": "sea_surface_wave_significant_height",
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": 0.0,
+   "valid_max": 20.0,
+   "ancillary_variables": "waveFlagPrimary waveFlagSecondary",
+   "ncei_name": "WAVE HEIGHT - SIGNIFICANT"
+  },
+  "waveTp": {
+   "long_name": "peak wave period",
+   "units": "second",
+   "_FillValue": -999.99,
+   "standard_name": "sea_surface_wave_period_at_variance_spectral_density_maximum",
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": 0.0,
+   "valid_max": 40.0,
+   "ancillary_variables": "waveFlagPrimary waveFlagSecondary",
+   "ncei_name": "WAVE - PEAK PERIOD"
+  },
+  "waveTa": {
+   "long_name": "average wave period",
+   "units": "second",
+   "_FillValue": -999.99,
+   "standard_name": "sea_surface_wave_mean_period_from_variance_spectral_density_first_frequency_moment",
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": 0.0,
+   "valid_max": 40.0,
+   "ancillary_variables": "waveFlagPrimary waveFlagSecondary",
+   "ncei_name": "WAVE PERIOD - AVERAGE"
+  },
+  "waveDp": {
+   "long_name": "peak wave direction",
+   "units": "degreeT",
+   "_FillValue": -999.99,
+   "standard_name": "sea_surface_wave_from_direction",
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": 0.0,
+   "valid_max": 360.0,
+   "ancillary_variables": "waveFlagPrimary waveFlagSecondary",
+   "ncei_name": "WAVE DIRECTION"
+  },
+  "waveModelInputSource": {
+   "long_name": "model input sources",
+   "_FillValue": "_"
+  },
+  "waveModelInputSource.DODS": {
+   "strlen": 100,
+   "dimName": "waveModelInputLength"
+  },
+  "waveDm": {
+   "long_name": "bulk Sxy wave direction",
+   "units": "degreeT",
+   "_FillValue": -999.99,
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": 0.0,
+   "valid_max": 360.0,
+   "ancillary_variables": "waveFlagPrimary waveFlagSecondary"
+  },
+  "waveSxy": {
+   "long_name": "alongshore radiation stress",
+   "units": "meter^2",
+   "_FillValue": -999.99,
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "ancillary_variables": "waveFlagPrimary waveFlagSecondary"
+  },
+  "waveSxx": {
+   "long_name": "onshore radiation stress",
+   "units": "meter^2",
+   "_FillValue": -999.99,
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": 0.0,
+   "ancillary_variables": "waveFlagPrimary waveFlagSecondary"
+  },
+  "waveFrequency": {
+   "long_name": "band center frequency",
+   "units": "hertz",
+   "standard_name": "wave_frequency",
+   "bounds": "waveFrequencyBounds"
+  },
+  "waveFrequencyBounds": {
+   "long_name": "frequency cell bounds",
+   "units": "hertz"
+  },
+  "waveFrequencyFlagPrimary": {
+   "_Unsigned": "false",
+   "long_name": "primary waveFrequency QC flag",
+   "_FillValue": -127,
+   "valid_min": 1,
+   "valid_max": 9,
+   "flag_values": [
+    1,
+    2,
+    3,
+    4,
+    9
+   ],
+   "flag_meanings": "good not_evaluated questionable bad missing",
+   "reference": "Ocean Data Standards, UNESCO 2013 - IOC Manuals and Guides, 54, Volume 3 Version 1",
+   "ancillary_variables": "waveFrequencyFlagSecondary"
+  },
+  "waveFrequencyFlagSecondary": {
+   "_Unsigned": "false",
+   "long_name": "secondary waveFrequency QC flag",
+   "_FillValue": -127,
+   "valid_min": 0,
+   "valid_max": 1,
+   "flag_values": [
+    0,
+    1
+   ],
+   "flag_meanings": "unspecified out_of_range",
+   "reference": "http://cdip.ucsd.edu/documentation"
+  },
+  "waveBandwidth": {
+   "long_name": "bandwidth",
+   "units": "hertz",
+   "_FillValue": -999.99,
+   "ncei_name": "WAVE ENERGY - WIDTH OF SPECTRAL BANDS"
+  },
+  "waveEnergyDensity": {
+   "long_name": "band energy density",
+   "units": "meter^2 second",
+   "_FillValue": -999.99,
+   "standard_name": "sea_surface_wave_variance_spectral_density",
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": 0.0,
+   "ancillary_variables": "waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary",
+   "ncei_name": "WAVE ENERGY - SPECTRAL VALUE"
+  },
+  "waveMeanDirection": {
+   "long_name": "band mean direction",
+   "units": "degreeT",
+   "_FillValue": -999.99,
+   "standard_name": "sea_surface_wave_from_direction",
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": 0.0,
+   "valid_max": 360.0,
+   "ancillary_variables": "waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary",
+   "ncei_name": "WAVE DIRECTION - AVERAGE"
+  },
+  "waveA1Value": {
+   "long_name": "band a1 Fourier coefficient",
+   "_FillValue": -999.99,
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": -1.0,
+   "valid_max": 1.0,
+   "ancillary_variables": "waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary",
+   "ncei_name": "WAVE DATA - ANGULAR FOURIER COEFFICIENTS"
+  },
+  "waveB1Value": {
+   "long_name": "band b1 Fourier coefficient",
+   "_FillValue": -999.99,
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": -1.0,
+   "valid_max": 1.0,
+   "ancillary_variables": "waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary",
+   "ncei_name": "WAVE DATA - ANGULAR FOURIER COEFFICIENTS"
+  },
+  "waveA2Value": {
+   "long_name": "band a2 Fourier coefficient",
+   "_FillValue": -999.99,
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": -1.0,
+   "valid_max": 1.0,
+   "ancillary_variables": "waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary",
+   "ncei_name": "WAVE DATA - ANGULAR FOURIER COEFFICIENTS"
+  },
+  "waveB2Value": {
+   "long_name": "band b2 Fourier coefficient",
+   "_FillValue": -999.99,
+   "coordinates": "metaLatitude metaLongitude",
+   "grid_mapping": "metaGridMapping",
+   "valid_min": -1.0,
+   "valid_max": 1.0,
+   "ancillary_variables": "waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary",
+   "ncei_name": "WAVE DATA - ANGULAR FOURIER COEFFICIENTS"
+  },
+  "waveModelBinInputCoverage": {
+   "long_name": "weighted frequency bin input data coverage",
+   "_FillValue": -999.99
+  },
+  "metaSiteLabel": {
+   "long_name": "site label",
+   "_FillValue": "_",
+   "cf_role": "timeseries_id"
+  },
+  "metaSiteLabel.DODS": {
+   "strlen": 5,
+   "dimName": "metaSiteLabelLength"
+  },
+  "metaLatitude": {
+   "standard_name": "latitude",
+   "units": "degrees_north",
+   "valid_min": -90.0,
+   "valid_max": 90.0,
+   "axis": "Y",
+   "coverage_content_type": "coordinate",
+   "ncei_name": "LATITUDE"
+  },
+  "metaLongitude": {
+   "standard_name": "longitude",
+   "units": "degrees_east",
+   "valid_min": -180.0,
+   "valid_max": 180.0,
+   "axis": "X",
+   "coverage_content_type": "coordinate",
+   "ncei_name": "LONGITUDE"
+  },
+  "metaWaterDepth": {
+   "standard_name": "sea_floor_depth_below_sea_level",
+   "long_name": "water depth",
+   "units": "meter",
+   "_FillValue": -999.99,
+   "ncei_name": "DEPTH - BOTTOM",
+   "coverage_content_type": "referenceInformation"
+  },
+  "metaShoreNormal": {
+   "long_name": "shore normal",
+   "units": "degrees_true",
+   "valid_min": 0.0,
+   "valid_max": 360.0,
+   "_FillValue": -999.99
+  },
+  "metaGridMapping": {
+   "grid_mapping_name": "latitude_longitude",
+   "longitude_of_prime_meridian": 0.0,
+   "semi_major_axis": 6378137.0,
+   "inverse_flattening": 298.257223563,
+   "coverage_content_type": "referenceInformation"
+  },
+  "metaGridMapping.DODS": {
+   "strlen": 0
+  },
+  "NC_GLOBAL": {
+   "history": "2026-11-20T00:07:50Z: dataset created; Net_model version 2.1. Runtime arguments: /project/f90_bin/net_model_gf -s 202611191600 -h 8 -c socal_alongshore_ref.nc -i socal_alongshore_nowcast.INPUT -z nowcast -e -S If date_modified is after date_created, contact CDIP for details of changes.",
+   "date_created": "2026-11-20T00:07:50Z",
+   "date_modified": "2026-11-20T00:07:50Z",
+   "title": "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0052.",
+   "summary": "The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0052 from 04/01/2025 00:00 to 11/19/2026 23:00 UTC.",
+   "contributor_name": "CDIP",
+   "contributor_role": "model design and implementation",
+   "comment": "Details on the MOP wave model are provided in OReilly, W.C. et al (2016). The California Coastal Wave Monitoring and Prediction System. Manuscript submitted to Coastal Engineering.",
+   "keywords": "EARTH SCIENCE, OCEANS, OCEAN WAVES, GRAVITY WAVES, WIND WAVES, SIGNIFICANT WAVE HEIGHT, WAVE FREQUENCY, WAVE PERIOD, WAVE SPECTRA, OCEAN, PACIFIC OCEAN, EASTERN PACIFIC OCEAN",
+   "id": "MOPv1.1_D0052_2025040100-2026111923",
+   "MOP_initialization_file": "socal_alongshore_nowcast.INPUT",
+   "MOP_output_site_definitions": "D0052",
+   "acknowledgment": "CDIP is primarily supported by the U.S. Army Corps of Engineers (USACE).",
+   "metadata_link": "http://cdip.ucsd.edu/MOP_v1.1/",
+   "infoUrl": "http://cdip.ucsd.edu/MOP_v1.1/",
+   "geospatial_lat_min": 32.57851,
+   "geospatial_lat_max": 32.57851,
+   "geospatial_lat_units": "degrees_north",
+   "geospatial_lat_resolution": 0.0001,
+   "geospatial_lon_min": -117.1423,
+   "geospatial_lon_max": -117.1423,
+   "geospatial_lon_units": "degrees_east",
+   "geospatial_lon_resolution": 0.0001,
+   "geospatial_vertical_min": 0.0,
+   "geospatial_vertical_max": 0.0,
+   "geospatial_vertical_units": "meters",
+   "geospatial_vertical_origin": "sea surface",
+   "geospatial_vertical_positive": "up",
+   "geospatial_vertical_resolution": 1.0,
+   "time_coverage_start": "2025-03-31T23:30:00Z",
+   "time_coverage_end": "2026-11-19T23:30:00Z",
+   "time_coverage_duration": "P598DT00H00M",
+   "time_coverage_resolution": "PT01H00M",
+   "source": "model output",
+   "naming_authority": "edu.ucsd.cdip",
+   "keywords_vocabulary": "Global Change Master Directory (GCMD) Earth Science Keywords",
+   "date_issued": "2026-11-20T00:07:50Z",
+   "creator_name": "Coastal Data Information Program, SIO/UCSD",
+   "creator_url": "http://cdip.ucsd.edu",
+   "creator_email": "www@cdip.ucsd.edu",
+   "creator_institution": "Scripps Institution of Oceanography, UCSD",
+   "creator_country": "USA",
+   "creator_sector": "academic",
+   "publisher_name": "Coastal Data Information Program, SIO/UCSD",
+   "publisher_url": "http://cdip.ucsd.edu",
+   "publisher_email": "www@cdip.ucsd.edu",
+   "publisher_country": "USA",
+   "publisher_institution": "Scripps Institution of Oceanography, UCSD",
+   "institution": "Scripps Institution of Oceanography, University of California San Diego",
+   "project": "Coastal Data Information Program (CDIP)",
+   "processing_level": "QA/QC information available at http://cdip.ucsd.edu/documentation",
+   "standard_name_vocabulary": "CF Standard Name Table v79",
+   "Conventions": "ACDD-1.3, CF-1.8, IOOS-1.2",
+   "license": "These data may be redistributed and used without restriction.",
+   "cdm_data_type": "Station",
+   "featureType": "timeSeries",
+   "ncei_template_version": "NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0",
+   "references": "http://cdip.ucsd.edu/documentation",
+   "uuid": "6AE3DDD2-5137-48EC-983F-3B49CEB6C7D4"
+  },
+  "DODS_EXTRA": {
+   "Unlimited_Dimension": "waveTime"
+  }
+ },
+ "variables": {
+  "waveTime": {
+   "type": "Int32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveTimeBounds": {
+   "type": "Int32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ],
+    [
+     "metaBoundsCount",
+     2
+    ]
+   ]
+  },
+  "waveFlagPrimary": {
+   "type": "Byte",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveFlagSecondary": {
+   "type": "Byte",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveHs": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveTp": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveTa": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveDp": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveModelInputSource": {
+   "type": "String",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveDm": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveSxy": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveSxx": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ]
+   ]
+  },
+  "waveFrequency": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveFrequencyBounds": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveFrequency",
+     20
+    ],
+    [
+     "metaBoundsCount",
+     2
+    ]
+   ]
+  },
+  "waveFrequencyFlagPrimary": {
+   "type": "Byte",
+   "dims": [
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveFrequencyFlagSecondary": {
+   "type": "Byte",
+   "dims": [
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveBandwidth": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveEnergyDensity": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ],
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveMeanDirection": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ],
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveA1Value": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ],
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveB1Value": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ],
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveA2Value": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ],
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveB2Value": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ],
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "waveModelBinInputCoverage": {
+   "type": "Float32",
+   "dims": [
+    [
+     "waveTime",
+     14352
+    ],
+    [
+     "waveFrequency",
+     20
+    ]
+   ]
+  },
+  "metaSiteLabel": {
+   "type": "String",
+   "dims": []
+  },
+  "metaLatitude": {
+   "type": "Float32",
+   "dims": []
+  },
+  "metaLongitude": {
+   "type": "Float32",
+   "dims": []
+  },
+  "metaWaterDepth": {
+   "type": "Float32",
+   "dims": []
+  },
+  "metaShoreNormal": {
+   "type": "Float32",
+   "dims": []
+  },
+  "metaGridMapping": {
+   "type": "String",
+   "dims": []
+  }
+ },
+ "dds": "Dataset {\n    Int32 waveTime[waveTime = 14352];\n    Int32 waveTimeBounds[waveTime = 14352][metaBoundsCount = 2];\n    Byte waveFlagPrimary[waveTime = 14352];\n    Byte waveFlagSecondary[waveTime = 14352];\n    Float32 waveHs[waveTime = 14352];\n    Float32 waveTp[waveTime = 14352];\n    Float32 waveTa[waveTime = 14352];\n    Float32 waveDp[waveTime = 14352];\n    String waveModelInputSource[waveTime = 14352];\n    Float32 waveDm[waveTime = 14352];\n    Float32 waveSxy[waveTime = 14352];\n    Float32 waveSxx[waveTime = 14352];\n    Float32 waveFrequency[waveFrequency = 20];\n    Float32 waveFrequencyBounds[waveFrequency = 20][metaBoundsCount = 2];\n    Byte waveFrequencyFlagPrimary[waveFrequency = 20];\n    Byte waveFrequencyFlagSecondary[waveFrequency = 20];\n    Float32 waveBandwidth[waveFrequency = 20];\n    Grid {\n     ARRAY:\n        Float32 waveEnergyDensity[waveTime = 14352][waveFrequency = 20];\n     MAPS:\n        Int32 waveTime[waveTime = 14352];\n        Float32 waveFrequency[waveFrequency = 20];\n    } waveEnergyDensity;\n    Grid {\n     ARRAY:\n        Float32 waveMeanDirection[waveTime = 14352][waveFrequency = 20];\n     MAPS:\n        Int32 waveTime[waveTime = 14352];\n        Float32 waveFrequency[waveFrequency = 20];\n    } waveMeanDirection;\n    Grid {\n     ARRAY:\n        Float32 waveA1Value[waveTime = 14352][waveFrequency = 20];\n     MAPS:\n        Int32 waveTime[waveTime = 14352];\n        Float32 waveFrequency[waveFrequency = 20];\n    } waveA1Value;\n    Grid {\n     ARRAY:\n        Float32 waveB1Value[waveTime = 14352][waveFrequency = 20];\n     MAPS:\n        Int32 waveTime[waveTime = 14352];\n        Float32 waveFrequency[waveFrequency = 20];\n    } waveB1Value;\n    Grid {\n     ARRAY:\n        Float32 waveA2Value[waveTime = 14352][waveFrequency = 20];\n     MAPS:\n        Int32 waveTime[waveTime = 14352];\n        Float32 waveFrequency[waveFrequency = 20];\n    } waveA2Value;\n    Grid {\n     ARRAY:\n        Float32 waveB2Value[waveTime = 14352][waveFrequency = 20];\n     MAPS:\n        Int32 waveTime[waveTime = 14352];\n        Float32 waveFrequency[waveFrequency = 20];\n    } waveB2Value;\n    Grid {\n     ARRAY:\n        Float32 waveModelBinInputCoverage[waveTime = 14352][waveFrequency = 20];\n     MAPS:\n        Int32 waveTime[waveTime = 14352];\n        Float32 waveFrequency[waveFrequency = 20];\n    } waveModelBinInputCoverage;\n    String metaSiteLabel;\n    Float32 metaLatitude;\n    Float32 metaLongitude;\n    Float32 metaWaterDepth;\n    Float32 metaShoreNormal;\n    String metaGridMapping;\n} cdip/model/MOP_alongshore/D0052_nowcast.nc;\n",
+ "das": "Attributes {\n    waveTime {\n        String long_name \"UTC prediction time\";\n        String standard_name \"time\";\n        String units \"seconds since 1970-01-01 00:00:00 UTC\";\n        String calendar \"standard\";\n        String axis \"T\";\n        String coverage_content_type \"coordinate\";\n    }\n    waveTimeBounds {\n        String long_name \"time cell bounds\";\n        String units \"seconds since 1970-01-01 00:00:00 UTC\";\n        String calendar \"standard\";\n        String coverage_content_type \"auxiliaryInformation\";\n    }\n    waveFlagPrimary {\n        String _Unsigned \"false\";\n        String long_name \"primary wave QC flag\";\n        Int16 _FillValue -127;\n        Byte valid_min 1;\n        Byte valid_max 9;\n        Byte flag_values 1, 2, 3, 4, 9;\n        String flag_meanings \"good not_evaluated questionable bad missing\";\n        String reference \"Ocean Data Standards, UNESCO 2013 - IOC Manuals and Guides, 54, Volume 3 Version 1\";\n        String ancillary_variables \"waveFlagSecondary\";\n    }\n    waveFlagSecondary {\n        String _Unsigned \"false\";\n        String long_name \"secondary model QC flag\";\n        Int16 _FillValue -127;\n        Byte valid_min 0;\n        Byte valid_max 2;\n        Byte flag_values 0, 1, 2;\n        String flag_meanings \"unspecified insufficient_input low_energy\";\n        String reference \"http://cdip.ucsd.edu/documentation\";\n    }\n    waveHs {\n        String long_name \"significant wave height\";\n        String units \"meter\";\n        Float32 _FillValue -999.99;\n        String standard_name \"sea_surface_wave_significant_height\";\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min 0.0;\n        Float32 valid_max 20.0;\n        String ancillary_variables \"waveFlagPrimary waveFlagSecondary\";\n        String ncei_name \"WAVE HEIGHT - SIGNIFICANT\";\n    }\n    waveTp {\n        String long_name \"peak wave period\";\n        String units \"second\";\n        Float32 _FillValue -999.99;\n        String standard_name \"sea_surface_wave_period_at_variance_spectral_density_maximum\";\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min 0.0;\n        Float32 valid_max 40.0;\n        String ancillary_variables \"waveFlagPrimary waveFlagSecondary\";\n        String ncei_name \"WAVE - PEAK PERIOD\";\n    }\n    waveTa {\n        String long_name \"average wave period\";\n        String units \"second\";\n        Float32 _FillValue -999.99;\n        String standard_name \"sea_surface_wave_mean_period_from_variance_spectral_density_first_frequency_moment\";\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min 0.0;\n        Float32 valid_max 40.0;\n        String ancillary_variables \"waveFlagPrimary waveFlagSecondary\";\n        String ncei_name \"WAVE PERIOD - AVERAGE\";\n    }\n    waveDp {\n        String long_name \"peak wave direction\";\n        String units \"degreeT\";\n        Float32 _FillValue -999.99;\n        String standard_name \"sea_surface_wave_from_direction\";\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min 0.0;\n        Float32 valid_max 360.0;\n        String ancillary_variables \"waveFlagPrimary waveFlagSecondary\";\n        String ncei_name \"WAVE DIRECTION\";\n    }\n    waveModelInputSource {\n        String long_name \"model input sources\";\n        String _FillValue \"_\";\n        DODS {\n            Int32 strlen 100;\n            String dimName \"waveModelInputLength\";\n        }\n    }\n    waveDm {\n        String long_name \"bulk Sxy wave direction\";\n        String units \"degreeT\";\n        Float32 _FillValue -999.99;\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min 0.0;\n        Float32 valid_max 360.0;\n        String ancillary_variables \"waveFlagPrimary waveFlagSecondary\";\n    }\n    waveSxy {\n        String long_name \"alongshore radiation stress\";\n        String units \"meter^2\";\n        Float32 _FillValue -999.99;\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        String ancillary_variables \"waveFlagPrimary waveFlagSecondary\";\n    }\n    waveSxx {\n        String long_name \"onshore radiation stress\";\n        String units \"meter^2\";\n        Float32 _FillValue -999.99;\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min 0.0;\n        String ancillary_variables \"waveFlagPrimary waveFlagSecondary\";\n    }\n    waveFrequency {\n        String long_name \"band center frequency\";\n        String units \"hertz\";\n        String standard_name \"wave_frequency\";\n        String bounds \"waveFrequencyBounds\";\n    }\n    waveFrequencyBounds {\n        String long_name \"frequency cell bounds\";\n        String units \"hertz\";\n    }\n    waveFrequencyFlagPrimary {\n        String _Unsigned \"false\";\n        String long_name \"primary waveFrequency QC flag\";\n        Int16 _FillValue -127;\n        Byte valid_min 1;\n        Byte valid_max 9;\n        Byte flag_values 1, 2, 3, 4, 9;\n        String flag_meanings \"good not_evaluated questionable bad missing\";\n        String reference \"Ocean Data Standards, UNESCO 2013 - IOC Manuals and Guides, 54, Volume 3 Version 1\";\n        String ancillary_variables \"waveFrequencyFlagSecondary\";\n    }\n    waveFrequencyFlagSecondary {\n        String _Unsigned \"false\";\n        String long_name \"secondary waveFrequency QC flag\";\n        Int16 _FillValue -127;\n        Byte valid_min 0;\n        Byte valid_max 1;\n        Byte flag_values 0, 1;\n        String flag_meanings \"unspecified out_of_range\";\n        String reference \"http://cdip.ucsd.edu/documentation\";\n    }\n    waveBandwidth {\n        String long_name \"bandwidth\";\n        String units \"hertz\";\n        Float32 _FillValue -999.99;\n        String ncei_name \"WAVE ENERGY - WIDTH OF SPECTRAL BANDS\";\n    }\n    waveEnergyDensity {\n        String long_name \"band energy density\";\n        String units \"meter^2 second\";\n        Float32 _FillValue -999.99;\n        String standard_name \"sea_surface_wave_variance_spectral_density\";\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min 0.0;\n        String ancillary_variables \"waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary\";\n        String ncei_name \"WAVE ENERGY - SPECTRAL VALUE\";\n    }\n    waveMeanDirection {\n        String long_name \"band mean direction\";\n        String units \"degreeT\";\n        Float32 _FillValue -999.99;\n        String standard_name \"sea_surface_wave_from_direction\";\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min 0.0;\n        Float32 valid_max 360.0;\n        String ancillary_variables \"waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary\";\n        String ncei_name \"WAVE DIRECTION - AVERAGE\";\n    }\n    waveA1Value {\n        String long_name \"band a1 Fourier coefficient\";\n        Float32 _FillValue -999.99;\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min -1.0;\n        Float32 valid_max 1.0;\n        String ancillary_variables \"waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary\";\n        String ncei_name \"WAVE DATA - ANGULAR FOURIER COEFFICIENTS\";\n    }\n    waveB1Value {\n        String long_name \"band b1 Fourier coefficient\";\n        Float32 _FillValue -999.99;\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min -1.0;\n        Float32 valid_max 1.0;\n        String ancillary_variables \"waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary\";\n        String ncei_name \"WAVE DATA - ANGULAR FOURIER COEFFICIENTS\";\n    }\n    waveA2Value {\n        String long_name \"band a2 Fourier coefficient\";\n        Float32 _FillValue -999.99;\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min -1.0;\n        Float32 valid_max 1.0;\n        String ancillary_variables \"waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary\";\n        String ncei_name \"WAVE DATA - ANGULAR FOURIER COEFFICIENTS\";\n    }\n    waveB2Value {\n        String long_name \"band b2 Fourier coefficient\";\n        Float32 _FillValue -999.99;\n        String coordinates \"metaLatitude metaLongitude\";\n        String grid_mapping \"metaGridMapping\";\n        Float32 valid_min -1.0;\n        Float32 valid_max 1.0;\n        String ancillary_variables \"waveFlagPrimary waveFrequencyFlagPrimary waveFlagSecondary waveFrequencyFlagSecondary\";\n        String ncei_name \"WAVE DATA - ANGULAR FOURIER COEFFICIENTS\";\n    }\n    waveModelBinInputCoverage {\n        String long_name \"weighted frequency bin input data coverage\";\n        Float32 _FillValue -999.99;\n    }\n    metaSiteLabel {\n        String long_name \"site label\";\n        String _FillValue \"_\";\n        String cf_role \"timeseries_id\";\n        DODS {\n            Int32 strlen 5;\n            String dimName \"metaSiteLabelLength\";\n        }\n    }\n    metaLatitude {\n        String standard_name \"latitude\";\n        String units \"degrees_north\";\n        Float32 valid_min -90.0;\n        Float32 valid_max 90.0;\n        String axis \"Y\";\n        String coverage_content_type \"coordinate\";\n        String ncei_name \"LATITUDE\";\n    }\n    metaLongitude {\n        String standard_name \"longitude\";\n        String units \"degrees_east\";\n        Float32 valid_min -180.0;\n        Float32 valid_max 180.0;\n        String axis \"X\";\n        String coverage_content_type \"coordinate\";\n        String ncei_name \"LONGITUDE\";\n    }\n    metaWaterDepth {\n        String standard_name \"sea_floor_depth_below_sea_level\";\n        String long_name \"water depth\";\n        String units \"meter\";\n        Float32 _FillValue -999.99;\n        String ncei_name \"DEPTH - BOTTOM\";\n        String coverage_content_type \"referenceInformation\";\n    }\n    metaShoreNormal {\n        String long_name \"shore normal\";\n        String units \"degrees_true\";\n        Float32 valid_min 0.0;\n        Float32 valid_max 360.0;\n        Float32 _FillValue -999.99;\n    }\n    metaGridMapping {\n        String grid_mapping_name \"latitude_longitude\";\n        Float32 longitude_of_prime_meridian 0.0;\n        Float64 semi_major_axis 6378137.0;\n        Float64 inverse_flattening 298.257223563;\n        String coverage_content_type \"referenceInformation\";\n        DODS {\n            Int32 strlen 0;\n        }\n    }\n    NC_GLOBAL {\n        String history \"2026-11-20T00:07:50Z: dataset created; Net_model version 2.1. Runtime arguments: /project/f90_bin/net_model_gf -s 202611191600 -h 8 -c socal_alongshore_ref.nc -i socal_alongshore_nowcast.INPUT -z nowcast -e -S If date_modified is after date_created, contact CDIP for details of changes.\";\n        String date_created \"2026-11-20T00:07:50Z\";\n        String date_modified \"2026-11-20T00:07:50Z\";\n        String title \"Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0052.\";\n        String summary \"The CDIP Monitoring and Prediction (MOP) System output of spectral wave predictions for the sites defined in D0052 from 04/01/2025 00:00 to 11/19/2026 23:00 UTC.\";\n        String contributor_name \"CDIP\";\n        String contributor_role \"model design and implementation\";\n        String comment \"Details on the MOP wave model are provided in OReilly, W.C. et al (2016). The California Coastal Wave Monitoring and Prediction System. Manuscript submitted to Coastal Engineering.\";\n        String keywords \"EARTH SCIENCE, OCEANS, OCEAN WAVES, GRAVITY WAVES, WIND WAVES, SIGNIFICANT WAVE HEIGHT, WAVE FREQUENCY, WAVE PERIOD, WAVE SPECTRA, OCEAN, PACIFIC OCEAN, EASTERN PACIFIC OCEAN\";\n        String id \"MOPv1.1_D0052_2025040100-2026111923\";\n        String MOP_initialization_file \"socal_alongshore_nowcast.INPUT\";\n        String MOP_output_site_definitions \"D0052\";\n        String acknowledgment \"CDIP is primarily supported by the U.S. Army Corps of Engineers (USACE).\";\n        String metadata_link \"http://cdip.ucsd.edu/MOP_v1.1/\";\n        String infoUrl \"http://cdip.ucsd.edu/MOP_v1.1/\";\n        Float32 geospatial_lat_min 32.57851;\n        Float32 geospatial_lat_max 32.57851;\n        String geospatial_lat_units \"degrees_north\";\n        Float32 geospatial_lat_resolution 1.0E-4;\n        Float32 geospatial_lon_min -117.1423;\n        Float32 geospatial_lon_max -117.1423;\n        String geospatial_lon_units \"degrees_east\";\n        Float32 geospatial_lon_resolution 1.0E-4;\n        Float32 geospatial_vertical_min 0.0;\n        Float32 geospatial_vertical_max 0.0;\n        String geospatial_vertical_units \"meters\";\n        String geospatial_vertical_origin \"sea surface\";\n        String geospatial_vertical_positive \"up\";\n        Float32 geospatial_vertical_resolution 1.0;\n        String time_coverage_start \"2025-03-31T23:30:00Z\";\n        String time_coverage_end \"2026-11-19T23:30:00Z\";\n        String time_coverage_duration \"P598DT00H00M\";\n        String time_coverage_resolution \"PT01H00M\";\n        String source \"model output\";\n        String naming_authority \"edu.ucsd.cdip\";\n        String keywords_vocabulary \"Global Change Master Directory (GCMD) Earth Science Keywords\";\n        String date_issued \"2026-11-20T00:07:50Z\";\n        String creator_name \"Coastal Data Information Program, SIO/UCSD\";\n        String creator_url \"http://cdip.ucsd.edu\";\n        String creator_email \"www@cdip.ucsd.edu\";\n        String creator_institution \"Scripps Institution of Oceanography, UCSD\";\n        String creator_country \"USA\";\n        String creator_sector \"academic\";\n        String publisher_name \"Coastal Data Information Program, SIO/UCSD\";\n        String publisher_url \"http://cdip.ucsd.edu\";\n        String publisher_email \"www@cdip.ucsd.edu\";\n        String publisher_country \"USA\";\n        String publisher_institution \"Scripps Institution of Oceanography, UCSD\";\n        String institution \"Scripps Institution of Oceanography, University of California San Diego\";\n        String project \"Coastal Data Information Program (CDIP)\";\n        String processing_level \"QA/QC information available at http://cdip.ucsd.edu/documentation\";\n        String standard_name_vocabulary \"CF Standard Name Table v79\";\n        String Conventions \"ACDD-1.3, CF-1.8, IOOS-1.2\";\n        String license \"These data may be redistributed and used without restriction.\";\n        String cdm_data_type \"Station\";\n        String featureType \"timeSeries\";\n        String ncei_template_version \"NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0\";\n        String references \"http://cdip.ucsd.edu/documentation\";\n        String uuid \"6AE3DDD2-5137-48EC-983F-3B49CEB6C7D4\";\n    }\n    DODS_EXTRA {\n        String Unlimited_Dimension \"waveTime\";\n    }\n}\n",
+ "small_variables": {
+  "names": [
+   "waveFrequency",
+   "waveFrequencyBounds",
+   "waveFrequencyFlagPrimary",
+   "waveFrequencyFlagSecondary",
+   "waveBandwidth",
+   "metaSiteLabel",
+   "metaLatitude",
+   "metaLongitude",
+   "metaWaterDepth",
+   "metaShoreNormal",
+   "metaGridMapping"
+  ],
+  "ascii": "Dataset {\n    Float32 waveFrequency[waveFrequency = 20];\n    Float32 waveFrequencyBounds[waveFrequency = 20][metaBoundsCount = 2];\n    Byte waveFrequencyFlagPrimary[waveFrequency = 20];\n    Byte waveFrequencyFlagSecondary[waveFrequency = 20];\n    Float32 waveBandwidth[waveFrequency = 20];\n    String metaSiteLabel;\n    Float32 metaLatitude;\n    Float32 metaLongitude;\n    Float32 metaWaterDepth;\n    Float32 metaShoreNormal;\n    String metaGridMapping;\n} cdip/model/MOP_alongshore/D0052_nowcast.nc;\n---------------------------------------------\nwaveFrequency[20]\n0.04, 0.045, 0.05, 0.055, 0.06, 0.065, 0.07, 0.075, 0.0813, 0.09, 0.1, 0.11, 0.1225, 0.14, 0.16, 0.18, 0.2075, 0.25, 0.3125, 0.4\n\nwaveFrequencyBounds[20][2]\n[0], 0.037499998, 0.0425\n[1], 0.0425, 0.047500003\n[2], 0.0475, 0.052500002\n[3], 0.0525, 0.0575\n[4], 0.057499997, 0.0625\n[5], 0.062499996, 0.067499995\n[6], 0.0675, 0.0725\n[7], 0.072500005, 0.0775\n[8], 0.07755, 0.085049994\n[9], 0.085, 0.095000006\n[10], 0.095, 0.105000004\n[11], 0.105, 0.115\n[12], 0.115, 0.13\n[13], 0.13, 0.15\n[14], 0.14999999, 0.17\n[15], 0.17, 0.19000001\n[16], 0.19125, 0.22375\n[17], 0.225, 0.275\n[18], 0.275, 0.35\n[19], 0.35, 0.45000002\n\nwaveFrequencyFlagPrimary[20]\n1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1\n\nwaveFrequencyFlagSecondary[20]\n0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0\n\nwaveBandwidth[20]\n0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.0075, 0.01, 0.01, 0.01, 0.015, 0.02, 0.02, 0.02, 0.0325, 0.05, 0.075, 0.1\n\nmetaSiteLabel, \"D0052\"\nmetaLatitude, 32.57851\nmetaLongitude, -117.1423\nmetaWaterDepth, 10.0\nmetaShoreNormal, 264.48\nmetaGridMapping, \"_\"\n"
+ },
+ "spectrum": {
+  "schema": {
+   "nf": 20,
+   "time_first": true,
+   "edges_from": "waveFrequencyBounds",
+   "moments": true,
+   "units": {
+    "waveFrequency": "hertz",
+    "waveEnergyDensity": "meter^2 second",
+    "waveFrequencyBounds": "hertz",
+    "waveBandwidth": "hertz",
+    "waveA1Value": null,
+    "waveB1Value": null,
+    "waveA2Value": null,
+    "waveB2Value": null
+   }
+  },
+  "problems": [],
+  "bands": 20,
+  "hours": 2592,
+  "masked": {
+   "waveEnergyDensity": 0,
+   "waveA1Value": 0,
+   "waveB1Value": 0,
+   "waveA2Value": 0,
+   "waveB2Value": 0
+  },
+  "readback": {
+   "hours": 2592,
+   "median": 1.0,
+   "p01": 1.0,
+   "p99": 1.0,
+   "worst": 1.0,
+   "ok": true
+  },
+  "first_index": 11760,
+  "last_index": 14351
+ },
+ "inputs": {
+  "sources": {
+   "191p1-067p1-071p1:191p1-220p1-100p1-045p1___________________________________________________________": 2209,
+   "067p1-071p1:220p1-100p1-045p1_______________________________________________________________________": 379,
+   "067p1-071p1:191p1-220p1-100p1-045p1_________________________________________________________________": 4
+  },
+  "coverage": true,
+  "hours": 2592
+ }
+}
