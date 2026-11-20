@@ -164,22 +164,37 @@ def h_ref_for(variant: str, bathy, point: dict) -> float:
     return MOP_H_REF
 
 
+def without_nearshore(bathy):
+    """The seabed with the 8 m `nearshore` grid left out: what a point
+    outside it (Imperial Beach) is traced on, the 32 m `regional` first."""
+
+    keep = [i for i, n in enumerate(bathy.names) if n != "nearshore"]
+    return rt.Bathymetry([bathy.grids[i] for i in keep], bathy.msl_offset_m,
+                         tuple(bathy.names[i] for i in keep))
+
+
 def build(break_id: str, variant: str, point: dict, cache: Path = CACHE, refresh: bool = False,
-          normal: float | None = None):
+          normal: float | None = None, coarse_seabed: bool = False):
     """(rows, meta) for one start, from the cache or `raytrace.table`.
 
     With `normal`, `break_id` names a point that is not a break: only `mop`
-    and `mop_back`, traced from `point_spot` at MOP_H_REF."""
+    and `mop_back`, traced from `point_spot` at MOP_H_REF. `coarse_seabed`
+    leaves the 8 m grid out (the grid control for a point outside it)."""
 
     if normal is not None and variant not in ("mop", "mop_back"):
         raise ValueError(f"{break_id} is not a break: no {variant} start")
+    if coarse_seabed and variant not in ("mop", "mop_back"):
+        raise ValueError("the coarse-seabed control is for the MOP-point starts only")
 
-    csv_path = cache / f"{break_id}_{variant}.csv"
-    meta_path = cache / f"{break_id}_{variant}.json"
+    tag = "_32m" if coarse_seabed else ""
+    csv_path = cache / f"{break_id}_{variant}{tag}.csv"
+    meta_path = cache / f"{break_id}_{variant}{tag}.json"
     if csv_path.exists() and meta_path.exists() and not refresh:
         with csv_path.open(newline="", encoding="utf-8") as fh:
             return list(csv.DictReader(fh)), json.loads(meta_path.read_text())
     bathy = rt.Bathymetry.load()
+    if coarse_seabed:
+        bathy = without_nearshore(bathy)
     spots, blockers = rt.load()
     if normal is None:
         spot = spot_for(variant, {s.id: s for s in spots}[break_id], point)
@@ -188,6 +203,7 @@ def build(break_id: str, variant: str, point: dict, cache: Path = CACHE, refresh
         spot, h_ref = point_spot(break_id, point, normal, back=variant == "mop_back"), MOP_H_REF
     rows, meta = rt.table(bathy, spot, blockers, rt.frequencies(), h_ref=h_ref)
     meta["variant"] = variant
+    meta["grids"] = list(bathy.names)
     if normal is not None:
         meta["normal_deg"] = round(spot.normal, 4)
         meta["normal_from"] = "MOP's metaShoreNormal"
@@ -835,7 +851,8 @@ def exposed_report(places: dict[str, list[dict]], coarse, edges: dict[str, str])
          f"has a matched 46232 spectrum and a complete MOP spectrum for. Straight-line Point Loma edge at "
          f"each MOP point in brackets (`geometry.open_windows`, MOP's own normal). A band-hour is "
          f"compared when 46232 has ≥ {BAND_MIN_HS} m in it. Whole spectrum: chain-at-MOP / MOP, MOP "
-         "de-shoaled by band.", "",
+         "de-shoaled by band. `32 m seabed` is the grid control: the same MOP point traced with the 8 m "
+         "`nearshore` grid left out, the seabed a point outside it (Imperial Beach) is traced on.", "",
          "| 46232 from | place | n | whole | " + " | ".join(labels) + " |",
          "|---|---|---:|---|" + "---|" * len(labels)]
     for name, lo, hi in sectors():
@@ -1130,6 +1147,24 @@ def main(argv: list[str] | None = None) -> int:
             pl = [w for w in (windows_at(b, points[b], n) if n is not None else []) if "Point Loma" in w]
             edges[b] = f"Point Loma {pl[-1].split(' – ')[-1].split('°')[0]}°" if pl else "?"
             places[b] = results[b]
+        # The grid control: a point outside the 8 m grid is traced on the 32 m
+        # one, so Center's MOP point is traced on that alone too, and its
+        # band ratios go beside the shipped seabed's.
+        c = "coronado_center"
+        if c in breaks and specs.get(c, (None, ""))[0] is not None:
+            built = {v: build(c, v, points[c], refresh=args.refresh, coarse_seabed=True)
+                     for v in ("mop", "mop_back")}
+            arr = {v: Arrays(rows, float(m["start_depth_m"])) for v, (rows, m) in built.items()}
+            spec_c = specs[c][0]
+            coarse_c = common_bands(spec_c["bands"], spectra[0].frequencies)
+            conv_c, _ = convention(spec_c, read_mop(MOP_DIR / f"{c}.csv"))
+            cname = f"{c}, 32 m seabed"
+            places[cname] = hours(c, read_mop(MOP_DIR / f"{c}.csv"), spectra,
+                                  {"mop": arr["mop"].merged(arr["mop_back"]), "mop_back": arr["mop_back"]},
+                                  float(points[c]["depth_m"]), float(points[c]["depth_m"]) + msl,
+                                  spec_c, coarse_c, conv_c)
+            edges[cname] = edges[c]
+            print(f"{cname}: {len(places[cname])} hours (grid control)", flush=True)
         for name, p in extra_pts.items():
             meta_path = MOP_DIR / f"{name}_meta.json"
             normal = mop_normal(json.loads(meta_path.read_text())) if meta_path.exists() else None
