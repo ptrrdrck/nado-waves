@@ -65,6 +65,8 @@ OBS, INP = "imperial_beach_nearshore", "point_loma_south"
 EDGES = md.BAND_EDGES_HZ
 MIN_HS = md.BAND_MIN_HS
 GOOD_FLAG = 1
+#: Observed-Hs classes (m) for the size table.
+SIZES = ((0.0, 0.75), (0.75, 1.0), (1.0, 1.5), (1.5, 2.0), (2.0, 9.9))
 
 
 # ------------------------------------------------------------------ inputs
@@ -361,6 +363,7 @@ def run(refresh: bool = False, every: int = 1) -> dict:
              "chain_mop_deq": chain_bands(sp, cm["e"], coarse, edges, combs["mop"].start_depth_m),
              "dir_obs": series_direction(e_obs, m_obs, obs["bands"], coarse),
              "dir_chain": chain_direction(sp, cb, coarse, edges),
+             "dir_chain_mop": chain_direction(sp, cm, coarse, edges),
              "dir_mop": series_direction(e_mop, mop["moments"][t], mop["bands"], coarse)
              if mop["moments"] and mop["moments"].get(t) and None not in mop["moments"][t] else None}
         r["hs_chain"] = 4 * math.sqrt(float(np.sum(cb["e"] * [sp.bin_width(i) for i in range(len(sp.c11))])))
@@ -474,6 +477,20 @@ def report(res: dict) -> str:
         L.append(f"| {name} | {len(rs)} | {q([r['hs_obs'] for r in rs])} | {q([r['hs_inp'] / r['hs_obs'] for r in rs])} "
                  f"| {q([r['hs_chain'] / r['hs_obs'] for r in rs])} | {np.mean(b):+.2f}, {rms(b):.2f} "
                  f"| {q([r['hs_chain_fric'] / r['hs_obs'] for r in rs])} | {np.mean(bf):+.2f}, {rms(bf):.2f} |")
+    L += ["", "By the observed Hs (all directions; W–WNW in brackets, where §56 found the headline high on big "
+          "days). MOP and its column are deep-water-equivalent against the buoy de-shoaled, as below:", "",
+          "| observed Hs | n (W–WNW) | chain / observed | chain with JONSWAP friction / observed | bias (m) | "
+          "MOP / observed |", "|---|---|---|---|---|---|"]
+    for lo, hi in SIZES:
+        rs = [r for r in rows if lo <= r["hs_obs"] < hi]
+        ws = [r for r in rs if sector_of(r["from"]) == "W-WNW"]
+        if not rs:
+            continue
+        cell = lambda f: f"{q([f(r) for r in rs])} ({q([f(r) for r in ws], 2) if ws else '—'})"
+        L.append(f"| {f"≥ {lo:g}" if hi > 9 else f"{lo:g}–{hi:g}"} m | {len(rs)} ({len(ws)}) | {cell(lambda r: r['hs_chain'] / r['hs_obs'])} "
+                 f"| {cell(lambda r: r['hs_chain_fric'] / r['hs_obs'])} "
+                 f"| {np.mean([r['hs_chain'] - r['hs_obs'] for r in rs]):+.2f} "
+                 f"| {cell(lambda r: whole(r, 'mop_deq') / whole(r, 'obs_deq'))} |")
     L += ["", "By band, chain / observed as heights at the buoy (√ energy ratio), median [10th, 90th]; a band-hour "
           f"counts when the observed band holds ≥ {MIN_HS} m:", "",
           "| 46232 from | " + " | ".join(labels) + " |", "|---|" + "---|" * len(labels)]
@@ -505,7 +522,10 @@ def report(res: dict) -> str:
           "The buoy's mean direction FROM (median) and each model's minus it (median [10th, 90th]); band-hours "
           f"with the observed band ≥ {MIN_HS} m. The chain at the buoy; MOP at its point, 1.9 km inshore, where "
           "refraction has turned the swell further.", ""]
-    L += ["| 46232 from | band | observed | chain − observed | MOP − observed |", "|---|---|---|---|---|"]
+    L += ["The last column is like for like between the models: the chain traced from MOP's own point, against "
+          "MOP there.", "",
+          "| 46232 from | band | observed | chain − observed | MOP − observed | chain at MOP's point − MOP |",
+          "|---|---|---|---|---|---|"]
     circ = lambda d: ((d + 180) % 360) - 180
     for name, rs in groups(rows):
         for k, lab in enumerate(labels):
@@ -515,7 +535,8 @@ def report(res: dict) -> str:
             o = [r["dir_obs"][k] for r in ok]
             om = math.degrees(math.atan2(np.mean(np.sin(np.radians(o))), np.mean(np.cos(np.radians(o))))) % 360
             L.append(f"| {name} | {lab} | {om:.0f}° | {q([circ(r['dir_chain'][k] - r['dir_obs'][k]) for r in ok])} "
-                     f"| {q([circ(r['dir_mop'][k] - r['dir_obs'][k]) for r in ok if r['dir_mop'] is not None])} |")
+                     f"| {q([circ(r['dir_mop'][k] - r['dir_obs'][k]) for r in ok if r['dir_mop'] is not None])} "
+                     f"| {q([circ(r['dir_chain_mop'][k] - r['dir_mop'][k]) for r in ok if r['dir_mop'] is not None])} |")
     return "\n".join(L) + "\n"
 
 
