@@ -234,10 +234,41 @@ Open, the owner's calls:
 - The westerly half of the excess (the wrap round Point Loma): item 24
   first, so a table fault is not credited to the friction or the reverse.
 
+### Group 7: tests that newly archived data turned red (2026-11-20)
+
+27. **The fill test asked every row to draw half its energy** -- done
+    (PR #243). Rays are traced only at 0.03-0.25 Hz; a card also lists the
+    buoy's own short-period sea, mostly above that. Failed on 14.9% of
+    archived hours. The bound is now half of the row's IN-BAND share
+    (owner's choice). Open, not built: `fill.MIN_SHARE` is cut per ray and
+    leaves up to 13.5% of a broad swell's energy off the drawing (Center
+    2026-11-14T17Z, 15.4 s); the page rescales for it.
+28. **Briefing: two updates no kind explains** -- open. `tests/test_briefing.py::
+    test_every_kept_update_names_its_changes_and_none_is_unexplained_since_the_wording_settled`
+    expects one `.other` change since 25 Oct (2026-10-31T18:26Z) and now
+    finds two more, 2026-11-20T00:38Z and 01:07Z, from
+    `data/briefings/2026-11.jsonl`. Red on master at 0892bf2 and after
+    PR #243. Not looked at: a fault in `bf.changes`' classification and a
+    new legitimate kind of change are both open.
+
 ### Carryover prompts
 
 Each assumes a fresh session; add "Confirm each item before building. PR,
 wait for Tests, don't merge." to each.
+
+- Group 7, item 28 (diagnosis; the strongest model, high effort, because
+  whether the test's expectation or the classifier is wrong is open):
+  "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes and read
+  CLAUDE.md, BRIEFING §44, docs/design/briefing.md and docs/handoff.md
+  item 28 first. tests/test_briefing.py::test_every_kept_update_names_its_changes_and_none_is_unexplained_since_the_wording_settled
+  fails on master since the Briefing updates kept at 2026-11-20T00:38Z and
+  01:07Z (data/briefings/2026-11.jsonl): each yields a `.other` change
+  besides the expected 2026-10-31T18:26Z. Reproduce it, show what words
+  changed in those two updates and which kind should have explained them,
+  and decide whether the test's expectation is wrong (a legitimate change
+  it did not anticipate) or the change classifier has a fault. Report the
+  cause before changing anything; confirm with the owner before editing
+  the test or the code."
 
 - Group 6, after item 24b (diagnosis; the strongest model, high effort,
   because it is open which model's long-period refraction is wrong and the
