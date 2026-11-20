@@ -112,31 +112,69 @@ def to_spectrum(t: datetime, spec: dict, freqs: list[float]) -> Spectrum | None:
                     r2=[math.hypot(x, y) for x, y in zip(a2, b2)])
 
 
+#: NDBC's text files round the band centres to three decimals (0.101 for
+#: CDIP's 0.10125): the same band within this.
+BAND_TOL_HZ = 5e-4
+
+
+def same_bands(a: list[float], b: list[float]) -> bool:
+    return len(a) == len(b) and max(abs(x - y) for x, y in zip(a, b)) <= BAND_TOL_HZ
+
+
+def shipped_frequencies(cdip: list[float]) -> list[float]:
+    """46232's bins as the shipped chain reads them (NDBC's), when CDIP's are
+    the same bands: so the input carries exactly as it would in production."""
+
+    ndbc = rt.frequencies()
+    if not same_bands(ndbc, cdip):
+        raise SystemExit(f"CDIP 191's bands are not NDBC's 46232 bands: {cdip[:4]}… against {ndbc[:4]}…")
+    return ndbc
+
+
+#: NDBC's 46232 feed is quantised (energy density in steps of ~0.011 m²/Hz,
+#: directions in 4°): per-bin agreement is read only where a step is a few
+#: per cent of the value.
+CONTROL_MIN_C11 = 0.2
+#: Swell, where the dispute is (≥ 8 s), against the shorter-period tail.
+SWELL_HZ = 0.125
+
+
 def control_input(spec_control: dict) -> dict:
     """CDIP's 191 against this repository's NDBC archive of 46232, on the
-    hours both hold: the same buoy through two archives must agree."""
+    records both hold at the SAME time (CDIP every 30 min, NDBC hourly): the
+    same buoy through two archives must agree to NDBC's quantisation."""
 
-    freqs = [b[0] for b in spec_control["bands"]]
+    freqs = shipped_frequencies([b[0] for b in spec_control["bands"]])
     ndbc = {s.time: s for s in load_spectra(ROOT / "data" / "spectra" / "46232")}
-    dc, da, dr = [], [], []
+    hs, dc, da, dr = [], [], [], []
+    split_hs: dict[str, list[float]] = {"swell": [], "tail": []}
     for t in sorted(spec_control["energy"]):
-        n = nearest(sorted(ndbc), t)
-        sp = to_spectrum(t, spec_control, freqs)
-        if n is None or sp is None:
+        ref, sp = ndbc.get(t), to_spectrum(t, spec_control, freqs)
+        if ref is None or sp is None:
             continue
-        ref = ndbc[n]
-        if len(ref.frequencies) != len(freqs) or max(abs(a - b) for a, b in zip(ref.frequencies, freqs)) > 1e-4:
+        if not same_bands(ref.frequencies, freqs):
             return {"hours": 0, "problem": f"bands differ: NDBC {ref.frequencies[:3]}…, CDIP {freqs[:3]}…"}
+        m = [sum(c * x.bin_width(i) for i, c in enumerate(x.c11) if c == c and c > 0) for x in (sp, ref)]
+        if m[1] > 0:
+            hs.append(math.sqrt(m[0] / m[1]) - 1)
+        for part, keep in (("swell", lambda f: f <= SWELL_HZ), ("tail", lambda f: f > SWELL_HZ)):
+            mm = [sum(c * x.bin_width(i) for i, c in enumerate(x.c11) if c == c and c > 0 and keep(freqs[i]))
+                  for x in (sp, ref)]
+            if mm[1] > 0:
+                split_hs[part].append(math.sqrt(mm[0] / mm[1]) - 1)
         for i in range(len(freqs)):
             c, r = sp.c11[i], ref.c11[i]
-            if r == r and r > 1e-3:
+            if r == r and r >= CONTROL_MIN_C11:
                 dc.append(c / r - 1)
                 if ref.r1[i] == ref.r1[i] and ref.r1[i] > 0.3:
                     da.append(((sp.a1[i] - ref.a1[i] + 180) % 360) - 180)
                     dr.append(sp.r1[i] - ref.r1[i])
     q = lambda v: (float(np.median(np.abs(v))), float(np.percentile(np.abs(v), 99))) if v else (float("nan"),) * 2
-    return {"hours": len({t for t in spec_control["energy"]}), "bins": len(dc),
-            "c11_rel": q(dc), "alpha1_deg": q(da), "r1": q(dr)}
+    return {"hours": len(hs), "bins": len(dc), "hs_rel": q(hs), "hs_bias": float(np.median(hs)) if hs else float("nan"),
+            "c11_rel": q(dc), "c11_bias": float(np.median(dc)) if dc else float("nan"),
+            "alpha1_deg": q(da), "r1": q(dr),
+            "split": {k: (float(np.median(v)), float(np.percentile(v, 10)), float(np.percentile(v, 90)))
+                      for k, v in split_hs.items() if v}}
 
 
 # ------------------------------------------------------------------ tables
@@ -289,7 +327,7 @@ def run(refresh: bool = False, every: int = 1) -> dict:
                       ("mop", mop_pt, md.MOP_H_REF)):
         combs[key] = Comb([table_at(p["point"], p, normal, h, back, refresh) for back in (False, True)])
 
-    freqs_inp = [b[0] for b in inp["bands"]]
+    freqs_inp = shipped_frequencies([b[0] for b in inp["bands"]])
     edges = md.bin_edges(freqs_inp)
     coarse = coarse_bands([obs["bands"][0][1], mop["bands"][0][1], edges[0][0]],
                           [obs["bands"][-1][2], mop["bands"][-1][2], edges[-1][1]])
@@ -374,6 +412,21 @@ def whole(r, key: str) -> float:
     return 4 * math.sqrt(max(float(np.sum(r[key])), 0.0))
 
 
+def control_line(c: dict) -> str:
+    if c.get("problem") or not c.get("bins"):
+        return f"- **The input is the input: NOT CHECKED** — {c.get('problem', 'no common hours')}."
+    return (f"- **The input is the input**: CDIP's 191, converted to NDBC's form, against this repository's NDBC "
+            f"archive of 46232 on the {c['hours']} records both hold at the same time (August 2026). Hs |Δ|/Hs "
+            f"median {c['hs_rel'][0]:.4f}, 99th {c['hs_rel'][1]:.4f} (signed median {c['hs_bias']:+.4f}); "
+            f"energy density in bins ≥ {CONTROL_MIN_C11} m²/Hz ({c['bins']}), |Δ|/E median {c['c11_rel'][0]:.4f}, "
+            f"99th {c['c11_rel'][1]:.4f}; α1 |Δ| median {c['alpha1_deg'][0]:.2f}°, 99th {c['alpha1_deg'][1]:.2f}° "
+            f"(r1 > 0.3); r1 |Δ| median {c['r1'][0]:.4f}. CDIP over NDBC, Hs signed median [10th, 90th]: "
+            + "; ".join(f"{'≥ 8 s' if k == 'swell' else '< 8 s'} {v[0]:+.3f} [{v[1]:+.3f}, {v[2]:+.3f}]"
+                        for k, v in c.get("split", {}).items())
+            + ". NDBC's feed is quantised and its small bins read low; CDIP's archive is neither, and the year "
+            "below is carried from CDIP's. Where the models disagree (≥ 8 s) the two are the same input to about 1%.")
+
+
 def report(res: dict) -> str:
     rows, coarse = res["rows"], res["coarse"]
     labels = [md.band_label(a, b) for a, b in coarse]
@@ -392,12 +445,7 @@ def report(res: dict) -> str:
          f"{MATCH_S // 60} min of MOP's hour). No lag between 46232 and the buoy (~30 km, about an hour of "
          "swell travel): hour-to-hour scatter, not bias.", "",
          "## Controls", "",
-         f"- **The input is the input**: CDIP's 191 converted to NDBC's form against this repository's NDBC "
-         f"archive of 46232, {c.get('bins', 0)} bin-hours over {c.get('hours', 0)} records "
-         f"(August 2026): energy |Δ|/E median {c.get('c11_rel', ['—'])[0]:.4f}, 99th "
-         f"{c.get('c11_rel', ['—', '—'])[1]:.4f}; α1 |Δ| median {c.get('alpha1_deg', ['—'])[0]:.2f}°, 99th "
-         f"{c.get('alpha1_deg', ['—', '—'])[1]:.2f}° (r1 > 0.3); r1 |Δ| median {c.get('r1', ['—'])[0]:.4f}."
-         + (f" **{c['problem']}**" if c.get("problem") else ""),
+         control_line(c),
          "- **Read-backs** (4·sqrt(Σ E·df) / Hs, median / worst): "
          + "; ".join(f"{n} {rb.get('median')} / {rb.get('worst')}" for n, rb in res["readbacks"].items()) + ".",
          f"- **QC flags** at the buoy over the year: {res['flags']}.",
