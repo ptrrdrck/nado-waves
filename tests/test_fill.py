@@ -2,6 +2,7 @@
 energy credited ray by ray, against the chain's own 5 m height."""
 
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -45,10 +46,21 @@ def test_every_drawn_ray_is_a_clearing_row_of_its_table(break_id):
             assert times == sorted(times)            # in toward the break, in time order
 
 
-def test_the_rays_rebuild_every_trains_5_m_height():
+def test_the_rays_rebuild_every_trains_5_m_height(monkeypatch):
     """On the newest archived spectrum, every train a break would list: its
-    rays' credited energy gives the chain's own 5 m height to 2 mm, and the
-    fill leaves no row out."""
+    rays' credited energy gives the chain's own 5 m height to 2 mm, the fill
+    leaves no row out, and it draws more than half of what CAN be drawn.
+
+    What can be drawn is the row's energy inside `PATH_BAND_HZ` (4 s and
+    longer): a card lists the buoy's own short-period sea too, and its energy
+    above 0.25 Hz has no path. Until 2026-11-20 this asked for half of the
+    whole row, which failed on 14.9% of archived hours (328 of 2,205, every
+    one a row mostly above the band: North 2026-11-19T22Z, 3.3 s, 75% of it
+    above 0.25 Hz, drew 0.2469). The in-band share is read off the same rows
+    re-run with the band opened and `MIN_SHARE` at 0. Measured over all
+    14,552 archived rows: drawn / in-band >= 0.86 (the per-ray `MIN_SHARE`
+    cut on a broad swell, Center 2026-11-14T17Z), drawn never above it, and
+    a row with nothing in the band draws nothing."""
 
     from forecast.nearshore import _buoy_owner, buoy_split, carry, density_grids, load_tables
     from forecast.transform import load_spectra
@@ -65,8 +77,20 @@ def test_the_rays_rebuild_every_trains_5_m_height():
         rows, notes = fill.rows_for(spectrum, table, grids, split, owner, trains, shown,
                                     carried.ray_friction)
         assert notes == [] and len(rows) == len(trains)
-        for row in rows:
-            assert 0.5 < row["drawn_share"] <= 1.0
+        with monkeypatch.context() as m:
+            m.setattr(fill, "PATH_BAND_HZ", (0.0, math.inf))
+            m.setattr(fill, "MIN_SHARE", 0.0)
+            whole, _ = fill.rows_for(spectrum, table, grids, split, owner, trains, shown,
+                                     carried.ray_friction)
+        lo, hi = fill.PATH_BAND_HZ
+        for row, every in zip(rows, whole):
+            # Each ray's share is rounded to 1e-6; a broad row has ~2,400.
+            in_band = sum(share for f, _, share in every["rays"] if lo <= float(f) <= hi)
+            assert row["drawn_share"] <= min(1.0, in_band + 2e-3)
+            if in_band == 0:
+                assert row["drawn_share"] == 0 and row["rays"] == []
+            else:
+                assert row["drawn_share"] > 0.5 * in_band
             assert all(0 < share <= 1 for _, _, share in row["rays"])
 
 

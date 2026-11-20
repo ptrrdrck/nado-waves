@@ -1486,8 +1486,11 @@ def write_fetch(rows: list[dict], break_id: str, out_dir: Path = OUT_DIR) -> Pat
 
 # ------------------------------------------------------------------ the map's ray paths
 
-#: The swell band the map fill draws rays for, Hz: 4 to 33 s, every train a
-#: card lists but local chop (which has no rays).
+#: The swell band the map fill draws rays for, Hz: 4 to 33 s. NOT every train
+#: a card lists: the buoy's own short-period sea is carried through the rays
+#: like any swell and listed (2.6-3.8 s rows, 0.2-0.55 Hz), and a row's
+#: energy above 0.25 Hz has no path to draw; `fill`'s `drawn_share` says how
+#: much is. Local chop, grown beside the buoy's spectrum, has no rays at all.
 PATH_BAND_HZ = (0.03, 0.25)
 #: Paths are simplified to this, metres (Douglas-Peucker in UTM).
 PATH_SIMPLIFY_M = 12.0
