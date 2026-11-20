@@ -30,7 +30,7 @@ on:
         required: false
         default: "2026-08-04"
       points:
-        description: "breaks (the three Coronado breaks), extra (collector.mop's EXTRA_POINTS: points that are not breaks, handoff 24b), all, or census (collector.nearshore_census: which observed nearshore buoys could score the chain and MOP, handoff 24)"
+        description: "breaks (the three Coronado breaks), extra (collector.mop's EXTRA_POINTS: points that are not breaks, handoff 24b), all, census (collector.nearshore_census: which observed nearshore buoys could score the chain and MOP, handoff 24), or nearshore_test (collector.nearshore_test: one year at Imperial Beach Nearshore, 46232 and MOP)"
         required: false
         default: "breaks"
 
@@ -54,7 +54,7 @@ jobs:
           python-version: "3.12"
 
       - name: Archive MOP at the breaks
-        if: inputs.points != 'census'
+        if: inputs.points != 'census' && inputs.points != 'nearshore_test'
         # Dispatch inputs go through the environment, never interpolated into
         # the shell command.
         env:
@@ -72,7 +72,7 @@ jobs:
           if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
 
       - name: Set the chain against it
-        if: inputs.points != 'census'
+        if: inputs.points != 'census' && inputs.points != 'nearshore_test'
         run: |
           set -euo pipefail
           python -m forecast.mopcheck --out docs/mop_check.md
@@ -93,6 +93,19 @@ jobs:
           echo "CENSUS_STATUS=${code}" >> "$GITHUB_ENV"
           if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
 
+      # points=nearshore_test: one year at Imperial Beach Nearshore (the
+      # observation), 46232 (the input) and MOP's nearest point, from CDIP's
+      # archive. Report only; the session scores it (forecast.nearshoretest).
+      - name: One year at Imperial Beach Nearshore
+        if: inputs.points == 'nearshore_test'
+        run: |
+          set +e
+          python -m collector.nearshore_test
+          code=$?
+          set -e
+          echo "CENSUS_STATUS=${code}" >> "$GITHUB_ENV"
+          if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
+
       - name: Commit and push
         env:
           BRANCH: ${{ github.ref_name }}
@@ -103,9 +116,9 @@ jobs:
           git config user.name "nado-waves forecast"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Deliberately scoped: MOP's series and the report, or the census
-          # and its report, nothing else.
-          git add data/mop docs/mop_check.md data/nearshore_census docs/nearshore_census.md 2>/dev/null || true
+          # Deliberately scoped: MOP's series and the report, the census and
+          # its report, or the Imperial Beach year; nothing else.
+          git add data/mop docs/mop_check.md data/nearshore_census docs/nearshore_census.md data/nearshore_test 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "Nothing new to commit."
@@ -142,5 +155,5 @@ jobs:
       - name: A census request failed
         if: env.CENSUS_STATUS == '3'
         run: |
-          echo "::error title=Nearshore census incomplete::collector.nearshore_census exited 3; what it found is committed, docs/nearshore_census.md lists what failed"
+          echo "::error title=Census or Imperial Beach year incomplete::collector.nearshore_census or collector.nearshore_test exited 3; what it found is committed, and its report lists what failed"
           exit 1
