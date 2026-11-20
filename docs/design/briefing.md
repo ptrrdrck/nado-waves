@@ -97,8 +97,11 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    (`SHIFT_STEPS` decides a shift). Replayed over the record, 16 of 376
    announced lines changed. **Only those
    are an update** (owner's call, same day): any other change to the words
-   — an offshore line's due time, a new sample, the range only widening,
-   the turns' times, a reordering — is kept in the record with
+   — an offshore line's due time, a new sample, the county's lift time
+   set, moved or cleared under a status that held (`water.lift`, added
+   2026-11-20 when "Advisory until 5 PM Thu" came and went at 00:38Z and
+   01:07Z and the record named it `water.other`; quiet, the owner's call),
+   the range only widening, the turns' times, a reordering — is kept in the record with
    `announced` false under the last announced update's key, time and words
    (`said`, what the page's line reads), and the fold shows the new words
    as it shows the conditions. Over the record from 25 Oct to 1 Nov, 10 of
@@ -363,7 +366,14 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    `WQ_FRESH_H` (3 h) ago is not said: "Status not read since …". Tapped:
    "Open since Oct 28, 4:37 PM · Coronado North Beach (EH-060) · sampled
    Oct 28, 6:28 AM: Enterococcus (ddPCR) · County of San Diego DEHQ" (owner's
-   wording, same day). Its words are an update. Not measured yet: how soon
+   wording, same day). Its words are an update. OPEN (2026-11-20, not
+   decided): the county hands one advisory to the next by lifting it and
+   issuing another at the same minute (all three stations: the 13 Nov
+   Advisory lifted 01:00Z and a new one issued 01:00Z, both first seen
+   00:35Z), and the line said "until 5 PM Thu" for those 22 minutes though
+   the status was not ending; whether a lift time with a same-status
+   successor at or before it is said is the owner's call. Not measured
+   yet: how soon
    a sample or an advisory reaches the site (each result's `first_seen_utc`
    is in the payload for that).
    **Its spacing** (owner's settings, 2026-10-31, from a mock of options):
