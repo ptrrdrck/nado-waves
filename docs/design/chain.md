@@ -716,8 +716,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   Controls: the point path given Center's point and normal gives Center's
   `mop` table back (0 of 23,040 rows); Center traced on the 32 m grid alone,
   as IB is, moves its band ratios by 0.00-0.08. **Neither expectation
-  held.** Below 8 s IB is Coronado's (1.02-1.12 at 5-8 s, ~0.95 at 4-5 s,
-  0.72-0.85 under 4 s, all four points): that part is common. Above 8 s IB
+  held.** Below 8 s IB is much as Coronado (5-8 s 1.02-1.12 at IB,
+  1.08-1.28 at the three; 4-5 s 0.92-1.06 and under 4 s 0.71-0.90 at all
+  four): that part is common. Above 8 s IB
   is 1.21-1.88 by sector and band (1.30-1.63 all sectors), above every
   Coronado point, so the long-period excess grows where nothing shadows.
   W-WNW 13-16.7 s is 1.75 at IB against 1.36-1.39: it does not vanish, so

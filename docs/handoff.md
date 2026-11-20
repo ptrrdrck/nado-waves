@@ -188,8 +188,8 @@ sections).
        `python -m forecast.mopdepth --out docs/mop_depth.md`, ~4 min once
        the 12 break tables are cached, ~30 min cold). Imperial Beach, D0052,
        Point Loma edge 315.6°. Neither expectation held: below 8 s the
-       ratio is the same at all four points (1.02-1.12 at 5-8 s), common
-       and placeless; above 8 s IB is 1.2-1.9, higher than any Coronado
+       ratio is much the same at all four points (5-8 s 1.02-1.28),
+       common and placeless; above 8 s IB is 1.2-1.9, higher than any Coronado
        point, and W-WNW 13-16.7 s is 1.75 there (Coronado 1.36-1.39), so
        the long-period excess is not the shadow and not (only) the wrap.
        Grid control: Center on the 32 m grid alone moves 0.00-0.08. On S-SW
