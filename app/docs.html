@@ -1078,9 +1078,9 @@ K   0.012   0.041   0.250   1.259   0.844
           between them stays open water.</figcaption>
       </figure>
 <pre class="math"><span class="c">worked hour</span>
-North    0.830 → 0.868 m    +4.6%
-Center   0.627 → 0.669 m    +6.7%
-South    0.691 → 0.766 m   +11%</pre>
+North    0.830 → 0.873 m    +5.2%
+Center   0.627 → 0.659 m    +5.1%
+South    0.691 → 0.774 m   +12%</pre>
       <p>Diffraction added at all three, most at South: more leaked into the shadows than was lost
         along the edges.</p>
     </section>
@@ -1102,9 +1102,9 @@ h = 15 m     95.7%       93.1%
 h = 10 m     91.1%       85.7%
 
 <span class="c">worked hour, tide +1.02 m</span>
-North    0.868 → 0.691 m   −20%     <span class="c">energy × 0.63</span>
-Center   0.669 → 0.576 m   −14%
-South    0.766 → 0.655 m   −14.5%</pre>
+North    0.873 → 0.695 m   −20%     <span class="c">energy × 0.63</span>
+Center   0.659 → 0.568 m   −14%
+South    0.774 → 0.662 m   −14.5%</pre>
       <div class="choice"><span class="lbl">Model choice · Madsen's friction law, untuned</span>
         <p>The law and the bed's roughness are SWAN's defaults, from the literature, and have not
           been adjusted. Because the loss depends on the sea, it is worked out ahead of time along
@@ -1125,9 +1125,9 @@ South    0.766 → 0.655 m   −14.5%</pre>
 Ks  = √(9.76 / 6.56) = 1.22           <span class="c">+22% in height</span>
 
 <span class="c">worked hour, the whole spectrum</span>
-North    0.691 → 0.848 m   +23%
-Center   0.576 → 0.693 m   +20%
-South    0.655 → 0.739 m   +13%</pre>
+North    0.695 → 0.851 m   +22%
+Center   0.568 → 0.683 m   +20%
+South    0.662 → 0.745 m   +13%</pre>
       <div class="choice"><span class="lbl">Model choice · hand over at 5 m</span>
         <p>The ray tables stop in 5 m of water, close in and still inside Point Loma's shadow.
           From there the surf zone takes over (step 8). A table that stopped further out would
@@ -1150,7 +1150,7 @@ U₁₀ = 4.12 m/s,  C_D = 0.00124,  u* = 0.145 m/s
 Hm0 = 0.092 m,   Tp = 1.1 s           → 0.3 ft (0.09 m)
 
 chop and swell add in energy:
-√(0.848² + 0.092²) = 0.853 m          +0.6%</pre>
+√(0.851² + 0.092²) = 0.856 m          +0.6%</pre>
       <div class="choice"><span class="lbl">Model choice · two kinds of fetch</span>
         <p>The growth law is the Coastal Engineering Manual's (US Army Corps of Engineers, 2002).
           Only a wind blowing from the sea toward the break makes chop that reaches it. When the
@@ -1179,16 +1179,16 @@ D = ¼·α·f_p·Qb·Hmax²,   α = 1,   Hmax = γ·h           <span class="c">
 (1 − Qb) / ln Qb = −(Hrms / Hmax)²                    <span class="c">Qb: the share of waves breaking</span>
 γ = 0.5 + 0.4·tanh(33·s₀),   s₀ = Hrms,deep / L₀      <span class="c">Battjes &amp; Stive (1985)</span>
 
-<span class="c">worked hour, North: 0.853 m at 5 m, 12.5 s</span>
-Hrms,deep = 0.853/√2 × √(6.56/9.76) = 0.494 m
-s₀ = 0.494 / 244 = 0.0020  →  γ = 0.527
+<span class="c">worked hour, North: 0.856 m at 5 m, 12.5 s</span>
+Hrms,deep = 0.856/√2 × √(6.56/9.76) = 0.496 m
+s₀ = 0.496 / 244 = 0.0020  →  γ = 0.527
 
 tide at the open coast: +1.022 m above mean sea level  <span class="c">(see the Tide card's math)</span>
 largest Hs 93 m in from the start point, in h = 2.11 m of water
-Hmax = 0.527 × 2.11 = 1.112 m,   Hrms = 0.997/√2 = 0.705 m
-(Hrms/Hmax)² = 0.402  →  Qb = 0.11                    <span class="c">11% of waves breaking</span>
+Hmax = 0.527 × 2.11 = 1.112 m,   Hrms = 1.000/√2 = 0.707 m
+(Hrms/Hmax)² = 0.404  →  Qb = 0.112                   <span class="c">11% of waves breaking</span>
 
-Hs = 0.997 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 m) depth   +17%</pre>
+Hs = 1.000 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 m) depth   +17%</pre>
       <div class="choice"><span class="lbl">Model choice · the standard 1-D surf zone, γ from the literature</span>
         <p>One line straight in, the same all along the beach, one period (the peak's). That is
           the textbook surf-zone model and no more. The breaker index γ is taken from Battjes
@@ -1440,17 +1440,17 @@ Hs = 0.997 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 
           <tr><th scope="row">SSW 210&deg;</th><td class="num">190&deg;</td><td class="num">205&deg;</td><td class="num">211&deg;</td></tr>
           <tr><th scope="row">SW 220&deg;</th><td class="num">192&deg;</td><td class="num">205&deg;</td><td class="num">212&deg;</td></tr>
           <tr><th scope="row">SW 230&deg;</th><td class="num">197&deg;</td><td class="num">205&deg;</td><td class="num">212&deg;</td></tr>
-          <tr><th scope="row">WSW 240&deg;</th><td class="num">202&deg;</td><td class="num">206&deg;</td><td class="num">215&deg;</td></tr>
-          <tr><th scope="row">WSW 250&deg;</th><td class="num">205&deg;</td><td class="num">210&deg;</td><td class="num">217&deg;</td></tr>
-          <tr><th scope="row">W 260&deg;</th><td class="num">206&deg;</td><td class="num">215&deg;</td><td class="num">221&deg;</td></tr>
-          <tr><th scope="row">W 270&deg;</th><td class="num">208&deg;</td><td class="num">218&deg;</td><td class="num">226&deg;</td></tr>
-          <tr><th scope="row">W 280&deg;</th><td class="num">&mdash;</td><td class="num">222&deg;</td><td class="num">228&deg;</td></tr>
-          <tr><th scope="row">WNW 290&deg;</th><td class="num">&mdash;</td><td class="num">224&deg;</td><td class="num">228&deg;</td></tr>
-          <tr><th scope="row">WNW 300&deg;</th><td class="num">&mdash;</td><td class="num">223&deg;</td><td class="num">229&deg;</td></tr>
-          <tr><th scope="row">NW 310&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">229&deg;</td></tr>
-          <tr><th scope="row">NW 320&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">229&deg;</td></tr>
+          <tr><th scope="row">WSW 240&deg;</th><td class="num">201&deg;</td><td class="num">206&deg;</td><td class="num">215&deg;</td></tr>
+          <tr><th scope="row">WSW 250&deg;</th><td class="num">204&deg;</td><td class="num">211&deg;</td><td class="num">217&deg;</td></tr>
+          <tr><th scope="row">W 260&deg;</th><td class="num">207&deg;</td><td class="num">215&deg;</td><td class="num">220&deg;</td></tr>
+          <tr><th scope="row">W 270&deg;</th><td class="num">211&deg;</td><td class="num">218&deg;</td><td class="num">223&deg;</td></tr>
+          <tr><th scope="row">W 280&deg;</th><td class="num">&mdash;</td><td class="num">220&deg;</td><td class="num">226&deg;</td></tr>
+          <tr><th scope="row">WNW 290&deg;</th><td class="num">&mdash;</td><td class="num">222&deg;</td><td class="num">228&deg;</td></tr>
+          <tr><th scope="row">WNW 300&deg;</th><td class="num">&mdash;</td><td class="num">222&deg;</td><td class="num">230&deg;</td></tr>
+          <tr><th scope="row">NW 310&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">230&deg;</td></tr>
+          <tr><th scope="row">NW 320&deg;</th><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">230&deg;</td></tr>
         </tbody></table></div>
-      <p class="foot">At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3&deg; at the median and 12&deg; at most, over the 27 cells all three periods give.</p>
+      <p class="foot">At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3&deg; at the median and 10&deg; at most, over the 27 cells all three periods give.</p>
       <!-- bending:end -->
       <p>Read down a column and a wide spread of offshore directions arrives inside a narrow
         one. By 5 m of water, the direction a swell came from offshore is mostly gone: from
@@ -2493,12 +2493,12 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
  "wind":{"from_deg":270.0,"speed_kt":8.0},
  "tide":{"gauge_height_m":2.005,"height_m":1.893},
  "breaks":{
-  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.839,"refracted_hs_m":0.83,"diffracted_hs_m":0.868,"friction_hs_m":0.691,"shoaled_hs_m":0.848,"with_chop_hs_m":0.853,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":0.997,"depth_m":2.11,"distance_m":92.5,"tide_m":1.022,"gamma":0.527,"fraction_breaking":0.11,"outside_start":false}},
-  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.627,"diffracted_hs_m":0.669,"friction_hs_m":0.576,"shoaled_hs_m":0.693,"with_chop_hs_m":0.705,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":0.86,"depth_m":1.99,"distance_m":114.0,"tide_m":1.022,"gamma":0.509,"fraction_breaking":0.076,"outside_start":false}},
-  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.766,"friction_hs_m":0.655,"shoaled_hs_m":0.739,"with_chop_hs_m":0.753,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
-    "breaking":{"hs_m":0.882,"depth_m":2.28,"distance_m":141.0,"tide_m":1.022,"gamma":0.527,"fraction_breaking":0.027,"outside_start":false}}
+  "coronado_north":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.839,"refracted_hs_m":0.83,"diffracted_hs_m":0.873,"friction_hs_m":0.695,"shoaled_hs_m":0.851,"with_chop_hs_m":0.856,"local":{"hs_m":0.092,"tp_s":1.1,"fetch_km":2.3,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":1.0,"depth_m":2.11,"distance_m":92.5,"tide_m":1.022,"gamma":0.527,"fraction_breaking":0.112,"outside_start":false}},
+  "coronado_center":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.875,"refracted_hs_m":0.627,"diffracted_hs_m":0.659,"friction_hs_m":0.568,"shoaled_hs_m":0.683,"with_chop_hs_m":0.696,"local":{"hs_m":0.133,"tp_s":1.5,"fetch_km":4.9,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":0.85,"depth_m":1.99,"distance_m":114.0,"tide_m":1.022,"gamma":0.509,"fraction_breaking":0.071,"outside_start":false}},
+  "coronado_south":{"effects":{"buoy_hs_m":1.296,"window_hs_m":0.899,"refracted_hs_m":0.691,"diffracted_hs_m":0.774,"friction_hs_m":0.662,"shoaled_hs_m":0.745,"with_chop_hs_m":0.758,"local":{"hs_m":0.145,"tp_s":1.5,"fetch_km":5.7,"fetch":"closed","wind":"KNZY"}},
+    "breaking":{"hs_m":0.888,"depth_m":2.31,"distance_m":139.5,"tide_m":1.022,"gamma":0.528,"fraction_breaking":0.026,"outside_start":false}}
  }}
 </script>
 

@@ -83,6 +83,23 @@ class Ray:
     #: its path's loss is their sum against the basis interpolated at the
     #: hour's sea. None for a ray with no Madsen table.
     madsen: tuple[float, ...] | None = None
+    #: A headland's diffracted fill: the offshore headings it reads the sea at,
+    #: with weights summing to 1 (`raytrace.edge_fan`, BRIEFING §61). None for
+    #: every other ray, which reads it at `diff_off_from` alone.
+    fan: tuple[tuple[float, float], ...] | None = None
+
+    def samples(self) -> tuple[tuple[float, float], ...]:
+        """(offshore heading, weight) pairs this ray's energy is read at."""
+
+        return self.fan if self.fan else ((self.diff_off_from, 1.0),)
+
+
+def parse_fan(text: str | None) -> tuple[tuple[float, float], ...] | None:
+    """`diff_fan` as `raytrace.table` writes it: "heading:weight;..."."""
+
+    if not text:
+        return None
+    return tuple((float(h), float(w)) for h, w in (p.split(":") for p in text.split(";")))
 
 
 class MadsenTable:
@@ -187,7 +204,7 @@ class Table:
                     float(row["diff_off_from_deg"]), diff_gain,
                     float(row.get("friction") or 1.0),
                     float(row.get("diff_friction") or 1.0), k,
-                    weights.get(f, {}).get(k)))
+                    weights.get(f, {}).get(k), parse_fan(row.get("diff_fan"))))
         fetch = []
         path = directory / f"{break_id}_fetch.csv"
         if path.exists():
@@ -547,7 +564,8 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
             bin_e = 0.0
             for ray in table.by_freq[near]:
                 if ray.diff_gain > 0:
-                    bin_e += at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain
+                    for h, w in ray.samples():
+                        bin_e += at(grid, h) * w * width * ray.width_rad * ray.diff_gain
             e_lin += bin_e
             by_bin.append((bin_e, f))
         hs_lin = 4.0 * math.sqrt(max(e_lin, 0.0))
@@ -598,24 +616,26 @@ def carry(spectrum, table: Table, grids: dict[int, list[float]] | None = None,
                 e_hard += at(grid, ray.off_from) * width * ray.width_rad * ray.gain / ks2
             if ray.diff_gain <= 0:
                 continue
-            e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain
-            e_eq += e / ks2
-            e *= fac[j]
-            e_fric += e / ks2
-            e10 += e
-            if short:
-                e_short += e
-            bin_e += e
-            t = math.radians(ray.near_from)
-            s_near, c_near = e * math.sin(t), e * math.cos(t)
-            sn += s_near; cn += c_near
-            t = math.radians(ray.diff_off_from)
-            so += e * math.sin(t); co += e * math.cos(t)
-            bs += e * math.sin(t); bc += e * math.cos(t)
-            k = int(ray.diff_off_from) % 360
-            hist[k] += e
-            ns[k] += s_near; nc[k] += c_near
-            bns += s_near; bnc += c_near
+            # A fill reads the sea across its fan, each heading its own share.
+            for h, w in ray.samples():
+                e = at(grid, h) * w * width * ray.width_rad * ray.diff_gain
+                e_eq += e / ks2
+                e *= fac[j]
+                e_fric += e / ks2
+                e10 += e
+                if short:
+                    e_short += e
+                bin_e += e
+                t = math.radians(ray.near_from)
+                s_near, c_near = e * math.sin(t), e * math.cos(t)
+                sn += s_near; cn += c_near
+                t = math.radians(h)
+                so += e * math.sin(t); co += e * math.cos(t)
+                bs += e * math.sin(t); bc += e * math.cos(t)
+                k = int(h) % 360
+                hist[k] += e
+                ns[k] += s_near; nc[k] += c_near
+                bns += s_near; bnc += c_near
         per_bin.append((i, bin_e))
         bin_sin[i], bin_cos[i] = bs, bc
         near_bin[i] = (bns, bnc)

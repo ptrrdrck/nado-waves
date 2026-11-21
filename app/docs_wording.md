@@ -350,9 +350,9 @@ A ray that runs into an island or a headland brings only what diffracts round it
 
 ```
 worked hour
-North    0.830 → 0.868 m    +4.6%
-Center   0.627 → 0.669 m    +6.7%
-South    0.691 → 0.766 m   +11%
+North    0.830 → 0.873 m    +5.2%
+Center   0.627 → 0.659 m    +5.1%
+South    0.691 → 0.774 m   +12%
 ```
 
 Diffraction added at all three, most at South: more leaked into the shadows than was lost along the edges.
@@ -374,9 +374,9 @@ h = 15 m     95.7%       93.1%
 h = 10 m     91.1%       85.7%
 
 worked hour, tide +1.02 m
-North    0.868 → 0.691 m   −20%     energy × 0.63
-Center   0.669 → 0.576 m   −14%
-South    0.766 → 0.655 m   −14.5%
+North    0.873 → 0.695 m   −20%     energy × 0.63
+Center   0.659 → 0.568 m   −14%
+South    0.774 → 0.662 m   −14.5%
 ```
 
 > **Model choice · Madsen's friction law, untuned**
@@ -393,9 +393,9 @@ Ks² = c_g,deep / c_g(h)
 Ks  = √(9.76 / 6.56) = 1.22           +22% in height
 
 worked hour, the whole spectrum
-North    0.691 → 0.848 m   +23%
-Center   0.576 → 0.693 m   +20%
-South    0.655 → 0.739 m   +13%
+North    0.695 → 0.851 m   +22%
+Center   0.568 → 0.683 m   +20%
+South    0.662 → 0.745 m   +13%
 ```
 
 > **Model choice · hand over at 5 m**
@@ -415,7 +415,7 @@ U₁₀ = 4.12 m/s,  C_D = 0.00124,  u* = 0.145 m/s
 Hm0 = 0.092 m,   Tp = 1.1 s           → 0.3 ft (0.09 m)
 
 chop and swell add in energy:
-√(0.848² + 0.092²) = 0.853 m          +0.6%
+√(0.851² + 0.092²) = 0.856 m          +0.6%
 ```
 
 > **Model choice · two kinds of fetch**
@@ -433,16 +433,16 @@ D = ¼·α·f_p·Qb·Hmax²,   α = 1,   Hmax = γ·h           Battjes & Jansse
 (1 − Qb) / ln Qb = −(Hrms / Hmax)²                    Qb: the share of waves breaking
 γ = 0.5 + 0.4·tanh(33·s₀),   s₀ = Hrms,deep / L₀      Battjes & Stive (1985)
 
-worked hour, North: 0.853 m at 5 m, 12.5 s
-Hrms,deep = 0.853/√2 × √(6.56/9.76) = 0.494 m
-s₀ = 0.494 / 244 = 0.0020  →  γ = 0.527
+worked hour, North: 0.856 m at 5 m, 12.5 s
+Hrms,deep = 0.856/√2 × √(6.56/9.76) = 0.496 m
+s₀ = 0.496 / 244 = 0.0020  →  γ = 0.527
 
 tide at the open coast: +1.022 m above mean sea level  (see the Tide card's math)
 largest Hs 93 m in from the start point, in h = 2.11 m of water
-Hmax = 0.527 × 2.11 = 1.112 m,   Hrms = 0.997/√2 = 0.705 m
-(Hrms/Hmax)² = 0.402  →  Qb = 0.11                    11% of waves breaking
+Hmax = 0.527 × 2.11 = 1.112 m,   Hrms = 1.000/√2 = 0.707 m
+(Hrms/Hmax)² = 0.404  →  Qb = 0.112                   11% of waves breaking
 
-Hs = 0.997 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 m) depth   +17%
+Hs = 1.000 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 m) depth   +17%
 ```
 
 > **Model choice · the standard 1-D surf zone, γ from the literature**
@@ -516,7 +516,7 @@ The table is the same calculation for one narrow swell at a time: 14.3 s, spread
 
 [table the page fills in: bendtable]
 
-At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3° at the median and 12° at most, over the 27 cells all three periods give.
+At 10 s and 18.2 s instead of 14.3 s, the heading in 5 m moves by 3° at the median and 10° at most, over the 27 cells all three periods give.
 
 Read down a column and a wide spread of offshore directions arrives inside a narrow one. By 5 m of water, the direction a swell came from offshore is mostly gone: from anywhere the windows let in, it arrives within about 20° of straight in.
 

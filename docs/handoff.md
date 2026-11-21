@@ -292,18 +292,74 @@ sections).
 
     In order, each report only, nothing shipped until an observation names a
     stage:
-    a. **The gap as shipped**: 17 Nov's hours (and every archived W-WNW hour
-       >= 2 m) through the chain as it ships now, against §56's figures.
-    b. **Stage budget on every big westerly hour**: what each stage adds,
-       how concentrated the energy is in few rays, and whether it survives
-       finer headings and a smoothed input (the focusing test, now aimed at
-       the wrap, not at MOP).
-    c. **An observation in the shadow**: CDIP's whole archive (the census
+    a. **The gap as shipped** -- done, report only (BRIEFING §59,
+       `docs/westerly_gap.md`, `python -m forecast.westerlygap --write`,
+       ~10 min). Every archived hour with 46232 >= 2 m and swell (>= 8 s)
+       from 270-295° (108 hours, 12 days, 8-21 Nov) plus all of 17 Nov,
+       through `now.build(as_of=True)` as LIVE ran it on 17 Nov ("then",
+       rebuilt in today's code; gives §56's 22Z table back, and the code of
+       67f9fe61 to the digit on all 72 break-hours of 17 Nov) and as it ships.
+       **Madsen and the deeper surf-zone start took 14-15% off the headline at
+       Center and South (16-18% with 46232 >= 3 m), 11% at North**, nearly
+       all of it Madsen's; the surf-zone start <= 2 points. 17 Nov 22Z: Center
+       2.09 -> 1.76 m, South 2.34 -> 1.96. Local chop adds nothing on these
+       hours (1.00). The chain still gives about twice the straight-line
+       window at Center and South (1.8-2.0x, was 2.2-2.5x): the wrap is
+       untouched. Hour to hour at a steady buoy the headline still jumps by
+       up to a third (South 17 Nov 17Z-19Z 1.84 -> 2.53 m with 46232 at
+       3.3-3.6 m; Center 01Z-02Z 1.57 -> 2.09 m at 2.6-2.7 m): the few-ray
+       signature (b) tests. 18 and 20 Nov were big westerly days by
+       this definition (46232 to 2.82 and 2.39 m); 20 Nov's 20 hours came
+       after both changes shipped.
+    b. **Stage budget on every big westerly hour** -- done, report only
+       (BRIEFING §60, `docs/wrap_budget.md`, `python -m forecast.wrapbudget
+       --write`, ~25 min with the finer tables cached in
+       `data/live/wrapbudget/`, ~30 min more cold). `raytrace.table` gained
+       `dir_step` (default 0.5°; at 0.5 every committed row comes back, all
+       three breaks). **The wrap carries 70-71% of Center's and South's 5 m
+       energy** on these hours (direct 13-19%, Point Loma fill 7-14%, North
+       wrap 30%); without it the headline would be ~0.6x. **It is not the
+       comb's focusing**: at 0.25° and 0.125° headings Center and South are
+       0.96-1.00 of the shipped 5 m height, a ±5-10° smoothed input 1.01-1.04
+       (up, not down); the top 3 rays carry 12-13% (5-6% at 0.125°) and the
+       wrap's share holds (0.74-0.79). Linear ray refraction round the tip is
+       what makes it, at any resolution. **The hour-to-hour jumps are input
+       sampling**: σ 5° removes nearly all (Center 7 -> 1, South 6 -> 0). At
+       South they are the Point Loma diffraction fill: 55-70 rays per
+       frequency read 46232 at the ONE offshore heading of the nearest clear
+       ray, and that heading wanders from frequency to frequency (South
+       235-349°, Center 218° to 2°); at 17 Nov 19Z the fill was 59% of
+       South's energy. A fault in how the fill picks its heading, worth a few
+       % in the median, not the gap; a fix is the owner's call.
+    c. **An observation in the shadow** -- skipped (owner, 2026-11-21:
+       there is no other CDIP sensor in the shadow).
+       Was: CDIP's whole archive (the census
        saw only NDBC's stations) for any buoy or pressure sensor ever off
        Coronado, Silver Strand or Zuniga; if one exists, the 24d test there.
-    d. **Kelp and reef**: whether the wrap's rays cross the Point Loma kelp
-       bed, and what the measured literature says it does to long swell; a
-       literature term, never a fitted one.
+    d. **Kelp and reef** -- open, blocked on an outline. Owner's yes to
+       steps 1-3 (2026-11-21); reef (Madsen at a rock roughness) not asked
+       for. Built: `collector.kelp` (S-57 WEDKLP from the ENC chart services,
+       box over Point Loma's west side and the tip, `data/kelp/`), run on
+       Actions by `shoreline.yml` input `kelp`; `forecast.kelpcross` (each
+       ray's stored path against the outline, the wrap's energy crossing and
+       metres in kelp on the big westerly hours, and an exp(-alpha L) bound),
+       not yet run. **Shoreline check runs 15 and 16** (07:11Z and 07:34Z):
+       every ENC service timed out from the runner (exit 3 now, "no service
+       answered", never "none charted"). Next: dispatch `shoreline.yml` with
+       `kelp` once more; if NOAA's chart server stays dark, the owner chooses
+       another outline (CDFW / Region Nine kelp canopy, Kelpwatch), not a
+       session. Literature so far, from search summaries only (the papers'
+       hosts are blocked from a session): Elwany et al. 1995 (Carlsbad, 3-20 s)
+       and Rosman et al. 2007 (Santa Cruz) found no significant attenuation;
+       Elsmore et al. 2024 (Palos Verdes) a modest one for 1-3 s waves, order
+       1e-3 /m. Read the papers themselves before a number is used.
+       **Found on the way and fixed (owner's choice of design, 2026-11-21):
+       the Point Loma / Baja diffraction fill** -- BRIEFING §61, chain.md "A
+       headland's fill is read across the Fresnel zone", `docs/fill_shift.md`.
+       Docs page: the worked hour and direction table redone; one sentence of
+       method prose (section on diffraction, "leaves along the heading of the
+       nearest ray that clears the land") still describes the old rule for
+       headlands -- wording proposed to the owner, not changed.
     e. **The beach log**: the owner's big-westerly sessions across breaks,
        the long-run judge (`docs/observation_log.md`).
 

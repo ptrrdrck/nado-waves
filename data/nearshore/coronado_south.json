@@ -31,5 +31,6 @@
   "bottom_friction": {
     "law": "JONSWAP",
     "c_bottom_m2_s3": 0.038
-  }
+  },
+  "edge_fill": "fan"
 }
