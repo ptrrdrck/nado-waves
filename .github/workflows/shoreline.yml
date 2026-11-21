@@ -101,7 +101,8 @@ jobs:
 
       # Charted kelp off Point Loma (handoff 27d): an outline of where the
       # chart draws kelp, of its source survey's date, not this year's canopy.
-      # Exit 1 is "no charted kelp in the box", 2 a CONNECT denial.
+      # Exit 1 is "no charted kelp in the box", 2 a CONNECT denial, 3 no chart
+      # service answered (nothing learned).
       - name: Fetch the charted kelp
         id: kelp
         if: ${{ inputs.kelp }}

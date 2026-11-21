@@ -22,7 +22,8 @@ say exactly which outline it used.
 
 NOTHING IS INFERRED. A layer that matches no kelp, or a box with no feature,
 is reported as such (exit 1) and nothing is written; a CONNECT denial is exit
-2, as in `collector.shoreline`.
+2, as in `collector.shoreline`; no service answering at all (timeouts) is
+exit 3, never "none charted".
 """
 
 from __future__ import annotations
@@ -109,6 +110,14 @@ def run(data_dir: Path, probe: bool) -> int:
         write_step_summary("\n".join(lines + ["", "**Denied at CONNECT**: run on Actions."]))
         print("\n".join(lines))
         return 2
+    if len(errors) >= len(SERVICES) and not found:
+        # No service answered: that says nothing about kelp, and must not read
+        # as "none charted" (a third state, not the second).
+        lines += ["", "**No chart service answered** (above). Nothing learned about kelp; "
+                      "nothing written."]
+        write_step_summary("\n".join(lines))
+        print("\n".join(lines))
+        return 3
     populated = [(s, l, n) for s, l, n in found if n]
     if probe or not populated:
         if not populated:
