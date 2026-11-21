@@ -203,7 +203,50 @@ sections).
        finer headings, against MOP), and what IB's Baja-side rays stand on.
     c. **The buoy's directional reading**: MEM against Fourier moves the
        ratio 0.1-0.3. MOP blends six buoys (a), so "the same input" is
-       not; how MOP combines them is part of this.
+       not; how MOP combines them is part of this. Not pursued: the
+       owner's question is which model is right, and only (d) answers it.
+    d. **Both models against an observation** -- done, report only
+       (branch claude/youthful-fermi-q19fhe, PR #245; `docs/nearshore_test.md`,
+       `docs/nearshore_census.md`). The owner asked whether to give up the
+       chain's deep-water-to-10 m leg for MOP's; model against model cannot
+       say. `collector.nearshore_census` (mop-check.yml `points=census`, run
+       8) found Imperial Beach Nearshore, CDIP 155 / NDBC 46235, 21 m, inside
+       the 32 m grid; NDBC holds no historical spectra for it or 46232, CDIP
+       does. MOP publishes `forecast` and `ecmwf_fc` for all 1,210 San Diego
+       points. `collector.nearshore_test` (`points=nearshore_test`, run 9)
+       fetched 2024 (its fixed rule's year): 155, 191 (46232) and MOP D0043
+       (hindcast; 155 never among its inputs). `python -m
+       forecast.nearshoretest` (~8 min, tables cached in
+       `data/live/nearshoretest/`, ~15 min cold) scores them.
+       **Verification series CDIP 155, 2024, 8,782 hours**: the chain at the
+       buoy, exactly, Hs 1.09x observed [0.95, 1.27], +0.10 m, RMS 0.17 m
+       before friction; 1.07x, +0.08 m, RMS 0.15 m with the table's JONSWAP
+       friction (Madsen not tabulated there). The excess is long-period:
+       > 13 s 1.19 (south swell 1.23-1.33, W-WNW 1.09-1.14), under 13 s
+       1.04-1.08; it does not grow with size (>= 2 m: 1.06). Direction at the
+       buoy within 2-4 degrees in every band. MOP, at D0043 (10 m, 1.9 km
+       inshore) and de-shoaled, so approximate: 0.99x [0.85, 1.14]; low on
+       long-period south swell (0.70-0.80), 1.01-1.12 on W-WNW; the chain's
+       own two tables put D0043 6% above the buoy's spot. The observation
+       sits between the models, nearer MOP in total. One exposed site, one
+       year, not Coronado's shadow.
+       **The shipped chain** (owner's step 1, 2026-11-21; Madsen tabulated
+       at the buoy's own start -- `raytrace.madsen_losses` now takes `h_ref`,
+       default unchanged -- carried by `nearshore.carry` itself, MSL):
+       1.06x observed [0.92, 1.23], +0.06 m, RMS 0.14 m; >= 2 m 1.02 (W-WNW
+       1.03); > 13 s 1.11 (south swell 1.15-1.23, W-WNW 1.01-1.06), under
+       13 s 1.01-1.07. Fed NDBC's rounded feed instead of CDIP's (August
+       2026, a ratio of two carries): 0.965 whole, 0.991 at >= 8 s, 0.943
+       below. The owner asked whether to adjust the height; on this the
+       case is weak (smaller than the scatter, one exposed site, the cause
+       in long-period south swell not located). Not adjusted. Controls: CDIP's 191 against this
+       repository's NDBC archive, same hours, +0.9% Hs at >= 8 s (+6.6%
+       below 8 s: NDBC's feed is quantised and its small bins read low --
+       the shipped chain's input is low there); read-backs 1.000; a second
+       buoy position 1.00. The series (~90 MB) were dropped from the tree
+       (owner, 2026-11-21); restore with `git checkout 38e295e --
+       data/nearshore_test` before re-running. A new fetch keeps them as
+       the run's artifact and commits only its record.
 25. **Madsen's friction ships** -- done (branch claude/madsen-friction,
     BRIEFING §57, chain.md "Bottom friction is Madsen's"). Both chains;
     `<break>_madsen.json` beside unchanged tables; the docs page's friction
@@ -226,6 +269,44 @@ sections).
     the rows from 5 m in come back as committed; the docs page's step 8 and
     the hand-over box were updated (owner's yes, 2026-11-18).
 
+27. **Big westerly days at Coronado: what the chain over-applies or leaves
+    out** -- open, the owner's plan of 2026-11-21. The owner saw the headline
+    high on 17 Nov (BRIEFING §56: 46232 3.1-3.7 m from 280-296°), before
+    Madsen (§57) and the earlier surf zone (§58) shipped; there has been no
+    big westerly day since, so neither is yet seen against one. Item 24d
+    clears deep water to 21 m on the open shelf (Imperial Beach, shipped
+    chain 1.03x on W-WNW >= 2 m), so the gap lives in what Coronado has and
+    Imperial Beach does not. The stages, and whether anything observed has
+    checked them:
+
+    | stage | observed? | could over-apply or leave out |
+    |---|---|---|
+    | 46232's directional reading (NDBC feed, MEM) | partly | one MEM spike on one ray carried 13-17% (§56) |
+    | refraction over open shelf to ~21 m | yes (24d) | -- |
+    | the wrap round Point Loma (53% of Center's energy on 17 Nov) | never | caustic over-focusing; refraction and diffraction computed apart |
+    | Point Loma's kelp bed and reef | not modelled | across the wrap's path |
+    | Madsen in the shadow (6-12 m for km) | open sandy shelf only | k_N default may be smooth for rock/kelp |
+    | 21 m -> 5 m, the surf zone, breaking | never | gamma, profile, start gain |
+    | local chop added on LIVE | never | double-counting 46232's wind sea |
+    | headline against what is seen | definition | sets 1-1.3 Hs (§56) |
+
+    In order, each report only, nothing shipped until an observation names a
+    stage:
+    a. **The gap as shipped**: 17 Nov's hours (and every archived W-WNW hour
+       >= 2 m) through the chain as it ships now, against §56's figures.
+    b. **Stage budget on every big westerly hour**: what each stage adds,
+       how concentrated the energy is in few rays, and whether it survives
+       finer headings and a smoothed input (the focusing test, now aimed at
+       the wrap, not at MOP).
+    c. **An observation in the shadow**: CDIP's whole archive (the census
+       saw only NDBC's stations) for any buoy or pressure sensor ever off
+       Coronado, Silver Strand or Zuniga; if one exists, the 24d test there.
+    d. **Kelp and reef**: whether the wrap's rays cross the Point Loma kelp
+       bed, and what the measured literature says it does to long swell; a
+       literature term, never a fitted one.
+    e. **The beach log**: the owner's big-westerly sessions across breaks,
+       the long-run judge (`docs/observation_log.md`).
+
 Open, the owner's calls:
 
 - How the HEADLINE reads when `outside_start` is true: moot on the archive
@@ -233,21 +314,27 @@ Open, the owner's calls:
   at South. Still the number, with the note under the calculation table.
 - The westerly half of the excess (the wrap round Point Loma): item 24
   first, so a table fault is not credited to the friction or the reverse.
+- Item 24d: whether to switch any leg to MOP, or adjust the height. At the
+  one observed site the shipped chain is 1.06x (1.02x on days >= 2 m), MOP
+  about right in total but ~25% low on long-period south swell; neither
+  wins outright, and nothing is fitted or shipped.
 
 ### Carryover prompts
 
 Each assumes a fresh session; add "Confirm each item before building. PR,
 wait for Tests, don't merge." to each.
 
-- Group 6, after item 24b (diagnosis; the strongest model, high effort,
-  because it is open which model's long-period refraction is wrong and the
-  next measurement has to be chosen, not just run): "Repo
-  ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes and read BRIEFING
-  §56b-§56d only, chain.md's MOP section, docs/mop_depth.md ('Exposed
-  against shadowed' and the imperial_beach section) and docs/handoff.md item
-  24. Task: propose the measurement that separates the chain's ray-comb
-  focusing from MOP's long-period refraction (24b's 'Next'), and item 24c.
-  Report only; propose before building anything."
+- Item 27, first (diagnosis; the strongest model, high effort, because
+  the stage responsible is unknown and each next test has to be chosen
+  from the last one's result, not just run): "Repo ptrrdrck/nado-waves;
+  attach ptrrdrck/nado-waves-notes and read BRIEFING §56, §57 and §58,
+  chain.md from 'The transfer tables stop at 5 m' to 'Bottom friction is
+  Madsen's', docs/nearshore_test.md's first two tables, and
+  docs/handoff.md items 24d and 27. Task: item 27 a-d in order, report
+  only. The owner saw the headline high on big westerly days (17 Nov);
+  Imperial Beach clears deep water to 21 m on open shelf, so find which
+  Coronado-only stage makes the excess. Propose each step's measurement
+  before running it."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the

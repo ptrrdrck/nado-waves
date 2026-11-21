@@ -233,7 +233,7 @@ def fw_lookup(ab: np.ndarray) -> np.ndarray:
 
 def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
                   hs_m=MADSEN_HS_M, peak_hz=MADSEN_PEAK_HZ, tide_m=MADSEN_TIDE_M,
-                  law: str = "madsen") -> np.ndarray:
+                  law: str = "madsen", h_ref: float = H_REF) -> np.ndarray:
     """−ln(survival) per path at every node, shape (paths, peak, tide, hs).
 
     `steps` is each path's wet steps as `trace(..., steps=True)` records them,
@@ -253,6 +253,11 @@ def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
     equation its fixed point solves, here solved exactly in one forward pass.
     With law="jonswap" C is C_BOTTOM and, at tide 0, the result is the
     table's `friction` back (the control `tests/test_raytrace.py` holds).
+
+    `h_ref` is the depth the `hs_m` axis is the linear Hs AT (the table's
+    start, as `nearshore.carry` measures it). What ships is H_REF; a table
+    started deeper (`forecast.nearshoretest`, at a buoy in 21 m) passes its
+    own, or the local sea would be de-shoaled from the wrong depth.
     """
 
     hs_m = np.asarray(hs_m, float)
@@ -290,7 +295,7 @@ def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
         for ip, wp in enumerate(w_p):
             kp = wavenumber(wp, ht)
             _, cgp, _ = speeds(wp, ht)
-            _, cg5, _ = speeds(wp, np.array([H_REF + tide]))
+            _, cg5, _ = speeds(wp, np.array([h_ref + tide]))
             shp[ip] = np.sinh(np.minimum(kp * ht, 300.0))
             unit[ip] = np.sqrt(cg5[0] / cgp)
         ln_f = np.zeros((n_p, n_h, n))
@@ -1061,7 +1066,8 @@ def edge_points(blockers: list[Blocker]) -> dict[str, np.ndarray]:
     return out
 
 
-def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: float) -> dict:
+def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: float,
+                h_ref: float = H_REF) -> dict:
     """One frequency's Madsen table: each carrying path's weights on this
     frequency's basis, which path each carrying row (by its place k among the
     frequency's rows) crosses the shelf on, the basis over the nodes (peak,
@@ -1072,7 +1078,7 @@ def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: flo
     src = sorted({int(path_of[i]) for i in rows})
     if not src:
         return {"rank": 0, "basis": [], "paths": [], "rows": {}, "max_error": 0.0}
-    loss = madsen_losses([rays.steps[j] for j in src], omega)
+    loss = madsen_losses([rays.steps[j] for j in src], omega, h_ref=h_ref)
     weights, basis, err = compress_losses(loss.reshape(len(src), -1))
     at_src = {j: n for n, j in enumerate(src)}
     return {"rank": len(basis), "basis": basis, "max_error": err, "paths": weights,
@@ -1199,7 +1205,7 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                                           np.array([along[i]]), period)[0]) * isl[nearest]
 
         if madsen_out is not None:
-            madsen_out[f"{f:.4f}"] = madsen_freq(rays, path_of, diff_t > 0, omega)
+            madsen_out[f"{f:.4f}"] = madsen_freq(rays, path_of, diff_t > 0, omega, h_ref=h_ref)
         for i, theta in enumerate(near):
             rows.append({
                 "period_s": f"{period:.3f}", "freq_hz": f"{f:.4f}",

@@ -30,7 +30,7 @@ on:
         required: false
         default: "2026-08-04"
       points:
-        description: "breaks (the three Coronado breaks), extra (collector.mop's EXTRA_POINTS: points that are not breaks, handoff 24b), or all"
+        description: "breaks (the three Coronado breaks), extra (collector.mop's EXTRA_POINTS: points that are not breaks, handoff 24b), all, census (collector.nearshore_census: which observed nearshore buoys could score the chain and MOP, handoff 24), or nearshore_test (collector.nearshore_test: one year at Imperial Beach Nearshore, 46232 and MOP)"
         required: false
         default: "breaks"
 
@@ -54,6 +54,7 @@ jobs:
           python-version: "3.12"
 
       - name: Archive MOP at the breaks
+        if: inputs.points != 'census' && inputs.points != 'nearshore_test'
         # Dispatch inputs go through the environment, never interpolated into
         # the shell command.
         env:
@@ -71,22 +72,66 @@ jobs:
           if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
 
       - name: Set the chain against it
+        if: inputs.points != 'census' && inputs.points != 'nearshore_test'
         run: |
           set -euo pipefail
           python -m forecast.mopcheck --out docs/mop_check.md
           cat docs/mop_check.md >> "$GITHUB_STEP_SUMMARY"
 
+      # points=census: no MOP series and no cross-check, only the census of
+      # observed nearshore spectra (collector.nearshore_census). Report only.
+      # Exit 3: written, but a request failed (the report lists which).
+      - name: Census of observed nearshore spectra
+        if: inputs.points == 'census'
+        run: |
+          # Actions runs bash -e: without +e an exit 3 ends the step here,
+          # before anything is committed (run 7).
+          set +e
+          python -m collector.nearshore_census
+          code=$?
+          set -e
+          echo "CENSUS_STATUS=${code}" >> "$GITHUB_ENV"
+          if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
+
+      # points=nearshore_test: one year at Imperial Beach Nearshore (the
+      # observation), 46232 (the input) and MOP's nearest point, from CDIP's
+      # archive. Report only; the session scores it (forecast.nearshoretest).
+      - name: One year at Imperial Beach Nearshore
+        if: inputs.points == 'nearshore_test'
+        run: |
+          set +e
+          python -m collector.nearshore_test
+          code=$?
+          set -e
+          echo "CENSUS_STATUS=${code}" >> "$GITHUB_ENV"
+          if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
+
+      # The year's series are ~90 MB: kept as this run's artifact, not
+      # committed (owner's call, 2026-11-21). The commit below takes only
+      # fetch.json and the small meta and band files.
+      - name: Keep the Imperial Beach year as an artifact
+        if: inputs.points == 'nearshore_test'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nearshore-test-${{ github.run_id }}
+          path: data/nearshore_test/
+          retention-days: 90
+
       - name: Commit and push
         env:
           BRANCH: ${{ github.ref_name }}
+          POINTS: ${{ inputs.points }}
         run: |
           set -euo pipefail
 
           git config user.name "nado-waves forecast"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Deliberately scoped: MOP's series and the report, nothing else.
-          git add data/mop docs/mop_check.md 2>/dev/null || true
+          # Deliberately scoped: MOP's series and the report, the census and
+          # its report, or the Imperial Beach year's record; nothing else.
+          git add data/mop docs/mop_check.md data/nearshore_census docs/nearshore_census.md 2>/dev/null || true
+          # The Imperial Beach year: its record only, never the series.
+          git add data/nearshore_test/fetch.json data/nearshore_test/*_meta.json data/nearshore_test/*_bands.csv 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "Nothing new to commit."
@@ -94,7 +139,7 @@ jobs:
           fi
 
           git commit \
-            -m "data: archive CDIP MOP at the breaks (series, spectrum, metadata) and regenerate the MOP cross-check" \
+            -m "data: CDIP MOP archive and cross-check, or the nearshore census (mop-check.yml, points=${POINTS})" \
             -m "Automated commit from .github/workflows/mop-check.yml."
 
           for attempt in 1 2 3 4; do
@@ -118,4 +163,10 @@ jobs:
         if: env.MOP_STATUS == '3'
         run: |
           echo "::error title=MOP spectrum or metadata incomplete::collector.mop exited 3; the series are committed, data/mop/<break>_meta.json says what stopped"
+          exit 1
+
+      - name: A census request failed
+        if: env.CENSUS_STATUS == '3'
+        run: |
+          echo "::error title=Census or Imperial Beach year incomplete::collector.nearshore_census or collector.nearshore_test exited 3; what it found is committed, and its report lists what failed"
           exit 1

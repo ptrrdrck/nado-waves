@@ -1,0 +1,512 @@
+{
+ "cdip_archive_folders": 193,
+ "cdip_requests": 54,
+ "failed": [],
+ "grids": {
+  "nearshore": [
+   478472.0,
+   3612128.0,
+   486848.0,
+   3619544.0
+  ],
+  "outer": [
+   445050.0,
+   3567870.0,
+   506700.0,
+   3638610.0
+  ],
+  "regional": [
+   448064.0,
+   3599616.0,
+   495616.0,
+   3635552.0
+  ]
+ },
+ "input": {
+  "directional_years": [],
+  "historical": {},
+  "id": "46232"
+ },
+ "mop_products": {
+  "ecmwf_fc": 1210,
+  "forecast": 1210,
+  "hindcast": 1210,
+  "nowcast": 1210
+ },
+ "references": {
+  "coronado_center": [
+   32.68220495,
+   -117.18531669999999
+  ],
+  "imperial_beach": [
+   32.5785,
+   -117.14
+  ]
+ },
+ "retrieved_utc": "2026-11-20T20:37:05+00:00",
+ "shallow_m": 60.0,
+ "stations": {
+  "46226": {
+   "cdip_id": "095",
+   "directional_years": [],
+   "distance_km": {
+    "coronado_center": 24.2,
+    "imperial_beach": 36.0
+   },
+   "grids": [
+    "regional",
+    "outer"
+   ],
+   "historical": {},
+   "id": "46226",
+   "name": "Point La Jolla, CA (095)",
+   "owner": "R",
+   "positions": [
+    {
+     "lat": 32.848,
+     "lon": -117.353,
+     "source": "station table"
+    },
+    {
+     "lat": 32.848,
+     "lon": -117.353,
+     "source": "station metadata",
+     "start": "2004-08-26",
+     "stop": "2008-12-31"
+    },
+    {
+     "lat": 32.848,
+     "lon": -117.353,
+     "source": "station page"
+    }
+   ],
+   "water_depth_m": 180.0
+  },
+  "46227": {
+   "cdip_id": "091",
+   "directional_years": [],
+   "distance_km": {
+    "coronado_center": 24.9,
+    "imperial_beach": 29.1
+   },
+   "grids": [
+    "regional",
+    "outer"
+   ],
+   "historical": {},
+   "id": "46227",
+   "name": "Point Loma, CA (091)",
+   "owner": "R",
+   "positions": [
+    {
+     "lat": 32.632,
+     "lon": -117.444,
+     "source": "station table"
+    },
+    {
+     "lat": 32.632,
+     "lon": -117.444,
+     "source": "station metadata",
+     "start": "2004-08-26",
+     "stop": "2006-03-24"
+    },
+    {
+     "lat": 32.632,
+     "lon": -117.444,
+     "source": "station page"
+    }
+   ],
+   "water_depth_m": 188.0
+  },
+  "46231": {
+   "cdip_id": "093",
+   "directional_years": [],
+   "distance_km": {
+    "coronado_center": 18.7,
+    "imperial_beach": 28.6
+   },
+   "grids": [
+    "regional",
+    "outer"
+   ],
+   "historical": {},
+   "id": "46231",
+   "name": "Mission Bay, CA (093)",
+   "owner": "R",
+   "positions": [
+    {
+     "lat": 32.747,
+     "lon": -117.37,
+     "source": "station table"
+    },
+    {
+     "lat": 32.748,
+     "lon": -117.37,
+     "source": "station metadata",
+     "start": "2005-10-06",
+     "stop": ""
+    },
+    {
+     "lat": 32.747,
+     "lon": -117.37,
+     "source": "station page"
+    }
+   ],
+   "water_depth_m": 201.17
+  },
+  "46232": {
+   "cdip": {
+    "datasets": [
+     "191p1_d01.nc",
+     "191p1_d02.nc",
+     "191p1_d03.nc",
+     "191p1_d04.nc",
+     "191p1_d05.nc",
+     "191p1_d06.nc",
+     "191p1_d07.nc",
+     "191p1_d08.nc",
+     "191p1_d09.nc",
+     "191p1_d10.nc",
+     "191p1_d11.nc",
+     "191p1_d12.nc",
+     "191p1_d13.nc",
+     "191p1_d14.nc",
+     "191p1_d15.nc",
+     "191p1_d16.nc",
+     "191p1_d17.nc",
+     "191p1_d18.nc",
+     "191p1_d19.nc",
+     "191p1_d20.nc",
+     "191p1_d21.nc",
+     "191p1_d22.nc",
+     "191p1_d23.nc",
+     "191p1_d24.nc",
+     "191p1_historic.nc"
+    ],
+    "historic": {
+     "geospatial_lat_max": 32.58597,
+     "geospatial_lat_min": 32.50432,
+     "geospatial_lat_resolution": 0.0001,
+     "geospatial_lat_units": "degrees_north",
+     "geospatial_lon_max": -117.39728,
+     "geospatial_lon_min": -117.467735,
+     "geospatial_lon_resolution": 0.0001,
+     "geospatial_lon_units": "degrees_east",
+     "platform": "metaPlatform",
+     "time_coverage_duration": "P0986W5DT17H",
+     "time_coverage_end": "2026-09-01T11:59:59Z",
+     "time_coverage_resolution": "PT30M",
+     "time_coverage_start": "2007-10-03T18:00:00Z",
+     "title": "Directional wave and sea surface temperature measurements collected in situ by Datawell Waverider buoys located near POINT LOMA SOUTH, CA from 2007/10/03 to 2026/09/01."
+    },
+    "in_archive": true,
+    "reporting_now": true
+   },
+   "cdip_id": "191",
+   "directional_years": [],
+   "distance_km": {
+    "coronado_center": 29.0,
+    "imperial_beach": 27.6
+   },
+   "grids": [
+    "outer"
+   ],
+   "historical": {},
+   "id": "46232",
+   "name": "Point Loma South, CA  (191)",
+   "owner": "R",
+   "positions": [
+    {
+     "lat": 32.517,
+     "lon": -117.425,
+     "source": "station table"
+    },
+    {
+     "lat": 32.517,
+     "lon": -117.425,
+     "source": "station metadata",
+     "start": "2020-01-16",
+     "stop": ""
+    },
+    {
+     "lat": 32.53,
+     "lon": -117.421,
+     "source": "station metadata",
+     "start": "2015-11-13",
+     "stop": "2020-01-16"
+    },
+    {
+     "lat": 32.425,
+     "lon": -117.328,
+     "source": "station metadata",
+     "start": "2006-03-24",
+     "stop": "2015-11-13"
+    },
+    {
+     "lat": 32.517,
+     "lon": -117.425,
+     "source": "station page"
+    }
+   ],
+   "water_depth_m": 1049.8
+  },
+  "46235": {
+   "cdip": {
+    "datasets": [
+     "155p1_d01.nc",
+     "155p1_d02.nc",
+     "155p1_d03.nc",
+     "155p1_d04.nc",
+     "155p1_d05.nc",
+     "155p1_d06.nc",
+     "155p1_d07.nc",
+     "155p1_d08.nc",
+     "155p1_d09.nc",
+     "155p1_d10.nc",
+     "155p1_d11.nc",
+     "155p1_d12.nc",
+     "155p1_d13.nc",
+     "155p1_d14.nc",
+     "155p1_historic.nc"
+    ],
+    "historic": {
+     "geospatial_lat_max": 32.570988,
+     "geospatial_lat_min": 32.568222,
+     "geospatial_lat_resolution": 0.0001,
+     "geospatial_lat_units": "degrees_north",
+     "geospatial_lon_max": -117.16722,
+     "geospatial_lon_min": -117.17072,
+     "geospatial_lon_resolution": 0.0001,
+     "geospatial_lon_units": "degrees_east",
+     "platform": "metaPlatform",
+     "time_coverage_duration": "P1010W4DT12H",
+     "time_coverage_end": "2026-05-03T05:59:59Z",
+     "time_coverage_resolution": "PT30M",
+     "time_coverage_start": "2006-12-19T18:00:00Z",
+     "title": "Directional wave and sea surface temperature measurements collected in situ by Datawell Waverider buoys located near IMPERIAL BEACH NEARSHORE, CA from 2006/12/19 to 2026/05/03."
+    },
+    "in_archive": true,
+    "reporting_now": false
+   },
+   "cdip_id": "155",
+   "directional_years": [],
+   "distance_km": {
+    "coronado_center": 12.6,
+    "imperial_beach": 2.9
+   },
+   "grids": [
+    "regional",
+    "outer"
+   ],
+   "historical": {},
+   "id": "46235",
+   "mop": {
+    "depth_m": 10.08,
+    "distance_m": 1871,
+    "hindcast": {
+     "geospatial_lat_max": 32.57183,
+     "geospatial_lat_min": 32.57183,
+     "geospatial_lat_resolution": 0.0001,
+     "geospatial_lat_units": "degrees_north",
+     "geospatial_lon_max": -117.14917,
+     "geospatial_lon_min": -117.14917,
+     "geospatial_lon_resolution": 0.0001,
+     "geospatial_lon_units": "degrees_east",
+     "time_coverage_duration": "P1317W3DT00H",
+     "time_coverage_end": "2025-03-31T23:30:00Z",
+     "time_coverage_resolution": "PT01H00M",
+     "time_coverage_start": "1999-12-31T23:30:00Z",
+     "title": "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0043."
+    },
+    "lat": 32.57183,
+    "lon": -117.14917,
+    "nowcast": {
+     "geospatial_lat_max": 32.57183,
+     "geospatial_lat_min": 32.57183,
+     "geospatial_lat_resolution": 0.0001,
+     "geospatial_lat_units": "degrees_north",
+     "geospatial_lon_max": -117.14917,
+     "geospatial_lon_min": -117.14917,
+     "geospatial_lon_resolution": 0.0001,
+     "geospatial_lon_units": "degrees_east",
+     "time_coverage_duration": "P598DT20H00M",
+     "time_coverage_end": "2026-11-20T19:30:00Z",
+     "time_coverage_resolution": "PT01H00M",
+     "time_coverage_start": "2025-03-31T23:30:00Z",
+     "title": "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0043."
+    },
+    "point": "D0043"
+   },
+   "name": "Imperial Beach Nearshore, CA (155)",
+   "owner": "R",
+   "positions": [
+    {
+     "lat": 32.57,
+     "lon": -117.169,
+     "source": "station table"
+    },
+    {
+     "lat": 32.57,
+     "lon": -117.169,
+     "source": "station metadata",
+     "start": "2018-08-24",
+     "stop": ""
+    },
+    {
+     "lat": 32.57,
+     "lon": -117.169,
+     "source": "station page"
+    }
+   ],
+   "water_depth_m": 21.0
+  },
+  "46254": {
+   "cdip": {
+    "datasets": [
+     "201p1_d01.nc",
+     "201p1_d02.nc",
+     "201p1_d03.nc",
+     "201p1_d04.nc",
+     "201p1_d05.nc",
+     "201p1_d06.nc",
+     "201p1_d07.nc",
+     "201p1_d08.nc",
+     "201p1_d09.nc",
+     "201p1_historic.nc"
+    ],
+    "historic": {
+     "geospatial_lat_max": 32.874786,
+     "geospatial_lat_min": 32.866142,
+     "geospatial_lat_resolution": 0.0001,
+     "geospatial_lat_units": "degrees_north",
+     "geospatial_lon_max": -117.26323,
+     "geospatial_lon_min": -117.26871,
+     "geospatial_lon_resolution": 0.0001,
+     "geospatial_lon_units": "degrees_east",
+     "platform": "metaPlatform",
+     "time_coverage_duration": "P0707W6DT22H",
+     "time_coverage_end": "2026-10-21T17:59:59Z",
+     "time_coverage_resolution": "PT30M",
+     "time_coverage_start": "2013-03-27T19:00:00Z",
+     "title": "Directional wave and sea surface temperature measurements collected in situ by Datawell Waverider buoys located near SCRIPPS NEARSHORE, CA from 2013/03/27 to 2026/10/21."
+    },
+    "in_archive": true,
+    "reporting_now": true
+   },
+   "cdip_id": "201",
+   "directional_years": [],
+   "distance_km": {
+    "coronado_center": 22.1,
+    "imperial_beach": 34.4
+   },
+   "grids": [
+    "outer"
+   ],
+   "historical": {},
+   "id": "46254",
+   "mop": {
+    "depth_m": 10.04,
+    "distance_m": 635,
+    "hindcast": {
+     "geospatial_lat_max": 32.86682,
+     "geospatial_lat_min": 32.86682,
+     "geospatial_lat_resolution": 0.0001,
+     "geospatial_lat_units": "degrees_north",
+     "geospatial_lon_max": -117.26036,
+     "geospatial_lon_min": -117.26036,
+     "geospatial_lon_resolution": 0.0001,
+     "geospatial_lon_units": "degrees_east",
+     "time_coverage_duration": "P1317W3DT00H",
+     "time_coverage_end": "2025-03-31T23:30:00Z",
+     "time_coverage_resolution": "PT01H00M",
+     "time_coverage_start": "1999-12-31T23:30:00Z",
+     "title": "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0512."
+    },
+    "lat": 32.86682,
+    "lon": -117.26036,
+    "nowcast": {
+     "geospatial_lat_max": 32.86682,
+     "geospatial_lat_min": 32.86682,
+     "geospatial_lat_resolution": 0.0001,
+     "geospatial_lat_units": "degrees_north",
+     "geospatial_lon_max": -117.26036,
+     "geospatial_lon_min": -117.26036,
+     "geospatial_lon_resolution": 0.0001,
+     "geospatial_lon_units": "degrees_east",
+     "time_coverage_duration": "P598DT20H00M",
+     "time_coverage_end": "2026-11-20T19:30:00Z",
+     "time_coverage_resolution": "PT01H00M",
+     "time_coverage_start": "2025-03-31T23:30:00Z",
+     "title": "Bulk wave parameters and directional wave spectra as predicted by the CDIP MOP version 1.1 model for the sites defined in D0512."
+    },
+    "point": "D0512"
+   },
+   "name": "SCRIPPS Nearshore, CA (201)",
+   "owner": "R",
+   "positions": [
+    {
+     "lat": 32.868,
+     "lon": -117.267,
+     "source": "station table"
+    },
+    {
+     "lat": 32.868,
+     "lon": -117.267,
+     "source": "station metadata",
+     "start": "2015-02-12",
+     "stop": ""
+    },
+    {
+     "lat": 32.868,
+     "lon": -117.267,
+     "source": "station page"
+    }
+   ],
+   "water_depth_m": 46.0
+  },
+  "46258": {
+   "cdip_id": "220",
+   "directional_years": [],
+   "distance_km": {
+    "coronado_center": 30.6,
+    "imperial_beach": 38.9
+   },
+   "grids": [
+    "regional",
+    "outer"
+   ],
+   "historical": {},
+   "id": "46258",
+   "name": "Mission Bay West, CA (220)",
+   "owner": "R",
+   "positions": [
+    {
+     "lat": 32.749,
+     "lon": -117.502,
+     "source": "station table"
+    },
+    {
+     "lat": 32.749,
+     "lon": -117.502,
+     "source": "station metadata",
+     "start": "2017-11-14",
+     "stop": ""
+    },
+    {
+     "lat": 32.75,
+     "lon": -117.5,
+     "source": "station metadata",
+     "start": "2016-01-16",
+     "stop": "2017-11-14"
+    },
+    {
+     "lat": 32.749,
+     "lon": -117.502,
+     "source": "station page"
+    }
+   ],
+   "water_depth_m": 562.7
+  }
+ },
+ "unplaced_462xx": []
+}
