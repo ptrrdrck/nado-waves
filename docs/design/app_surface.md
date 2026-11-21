@@ -420,7 +420,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    OKLCH) sits near the measured blue (250–256°), seldom reached (the
    October–November daylight peaks topped out at 5.8 ft); its first stops
    share the status dot's green hue. A key under the strip was mocked and
-   left off.
+   left off, so docs.html's week strip section says what the colours mean
+   (owner's call, same day).
    **The log-first gate** (owner's call, 2026-10-16): "Wave observer", the
    Observer switch, kept in localStorage (with the Briefing's last opened
    update and the Units and theme settings, its only uses, pinned). On such a device the page opens on "Logging the beach today?"
