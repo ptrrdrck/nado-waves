@@ -110,7 +110,7 @@ def fine_rows(break_id: str, step: float, refresh: bool = False) -> tuple[list[d
 def table_from_rows(break_id: str, rows: list[dict], start_depth_m: float):
     """A `Table` with no Madsen table, as `Table.load` reads its CSV."""
 
-    from .nearshore import Ray, Table
+    from .nearshore import Ray, Table, parse_fan
 
     by_freq, place = {}, {}
     for row in rows:
@@ -122,7 +122,8 @@ def table_from_rows(break_id: str, rows: list[dict], start_depth_m: float):
         by_freq.setdefault(f, []).append(Ray(
             float(row["near_from_deg"]), math.radians(float(row["near_width_deg"])),
             float(row["off_from_deg"]), gain, float(row["diff_off_from_deg"]), diff_gain,
-            float(row.get("friction") or 1.0), float(row.get("diff_friction") or 1.0), k))
+            float(row.get("friction") or 1.0), float(row.get("diff_friction") or 1.0), k,
+            None, parse_fan(row.get("diff_fan"))))
     return Table(break_id, start_depth_m, by_freq)
 
 
@@ -163,9 +164,10 @@ def ray_energies(spectrum, table, grids, factors: dict | None):
         for j, ray in enumerate(table.by_freq[near]):
             if ray.diff_gain <= 0:
                 continue
-            e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain
             keep = fac[j] if fac is not None else ray.diff_friction
-            out.append((e * keep, e / ks2, ray.diff_off_from, ray.gain <= 0))
+            for h, w in ray.samples():
+                e = at(grid, h) * w * width * ray.width_rad * ray.diff_gain
+                out.append((e * keep, e / ks2, h, ray.gain <= 0))
     return out
 
 

@@ -336,9 +336,30 @@ sections).
        Was: CDIP's whole archive (the census
        saw only NDBC's stations) for any buoy or pressure sensor ever off
        Coronado, Silver Strand or Zuniga; if one exists, the 24d test there.
-    d. **Kelp and reef**: whether the wrap's rays cross the Point Loma kelp
-       bed, and what the measured literature says it does to long swell; a
-       literature term, never a fitted one.
+    d. **Kelp and reef** -- open, blocked on an outline. Owner's yes to
+       steps 1-3 (2026-11-21); reef (Madsen at a rock roughness) not asked
+       for. Built: `collector.kelp` (S-57 WEDKLP from the ENC chart services,
+       box over Point Loma's west side and the tip, `data/kelp/`), run on
+       Actions by `shoreline.yml` input `kelp`; `forecast.kelpcross` (each
+       ray's stored path against the outline, the wrap's energy crossing and
+       metres in kelp on the big westerly hours, and an exp(-alpha L) bound),
+       not yet run. **Shoreline check runs 15 and 16** (07:11Z and 07:34Z):
+       every ENC service timed out from the runner (exit 3 now, "no service
+       answered", never "none charted"). Next: dispatch `shoreline.yml` with
+       `kelp` once more; if NOAA's chart server stays dark, the owner chooses
+       another outline (CDFW / Region Nine kelp canopy, Kelpwatch), not a
+       session. Literature so far, from search summaries only (the papers'
+       hosts are blocked from a session): Elwany et al. 1995 (Carlsbad, 3-20 s)
+       and Rosman et al. 2007 (Santa Cruz) found no significant attenuation;
+       Elsmore et al. 2024 (Palos Verdes) a modest one for 1-3 s waves, order
+       1e-3 /m. Read the papers themselves before a number is used.
+       **Found on the way and fixed (owner's choice of design, 2026-11-21):
+       the Point Loma / Baja diffraction fill** -- BRIEFING §61, chain.md "A
+       headland's fill is read across the Fresnel zone", `docs/fill_shift.md`.
+       Docs page: the worked hour and direction table redone; one sentence of
+       method prose (section on diffraction, "leaves along the heading of the
+       nearest ray that clears the land") still describes the old rule for
+       headlands -- wording proposed to the owner, not changed.
     e. **The beach log**: the owner's big-westerly sessions across breaks,
        the long-run judge (`docs/observation_log.md`).
 

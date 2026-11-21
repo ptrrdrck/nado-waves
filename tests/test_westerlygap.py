@@ -6,6 +6,7 @@ import pytest
 
 from forecast import now as live
 from forecast import westerlygap as W
+from forecast.fillshift import nearest_rule
 from forecast.nearshore import load_tables
 from forecast.surfzone import load_profiles
 from forecast.transform import load_spectra
@@ -22,7 +23,8 @@ def hour_22z():
 def test_then_gives_back_s56_step_table(hour_22z):
     profiles = load_profiles()
     with W._chain("then") as chain:
-        got = chain.build(now=hour_22z.time, spectrum=hour_22z, as_of=True, tables=load_tables(),
+        tables = {b: nearest_rule(t) for b, t in load_tables().items()}      # the fill of 17 Nov
+        got = chain.build(now=hour_22z.time, spectrum=hour_22z, as_of=True, tables=tables,
                           profiles={b: p.inshore() for b, p in profiles.items()})
     # To §56's printed precision: it printed 2.135 m as 2.14.
     keys = [k for _, k in W.STEPS[:5]]

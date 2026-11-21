@@ -188,7 +188,8 @@ def run(data_dir: Path = ROOT / "data", limit: int | None = None) -> dict:
                 for j, ray in enumerate(table.by_freq[nf]):
                     if ray.diff_gain <= 0:
                         continue
-                    e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain * fac[j]
+                    e = (sum(at(grid, h) * w for h, w in ray.samples())
+                         * width * ray.width_rad * ray.diff_gain * fac[j])
                     k = ray.k if ray.gain > 0 else path_of.get((b, nf, ray.k))
                     L = lengths[b].get((nf, k))
                     wrap = ray.gain > 0 and part_of(ray.diff_off_from, spots[b].normal, arcs[b]) == "wrap"

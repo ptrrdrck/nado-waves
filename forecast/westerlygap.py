@@ -18,6 +18,10 @@ the wind and tide that existed at that hour, local chop from KNZY — four ways:
 - ``now``:    the chain as it ships (§57 and §58);
 - ``now_nochop``: as shipped, without the local chop LIVE adds.
 
+``then`` and ``madsen`` read a headland's fill the old way
+(`fillshift.nearest_rule`, BRIEFING §61); ``now`` is the chain as it ships,
+so since §61 it carries the Fresnel-zone fill too.
+
 ``then`` is rebuilt in today's code by handing `carry` the JONSWAP column
 (`friction="jonswap"`, which §57 pinned to the pre-Madsen chain to the digit)
 and the profiles cut at the table's start point (`Profile.inshore`, §58's
@@ -111,7 +115,11 @@ def run(data_dir: Path = ROOT / "data", limit: int | None = None) -> list[dict]:
     from .surfzone import load_profiles
     from .transform import load_spectra
 
+    from .fillshift import nearest_rule
+
     tables, profiles = load_tables(), load_profiles()
+    # Before §61 a headland's fill was read at its nearest clear ray's heading.
+    old_fill = {b: nearest_rule(t) for b, t in tables.items()}
     inshore = {b: p.inshore() for b, p in profiles.items()}
     hours = selected(load_spectra(data_dir / "spectra" / "46232"))
     if limit:
@@ -122,7 +130,7 @@ def run(data_dir: Path = ROOT / "data", limit: int | None = None) -> list[dict]:
         for variant in VARIANTS:
             with _chain(variant) as live:
                 got = live.build(data_dir=data_dir, now=sp.time, spectrum=sp, as_of=True,
-                                 tables=tables,
+                                 tables=old_fill if variant in ("then", "madsen") else tables,
                                  profiles=inshore if variant in ("then", "madsen") else profiles)
             row["v"][variant] = {b.id: _row(b) for b in got.breaks}
         rows.append(row)

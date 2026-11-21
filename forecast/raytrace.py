@@ -698,6 +698,51 @@ def shadow_factor(rec: tuple, side: tuple[int, int], w: float, island: Island,
 EDGE_U_MAX = 4.0
 
 
+def edge_u(offset_m, depth_m, dist_m, period_s: float) -> np.ndarray:
+    """The Fresnel parameter of a straight edge: u = offset·sqrt(2/(λ·D)),
+    λ at the depth beside the edge, D the path from there to the break."""
+
+    omega = 2.0 * math.pi / period_s
+    k = wavenumber(omega, np.maximum(np.asarray(depth_m, float), 1.0))
+    lam = 2.0 * math.pi / k
+    return np.asarray(offset_m, float) * np.sqrt(2.0 / (lam * np.maximum(dist_m, 1.0)))
+
+
+def edge_fan(u: np.ndarray, off_deg: np.ndarray, lit: np.ndarray) -> list[tuple[float, float]]:
+    """What arrives at a diffracting edge: the offshore headings of the clear
+    rays that pass it inside the Fresnel transition zone, 0 < u <= EDGE_U_MAX
+    (the edge factor's own limit, beyond which it is 1), each weighted by the
+    share of that strip of u it stands for (half-way to its neighbours, the
+    ends at 0 and EDGE_U_MAX), so a heading where rays bunch is not counted
+    twice. (heading, weight) pairs, weights summing to 1; [] when no clear ray
+    passes inside the zone.
+
+    The field diffracted into a shadow is the incident field across the strip
+    beside the edge (Fresnel-Kirchhoff), not along one ray: until 2026-11-21 a
+    fill took the offshore heading of the single clear ray nearest it in start
+    heading, and rays grazing Point Loma leave the shelf anywhere from 250° to
+    350° half a degree apart, so the fill's heading wandered from frequency to
+    frequency (BRIEFING §60)."""
+
+    pick = np.flatnonzero(lit & np.isfinite(u) & (u > 0.0) & (u <= EDGE_U_MAX))
+    if not pick.size:
+        return []
+    order = pick[np.argsort(u[pick], kind="stable")]
+    us = u[order]
+    edges = np.concatenate([[0.0], 0.5 * (us[1:] + us[:-1]), [EDGE_U_MAX]])
+    w = np.diff(edges) / EDGE_U_MAX
+    return [(float(off_deg[i]), float(wi)) for i, wi in zip(order, w)]
+
+
+def fan_heading(fan: list[tuple[float, float]]) -> float:
+    """The fan's weighted circular mean heading (for bookkeeping only: the
+    energy is read across the whole fan)."""
+
+    sx = sum(w * math.sin(math.radians(h)) for h, w in fan)
+    cx = sum(w * math.cos(math.radians(h)) for h, w in fan)
+    return math.degrees(math.atan2(sx, cx)) % 360.0
+
+
 def edge_factor(offset_m: np.ndarray, depth_m: np.ndarray, dist_m: np.ndarray,
                 period_s: float) -> np.ndarray:
     """Energy factor from diffraction by a straight edge (a headland tip).
@@ -710,10 +755,7 @@ def edge_factor(offset_m: np.ndarray, depth_m: np.ndarray, dist_m: np.ndarray,
     there to the break.
     """
 
-    omega = 2.0 * math.pi / period_s
-    k = wavenumber(omega, np.maximum(np.asarray(depth_m, float), 1.0))
-    lam = 2.0 * math.pi / k
-    u = np.asarray(offset_m, float) * np.sqrt(2.0 / (lam * np.maximum(dist_m, 1.0)))
+    u = edge_u(offset_m, depth_m, dist_m, period_s)
     field = 1.0 - slit(u, np.full_like(u, 1e6))
     out = np.abs(field) ** 2
     return np.where(u > EDGE_U_MAX, 1.0, out)
@@ -1023,7 +1065,13 @@ def start_point(bathy: Bathymetry, spot: Spot, h_ref: float = H_REF) -> tuple[fl
 FIELDS = ["period_s", "freq_hz", "near_from_deg", "near_width_deg",
           "off_from_deg", "gain", "diff_off_from_deg", "diff_gain",
           "friction", "diff_friction",
-          "status", "blocker", "exit_depth_m", "path_km"]
+          "status", "blocker", "exit_depth_m", "path_km", "diff_fan"]
+
+#: How a headland's diffracted fill reads the offshore sea: "fan" (since
+#: 2026-11-21, BRIEFING §61) across the clear rays passing the edge inside the
+#: Fresnel zone (`edge_fan`); "nearest" the single nearest clear ray's
+#: heading, as before, kept as the control.
+FILL_RULE = "fan"
 
 
 def frequencies() -> list[float]:
@@ -1087,7 +1135,8 @@ def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: flo
 
 def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
           freqs: list[float], madsen_out: dict | None = None,
-          h_ref: float = H_REF, dir_step: float = DIR_STEP_DEG) -> tuple[list[dict], dict]:
+          h_ref: float = H_REF, dir_step: float = DIR_STEP_DEG,
+          fill: str = FILL_RULE) -> tuple[list[dict], dict]:
     """One break's transfer table, with every window edge both hard and soft.
 
     For each ray, two answers:
@@ -1122,11 +1171,19 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     `forecast.mopdepth` starts at CDIP MOP's 10 m points with it, report
     only (BRIEFING §56b).
 
+    `fill` is how a headland's shadow reads the sea (`FILL_RULE`): "fan",
+    across the clear rays inside the edge's Fresnel zone, written to the
+    row's `diff_fan` as heading:weight pairs with their mean heading in
+    `diff_off_from_deg`; "nearest", the nearest clear ray's heading alone.
+    Friction and the path stay the nearest clear ray's either way.
+
     `dir_step` is the spacing of the start headings; what ships is
     DIR_STEP_DEG. `forecast.wrapbudget` traces finer combs with it, report
     only (handoff 27b).
     """
 
+    if fill not in ("fan", "nearest"):
+        raise ValueError(f"fill is 'fan' or 'nearest', not {fill!r}")
     islands = islands_from(blockers)
     ring_depths(bathy, islands)
     edges = edge_points(blockers)
@@ -1192,6 +1249,8 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
             diff_t[i] = got * edge_t[nearest]
 
         clear_idx = np.flatnonzero(clear)
+        fans: dict[str, list] = {}
+        diff_fan = [""] * near.size
         for i in np.flatnonzero(rays.status == LAND):
             name = who[i]
             if not name.startswith(EDGE_BLOCKERS) or not clear_idx.size or rays.edges is None:
@@ -1201,6 +1260,13 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                 continue
             nearest = clear_idx[np.argmin(np.abs(((near[clear_idx] - near[i] + 180.0) % 360.0) - 180.0))]
             diff_off[i] = rays.off_from_deg[nearest]
+            if fill == "fan":
+                if name not in fans:
+                    fans[name] = edge_fan(edge_u(dist, depth, along, period),
+                                          rays.off_from_deg, clear)
+                if fans[name]:
+                    diff_off[i] = fan_heading(fans[name])
+                    diff_fan[i] = ";".join(f"{h:.2f}:{w:.5f}" for h, w in fans[name])
             # The energy that bends round the edge crosses the shelf beside the
             # ray that clears it, and takes that ray's friction.
             diff_fric[i] = rays.friction[nearest]
@@ -1224,6 +1290,7 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                 "status": rays.status[i], "blocker": who[i],
                 "exit_depth_m": f"{rays.exit_depth[i]:.1f}" if np.isfinite(rays.exit_depth[i]) else "",
                 "path_km": f"{rays.path_m[i] / 1000.0:.2f}",
+                "diff_fan": diff_fan[i] if diff_t[i] > 0 else "",
             })
     lat, lon = from_utm(xs, ys)
     meta = {"break": spot.id, "start_lat": round(lat, 6), "start_lon": round(lon, 6),
@@ -1234,7 +1301,8 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
             "islands": [{"name": i.name, "ring_depth_m": round(i.depth, 1),
                          "radius_m": round(i.radius)} for i in islands],
             "diffracting_edges": sorted(edges),
-            "bottom_friction": {"law": "JONSWAP", "c_bottom_m2_s3": C_BOTTOM}}
+            "bottom_friction": {"law": "JONSWAP", "c_bottom_m2_s3": C_BOTTOM},
+            "edge_fill": fill}
     return rows, meta
 
 
@@ -1665,6 +1733,10 @@ def main(argv: list[str] | None = None) -> int:
                         help=f"rebuild the {LEG_FROM}-to-break travel times and nothing else")
     parser.add_argument("--paths-only", action="store_true",
                         help="rebuild the map fill's ray paths and nothing else")
+    parser.add_argument("--fill-only", action="store_true",
+                        help="rebuild the tables for a new headland fill rule (FILL_RULE) and "
+                             "nothing else; refuses unless every row but a headland fill's "
+                             "heading and fan comes back as committed")
     parser.add_argument("--madsen-only", action="store_true",
                         help="rebuild the Madsen friction tables and nothing else; refuses "
                              "unless the re-trace gives the committed table back row for row")
@@ -1688,6 +1760,23 @@ def main(argv: list[str] | None = None) -> int:
             buoy = load_coordinates()[LEG_FROM]
             leg = write_leg(leg_table(bathy, by_id[sid], blockers, freqs, buoy), sid, buoy)
             print(f"{sid}: leg -> {leg}")
+            continue
+        if args.fill_only:
+            # A fill's friction and path stay its nearest clear ray's, so the
+            # Madsen tables do not move; only the fill rows' headings do.
+            rows, meta = table(bathy, by_id[sid], blockers, freqs)
+            old = committed_rows(sid)
+            keep = [k for k in FIELDS if k not in ("diff_off_from_deg", "diff_fan")]
+            bad = sum(1 for a, b in zip(rows, old)
+                      if any(str(a[k]) != b.get(k) for k in keep)
+                      or (not a["diff_fan"] and str(a["diff_off_from_deg"]) != b["diff_off_from_deg"]))
+            if len(rows) != len(old) or bad:
+                print(f"{sid}: {bad} rows differ beyond a headland fill's heading "
+                      f"({len(rows)} vs {len(old)}): rebuild the table", file=sys.stderr)
+                return 1
+            path = write(rows, meta)
+            fans = sum(1 for r in rows if r["diff_fan"])
+            print(f"{sid}: fill -> {path} ({fans} headland fill rows read across a fan)")
             continue
         if args.madsen_only:
             madsen: dict = {}

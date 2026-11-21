@@ -225,10 +225,16 @@ class Comb:
     def __init__(self, halves: list[tuple[list[dict], dict]]):
         self.start_depth_m = float(np.mean([m["start_depth_m"] for _, m in halves]))
         by: dict[float, list[dict]] = {}
+        from .nearshore import parse_fan
+
         for rows, _ in halves:
             for r in rows:
                 if float(r["diff_gain"]) > 0:
-                    by.setdefault(float(r["freq_hz"]), []).append(r)
+                    # A headland fill, one entry per heading of its fan (§61).
+                    for h, w in (parse_fan(r.get("diff_fan")) or ((None, 1.0),)):
+                        by.setdefault(float(r["freq_hz"]), []).append(
+                            r if h is None else {**r, "diff_off_from_deg": h,
+                                                 "diff_gain": float(r["diff_gain"]) * w})
         self.freqs = sorted(by)
         self.f = {f: {"w": np.array([math.radians(float(r["near_width_deg"])) for r in rs]),
                       "near": np.radians([float(r["near_from_deg"]) for r in rs]),
@@ -285,8 +291,9 @@ class Shipped:
                 rt.write_madsen(madsen, tag, out)
             self.tables.append(Table.load(tag, out))
         self.start_depth_m = self.tables[0].start_depth_m
-        self.arrays = [{f: (np.array([r.diff_off_from for r in rays]),
-                            np.array([r.width_rad * r.diff_gain for r in rays]))
+        self.arrays = [{f: (np.array([h for r in rays for h, _ in r.samples()]),
+                            np.array([r.width_rad * r.diff_gain * w for r in rays
+                                      for _, w in r.samples()]))
                         for f, rays in t.by_freq.items()} for t in self.tables]
 
     def carry(self, sp: Spectrum, grids: dict) -> np.ndarray:
@@ -306,7 +313,10 @@ class Shipped:
                 if abs(near - f) > 0.05 * f:
                     continue
                 doff, wg = arrays[near]
-                fr = np.array([x if x is not None else 0.0 for x in got.ray_friction.get(near, [])])
+                # One share per heading: a fill's fan repeats its ray's (§61).
+                fr = np.array([x if x is not None else 0.0
+                               for ray, x in zip(table.by_freq[near], got.ray_friction.get(near, []))
+                               for _ in ray.samples()])
                 if fr.size != doff.size:
                     raise ValueError(f"{table.break_id} {near}: {fr.size} friction shares for {doff.size} rays")
                 e[i] += float(np.sum(md.interp(np.asarray(g), doff) * wg * fr))

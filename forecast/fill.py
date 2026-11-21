@@ -87,18 +87,19 @@ def rows_for(spectrum, table, grids, split, owner, trains, shown,
             for j, ray in enumerate(rays):
                 if ray.diff_gain <= 0:
                     continue
-                kk = int(ray.diff_off_from) % 360
-                if kk not in arc or (divided and owner(i, kk) not in mine):
-                    continue
-                e = at(grid, ray.diff_off_from) * width * ray.width_rad * ray.diff_gain * kept_by[j]
-                five += e
-                if not drawn:
-                    continue
-                target = ray if ray.gain > 0 else (
-                    min(clear, key=lambda c: _ang(c.off_from, ray.diff_off_from)) if clear else None)
-                if target is None:
-                    continue
-                credit[(key, target.k)] = credit.get((key, target.k), 0.0) + e
+                for h, w in ray.samples():
+                    kk = int(h) % 360
+                    if kk not in arc or (divided and owner(i, kk) not in mine):
+                        continue
+                    e = at(grid, h) * w * width * ray.width_rad * ray.diff_gain * kept_by[j]
+                    five += e
+                    if not drawn:
+                        continue
+                    target = ray if ray.gain > 0 else (
+                        min(clear, key=lambda c: _ang(c.off_from, h)) if clear else None)
+                    if target is None:
+                        continue
+                    credit[(key, target.k)] = credit.get((key, target.k), 0.0) + e
         hs5 = 4.0 * math.sqrt(five) if five > 0 else 0.0
         if abs(hs5 - t.hs_m) > TOLERANCE_M:
             notes.append(f"{table.break_id} row {n}: rays give {hs5:.3f} m at 5 m, the chain "

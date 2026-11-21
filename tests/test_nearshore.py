@@ -293,7 +293,8 @@ def _madsen_as_jonswap(table: Table) -> Table:
     madsen = MadsenTable(meta, {f: [[1.0]] for f in table.by_freq})
     by_freq = {f: [Ray(r.near_from, r.width_rad, r.off_from, r.gain, r.diff_off_from, r.diff_gain,
                        r.friction, r.diff_friction, r.k,
-                       (-math.log(r.diff_friction),) if r.diff_gain > 0 else None) for r in rays]
+                       (-math.log(r.diff_friction),) if r.diff_gain > 0 else None, r.fan)
+                   for r in rays]
                for f, rays in table.by_freq.items()}
     return Table(table.break_id, table.start_depth_m, by_freq, table.fetch, madsen)
 

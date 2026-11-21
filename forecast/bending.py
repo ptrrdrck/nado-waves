@@ -93,7 +93,7 @@ def arriving(table: Table, freq_hz: float, from_deg: float,
             continue
         kept = (math.exp(-max(sum(a * b for a, b in zip(ray.madsen, coef)) if coef else 0.0, 0.0))
                 if coef is not None else ray.diff_friction)
-        got = at(grid, ray.diff_off_from) * ray.width_rad * ray.diff_gain * kept
+        got = sum(at(grid, h) * w for h, w in ray.samples()) * ray.width_rad * ray.diff_gain * kept
         t = math.radians(ray.near_from)
         e += got; s += got * math.sin(t); c += got * math.cos(t)
     heading = math.degrees(math.atan2(s, c)) % 360.0 if e > 0 else math.nan
