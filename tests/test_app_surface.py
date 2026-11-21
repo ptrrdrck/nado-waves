@@ -4921,6 +4921,71 @@ class TestTheWeekStrip:
         # 1.0 / 1.0 shown, at least a foot apart.
         assert json.loads(got) == [[3, 4], [3, 5], [1, 2]]
 
+    def test_a_cell_is_coloured_by_its_daylight_peak_on_a_fixed_scale(self):
+        """Owner's request and ramp, 2026-11-21 (smooth by peak, no key):
+        the peak as the cards show it, to the tenth of a foot, between the
+        two stops either side; the first stop below the ramp, the last above."""
+        start = SOURCE.index("const WEEK_HEAT_FT = ")
+        fn = SOURCE[start:SOURCE.index("\n}\n", start) + 3]
+        got = self._node(fn + "console.log(JSON.stringify([weekHeat([0.2, 0.25]),"
+                         " weekHeat([0.5, 1.189, 0.9]), weekHeat([3.0]), weekHeat([1.0058])]));")
+        low, mid, top, on_stop = json.loads(got)
+        assert low == "var(--wk-heat0)"
+        # 1.189 m shows 3.9 ft, halfway from the 3.3 ft stop to the 4.5 ft one.
+        assert mid == "color-mix(in oklab,var(--wk-heat2) 50.0%,var(--wk-heat3))"
+        assert top == "var(--wk-heat6)"
+        assert on_stop == "color-mix(in oklab,var(--wk-heat1) 0.0%,var(--wk-heat2))"   # 3.3 ft
+        card = self.fn("weekCard")
+        assert 'class="week-cell heat" style="--cell-bg:${weekHeat(ms)}"' in card
+
+    def test_every_colour_on_the_ramp_reads_its_dark_text(self):
+        """The ramp is the same on both themes and its text dark on both;
+        every stop, and the OKLab mixes between them, at 4.5:1 or better."""
+        stops = [re.search(rf"--wk-heat{k}:(#[0-9A-F]{{6}});", SOURCE).group(1) for k in range(7)]
+        heights = json.loads(re.search(r"const WEEK_HEAT_FT = (\[[^\]]*\]);", SOURCE).group(1))
+        assert len(heights) == len(stops) and heights == sorted(heights)
+        assert SOURCE.count("--wk-heat-ink:#0E1A20;") == 2          # both dark blocks
+        assert SOURCE.count("--wk-heat-ink:#16232B;") == 1
+
+        def lin(c):
+            return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+        def enc(c):
+            c = min(1.0, max(0.0, c))
+            return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+
+        def lab(h):
+            r, g, b = (lin(int(h[i:i + 2], 16) / 255) for i in (1, 3, 5))
+            l_, m_, s_ = ((0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3),
+                          (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3),
+                          (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3))
+            return (0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+                    1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+                    0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_)
+
+        def rgb(L, a, b):
+            l_, m_, s_ = ((L + 0.3963377774 * a + 0.2158037573 * b) ** 3,
+                          (L - 0.1055613458 * a - 0.0638541728 * b) ** 3,
+                          (L - 0.0894841775 * a - 1.2914855480 * b) ** 3)
+            return [enc(4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_),
+                    enc(-1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_),
+                    enc(-0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_)]
+
+        def lum(c):
+            r, g, b = (lin(x) for x in c)
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+        worst = 99.0
+        for a, b in zip(stops, stops[1:]):
+            A, B = lab(a), lab(b)
+            for k in range(21):
+                f = k / 20
+                y = lum(rgb(*(p + (q - p) * f for p, q in zip(A, B))))
+                for ink in ("#16232B", "#0E1A20"):
+                    i = lum([int(ink[j:j + 2], 16) / 255 for j in (1, 3, 5)])
+                    worst = min(worst, (max(y, i) + 0.05) / (min(y, i) + 0.05))
+        assert worst >= 4.5, worst
+
     def test_it_is_on_the_forecast_tab_only_above_the_swell_card(self):
         now = SOURCE[SOURCE.index('if (MODE === "now") {'):]
         now = now[:now.index("  } else {")]
