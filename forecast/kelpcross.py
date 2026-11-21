@@ -228,11 +228,13 @@ def run(data_dir: Path = ROOT / "data", limit: int | None = None) -> dict:
 
 
 def _area(rings) -> float:
-    total = 0.0
-    for ring in rings:
-        s = sum(x1 * y2 - x2 * y1 for (x1, y1), (x2, y2) in zip(ring, ring[1:] + ring[:1]))
-        total += s / 2.0
-    return abs(total)
+    """One feature's area: its largest ring less the others (holes), whatever
+    way each ring winds."""
+
+    areas = sorted((abs(sum(x1 * y2 - x2 * y1 for (x1, y1), (x2, y2)
+                            in zip(ring, ring[1:] + ring[:1]))) / 2.0 for ring in rings),
+                   reverse=True)
+    return areas[0] - sum(areas[1:]) if areas else 0.0
 
 
 def _wq(pairs: list[tuple[float, float]], p: float) -> float:
