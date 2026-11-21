@@ -33,6 +33,13 @@ spread); MOP's inputs (if 155 drove MOP, MOP is not independent).
 
 Report only and precompute-side (numpy; no workflow runs it). Nothing is
 fitted and nothing ships.
+
+THE SERIES ARE NOT TRACKED (~90 MB; owner's call, 2026-11-21): only
+`fetch.json` and the meta and band files are. To re-run, put run 9's series
+back first: `git checkout 38e295e -- data/nearshore_test` (the commit that
+held them), or a later run's `nearshore-test-<run id>` artifact unpacked
+into `data/nearshore_test/`. The tables rebuild into `data/live/` (~25 min
+cold).
 """
 
 from __future__ import annotations
@@ -75,6 +82,9 @@ def read_series(name: str) -> dict:
     """A buoy's or MOP's saved spectrum (mopdepth's reader: refused unless the
     read-back passed), with its Hs and QC flag by time."""
 
+    if not (DATA / f"{name}_spectrum.csv").exists():
+        raise SystemExit(f"{name}: the series are not tracked; `git checkout 38e295e -- data/nearshore_test` "
+                         "or unpack a `nearshore-test-<run id>` artifact there first (module docstring)")
     spec, why = md.read_mop_spectrum(DATA, name)
     if spec is None:
         raise SystemExit(f"{name}: {why}")

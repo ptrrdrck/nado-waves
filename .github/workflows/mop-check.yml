@@ -106,6 +106,17 @@ jobs:
           echo "CENSUS_STATUS=${code}" >> "$GITHUB_ENV"
           if [ "${code}" -ne 0 ] && [ "${code}" -ne 3 ]; then exit "${code}"; fi
 
+      # The year's series are ~90 MB: kept as this run's artifact, not
+      # committed (owner's call, 2026-11-21). The commit below takes only
+      # fetch.json and the small meta and band files.
+      - name: Keep the Imperial Beach year as an artifact
+        if: inputs.points == 'nearshore_test'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nearshore-test-${{ github.run_id }}
+          path: data/nearshore_test/
+          retention-days: 90
+
       - name: Commit and push
         env:
           BRANCH: ${{ github.ref_name }}
@@ -117,8 +128,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Deliberately scoped: MOP's series and the report, the census and
-          # its report, or the Imperial Beach year; nothing else.
-          git add data/mop docs/mop_check.md data/nearshore_census docs/nearshore_census.md data/nearshore_test 2>/dev/null || true
+          # its report, or the Imperial Beach year's record; nothing else.
+          git add data/mop docs/mop_check.md data/nearshore_census docs/nearshore_census.md 2>/dev/null || true
+          # The Imperial Beach year: its record only, never the series.
+          git add data/nearshore_test/fetch.json data/nearshore_test/*_meta.json data/nearshore_test/*_bands.csv 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "Nothing new to commit."

@@ -27,6 +27,10 @@ reported (ties to the latest). Then:
   among MOP's inputs that year, MOP is not independent of the observation,
   and the report says so first.
 
+The series (~90 MB) are kept as the run's artifact, not committed; the
+commit holds `fetch.json` and the meta and band files (owner's call,
+2026-11-21).
+
 Report only, on Actions (`mop-check.yml`, `points=nearshore_test`): CDIP is
 refused at CONNECT from a session. Nothing the forecast uses reads it, and
 the buoy's record is a verification series for the deep-water-to-21 m leg at

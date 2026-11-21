@@ -243,8 +243,10 @@ sections).
        repository's NDBC archive, same hours, +0.9% Hs at >= 8 s (+6.6%
        below 8 s: NDBC's feed is quantised and its small bins read low --
        the shipped chain's input is low there); read-backs 1.000; a second
-       buoy position 1.00. Data: ~90 MB of CSVs committed by run 9 (owner
-       to decide before merging).
+       buoy position 1.00. The series (~90 MB) were dropped from the tree
+       (owner, 2026-11-21); restore with `git checkout 38e295e --
+       data/nearshore_test` before re-running. A new fetch keeps them as
+       the run's artifact and commits only its record.
 25. **Madsen's friction ships** -- done (branch claude/madsen-friction,
     BRIEFING §57, chain.md "Bottom friction is Madsen's"). Both chains;
     `<break>_madsen.json` beside unchanged tables; the docs page's friction
