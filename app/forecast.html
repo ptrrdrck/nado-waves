@@ -27,6 +27,11 @@ try {
   /* The status dot is dark mode's green and red on both themes (owner's call,
      2026-10-09). */
   --dot-ok:#5FBF86; --dot-over:#FF6B6B;
+  /* The week strip's heat (owner's ramp, made in the mock's editor,
+     2026-11-21): seven stops at `WEEK_HEAT_FT`'s heights, the same on both
+     themes, with dark text on every one (5.0:1 at the least, both themes). */
+  --wk-heat0:#BBFAC3; --wk-heat1:#96D35F; --wk-heat2:#FFF994; --wk-heat3:#FFC777;
+  --wk-heat4:#FF8C82; --wk-heat5:#D357FE; --wk-heat6:#74A7FF; --wk-heat-ink:#16232B;
   /* Measured, under a forecast: the blue of the selected tab above it,
      light and dark (owner's call, 2026-10-09, after red from 2026-10-02 and
      sea green before that). Set from --surf, so the two cannot drift apart:
@@ -42,7 +47,7 @@ try {
     --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
     --sand:#8C7A55; --sand-deep:#A8935F;
     --signal:#FF6B6B; --signal-wash:#3A1C1C;
-    --ok:#5FBF86;
+    --ok:#5FBF86; --wk-heat-ink:#0E1A20;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
     color-scheme:dark;
   }
@@ -57,7 +62,7 @@ try {
   --surf:#6FB3F7; --surf-ink:#08203A; --surf-wash:#12283D;
   --sand:#8C7A55; --sand-deep:#A8935F;
   --signal:#FF6B6B; --signal-wash:#3A1C1C;
-  --ok:#5FBF86;
+  --ok:#5FBF86; --wk-heat-ink:#0E1A20;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
 }
 /* No double-tap zoom anywhere (owner's request, 2026-10-25): a page this
@@ -1414,6 +1419,12 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .week-cell .unit{display:block;font-size:11.5px}
 .week-cell.none{color:var(--faint);font-weight:400;cursor:default}
+/* Heat (owner's request, 2026-11-21): the cell's colour from `weekHeat`,
+   its words in the ramp's dark ink; a past day's mixed toward the paper,
+   its words faint as before. */
+.week-cell.heat{background:var(--cell-bg);color:var(--wk-heat-ink)}
+.week-cell.heat .unit{color:inherit}
+.week-day.past .week-cell.heat{background:color-mix(in oklab,var(--cell-bg) 35%,var(--paper))}
 .week-day.past .week-cell,.week-day.past .week-cell .unit,.week-day.past .week-date{color:var(--faint)}
 .week-date:focus-visible,.week-cell:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* The carousel: the outline stays put and the days slide under it. */
@@ -8323,6 +8334,22 @@ function weekBest(day, id = null) {
   }
   return best != null ? best : day.first;
 }
+// The week strip's heat (owner's request and ramp, 2026-11-21; smooth by
+// peak, no key, of the mock's choices): a cell coloured by its break's
+// daylight PEAK as the cards show it, to the tenth of a foot, on a fixed
+// scale so a height is the same colour every week; mixed in OKLab between
+// the ramp's two stops either side, the first stop's colour below it and
+// the last's above. Size only, never a rating.
+const WEEK_HEAT_FT = [1.0, 2.2, 3.3, 4.5, 5.7, 6.8, 8.0];
+function weekHeat(ms) {
+  const ft = Math.max(...ms.map((m) => Number((m * FT_PER_M).toFixed(1)))), s = WEEK_HEAT_FT;
+  if (ft <= s[0]) return "var(--wk-heat0)";
+  if (ft >= s[s.length - 1]) return `var(--wk-heat${s.length - 1})`;
+  let i = 0;
+  while (ft > s[i + 1]) i++;
+  const f = (ft - s[i]) / (s[i + 1] - s[i]);
+  return `color-mix(in oklab,var(--wk-heat${i}) ${((1 - f) * 100).toFixed(1)}%,var(--wk-heat${i + 1}))`;
+}
 function weekCard(step) {
   const days = weekDays();
   if (!days.length) return "";
@@ -8346,7 +8373,8 @@ function weekCard(step) {
       if (!ms.length) return `<span class="week-cell none">&mdash;</span>`;
       const [lo, hi] = feetRange(ms);
       const range = [`${lo}–${hi} ft`, `${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)} m`];
-      return `<button type="button" class="week-cell" data-week-pick="${d.key}" data-week-break="${id}"`
+      return `<button type="button" class="week-cell heat" style="--cell-bg:${weekHeat(ms)}"`
+        + ` data-week-pick="${d.key}" data-week-break="${id}"`
         + ` aria-label="${name}, ${SHORT[id]}: ${dualText(...range)} in daylight. Shows its biggest hour.">`
         + `${dual(...range)}</button>`;
     }).join("");

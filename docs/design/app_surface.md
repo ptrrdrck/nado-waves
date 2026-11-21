@@ -399,6 +399,28 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    it moves on as hours pass) and slides the day back under the outline;
    nothing is picked during that slide (`WEEK_SLIDING`: restoring the
    strip's old position fires a scroll end mid-slide).
+   **Heat** (owner's request, 2026-11-21; the ramp is the owner's own, made
+   in the mock's editor, and of the mock's choices the owner took *smooth by
+   peak* and *no key*; `weekHeat`): each height box is coloured by its
+   break's daylight PEAK as the cards show it, to the tenth of a foot, on a
+   FIXED scale, so a height is the same colour every week (a week-relative
+   scale was mocked and not taken: it paints a flat week's biggest day the
+   hottest colour). Seven stops (`--wk-heat0`–`6` at `WEEK_HEAT_FT`, 1.0 to
+   8.0 ft: mint, green, yellow, amber, salmon, magenta, blue), mixed in
+   OKLab between the two either side; the first stop's colour below 1 ft,
+   the last's above 8. The same colours on both themes, with dark text on
+   every one (`--wk-heat-ink`, the light theme's ink and the dark theme's
+   paper; 5.0:1 at the least, mixes included, pinned by test). A past
+   day's boxes are mixed 35% toward the paper, its words faint as before.
+   Size only, never a rating: wind, period and tide stay out of it. What
+   was measured and put to the owner before the choice (2026-11-21): the
+   ramp runs by hue, not by lightness (1, 3 and 4 ft are about equally
+   light), so the order is learnt, and red-green colour-blind readers will
+   find the 1–5 ft stops hard to tell apart; the 8 ft stop (hue 261° in
+   OKLCH) sits near the measured blue (250–256°), seldom reached (the
+   October–November daylight peaks topped out at 5.8 ft); its first stops
+   share the status dot's green hue. A key under the strip was mocked and
+   left off.
    **The log-first gate** (owner's call, 2026-10-16): "Wave observer", the
    Observer switch, kept in localStorage (with the Briefing's last opened
    update and the Units and theme settings, its only uses, pinned). On such a device the page opens on "Logging the beach today?"
