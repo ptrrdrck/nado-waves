@@ -311,10 +311,26 @@ sections).
        signature (b) tests. 18 and 20 Nov were big westerly days by
        this definition (46232 to 2.82 and 2.39 m); 20 Nov's 20 hours came
        after both changes shipped.
-    b. **Stage budget on every big westerly hour**: what each stage adds,
-       how concentrated the energy is in few rays, and whether it survives
-       finer headings and a smoothed input (the focusing test, now aimed at
-       the wrap, not at MOP).
+    b. **Stage budget on every big westerly hour** -- done, report only
+       (BRIEFING §60, `docs/wrap_budget.md`, `python -m forecast.wrapbudget
+       --write`, ~25 min with the finer tables cached in
+       `data/live/wrapbudget/`, ~30 min more cold). `raytrace.table` gained
+       `dir_step` (default 0.5°; at 0.5 every committed row comes back, all
+       three breaks). **The wrap carries 70-71% of Center's and South's 5 m
+       energy** on these hours (direct 13-19%, Point Loma fill 7-14%, North
+       wrap 30%); without it the headline would be ~0.6x. **It is not the
+       comb's focusing**: at 0.25° and 0.125° headings Center and South are
+       0.96-1.00 of the shipped 5 m height, a ±5-10° smoothed input 1.01-1.04
+       (up, not down); the top 3 rays carry 12-13% (5-6% at 0.125°) and the
+       wrap's share holds (0.74-0.79). Linear ray refraction round the tip is
+       what makes it, at any resolution. **The hour-to-hour jumps are input
+       sampling**: σ 5° removes nearly all (Center 7 -> 1, South 6 -> 0). At
+       South they are the Point Loma diffraction fill: 55-70 rays per
+       frequency read 46232 at the ONE offshore heading of the nearest clear
+       ray, and that heading wanders from frequency to frequency (South
+       235-349°, Center 218° to 2°); at 17 Nov 19Z the fill was 59% of
+       South's energy. A fault in how the fill picks its heading, worth a few
+       % in the median, not the gap; a fix is the owner's call.
     c. **An observation in the shadow** -- skipped (owner, 2026-11-21:
        there is no other CDIP sensor in the shadow).
        Was: CDIP's whole archive (the census

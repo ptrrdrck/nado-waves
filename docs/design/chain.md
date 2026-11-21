@@ -590,6 +590,17 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   wrap is linear and neither change touches it. The "then" chain is today's
   code with `carry(friction="jonswap")` and the profiles cut at 5 m; it gives
   the 17 Nov code's headline to the digit.
+- **The wrap's budget and the focusing test (2026-11-21, BRIEFING §60,
+  `docs/wrap_budget.md`, `python -m forecast.wrapbudget --write`)**: on the
+  same hours the wrap (rays whose offshore heading is west of the
+  straight-line window) carries 70-71% of Center's and South's 5 m energy.
+  Tracing at 0.25° and 0.125° start headings (`raytrace.table(dir_step=)`,
+  default unchanged) moves the 5 m height 0.96-1.00, smoothing the input
+  ±5-10° 1.01-1.04: the wrap is the ray model's refraction, not its comb.
+  The hour-to-hour jumps are sampling (smoothing removes them), at South
+  through the Point Loma fill, whose ~55-70 rays per frequency all read the
+  spectrum at one nearest-clear-ray heading that wanders 218°-2° across
+  frequencies.
 
 ## Bottom friction is Madsen's, tabulated
 
