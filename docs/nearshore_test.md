@@ -1,6 +1,6 @@
 # The chain and MOP against an observation: one year at Imperial Beach Nearshore
 
-Generated 2026-11-20 21:47 UTC by `python -m forecast.nearshoretest` (precompute-side, numpy; not run by any workflow). Report only: nothing here is fitted or shipped.
+Generated 2026-11-21 00:21 UTC by `python -m forecast.nearshoretest` (precompute-side, numpy; not run by any workflow). Report only: nothing here is fitted or shipped.
 
 **Verification series: CDIP 155, Imperial Beach Nearshore (NDBC 46235)**, a Datawell Waverider, primary QC flag 1 only, 2024-01-01 – 2025-01-01 (the year `collector.nearshore_test` chose by its rule: 12 consecutive calendar months inside one MOP product's coverage with the most clock hours on which both buoys have a record; ties to the latest). It judges the leg from deep water to ~21 m at Imperial Beach, outside Point Loma's shadow. It is not a break and not Coronado.
 
@@ -9,6 +9,7 @@ Input: CDIP 191 (46232), MEM as shipped. MOP: `hindcast` at D0043. 8782 hours wi
 ## Controls
 
 - **The input is the input**: CDIP's 191, converted to NDBC's form, against this repository's NDBC archive of 46232 on the 671 records both hold at the same time (August 2026). Hs |Δ|/Hs median 0.0307, 99th 0.0826 (signed median +0.0305); energy density in bins ≥ 0.2 m²/Hz (8814), |Δ|/E median 0.0161, 99th 0.4462; α1 |Δ| median 1.01°, 99th 9.97° (r1 > 0.3); r1 |Δ| median 0.0026. CDIP over NDBC, Hs signed median [10th, 90th]: ≥ 8 s +0.009 [+0.005, +0.015]; < 8 s +0.066 [+0.028, +0.196]. NDBC's feed is quantised and its small bins read low; CDIP's archive is neither, and the year below is carried from CDIP's. Where the models disagree (≥ 8 s) the two are the same input to about 1%.
+- **What NDBC's rounded feed does to the shipped chain at the buoy** (the shipped tables fed NDBC's archive of 46232 and CDIP's 191 on the same records, August 2026; no observation then, so a ratio of two carries, not a score): Hs NDBC-fed / CDIP-fed, median [10th, 90th], whole 0.965 [0.931, 0.983]; ≥ 8 s 0.991 [0.959, 1.025]; < 8 s 0.943 [0.837, 0.975] over 671 records. Production reads NDBC's feed; the year below is CDIP's.
 - **Read-backs** (4·sqrt(Σ E·df) / Hs, median / worst): imperial_beach_nearshore 0.99994 / 0.98915; point_loma_south 1.0 / 1.00861; mop_D0043 1.0 / 1.0.
 - **QC flags** at the buoy over the year: {'1': 17562}.
 - **MOP's independence**: inputs {'191p1-067p1-071p1:191p1-220p1-100p1-045p1___________________________________________________________': 8750, '191p1-067p1-071p1:191p1-100p1-045p1_________________________________________________________________': 34}; driven by 155 on 0 hours.
@@ -19,25 +20,37 @@ Input: CDIP 191 (46232), MEM as shipped. MOP: `hindcast` at D0043. 8782 hours wi
 
 Hs is the whole spectrum, 0.025–0.58 Hz on both sides. Median [10th, 90th]; bias and RMS in metres (model − observed).
 
-| 46232 from | n | observed Hs | 46232 Hs / observed | chain / observed | bias, RMS (m) | chain with JONSWAP friction / observed | bias, RMS (m) |
-|---|---:|---|---|---|---|---|---|
-| S | 1628 | 0.73 [0.58, 0.93] | 1.34 [1.16, 1.60] | 1.09 [0.95, 1.30] | +0.08, 0.14 | 1.06 [0.93, 1.26] | +0.06, 0.12 |
-| SSW-SW | 2283 | 0.76 [0.59, 0.97] | 1.30 [1.13, 1.48] | 1.10 [0.95, 1.27] | +0.08, 0.13 | 1.08 [0.93, 1.24] | +0.06, 0.12 |
-| WSW-W | 3097 | 0.97 [0.71, 1.61] | 1.23 [1.07, 1.42] | 1.09 [0.94, 1.25] | +0.09, 0.16 | 1.07 [0.93, 1.23] | +0.07, 0.14 |
-| W-WNW | 1773 | 1.38 [0.96, 2.45] | 1.23 [1.06, 1.42] | 1.11 [0.96, 1.28] | +0.16, 0.25 | 1.09 [0.95, 1.25] | +0.13, 0.23 |
-| all | 8782 | 0.88 [0.63, 1.67] | 1.27 [1.09, 1.48] | 1.09 [0.95, 1.27] | +0.10, 0.17 | 1.07 [0.93, 1.24] | +0.08, 0.15 |
+**The shipped chain** is the chain as it runs: Madsen's friction tabulated at this start (20.93 m) and carried by `nearshore.carry` itself, at MSL (no coast tide for 2024). `before friction` and `JONSWAP` are the same tables without it and with the table's old fixed-share friction. All three are fed CDIP's 191; NDBC's rounded feed, which production reads, is in the controls.
+
+| 46232 from | n | observed Hs | 46232 Hs / observed | **shipped chain / observed** | bias, RMS (m) | before friction / observed | bias, RMS (m) | JONSWAP / observed | bias, RMS (m) |
+|---|---:|---|---|---|---|---|---|---|---|
+| S | 1628 | 0.73 [0.58, 0.93] | 1.34 [1.16, 1.60] | 1.05 [0.92, 1.24] | +0.05, 0.11 | 1.09 [0.95, 1.30] | +0.08, 0.14 | 1.06 [0.93, 1.26] | +0.06, 0.12 |
+| SSW-SW | 2283 | 0.76 [0.59, 0.97] | 1.30 [1.13, 1.48] | 1.07 [0.92, 1.22] | +0.06, 0.11 | 1.10 [0.95, 1.27] | +0.08, 0.13 | 1.08 [0.93, 1.24] | +0.06, 0.12 |
+| WSW-W | 3097 | 0.97 [0.71, 1.61] | 1.23 [1.07, 1.42] | 1.05 [0.91, 1.21] | +0.05, 0.14 | 1.09 [0.94, 1.25] | +0.09, 0.16 | 1.07 [0.93, 1.23] | +0.07, 0.14 |
+| W-WNW | 1773 | 1.38 [0.96, 2.45] | 1.23 [1.06, 1.42] | 1.07 [0.93, 1.23] | +0.10, 0.21 | 1.11 [0.96, 1.28] | +0.16, 0.25 | 1.09 [0.95, 1.25] | +0.13, 0.23 |
+| all | 8782 | 0.88 [0.63, 1.67] | 1.27 [1.09, 1.48] | 1.06 [0.92, 1.23] | +0.06, 0.14 | 1.09 [0.95, 1.27] | +0.10, 0.17 | 1.07 [0.93, 1.24] | +0.08, 0.15 |
 
 By the observed Hs (all directions; W–WNW in brackets, where §56 found the headline high on big days). MOP and its column are deep-water-equivalent against the buoy de-shoaled, as below:
 
-| observed Hs | n (W–WNW) | chain / observed | chain with JONSWAP friction / observed | bias (m) | MOP / observed |
+| observed Hs | n (W–WNW) | shipped chain / observed | bias (m) | before friction / observed | MOP / observed |
 |---|---|---|---|---|---|
-| 0–0.75 m | 2540 (21) | 1.11 [0.96, 1.30] (1.30) | 1.09 [0.94, 1.26] (1.28) | +0.08 | 0.96 [0.83, 1.09] (1.09) |
-| 0.75–1 m | 3018 (221) | 1.10 [0.96, 1.28] (1.19) | 1.08 [0.94, 1.25] (1.17) | +0.10 | 0.99 [0.84, 1.15] (1.10) |
-| 1–1.5 m | 2032 (761) | 1.08 [0.93, 1.24] (1.10) | 1.07 [0.92, 1.22] (1.09) | +0.10 | 1.01 [0.88, 1.16] (1.04) |
-| 1.5–2 m | 694 (393) | 1.08 [0.95, 1.23] (1.11) | 1.07 [0.94, 1.21] (1.09) | +0.15 | 1.05 [0.94, 1.17] (1.05) |
-| ≥ 2 m | 498 (377) | 1.06 [0.94, 1.20] (1.07) | 1.04 [0.92, 1.18] (1.05) | +0.15 | 1.03 [0.92, 1.17] (1.02) |
+| 0–0.75 m | 2540 (21) | 1.08 [0.93, 1.25] (1.26) | +0.06 | 1.11 [0.96, 1.30] (1.30) | 0.96 [0.83, 1.09] (1.09) |
+| 0.75–1 m | 3018 (221) | 1.06 [0.93, 1.23] (1.16) | +0.06 | 1.10 [0.96, 1.28] (1.19) | 0.99 [0.84, 1.15] (1.10) |
+| 1–1.5 m | 2032 (761) | 1.05 [0.90, 1.20] (1.07) | +0.06 | 1.08 [0.93, 1.24] (1.10) | 1.01 [0.88, 1.16] (1.04) |
+| 1.5–2 m | 694 (393) | 1.05 [0.92, 1.20] (1.07) | +0.09 | 1.08 [0.95, 1.23] (1.11) | 1.05 [0.94, 1.17] (1.05) |
+| ≥ 2 m | 498 (377) | 1.02 [0.90, 1.15] (1.03) | +0.04 | 1.06 [0.94, 1.20] (1.07) | 1.03 [0.92, 1.17] (1.02) |
 
-By band, chain / observed as heights at the buoy (√ energy ratio), median [10th, 90th]; a band-hour counts when the observed band holds ≥ 0.05 m:
+By band, the shipped chain / observed as heights at the buoy (√ energy ratio), median [10th, 90th]; a band-hour counts when the observed band holds ≥ 0.05 m:
+
+| 46232 from | 16.7–26.7 s | 13.0–16.7 s | 10.0–13.0 s | 8.0–10.0 s | 6.7–8.0 s | 5.0–6.7 s | 4.0–5.0 s | 2.2–4.0 s |
+|---|---|---|---|---|---|---|---|---|
+| S | 1.23 [0.91, 1.69] | 1.19 [0.91, 1.56] | 0.96 [0.77, 1.19] | 0.96 [0.73, 1.19] | 1.00 [0.76, 1.29] | 1.04 [0.84, 1.29] | 1.06 [0.89, 1.27] | 1.04 [0.86, 1.25] |
+| SSW-SW | 1.18 [0.88, 1.62] | 1.15 [0.90, 1.49] | 0.99 [0.79, 1.22] | 0.99 [0.75, 1.28] | 1.02 [0.78, 1.33] | 1.06 [0.87, 1.29] | 1.07 [0.88, 1.29] | 1.05 [0.85, 1.29] |
+| WSW-W | 1.06 [0.77, 1.43] | 1.08 [0.84, 1.38] | 1.03 [0.82, 1.28] | 1.04 [0.83, 1.29] | 1.05 [0.84, 1.30] | 1.05 [0.87, 1.26] | 1.06 [0.87, 1.31] | 1.05 [0.83, 1.31] |
+| W-WNW | 1.01 [0.78, 1.35] | 1.06 [0.84, 1.39] | 1.07 [0.86, 1.34] | 1.07 [0.87, 1.33] | 1.06 [0.86, 1.30] | 1.07 [0.91, 1.26] | 1.08 [0.90, 1.29] | 1.06 [0.86, 1.30] |
+| all | 1.11 [0.81, 1.53] | 1.11 [0.87, 1.45] | 1.01 [0.81, 1.27] | 1.02 [0.79, 1.28] | 1.04 [0.81, 1.30] | 1.05 [0.87, 1.28] | 1.07 [0.88, 1.29] | 1.05 [0.85, 1.29] |
+
+By band, the chain before friction / observed as heights at the buoy (√ energy ratio), median [10th, 90th]; a band-hour counts when the observed band holds ≥ 0.05 m:
 
 | 46232 from | 16.7–26.7 s | 13.0–16.7 s | 10.0–13.0 s | 8.0–10.0 s | 6.7–8.0 s | 5.0–6.7 s | 4.0–5.0 s | 2.2–4.0 s |
 |---|---|---|---|---|---|---|---|---|

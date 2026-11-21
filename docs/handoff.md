@@ -229,7 +229,17 @@ sections).
        long-period south swell (0.70-0.80), 1.01-1.12 on W-WNW; the chain's
        own two tables put D0043 6% above the buoy's spot. The observation
        sits between the models, nearer MOP in total. One exposed site, one
-       year, not Coronado's shadow. Controls: CDIP's 191 against this
+       year, not Coronado's shadow.
+       **The shipped chain** (owner's step 1, 2026-11-21; Madsen tabulated
+       at the buoy's own start -- `raytrace.madsen_losses` now takes `h_ref`,
+       default unchanged -- carried by `nearshore.carry` itself, MSL):
+       1.06x observed [0.92, 1.23], +0.06 m, RMS 0.14 m; >= 2 m 1.02 (W-WNW
+       1.03); > 13 s 1.11 (south swell 1.15-1.23, W-WNW 1.01-1.06), under
+       13 s 1.01-1.07. Fed NDBC's rounded feed instead of CDIP's (August
+       2026, a ratio of two carries): 0.965 whole, 0.991 at >= 8 s, 0.943
+       below. The owner asked whether to adjust the height; on this the
+       case is weak (smaller than the scatter, one exposed site, the cause
+       in long-period south swell not located). Not adjusted. Controls: CDIP's 191 against this
        repository's NDBC archive, same hours, +0.9% Hs at >= 8 s (+6.6%
        below 8 s: NDBC's feed is quantised and its small bins read low --
        the shipped chain's input is low there); read-backs 1.000; a second
@@ -264,9 +274,10 @@ Open, the owner's calls:
   at South. Still the number, with the note under the calculation table.
 - The westerly half of the excess (the wrap round Point Loma): item 24
   first, so a table fault is not credited to the friction or the reverse.
-- Item 24d: whether to switch any leg to MOP. At the one observed site
-  neither model wins outright (chain +9%, MOP about right in total but
-  ~25% low on long-period south swell); nothing is fitted or shipped.
+- Item 24d: whether to switch any leg to MOP, or adjust the height. At the
+  one observed site the shipped chain is 1.06x (1.02x on days >= 2 m), MOP
+  about right in total but ~25% low on long-period south swell; neither
+  wins outright, and nothing is fitted or shipped.
 
 ### Carryover prompts
 
