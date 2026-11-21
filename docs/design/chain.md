@@ -484,6 +484,14 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   2.52 → 1.98 m. Hour-to-hour jumps on big westerly hours fall South 6 → 4,
   Center 7 → 5, North 21 → 18: the fill was part of the jumping; the rest is
   the clear rays sampling MEM's density (§60's smoothing removes it).
+- **It moves some train rows, never a height** (owner's yes to re-pin,
+  2026-11-21): a fill's energy now sits at its fan's offshore headings, which
+  is what trains are split on. North 3 Nov 16Z parts the SSW 14.3 s and W
+  16.7 s without dividing (W 0.60 -> 0.63 m); North 3 Nov 22Z's W row 1.01 ->
+  1.04 ft; Center 3 Nov 22Z's second W piece (12.5 s) folds into the main W
+  row; North 5 Nov 17Z shows 11.8 s and 6.7 s (from 259° and 275° at the
+  buoy, so one swell, bracketed) where it showed 16.7, 10.5 and 6.7 s.
+  `tests/test_trainmerge.py` pins the new rows, each with its §61 note.
 - **The report modules that predate it** (`nwbearing`, `shelfloss`) read a
   fan row at its mean heading; `mopdepth`, `nearshoretest`, `trainmerge`,
   `wrapbudget` and `kelpcross` read the fan.

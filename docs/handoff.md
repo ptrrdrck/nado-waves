@@ -356,6 +356,8 @@ sections).
        **Found on the way and fixed (owner's choice of design, 2026-11-21):
        the Point Loma / Baja diffraction fill** -- BRIEFING §61, chain.md "A
        headland's fill is read across the Fresnel zone", `docs/fill_shift.md`.
+       It moved four of the owner's pinned train-row cases (§49), no height;
+       re-pinned on the owner's yes (chain.md has the list).
        Docs page: the worked hour and direction table redone; one sentence of
        method prose (section on diffraction, "leaves along the heading of the
        nearest ray that clears the land") still describes the old rule for
