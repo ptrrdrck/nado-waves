@@ -398,7 +398,11 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    its day's column. A tap restores the UNPICKED state (`CHOSEN = null`, so
    it moves on as hours pass) and slides the day back under the outline;
    nothing is picked during that slide (`WEEK_SLIDING`: restoring the
-   strip's old position fires a scroll end mid-slide).
+   strip's old position fires a scroll end mid-slide). The chip is the map
+   buttons' size (owner's request, 2026-11-21; it was 28 × 22): 28 px
+   square, its glyph 16 px at a 1.4 stroke as the Layers button's, still
+   centred on the label's line, `--wk-lift` raised 28 → 30 px so the
+   carousel's scroll area holds its top; the days do not move.
    **Heat** (owner's request, 2026-11-21; the ramp is the owner's own, made
    in the mock's editor, and of the mock's choices the owner took *smooth by
    peak* and *no key*; `weekHeat`): each height box is coloured by its

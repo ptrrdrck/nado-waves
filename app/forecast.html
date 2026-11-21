@@ -1404,7 +1404,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    On a phone the days are a carousel that snaps a day at a time under a
    fixed outline, and the day that settles there is picked; wider, every
    day sits in a row and the outline moves. */
-:root{--wk-col:88px;--wk-date:22px;--wk-cell:42px;--wk-gap:4px;--wk-lift:28px}
+:root{--wk-col:88px;--wk-date:22px;--wk-cell:42px;--wk-gap:4px;--wk-lift:30px}
 .cond.week{gap:6px}
 .week-strip{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px}
 .week-names,.week-day{display:grid;grid-template-rows:var(--wk-date) repeat(3,var(--wk-cell));row-gap:var(--wk-gap)}
@@ -1466,16 +1466,19 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    phone it sits in the strip's own scroll area, so it moves with the days
    in the same frame (owner's report, 2026-11-01: placed by script it
    trailed them), and is sticky at the strip's edges; wider, it sits in its
-   day's column. The rose's play button's chip. */
-.week-today{position:absolute;z-index:1;display:grid;place-items:center;width:28px;height:22px;
+   day's column. The rose's play button's chip, at the map buttons' size
+   (owner's request, 2026-11-21: 28 px square, the glyph 16 px at a 1.4
+   stroke, as the map's Layers button). */
+.week-today{position:absolute;z-index:1;display:grid;place-items:center;width:28px;height:28px;
   padding:0;border:0;border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;
   -webkit-tap-highlight-color:transparent}
 .week-today svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;
   stroke-linejoin:round}
 .week-today:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
-/* Centred on the label's line: its 18.75 px line box, the card's 6 px gap. */
-.week-back > .week-today{position:sticky;left:4px;right:4px;flex:none;margin-top:calc(var(--wk-lift) - 26.375px)}
-.week-strip.row .week-day > .week-today{top:-26.375px;left:calc(50% - 14px)}
+/* Centred on the label's line: its 18.75 px line box, the card's 6 px gap;
+   half the button, 14 px, above that. The lift clears its top. */
+.week-back > .week-today{position:sticky;left:4px;right:4px;flex:none;margin-top:calc(var(--wk-lift) - 29.375px)}
+.week-strip.row .week-day > .week-today{top:-29.375px;left:calc(50% - 14px)}
 /* The Swell card's map (owner's requests, 2026-11-06 to -10; shipped
    2026-11-10): the same geometry as the window drawing, over the seabed the
    rays are traced across, in the drawing's own footprint and turned the

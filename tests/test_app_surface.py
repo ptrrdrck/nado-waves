@@ -5015,6 +5015,13 @@ class TestTheWeekStrip:
         assert "const opening = firstUpcoming();" in card
         assert '${CURSOR === opening ? " hidden" : ""}' in card
         assert 'stroke-width:1.4' in SOURCE[SOURCE.index(".week-today svg{"):][:200]
+        # The map buttons' size (owner's request, 2026-11-21): 28 px square,
+        # the glyph 16 px at a 1.4 stroke, as the map's Layers button.
+        css = SOURCE[:SOURCE.index("</style>")]
+        assert "width:28px;height:28px;" in css[css.index(".week-today{"):][:200]
+        assert "width:28px;height:28px;" in css[css.index(".sm-lyr{"):][:300]
+        assert "width:16px;height:16px;" in css[css.index(".week-today svg{"):][:80]
+        assert "width:16px;height:16px;" in css[css.index(".sm-lyr svg{"):][:80]
         assert '<path d="M3.1 5.6A5.4 5.4 0 1 1 2.6 8.6"/>' in card
         assert "carousel" not in card[card.index("const opening"):card.index("const back")]  # every layout
         back = self.fn("weekBack")
