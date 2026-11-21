@@ -580,6 +580,16 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   so it depends on direction, not size; big days here are westerly, so the
   two compound. Breaking over the straight-line window figure: 1.1–1.3× on
   south swell, 1.9–2.45× on W–WNW.
+- **As shipped, on every big westerly hour (2026-11-21, BRIEFING §59,
+  `docs/westerly_gap.md`, `python -m forecast.westerlygap --write`)**: 108
+  archived hours with 46232 >= 2 m from W-WNW, rebuilt through
+  `now.build(as_of=True)` as LIVE ran on 17 Nov and as it ships. Madsen took
+  14-15% off the headline at Center and South (16-18% at 46232 >= 3 m), 11%
+  at North; the deeper surf-zone start <= 2 points; local chop nothing. The
+  headline is still ~2x the straight-line window at Center and South: the
+  wrap is linear and neither change touches it. The "then" chain is today's
+  code with `carry(friction="jonswap")` and the profiles cut at 5 m; it gives
+  the 17 Nov code's headline to the digit.
 
 ## Bottom friction is Madsen's, tabulated
 
