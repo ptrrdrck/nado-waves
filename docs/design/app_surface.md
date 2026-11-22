@@ -434,6 +434,41 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    That question is the ONE place the page links to the log; docs.html
    still never does.
 
+## The console on one screen (in progress)
+
+   **The console is to fit one screen** (owner's request, 2026-11-21: no
+   vertical or horizontal scrolling from 1280 px, a dashboard), reached one
+   change at a time and judged as it takes shape, the console free to differ
+   from the stack and the phone as far as a change needs (owner's call,
+   2026-11-22). Measured before any change (master at 09358fa, the bundle of
+   2026-11-21 08:07Z, 1366 px wide, folds closed): LIVE 1235 px tall, the
+   rail 1187 of it (the Briefing alone 604) against the main column's 770;
+   Forecast 1148, the rail about 1100 against 951. Nothing scrolls sideways
+   at 1280, 1366 or 1920 px, folds closed or all open, with the scrollbars
+   real. Wind and Tide moved under the Swell card, alone, made Forecast
+   taller (1357): the main column took what the rail gave up, and the three
+   maps' row (297 px) is the only height in it that can give.
+   **The Swell card on the console** (owner's calls, 2026-11-22, from a mock
+   on claude.ai of three put to the owner): the same title line; under it
+   the breaks stacked on the left, each its headline and trains, and ONE
+   map on the right, from under the title to the card's foot, its caption's
+   tray under it. A tap on a break picks it and the map follows, as a break
+   tab does on the phone; the picked break has the week strip's outline
+   (1.5 px ink; a tab's raised row and a blue bar were mocked and not
+   taken). The breaks are RANKED by height, top to bottom, as the phone's
+   tabs are left to right (`rankByEnergy`: the headline's own number, ties
+   north to south) -- for the console a reversal of 2026-10-29's "north to
+   south, never ranked", which the stack keeps. The card opens on the break
+   the phone opens on, the top one. Each break's caret opens its own
+   calculation, and a tap on the picked break's headline does too (on the
+   stack one caret opens all three, levelled). The pick is the card's own:
+   it does not move the charts' break, or the Wind and Sun cards' lines.
+   **The buoys are a tab of the Swell card on the console** (same day),
+   laid out as the breaks are: the buoys stacked, the picked one's map-rose
+   on the right; the Buoys card goes. The control that switches Breaks and
+   Buoys is open: four were mocked (a segmented control over the list, one
+   in the title line, text tabs in the title line, a row in the list).
+
 ## Imperial leads, metric in parentheses
 
 - **Imperial leads, metric in parentheses, everywhere a number is shown
