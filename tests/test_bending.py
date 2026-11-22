@@ -44,8 +44,8 @@ def test_it_is_carry_for_one_narrow_swell(break_id, heading):
     # friction is then evaluated for the same sea in both (at MSL).
     grid = bending.swell_grid(heading)
     near = min(table.by_freq, key=lambda f: abs(f - bending.PERIOD_HZ))
-    e_lin = sum(at(grid, r.diff_off_from) * 0.005 * r.width_rad * r.diff_gain
-                for r in table.by_freq[near] if r.diff_gain > 0)
+    e_lin = sum(at(grid, h) * w * 0.005 * r.width_rad * r.diff_gain
+                for r in table.by_freq[near] if r.diff_gain > 0 for h, w in r.samples())
     scale = (bending.HS_M / 4.0) ** 2 / e_lin
     got = carry(_OneBin(bending.PERIOD_HZ), table, {0: [v * scale for v in grid]})
     assert got.friction_law == "madsen"

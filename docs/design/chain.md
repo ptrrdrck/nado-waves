@@ -444,6 +444,58 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   plane past `b`, which from exits far from the beach blocks long-period
   rays that clear Baja (South median -3.4%, worst -47%).
 
+## A headland's fill is read across the Fresnel zone
+
+- **A ray that runs into Point Loma's or Baja's shadow reads the offshore sea
+  across every clear ray passing that edge inside its Fresnel zone, since
+  2026-11-21** (owner's choice, BRIEFING §61; `raytrace.edge_fan`,
+  `FILL_RULE = "fan"`): 0 < u <= `EDGE_U_MAX` (4, the edge factor's own limit),
+  each clear ray weighted by the share of that strip of u it stands for, so
+  headings where rays bunch are not counted twice. The table row keeps one
+  diffraction factor and gains `diff_fan` ("heading:weight;..."), with the
+  fan's mean heading in `diff_off_from_deg` for bookkeeping; `carry`, the map
+  fill and the docs page's direction table read the energy across the fan
+  (`Ray.samples`). Islands keep their own rule (the clear rays either side).
+- **Why**: until then a fill took the ONE offshore heading of the clear ray
+  nearest it in start heading. Rays grazing Point Loma leave the shelf
+  anywhere from 250° to 350° half a degree apart, so that heading wandered
+  across frequencies (Center 2°–351°, South 235–349°) and whether a fill
+  carried the westerly swell at a period was decided by one grazing ray
+  (§60). Fresnel-Kirchhoff diffraction takes the incident field across the
+  strip beside the edge, which is what the fan samples; the edge factor
+  itself is unchanged.
+- **Friction and path stay the nearest clear ray's**, so the Madsen tables
+  and the map's paths do not move (Center's Madsen table rebuilt from the
+  new CSV is byte-identical). Open: a fill's friction read across its fan.
+- **No fan, old rule**: where no clear ray passes inside the zone the row
+  keeps the nearest clear ray's heading. Behind Point Loma that is only at
+  periods under 7.7 s, deep in the shadow (0–3% of the fill's gain); Baja's
+  fans are thin (1–5 rays) and fall back more often.
+- **Rebuild** with `python -m forecast.raytrace --fill-only` (~2.5 min a
+  break), which refuses unless every row but a headland fill's heading and
+  fan comes back as committed. `fillshift.nearest_rule` gives the old rule
+  back from the shipped table exactly (checked against the tables as
+  committed before: 0 of 32,072 carrying rows differ), so before/after and
+  §56/§59's "then" chain need no second table.
+- **What it did (`docs/fill_shift.md`, `python -m forecast.fillshift
+  --write`, a few minutes)**: over 1,544 archived hours the breaking height moves
+  0.996–1.001 (median, every break, sector and size); on W–WNW the 10th
+  percentile is 0.94–0.96 at South, worst hour 0.78. 17 Nov 19Z South
+  2.52 → 1.98 m. Hour-to-hour jumps on big westerly hours fall South 6 → 4,
+  Center 7 → 5, North 21 → 18: the fill was part of the jumping; the rest is
+  the clear rays sampling MEM's density (§60's smoothing removes it).
+- **It moves some train rows, never a height** (owner's yes to re-pin,
+  2026-11-21): a fill's energy now sits at its fan's offshore headings, which
+  is what trains are split on. North 3 Nov 16Z parts the SSW 14.3 s and W
+  16.7 s without dividing (W 0.60 -> 0.63 m); North 3 Nov 22Z's W row 1.01 ->
+  1.04 ft; Center 3 Nov 22Z's second W piece (12.5 s) folds into the main W
+  row; North 5 Nov 17Z shows 11.8 s and 6.7 s (from 259° and 275° at the
+  buoy, so one swell, bracketed) where it showed 16.7, 10.5 and 6.7 s.
+  `tests/test_trainmerge.py` pins the new rows, each with its §61 note.
+- **The report modules that predate it** (`nwbearing`, `shelfloss`) read a
+  fan row at its mean heading; `mopdepth`, `nearshoretest`, `trainmerge`,
+  `wrapbudget` and `kelpcross` read the fan.
+
 ## The transfer tables stop at 5 m
 
 - **The transfer tables stop at 5 m of water; the surf zone takes it from
@@ -580,6 +632,27 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   so it depends on direction, not size; big days here are westerly, so the
   two compound. Breaking over the straight-line window figure: 1.1–1.3× on
   south swell, 1.9–2.45× on W–WNW.
+- **As shipped, on every big westerly hour (2026-11-21, BRIEFING §59,
+  `docs/westerly_gap.md`, `python -m forecast.westerlygap --write`)**: 108
+  archived hours with 46232 >= 2 m from W-WNW, rebuilt through
+  `now.build(as_of=True)` as LIVE ran on 17 Nov and as it ships. Madsen took
+  14-15% off the headline at Center and South (16-18% at 46232 >= 3 m), 11%
+  at North; the deeper surf-zone start <= 2 points; local chop nothing. The
+  headline is still ~2x the straight-line window at Center and South: the
+  wrap is linear and neither change touches it. The "then" chain is today's
+  code with `carry(friction="jonswap")` and the profiles cut at 5 m; it gives
+  the 17 Nov code's headline to the digit.
+- **The wrap's budget and the focusing test (2026-11-21, BRIEFING §60,
+  `docs/wrap_budget.md`, `python -m forecast.wrapbudget --write`)**: on the
+  same hours the wrap (rays whose offshore heading is west of the
+  straight-line window) carries 70-71% of Center's and South's 5 m energy.
+  Tracing at 0.25° and 0.125° start headings (`raytrace.table(dir_step=)`,
+  default unchanged) moves the 5 m height 0.96-1.00, smoothing the input
+  ±5-10° 1.01-1.04: the wrap is the ray model's refraction, not its comb.
+  The hour-to-hour jumps are sampling (smoothing removes them), at South
+  through the Point Loma fill, whose ~55-70 rays per frequency all read the
+  spectrum at one nearest-clear-ray heading that wanders 218°-2° across
+  frequencies.
 
 ## Bottom friction is Madsen's, tabulated
 

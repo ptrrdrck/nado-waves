@@ -33,6 +33,11 @@ on:
         type: boolean
         required: false
         default: false
+      kelp:
+        description: "Instead: fetch NOAA's charted kelp (WEDKLP) off Point Loma into data/kelp/"
+        type: boolean
+        required: false
+        default: false
       region:
         description: "Which query envelope to fetch"
         type: choice
@@ -64,6 +69,7 @@ jobs:
 
       - name: Fetch the surveyed shoreline
         id: fetch
+        if: ${{ !inputs.kelp }}
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -80,7 +86,7 @@ jobs:
       # but Coronado: `forecast.shorenormal` fits the Coronado chords, and no
       # other extract has anything to compare them to.
       - name: Compare against the digitised chords
-        if: ${{ !inputs.probe_only && (inputs.region == 'coronado' || inputs.region == '') }}
+        if: ${{ !inputs.kelp && !inputs.probe_only && (inputs.region == 'coronado' || inputs.region == '') }}
         continue-on-error: true
         run: python -m forecast.shorenormal | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -93,8 +99,30 @@ jobs:
         continue-on-error: true
         run: python -m collector.enc_layers
 
+      # Charted kelp off Point Loma (handoff 27d): an outline of where the
+      # chart draws kelp, of its source survey's date, not this year's canopy.
+      # Exit 1 is "no charted kelp in the box", 2 a CONNECT denial, 3 no chart
+      # service answered (nothing learned).
+      - name: Fetch the charted kelp
+        id: kelp
+        if: ${{ inputs.kelp }}
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.probe_only }}" = "true" ]; then
+            python -m collector.kelp --probe
+          else
+            # Exit 4: charted as points only, no area. Stored and committed
+            # (where the chart puts kelp), but flagged: there is no outline.
+            rc=0; python -m collector.kelp || rc=$?
+            if [ "$rc" = "4" ]; then
+              echo "::warning title=Kelp: points only::The chart draws this kelp as points, no area: stored, but no outline to measure a path through."
+            elif [ "$rc" != "0" ]; then
+              exit "$rc"
+            fi
+          fi
+
       - name: Headline
-        if: always()
+        if: ${{ always() && !inputs.kelp }}
         env:
           FETCH: ${{ steps.fetch.outcome }}
         run: |
@@ -116,10 +144,24 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add data/shoreline 2>/dev/null || true
+          git add data/kelp 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No shoreline change to commit."
             exit 0
+          fi
+
+          if [ "${{ inputs.kelp }}" = "true" ]; then
+            git commit \
+              -m "data: NOAA charted kelp (WEDKLP) off Point Loma" \
+              -m "Automated commit from .github/workflows/shoreline.yml (input kelp). An outline of the chart's source survey date, not this year's canopy."
+            for attempt in 1 2 3 4; do
+              if git push origin "HEAD:${BRANCH}"; then exit 0; fi
+              git pull --rebase origin "${BRANCH}" || true
+              sleep $((2 ** attempt))
+            done
+            echo "::error title=Push failed::Could not push the kelp after 4 attempts."
+            exit 1
           fi
 
           rows=$(git diff --cached --numstat -- data/shoreline \

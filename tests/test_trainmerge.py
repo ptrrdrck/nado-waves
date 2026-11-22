@@ -65,12 +65,15 @@ def test_north_on_3_november_is_two_swells_not_one():
     same periods; North's own split made one row of them, 16.7 s from 228°
     (229° with the tables of 2026-11-15, BRIEFING §55; 228° again with
     Madsen's friction, §57), neither swell's. Divided, it is each swell's
-    own row."""
+    own row. Since a headland's fill reads the sea across the Fresnel zone
+    (2026-11-21, BRIEFING §61) North's own split already parts them: the SSW
+    14.3 s from 214° and the W 16.7 s from 262°, the same two rows dividing
+    gives."""
 
     sp, grids, split = _at(NORTH_DAY)
     north = _tables()["coronado_north"]
     whole = carry(sp, north, grids)
-    assert len(whole.trains) == 1 and round(whole.trains[0].from_deg) == 228
+    assert [(round(t.period_s, 1), round(t.from_deg)) for t in whole.trains] == [(14.3, 214), (16.7, 262)]
     rows = carry(sp, north, grids, split).trains
     assert len(rows) == 2
     ssw = next(t for t in rows if t.from_deg < 230)
@@ -81,15 +84,16 @@ def test_north_on_3_november_is_two_swells_not_one():
     assert round(ssw.period_s, 1) == 14.3 and ssw.hs_m == pytest.approx(0.92, abs=0.01)
     # 0.69 m until the islands became land, their shadow diffraction only
     # (2026-11-15, BRIEFING §55); 0.72 then, the SSW 1.06. 0.60 with Madsen's
-    # friction (§57), which takes most from the long W over North's shelf.
-    assert w.hs_m == pytest.approx(0.60, abs=0.01)
+    # friction (§57), which takes most from the long W over North's shelf;
+    # 0.63 with the fill read across the Fresnel zone (§61).
+    assert w.hs_m == pytest.approx(0.63, abs=0.01)
     assert split[ssw.buoy].from_deg < 230 < split[w.buoy].from_deg
     # The two rows are the row they came from, in energy, or a little less:
     # a piece under the floors leaves the list, as a band under them does.
     # Here that piece (the buoy's 7.7 s wind sea) is nothing: 0.004% with the
     # tables of 2026-09-26, 0.000% since the rebuild of 2026-11-15 (BRIEFING
     # §52), when the strict bound this used to be failed on rounding.
-    whole_e = whole.trains[0].hs_m ** 2
+    whole_e = sum(t.hs_m ** 2 for t in whole.trains)
     assert 0.95 * whole_e < ssw.hs_m ** 2 + w.hs_m ** 2 <= whole_e * (1 + 1e-9)
 
 
@@ -98,13 +102,16 @@ def test_the_heights_never_change_and_a_row_one_buoy_train_carried_is_untouched(
     for b, table in _tables().items():
         whole, divided = carry(sp, table, grids), carry(sp, table, grids, split)
         assert divided.hs_ref == whole.hs_ref and divided.hs_equivalent == whole.hs_equivalent
-    # 3 Nov 22Z: Center's first row, the W 18.2 s, holds no other buoy
-    # swell's energy, so it is the same row either way.
-    sp, grids, split = _at(datetime(2026, 11, 3, 22, tzinfo=timezone.utc))
-    center = _tables()["coronado_center"]
-    a, b = carry(sp, center, grids).trains, carry(sp, center, grids, split).trains
+    # A row one buoy train carried is the same row either way. Until the fill
+    # was read across the Fresnel zone (2026-11-21, BRIEFING §61) this was
+    # Center's W 18.2 s on 3 Nov 22Z; since then Center's own split merges
+    # that W with the SSW (dividing parts them, as before), so the case is
+    # North on 5 Nov 17Z, when the buoy held one train and every row is it.
+    sp, grids, split = _at(datetime(2026, 11, 5, 17, tzinfo=timezone.utc))
+    north = _tables()["coronado_north"]
+    a, b = carry(sp, north, grids).trains, carry(sp, north, grids, split).trains
     key = lambda t: (t.hs_m, t.period_s, t.from_deg, t.bins, t.held)
-    assert key(a[0]) == key(b[0])
+    assert len(split) == 1 and [key(t) for t in a] == [key(t) for t in b]
     assert all(t.buoy is not None for t in b)
 
 
@@ -119,8 +126,9 @@ def test_the_owners_case_shows_each_breaks_smaller_swell():
     ssw = next(n for n, t in enumerate(split) if round(t.period_s, 1) == 13.3)
     north, south = rows["coronado_north"], rows["coronado_south"]
     assert [t.buoy for t in north[:2]] == [ssw, w]
-    # 1.24 ft until Madsen's friction (2026-11-18, BRIEFING §57): 1.01 ft.
-    assert north[1].hs_m == pytest.approx(1.01 / 3.28084, abs=0.01)
+    # 1.24 ft until Madsen's friction (2026-11-18, BRIEFING §57): 1.01 ft;
+    # 1.04 ft with the fill read across the Fresnel zone (§61).
+    assert north[1].hs_m == pytest.approx(1.04 / 3.28084, abs=0.01)
     assert [t.buoy for t in south[:2]] == [w, ssw]
     # 1.11 ft at 14.3 s until the tables were rebuilt on 2026-11-15 with South
     # Coronado's imagery tip (BRIEFING §52): 1.16 ft, its peak 16.7 s. Not
@@ -156,15 +164,20 @@ def test_the_back_check_sends_another_swells_spread_back_to_the_lead():
 
 
 def test_a_divided_row_is_one_buoy_trains_energy_and_nothing_else():
-    sp, grids, split = _at(NORTH_DAY)
+    # 3 Nov 08Z: North's 14.3 s and 20.0 s rows are divided out at 20%. (3 Nov
+    # 16Z until the fill was read across the Fresnel zone, BRIEFING §61: since
+    # then North's own split parts that hour's two swells, nothing to divide.)
+    sp, grids, split = _at(datetime(2026, 11, 3, 8, tzinfo=timezone.utc))
     table = _tables()["coronado_north"]
     rays = M._rays(sp, table, grids)
     owner = _buoy_owner(split)
     owners = [owner(i, int(d) % 360) for i, d, _, _ in rays]
     rows = M._rows(sp, table, grids, split, "divided at 20%")
     one = lambda m: [rays[m][2] if owners[m] == j else 0.0 for j in range(len(split))]
+    assert sum(1 for _, whole in rows if not whole) >= 2
     for (t, whole), c in zip(rows, M._contents(rays, owners, rows, len(split), one)):
-        assert not whole
+        if whole:
+            continue
         assert c[t.buoy] == pytest.approx(sum(c)) and 4 * math.sqrt(sum(c)) == pytest.approx(t.hs_m, rel=1e-6)
 
 
@@ -196,7 +209,10 @@ def test_rows_of_one_buoy_train_are_one_swell_only_from_one_direction_there():
     whole spectrum; the SW 16.7 s row's energy came from 247° there, the W
     10.5 s and 6.7 s rows' from 281° and 272° -- not one swell, so no
     bracket at all: a bracket is all of a buoy train's rows or none
-    (`bracket_groups`). Center, 3 Nov 15Z: the W 18.2 s's two
+    (`bracket_groups`). Since a headland's fill reads the sea across the
+    Fresnel zone (2026-11-21, BRIEFING §61) North shows two rows that hour,
+    11.8 s and 6.7 s, whose energy came from 259° and 275° at the buoy:
+    within the bar, so one swell, bracketed. Center, 3 Nov 15Z: the W 18.2 s's two
     rows sit 23° apart at the buoy, outside the 20° bar, and lose the bracket
     they had (what the buoy holds there is not settled by anything)."""
 
@@ -206,15 +222,12 @@ def test_rows_of_one_buoy_train_are_one_swell_only_from_one_direction_there():
     sp, grids, split = _at(datetime(2026, 11, 5, 17, tzinfo=timezone.utc))
     near = carry(sp, _tables()["coronado_north"], grids, split)
     rows = train_dicts(near.trains[:3], near.buoy)
-    assert [r["period_s"] for r in rows] == [16.7, 10.5, 6.7]
+    assert [r["period_s"] for r in rows] == [11.8, 6.7]      # 16.7, 10.5, 6.7 before §61
     assert len({r["swell"] for r in rows}) == 1
     heads = [round(t.buoy_from_deg) for t in near.trains[:3]]
-    assert heads == [246, 281, 272]          # 247° for the SW before Madsen (§57)
-    assert not any("group" in r or "swell_at_buoy" in r for r in rows)
-    # The W's own two rows are one swell's when the SW row is not shown.
-    two = train_dicts(near.trains[1:3], near.buoy)
-    assert two[0]["group"] == two[1]["group"]
-    assert two[0]["swell_at_buoy"] == {"period_s": 10.5, "from_deg": 277, "lobes": []}
+    assert heads == [259, 275]          # 246, 281, 272 before §61 (247° for the SW before §57)
+    assert rows[0]["group"] == rows[1]["group"]
+    assert rows[0]["swell_at_buoy"] == {"period_s": 10.5, "from_deg": 277, "lobes": []}
 
     sp, grids, split = _at(datetime(2026, 11, 3, 15, tzinfo=timezone.utc))
     near = carry(sp, _tables()["coronado_center"], grids, split)

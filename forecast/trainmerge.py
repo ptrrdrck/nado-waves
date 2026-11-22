@@ -158,11 +158,11 @@ def _rays(spectrum, table, grids, extra=()) -> list[tuple]:
         for j, r in enumerate(table.by_freq[near]):
             if r.diff_gain <= 0:
                 continue
-            k = w * r.width_rad * r.diff_gain * kept[near][j]
-            e = at(g, r.diff_off_from) * k
-            if e > 0:
-                out.append((i, r.diff_off_from, e,
-                            [at(x[i], r.diff_off_from) * k if i in x else 0.0 for x in extra]))
+            for h, share in r.samples():          # a headland fill across its fan (§61)
+                k = w * r.width_rad * r.diff_gain * kept[near][j] * share
+                e = at(g, h) * k
+                if e > 0:
+                    out.append((i, h, e, [at(x[i], h) * k if i in x else 0.0 for x in extra]))
     return out
 
 

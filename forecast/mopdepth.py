@@ -274,10 +274,21 @@ class Arrays:
     def __init__(self, rows: list[dict], start_depth_m: float):
         self.start_depth_m = start_depth_m
         by: dict[float, list[dict]] = {}
+        from .nearshore import parse_fan
+
         for r in rows:
             if float(r["gain"]) <= 0 and float(r["diff_gain"]) <= 0:
                 continue
-            by.setdefault(float(r["freq_hz"]), []).append(r)
+            fan = parse_fan(r.get("diff_fan"))
+            if not fan:
+                by.setdefault(float(r["freq_hz"]), []).append(r)
+                continue
+            # A headland fill read across its fan (BRIEFING §61): one entry per
+            # heading, its share of the row's diffracted gain.
+            for h, w in fan:
+                by.setdefault(float(r["freq_hz"]), []).append(
+                    {**r, "diff_off_from_deg": h, "diff_gain": float(r["diff_gain"]) * w,
+                     "diff_fan": ""})
         self.freqs = sorted(by)
         self.f: dict[float, dict] = {}
         for f, rs in by.items():

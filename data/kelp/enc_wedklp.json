@@ -1,0 +1,778 @@
+{
+ "fetched_utc": "2026-11-22T22:10:46Z",
+ "bbox_lon_lat": [
+  -117.36,
+  32.58,
+  -117.15,
+  32.8
+ ],
+ "object_class": "WEDKLP",
+ "note": "Charted kelp: a navigational outline of its source survey's date, not this year's canopy.",
+ "features": [
+  {
+   "service": "enc_approach",
+   "layer_id": 78,
+   "layer": "Approach.Weed_Kelp_point",
+   "feature": 0,
+   "attributes": {
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 259999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US4CA1BX.000",
+    "APPROACH.WEDKLP_POINT.FID": 2580185
+   }
+  },
+  {
+   "service": "enc_approach",
+   "layer_id": 78,
+   "layer": "Approach.Weed_Kelp_point",
+   "feature": 1,
+   "attributes": {
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 259999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US4CA1BX.000",
+    "APPROACH.WEDKLP_POINT.FID": 2580186
+   }
+  },
+  {
+   "service": "enc_approach",
+   "layer_id": 78,
+   "layer": "Approach.Weed_Kelp_point",
+   "feature": 2,
+   "attributes": {
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 259999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US4CA1CX.000",
+    "APPROACH.WEDKLP_POINT.FID": 2580358
+   }
+  },
+  {
+   "service": "enc_approach",
+   "layer_id": 78,
+   "layer": "Approach.Weed_Kelp_point",
+   "feature": 3,
+   "attributes": {
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 259999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US4CA1CX.000",
+    "APPROACH.WEDKLP_POINT.FID": 2580360
+   }
+  },
+  {
+   "service": "enc_approach",
+   "layer_id": 78,
+   "layer": "Approach.Weed_Kelp_point",
+   "feature": 4,
+   "attributes": {
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 259999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US4CA74M.000",
+    "APPROACH.WEDKLP_POINT.FID": 2581452
+   }
+  },
+  {
+   "service": "enc_approach",
+   "layer_id": 78,
+   "layer": "Approach.Weed_Kelp_point",
+   "feature": 5,
+   "attributes": {
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 259999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US4CA74M.000",
+    "APPROACH.WEDKLP_POINT.FID": 2581453
+   }
+  },
+  {
+   "service": "enc_approach",
+   "layer_id": 78,
+   "layer": "Approach.Weed_Kelp_point",
+   "feature": 6,
+   "attributes": {
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 259999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US4CA74M.000",
+    "APPROACH.WEDKLP_POINT.FID": 2581454
+   }
+  },
+  {
+   "service": "enc_approach",
+   "layer_id": 78,
+   "layer": "Approach.Weed_Kelp_point",
+   "feature": 7,
+   "attributes": {
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 259999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US4CA74M.000",
+    "APPROACH.WEDKLP_POINT.FID": 2581455
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96738,
+   "attributes": {
+    "OBJECTID": 96738,
+    "OBJL": 158,
+    "CATWED": "sea weed",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 59999,
+    "SORDAT": "19980801",
+    "SORIND": "US,US,graph,Chart 18772",
+    "DSNM": "US5SANBC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96742,
+   "attributes": {
+    "OBJECTID": 96742,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "19980801",
+    "SORIND": "US,US,graph,Chart 18772",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96743,
+   "attributes": {
+    "OBJECTID": 96743,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96744,
+   "attributes": {
+    "OBJECTID": 96744,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96745,
+   "attributes": {
+    "OBJECTID": 96745,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96746,
+   "attributes": {
+    "OBJECTID": 96746,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96747,
+   "attributes": {
+    "OBJECTID": 96747,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96748,
+   "attributes": {
+    "OBJECTID": 96748,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "200512",
+    "SORIND": "US,US,graph,Chart 18772",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96749,
+   "attributes": {
+    "OBJECTID": 96749,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "19980801",
+    "SORIND": "US,US,graph,Chart 18772",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96750,
+   "attributes": {
+    "OBJECTID": 96750,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96751,
+   "attributes": {
+    "OBJECTID": 96751,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96752,
+   "attributes": {
+    "OBJECTID": 96752,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "19980801",
+    "SORIND": "US,US,graph,Chart 18772",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96753,
+   "attributes": {
+    "OBJECTID": 96753,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96754,
+   "attributes": {
+    "OBJECTID": 96754,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96755,
+   "attributes": {
+    "OBJECTID": 96755,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96756,
+   "attributes": {
+    "OBJECTID": 96756,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96757,
+   "attributes": {
+    "OBJECTID": 96757,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "200512",
+    "SORIND": "US,US,graph,Chart 18772",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96758,
+   "attributes": {
+    "OBJECTID": 96758,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96759,
+   "attributes": {
+    "OBJECTID": 96759,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "200512",
+    "SORIND": "US,US,graph,Chart 18772",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96760,
+   "attributes": {
+    "OBJECTID": 96760,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "20051205",
+    "SORIND": "US,US,graph,Chart 18773",
+    "DSNM": "US5SANCC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96761,
+   "attributes": {
+    "OBJECTID": 96761,
+    "OBJL": 158,
+    "CATWED": "sea grass",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "200512",
+    "SORIND": "US,US,graph,Chart 18772",
+    "DSNM": "US5SANCD.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96762,
+   "attributes": {
+    "OBJECTID": 96762,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US5SANDC.000"
+   }
+  },
+  {
+   "service": "enc_harbour",
+   "layer_id": 74,
+   "layer": "Harbor.Weed_Kelp_point",
+   "feature": 96763,
+   "attributes": {
+    "OBJECTID": 96763,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 29999,
+    "SORDAT": "200501",
+    "SORIND": "US,US,graph,Chart 18765",
+    "DSNM": "US5SANDC.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 372702,
+   "attributes": {
+    "OBJECTID": 372702,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA1CJ.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 372703,
+   "attributes": {
+    "OBJECTID": 372703,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA1CJ.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 372709,
+   "attributes": {
+    "OBJECTID": 372709,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA1CJ.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 372710,
+   "attributes": {
+    "OBJECTID": 372710,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA1CJ.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 372720,
+   "attributes": {
+    "OBJECTID": 372720,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA1CJ.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 372724,
+   "attributes": {
+    "OBJECTID": 372724,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA1CJ.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 372736,
+   "attributes": {
+    "OBJECTID": 372736,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA1CJ.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 373210,
+   "attributes": {
+    "OBJECTID": 373210,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA70M.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 373211,
+   "attributes": {
+    "OBJECTID": 373211,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA70M.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 373242,
+   "attributes": {
+    "OBJECTID": 373242,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA70M.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 373257,
+   "attributes": {
+    "OBJECTID": 373257,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA70M.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 373267,
+   "attributes": {
+    "OBJECTID": 373267,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA70M.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 373268,
+   "attributes": {
+    "OBJECTID": 373268,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA70M.000"
+   }
+  },
+  {
+   "service": "enc_coastal",
+   "layer_id": 59,
+   "layer": "Coastal.Weed_Kelp_point",
+   "feature": 373269,
+   "attributes": {
+    "OBJECTID": 373269,
+    "OBJL": 158,
+    "CATWED": "kelp",
+    "OBJNAM": null,
+    "INFORM": null,
+    "SCAMIN": 499999,
+    "SORDAT": "200308",
+    "SORIND": "US,US,graph,Chart 18740",
+    "DSNM": "US3CA70M.000"
+   }
+  }
+ ]
+}
