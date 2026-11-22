@@ -659,6 +659,13 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    report, 2026-11-12: "Overdue 2 d 12:35:31" put 46086's pills under its
    name). */
 .chead:has(> .buoy-name){flex-wrap:nowrap}
+/* A Forecast card's title gives way the same way to a tapped pill's longer
+   text ("At the buoy" first; owner's request, 2026-11-22): it ends on an
+   ellipsis for those five seconds, never the pills to a second line. A
+   Forecast pill that switches is the one button with no `data-head-live`. */
+.chead:has(> button.chead-pills:not([data-head-live])){flex-wrap:nowrap}
+.chead:has(> button.chead-pills:not([data-head-live])) > :is(.lbl,.sublbl){flex:0 1 auto;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chart-head:not([data-brief-head]){font-family:"Barlow Condensed",Archivo,sans-serif;font-size:12.5px;
   font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--soft)}
 /* "predicted" and "computed" set as the provenance was, a word on the
@@ -5098,9 +5105,9 @@ const anchorFeed = (now, due, late) => (now && now.station
 
 // The Forecast tab's (owner's request, 2026-11-08): the first part pinned at
 // the right with no dot, the second in the pill at its left, and a tap
-// switching that pill to the third and back -- it stays as tapped (owner's
-// call, same day): neither is a value on a clock. A line of two parts has
-// nothing to switch, and is no button.
+// showing the third for `HEAD_TAP_MS`, as LIVE's countdown is (owner's
+// request, 2026-11-22; it stayed as tapped from 2026-11-08). A line of two
+// parts has nothing to switch, and is no button.
 function modelPills(key, ...parts) {
   const [head, a = "", b = ""] = parts.filter(Boolean);
   if (!head) return "";
@@ -5109,8 +5116,9 @@ function modelPills(key, ...parts) {
 
 // THE TITLE ROW'S PILLS (owner's design, 2026-11-08). The station pill at the
 // right; at its left one pill holding two texts, `a` shown and `b` a tap
-// away. On LIVE, `a` is the age and `b` the countdown, `b` shown for
-// `HEAD_TAP_MS` after a tap -- overdue too, where the red dot says so and the
+// away, `b` shown for `HEAD_TAP_MS` after a tap on either tab (owner's
+// request, 2026-11-22). On LIVE, `a` is the age and `b` the countdown --
+// overdue too, where the red dot says so and the
 // tap shows the red count (owner's call, 2026-11-12: the count up ran wider
 // than the age and broke the row). A tap changes that text and nothing
 // else. Which is shown is kept by `key` across renders (`HEAD_ALT`): the
@@ -5137,8 +5145,7 @@ function tickHeads() {
   const now = Date.now();
   document.querySelectorAll("[data-head-key]").forEach((btn) => {
     const key = btn.getAttribute("data-head-key");
-    const alt = btn.hasAttribute("data-head-live") ? (HEAD_ALT[key] || 0) > now : !!HEAD_ALT[key];
-    const showB = alt;
+    const showB = (HEAD_ALT[key] || 0) > now;
     const a = btn.querySelector('[data-head-text="a"]');
     const b = btn.querySelector('[data-head-text="b"]');
     if (!a || !b) return;
@@ -5148,9 +5155,8 @@ function tickHeads() {
   fitHeads(document, true);
 }
 // One tap toggles every pill on that key -- 46232's sits on two cards wide.
-function tapHead(key, live) {
-  if (live) HEAD_ALT[key] = (HEAD_ALT[key] || 0) > Date.now() ? 0 : Date.now() + HEAD_TAP_MS;
-  else HEAD_ALT[key] = !HEAD_ALT[key];
+function tapHead(key) {
+  HEAD_ALT[key] = (HEAD_ALT[key] || 0) > Date.now() ? 0 : Date.now() + HEAD_TAP_MS;
   tickHeads();
 }
 
@@ -8715,7 +8721,7 @@ function wireSwellTabs() {
     if (btn) selectSwellTab(btn.getAttribute("data-swell-tab"));
     // A card's title-row pills: the left pill's other text.
     const head = e.target.closest("[data-head-key]");
-    if (head) tapHead(head.getAttribute("data-head-key"), head.hasAttribute("data-head-live"));
+    if (head) tapHead(head.getAttribute("data-head-key"));
     // The caret, or anywhere else on the headline's line.
     if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row")) setCalcOpen(!CALC_OPEN);
     // A buoy's, likewise.
