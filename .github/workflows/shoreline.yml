@@ -111,7 +111,14 @@ jobs:
           if [ "${{ inputs.probe_only }}" = "true" ]; then
             python -m collector.kelp --probe
           else
-            python -m collector.kelp
+            # Exit 4: charted as points only, no area. Stored and committed
+            # (where the chart puts kelp), but flagged: there is no outline.
+            rc=0; python -m collector.kelp || rc=$?
+            if [ "$rc" = "4" ]; then
+              echo "::warning title=Kelp: points only::The chart draws this kelp as points, no area: stored, but no outline to measure a path through."
+            elif [ "$rc" != "0" ]; then
+              exit "$rc"
+            fi
           fi
 
       - name: Headline
