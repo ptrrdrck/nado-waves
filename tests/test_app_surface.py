@@ -4346,11 +4346,29 @@ class TestTheBriefing:
         cond = self.BLOCK[self.BLOCK.index("function briefConditions"):]
         cond = cond[:cond.index("\n}\n")]
         assert 'const hub = water.source === "sharklab";' in cond
-        assert "hub ? `Shark Lab hub, ${SHORT[water.break] || \"Coronado\"}`" in cond
-        assert "T.water, hub ? {daysAgo: true} : {});" in cond
+        assert "hub ? briefHubName(water.break) : feedName(water.station)," in cond
         assert "yesterday" not in cond
-        assert "const briefRowWhen = (r, B, at = r.daysAgo ? briefAgo : briefAt) =>" in self.BLOCK
         assert "? `yesterday, ${clock(iso)}`" in self.BLOCK
+
+    def test_a_hubs_tapped_water_line_is_its_own_never_46232s_template(self):
+        """Owner's call, 2026-11-22: two sources, two sparklines, so the hub
+        does not borrow 46232's "time · source · against time". Its line names
+        the receiver first, says when it read (yesterday when it was), against
+        when, and that the lab loads each day the next night; 46232's line,
+        and every other row's, keeps the shared template. The no-reading line
+        names the hub the same way."""
+        cond = self.BLOCK[self.BLOCK.index("function briefConditions"):]
+        cond = cond[:cond.index("\n}\n")]
+        assert "T.water, hub ? {when: briefHubWhen(water, T.water, B)} : {});" in cond
+        assert "${briefHubName(hub.break)} last read ${briefAgo(hub.observed_utc, B)}" in cond
+        assert "Shark Lab hub" not in SOURCE
+        assert 'const briefHubName = (brk) => `Shark Lab receiver off ${SHORT[brk] || "Coronado"}`;' in self.BLOCK
+        fn = self.BLOCK[self.BLOCK.index("function briefHubWhen"):]
+        fn = fn[:fn.index("\n}\n")]
+        assert "briefHubName(water.break), `read ${briefAgo(water.observed_utc, B)}`" in fn
+        assert '"the lab loads each day the next night"' in fn
+        assert "coastDay(Date.parse(tr.was_utc)) === coastDay(Date.parse(water.observed_utc))" in fn
+        assert "const briefRowWhen = (r, B) => r.when || [r.at ? briefAt(r.at, B) : null, r.src," in self.BLOCK
 
     def test_with_no_current_water_the_row_says_so_and_never_a_lapsed_value(self):
         """Owner's call, 2026-10-31: neither source current reads "No current

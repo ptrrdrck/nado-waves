@@ -2747,17 +2747,16 @@ function briefConditions(B) {
   if (water && water.c != null) {
     const hub = water.source === "sharklab";
     row("water", "Water", briefTemp(water.c, true), water.observed_utc,
-        hub ? `Shark Lab hub, ${SHORT[water.break] || "Coronado"}`
-          : feedName(water.station),
-        T.water, hub ? {daysAgo: true} : {});
+        hub ? briefHubName(water.break) : feedName(water.station),
+        T.water, hub ? {when: briefHubWhen(water, T.water, B)} : {});
   } else if (c.water_last) {
     // Neither current: the row says so, and tapped, when each source last
     // read (owner's call, 2026-10-31) -- never a lapsed value.
     const {hub, buoy} = c.water_last;
     out.push({key: "water", label: "Water", value: "No current reading", dir: null, was: null,
       trend: "", window: "", when: [
-        hub ? `Shark Lab hub, ${SHORT[hub.break] || "Coronado"}, last read ${briefAgo(hub.observed_utc, B)}`
-          : `No Shark Lab hub reading in ${BRIEF_WATER_LOOKBACK_D} days`,
+        hub ? `${briefHubName(hub.break)} last read ${briefAgo(hub.observed_utc, B)}`
+          : `No Shark Lab receiver reading in ${BRIEF_WATER_LOOKBACK_D} days`,
         buoy ? `${feedName(buoy.station)} last read `
           + briefAt(buoy.observed_utc, B) : null].filter(Boolean).join(" · ")});
   }
@@ -2785,8 +2784,20 @@ const briefCondText = (r) => `${r.label} ${r.value}${r.dir ? `, ${r.dir}` : ""}`
 const briefAgo = (iso, B) => (coastDay(Date.parse(iso)) === coastDay(Date.parse(B.built_utc) - 864e5)
   ? `yesterday, ${clock(iso)}`.replace(/ (AM|PM)$/, "\u00a0$1") : briefAt(iso, B));
 // What a tapped row says: when, by what, and against when.
-const briefRowWhen = (r, B, at = r.daysAgo ? briefAgo : briefAt) => r.when || [r.at ? at(r.at, B) : null, r.src,
-  r.dir && r.was ? `${BRIEF_AGAINST[r.dir]} ${at(r.was, B)}` : null].filter(Boolean).join(" · ");
+const briefRowWhen = (r, B) => r.when || [r.at ? briefAt(r.at, B) : null, r.src,
+  r.dir && r.was ? `${BRIEF_AGAINST[r.dir]} ${briefAt(r.was, B)}` : null].filter(Boolean).join(" · ");
+// A Shark Lab receiver's water is its own source, never 46232's template (owner's
+// call, 2026-11-22): what it is first, then when it read, against when (no
+// day repeated when it is the reading's), and why it is a day late.
+const briefHubName = (brk) => `Shark Lab receiver off ${SHORT[brk] || "Coronado"}`;
+function briefHubWhen(water, tr, B) {
+  const was = tr && tr.dir && tr.was_utc
+    ? (coastDay(Date.parse(tr.was_utc)) === coastDay(Date.parse(water.observed_utc))
+      ? clock(tr.was_utc).replace(/ (AM|PM)$/, "\u00a0$1") : briefAgo(tr.was_utc, B)) : null;
+  return [briefHubName(water.break), `read ${briefAgo(water.observed_utc, B)}`,
+    was ? `${BRIEF_AGAINST[tr.dir]} ${was}` : null, "the lab loads each day the next night"]
+    .filter(Boolean).join(" · ");
+}
 // Which rows are open, across a redraw (not a reload).
 const BRIEF_ROWS = new Set();
 function briefCondRow(r, B) {
