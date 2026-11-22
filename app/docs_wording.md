@@ -344,7 +344,7 @@ at the edge itself a ray carries exactly a quarter of the open-water energy
 
 The islands use the same idea twice. By Babinet's principle an obstacle is open water minus the wave through a slit its shape, so each island is a slit subtracted from open water.
 
-A ray that runs into an island or a headland brings only what diffracts round it. It leaves along the heading of the nearest ray that clears the land, carrying the share the formula gives for its place in the shadow, which is small deep inside it.
+A ray that runs into an island brings only what diffracts round it, along the heading of the nearest ray that clears the island, carrying the share the formula gives for its place in the shadow. Behind a headland — Point Loma's tip, the Baja tangent — it brings what arrives across the strip beside the edge where diffraction acts: every ray that clears the edge inside it, weighted evenly, because rays grazing a headland leave the shelf on headings that jump from one to the next.
 
 [drawing: islands] Caption: The two island screens. Each is diffracted as its own slit, so the channel between them stays open water.
 

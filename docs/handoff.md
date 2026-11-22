@@ -345,10 +345,15 @@ sections).
        metres in kelp on the big westerly hours, and an exp(-alpha L) bound),
        not yet run. **Shoreline check runs 15 and 16** (07:11Z and 07:34Z):
        every ENC service timed out from the runner (exit 3 now, "no service
-       answered", never "none charted"). Next: dispatch `shoreline.yml` with
-       `kelp` once more; if NOAA's chart server stays dark, the owner chooses
-       another outline (CDFW / Region Nine kelp canopy, Kelpwatch), not a
-       session. Literature so far, from search summaries only (the papers'
+       answered", never "none charted"). **Run 17** (2026-11-22 19:42Z)
+       answered: the ENC charts Point Loma's kelp as 45 POINT symbols only
+       (`Weed_Kelp_point`: harbour 23, coastal 14, approach 8; surveys
+       1998-2005), no WEDKLP area anywhere in the box. `collector.kelp` keeps
+       only polygon rings, so it committed the attributes and an empty CSV
+       (ba2490d) and exited 0 -- a fault: points and "no area" need their
+       own exit. `kelpcross` not run (no outline: it would read as "no kelp
+       crossed"). Next: the owner chooses the outline (CDFW / Region Nine
+       canopy, Kelpwatch, or the chart's points as a proximity check only). Literature so far, from search summaries only (the papers'
        hosts are blocked from a session): Elwany et al. 1995 (Carlsbad, 3-20 s)
        and Rosman et al. 2007 (Santa Cruz) found no significant attenuation;
        Elsmore et al. 2024 (Palos Verdes) a modest one for 1-3 s waves, order
@@ -358,10 +363,10 @@ sections).
        headland's fill is read across the Fresnel zone", `docs/fill_shift.md`.
        It moved four of the owner's pinned train-row cases (§49), no height;
        re-pinned on the owner's yes (chain.md has the list).
-       Docs page: the worked hour and direction table redone; one sentence of
-       method prose (section on diffraction, "leaves along the heading of the
-       nearest ray that clears the land") still describes the old rule for
-       headlands -- wording proposed to the owner, not changed.
+       Docs page: the worked hour and direction table redone; the method
+       sentence on diffraction now in the owner's wording (2026-11-22):
+       islands by the nearest clear ray, headlands across the strip beside
+       the edge, weighted evenly.
     e. **The beach log**: the owner's big-westerly sessions across breaks,
        the long-run judge (`docs/observation_log.md`).
 
