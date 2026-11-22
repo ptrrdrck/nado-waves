@@ -41,7 +41,11 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    with a 0.5 px gap), the arc the share of the wait left from the
    reading's stamp to due. On Forecast (`modelPills`) the first part is at
    the right with no dot, the second beside it, and a tap switches to the
-   third and STAYS until the next tap (owner's call, same day). 46047's and
+   third for the same 5 s as LIVE's (owner's request, 2026-11-22; from
+   2026-11-08 it stayed until the next tap), and the card's title -- "At
+   the buoy" first -- ends on an ellipsis while it shows, as a buoy's name
+   does, so the pills never wrap under it
+   (`.chead:has(> button.chead-pills:not([data-head-live]))`). 46047's and
    46086's sit above their own headlines with no title beside them, and in
    the wide layouts each Buoys-card column's too, 46232's included (owner's
    call, same day). The space under a title row is the space above the

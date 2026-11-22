@@ -5118,15 +5118,18 @@ class TestTheTitleRowPills:
         assert "button.chead-pills:focus{outline:none}" in SOURCE
         assert "button.chead-pills:active" not in SOURCE and ".chead-pills:hover" not in SOURCE
 
-    def test_live_taps_last_five_seconds_and_forecast_taps_stay(self):
+    def test_a_tap_lasts_five_seconds_on_both_tabs(self):
+        # Forecast's tap stayed until the next from 2026-11-08; since
+        # 2026-11-22 it switches back as LIVE's does (owner's request).
         assert "const HEAD_TAP_MS = 5000;" in SOURCE
         tap = self.fn("tapHead")
         assert "HEAD_ALT[key] = (HEAD_ALT[key] || 0) > Date.now() ? 0 : Date.now() + HEAD_TAP_MS;" in tap
-        assert "else HEAD_ALT[key] = !HEAD_ALT[key];" in tap
+        assert "!HEAD_ALT[key]" not in tap and "live" not in tap
         tick = self.fn("tickHeads")
         # The age at rest even overdue (owner's call, 2026-11-12): the red
         # count is a tap away, and the red dot says overdue.
-        assert "const showB = alt;" in tick
+        assert "const showB = (HEAD_ALT[key] || 0) > now;" in tick
+        assert "data-head-live" not in tick
         assert ".due.over" not in tick
         assert "tickHeads();" in self.fn("tickDue")
 
@@ -5137,6 +5140,19 @@ class TestTheTitleRowPills:
         rule = SOURCE.split(".chead > .buoy-name{", 1)[1].split("}", 1)[0]
         for part in ("min-width:0", "overflow:hidden", "text-overflow:ellipsis", "white-space:nowrap"):
             assert part in rule
+
+    def test_a_forecast_title_gives_way_to_its_tapped_pill(self):
+        # Owner's request, 2026-11-22: "At the buoy" wrapped its pills under
+        # it on a tap. A Forecast title ellipsises as a buoy's name does.
+        row = ".chead:has(> button.chead-pills:not([data-head-live]))"
+        assert row + "{flex-wrap:nowrap}" in SOURCE
+        rule = SOURCE.split(row + " > :is(.lbl,.sublbl){", 1)[1].split("}", 1)[0]
+        for part in ("flex:0 1 auto", "min-width:0", "overflow:hidden", "text-overflow:ellipsis",
+                     "white-space:nowrap"):
+            assert part in rule
+        # Only Forecast's switching pills lack the LIVE marker.
+        assert "{key: label, live: true}" in self.fn("feedPills")
+        assert "live" not in self.fn("modelPills")
 
     def test_the_dot_keeps_its_size_inside_a_ring_with_a_hairline(self):
         """7 px dot (r 3.5), a 1 px gap, then 1.5 px of ring centred at
