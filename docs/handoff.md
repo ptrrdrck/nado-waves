@@ -336,28 +336,22 @@ sections).
        Was: CDIP's whole archive (the census
        saw only NDBC's stations) for any buoy or pressure sensor ever off
        Coronado, Silver Strand or Zuniga; if one exists, the 24d test there.
-    d. **Kelp and reef** -- open, blocked on an outline. Owner's yes to
-       steps 1-3 (2026-11-21); reef (Madsen at a rock roughness) not asked
-       for. Built: `collector.kelp` (S-57 WEDKLP from the ENC chart services,
-       box over Point Loma's west side and the tip, `data/kelp/`), run on
-       Actions by `shoreline.yml` input `kelp`; `forecast.kelpcross` (each
-       ray's stored path against the outline, the wrap's energy crossing and
-       metres in kelp on the big westerly hours, and an exp(-alpha L) bound),
-       not yet run. **Shoreline check runs 15 and 16** (07:11Z and 07:34Z):
-       every ENC service timed out from the runner (exit 3 now, "no service
-       answered", never "none charted"). **Run 17** (2026-11-22 19:42Z)
-       answered: the ENC charts Point Loma's kelp as 45 POINT symbols only
-       (`Weed_Kelp_point`: harbour 23, coastal 14, approach 8; surveys
-       1998-2005), no WEDKLP area anywhere in the box. `collector.kelp` keeps
-       only polygon rings, so it committed the attributes and an empty CSV
-       (ba2490d) and exited 0 -- a fault: points and "no area" need their
-       own exit. `kelpcross` not run (no outline: it would read as "no kelp
-       crossed"). Next: the owner chooses the outline (CDFW / Region Nine
-       canopy, Kelpwatch, or the chart's points as a proximity check only). Literature so far, from search summaries only (the papers'
-       hosts are blocked from a session): Elwany et al. 1995 (Carlsbad, 3-20 s)
-       and Rosman et al. 2007 (Santa Cruz) found no significant attenuation;
-       Elsmore et al. 2024 (Palos Verdes) a modest one for 1-3 s waves, order
-       1e-3 /m. Read the papers themselves before a number is used.
+    d. **Kelp and reef** -- parked (owner, 2026-11-22; BRIEFING §62).
+       NOAA's ENC answered on run 17: Point Loma's kelp is charted as 45
+       POINT symbols only (`Weed_Kelp_point`: harbour 23, coastal 14,
+       approach 8; surveys 1998-2005), no WEDKLP area at any scale, so there
+       is no outline to measure a path through. The owner stopped the work:
+       it is pursued only if it can give an attenuation the chain could
+       apply, and neither the chart nor the literature (from search
+       summaries: Elwany et al. 1995 and Rosman et al. 2007 no significant
+       loss at swell periods; Elsmore et al. 2024 ~1e-3 /m for 1-3 s only)
+       offers one. No other outline source is to be sought. Kept for a later
+       look: `collector.kelp` (fixed on run 17's finding: points kept with
+       positions in `data/kelp/enc_wedklp_points.csv`, no empty file,
+       points-only is exit 4; run 18 stored the 45), `forecast.kelpcross`
+       (never run; refuses without an area). Reopens on a measured
+       swell-band attenuation from a paper read, or a beach-log observation
+       naming the wrap. Reef (Madsen at a rock roughness) was not asked for.
        **Found on the way and fixed (owner's choice of design, 2026-11-21):
        the Point Loma / Baja diffraction fill** -- BRIEFING §61, chain.md "A
        headland's fill is read across the Fresnel zone", `docs/fill_shift.md`.
