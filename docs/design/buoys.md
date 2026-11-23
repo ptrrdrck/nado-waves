@@ -71,9 +71,16 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    46232's and 46086's, collect.yml excluding all three): on collect.yml's
    throttled schedule it ran hours behind its spectrum. Each value still
    shows its own time. LIVE only, as the rose is. At 15 px, the size of
-   "combined" beside the height (owner's request, 2026-10-14), and a buoy
-   with no rose says "No spectrum from … in the last six hours." at that
-   size and grey. Its countdown is its
+   "combined" beside the height (owner's request, 2026-10-14). A buoy
+   with no spectrum in the six hours keeps its plate and seabed (owner's
+   request, 2026-11-23, 46086 eight days dark): its newest spectrum, however
+   old, rides in its rose as `last` (only when the window is empty, no
+   trains, never a frame of the loop), drawn greyed as a stale frame is,
+   the bar with no tick and its pill on that spectrum's day and time, and
+   the tray "… · No spectrum in the last six hours · last 15 Nov, 3:50 PM"
+   (the buoy not named again, owner's wording). Only a buoy with nothing
+   archived at all still says "No spectrum from … in the last six hours."
+   under its reading, at that size and grey. Its countdown is its
    own: :20 and :50, 25 typical and **115** worst on 188 stamps since its
    sensor returned 2026-10-08. The three past H+85 were NDBC's, shared with
    46047 (10-10 07:50 reached H+125 there, past 46047's shipped 85; not

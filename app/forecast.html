@@ -5341,7 +5341,12 @@ function roseSpan() {
     firsts.push(Math.min(...own));
     times.push(...own);
   });
-  if (!times.length) return null;
+  if (!times.length) {
+    // No buoy has a frame: the six hours themselves, so a buoy's last
+    // spectrum still stands on its plate under an empty bar.
+    const r = Object.values((BUOYS && BUOYS.roses) || {}).find((x) => x.window_start_utc && x.window_end_utc);
+    return r ? {t0: Date.parse(r.window_start_utc), t1: Date.parse(r.window_end_utc)} : null;
+  }
   return {t0: Math.max(...firsts), t1: Math.max(...times)};
 }
 
@@ -5358,7 +5363,7 @@ function roseMoment(span) {
 // falling short (owner's report, 2026-10-07: 2, 4 and 5 ft read as uneven).
 // Fixed across the loop, so a petal that grows between frames really grew.
 function roseScale(mode, station) {
-  const frames = (roseOf(station) || {}).frames || [];
+  const frames = roseFramesOf(roseOf(station));
   const top = Math.max(0, ...frames.flatMap((f) => mode === "height"
     ? f.sector_hs_m.map(roseHt)
     : f.period_share.map((row) => row.reduce((a, b) => a + b, 0))));
@@ -5382,9 +5387,21 @@ function roseScaleLine(mode, station) {
     : `Rings every ${rosePct(sc.step)}`;
 }
 
-// What a buoy's rose shows at a moment: a frame, a gap, or a stamp not in yet.
+// The frames a buoy's scale is set by: its loop's, or, with none in the six
+// hours, its last spectrum's (`last`, however old).
+const roseFramesOf = (rose) => (rose && rose.frames && rose.frames.length ? rose.frames
+  : rose && rose.last ? [rose.last] : []);
+
+// What a buoy's rose shows at a moment: a frame, a gap, or a stamp not in yet
+// -- or, with nothing in the six hours, its last spectrum, greyed and named
+// by its own day and time in the tray (owner's call, 2026-11-23), never a
+// frame of the loop: no tick on the six hours, its day and time in the pill.
 function roseAt(rose, t) {
   const frames = rose.frames || [];
+  if (!frames.length && rose.last) {
+    return {key: `last${rose.last.time_utc}`, frame: rose.last, last: true, at: rose.last.time_utc,
+      note: "No spectrum in the last six hours"};
+  }
   let k = -1;
   frames.forEach((f, i) => { if (roseTime(f) <= t + 1000) k = i; });
   const every = (rose.interval_min || 60) * 60000;
@@ -5426,6 +5443,7 @@ const rosePct = (s) => `${Math.round(s * 100)}%`;
 // and the line under it; never the rings or N / E / S / W.
 const roseAged = (rose, state) => {
   const frames = (rose && rose.frames) || [];
+  if (state && state.last) return true;
   if (!state || !state.frame || !Number.isInteger(state.k)) return false;
   const until = state.k + 1 < frames.length ? roseTime(frames[state.k + 1]) : Date.now();
   return until - roseTime(frames[state.k]) > staleLimitH() * 3600000;
@@ -5484,7 +5502,7 @@ function rosePlot(state, mode, station) {
       said += `; ${range} lit`;
     }
   }
-  const when = state.frame ? clock(state.frame.time_utc) : "";
+  const when = !state.frame ? "" : state.last ? roseLastWhen(state.frame) : clock(state.frame.time_utc);
   const aria = state.frame ? `${mode === "height" ? "Height" : "Period"} rose at ${when}: ${said}`
     : state.note;
   return `<svg class="rose-svg${pick != null ? " picked" : ""}${roseAged(roseOf(station), state) ? " aged" : ""}" viewBox="0 0 240 240" role="img" aria-label="${aria}">`
@@ -5506,6 +5524,7 @@ function roseReadout(state, station) {
   const scale = seg(roseScaleLine(ROSE_MODE, station))
     + (roseOnSea() ? sep + seg(roseReach()) : "");
   if (!state.frame) return scale + sep + seg(state.note);
+  if (state.last) return scale + sep + seg(state.note) + sep + seg(`last ${roseLastWhen(state.frame)}`);
   const f = state.frame;
   const k = rosePick(station);
   const share = k != null && f.train_share && f.train_share[k];
@@ -5517,6 +5536,8 @@ function roseReadout(state, station) {
   }
   return scale + sep + seg(`${height(f.hs_m)} <span class="unit">combined</span>`, " v");
 }
+// A last spectrum days old is not "at 3:50 PM": "15 Nov, 3:50 PM".
+const roseLastWhen = (f) => `${dayOfUtc(f.time_utc)}, ${clock(f.time_utc)}`;
 const roseReach = () => `Map ${dualText(`${Math.round(ROSE_SEA_KM * MI_PER_KM)} mi`, `${ROSE_SEA_KM} km`)} to the edge`;
 
 // The six hours under the rose, in the bar's pill (owner's request,
@@ -5542,7 +5563,7 @@ function roseHead(el, v) {
 }
 // The pill's words: the shown frame's time, or the moment a gap or a stamp
 // not in yet is named by.
-const roseWhen = (state) => (state.at ? clock(state.at) : "");
+const roseWhen = (state) => (state.last ? roseLastWhen(state.frame) : state.at ? clock(state.at) : "");
 
 // The Period legend, in the rose's tray; on Height it takes no room, the
 // tray a line shorter (owner's request, 2026-11-11, replacing 2026-10-08's
@@ -5573,6 +5594,7 @@ function roseView(station) {
     rose, span, t, state, station};
 }
 
+const roseValueText = (state) => (state.frame && !state.last ? clock(state.frame.time_utc) : state.note);
 const rosePercent = (v) => (v.span.t1 > v.span.t0
   ? Math.round(100 * (v.t - v.span.t0) / (v.span.t1 - v.span.t0)) : 100);
 
@@ -5583,7 +5605,9 @@ function roseBlock(station) {
   const rose = roseOf(station);
   if (!rose) return "";
   const v = roseView(station);
-  if (!v || !(rose.frames || []).length) {
+  // With nothing in the six hours the plate still stands, the last spectrum
+  // greyed on it and the tray saying so (owner's request, 2026-11-23).
+  if (!v || !roseFramesOf(rose).length) {
     return `<p class="quiet buoy-note rose-none">No spectrum from ${buoyFeed(station)} in the last six hours.</p>`;
   }
   // On a plate as the swell's drawing and map are (owner's requests,
@@ -5600,7 +5624,7 @@ function roseBlock(station) {
     <div class="rose-plot" data-rose-live>${rosePlot(v.state, ROSE_MODE, station)}</div>
     <div class="rose-bar">${rosePlayButton()}<div class="rose-track" data-rose-scrub role="slider"
       aria-label="Moment shown" tabindex="0" aria-valuemin="0" aria-valuemax="100"
-      aria-valuenow="${rosePercent(v)}" aria-valuetext="${v.state.frame ? clock(v.state.frame.time_utc) : v.state.note}"><span
+      aria-valuenow="${rosePercent(v)}" aria-valuetext="${roseValueText(v.state)}"><span
       class="rose-when" data-rose-live>${roseWhen(v.state)}</span><span class="rose-rail" data-rose-live>${roseLine(rose, v.span, v.t, v.state)}</span></div>${roseSwitch()}</div>
     </div>
     <div class="rose-tray">
@@ -5624,7 +5648,7 @@ function roseUpdate(el) {
     el.querySelector(".rose-when").textContent = roseWhen(v.state);
     el.querySelector(".rose-rail").innerHTML = roseLine(v.rose, v.span, v.t, v.state);
     const track = el.querySelector(".rose-track");
-    track.setAttribute("aria-valuetext", v.state.frame ? clock(v.state.frame.time_utc) : v.state.note);
+    track.setAttribute("aria-valuetext", roseValueText(v.state));
   }
   el.querySelector(".rose-track").setAttribute("aria-valuenow", rosePercent(v));
   roseHead(el, v);

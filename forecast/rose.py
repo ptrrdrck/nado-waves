@@ -186,7 +186,7 @@ def frames(spectra: list[Spectrum], moment: datetime,
 
 
 def payload(spectra: list[Spectrum], moment: datetime, interval_min: float,
-            trains: list | None = None) -> dict:
+            trains: list | None = None, last: Spectrum | None = None) -> dict:
     """One buoy's loop. `interval_min` is the buoy's own stamp spacing, so the
     page can tell a stamp that is late from one that is simply not due yet:
     it shows a frame until its successor was due and a gap after that.
@@ -194,7 +194,12 @@ def payload(spectra: list[Spectrum], moment: datetime, interval_min: float,
     `trains` are the newest spectrum's (`at_buoy(...).trains`, in the order
     the reading lists them): each one's period range is carried, and every
     frame's share within it. `trains_from_utc` names that spectrum, so the
-    page highlights only under the reading built from it."""
+    page highlights only under the reading built from it.
+
+    `last` is the buoy's newest spectrum, however old, carried as `last`
+    only when the window holds no frame: the page draws it greyed on the
+    seabed, named by its own time, rather than drop the plate (owner's call,
+    2026-11-23). It is never a frame of the loop and carries no trains."""
 
     start = moment - timedelta(hours=WINDOW_HOURS)
     newest = spectra[-1] if spectra else None
@@ -205,6 +210,8 @@ def payload(spectra: list[Spectrum], moment: datetime, interval_min: float,
         "interval_min": interval_min,
         "frames": frames(spectra, moment, ranges=ranges),
     }
+    if not out["frames"] and last is not None:
+        out["last"] = frame(last)
     if ranges:
         out["trains_from_utc"] = newest.time.strftime("%Y-%m-%dT%H:%M:%SZ")
         out["trains"] = [{"period_lo_s": round(1.0 / hi, 1), "period_hi_s": round(1.0 / lo, 1),

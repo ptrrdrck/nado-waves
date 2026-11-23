@@ -204,7 +204,8 @@ def roses(data_dir: Path, moment: datetime) -> dict:
     Owner's request, 2026-10-06: under each buoy's reading on the Buoys tab, a
     rose redrawn for every spectrum and looped. Maximum entropy, as the reading
     above it. A buoy with no spectrum in the window has no frames; nothing is
-    borrowed from the other.
+    borrowed from the other. Its own newest spectrum, however old, rides as
+    `last`, drawn greyed (owner's call, 2026-11-23).
     """
 
     out: dict = {}
@@ -217,7 +218,8 @@ def roses(data_dir: Path, moment: datetime) -> dict:
         # them (the same `at_buoy` on the same spectrum), so a tapped row can
         # light its period range in every frame.
         trains = at_buoy(recent[-1]).trains if recent else None
-        out[station] = rose.payload(recent, moment, 60.0 / len(marks), trains)
+        last = spectra[-1].with_spread("mem") if spectra and not recent else None
+        out[station] = rose.payload(recent, moment, 60.0 / len(marks), trains, last)
     return out
 
 

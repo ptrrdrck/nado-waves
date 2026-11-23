@@ -16,7 +16,7 @@ import pytest
 from forecast import buoys, rose
 from forecast.transform import at_buoy
 
-from test_buoys import MOMENT, PAGE, write_spectrum
+from test_buoys import MOMENT, PAGE, _fn, write_spectrum
 from test_buoys import block as by_station
 from test_now import spectrum
 
@@ -167,8 +167,10 @@ class TestOnThePage:
         units = PAGE[PAGE.index("let UNITS = "):PAGE.index("\nconst dual = ")]
         ht = PAGE[PAGE.index("const roseHt = "):]
         ht = ht[:ht.index(";\n") + 2]
+        frames_of = PAGE[PAGE.index("const roseFramesOf = "):]
+        frames_of = frames_of[:frames_of.index(";\n") + 2]
         script = (
-            "const FT_PER_M = 3.28084; let FRAMES;\n" + units + "\n" + ht +
+            "const FT_PER_M = 3.28084; let FRAMES;\n" + units + "\n" + ht + frames_of +
             "const roseOf = () => ({frames: FRAMES});\n" + scale +
             "const out = [];\n"
             "for (const [h, s] of [[0.41, 0.26], [1.2526, 0.431], [0.05, 0.02], [1.8288, 0.10],"
@@ -309,7 +311,8 @@ class TestOnThePage:
         assert ("const roseReach = () => `Map ${dualText(`${Math.round(ROSE_SEA_KM * MI_PER_KM)} mi`,"
                 " `${ROSE_SEA_KM} km`)} to the edge`;") in PAGE
         # The time is the bar's: the frame's own, or the moment a gap is named by.
-        assert "const roseWhen = (state) => (state.at ? clock(state.at) : \"\");" in PAGE
+        assert ("const roseWhen = (state) => (state.last ? roseLastWhen(state.frame)"
+                " : state.at ? clock(state.at) : \"\");") in PAGE
         line = PAGE[PAGE.index("function roseScaleLine("):]
         line = line[:line.index("\n}\n")]
         assert " to " not in line and "of the energy" not in line
@@ -430,6 +433,61 @@ class TestTheLoopsStart:
         assert got["a"]["frame"]["time_utc"] == "2026-10-07T14:00:00Z"
         # 46047's 13:50 frame is the one in force at 14:00, not dropped.
         assert got["b"]["frame"]["time_utc"] == "2026-10-07T13:50:00Z"
+
+
+class TestADarkBuoysLastSpectrum:
+    """Owner's request, 2026-11-23: a buoy with no spectrum in the six hours
+    keeps its plate and seabed, its newest spectrum however old drawn greyed
+    as a stale frame is, and the tray saying so -- "No spectrum in the last
+    six hours" and the last one's day and time."""
+
+    def test_the_newest_rides_as_last_only_when_the_window_is_empty(self, tmp_path):
+        old = MOMENT - timedelta(days=8)
+        write_many(tmp_path, "46086", [spectrum(old - timedelta(minutes=30)), spectrum(old)])
+        write_spectrum(tmp_path, "46047", spectrum(MOMENT - timedelta(minutes=20)))
+        got = buoys.build(data_dir=tmp_path, now=MOMENT)["roses"]
+        assert got["46086"]["frames"] == [] and "trains" not in got["46086"]
+        assert got["46086"]["last"] == rose.frame(spectrum(old).with_spread("mem"))
+        assert "last" not in got["46047"]          # a frame in the window: no last
+        assert "last" not in got["46232"]          # nothing archived: nothing drawn
+
+    def test_drawn_greyed_and_named_by_its_day(self):
+        """Run in node against the page's own roseAt and roseAged."""
+
+        import subprocess
+
+        def fn(name):
+            body = PAGE[PAGE.index(f"function {name}("):]
+            return body[:body.index("\n}\n") + 3]
+
+        def const(name):
+            body = PAGE[PAGE.index(f"const {name} = "):]
+            return body[:body.index(";\n") + 2]
+
+        aged = PAGE[PAGE.index("const roseAged = "):]
+        aged = aged[:aged.index("\n};\n") + 4]
+        script = (
+            "const clock = (iso) => iso.slice(11, 16);\n"
+            "const staleLimitH = () => 3;\n"
+            "const roseTime = (f) => new Date(f.time_utc).getTime();\n"
+            + const("roseFramesOf") + fn("roseAt") + aged +
+            "const r = {interval_min: 30, frames: [], last: {time_utc: '2026-11-15T23:50:00Z'}};\n"
+            "const s = roseAt(r, Date.parse('2026-11-23T04:00:00Z'));\n"
+            "console.log(JSON.stringify({s, aged: roseAged(r, s), scale: roseFramesOf(r).length,"
+            " empty: roseFramesOf({frames: []}).length}));\n")
+        got = json.loads(subprocess.run(["node", "-e", script], capture_output=True,
+                                        text=True, check=True).stdout)
+        assert got["s"]["last"] and got["s"]["frame"]["time_utc"] == "2026-11-15T23:50:00Z"
+        assert got["s"]["note"] == "No spectrum in the last six hours"
+        assert got["aged"] is True
+        assert got["scale"] == 1 and got["empty"] == 0
+
+    def test_the_tray_says_it_and_the_plate_stays(self):
+        read = _fn("roseReadout")
+        assert ("if (state.last) return scale + sep + seg(state.note) + sep"
+                " + seg(`last ${roseLastWhen(state.frame)}`);") in read
+        assert "const roseLastWhen = (f) => `${dayOfUtc(f.time_utc)}, ${clock(f.time_utc)}`;" in PAGE
+        assert "if (!v || !roseFramesOf(rose).length) {" in _fn("roseBlock")
 
 
 class TestATrainsPetals:
