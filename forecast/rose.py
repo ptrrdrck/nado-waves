@@ -61,6 +61,11 @@ PERIOD_EDGES_S = (8.0, 11.0, 14.0, 17.0)
 #: How far back the loop reaches from the build, in hours.
 WINDOW_HOURS = 6
 
+#: How far the Forecast tab's rose plays forward from the picked hour
+#: (owner's call, 2026-11-23): the picked hour and the next seven the picker
+#: offers, every `publish.HOUR_STEP` hours, then back to the picked hour.
+FORECAST_HOURS = 24
+
 
 def sector_of(theta: float) -> int:
     return int(((theta + SECTOR_DEG / 2.0) % 360.0) // SECTOR_DEG) % SECTORS
@@ -183,6 +188,60 @@ def frames(spectra: list[Spectrum], moment: datetime,
 
     start = moment - timedelta(hours=hours)
     return [frame(sp, ranges) for sp in spectra if start < sp.time <= moment]
+
+
+def model_hour(spectrum: Spectrum, trains: list | None = None) -> dict:
+    """One forecast hour's rose for the Forecast tab's Buoys tab (owner's
+    request, 2026-11-23): GFS-Wave's own directional grid at 46232, the same
+    one the hour's buoy reading is integrated from, so the rose's height is
+    that reading's (a test pins it). `trains` are that hour's own, as its
+    reading lists them: their ranges ride with the frame (`trains`, in the
+    shape `payload` gives LIVE's) and its shares in them (`train_share`), so
+    a tapped row lights the picked hour's frame. Nothing in it is measured."""
+
+    ranges = [train_range(spectrum, t) for t in trains] if trains else None
+    out = frame(spectrum, ranges)
+    if ranges:
+        out["trains"] = [{"period_lo_s": round(1.0 / hi, 1), "period_hi_s": round(1.0 / lo, 1),
+                          **({"from_lo_deg": arc[0], "from_hi_deg": arc[1] % 360} if arc else {})}
+                         for lo, hi, arc in ranges]
+    return out
+
+
+def model_reading(spectrum: Spectrum, *, step: float = STEP_DEG) -> dict:
+    """The station block's spectral numbers from a model grid, as
+    `buoys.spectrum_reading` gives them from a buoy's: the mean period Tm02
+    = sqrt(m0 / m2) over the same per-bin energies the reading's combined
+    height sums, and the directional spread at the peak bin, sqrt(2(1 - r1))
+    in degrees (Kuik et al. 1988), r1 the length of that bin's mean
+    resultant. The peak itself is the hour's `peak_period_s` /
+    `peak_direction_deg`, `at_buoy`'s, and the same bin."""
+
+    out = {"mean_period_s": None, "spread_deg": None}
+    per_bin = {i: sum(row) for i, row in bin_energies(spectrum, step=step).items()}
+    per_bin = {i: e for i, e in per_bin.items() if e > 0.0}
+    if not per_bin:
+        return out
+    f = spectrum.frequencies
+    m0 = sum(per_bin.values())
+    m2 = sum(e * f[i] ** 2 for i, e in per_bin.items())
+    if m0 > 0 and m2 > 0:
+        out["mean_period_s"] = round(math.sqrt(m0 / m2), 1)
+    best = max(per_bin, key=per_bin.get)
+    steps = max(int(round(360.0 / step)), 1)
+    d_theta = 360.0 / steps
+    total = sin_sum = cos_sum = 0.0
+    for n in range(steps):
+        theta = (n + 0.5) * d_theta
+        e = spectrum.density(best, theta)
+        if e > 0.0:
+            total += e
+            sin_sum += e * math.sin(math.radians(theta))
+            cos_sum += e * math.cos(math.radians(theta))
+    if total > 0:
+        r1 = min(1.0, math.hypot(sin_sum, cos_sum) / total)
+        out["spread_deg"] = round(math.degrees(math.sqrt(2.0 * (1.0 - r1))))
+    return out
 
 
 def payload(spectra: list[Spectrum], moment: datetime, interval_min: float,

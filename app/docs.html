@@ -1297,7 +1297,7 @@ Hs = 1.000 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 
         because the model run is read at NDBC 46232 alone.</p>
       <p>Each buoy's headline folds out, as a break's does: tap it, or the caret at its end, and
         what belongs to it opens beneath it &mdash; its swell trains,
-        and on &ldquo;LIVE&rdquo; its rose and, under it on a grey plate, the buoy's station block.
+        its rose and, under it on a grey plate, the buoy's station block.
         It opens with readings, each with its own time and grey once that reading is three hours
         old: the peak period and the direction it comes from, the mean period and the directional
         spread at the peak, all from the same spectrum as the headline; then the water temperature,
@@ -1315,8 +1315,15 @@ Hs = 1.000 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 
         each. It is closed until opened, except NDBC 46232's, which opens
         whenever the Buoys tab is selected. Each buoy opens on its
         own, and the page keeps them as the reader left them across a refresh. On the Forecast
-        tab it folds NDBC 46232's trains; the observed line under a past hour stays out of it, as it
-        does on a break's tab.</p>
+        tab it folds NDBC 46232's trains for the hour picked, its rose, and a station block of
+        the model run rather than the buoy: the peak, the mean period and the spread at the peak,
+        worked out as above from GFS-Wave's own spectrum for that hour, and the model's wind at
+        the buoy, with no time lines, since every one is the picked hour's; no water temperature
+        or pressure, which the model does not carry; where the buoy is, as above; how often a new
+        run comes out and how long after its cycle; and what the model run at NDBC 46232 is used
+        for. The model's spectrum reaches shorter periods (about 1&nbsp;s) than the buoy measures
+        (about 1.7&nbsp;s), so its mean period and the buoy's are not the same measurement. The
+        observed line under a past hour stays out of the fold, as it does on a break's tab.</p>
     </section>
 
     <section id="swell-headline">
@@ -1585,6 +1592,15 @@ Hs = 1.000 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 
         and the line under it says there has been no spectrum in the last six hours. Tap or drag along the six hours to go to a moment, or step
         them with the arrow keys. The button at the bar's right end switches the view: <b>ft</b>
         for Height, <b>s</b> for Period.</p>
+      <p>On the Forecast tab, NDBC 46232's rose is drawn from GFS-Wave's own directional spectrum
+        at the buoy for the hour picked, the same spectrum its headline and trains come from: a
+        model, not a measurement. It opens paused on the picked hour, and the play button runs
+        forward through the next 24 hours the hour picker offers, eight roses three hours apart,
+        then goes back to the picked hour; the bar has a tick for each. The scale holds over those
+        eight. A tapped train lights the picked hour's rose only, because the trains are that
+        hour's. When this run's spectrum was unavailable and the forecast was built from its swell
+        partitions, or under an earlier run's hour, which keeps no spectrum, the seabed stays with
+        no rose on it and the line under it says why.</p>
       <p><b>Height</b> gives each sector's energy as a height. Heights combine in energy, so the
         petals do not add up to the combined height above them; the square root of the sum of
         their squares does, exactly. <b>Period</b> gives each sector's share of the spectrum's

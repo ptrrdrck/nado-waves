@@ -114,14 +114,14 @@ class TestTheLoop:
 
 
 class TestOnThePage:
-    def test_live_only_under_each_buoys_own_reading(self):
+    def test_under_each_buoys_own_reading_on_both_chains(self):
         """46232's rose in its pane, above the card's provenance; 46047's in
-        its block, above its own. Not on the Forecast tab: GFS-Wave's run has
-        no spectrum at the buoy to draw."""
+        its block, above its own. On the Forecast tab too since 2026-11-23
+        (owner's request): GFS-Wave's own grid at 46232, from forecast.json."""
 
         calls = PAGE.split("rows.push(swellCard(")
-        assert "buoyRose: roseBlock(" in calls[1].split("}));")[0]
-        assert "buoyRose" not in calls[2].split("}));")[0]
+        assert "buoyRose: roseBlock(NOW && NOW.station)" in calls[1].split("}));")[0]
+        assert "buoyRose: roseBlock(DATA.station)" in calls[2].split("}));")[0]
         block = PAGE[PAGE.index("function contextBuoy("):]
         block = block[:block.index("\n}\n")]
         assert block.index("roseBlock(b.station)") < block.index("srcLines(")
@@ -144,7 +144,7 @@ class TestOnThePage:
         assert "ROSE_PHASE = ROSE_PLAY_MS;" in shown and "setRosePlaying(false);" in shown
         assert "ROSE_PHASE >= ROSE_PLAY_MS ? span.t1" in PAGE     # that phase is the newest
         assert 'if (id === BUOY_TAB && SWELL_TAB !== BUOY_TAB) {\n    roseShown();' in PAGE
-        assert 'if (mode === "now" && MODE !== "now") roseShown();' in PAGE
+        assert 'if (mode !== MODE) {\n    ROSE_TRAIN = {};\n    roseShown();' in PAGE
         # On unfolding: run by the fold's slide once it is shown, before it
         # is measured (`slideFolds` calls `before` only when opening).
         assert "slideFolds(folds, open, roseShown);" in PAGE
@@ -416,7 +416,7 @@ class TestTheLoopsStart:
             return body[:body.index("\n}\n") + 3]
 
         script = (
-            "let BUOYS; const clock = (iso) => iso.slice(11, 16);\n"
+            "let BUOYS; const MODE = 'now'; const clock = (iso) => iso.slice(11, 16);\n"
             "const roseTime = (f) => new Date(f.time_utc).getTime();\n"
             + fn("roseSpan") + fn("roseAt") +
             "const at = (h, m) => `2026-10-07T${h}:${m}:00Z`;\n"
@@ -487,7 +487,7 @@ class TestADarkBuoysLastSpectrum:
         assert ("if (state.last) return scale + sep + seg(state.note) + sep"
                 " + seg(`last ${roseLastWhen(state.frame)}`);") in read
         assert "const roseLastWhen = (f) => `${dayOfUtc(f.time_utc)}, ${clock(f.time_utc)}`;" in PAGE
-        assert "if (!v || !roseFramesOf(rose).length) {" in _fn("roseBlock")
+        assert "if (!v || (!roseFramesOf(rose).length && !rose.none)) {" in _fn("roseBlock")
 
 
 class TestATrainsPetals:
@@ -600,3 +600,113 @@ class TestADividedTrainsPetals:
         # Between them, nothing lit twice.
         whole = [x + y for x, y in zip(*(newest["train_share"][k] for k in divided))]
         assert sum(whole) <= 1.0 + 1e-3
+
+
+class TestTheForecastRose:
+    """The Forecast tab's Buoys tab, its rose and station block (owner's
+    request and calls, 2026-11-23): GFS-Wave's own grid at 46232, on each
+    hour the picker offers; it opens on the picked hour and plays forward
+    through the next seven, every 3 h, then back. A run built from
+    partitions, or an earlier run's hour, keeps the plate and seabed with no
+    petals and the tray saying why."""
+
+    @staticmethod
+    def grid(spread_deg=20.0, from_deg=250.0, period_s=14.0):
+        from datetime import datetime, timezone
+        from forecast.transform import GridSpectrum
+
+        freqs = [0.04 + 0.01 * i for i in range(40)]
+        dirs = [5.0 + 10.0 * k for k in range(36)]
+        fp = 1.0 / period_s
+
+        def e(f, d):
+            dd = (d - from_deg + 180.0) % 360.0 - 180.0
+            return math.exp(-0.5 * ((f - fp) / 0.01) ** 2) * math.exp(-0.5 * (dd / spread_deg) ** 2)
+
+        energy = [[e(f, d) for f in freqs] for d in dirs]
+        return GridSpectrum(datetime(2026, 11, 23, 12, tzinfo=timezone.utc), freqs, dirs, energy)
+
+    def test_the_rose_is_the_hours_own_reading(self):
+        """Its height is the hour's `at_buoy` height, from the same grid."""
+        g = self.grid()
+        view = at_buoy(g)
+        got = rose.model_hour(g, view.trains[:3])
+        assert got["hs_m"] == pytest.approx(view.hs_m, abs=1e-3)
+        assert len(got["sector_hs_m"]) == 16 and len(got["period_share"]) == 16
+        assert got["trains"] and len(got["train_share"]) == len(got["trains"])
+        # Its energy comes FROM the WSW sector.
+        assert max(range(16), key=lambda k: got["sector_hs_m"][k]) == rose.POINTS.index("WSW")
+
+    def test_mean_period_and_spread_off_the_grid(self):
+        narrow, wide = rose.model_reading(self.grid(10.0)), rose.model_reading(self.grid(35.0))
+        # One narrow-band swell: Tm02 is its period, to the band's width.
+        assert narrow["mean_period_s"] == pytest.approx(14.0, abs=0.4)
+        # Kuik's spread tracks the grid's own: wider spread, larger figure.
+        assert narrow["spread_deg"] == pytest.approx(10, abs=3)
+        assert wide["spread_deg"] > narrow["spread_deg"] + 15
+
+    def test_only_on_the_pickers_hours_and_never_in_the_log(self):
+        from forecast import forecastlog
+        source = (ROOT / "forecast" / "live.py").read_text()
+        assert "if row.lead_hours % forecastlog.HOUR_STEP == 0:" in source
+        assert 'entry["rose"] = rose.model_hour(grid, view.trains[:3])' in source
+        fc = {"generated_utc": "2026-11-23T12:00:00Z", "cycle_utc": "2026-11-23T06:00:00Z",
+              "breaks": [{"id": "coronado_center", "hours": [
+                  {"valid_utc": "2026-11-23T12:00:00Z", "lead_h": 6}]}],
+              "buoy": [{"valid_utc": "2026-11-23T12:00:00Z", "hs_m": 1.0, "rose": {"hs_m": 1.0},
+                        "mean_period_s": 9.1}]}
+        got = forecastlog.shown_lines(fc)
+        assert got and "rose" not in got[0]["buoy"] and got[0]["buoy"]["mean_period_s"] == 9.1
+
+    def _run(self, body):
+        import shutil
+        import subprocess
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+
+        def fn(name):
+            text = PAGE[PAGE.index(f"function {name}("):]
+            return text[:text.index("\n}\n") + 3]
+
+        consts = PAGE[PAGE.index("const FC_ROSE_HOURS = "):PAGE.index("function fcRose(")]
+        script = ("let MODE = 'forecast', DATA, STEPS = [], CURSOR = 0, ROSE_PHASE = 9000;\n"
+                  "const ROSE_PLAY_MS = 9000; const clock = (iso) => iso.slice(11, 16);\n"
+                  "const roseTime = (f) => new Date(f.time_utc).getTime();\n"
+                  "const roseOf = (station) => fcRose(station);\n"
+                  + consts + fn("fcRose") + fn("roseSpan") + fn("roseMoment") + fn("roseAt") + body)
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        return json.loads(out.stdout)
+
+    DATA = ("const hr = (h) => new Date(Date.UTC(2026, 10, 23, h)).toISOString().replace('.000', '');\n"
+            "const row = (h) => ({valid_utc: hr(h), rose: {time_utc: hr(h), hs_m: 1,"
+            " train_share: [[1]], trains: [{period_lo_s: 12, period_hi_s: 16}]}});\n"
+            "DATA = {station: '46232', generated_utc: hr(5), wave_source: 'spectrum',\n"
+            "  buoy: [6, 9, 12, 15, 18, 21, 24, 27, 30, 33].map(row)"
+            ".concat([{valid_utc: hr(7)}])};\n"
+            "STEPS = [{valid_utc: hr(3), from: 'past'}, {valid_utc: hr(9), from: 'cycle'}];\n")
+
+    def test_eight_frames_from_the_picked_hour(self):
+        got = self._run(self.DATA + (
+            "CURSOR = 1; const r = fcRose('46232'); const s = roseSpan();\n"
+            "const rest = roseAt(r, roseMoment(s));\n"
+            "ROSE_PHASE = 9000 * 7.5 / 8; const late = roseAt(r, roseMoment(s));\n"
+            "console.log(JSON.stringify({n: r.frames.length, t0: r.frames[0].time_utc,"
+            " last: r.frames[7].time_utc, lit: r.frames.map((f) => !!f.train_share),"
+            " from: r.trains_from_utc, span: (s.t1 - s.t0) / 3600000, rest: rest.at, late: late.at}));\n"))
+        assert got["n"] == 8 and got["t0"] == "2026-11-23T09:00:00Z" and got["last"] == "2026-11-24T06:00:00Z"
+        # A tapped row lights the picked hour's frame alone.
+        assert got["lit"] == [True] + [False] * 7 and got["from"] == "2026-11-23T09:00:00Z"
+        # Paused, and after a play's hold, on the picked hour; 24 h of line.
+        assert got["span"] == 24 and got["rest"] == "2026-11-23T09:00:00Z"
+        assert got["late"] == "2026-11-24T06:00:00Z"
+
+    def test_no_petals_without_the_runs_grid(self):
+        got = self._run(self.DATA + (
+            "CURSOR = 0; const past = roseAt(fcRose('46232'), 0).note;\n"
+            "CURSOR = 1; DATA = {...DATA, wave_source: 'partitions', generated_utc: 'x'};\n"
+            "const parts = roseAt(fcRose('46232'), 0);\n"
+            "console.log(JSON.stringify({past, parts: parts.note, frame: !!parts.frame}));\n"))
+        assert got["past"] == "An earlier run's hour keeps no spectrum"
+        assert got["parts"] == "No GFS-Wave spectrum this cycle · forecast from its partitions"
+        assert got["frame"] is False

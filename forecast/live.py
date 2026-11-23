@@ -54,7 +54,7 @@ from collector import localwind
 from collector.gfswave import Bulletin, BulletinError, fetch_bulletin, from_direction
 from collector.wavespec import SpecRecord, WaveSpecError, fetch_station_spec, parse_spec
 
-from . import ensemble, forecastlog, sunset, tidephase
+from . import ensemble, forecastlog, rose, sunset, tidephase
 from .geometry import (HIGH, LOW, Blocker, Spot, geometry_line, geometry_provenance,
                        load, swell_windows, window_entry)
 from .windsea import label_model, label_partitions
@@ -109,6 +109,13 @@ BREAKS = ("coronado_north", "coronado_center", "coronado_south")
 #: banded at all yet. Seven days is where the archive says the model is still
 #: saying something.
 DEFAULT_HOURS = 168
+
+#: What GFS-Wave at 46232 is used for here, for the Forecast tab's station
+#: block (owner's request, 2026-11-23), one line each as LIVE's
+#: `buoys.USES`. Typed, because a use is a decision, not a measurement.
+MODEL_USES = ("Every break's forecast swell numbers",
+              "The wind-sea tag, with the model's own wind",
+              "The Wind chart's model line")
 
 #: When a cycle should be out. 46232's bulletin landed 5 h 22-27 min after the
 #: nominal time on eight cycles measured 2026-09-28/29; one that is later
@@ -291,6 +298,11 @@ class Forecast:
     #: often 46232 has fallen inside that spread (`forecast.ensemble`). Total
     #: Hs only: no direction, so nothing of it reaches a break.
     ensemble: dict = field(default_factory=dict)
+    #: The Buoys tab's station block under its rose (owner's request,
+    #: 2026-11-23; `buoy_about`): where 46232 is, as LIVE's block says it,
+    #: then the model's cadence and uses. The hour's own readings ride on
+    #: each `buoy` entry.
+    buoy_about: dict = field(default_factory=dict)
     #: Whose local wind forecast the hours carry, when it was issued, or why
     #: there is none (`collector.localwind`); the hours themselves are on
     #: each break's `Hour`.
@@ -435,6 +447,38 @@ def read_latest_wind(data_dir: Path, *, until: datetime | None = None) -> dict[s
 NAME_FIXES = {"Tanner Banks": "Tanner Bank"}
 
 
+def buoy_about(data_dir: Path) -> dict:
+    """The Forecast tab's station block facts for 46232 (owner's request,
+    2026-11-23): `forecast.siting`'s range and bearing from Center break,
+    NDBC's coordinates and the depth `collector.stationdepth` read off NDBC's
+    page -- as LIVE's block (`buoys.about`) gives them, never typed -- then
+    the model's run cadence and lag (`CYCLE_LAG_HOURS`'s measurement) and
+    `MODEL_USES`. A fact that cannot be read is left out, not guessed."""
+
+    from collector.stationdepth import load as load_depths
+    from . import siting
+
+    try:
+        placed = {s.station.id: s for s in
+                  siting.survey(metadata_path=Path(data_dir) / "station_metadata.csv")}
+    except (FileNotFoundError, ValueError):
+        placed = {}
+    sited = placed.get(STATION)
+    num = lambda v, n: None if v is None else round(v, n)
+    return {
+        "url": f"https://www.ndbc.noaa.gov/station_page.php?station={STATION}",
+        "range_km": num(sited and sited.range_km, 2),
+        "bearing_deg": num(sited and sited.bearing, 2),
+        "latitude": num(sited and sited.latitude, 3),
+        "longitude": num(sited and sited.longitude, 3),
+        "depth_m": (load_depths(data_dir).get(STATION) or {}).get("depth_m"),
+        # 46232's bulletin landed 5 h 22-27 min after its cycle, eight
+        # cycles measured 2026-09-28/29 (`CYCLE_LAG_HOURS`).
+        "cadence": {"every_h": 6, "lag_min_lo": 322, "lag_min_hi": 327},
+        "uses": list(MODEL_USES),
+    }
+
+
 def station_name(station: str, data_dir: Path) -> str:
     """The buoy's name from the fetched metadata, or its id if unplaced,
     with `NAME_FIXES` applied."""
@@ -572,6 +616,7 @@ def build(
         cycle_utc=bulletin.cycle_utc.strftime(ISO) if bulletin else None,
         station=STATION,
         station_name=station_name(STATION, data_dir),
+        buoy_about=buoy_about(data_dir),
         geometry=geometry_provenance(blockers, [by_id[b] for b in BREAKS]),
         standing_on={
             "geometry": geometry_line(blockers, [by_id[b] for b in BREAKS]),
@@ -696,10 +741,11 @@ def build(
     for row in rows:
         record = spectra.get(row.valid_utc)
         if record is not None:
-            view = at_buoy(GridSpectrum(record.time, record.frequencies,
-                                        record.directions, record.energy))
+            grid = GridSpectrum(record.time, record.frequencies,
+                                record.directions, record.energy)
+            view = at_buoy(grid)
             label_model(view.trains, record.wind_kt, record.wind_from_deg)
-            forecast.buoy.append({
+            entry = {
                 "valid_utc": row.valid_utc.strftime(ISO),
                 "hs_m": round(view.hs_m, 3),
                 "peak_period_s": (None if math.isnan(view.peak_period_s)
@@ -714,7 +760,20 @@ def build(
                      "lobes": lobes_payload(t)}
                     for t in view.trains[:3]
                 ],
-            })
+                # The model's own 10 m wind at the buoy, FROM, as the station
+                # block's Wind shows it (owner's request, 2026-11-23); never
+                # a break's offshore / onshore, which is the NWS wind's.
+                "wind_kt": None if record.wind_kt is None else round(record.wind_kt, 1),
+                "wind_from_deg": (None if record.wind_from_deg is None
+                                  else round(record.wind_from_deg) % 360),
+            }
+            # The Buoys tab's rose and station block on Forecast (owner's
+            # request, 2026-11-23), from this same grid: only on the hours
+            # the picker offers, the rest never shown and thinned away.
+            if row.lead_hours % forecastlog.HOUR_STEP == 0:
+                entry.update(rose.model_reading(grid))
+                entry["rose"] = rose.model_hour(grid, view.trains[:3])
+            forecast.buoy.append(entry)
 
         value = coast_predicted(bay_predicted, row.valid_utc, departure)
         forecast.tide.append(TideAtHour(

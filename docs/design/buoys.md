@@ -70,7 +70,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    is collect-beach-inputs.yml's since the same day** (owner's call; beside
    46232's and 46086's, collect.yml excluding all three): on collect.yml's
    throttled schedule it ran hours behind its spectrum. Each value still
-   shows its own time. LIVE only, as the rose is. At 15 px, the size of
+   shows its own time. On both chains since 2026-11-23, as the rose is
+   (below, "The Forecast tab's rose"). At 15 px, the size of
    "combined" beside the height (owner's request, 2026-10-14). A buoy
    with no spectrum in the six hours keeps its plate and seabed (owner's
    request, 2026-11-23, 46086 eight days dark): its newest spectrum, however
@@ -162,8 +163,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    no site blue on the chord, the break, the swell or a picked window.
    Every rose opens paused on the newest spectrum, the one its headline
    reads, whenever it comes into view (owner's request, 2026-10-11: load,
-   LIVE, the Buoys tab, a headline unfolding; `roseShown`). LIVE
-   only; not carried to any break. The
+   LIVE, the Buoys tab, a headline unfolding; `roseShown`). Not carried
+   to any break. On Forecast since 2026-11-23 (below). The
    Forecast tab's Buoys tab holds 46232 alone. **46047 is on the LIVE Buoys
    tab's Height chart** (owner's request, 2026-10-09), a lighter line under
    46232's at its OWN :20 / :50 stamps — never moved onto 46232's hour, a
@@ -247,3 +248,50 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    frame's tick in ink. A tap goes to a moment, a drag scrubs (pointer
    capture), the arrow keys still step half an hour. This supersedes the
    2026-11-11 top-left toggle and the SVG timeline above.
+
+## The Forecast tab's rose and station block
+
+   **46232's rose and station block on the Forecast tab too** (owner's
+   request and calls, 2026-11-23; before that "LIVE only"). The rose is
+   **GFS-Wave's own directional grid at 46232** (`collector/wavespec.py`),
+   the one the hour's reading and trains are integrated from
+   (`rose.model_hour`, its height the reading's, a test pins it), on each
+   `buoy` entry of forecast.json the picker offers (`lead_h %
+   forecastlog.HOUR_STEP`), and read only from forecast.json, never
+   buoys.json: two chains. **It opens paused on the picked hour** and play
+   runs forward through the next seven the picker offers (`FC_ROSE_HOURS`,
+   24 h; eight ticks 3 h apart), then holds back on the picked hour
+   (`roseMoment`); a new hour picked resets it (`choose`), and the scale
+   is fixed over those eight. A tapped train row lights the picked hour's
+   frame only: its trains are that hour's, and nothing follows a train
+   between hours. A frame is never greyed: a model hour is not stale.
+   **Without this run's grid** -- a run built from partitions, or an
+   earlier run's hour, whose log entry keeps no rose (`forecastlog._no_rose`,
+   ~1 KB an hour) -- the plate and seabed stay with no petals and no ticks
+   (owner's call, revising "no rose"), the tray saying why: "No GFS-Wave
+   spectrum this cycle · forecast from its partitions" / "An earlier run's
+   hour keeps no spectrum".
+   **The station block** (`fcAbout`, forecast.json's `buoy_about` plus the
+   hour's entry): Peak (`at_buoy`'s), Mean period (Tm02 over the reading's
+   own energies) and Spread at peak (Kuik, from the grid's own r1 at the
+   peak bin) by `rose.model_reading`, and **Model wind** (the file's 10 m
+   wind, FROM; never a break's offshore / onshore, which is the NWS
+   wind's); no time lines and no greying; no water or pressure (the model
+   carries neither). Location and depth as LIVE's (`live.buoy_about`, from
+   siting and stationdepth, never typed); Updates "New GFS-Wave run every
+   6 h" / "Usually out 5 h 22–27 min after its cycle" (`CYCLE_LAG_HOURS`'s
+   eight measured cycles); Used for `live.MODEL_USES`.
+   **Measured 2026-11-23:** the model's mean period read 4.3–5.5 s over its
+   first day against the buoy's 6.5–6.9 s at the same time. Its grid runs to
+   0.96 Hz (1.0 s) where 46232's stops at 0.58 Hz (1.7 s); capping the
+   model at 0.58 Hz lengthens it only 0.4–0.8 s, so most of the gap is the
+   model itself. Not trimmed: the block reads the headline's own energies
+   on both chains, and docs.html says the two are not one measurement.
+   **Why 3-hourly, not hourly** (asked the same day): 122 GFS-Wave runs at
+   46232, every third day for a year, first 120 h: 80% of 757 hourly peaks
+   in combined height fall on a picker hour; the nearest picker hour sat
+   0 cm (median) / 1 cm (95th percentile) under a peak, worst 22, 14 and
+   11 cm, all one-hour spikes in fast-rising winter seas. At the buoy, not
+   the breaks, and without the tide's hourly effect on breaking: that is
+   the open measurement if hourly is reconsidered. Payload: the roses add
+   ~54 KB raw / ~11 KB gzipped to the published forecast.json.
