@@ -223,10 +223,17 @@ def shown_lines(forecast: dict, *, step: int = HOUR_STEP,
             "generated_utc": generated, "cycle_utc": forecast["cycle_utc"],
             "valid_utc": valid, "lead_h": hour.get("lead_h"),
             "wave_source": forecast.get("wave_source", ""),
-            "buoy": buoy.get(valid), "tide": tide.get(valid), "breaks": hours,
+            # Not the rose (owner's call, 2026-11-23): its frames are the
+            # Buoys tab's picture of this run's grid, ~1 KB an hour, and an
+            # earlier run's hour shows none, so the log never carries one.
+            "buoy": _no_rose(buoy.get(valid)), "tide": tide.get(valid), "breaks": hours,
             "local_wind_updated_utc": local_updated,
         })
     return out
+
+
+def _no_rose(buoy: dict | None) -> dict | None:
+    return None if buoy is None else {k: v for k, v in buoy.items() if k != "rose"}
 
 
 def _shown_prefix(generated_utc: str) -> str:

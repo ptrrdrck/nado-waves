@@ -4922,9 +4922,10 @@ function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "", 
   const line = measuredLine(measured, (m) => m.buoy);
   const id = station && station.id;
   const head = named ? headRow(buoyTitle(station && station.name), pills) : "";
-  // The station block under the rose, LIVE only as the rose is: on Forecast the
-  // buoy's numbers are a model run, not its spectrum.
-  const note = rose ? buoyAbout(id) : "";
+  // The station block under the rose, on both chains since 2026-11-23 (owner's
+  // request): on Forecast its readings are the picked hour's model run
+  // (`fcAbout`), never the buoy's.
+  const note = rose ? buoyAbout(id, MODE === "forecast" ? fcAbout(buoy) : null) : "";
   if (!buoy || buoy.hs_m == null) {
     return head + valLine('<span class="val"><span class="unit">no spectrum</span></span>') + rose + note + line;
   }
@@ -4977,8 +4978,8 @@ document.addEventListener("keydown", (e) => {
 // A reading's own time: "5:40 AM", or "Nov 9, 11:00 PM" on another day.
 const infoWhen = (iso) => (coastDay(Date.parse(iso)) === coastDay(Date.now())
   ? clock(iso) : `${onDay(iso)}, ${clock(iso)}`).replace(/ (AM|PM)$/, "\u00a0$1");
-function buoyAbout(station) {
-  const a = BUOYS && BUOYS.about && BUOYS.about[station];
+function buoyAbout(station, model = null) {
+  const a = model || (BUOYS && BUOYS.about && BUOYS.about[station]);
   if (!a || !a.uses) return "";
   const r = a.readings || {};
   const never = r.never || [];
@@ -4993,12 +4994,27 @@ function buoyAbout(station) {
     : `<div class="bi-read bi-none"><span class="bi-k">${label}</span>`
       + `<span class="bi-v">none in ${r.stdmet_within_h || 24} h</span></div>`);
   const reads = [];
-  if (r.spectrum_utc) {
+  if (a.model) {
+    // The picked hour's GFS-Wave grid at the buoy (owner's request,
+    // 2026-11-23): its peak as the reading's, its mean period and spread,
+    // and the model's own wind. No time line, and nothing greys: the hour is
+    // the picker's, and none of it was measured. The model carries no water
+    // or pressure, so neither is said.
+    const b = a.hour || {};
+    reads.push(b.peak_period_s != null
+      ? cell("wave", "Peak", `${b.peak_period_s.toFixed(1)} s, ${compass(b.peak_direction_deg)}`) : "");
+    reads.push(b.mean_period_s != null ? cell("wave", "Mean period", `${b.mean_period_s.toFixed(1)} s`) : "");
+    reads.push(b.spread_deg != null ? cell("spread", "Spread at peak", `${b.spread_deg}&deg;`) : "");
+    reads.push(b.wind_kt != null
+      ? cell("wind", "Model wind", Math.round(b.wind_kt) === 0 ? "Calm" : `${point(b.wind_from_deg)} ${speed(b.wind_kt)}`.trim())
+      : "");
+  } else if (r.spectrum_utc) {
     reads.push(r.peak_period_s != null
       ? cell("wave", "Peak", `${r.peak_period_s.toFixed(1)} s, ${compass(r.peak_from_deg)}`, r.spectrum_utc) : "");
     reads.push(r.mean_period_s != null ? cell("wave", "Mean period", `${r.mean_period_s.toFixed(1)} s`, r.spectrum_utc) : "");
     reads.push(r.spread_deg != null ? cell("spread", "Spread at peak", `${r.spread_deg}&deg;`, r.spectrum_utc) : "");
   }
+  if (!a.model) {
   reads.push(r.water_c != null
     ? cell("water", "Water", dual(`${Math.round(fahrenheit(r.water_c))} &deg;F`, `${r.water_c.toFixed(1)} &deg;C`), r.water_utc)
     : none("water", "Water", "water"));
@@ -5010,6 +5026,7 @@ function buoyAbout(station) {
     ? cell("pressure", "Pressure", dual(`${(r.pressure_hpa / HPA_PER_INHG).toFixed(2)} inHg`, `${Math.round(r.pressure_hpa)} hPa`),
         r.pressure_utc)
     : none("pressure", "Pressure", "pressure"));
+  }
   const fact = (icon, label, body) => `<div class="bi-fact" role="group" aria-label="${label}">${BI_ICON[icon]}<div>${body}</div></div>`;
   const ns = (v, pos, neg) => `${Math.abs(v).toFixed(3)}&deg;&nbsp;${v >= 0 ? pos : neg}`;
   const coords = a.latitude != null && a.longitude != null
@@ -5024,15 +5041,30 @@ function buoyAbout(station) {
   const located = where ? `<div>${where}</div>${sub(coords)}${sub(deep)}`
     : coords ? `<div>${coords}</div>${sub(deep)}` : deep ? `<div>${deep}</div>` : "";
   const c = a.cadence;
-  const every = !c ? "" : c.every_min === 60
+  // A model run's cadence: every six hours, out 5 h 22-27 min after its
+  // cycle on the runs measured (`live.CYCLE_LAG_HOURS`).
+  const lag = (m) => `${Math.floor(m / 60)} h ${m % 60}`;
+  const every = !c ? "" : c.every_h ? `New GFS-Wave run every ${c.every_h} h`
+    : c.every_min === 60
     ? `Spectrum every hour, ${c.marks[0] === 0 ? "on the hour" : `at :${pad2(c.marks[0])}`}`
     : `Spectrum every ${c.every_min} min, at ${c.marks.map((m) => `:${pad2(m)}`).join(" and ")}`;
   return `<div class="buoy-info${BI_TIMES ? " bi-times" : ""}">`
     + `<div class="bi-reads">${reads.join("")}</div><div class="bi-rule"></div><div class="bi-facts">`
     + (located ? fact("pin", "Location", located) : "")
-    + (every ? fact("clock", "Updates", `<div>${every}</div>${sub(`Usually collected within ${c.lag_min} min`)}`) : "")
+    + (every ? fact("clock", "Updates", `<div>${every}</div>${sub(c.every_h
+      ? `Usually out ${lag(c.lag_min_lo)}\u2013${c.lag_min_hi % 60} min after its cycle`
+      : `Usually collected within ${c.lag_min} min`)}`) : "")
     + fact("uses", "Used for", `<div class="bi-uses">${a.uses.map((u) => `<div>${u}</div>`).join("")}</div>`)
     + `</div></div>`;
+}
+
+// The Forecast tab's station block (owner's request, 2026-11-23): where
+// 46232 is, from forecast.json's `buoy_about` (as LIVE's from buoys.json),
+// the model's cadence and uses, and the picked hour's own readings off its
+// `buoy` entry. No forecast.json block, no block.
+function fcAbout(buoy) {
+  const a = DATA && DATA.buoy_about;
+  return a && a.uses ? {...a, model: true, hour: buoy || {}} : null;
 }
 
 // In a break headline's row, so the buoys' line sits where a break's does;
@@ -5308,13 +5340,59 @@ const roseOnSea = () => !!(window.roseSea && window.roseSea.ok());
 // swell, since nothing follows a train from one spectrum to the next.
 let ROSE_TRAIN = {};
 
-const roseOf = (station) => (BUOYS && BUOYS.roses && BUOYS.roses[station]) || null;
+const roseOf = (station) => (MODE === "forecast" ? fcRose(station)
+  : (BUOYS && BUOYS.roses && BUOYS.roses[station]) || null);
+
+// THE FORECAST TAB'S ROSE (owner's request and calls, 2026-11-23): GFS-Wave's
+// own directional grid at 46232, the one the hour's reading is integrated
+// from (`rose.model_hour`, on each `buoy` entry the picker offers). It opens
+// on the picked hour, the one the headline reads; play runs forward through
+// the next seven the picker offers, every FC_ROSE_STEP_H, then back to the
+// picked hour. Only this run's hours: an earlier run's hour kept no grid, and
+// a run built from partitions has none, so the plate stands on the seabed
+// with no petals and the tray says why. A tapped row lights the picked
+// hour's frame only: its trains are that hour's, and nothing follows a train
+// from one hour to the next.
+const FC_ROSE_HOURS = 24;
+// The picker's step: publish.HOUR_STEP, and the `lead_h % 3` filter.
+const FC_ROSE_STEP_H = 3;
+let FC_ROSE = {key: null, rose: null};
+function fcRose(station) {
+  const step = DATA && STEPS.length ? STEPS[CURSOR] : null;
+  if (!step || station !== DATA.station) return null;
+  const key = `${DATA.generated_utc}|${step.from}|${step.valid_utc}`;
+  if (FC_ROSE.key === key) return FC_ROSE.rose;
+  const t0 = Date.parse(step.valid_utc);
+  const every = FC_ROSE_STEP_H * 3600000;
+  const rose = {fc: true, t0, t1: t0 + FC_ROSE_HOURS * 3600000, interval_min: FC_ROSE_STEP_H * 60, frames: []};
+  if (step.from === "past") rose.none = "An earlier run's hour keeps no spectrum";
+  else if (DATA.wave_source !== "spectrum") rose.none = "No GFS-Wave spectrum this cycle · forecast from its partitions";
+  else {
+    const rows = (DATA.buoy || []).filter((b) => b.rose
+      && Date.parse(b.valid_utc) >= t0 && Date.parse(b.valid_utc) < rose.t1);
+    rose.frames = rows.map((b) => {
+      if (Date.parse(b.valid_utc) === t0) return b.rose;
+      const {train_share, trains, ...rest} = b.rose;
+      return rest;
+    });
+    const first = rows.length && Date.parse(rows[0].valid_utc) === t0 ? rows[0].rose : null;
+    if (first && first.trains) {
+      rose.trains = first.trains;
+      rose.trains_from_utc = step.valid_utc;
+    }
+    // The run's last hours: the line ends a step after its last frame.
+    if (rows.length) rose.t1 = Math.min(rose.t1, Date.parse(rows[rows.length - 1].valid_utc) + every);
+  }
+  FC_ROSE = {key, rose};
+  return rose;
+}
 
 // A row can light the rose only when the rose's trains were split from the
 // very spectrum the reading above it lists.
 function roseTrainOK(station, i) {
   const rose = roseOf(station);
   if (!rose || !rose.trains || !rose.trains[i]) return false;
+  if (rose.fc) return !!rose.trains_from_utc;
   const observed = NOW && station === NOW.station ? NOW.observed_utc
     : (((BUOYS && BUOYS.buoys) || []).find((b) => b.station === station) || {}).observed_utc;
   return !!observed && observed === rose.trains_from_utc;
@@ -5338,6 +5416,10 @@ const roseTime = (f) => new Date(f.time_utc).getTime();
 // one, just outside the six hours (owner's report, 2026-10-07). The earlier
 // buoy loses nothing: its first frame is the one in force at the start.
 function roseSpan() {
+  if (MODE === "forecast") {
+    const r = DATA && roseOf(DATA.station);
+    return r ? {t0: r.t0, t1: r.t1} : null;
+  }
   const firsts = [], times = [];
   Object.values((BUOYS && BUOYS.roses) || {}).forEach((r) => {
     const own = (r.frames || []).map(roseTime);
@@ -5354,7 +5436,12 @@ function roseSpan() {
   return {t0: Math.max(...firsts), t1: Math.max(...times)};
 }
 
+// On Forecast the rest is the picked hour, the loop's start, and the hold
+// after a play returns there.
 function roseMoment(span) {
+  if (MODE === "forecast") {
+    return ROSE_PHASE >= ROSE_PLAY_MS ? span.t0 : span.t0 + (span.t1 - span.t0) * ROSE_PHASE / ROSE_PLAY_MS;
+  }
   return ROSE_PHASE >= ROSE_PLAY_MS ? span.t1
     : span.t0 + (span.t1 - span.t0) * ROSE_PHASE / ROSE_PLAY_MS;
 }
@@ -5402,6 +5489,8 @@ const roseFramesOf = (rose) => (rose && rose.frames && rose.frames.length ? rose
 // frame of the loop: no tick on the six hours, its day and time in the pill.
 function roseAt(rose, t) {
   const frames = rose.frames || [];
+  if (rose.none) return {key: "none", at: new Date(rose.t0).toISOString(), note: rose.none};
+  const what = rose.fc ? "No GFS-Wave spectrum" : "No spectrum";
   if (!frames.length && rose.last) {
     return {key: `last${rose.last.time_utc}`, frame: rose.last, last: true, at: rose.last.time_utc,
       note: "No spectrum in the last six hours"};
@@ -5411,14 +5500,14 @@ function roseAt(rose, t) {
   const every = (rose.interval_min || 60) * 60000;
   if (k < 0) {
     const at = new Date(t).toISOString();
-    return {key: "none", at, note: "No spectrum yet at " + clock(at)};
+    return {key: "none", at, note: `${what}${rose.fc ? "" : " yet"} at ${clock(at)}`};
   }
   // The newest is shown until a newer one lands, under its own time: a stamp
   // not published yet is not a gap, and a paused rose rests on the newest.
   const due = roseTime(frames[k]) + every;
   if (k === frames.length - 1 || t + 1000 < due) return {key: String(k), frame: frames[k], k, at: frames[k].time_utc};
   const at = new Date(due).toISOString();
-  return {key: "gap" + k, at, note: `No spectrum at ${clock(at)}`};
+  return {key: "gap" + k, at, note: `${what} at ${clock(at)}`};
 }
 
 const rosePt = (r, deg) => {
@@ -5447,6 +5536,7 @@ const rosePct = (s) => `${Math.round(s * 100)}%`;
 // and the line under it; never the rings or N / E / S / W.
 const roseAged = (rose, state) => {
   const frames = (rose && rose.frames) || [];
+  if (rose && rose.fc) return false;                     // a model hour is never stale
   if (state && state.last) return true;
   if (!state || !state.frame || !Number.isInteger(state.k)) return false;
   const until = state.k + 1 < frames.length ? roseTime(frames[state.k + 1]) : Date.now();
@@ -5527,7 +5617,9 @@ function roseReadout(state, station) {
   const sep = " · ";
   const scale = seg(roseScaleLine(ROSE_MODE, station))
     + (roseOnSea() ? sep + seg(roseReach()) : "");
-  if (!state.frame) return scale + sep + seg(state.note);
+  const said = state.note ? state.note.split(sep).map((n) => seg(n)).join(sep) : "";
+  if (roseOf(station) && roseOf(station).none) return (roseOnSea() ? seg(roseReach()) + sep : "") + said;
+  if (!state.frame) return scale + sep + said;
   if (state.last) return scale + sep + seg(state.note) + sep + seg(`last ${roseLastWhen(state.frame)}`);
   const f = state.frame;
   const k = rosePick(station);
@@ -5611,7 +5703,7 @@ function roseBlock(station) {
   const v = roseView(station);
   // With nothing in the six hours the plate still stands, the last spectrum
   // greyed on it and the tray saying so (owner's request, 2026-11-23).
-  if (!v || !roseFramesOf(rose).length) {
+  if (!v || (!roseFramesOf(rose).length && !rose.none)) {
     return `<p class="quiet buoy-note rose-none">No spectrum from ${buoyFeed(station)} in the last six hours.</p>`;
   }
   // On a plate as the swell's drawing and map are (owner's requests,
@@ -5663,7 +5755,6 @@ function roseTick() {
   const at = performance.now();
   const dt = Math.min(at - ROSE_LAST, 250);
   ROSE_LAST = at;
-  if (MODE !== "now") return;
   if (ROSE_PLAYING) ROSE_PHASE = (ROSE_PHASE + dt) % (ROSE_PLAY_MS + ROSE_HOLD_MS);
   document.querySelectorAll("[data-rose]").forEach(roseUpdate);
 }
@@ -5698,7 +5789,7 @@ function roseShown() {
 
 // A tap or an arrow key on the six hours goes to that moment and pauses.
 function roseSeek(phase) {
-  ROSE_PHASE = Math.max(0, Math.min(ROSE_PLAY_MS, phase));
+  ROSE_PHASE = Math.max(0, Math.min(MODE === "forecast" ? ROSE_PLAY_MS - 1 : ROSE_PLAY_MS, phase));
   setRosePlaying(false);
   document.querySelectorAll("[data-rose]").forEach(roseUpdate);
 }
@@ -5770,12 +5861,14 @@ function wireRoses() {
     if (!e.target.closest("[data-rose-scrub]")) return;
     const span = roseSpan();
     if (!span || span.t1 <= span.t0) return;
-    // Half an hour a key: the context buoys' stamp spacing, the finest.
-    const half = ROSE_PLAY_MS * 1800000 / (span.t1 - span.t0);
+    // Half an hour a key: the context buoys' stamp spacing, the finest; on
+    // Forecast the picker's step.
+    const fc = MODE === "forecast";
+    const half = ROSE_PLAY_MS * (fc ? FC_ROSE_STEP_H * 3600000 : 1800000) / (span.t1 - span.t0);
     const step = e.key === "ArrowRight" ? half : e.key === "ArrowLeft" ? -half : null;
     if (step == null) return;
     e.preventDefault();
-    roseSeek(Math.min(ROSE_PHASE, ROSE_PLAY_MS) + step);
+    roseSeek((ROSE_PHASE >= ROSE_PLAY_MS ? (fc ? 0 : ROSE_PLAY_MS) : ROSE_PHASE) + step);
   });
 }
 
@@ -8950,6 +9043,7 @@ function renderConditions(step, cards) {
       source: buoy ? [] : [`The spectral product was unavailable for this cycle, so there are no trains`],
       due: modelPills("fc-swell", anchor, "GFS-Wave", run),
       chart: true,
+      buoyRose: roseBlock(DATA.station),
     }));
 
     // Wind and tide under an earlier run's hour: the log kept neither, so
@@ -9247,7 +9341,11 @@ function note() {
 }
 
 function setMode(mode) {
-  if (mode === "now" && MODE !== "now") roseShown();
+  // Each chain's rose comes into view paused on its own rest, no row lit.
+  if (mode !== MODE) {
+    ROSE_TRAIN = {};
+    roseShown();
+  }
   MODE = mode;
   if (mode === "forecast") advancePastDefault();
   remember(KEEP.mode, mode);
@@ -9612,6 +9710,11 @@ function advancePastDefault() {
 // The reader stepped the picker: that hour is now theirs.
 function choose(cursor) {
   CURSOR = cursor;
+  // A new hour: its rose paused on it, its own trains unlit.
+  if (MODE === "forecast" && DATA) {
+    ROSE_TRAIN[DATA.station] = null;
+    roseShown();
+  }
   CHOSEN = currentHour();
   show();
 }

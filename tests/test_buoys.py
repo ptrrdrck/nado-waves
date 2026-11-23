@@ -307,7 +307,7 @@ class TestTheStationBlock:
     what it is used for -- each with a symbol, every use alike, no window
     line, and the name and station left to the card."""
 
-    def _render(self, about, units="both"):
+    def _render(self, about, units="both", call=None):
         node = shutil.which("node")
         if node is None:
             pytest.skip("node is not available")
@@ -326,7 +326,8 @@ class TestTheStationBlock:
             + PAGE[PAGE.index("const infoWhen = "):PAGE.index("function buoyAbout(")]
             + _fn("buoyAbout") + "\n}\n"
             + f"const BUOYS = {{about: {json.dumps(about)}}};\n"
-            + "for (const s of ['46232', '46086', '46047']) console.log(buoyAbout(s));\n"
+            + (f"console.log({call});\n" if call else
+               "for (const s of ['46232', '46086', '46047']) console.log(buoyAbout(s));\n")
         )
         out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
         return out.stdout.strip().split("\n")
@@ -359,6 +360,29 @@ class TestTheStationBlock:
         text = re.sub(r"<[^>]+>", "|", line).replace("&deg;", "°").replace("&nbsp;", " ")
         text = text.replace("&#8599;", "↗").replace("&middot;", "·")
         return [t for t in (x.strip() for x in text.split("|")) if t]
+
+    def test_the_forecast_block(self):
+        """On Forecast (owner's request, 2026-11-23): the picked hour's model
+        readings, no time lines, no water or pressure (the model has none),
+        the model's cadence and uses."""
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        about = {k: v for k, v in self.ABOUT["46232"].items() if k not in ("readings", "cadence", "uses")}
+        model = {**about, "model": True, "uses": ["Every break's forecast swell numbers"],
+                 "cadence": {"every_h": 6, "lag_min_lo": 322, "lag_min_hi": 327},
+                 "hour": {"peak_period_s": 15.6, "peak_direction_deg": 200, "mean_period_s": 5.2,
+                          "spread_deg": 26, "wind_kt": 10.2, "wind_from_deg": 327}}
+        got = self._render({**self.ABOUT, "model": model}, call="buoyAbout('46232', BUOYS.about.model)")
+        assert self._plain(got[0]) == [
+            "Peak", "15.6 s, SSW 200°", "Mean period", "5.2 s", "Spread at peak", "26°",
+            "Model wind", "NNW 12 mph", "(10 kt)",
+            "18 mi", "(29 km)", "offshore, 231° SW of Center",
+            "32.517° N, 117.425° W ↗", "In 3,444 ft", "(1,050 m)", "of water",
+            "New GFS-Wave run every 6 h", "Usually out 5 h 22–27 min after its cycle",
+            "Every break's forecast swell numbers",
+        ]
+        assert 'role="button"' not in got[0]
 
     def test_the_approved_block(self):
         got = self._render(self.ABOUT)
@@ -427,8 +451,11 @@ class TestTheStationBlock:
                        "32.517", "117.425"):
             assert figure not in source, figure
 
-    def test_live_only_as_the_rose_is(self):
-        assert 'const note = rose ? buoyAbout(id) : "";' in _fn("buoyPanel")
+    def test_under_the_rose_on_both_chains(self):
+        """On Forecast since 2026-11-23 (owner's request): the picked hour's
+        model readings, never the buoy's (`fcAbout`)."""
+        assert ('const note = rose ? buoyAbout(id, MODE === "forecast" ? fcAbout(buoy) : null) : "";'
+                in _fn("buoyPanel"))
 
 
 class TestTheStationReadings:
