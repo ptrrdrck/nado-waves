@@ -820,6 +820,13 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 #when-label{white-space:nowrap}
 .seek-when .wd-short{display:none}
 @media (max-width:348px){.seek-when .wd-long{display:none}.seek-when .wd-short{display:inline}}
+/* The NWS triangle before the weekday, on a phone and the stack, while an
+   alert is in force over the hour: in ink, its left edge on the alert
+   lines' triangles below and the weekday on their words (16 px and the
+   8 px gap), so the row takes 24 px more and the short weekday comes in
+   24 px sooner. Its tap target reaches 6 px left into the row's padding. */
+.seek .seek-alert{width:26px;margin-left:-6px;padding:0 4px 0 6px;color:var(--ink);place-items:center start}
+@media (max-width:372px){.seek.alerting .wd-long{display:none}.seek.alerting .wd-short{display:inline}}
 .seek-when svg{flex:none;width:13px;height:13px;color:var(--soft)}
 /* The real control, invisible but on top, so a tap opens the native list. */
 .seek-when select{position:absolute;inset:0;width:100%;height:100%;opacity:0;
@@ -1621,6 +1628,12 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
        <select>, laid transparently over the label, so the native picker
        opens on tap and the control stays keyboard-reachable. -->
   <nav class="seek" id="seek" aria-label="Forecast hour" hidden>
+    <!-- On a phone and the stack, the hour's NWS alerts fold under this
+         triangle (`fcAlertsFolded`); shown only while one is in force. -->
+    <button type="button" class="seek-alert" id="fc-alert-toggle" aria-controls="fc-alerts"
+      aria-expanded="false" aria-label="NWS alerts" hidden><svg viewBox="0 0 24 24"
+      aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path
+      d="M12 9v4"/><path d="M12 17h.01"/></svg></button>
     <span class="seek-when">
       <span id="when-label">&hellip;</span><svg viewBox="0 0 16 16"
         aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg><span class="count when-time"
@@ -9095,8 +9108,18 @@ function drawPage() {
   $("tab-forecast").setAttribute("aria-selected", String(forecasting));
 
   const alertsHere = forecasting ? fcAlerts(STEPS[CURSOR]) : "";
-  $("fc-alerts").hidden = !alertsHere;
-  $("fc-alerts").innerHTML = alertsHere;
+  const alertFold = $("fc-alerts"), alertRun = FOLD_MOVES.get(alertFold);
+  const folded = Boolean(alertsHere) && fcAlertsFolded();
+  $("fc-alert-toggle").hidden = !folded;
+  $("fc-alert-toggle").setAttribute("aria-expanded", String(FC_ALERTS_OPEN));
+  $("seek").classList.toggle("alerting", folded);
+  if (alertRun && !folded) {
+    alertRun.anims.forEach((a) => a.cancel());
+    FOLD_MOVES.delete(alertFold);
+    alertFold.classList.remove("fold-moving");
+  }
+  if (!FOLD_MOVES.has(alertFold)) alertFold.hidden = !alertsHere || (folded && !FC_ALERTS_OPEN);
+  alertFold.innerHTML = alertsHere;
 
   if (forecasting) {
     const step = STEPS[CURSOR];
@@ -9162,6 +9185,17 @@ function fcAlerts(step) {
   }
   const rows = [...byEvent.values()].sort((x, y) => Date.parse(x.start_utc) - Date.parse(y.start_utc));
   return rows.map((a) => alertRow(a, step.valid_utc)).join("");
+}
+// On a phone and the stack the hour's alerts fold under a triangle before
+// the weekday: tapped, they slide out where they sit, as the Briefing does;
+// tapped again, back. Shut at start, and kept as it is from hour to hour.
+// The tablet and the console show them as lines, as before.
+let FC_ALERTS_OPEN = false;
+const fcAlertsFolded = () => LAYOUT === "phone" || LAYOUT === "stack";
+function toggleFcAlerts() {
+  FC_ALERTS_OPEN = !FC_ALERTS_OPEN;
+  $("fc-alert-toggle").setAttribute("aria-expanded", String(FC_ALERTS_OPEN));
+  slideFolds([$("fc-alerts")], FC_ALERTS_OPEN);
 }
 // A tapped alert shows NWS's headline under it, or hides it; its link goes
 // to NWS's page.
@@ -9575,6 +9609,7 @@ function boot(data, observed, measured, series, windtide) {
   }, {capture: true, passive: true});
   window.addEventListener("resize", () => briefEdges(true), {passive: true});
   $("fc-alerts").addEventListener("click", toggleAlert);
+  $("fc-alert-toggle").addEventListener("click", toggleFcAlerts);
   $("briefing").addEventListener("click", (e) => {
     // The line carried on is the line's, so it opens and shuts the fold
     // as the line does (owner's request, 2026-11-02).

@@ -204,6 +204,19 @@ class TestThePage:
     def test_the_forecast_line_sits_above_the_swell_card(self):
         assert PAGE.index('id="fc-alerts"') < PAGE.index('<section id="panel"')
 
+    def test_a_phone_and_the_stack_fold_them_under_a_triangle_before_the_weekday(self):
+        """Owner's request, 2026-11-23: on a phone and the stack the Forecast
+        tab's alerts fold under a triangle on the hour's line, before the
+        weekday; tapped, they slide out where they sat, as the Briefing does.
+        The tablet and the console keep the lines."""
+        seek = PAGE[PAGE.index('<nav class="seek" id="seek"'):PAGE.index("</nav>", PAGE.index('id="seek"'))]
+        assert seek.index('id="fc-alert-toggle"') < seek.index('id="when-label"')
+        assert 'aria-controls="fc-alerts"' in seek
+        assert 'const fcAlertsFolded = () => LAYOUT === "phone" || LAYOUT === "stack";' in PAGE
+        toggle = PAGE[PAGE.index("function toggleFcAlerts()"):]
+        assert 'slideFolds([$("fc-alerts")], FC_ALERTS_OPEN)' in toggle[:toggle.index("\n}\n")]
+        assert "let FC_ALERTS_OPEN = false;" in PAGE
+
     def test_nws_words_are_escaped(self):
         row = PAGE[PAGE.index("const alertRow = "):]
         row = row[:row.index("\n};\n")]

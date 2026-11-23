@@ -160,7 +160,15 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    Swell card on the backdrop (`#fc-alerts`, `fcAlerts`), every version in
    force from the hour shown to the next one the picker offers, "from …"
    when it starts after that hour, from `alerts.json` (48 h back, as NWS had
-   it by the build, `forecast.alerts`, each collection). The archive is
+   it by the build, `forecast.alerts`, each collection). On a phone and
+   the stack they fold under a triangle on the hour's line, before the
+   weekday (`#fc-alert-toggle`, `fcAlertsFolded`; owner's request,
+   2026-11-23): shown only while an alert is in force over the hour, shut
+   at start, kept open or shut from hour to hour, sliding out where the
+   lines sat by `slideFolds` (the Briefing's 240 ms). Its left edge is on
+   the lines' triangles and the weekday on their words, so the row takes
+   24 px more and the short weekday comes in at 372 px, not 348. The
+   tablet and the console keep the lines. The archive is
    every alert the active listing returns for CAZ043 and PZZ750, each its
    own `/alerts/{id}` document byte for byte, written once by its id
    (`data/alerts/YYYY/<oid>.json`); an alert issued and ended between
