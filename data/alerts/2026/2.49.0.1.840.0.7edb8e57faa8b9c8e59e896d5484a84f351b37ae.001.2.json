@@ -1,0 +1,97 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.2",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.2",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.2",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.8e0b802957d4cd343f38c8ce4c1352ebce27ffb8.001.3",
+                "identifier": "urn:oid:2.49.0.1.840.0.8e0b802957d4cd343f38c8ce4c1352ebce27ffb8.001.3",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-22T11:40:00-08:00"
+            }
+        ],
+        "sent": "2026-11-22T19:05:00-08:00",
+        "effective": "2026-11-22T19:05:00-08:00",
+        "onset": "2026-11-22T19:05:00-08:00",
+        "expires": "2026-11-23T06:00:00-08:00",
+        "ends": "2026-11-24T04:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Update",
+        "category": "Met",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Coastal Flood Advisory",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Coastal Flood Advisory issued November 22 at 7:05PM PST until November 24 at 4:00AM PST by NWS San Diego CA",
+        "description": "* WHAT...For the Coastal Flood Advisory, minor coastal flooding.\nFor the Coastal Flood Warning, significant coastal flooding\nexpected.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...For the Coastal Flood Advisory, until 4 AM PST Tuesday.\nFor the Coastal Flood Warning, from 4 AM Tuesday to 1 PM PST\nFriday. Most susceptible time of flooding will be around the\ntime of the morning high tide, with peak tides trending from 7\nAM on Monday to 10 AM on Friday.\n\n* IMPACTS...Numerous roads may be closed. Low lying property\nincluding homes, businesses, and some critical infrastructure\nwill be inundated. Some shoreline erosion will occur.\n\n* ADDITIONAL DETAILS...King tides peak Tuesday through\nWednesday, reaching 7.9-8.3 feet, likely re-breaking the all-\ntime tidal records set back in late October. Background surf\non top of the tides will remain around 3-5 feet through\nWednesday, but an incoming swell Wednesday into Thursday will\nbring a sharp increase to the surf by Thursday morning's high\ntide. Breaking waves may reach 6-8 feet with sets up to 10\nfeet on west-facing beaches. Surf then moderates some into\nFriday, but still looks to be around 5-8 feet.",
+        "instruction": "Take the necessary actions to protect flood-prone property. If\ntravel is required, do not drive around barricades or through\nwater of unknown depth.",
+        "response": "Monitor",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 230305"
+            ],
+            "NWSheadline": [
+                "COASTAL FLOOD ADVISORY REMAINS IN EFFECT UNTIL 4 AM PST TUESDAY... ...COASTAL FLOOD WARNING REMAINS IN EFFECT FROM 4 AM TUESDAY TO 1 PM PST FRIDAY"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.CON.KSGX.CF.Y.0011.000000T0000Z-261124T1200Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-24T04:00:00-08:00"
+            ],
+            "expiredReferences": [
+                "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ab8545ec654b0e687a81cc8ac7a936e8328e87b3.001.1,2026-11-22T05:24:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.30595d27213a98c94d21ecc830bd5f1e0e51fcb4.001.1,2026-11-21T18:54:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ee640d3d8c6eaf934df52cf360bafd7eeb68a826.001.1,2026-11-21T12:54:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.9691fe6ac4252df8833be7e74f279b2957487197.001.1,2026-11-21T05:37:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.6aabe10fa29c9fd6a08d6dffb2cf230114dc3afc.001.1,2026-11-20T21:51:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.61e41461528412bb9d9bc52c2353f1434a0d1a4a.001.1,2026-11-20T10:56:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "CFY"
+            ]
+        }
+    }
+}
