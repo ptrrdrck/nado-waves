@@ -1543,8 +1543,12 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 .sm-cap{position:relative;margin-top:0;padding:7px 12px 8px;color:var(--ink);text-align:center;
   background:var(--paper);border:1px solid var(--line);border-radius:0 0 7px 7px;
   font:400 14px/21px Archivo,sans-serif;text-wrap:balance;pointer-events:none}
+/* The headings' hairline (owner's request, 2026-11-23): a stroke painted
+   under the fill, so only its outer half shows round each letter, as the
+   edges' degrees on the canvas are stroked. */
 .sm-tag{color:var(--sm-ink,#fff);font:600 11px/1 "Barlow Condensed",Archivo,sans-serif;letter-spacing:.05em;
-  text-transform:uppercase;white-space:nowrap;text-shadow:var(--sm-glow,none);pointer-events:none}
+  text-transform:uppercase;white-space:nowrap;text-shadow:var(--sm-glow,none);pointer-events:none;
+  -webkit-text-stroke:var(--sm-outline-w,0) var(--sm-outline,transparent);paint-order:stroke fill}
 .sm-tag span{display:inline-block;transform:translate(8px,-50%)}
 /* Along the map's foot, aligned right: return, then + and - (owner's
    request, 2026-11-08), 4 px in from the corner, the card's colour with a
@@ -9815,17 +9819,22 @@ Promise.all([
   // colour on the map. On a dark map the rays add up where they crowd
   // (`raysGlow`); on a light one that washes out to white, so they lie over
   // each other instead.
+  // The headings' hairline: the NDBC tags and the outermost edges' degrees,
+  // stroked this wide under their fill, so half of it shows (the mock's).
+  const HEADING_OUTLINE_PX = 1.5;
   const MAP_THEMES = {
     light: {land: "#e9e0cc", shallow: "#d6ecf4", deep: "#2c628a", curve: 0.95,
       contour: "#173f5c", contourOpacity: 0.22, contourWidth: 0.8, coast: "#7d6d50", coastWidth: 1,
       window: "#ffffff", windowOpacity: 0.1, shadow: "#0d2a40", shadowOpacity: 0.1,
       ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
-      rays: "#e8590c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false},
+      rays: "#e8590c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false,
+      outline: true, outlineColor: "#000000"},
     dark: {land: "#38362f", shallow: "#3a6d85", deep: "#0a1b28", curve: 0.85,
       contour: "#a6cde0", contourOpacity: 0.28, contourWidth: 0.8, coast: "#d9ceb6", coastWidth: 1.1,
       window: "#ffffff", windowOpacity: 0.1, shadow: "#000000", shadowOpacity: 0.1,
       ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
-      rays: "#ffd84d", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true},
+      rays: "#ffd84d", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true,
+      outline: true, outlineColor: "#000000"},
   };
   // The map's two other looks, one at a time and each in the page's light or
   // dark (owner's picks, 2026-11-16, from the same mock): GRAYSCALE, the
@@ -9839,24 +9848,28 @@ Promise.all([
         contour: "#3b3b3b", contourOpacity: 0.22, contourWidth: 0.8, coast: "#6f6f6f", coastWidth: 1,
         window: "#ffffff", windowOpacity: 0.1, shadow: "#282828", shadowOpacity: 0.1,
         ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
-        rays: "#25292c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false},
+        rays: "#25292c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false,
+        outline: true, outlineColor: "#000000"},
       dark: {land: "#363636", shallow: "#666666", deep: "#191919", curve: 0.85,
         contour: "#c6c6c6", contourOpacity: 0.28, contourWidth: 0.8, coast: "#cfcfcf", coastWidth: 1.1,
         window: "#ffffff", windowOpacity: 0.1, shadow: "#000000", shadowOpacity: 0.1,
         ink: "#ffffff", halo: "#ffffff", haloOpacity: 0, inkOpacity: 1,
-        rays: "#dbdbdb", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true},
+        rays: "#dbdbdb", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true,
+        outline: true, outlineColor: "#000000"},
     },
     lines: {
       light: {land: "#e3e8e6", shallow: "#f6f8f7", deep: "#f6f8f7", curve: 1,
         contour: "#16232b", contourOpacity: 0.35, contourWidth: 0.8, coast: "#16232b", coastWidth: 1.3,
         window: "#ffffff", windowOpacity: 0, shadow: "#16232b", shadowOpacity: 0.1,
         ink: "#16232b", halo: "#ffffff", haloOpacity: 0.35, inkOpacity: 1,
-        rays: "#e8590c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false},
+        rays: "#e8590c", raysOpacity: 0.5, raysWidth: 1.3, raysGlow: false,
+        outline: true, outlineColor: "#000000"},
       dark: {land: "#1d2c34", shallow: "#132029", deep: "#132029", curve: 1,
         contour: "#c9d7dd", contourOpacity: 0.45, contourWidth: 0.8, coast: "#e4ece9", coastWidth: 1.4,
         window: "#ffffff", windowOpacity: 0.08, shadow: "#000000", shadowOpacity: 0.3,
         ink: "#ffffff", halo: "#0e1a20", haloOpacity: 0.35, inkOpacity: 1,
-        rays: "#ffd84d", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true},
+        rays: "#ffd84d", raysOpacity: 0.55, raysWidth: 1.3, raysGlow: true,
+        outline: true, outlineColor: "#000000"},
     },
   };
   // The layer list (owner's picks, 2026-11-16): windows, shadows and the
@@ -10416,6 +10429,8 @@ Promise.all([
       });
       this.el.style.background = th.land;
       this.el.style.setProperty("--sm-ink", rgba(th.ink, 0.9 * k));
+      this.el.style.setProperty("--sm-outline", th.outline ? th.outlineColor : "transparent");
+      this.el.style.setProperty("--sm-outline-w", th.outline ? `${HEADING_OUTLINE_PX}px` : "0");
       this.el.style.setProperty("--sm-glow", th.haloOpacity > 0
         ? `0 0 2px ${rgba(th.halo, Math.min(1, 2.8 * th.haloOpacity))},0 0 4px ${rgba(th.halo, Math.min(1, 2.8 * th.haloOpacity))}` : "none");
       map.triggerRepaint();
@@ -10512,6 +10527,10 @@ Promise.all([
           const [x, y] = g.at(a, g.r * 0.86), text = deg(this.b.normal + a);
           if (th.haloOpacity > 0) {
             ctx.lineWidth = 3; ctx.strokeStyle = halo(0.7); ctx.lineJoin = "round";
+            ctx.strokeText(text, x, y);
+          }
+          if (th.outline) {
+            ctx.lineWidth = HEADING_OUTLINE_PX; ctx.strokeStyle = th.outlineColor; ctx.lineJoin = "round";
             ctx.strokeText(text, x, y);
           }
           ctx.fillStyle = ink; ctx.fillText(text, x, y);

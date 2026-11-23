@@ -448,6 +448,23 @@ def test_the_maps_looks_are_the_owners():
     assert "(MAP_LOOKS[layers.look] || {})[shownTheme()] || MAP_THEMES[shownTheme()]" in PAGE
 
 
+def test_the_maps_headings_carry_a_black_hairline():
+    """Owner's request, 2026-11-23: the headings (the NDBC tags and the two
+    outermost edges' degrees) outlined in a black hairline, in every theme and
+    look, stroked under the fill on the canvas and in CSS alike."""
+
+    for start in ("const MAP_THEMES = {", "const MAP_LOOKS = {"):
+        body = PAGE[PAGE.index(start):]
+        body = body[:body.index("\n  };")]
+        themes = body.count("raysGlow:")
+        assert themes and body.count('outline: true, outlineColor: "#000000"') == themes, start
+    assert "-webkit-text-stroke:var(--sm-outline-w,0) var(--sm-outline,transparent);paint-order:stroke fill" in PAGE
+    assert 'th.outline ? `${HEADING_OUTLINE_PX}px` : "0"' in PAGE
+    draw = PAGE[PAGE.index("The two outermost edges carry their degrees"):]
+    draw = draw[:draw.index("ctx.fillText(text, x, y)")]
+    assert "ctx.strokeStyle = th.outlineColor" in draw and "ctx.lineWidth = HEADING_OUTLINE_PX" in draw
+
+
 def test_the_grey_look_is_each_colour_at_its_own_lightness():
     """Every grey in Grayscale is its colour theme's colour with a and b set to
     zero in OKLab (the page's own conversion), but the light page's rays."""

@@ -308,6 +308,13 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      out nearly the same grey (#e1e1e1, #e7e7e7), the shoreline between
      them. LINES ONLY (`MAP_LOOKS.lines`) is the mock's "Lines only" pair as
      the mock drew it (its halo at 0.35, the shipped rays).
+   - **The headings carry a black hairline** (owner's request, 2026-11-23,
+     after the mock gained text controls): the NDBC tags and the two
+     outermost edges' degrees, in every theme and look (`outline`,
+     `outlineColor`, the mock's keys), stroked `HEADING_OUTLINE_PX` (1.5 px)
+     wide under the fill so about 0.75 px shows round each letter -- CSS
+     `paint-order` on the tags, `strokeText` before `fillText` on the
+     canvas. The attribution has none, and the halo still glows under both.
    - **The window edges run to the map's edge** (item 2): each dashed line
      runs `EDGE_KM` (1,500 km) from the break along its bearing, a point
      every ~20 km so it stays the great circle it is. Before, it stopped at
