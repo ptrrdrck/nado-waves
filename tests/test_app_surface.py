@@ -2033,6 +2033,22 @@ class TestTheTideSaysWhichWayItIsGoing:
         assert "margin" not in rate and "vertical-align" not in rate
         assert '<span class="val${tide.height_m != null ? " tide-val" : ""}"' in SOURCE
 
+    def test_the_rate_is_the_heights_size_on_its_baseline(self):
+        """Owner's request, 2026-11-24: the rate's text the size of the
+        height beside it (19 px, metric 15 px), not 15 px. So the rate sets no
+        size of its own, nor does its metric, and inherits `.cond .val`'s;
+        its text is baseline-aligned (the arrowhead alone centred), which
+        measured 0 px off the height's line where the old `top:-1px` was
+        0.6 px off at equal sizes."""
+
+        css = SOURCE[:SOURCE.index("</style>")]
+        rate = css[css.index(".cond .val .rate{"):]
+        rate = rate[:rate.index("}")]
+        assert "font-size" not in rate and "top:" not in rate
+        assert "align-items:baseline" in rate
+        assert ".cond .val .rate .unit{" not in css
+        assert ".rate-arr{display:block;flex:none;align-self:center;" in css
+
     def test_a_far_off_turn_carries_its_weekday(self):
         """'at 11:42 AM' is not an answer six days out. Run in node against a
         fixed timezone, because same-local-day is the whole question and a
