@@ -217,10 +217,19 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   ▼ 1.2 ft/h (0.37 m/h)") wraps on master indented 10 px and now starts at
   0; a typical reading in "Both" stays on one line at 320–390 px. The
   height is one flex item with its metric inside, so no gap opens inside
-  "3.8 ft (1.16 m)"; `top: -1px` stands in for the `vertical-align: 1px`
-  a flex item ignores, and the rate's text and arrowhead sit exactly where
-  they did, against the height, in both units. A wrapped reading is 42.5 px
-  tall, not 47.5: the second line is the rate's own 15 px line.
+  "3.8 ft (1.16 m)"; `top: -1px` stood in for the `vertical-align: 1px`
+  a flex item ignores (superseded below). A wrapped reading was 42.5 px
+  tall, not 47.5: the second line was the rate's own 15 px line.
+- **The rate is the height's size** (owner's request, 2026-11-24): its text
+  19 px and its metric 15 px, the `.cond .val` sizes, from 15 px for both;
+  the arrowhead stays 9 px. The rate sets no size of its own and its text is
+  baseline-aligned inside it, only the arrowhead centred, which measured
+  0 px off the height's line in Archivo where the `top: -1px` nudge left
+  equal-size text 0.6 px low. Measured cost: a typical "Both" reading
+  ("3.8 ft (1.16 m)  ▲ 0.4 ft/h (0.12 m/h)") is 272 px against 259 px
+  before, so at 320 px (a 260 px card body) it now wraps the rate under the
+  height, flush left; at 375–390 px it stays on one line, and imperial or
+  metric alone fit everywhere.
 
 ## 9410170 is inside the bay
 

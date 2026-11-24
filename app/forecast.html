@@ -415,20 +415,21 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                  letter-spacing:.06em;margin-left:5px;white-space:nowrap}
 /* The tide's MEASURED rate beside its height on "LIVE" (owner's choice,
    2026-11-04: B of a mock of five): the Briefing's arrowhead, or its dash
-   for slack, then the speed at the value's 15 px in ink, metric grey. It is
+   for slack, then the speed in ink, metric grey, at the height's own sizes
+   (owner's request, 2026-11-24: 19 px, metric 15 px, from 15 px). It is
    the gauge's last 30 minutes (forecast.tiderate, BRIEFING §50), so it greys
    with the height it was measured beside.
    22 px from the height (owner's pick, 2026-11-17, from 10), as a flex
    column gap rather than a margin: where "Both" is too wide for one line
    (a 320 px phone) the rate wraps under the height flush left, never
    indented by the gap. The height is one item, its metric inside it, so no
-   gap opens inside "3.8 ft (1.16 m)"; `top` stands in for the inline
-   `vertical-align` it had, which a flex item ignores. */
+   gap opens inside "3.8 ft (1.16 m)". The rate's text is baseline-aligned,
+   so at the height's size it sits on the height's own line (measured: 0 px
+   apart, where the `top:-1px` nudge it had left it 0.6 px low); only the
+   arrowhead is centred. */
 .cond .val.tide-val{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:22px}
-.cond .val .rate{display:inline-flex;align-items:center;gap:5px;font-size:15px;
-                 white-space:nowrap;position:relative;top:-1px}
-.cond .val .rate .unit{font-size:15px}
-.rate-arr{display:block;flex:none;width:9px;height:9px;fill:var(--ink)}
+.cond .val .rate{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap}
+.rate-arr{display:block;flex:none;align-self:center;width:9px;height:9px;fill:var(--ink)}
 #conditions [data-aged-at].aged .rate-arr{fill:var(--faint)}
 /* THE WIND ROSE (owner's design, 2026-11-17, mocked as "Wind Card Rose";
    `windRose`): the ring turned so its top is the break's facing heading, its
