@@ -8,8 +8,10 @@ prose, section by section, into `app/docs_wording.md`, keyed by each section's
 id, so the owner can edit wording in an editor and push it, and the edits can
 be carried back into the page by section. Headings, paragraphs, lists, term
 lists, the math blocks, the model-choice boxes and the static tables come
-through; anything the page draws or fills in at load (the vertex drawings, the
-live standing-on blocks, the geometry tables, the worked hour's table) is
+through, and so do the two folds under a section, More and Technical, each
+between its own [More] ... [end of More] markers; anything the page draws or
+fills in at load (the vertex drawings, the plain drawings and the two toys,
+the live standing-on blocks, the geometry tables, the worked hour's table) is
 named in [brackets] and not reproduced, and a number the page reads from the
 geometry is {{geo:its-key}}.
 
@@ -52,6 +54,9 @@ How to edit:
 - `[bracketed notes]` are things the page draws or fills in itself: drawings,
   live blocks, the geometry tables. Their wording is not here.
 - Fenced blocks are the math. Edit them like any other text.
+- `[More]` and `[Technical]` open a section's two folds, and `[end of More]`
+  and `[end of Technical]` close them. Everything between is the fold's text:
+  edit it like the rest, and keep the markers.
 - A line starting `>>` is a note to Claude, not page text. Use it for
   anything that is not a wording change, where it applies:
   `>> move this section after [calc-table]`, `>> delete this section`,
@@ -175,6 +180,15 @@ def _block(n, out: list[str]) -> None:
         return
     if cls & {"next", "mapbox", "status", "controls", "legend", "seg", "anchor"} or n.tag == "script":
         return
+    if n.tag == "details":
+        summary = next((c for c in n.children if isinstance(c, _Node) and c.tag == "summary"), None)
+        label = _line(summary) if summary is not None else "More"
+        out.append(f"[{label}]")
+        for c in n.children:
+            if c is not summary:
+                _block(c, out)
+        out.append(f"[end of {label}]")
+        return
     if "card" in cls and n.find(lambda x: x.attrs.get("id") in ("standing-now", "standing-forecast")):
         label = n.find(lambda x: "lbl" in x.classes())
         out.append(f"[live block: {_line(label)}]")
@@ -222,7 +236,8 @@ def _block(n, out: list[str]) -> None:
     if n.tag == "figure":
         view = n.find(lambda x: "data-view" in x.attrs)
         cap = n.find(lambda x: x.tag == "figcaption")
-        out.append(f"[drawing: {view.attrs['data-view'] if view else ''}] "
+        name = view.attrs["data-view"] if view else n.attrs.get("data-drawing", "")
+        out.append(f"[drawing: {name}] "
                    f"Caption: {_line(cap) if cap is not None else ''}".rstrip())
         return
     if n.tag == "table":

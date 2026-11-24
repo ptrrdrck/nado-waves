@@ -376,6 +376,27 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
+### Group 7: the Docs page in plain words -- sample done (branch claude/cool-curie-j9cf2b), rollout open
+
+Owner's request, 2026-11-24: rewrite `app/docs.html` so a beginner of any age
+can follow it. Every section in plain words, with a "More" fold in the same
+voice and a "Technical" fold for the exact method; lists and steps; drawings,
+a journey strip, two sliders and icons. Headings and navigation unchanged
+(owner's call). app_surface.md "The documentation page: plain words first"
+holds the rules.
+
+28. Done as a sample for the owner to judge: the framework (folds, icons,
+    search into folds, the wording export), the Start group with the journey
+    strip, the walk-the-beach slider and a new "The basics" section, Shoaling
+    with the depth slider, and the Wind group.
+28a. Open: the owner's verdict on the sample (tone, what sits in which fold,
+    the pictures), then the other groups in page order: Two tabs, Briefing,
+    the aperture, the rest of the swell calculation, the Swell card, Tide,
+    Sun, Moving through time, Charts, Data sources, Confidence, FAQ,
+    Glossary. Each section keeps its id and heading; its current text moves
+    into Technical, adapted rather than pasted; every number in the plain
+    words is either the chain's or pinned by a test.
+
 ### Carryover prompts
 
 Each assumes a fresh session; add "Confirm each item before building. PR,
@@ -392,6 +413,14 @@ wait for Tests, don't merge." to each.
   Imperial Beach clears deep water to 21 m on open shelf, so find which
   Coronado-only stage makes the excess. Propose each step's measurement
   before running it."
+- Item 28a (careful writing; the strongest model at high effort, because a
+  plain sentence about physics that is a little wrong becomes a false
+  claim): "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
+  Read docs/design/app_surface.md 'The documentation page: plain words
+  first' and docs/handoff.md group 7, then the Start, Shoaling and Wind
+  sections of app/docs.html as the pattern. Task: item 28a, the next
+  groups in page order, two or three per round, each previewed before the
+  next. Headings and ids unchanged."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the

@@ -363,6 +363,110 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 
 .foot{font-size:13px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px}
 
+/* ---------- plain words first (owner's decision, 2026-11-24) ----------
+   Every section opens in plain words for a reader new to all of it, child or
+   adult. "More" goes further in the same voice; "Technical" keeps the exact
+   method: the math, the model choices, the sources. Both are closed until
+   opened, and search opens the one its match is in. The icons are drawn
+   here (the sprite under <body>), in the ink of the text around them. */
+.sprite{position:absolute;width:0;height:0;overflow:hidden}
+.ico{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+h2 .ico,h3 .ico{width:.9em;height:.9em;margin-right:.34em;vertical-align:-.1em;color:var(--surf)}
+.layers{font-size:14.5px;color:var(--soft);display:flex;flex-direction:column;gap:4px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--card);padding:10px 14px}
+.layers b{color:var(--ink);font-weight:600}
+.layers .ico{width:16px;height:16px;vertical-align:-3px;margin-right:6px;color:var(--surf)}
+.fold{border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+.fold > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 12px 9px 14px;
+  font:600 14px/1.2 "Barlow Condensed",Archivo,sans-serif;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--surf);border-radius:var(--r);-webkit-tap-highlight-color:transparent}
+.fold > summary::-webkit-details-marker{display:none}
+.fold > summary:hover{background:var(--surf-wash)}
+.fold > summary .ico{width:17px;height:17px}
+.fold > summary .chev{margin-left:auto;color:var(--soft);transition:transform .15s}
+.fold[open] > summary .chev{transform:rotate(90deg)}
+.fold[open] > summary{border-radius:var(--r) var(--r) 0 0;border-bottom:1px solid var(--line)}
+.fold.tech > summary{color:var(--soft)}
+.fold > .in{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.fold > .in > :is(p, ul, ol, dl, .choice, .callout){max-width:44rem}
+@media (min-width: 1100px){
+  /* A wide block inside a fold widens the fold (fitFold), as it would the column. */
+  article .fold pre,article .fold .tablebox{width:auto;min-width:0;max-width:100%;align-self:stretch}
+}
+ol.steps{list-style:none;padding:0;counter-reset:step;gap:8px}
+ol.steps > li{counter-increment:step;display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}
+ol.steps > li::before{content:counter(step);display:grid;place-items:center;width:24px;height:24px;margin-top:1px;
+  border-radius:50%;background:var(--surf-wash);color:var(--surf);font:600 13px/1 Archivo,sans-serif}
+.versus{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.versus > div{border:1px solid var(--line);border-radius:var(--r);background:var(--card);padding:12px 14px;
+  display:flex;flex-direction:column;gap:6px;font-size:15px}
+.versus .yes{color:var(--surf)}
+.versus .no{color:var(--signal)}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.trio > div{border:1px solid var(--line);border-radius:var(--r);background:var(--card);padding:12px 14px;
+  display:flex;flex-direction:column;gap:6px;font-size:15px}
+.trio .lbl{display:flex;align-items:center;gap:7px;color:var(--ink)}
+.trio .lbl .ico{width:18px;height:18px;color:var(--surf)}
+.trio .see{margin-top:auto}
+@media (max-width: 700px){.versus,.trio{grid-template-columns:1fr}}
+
+/* The drawings: plain shapes in the page's own tokens, so they follow the theme. */
+.pic{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:14px;display:flex;flex-direction:column;gap:10px}
+.pic .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center}
+.ill{display:block;width:100%;height:auto;overflow:visible}
+.ill text{font-size:12.5px;fill:var(--ink)}
+.ill .ts{font-size:11.5px;fill:var(--soft)}
+.ill .tb{font-weight:600}
+.ill .sea{fill:var(--surf-wash)}
+.ill .deep{fill:var(--sea)}
+.ill .land{fill:var(--sand);stroke:var(--land-edge);stroke-width:.8}
+.ill .cloud{fill:var(--line-strong)}
+.ill .wv{fill:none;stroke:var(--surf);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ill .ln{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ill .soft{fill:none;stroke:var(--soft);stroke-width:1.2;stroke-linecap:round}
+.ill .dash{stroke-dasharray:3 3}
+.ill .ink{fill:var(--ink)}
+.ill .surf{fill:var(--surf)}
+.ill .open{fill:var(--surf);fill-opacity:.2;stroke:var(--surf);stroke-width:1}
+.ill .shut{fill:var(--faint);fill-opacity:.3}
+.ill .card{fill:var(--paper);stroke:var(--line-strong)}
+.ill .sw{fill:none;stroke:var(--surf);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.ill .off{fill:none;stroke:var(--surf);stroke-width:12}
+.ill .cross{fill:none;stroke:var(--faint);stroke-width:12}
+.ill .on{fill:none;stroke:var(--sand-deep);stroke-width:12}
+.ill .t-off{fill:var(--surf);font-weight:600}
+.ill .t-on{fill:var(--sand-deep);font-weight:600}
+
+/* A swell's trip to the sand: one picture per step, each a link to its section. */
+ol.journey{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr;gap:8px}
+ol.journey a{display:grid;grid-template-columns:96px 1fr;gap:2px 12px;align-items:center;height:100%;
+  padding:8px 12px 8px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);
+  color:var(--ink);text-decoration:none}
+ol.journey a:hover{border-color:var(--surf)}
+ol.journey svg{grid-row:span 2;width:96px;border-radius:6px}
+ol.journey .num{font:500 12.5px/1 "IBM Plex Mono",ui-monospace,monospace;color:var(--faint);margin-right:7px}
+ol.journey b{font-weight:600;align-self:end}
+ol.journey .say{font-size:14px;color:var(--soft);line-height:1.4;align-self:start}
+@media (min-width: 901px){
+  ol.journey{grid-template-columns:repeat(4,minmax(0,1fr))}
+  ol.journey a{grid-template-columns:1fr;align-content:start;gap:4px;padding:8px}
+  ol.journey svg{grid-row:auto;width:100%}
+}
+
+/* The two toys: a drawing, a slider, and what it reads in words. */
+.toy{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:14px;display:flex;flex-direction:column;gap:10px}
+.toy .ill{max-width:460px;margin:0 auto}
+.toy input[type="range"]{width:100%;margin:4px 0 0;accent-color:var(--surf)}
+.toy .ends{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--soft);margin-top:-4px}
+.toy .ends button{font:inherit;border:0;background:none;color:inherit;padding:4px 2px;cursor:pointer}
+.toy .ends button[aria-pressed="true"]{color:var(--ink);font-weight:600}
+.toy .read{font-size:15px;margin:0}
+.toy .read b{font-weight:600}
+.toy .seg{align-self:flex-start;box-shadow:none}
+
 /* ---------- phone: the pill at the bottom, growing up ---------- */
 @media (max-width: 900px){
   .pill-wrap{top:calc(52px + env(safe-area-inset-top, 0px) + var(--vvt, 0px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));max-width:420px}
@@ -378,6 +482,23 @@ svg text{font-family:Archivo,system-ui,sans-serif}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 
+<svg class="sprite" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2.5 16.5c2.4 0 3.6-8.5 9.5-8.5 3.3 0 5.5 2.3 5.5 4.8 0 1.9-1.4 3.2-3.1 3.2-1.5 0-2.6-1.1-2.6-2.4"/><path d="M2 20.5h20"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3.5v16M8 19.5h8M4.5 7h15"/><path d="M6.5 7 3.5 13.5a3 3 0 0 0 6 0z"/><path d="m17.5 7-3 6.5a3 3 0 0 0 6 0z"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9.5 18.5h5M10.5 21.5h3"/><path d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.8.6 1.3 1.4 1.3 2.3v.4h5v-.4c0-.9.5-1.7 1.3-2.3A6.5 6.5 0 0 0 12 2.5z"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-screen" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="1.5"/><path d="M8.5 20.5h7M12 16.5v4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/></symbol>
+  <symbol id="i-shoal" viewBox="0 0 24 24"><path d="M2 21.5h4l16-7"/><path d="M2 12.5c1.6 0 2.2-2 3.6-2s2 2 3.6 2"/><path d="M11 12.5c2.2 0 2.8-6 6.2-6 2.4 0 3.4 2.4 2.6 4.4"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 8.5h10a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 12.5h15a2.5 2.5 0 1 1-2.5 2.5"/><path d="M3 16.5h7"/></symbol>
+  <symbol id="i-sock" viewBox="0 0 24 24"><path d="M5 21.5v-19"/><path d="m5 4.5 14 2.2v5.6L5 14.5z"/><path d="M9.7 5.2v8.6M14.3 6v7.2"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m15.8 8.2-2.4 5.2-5.2 2.4 2.4-5.2z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/></symbol>
+  <symbol id="i-buoy" viewBox="0 0 24 24"><path d="M12 2.5v6M9 6.5h6"/><path d="M7.5 15.5 9 8.5h6l1.5 7z"/><path d="M2 19.5c1.7 0 2.5-1.5 4-1.5s2.3 1.5 4 1.5 2.5-1.5 4-1.5 2.3 1.5 4 1.5 2-1 3.5-1.4"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+  <symbol id="i-tech" viewBox="0 0 24 24"><path d="M17 5H7l5.5 7L7 19h10"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+</defs></svg>
 <div class="status-strip" aria-hidden="true"></div>
 <div class="scrim" id="scrim" hidden></div>
 <!-- The contents are built from the article's own h2 and h3, so they cannot
@@ -414,46 +535,256 @@ svg text{font-family:Archivo,system-ui,sans-serif}
   <section id="start">
     <span class="lbl">Nado Waves · documentation</span>
     <h1>How the Coronado forecast works</h1>
-    <p class="lede">Every card, chart and calculation on the forecast page, what each one is
-      built from, and what each one is standing on. Start at the top for the tour, or use the
-      contents to go straight to one thing.</p>
+    <p class="lede">What every number on the forecast page means, where it comes from, and how far
+      to trust it. Read from the top for the whole story, or open the contents to jump to one
+      thing.</p>
+    <div class="layers">
+      <span>Every section starts in plain words.</span>
+      <span><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg>Open <b>More</b> for the why, in the same plain words.</span>
+      <span><svg class="ico" aria-hidden="true"><use href="#i-tech"/></svg>Open <b>Technical</b> for the exact math, models and sources.</span>
+    </div>
+
+    <span class="lbl">A swell's trip to the sand</span>
+    <ol class="journey">
+      <li><a href="#start-basics"><svg class="ill" viewBox="0 0 120 72" aria-hidden="true"><rect class="deep" width="120" height="72"/><path class="cloud" d="M20 34a8 8 0 0 1 5-14 11 11 0 0 1 21-4 9 9 0 0 1 14 7 6 6 0 0 1-1 11z"/><path class="soft" d="m29 39-3 6m12-6-3 6m12-6-3 6"/><path class="ln" d="M66 20h30m-4-3.5 4 3.5-4 3.5M72 30h22m-4-3.5 4 3.5-4 3.5"/><path class="sea" d="M0 56l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5V72H0z"/><path class="wv" d="M0 56l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5l5 -5l5 5"/></svg>
+        <b><span class="num">1</span>A storm</b>
+        <span class="say">Wind blowing over the sea, often very far away, makes waves.</span></a></li>
+      <li><a href="#swell-origin"><svg class="ill" viewBox="0 0 120 72" aria-hidden="true"><rect class="deep" width="120" height="72"/><path class="soft" d="M6 30h18M14 22h14M2 38h12"/><path class="ln" d="M40 26h44m-5-4 5 4-5 4"/><path class="sea" d="M0 48q15 -12 30 0t30 0t30 0t30 0V72H0z"/><path class="wv" d="M0 48q15 -12 30 0t30 0t30 0t30 0"/></svg>
+        <b><span class="num">2</span>The swell travels</b>
+        <span class="say">The waves sort themselves into smooth lines and cross the ocean.</span></a></li>
+      <li><a href="#calc-buoy"><svg class="ill" viewBox="0 0 120 72" aria-hidden="true"><rect class="deep" width="120" height="72"/><path class="sea" d="M0 50q15 -12 30 0t30 0t30 0t30 0V72H0z"/><path class="wv" d="M0 50q15 -12 30 0t30 0t30 0t30 0"/><path class="ink" d="M68 46h14l-2.5-9h-9z"/><path class="ln" d="M75 37V21"/><circle class="surf" cx="75" cy="19" r="2.6"/><path class="soft" d="M81 15a7 7 0 0 1 0 8m4-11a12 12 0 0 1 0 14M69 15a7 7 0 0 0 0 8m-4-11a12 12 0 0 0 0 14"/></svg>
+        <b><span class="num">3</span>The buoy</b>
+        <span class="say">A buoy 18 mi (29 km) off Point Loma measures the waves as they pass.</span></a></li>
+      <li><a href="#calc-windows"><svg class="ill" viewBox="0 0 120 72" aria-hidden="true"><rect class="sea" width="120" height="72"/><path class="land" d="M120 0v72h-8c-3-24-3-48 0-72z"/><path class="land" d="M58 0h26c-2 9-7 17-15 22-5 3-9 2-10-2-1-6-1-12-1-20z"/><path class="land" d="M10 31c3-3 8-2 8 1s-5 4-8 2zm4 13c3-2 7-1 7 2s-5 3-7 1z"/><path class="land" d="M64 72c5-8 16-12 30-13 10-1 18 0 18 0v13z"/><path class="ln" d="M4 26 104 36M30 70l74-33"/><path class="soft dash" d="m18 4 37 8"/><path class="ln" d="m56 9 5 5m0-5-5 5"/><circle class="ink" cx="107" cy="36" r="2.8"/></svg>
+        <b><span class="num">4</span>The gaps</b>
+        <span class="say">Land blocks most of the ocean. Swell gets in only through a few gaps.</span></a></li>
+      <li><a href="#calc-refraction"><svg class="ill" viewBox="0 0 120 72" aria-hidden="true"><rect class="sea" width="120" height="72"/><path class="soft dash" d="M96 0c4 24 4 48 0 72M80 0c5 24 5 48 0 72"/><path class="land" d="M108 0h12v72h-12c3-24 3-48 0-72z"/><path class="wv" d="M6 66C40 48 66 22 102 18M6 46C40 36 66 38 102 38M20 72C50 66 70 58 102 58"/><path class="wv" d="m97 14 5 4-5 4m-5 12 5 4-5 4m0 16 5 4-5 4"/></svg>
+        <b><span class="num">5</span>The seabed</b>
+        <span class="say">In shallower water the waves bend, spread out and slow down.</span></a></li>
+      <li><a href="#calc-shoaling"><svg class="ill" viewBox="0 0 120 72" aria-hidden="true"><rect class="deep" width="120" height="72"/><path class="sea" d="M0 46q7.5 -4 15 0q6.5 5.2 13 0q5.5 -6.8 11 0q5 8.8 10 0q4.5 -11.2 9 0q4 14 8 0q4 -17 8 0q4 20 8 0q4 -23 8 0q4 24 8 0q4 -24 8 0q4 24 8 0q4 -24 8 0L122 52L0 70z"/><path class="land" d="M0 70 122 52V72H0z"/><path class="wv" d="M0 46q7.5 -4 15 0q6.5 5.2 13 0q5.5 -6.8 11 0q5 8.8 10 0q4.5 -11.2 9 0q4 14 8 0q4 -17 8 0q4 20 8 0q4 -23 8 0q4 24 8 0q4 -24 8 0q4 24 8 0q4 -24 8 0"/></svg>
+        <b><span class="num">6</span>Growing</b>
+        <span class="say">Close to shore, the waves bunch up and grow taller.</span></a></li>
+      <li><a href="#calc-break"><svg class="ill" viewBox="0 0 120 72" aria-hidden="true"><rect class="deep" width="120" height="72"/><path class="sea" d="M0 50q8 -3 16 0t16 0C44 50 50 40 58 30 66 20 80 18 88 24c5 4 4 10-1 11-3 1-5-1-4-4L88 58 0 66z"/><path class="land" d="M0 66 92 58 120 46V72H0z"/><path class="wv" d="M0 50q8 -3 16 0t16 0C44 50 50 40 58 30 66 20 80 18 88 24c5 4 4 10-1 11-3 1-5-1-4-4"/><circle class="surf" cx="94" cy="44" r="1.6"/><circle class="surf" cx="99" cy="49" r="1.3"/><circle class="surf" cx="92" cy="51" r="1.2"/></svg>
+        <b><span class="num">7</span>Breaking</b>
+        <span class="say">When a wave gets too tall for the water under it, it breaks.</span></a></li>
+      <li><a href="#swell-headline"><svg class="ill" viewBox="0 0 120 72" aria-hidden="true"><rect class="deep" width="120" height="72"/><rect class="card" x="18" y="9" width="84" height="54" rx="7"/><text x="30" y="40" style="font:700 22px 'Barlow Condensed',Archivo,sans-serif">3.6 ft</text><text x="30" y="53" class="ts" style="font-size:8.5px">breaking height</text></svg>
+        <b><span class="num">8</span>The number</b>
+        <span class="say">The height where the waves break: the big number on each card.</span></a></li>
+    </ol>
 
     <section id="start-what">
-      <h3>What Nado Waves is</h3>
-      <p>A swell forecaster for the three breaks on Coronado Central Beach: North, Center and
-        South. All three read the same offshore buoy, NDBC 46232 off Point Loma, and they get
-        three different answers. The reason is geometric. Point Loma, the Coronado Islands and the
-        Baja coast block most of the ocean from these beaches, and the gaps they leave open, the
-        <em>swell windows</em>, point a different way from each spot on the sand. Walking from
-        North to South moves the west edge of the window by about
-        <span data-geo="west-sweep">—</span>.</p>
-      <p>The premise is that a forecast that respects that geometry can say something a regional
-        forecast cannot: which of the three breaks is holding more of today's swell.</p>
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-wave"/></svg>What Nado Waves is</h3>
+      <p>Nado Waves forecasts the surf at three spots on Coronado Central Beach: <b>North</b>,
+        <b>Center</b> and <b>South</b>. Surfers call a spot like this a <b>break</b>, because
+        it's where the waves break. The three are less than 2 miles (2.8 km) apart.</p>
+      <p>All three get their waves from the same ocean, measured by the same buoy. Yet each one
+        gets its own forecast. Here's why:</p>
+      <ol class="steps">
+        <li>Land blocks most of the ocean from this beach: Point Loma, the Coronado Islands and
+          the coast of Mexico.</li>
+        <li>Swell can only reach the sand through the gaps between them. These gaps are called
+          <b>swell windows</b>.</li>
+        <li>Each break looks out through the gaps at a slightly different angle. So a swell that
+          reaches one break can miss another.</li>
+      </ol>
+      <figure class="toy" data-drawing="walk the beach">
+        <svg class="ill" id="walk-svg" viewBox="-40 0 390 290" role="img" aria-label="What a break can see of the ocean: its open windows and what blocks the rest"></svg>
+        <input type="range" id="walk" min="0" max="2" step="1" value="0" aria-label="Walk the beach">
+        <div class="ends" id="walk-stops"><button type="button" data-i="0">North</button><button type="button" data-i="1">Center</button><button type="button" data-i="2">South</button></div>
+        <p class="read" id="walk-read" aria-live="polite">The drawing is built from the forecast's geometry as the page loads.</p>
+        <figcaption>Slide to walk the beach. Blue is where swell can come straight in, grey is
+          where land is in the way, and north is up. The blue arrow is one swell from the west,
+          followed in the words above. These are straight lines only: some swell
+          also bends round the edges and over the seabed, which later steps add.</figcaption>
+      </figure>
+      <p>Walking from North to South swings the edge of the west window by about
+        <span data-geo="west-sweep">—</span>. That's enough to change which break gets more of
+        a swell from the west.</p>
+      <p>So the question Nado Waves tries to answer is: <b>which of the three breaks is getting
+        more of today's swell?</b></p>
+      <details class="fold more"><summary>More</summary><div class="in">
+        <p>A regional forecast gives one number for a long stretch of coast. Here, three spots
+          less than 2 miles apart can get different waves from the same swell, and that
+          difference is what Nado Waves is built to show.</p>
+        <p>The buoy sits out in the open ocean with nothing in the way, so it feels swell from
+          every direction. Each break only gets what comes through its own windows.</p>
+        <p>The windows are only the start. Over the seabed the swell bends, and that can change
+          the order. In <a href="#calc-hour">one worked hour</a>, South had the most swell
+          coming through its windows, but North came out biggest once the seabed had its say.
+          That's what the physics says. Nobody has checked it at the beach yet.</p>
+      </div></details>
+      <details class="fold tech"><summary>Technical</summary><div class="in">
+        <p>All three breaks read the same offshore buoy, NDBC 46232 off Point Loma, and get three
+          different answers. The reason is geometric. Point Loma, the Coronado Islands and the
+          Baja coast block most of the ocean from these beaches, and the gaps they leave open,
+          the <em>swell windows</em>, point a different way from each spot on the sand. The west
+          window's west edge is the line from the break that just grazes the tip of Point Loma,
+          and walking from North to South moves it by about
+          <span data-geo="west-sweep">—</span>.</p>
+        <p>The premise is that a forecast that respects that geometry can say something a
+          regional forecast cannot: which of the three breaks is holding more of today's swell.
+          The drawing above reads each break's windows from the same geometry the forecast uses;
+          <a href="#aperture">the aperture</a> has every vertex behind them.</p>
+      </div></details>
     </section>
 
     <section id="start-claims">
-      <h3>What it claims, and what it does not</h3>
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-scale"/></svg>What it claims, and what it does not</h3>
       <p class="blind"><b>Nothing has ever measured a wave at these three breaks.</b>
-        This is <b>physically derived</b>, not an accurate forecast, and
-        it carries no error bar because there is nothing to compute one against.
-        What it claims is which break holds more of today's swell — not how
-        big it is.</p>
-      <p>Each break's number is the buoy's swell carried by physics to where it
-        <b>breaks</b>: through the windows the coast leaves open, bent over the seabed
-        and slowed by its friction, diffracted round every window edge, lifted by
-        shoaling into 5 m of water with local wind chop added, then carried in over the
-        surveyed beach profile at the tide of the moment until it breaks. It is
-        still not a wave height at the beach as a surfer would call it: a
-        significant height, not a face height, and the step from one to the other
-        has not been fitted; the beach profile is a 2016 survey rather than this
-        season's sandbars; and nothing has checked it against the sand.</p>
-      <div class="next"><a href="#calc">Every step, with its math &rarr;</a></div>
+        So nobody knows yet how close these numbers come to the waves on the sand.</p>
+      <p>Every number here is worked out with physics, starting from real measurements out at
+        sea. The project calls that <b>physically derived</b>. It is not the same as checked:
+        nothing has compared these numbers with the beach yet.</p>
+      <div class="versus">
+        <div><span class="lbl yes">What it claims</span>
+          <ul><li>Which of the three breaks is getting more of today's swell.</li></ul></div>
+        <div><span class="lbl no">What it does not claim</span>
+          <ul>
+            <li>How big the waves are at the beach. Nobody has measured them.</li>
+            <li>How far off any number might be. There's nothing to measure the error against,
+              so there's no &ldquo;give or take&rdquo;.</li>
+          </ul></div>
+      </div>
+      <p>The height on each card is where the waves break. It's a
+        <a href="#start-basics">significant height</a>, a kind of average that buoys use. It is
+        not the same as the height of a wave's face, which is what many surfers mean by a
+        wave's size.</p>
+      <details class="fold more"><summary>More</summary><div class="in">
+        <p>Each break's number is built in steps, one for each thing that happens to a swell on
+          its way in. Every step is in <a href="#calc">the swell calculation</a>:</p>
+        <ol class="steps">
+          <li>Start with the swell the buoy measured.</li>
+          <li>Keep only what can get through that break's windows.</li>
+          <li>Let the seabed bend it, and let it spread round the edges of each window.</li>
+          <li>Take off what the sandy bottom rubs away.</li>
+          <li>Let it grow as the water gets shallower, and add the little waves the local wind
+            makes.</li>
+          <li>Carry it in over the shape of the beach, at the tide of the moment, until it
+            breaks.</li>
+        </ol>
+        <p>Three things still stand between that number and the waves you see:</p>
+        <ul>
+          <li>Nobody has worked out how to turn a significant height into a face height at these
+            breaks.</li>
+          <li>The shape of the beach comes from a survey made in 2016. Sandbars move every
+            season.</li>
+          <li>Nothing has checked the result against the beach.</li>
+        </ul>
+        <p>The plan to check it is people at the beach, writing down which break looks bigger.
+          <a href="#confidence-log">The beach observation log</a>.</p>
+      </div></details>
+      <details class="fold tech"><summary>Technical</summary><div class="in">
+        <p>This is <b>physically derived</b>, not an accurate forecast, and it carries no error
+          bar because there is nothing to compute one against. What it claims is which break
+          holds more of today's swell — not how big it is.</p>
+        <p>Each break's number is the buoy's swell carried by physics to where it
+          <b>breaks</b>: through the windows the coast leaves open, bent over the seabed
+          and slowed by its friction, diffracted round every window edge, lifted by
+          shoaling into 5 m of water with local wind chop added, then carried in over the
+          surveyed beach profile at the tide of the moment until it breaks. It is
+          still not a wave height at the beach as a surfer would call it: a
+          significant height, not a face height, and the step from one to the other
+          has not been fitted; the beach profile is a 2016 survey rather than this
+          season's sandbars; and nothing has checked it against the sand.</p>
+        <div class="next"><a href="#calc">Every step, with its math &rarr;</a></div>
+      </div></details>
+    </section>
+
+    <section id="start-basics">
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-bulb"/></svg>The basics</h3>
+      <p>A few words come up all over the forecast page. Here's what they mean.</p>
+      <figure class="pic" data-drawing="a wave from the side, and a compass">
+        <div class="row">
+          <svg class="ill" viewBox="0 0 340 150" style="max-width:420px" role="img" aria-label="A wave seen from the side, with its crest, its trough and its height marked, and a buoy riding a crest">
+            <path class="sea" d="M10 110.0 14 109.4 18 107.8 22 105.0 26 101.4 30 97.0 34 92.0 38 86.7 42 81.3 46 76.0 50 71.0 54 66.6 58 63.0 62 60.2 66 58.6 70 58.0 74 58.6 78 60.2 82 63.0 86 66.6 90 71.0 94 76.0 98 81.3 102 86.7 106 92.0 110 97.0 114 101.4 118 105.0 122 107.8 126 109.4 130 110.0 134 109.4 138 107.8 142 105.0 146 101.4 150 97.0 154 92.0 158 86.7 162 81.3 166 76.0 170 71.0 174 66.6 178 63.0 182 60.2 186 58.6 190 58.0 194 58.6 198 60.2 202 63.0 206 66.6 210 71.0 214 76.0 218 81.3 222 86.7 226 92.0 230 97.0 234 101.4 238 105.0 242 107.8 246 109.4 250 110.0 254 109.4 258 107.8 262 105.0 266 101.4 270 97.0 274 92.0 278 86.7 282 81.3 286 76.0 290 71.0 294 66.6 298 63.0 302 60.2 306 58.6 310 58.0 314 58.6 318 60.2 322 63.0 326 66.6 330 71.0V150H10z"/>
+            <path class="wv" d="M10 110.0 14 109.4 18 107.8 22 105.0 26 101.4 30 97.0 34 92.0 38 86.7 42 81.3 46 76.0 50 71.0 54 66.6 58 63.0 62 60.2 66 58.6 70 58.0 74 58.6 78 60.2 82 63.0 86 66.6 90 71.0 94 76.0 98 81.3 102 86.7 106 92.0 110 97.0 114 101.4 118 105.0 122 107.8 126 109.4 130 110.0 134 109.4 138 107.8 142 105.0 146 101.4 150 97.0 154 92.0 158 86.7 162 81.3 166 76.0 170 71.0 174 66.6 178 63.0 182 60.2 186 58.6 190 58.0 194 58.6 198 60.2 202 63.0 206 66.6 210 71.0 214 76.0 218 81.3 222 86.7 226 92.0 230 97.0 234 101.4 238 105.0 242 107.8 246 109.4 250 110.0 254 109.4 258 107.8 262 105.0 266 101.4 270 97.0 274 92.0 278 86.7 282 81.3 286 76.0 290 71.0 294 66.6 298 63.0 302 60.2 306 58.6 310 58.0 314 58.6 318 60.2 322 63.0 326 66.6 330 71.0"/>
+            <path class="soft dash" d="M76 58h70"/>
+            <path class="ln" d="M136 105V63m-3.5 5 3.5-5 3.5 5m-7 32 3.5 5 3.5-5"/>
+            <text x="129" y="77" text-anchor="end">height</text>
+            <text x="190" y="49" text-anchor="middle">crest</text>
+            <text x="250" y="130" text-anchor="middle">trough</text>
+            <path class="ink" d="M303 60h14l-2.5-9h-9z"/><path class="ln" d="M310 51V40"/><circle class="surf" cx="310" cy="37.5" r="2.6"/>
+            <text x="302" y="42" text-anchor="end">buoy</text>
+            <path class="ln" d="M196 22h100m-5-3.5 5 3.5-5 3.5"/>
+            <text x="246" y="14" text-anchor="middle" class="ts">one period later</text>
+            <text x="14" y="22" class="ts">waves travel &rarr;</text>
+          </svg>
+          <svg class="ill" viewBox="0 0 160 150" style="max-width:170px" role="img" aria-label="A compass: a swell from the west comes from 270 degrees">
+            <circle class="ln" cx="110" cy="75" r="44"/>
+            <path class="soft" d="M110 31v8M110 111v8M66 75h8M146 75h8"/>
+            <text x="110" y="52" text-anchor="middle" class="tb">N</text>
+            <text x="137" y="79" text-anchor="middle" class="ts">E</text>
+            <text x="110" y="107" text-anchor="middle" class="ts">S</text>
+            <text x="83" y="79" text-anchor="middle" class="ts">W</text>
+            <path class="wv" d="M4 70q3-3 6 0t6 0M4 80q3-3 6 0t6 0"/>
+            <path class="ln" d="M22 75h38m-5-4 5 4-5 4"/>
+            <text x="32" y="60" text-anchor="middle" class="tb">from 270&deg;</text>
+            <text x="32" y="98" text-anchor="middle" class="ts">the west</text>
+          </svg>
+        </div>
+        <figcaption>Left: a wave from the side. The crest behind the buoy reaches it one
+          period later. Right: a swell's direction is where it comes <b>from</b>.</figcaption>
+      </figure>
+      <dl class="terms">
+        <dt>Swell</dt><dd>Waves made by wind far away. By the time they get here, they've left
+          the wind that made them behind, and they arrive as smooth, even lines.</dd>
+        <dt>Wind sea</dt><dd>Waves the wind is still pushing: choppier and messier. The wind at
+          the beach makes small ones of its own, called <b>chop</b>.</dd>
+        <dt>Height</dt><dd>From the bottom of a wave (the <b>trough</b>) to its top (the
+          <b>crest</b>). Waves come in all sizes, so buoys sum them up with a kind of average
+          called the <b>significant height</b>: about the average of the biggest third.</dd>
+        <dt>Period</dt><dd>The seconds between one crest and the next passing the same spot.
+          Longer-period swell travels faster, feels the seabed sooner, and bends more on the
+          way in.</dd>
+        <dt>Direction</dt><dd>Where the swell comes <b>from</b>, as a compass bearing: 270° is
+          from the west, 180° from the south. Wind directions work the same way.</dd>
+        <dt>Buoy</dt><dd>A float anchored out at sea. It rides up and down and side to side on
+          the waves, and from that movement it works out their height, period and
+          direction.</dd>
+        <dt>Tide</dt><dd>The sea slowly rising and falling, roughly twice a day. It changes how
+          deep the water is where the waves break.</dd>
+      </dl>
+      <details class="fold more"><summary>More</summary><div class="in">
+        <p><b>The sea is many swells at once.</b> Two storms far apart can send swell here on the
+          same day, from different directions and with different periods, on top of whatever
+          the local wind is doing. The buoy measures how the waves' energy is spread over every
+          period and direction, and the forecast page splits that into
+          <a href="#swell-trains">swell trains</a>: each one a swell with its own height, period
+          and direction.</p>
+        <p><b>Swell or wind sea?</b> A train counts as wind sea only while the wind is still
+          driving it, which means the wind blowing its way is faster than the waves. A short
+          period on its own doesn't make waves wind sea. <a href="#wind-sea">How the page
+          decides</a>.</p>
+        <p><b>Why &ldquo;from&rdquo;?</b> Buoys and weather reports give the direction a swell or
+          a wind comes from: a west wind blows from the west. Some wave models give the
+          direction the waves are heading instead. The forecast turns those round once, so
+          every direction on the page means &ldquo;from&rdquo;.</p>
+        <p><b>Feet or metres?</b> The forecast page shows feet by default; its Units button
+          switches to metres or both. This page always shows both.</p>
+      </div></details>
+      <details class="fold tech"><summary>Technical</summary><div class="in">
+        <dl class="terms">
+          <dt>Significant height</dt><dd>H<sub>s</sub> = 4&radic;m<sub>0</sub>, where m<sub>0</sub>
+            is the spectrum's zeroth moment, its total energy. For a narrow sea it is close to
+            H<sub>1/3</sub>, the mean of the highest third of waves, trough to crest. What buoys
+            and models report, and what every height here is.</dd>
+          <dt>Spectrum</dt><dd>The energy density E(f, &theta;) over frequency and direction. The
+            buoy reports it hourly, the model for every hour of its run.</dd>
+          <dt>Peak and mean period</dt><dd>The peak period is where the spectrum's energy peaks;
+            the mean period here is T<sub>m02</sub> = &radic;(m<sub>0</sub>/m<sub>2</sub>).</dd>
+          <dt>Direction</dt><dd>NDBC's mean wave direction is the bearing the swell comes FROM.
+            GFS-Wave's bulletin gives the direction it travels TOWARD, and the collector flips
+            it once, on the way in.</dd>
+          <dt>Units</dt><dd>The chain runs in metres and seconds, the units the buoy and the model
+            publish. Feet appear only on screen.</dd>
+        </dl>
+      </div></details>
     </section>
 
     <section id="start-minute">
-      <h3>The page in one minute</h3>
-      <p>From the top of the forecast page down. The figures are a real hour, noon on Monday
-        28 September 2026, at the North break.</p>
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-phone"/></svg>The page in one minute</h3>
+      <p>Here's the forecast page from top to bottom. The numbers come from a real hour: noon on
+        Monday 28 September 2026, at North.</p>
       <div class="card mock" aria-hidden="true">
         <div class="row"><span class="pin">1</span><span class="tabs"><span class="on">&ldquo;LIVE&rdquo;</span><span>Forecast</span></span></div>
         <div class="row"><span class="pin">2</span><span class="tabs"><span class="on">North</span><span>Center</span><span>South</span><span>Buoy</span></span></div>
@@ -464,57 +795,73 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         <div class="row"><span class="pin">7</span><span><b>Wind</b> 9 mph (8 kt) from the west, cross-shore at this break · <b>Tide</b> 6.2 ft (1.89 m)</span></div>
       </div>
       <ol class="pins">
-        <li><span class="pin">1</span><span><b>Two tabs.</b> &ldquo;LIVE&rdquo; is built only from
-          measurements, Forecast only from a model. <a href="#chains">Two tabs, two chains</a>.</span></li>
-        <li><span class="pin">2</span><span><b>One tab per break</b>, ranked by how much swell
-          each one's windows let in, with the buoy itself always last. <a href="#swell-tabs">Break tabs</a>.</span></li>
-        <li><span class="pin">3</span><span><b>The headline</b>: the height where the waves
-          break, and the depth they break in. The caret at its end folds out the calculation
-          behind it. <a href="#calc-table">Reading the table</a>.</span></li>
-        <li><span class="pin">4</span><span><b>The wave trains</b> that make up the number, and
-          <b>the map</b>: the break's windows over the seabed, turned the way the break faces.
+        <li><span class="pin">1</span><span><b>Two tabs.</b> &ldquo;LIVE&rdquo; shows only
+          measurements. Forecast shows only what a computer model predicts.
+          <a href="#chains">Two tabs, two chains</a>.</span></li>
+        <li><span class="pin">2</span><span><b>A tab for each break</b>, in order of how much
+          swell its windows let in, and the Buoys tab last. <a href="#swell-tabs">Break tabs</a>.</span></li>
+        <li><span class="pin">3</span><span><b>The big number</b>: the height of the waves where
+          they break. The little arrow at its end opens the working behind it.
+          <a href="#calc-table">Reading the table</a>.</span></li>
+        <li><span class="pin">4</span><span><b>The swell trains</b> that add up to that number,
+          and <b>a map</b> of the break's windows over the seabed.
           <a href="#swell-map">The map</a>.</span></li>
-        <li><span class="pin">5</span><span><b>Where it came from, and when the next one is
-          due.</b> <a href="#swell-countdown">Countdowns</a>.</span></li>
-        <li><span class="pin">6</span><span><b>Charts</b>, closed until opened, the last line of
-          every card. <a href="#charts">Charts</a>.</span></li>
-        <li><span class="pin">7</span><span><b>Wind and Tide</b>, cards of their own because one
-          station feeds all three breaks. <a href="#wind">Wind</a>, <a href="#tide">Tide</a>.</span></li>
+        <li><span class="pin">5</span><span><b>Where the reading came from</b>, and when the next
+          one is due. <a href="#swell-countdown">Countdowns</a>.</span></li>
+        <li><span class="pin">6</span><span><b>Charts</b>, folded away until you open them.
+          <a href="#charts">Charts</a>.</span></li>
+        <li><span class="pin">7</span><span><b>Wind and Tide</b>, on cards of their own, because
+          one station serves all three breaks. <a href="#wind">Wind</a>,
+          <a href="#tide">Tide</a>.</span></li>
       </ol>
     </section>
 
     <section id="start-wide">
-      <h3>On a wider screen</h3>
-      <p>The page above is a phone's. Wider than a phone, the same cards are laid out to use the
-        room; what they say does not change.</p>
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-screen"/></svg>On a wider screen</h3>
+      <p>On a phone you see one break at a time. On a bigger screen you see more at once. The
+        numbers are the same.</p>
       <ul>
-        <li><b>A tablet held upright</b> (700 to 949 px wide) keeps the tabs, with Wind and Tide
-          side by side under the Swell card.</li>
-        <li><b>From 950 px</b>, the three breaks sit side by side: North, Center, South, in the
-          order they sit on the sand, never ranked, so a column's place is its break's. Each
-          column's headline, calculation rows, trains and map sit level with the same ones
-          beside it, and one caret opens all three calculations. The buoys get a card of their
-          own, three across. <a href="#swell-origin">Origin</a> becomes one block for the beach.
-          The swell's charts get a card of their own too, with the break or the buoys picked
-          above the plot. The Wind card gives every break's offshore, cross-shore or onshore
-          line, and the Sun card every break's sunset, each under its break's name.</li>
-        <li><b>From 1280 px</b>, what the whole beach shares sits in a column at the left: the
-          tabs, the Briefing, then Wind, Tide and Sun. The breaks, the buoys and the charts sit
-          beside it.</li>
+        <li><b>A tablet, held upright</b> (700 to 949 px wide): the same tabs, with Wind and Tide
+          side by side.</li>
+        <li><b>Wider, from 950 px</b>: all three breaks side by side, North, Center, South, in
+          the order they sit on the sand.</li>
+        <li><b>Wider still, from 1280 px</b>: what the whole beach shares (the Briefing, Wind,
+          Tide and Sun) moves to a column on the left.</li>
       </ul>
-      <p>On a wide screen the <a href="#briefing">Briefing</a> is always open. Its green dot then
-        marks an update you have not been at the page for, and goes at your next touch, click,
-        key or scroll anywhere on it. And every chart has a button beside its menu that opens it
-        full screen; the same button, or Escape, closes it.</p>
+      <p>Every chart has a button to open it full screen. Press it again, or Escape, to close
+        it.</p>
+      <details class="fold more"><summary>More</summary><div class="in">
+        <ul>
+          <li>Side by side, the breaks are never ranked: a column's place is its break's place
+            on the sand. Each column's headline, calculation rows, trains and map sit level with
+            the same ones beside it, and one caret opens all three calculations.</li>
+          <li>The buoys get a card of their own, three across. <a href="#swell-origin">Origin</a>
+            becomes one block for the beach.</li>
+          <li>The swell's charts get a card of their own too, with the break or the buoys picked
+            above the plot.</li>
+          <li>The Wind card gives every break's offshore, cross-shore or onshore line, and the
+            Sun card every break's sunset, each under its break's name.</li>
+          <li>The <a href="#briefing">Briefing</a> is always open. Its green dot then marks an
+            update you haven't been at the page for, and goes at your next touch, click, key or
+            scroll anywhere on it.</li>
+        </ul>
+      </div></details>
     </section>
 
     <section id="start-standing">
-      <h3>What each tab is standing on, right now</h3>
-      <p>Each tab's file says which of the four confidence levels (geometry, model, calibration,
-        observation) it has reached. These blocks are read from those files as the page loads, so
-        they say what the forecast page is standing on at this moment. A level that reads
-        <span class="none">none</span> is one the project has not reached.
-        <a href="#confidence-levels">The four levels</a>.</p>
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-layers"/></svg>What each tab is standing on, right now</h3>
+      <p>How far can you trust a number? That depends on what it's built on. The project names
+        four levels:</p>
+      <ul>
+        <li><b>Geometry</b>: the shape of the coast, read off NOAA's charts. The firmest.</li>
+        <li><b>Model</b>: computer physics. The wave model behind the Forecast tab, and the
+          steps that carry every swell to the sand.</li>
+        <li><b>Calibration</b>: adjusting the model to match what was seen at the beach.</li>
+        <li><b>Observation</b>: waves measured at the breaks themselves.</li>
+      </ul>
+      <p>The two boxes below are read from the forecast's own files as this page loads, so they
+        show where things stand right now. A level marked <span class="none">none</span> is one
+        the project hasn't reached yet.</p>
       <div class="card" id="standing-now-card">
         <span class="lbl">What &ldquo;LIVE&rdquo; is standing on</span>
         <dl class="standing" id="standing-now"><dt>Status</dt><dd>loading&hellip;</dd></dl>
@@ -527,6 +874,17 @@ svg text{font-family:Archivo,system-ui,sans-serif}
         <dl class="standing" id="standing-forecast"></dl>
         <p class="note" id="foot-forecast"></p>
       </div>
+      <details class="fold more"><summary>More</summary><div class="in">
+        <p>Calibration and observation both need someone to have seen the waves at the beach.
+          Until then, the physics is never called calibration, because that would claim a level
+          the project hasn't reached. <a href="#confidence-physics">Why</a>.</p>
+      </div></details>
+      <details class="fold tech"><summary>Technical</summary><div class="in">
+        <p>Each tab's file says which of the four confidence levels (geometry, model,
+          calibration, observation) it has reached. These blocks are read from those files as
+          the page loads, so they say what the forecast page is standing on at this moment.
+          <a href="#confidence-levels">The four levels</a>.</p>
+      </div></details>
     </section>
   </section>
 
@@ -1119,7 +1477,50 @@ South    0.774 → 0.662 m   −14.5%</pre>
     </section>
 
     <section id="calc-shoaling">
-      <h3><span class="num">6</span>Shoaling</h3>
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-shoal"/></svg><span class="num">6</span>Shoaling</h3>
+      <p>When waves reach shallower water, they slow down. The energy they carry slows with them,
+        so it piles up, and each wave grows taller.</p>
+      <ol class="steps">
+        <li>Out in deep water, the seabed is too far down for the waves to feel it.</li>
+        <li>Closer in, the bottom starts to drag on them, and they slow down.</li>
+        <li>The waves behind catch up, so the crests bunch closer together.</li>
+        <li>The same energy, moving more slowly, piles up: the waves grow taller.</li>
+      </ol>
+      <figure class="toy" data-drawing="shallower water">
+        <div class="seg" role="group" aria-label="Wave period" id="shoal-periods"></div>
+        <svg class="ill" id="shoal-svg" viewBox="0 0 340 200" role="img" aria-label="The same swell in deep water and at the depth picked below"></svg>
+        <input type="range" id="shoal" min="0" max="100" step="1" value="100" aria-label="Depth of water">
+        <div class="ends" aria-hidden="true"><span>Deep sea, 1312 ft (400 m)</span><span>16 ft (5 m)</span></div>
+        <p class="read" id="shoal-read" aria-live="polite"></p>
+        <figcaption>Pick a period, then drag toward the shore. The dashed lines mark the swell's
+          height in deep water. This is shoaling alone, for one period, by the same formula the
+          forecast uses; it stops at 16 ft (5 m), where the forecast hands over to the
+          <a href="#calc-break">wave break</a>.</figcaption>
+      </figure>
+      <p>Two things to try:</p>
+      <ul>
+        <li><b>Longer periods grow more.</b> At 16 ft (5 m), an 8 s swell is about 2% taller than
+          in deep water, and a 20 s swell about 51% taller.</li>
+        <li><b>Waves shrink a little first.</b> Part of the way in, they get up to 9% smaller
+          before they start to grow. Try a 16 s swell at around 200 ft (60 m).</li>
+      </ul>
+      <details class="fold more"><summary>More</summary><div class="in">
+        <p><b>Why longer periods grow more:</b> a longer wave reaches further down, so it feels
+          the seabed sooner and has slowed down more by the time it gets close in.</p>
+        <p><b>Why they shrink first:</b> a wave's energy travels at its own speed, which is
+          different from the speed of its crests. In deep water the energy moves at half the
+          crests' speed. As the water shallows, those two speeds come closer together, and for a
+          while the energy speeds up a little. Faster energy is spread thinner, so the waves
+          shrink, until the water is shallow enough to slow everything down.</p>
+        <p><b>The real number is a mix.</b> A real sea is many periods at once, and the forecast
+          grows every part of it by its own amount. In <a href="#calc-hour">the worked hour</a>,
+          the swell grew 22% at North, 20% at Center and 13% at South: the depth was the same
+          at all three, so the difference comes from each break's own mix of periods.</p>
+        <p><b>Why stop at 16 ft (5 m)?</b> The forecast's map of how waves bend over the seabed
+          ends in 16 ft (5 m) of water. From there, a separate step carries the waves over the
+          shape of the beach until they break.</p>
+      </div></details>
+      <details class="fold tech"><summary>Technical</summary><div class="in">
       <p>As water shallows, waves slow and bunch up, and their height grows. This row puts back
         the growth the refraction step kept separate, from deep water to the 5 m start point.</p>
 <pre class="math">Ks² = c_g,deep / c_g(h)
@@ -1137,6 +1538,10 @@ South    0.662 → 0.745 m   +13%</pre>
           describe water outside the shadow, a different place. The surf zone itself starts a
           little further out than the tables stop, because on big days the waves are already
           breaking before 5 m.</p></div>
+      <p class="see">The slider above uses the same linear wave theory: k from
+        &omega;&sup2; = gk&middot;tanh(kh), c<sub>g</sub> = &frac12;(1 + 2kh/sinh 2kh)&middot;&omega;/k,
+        c<sub>g,deep</sub> = gT/4&pi;, with g = 9.81 m/s&sup2;.</p>
+      </div></details>
     </section>
 
     <section id="calc-chop">
@@ -1813,31 +2218,117 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
 
   <!-- ================================================================ 6 -->
   <section id="wind">
-    <h2>The Wind card</h2>
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-wind"/></svg>The Wind card</h2>
+    <p>Wind does two things here. It makes small waves of its own, called chop, which the
+      forecast adds in. And surfers watch which way it blows compared with the beach: off the
+      land, off the sea, or along the sand.</p>
 
     <section id="wind-three">
-      <h3>Three winds</h3>
-      <dl class="terms">
-        <dt>KNZY</dt><dd>The airfield at Naval Air Station North Island, a few kilometres from the
-          breaks. Its routine report lands at :52 each hour. This is the &ldquo;LIVE&rdquo; tab's
-          wind.</dd>
-        <dt>Local</dt><dd>The National Weather Service's forecast grid at the center break,
-          hourly for 7 days. On the Forecast tab it is the wind on the sand, and the
-          offshore/onshore line comes from it. An hour the grid does not cover says so: KNZY's
-          report never stands in on the Forecast tab, because it is an observation, not a
-          forecast.</dd>
-        <dt>GFS-Wave</dt><dd>The wave model's own wind at the buoy, 29 km offshore. Kept on the
-          Forecast card because it is the wind the model grows its wind sea from, never used for
-          the offshore/onshore line.</dd>
-      </dl>
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-sock"/></svg>Three winds</h3>
+      <p>The page uses three different winds. Each one answers a different question.</p>
+      <div class="trio">
+        <div><span class="lbl"><svg class="ico" aria-hidden="true"><use href="#i-sock"/></svg>KNZY</span>
+          <p><b>Measured</b> at the Navy airfield on North Island, a short way from the
+            breaks.</p>
+          <p class="see">The wind on &ldquo;LIVE&rdquo;.</p></div>
+        <div><span class="lbl"><svg class="ico" aria-hidden="true"><use href="#i-grid"/></svg>Local</span>
+          <p><b>Forecast</b> by the National Weather Service for the beach itself, hour by hour
+            for 7 days.</p>
+          <p class="see">The wind on Forecast. It decides offshore or onshore there.</p></div>
+        <div><span class="lbl"><svg class="ico" aria-hidden="true"><use href="#i-buoy"/></svg>GFS-Wave</span>
+          <p><b>Modelled</b> by the wave model, out at the buoy, 18 mi (29 km) offshore.</p>
+          <p class="see">Shown on Forecast. Never decides offshore or onshore.</p></div>
+      </div>
+      <details class="fold more"><summary>More</summary><div class="in">
+        <p><b>Why three?</b> The airfield says what the wind is doing now. The weather service
+          says what it will do at the beach. The wave model's own wind is the one it grows its
+          waves from, out at sea.</p>
+        <p><b>Why the airfield never fills in on Forecast.</b> Its reading is a measurement, not
+          a forecast, and the two tabs never mix the two
+          (<a href="#chains">two tabs, two chains</a>). If the weather service's forecast
+          doesn't cover an hour, the card says so instead.</p>
+        <p><b>Why the wave model's wind never decides offshore or onshore.</b> It's the wind
+          18 mi (29 km) out at sea, not the wind on the sand.</p>
+      </div></details>
+      <details class="fold tech"><summary>Technical</summary><div class="in">
+        <dl class="terms">
+          <dt>KNZY</dt><dd>The airfield at Naval Air Station North Island, a few kilometres from the
+            breaks. Its routine report lands at :52 each hour. This is the &ldquo;LIVE&rdquo; tab's
+            wind.</dd>
+          <dt>Local</dt><dd>The National Weather Service's forecast grid at the center break,
+            hourly for 7 days. On the Forecast tab it is the wind on the sand, and the
+            offshore/onshore line comes from it. An hour the grid does not cover says so: KNZY's
+            report never stands in on the Forecast tab, because it is an observation, not a
+            forecast.</dd>
+          <dt>GFS-Wave</dt><dd>The wave model's own wind at the buoy, 29 km offshore. Kept on the
+            Forecast card because it is the wind the model grows its wind sea from, never used for
+            the offshore/onshore line.</dd>
+        </dl>
+      </div></details>
     </section>
 
     <section id="wind-sense">
-      <h3>Offshore, cross-shore, onshore or light</h3>
-      <p>Whether a wind is offshore depends on which way the beach faces, and the three breaks
-        face <span data-geo="normals">—</span>. So the line is per break, shown for the break
-        whose tab is open and hidden on the buoy's tab. On a wide screen, with no tabs, every
-        break's line is shown, each naming its break.</p>
+      <h3><svg class="ico" aria-hidden="true"><use href="#i-compass"/></svg>Offshore, cross-shore, onshore or light</h3>
+      <p>Whether a wind is offshore depends on which way the beach faces. The page works it out
+        in two steps:</p>
+      <ol class="steps">
+        <li>Take the direction the wind is coming from.</li>
+        <li>Compare it with the way the beach faces, straight out to sea.</li>
+      </ol>
+      <figure class="pic" data-drawing="which side a wind is on">
+        <svg class="ill" viewBox="0 0 340 230" style="max-width:420px;margin:0 auto" role="img" aria-label="A beach seen from above, land at the top and sea below. A wind from the land side is offshore, from the sea side onshore, and from either end cross-shore.">
+          <rect class="land" x="0" y="0" width="340" height="112" style="stroke:none"/>
+          <rect class="sea" x="0" y="112" width="340" height="118"/>
+          <path class="ln" d="M0 112H340"/>
+          <text x="12" y="24" class="ts">LAND</text><text x="12" y="220" class="ts">SEA</text>
+          <path class="off" d="M100.0 87.9A74 74 0 0 1 240.0 87.9"/>
+          <path class="cross" d="M241.1 91.6A74 74 0 0 1 241.1 132.4M98.9 132.4A74 74 0 0 1 98.9 91.6"/>
+          <path class="on" d="M240.0 136.1A74 74 0 0 1 100.0 136.1"/>
+          <path class="ln dash" d="M170 112v46"/><path class="ln" d="m165 152 5 7 5-7"/>
+          <circle class="ink" cx="170" cy="112" r="4"/>
+          <text x="170" y="22" text-anchor="middle" class="t-off">Offshore</text>
+          <text x="170" y="214" text-anchor="middle" class="t-on">Onshore</text>
+          <text x="262" y="104" class="ts">Cross-shore</text>
+          <text x="78" y="104" text-anchor="end" class="ts">Cross-shore</text>
+        </svg>
+        <figcaption>A wind blowing from anywhere on the blue arc is offshore, from the brown arc
+          onshore, and from the grey arcs cross-shore. The dashed arrow is the way the beach
+          faces.</figcaption>
+      </figure>
+      <ul>
+        <li><b>Offshore</b>: from the land, blowing out to sea.</li>
+        <li><b>Onshore</b>: from the sea, blowing onto the beach.</li>
+        <li><b>Cross-shore</b>: from in between, more or less along the beach.</li>
+      </ul>
+      <p>The three breaks face slightly different ways, so one wind can get three answers. At
+        noon on 28 September 2026, a 9 mph (8 kt) wind from the west was <b>cross-shore</b> at
+        North but <b>onshore</b> at Center and South.</p>
+      <p>And for when there's hardly any wind:</p>
+      <ul>
+        <li><b>Light</b>: about 3 mph (3 kt) or less. The card still names its side, as in
+          &ldquo;light offshore&rdquo;.</li>
+        <li><b>Calm</b> or <b>Variable</b>: no wind, or no steady direction. There's no side to
+          name, so the line says why: &ldquo;no wind&rdquo; or &ldquo;no direction&rdquo;.</li>
+      </ul>
+      <details class="fold more"><summary>More</summary><div class="in">
+        <p>The line is shown for the break whose tab is open, and hidden on the Buoys tab. On a
+          wide screen, with no tabs, every break's line is shown, each under its break's
+          name.</p>
+        <figure>
+        <div class="mapbox" data-map data-view="near" data-wedges="0" data-dists="0"></div>
+        <figcaption>Each break's chord, with its shore normal drawn out to sea from the midpoint.
+          One wind, three answers.</figcaption>
+      </figure>
+        <p>A light wind still names its side on the card, but the Shore direction charts count
+          it as light or variable: a direction that faint barely matters, and a forecast gives
+          it one anyway.</p>
+        <p>The airfield reports a calm as 0° at 0 kt. That's no wind, not a wind from the
+          north.</p>
+      </div></details>
+      <details class="fold tech"><summary>Technical</summary><div class="in">
+        <p>Per break, from its shore normal, the bearing straight out to sea at right angles to
+          the break's chord: <span data-geo="normals">—</span>.
+          <a href="#aperture-chords">Breaks, chords and shore normals</a>.</p>
 <pre class="math">offshore component = −cos(wind from − shore normal)     <span class="c">+1 straight off the land, −1 straight off the sea</span>
   &gt; +0.3   offshore          <span class="c">within 72.5° of straight off the land</span>
   &lt; −0.3   onshore           <span class="c">within 72.5° of straight off the sea</span>
@@ -1850,19 +2341,10 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
 North   normal 194.1°   −cos(75.9°) = −0.24   cross-shore
 Center  normal 213.9°   −cos(56.1°) = −0.56   onshore
 South   normal 220.9°   −cos(49.1°) = −0.66   onshore</pre>
-      <figure>
-        <div class="mapbox" data-map data-view="near" data-wedges="0" data-dists="0"></div>
-        <figcaption>Each break's chord, with its shore normal drawn out to sea from the midpoint.
-          One wind, three answers.</figcaption>
-      </figure>
-      <p>A wind of 3 kt or less, the Beaufort scale's light air, is &ldquo;light&rdquo;: the card
-        still names its side, &ldquo;light offshore&rdquo; and so on, but the Shore direction charts
-        count it as light or variable, because a direction that faint barely matters and a forecast
-        gives it one anyway. A wind of 0 kt is &ldquo;Calm&rdquo;: the airfield reports a calm as
-        0&deg; at 0 kt, which is no wind, not a north wind. A calm or a variable wind has no side
-        at any break, so the break's line says why, &ldquo;no wind&rdquo; or &ldquo;no
-        direction&rdquo;, rather than repeating the headline. The rule lives in one place on the page,
-        so the card and both Shore direction charts change together.</p>
+        <p>3 kt is the Beaufort scale's light air. A calm, reported as 0° at 0 kt, and a VRB
+          wind, reported with no direction, have no side at any break. The rule lives in one
+          place on the page, so the card and both Shore direction charts change together.</p>
+      </div></details>
     </section>
   </section>
 
@@ -2601,6 +3083,32 @@ document.querySelectorAll("#doc section[id] > h2, #doc section[id] > h3").forEac
   h.insertAdjacentHTML("beforeend", ` <a class="anchor" href="#${h.parentElement.id}" aria-label="Link to this section">#</a>`);
 });
 
+// The two folds, More and Technical: their icons, and on a wide screen room for
+// a wide block inside one, as the column gives it outside (owner's decision,
+// 2026-10-29), centred, the fold's prose keeping its measure.
+const FOLDS = [...document.querySelectorAll("details.fold")];
+const icon = (id, cls = "ico") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+for (const d of FOLDS) {
+  const s = d.querySelector(":scope > summary");
+  s.insertAdjacentHTML("afterbegin", icon(d.classList.contains("tech") ? "i-tech" : "i-more"));
+  s.insertAdjacentHTML("beforeend", icon("i-chev", "ico chev"));
+  d.addEventListener("toggle", () => fitFold(d));
+}
+function fitFold(d) {
+  d.style.width = ""; d.style.alignSelf = "";
+  if (!d.open || window.innerWidth < 1100) return;
+  const col = d.parentElement.clientWidth;
+  let need = 0;
+  d.querySelectorAll(":scope > .in > pre, :scope > .in > .tablebox").forEach((b) => { need = Math.max(need, b.scrollWidth); });
+  const want = Math.min(need + 30, 64 * 16, window.innerWidth - 96);
+  if (want > col) { d.style.width = want + "px"; d.style.alignSelf = "center"; }
+}
+addEventListener("resize", () => FOLDS.forEach(fitFold));
+// A fold opens for whatever is inside it that the reader is sent to.
+function unfold(el) {
+  for (let d = el && el.closest("details"); d; d = d.parentElement.closest("details")) d.open = true;
+}
+
 // Where the reader is: the last heading above a line a fifth of the way down.
 let PILL_OPEN = false;
 function spy() {
@@ -2643,7 +3151,7 @@ addEventListener("scroll", () => {
 // the page fills in at load are in it. A section's own text is its own: the
 // subsections inside a group are entries of their own, never counted twice.
 let INDEX = null;
-const SKIP = (n) => n.closest("svg, script, style, .anchor, .mapbox");
+const SKIP = (n) => n.closest("svg, script, style, .anchor, .mapbox, summary");
 function ownText(sec) {
   const parts = [];
   const walk = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT, {
@@ -2756,6 +3264,7 @@ function go(i) {
   if (!h) return;
   const sec = $(h.id);
   const first = markIn(sec, wordsOf($("search").value));
+  unfold(first);
   pill(false, {jumped: true});
   history.replaceState(null, "", "#" + h.id);
   (first || sec).scrollIntoView({block: first ? "center" : "start"});
@@ -3421,6 +3930,128 @@ document.querySelectorAll("span[data-geo]").forEach((el) => {
   try { if (MODEL) el.textContent = GEO[key](...args); } catch (err) { el.textContent = "—"; }
 });
 
+// ================================================================ the two toys
+// Walk the beach: each break's own windows, read from the model the forecast
+// reads. Three stops, because there are three breaks and no geometry between
+// them; straight lines only, as the caption says.
+(() => {
+  const svg = $("walk-svg"), range = $("walk");
+  if (!svg) return;
+  if (!MODEL) { range.disabled = true; return; }
+  const ORDER = ["coronado_north", "coronado_center", "coronado_south"];
+  const PLAIN = {"Baja peninsula": "Mexico", "Point Loma peninsula": "Point Loma"};
+  const plain = (name) => PLAIN[name] || (name.startsWith("Coronado Islands") ? "the Coronado Islands" : name);
+  const C = [228, 60], R = 205, LO = 150, HI = 280;
+  const at = (deg, r, from = C) => { const a = deg * Math.PI / 180; return [from[0] + r * Math.sin(a), from[1] - r * Math.cos(a)]; };
+  const xy = (p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+  const wedge = (a, b, cls) => `<path class="${cls}" d="M${xy(C)}L${xy(at(a, R))}A${R} ${R} 0 ${b - a > 180 ? 1 : 0} 1 ${xy(at(b, R))}Z"/>`;
+  const text = (p, s, cls = "", anchor = "middle") =>
+    `<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}" text-anchor="${anchor}" class="${cls}">${s}</text>`;
+  const kind = (w) => w.edges.some((e) => e.blocker === "Point Loma peninsula") ? "from the west"
+    : w.edges.some((e) => e.blocker === "Baja peninsula") ? "from the south" : "through the channel between the islands";
+  // A swell between Center's west edge and South's, so the walk shows it change.
+  const SWELL = Math.round((westOf(brk("coronado_center")).to + westOf(brk("coronado_south")).to) / 2);
+  function draw(i) {
+    const b = brk(ORDER[i]);
+    const ws = [...b.windows].sort((x, y) => x.from - y.from);
+    const n = b.normal, L1 = at(n - 90, 90), L2 = at(n + 90, 90);
+    let out = `<path class="land" d="M${xy(L1)}L${xy(L2)}L${xy(at(n + 180, 80, L2))}L${xy(at(n + 180, 80, L1))}Z"/>`;
+    // Blocked where no window is open, named by the land at each window's edge.
+    let cur = LO;
+    const shut = [];
+    for (const w of ws) {
+      if (w.from > cur) shut.push([cur, w.from, w.edges.find((e) => e.side === "low").blocker]);
+      cur = w.to;
+    }
+    shut.push([cur, HI, ws[ws.length - 1].edges.find((e) => e.side === "high").blocker]);
+    out += shut.map(([a, z]) => wedge(a, z, "shut")).join("") + ws.map((w) => wedge(w.from, w.to, "open")).join("");
+    for (const [a, z, who] of shut) if (z - a > 10) out += text(at((a + z) / 2, R * 0.72), plain(who), "tb");
+    out += text(at(193, R + 16), "Islands", "ts");
+    for (const w of ws) if (w.span > 15) out += text(at((w.from + w.to) / 2, R * 0.5), "open", "ts");
+    // Every break's west edge, this one's solid: the sweep along the sand.
+    ORDER.forEach((id, k) => {
+      const e = westOf(brk(id)).to, mine = k === i;
+      out += `<path class="${mine ? "ln" : "soft dash"}" d="M${xy(C)}L${xy(at(e, R + 4))}"/>`
+        + text(at(e, R + 10), NAME[id], mine ? "tb" : "ts", "end");
+    });
+    // The example swell: through, or stopped where the land is.
+    const through = b.windows.some((w) => SWELL >= w.from && SWELL <= w.to);
+    const start = at(SWELL, R - 6), stop = through ? at(SWELL, 12) : at(SWELL, R * 0.42);
+    out += `<path class="sw${through ? "" : " dash"}" d="M${xy(start)}L${xy(stop)}"/>`;
+    out += through
+      ? `<path class="sw" d="M${xy(at(SWELL + 155, 9, stop))}L${xy(stop)}L${xy(at(SWELL - 155, 9, stop))}"/>`
+      : `<path class="sw" d="M${xy(at(45, 6, stop))}L${xy(at(225, 6, stop))}M${xy(at(135, 6, stop))}L${xy(at(315, 6, stop))}"/>`;
+    out += `<circle class="ink" cx="${C[0]}" cy="${C[1]}" r="4.5"/>` + text([C[0] + 10, C[1] - 10], NAME[b.id], "tb", "start");
+    out += `<path class="ln" d="M-24 30V12m-4 5 4-5 4 5"/>` + text([-24, 44], "N", "ts");
+    svg.innerHTML = out;
+    const list = ws.map((w) => `${kind(w)}, ${fmtBrg(w.from)} to ${fmtBrg(w.to)}`);
+    $("walk-read").innerHTML = `From <b>${NAME[b.id]}</b>, swell can come straight in ${list.slice(0, -1).join("; ")}; `
+      + `and ${list[list.length - 1]}. A swell from ${SWELL}&deg; `
+      + (through ? `<b>gets in</b> through the west window.` : `<b>is blocked</b> by Point Loma.`);
+    range.setAttribute("aria-valuetext", NAME[b.id]);
+    $("walk-stops").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(Number(x.dataset.i) === i)));
+  }
+  range.addEventListener("input", () => draw(Number(range.value)));
+  $("walk-stops").addEventListener("click", (ev) => {
+    const x = ev.target.closest("button");
+    if (x) { range.value = x.dataset.i; draw(Number(x.dataset.i)); }
+  });
+  draw(Number(range.value));
+})();
+
+// Shallower water: shoaling alone, by linear wave theory, the formula the
+// chain's shoaling row uses (g = 9.81, as forecast/raytrace.py). Heights only
+// as a share of deep water: no number here is a forecast.
+(() => {
+  const svg = $("shoal-svg"), range = $("shoal");
+  if (!svg) return;
+  const G = 9.81, DEEP = 400, SHALLOW = 5, PERIODS = [8, 12.5, 16, 20];
+  let T = 12.5;
+  const kOf = (h) => {
+    const w = 2 * Math.PI / T;
+    let k = w * w / G;
+    for (let i = 0; i < 40; i++) { const t = Math.tanh(k * h); k -= (G * k * t - w * w) / (G * t + G * k * h * (1 - t * t)); }
+    return k;
+  };
+  const cg = (h) => { const k = kOf(h); return 0.5 * (1 + 2 * k * h / Math.sinh(2 * k * h)) * (2 * Math.PI / T) / k; };
+  const depth = () => DEEP * Math.pow(SHALLOW / DEEP, Number(range.value) / 100);
+  const m1 = (h) => (h < 9.95 ? h.toFixed(1).replace(/\.0$/, "") : String(Math.round(h)));
+  const len = (m) => `${Math.round(m * FT_PER_M)} ft (${Math.round(m)} m)`;
+  const wave = (base, amp, wl) => {
+    let d = "";
+    for (let x = 10; x <= 330; x += 2) d += `${d ? "L" : "M"}${x} ${(base - amp * Math.cos(2 * Math.PI * (x - 10) / wl)).toFixed(1)}`;
+    return d;
+  };
+  function draw() {
+    const h = depth(), K = Math.sqrt((G * T / (4 * Math.PI)) / cg(h));
+    const L0 = G * T * T / (2 * Math.PI), L = 2 * Math.PI / kOf(h), A = 14, W = 100;
+    const here = wave(140, A * K, W * L / L0), deep = wave(50, A, W);
+    svg.innerHTML = `<text x="10" y="16" class="tb">Deep water</text>`
+      + `<path class="sea" d="${deep}V84H10Z"/><path class="wv" d="${deep}"/>`
+      + `<text x="10" y="104" class="tb">Here, ${Math.round(h * FT_PER_M)} ft (${m1(h)} m) deep</text>`
+      + `<path class="sea" d="${here}V190H10Z"/><path class="wv" d="${here}"/>`
+      + `<path class="soft dash" d="M10 ${140 - A}H330M10 ${140 + A}H330"/>`;
+    const pct = Math.round(Math.abs(K - 1) * 100);
+    const size = K >= 1.005 ? `<b>${pct}% taller</b> than in deep water`
+      : K <= 0.995 ? `<b>${pct}% smaller</b> than in deep water` : `<b>about as tall</b> as in deep water`;
+    $("shoal-read").innerHTML = `In ${Math.round(h * FT_PER_M)} ft (${m1(h)} m) of water, a ${T} s swell is ${size} `
+      + `(K<sub>s</sub> ${K.toFixed(2)}), with its crests ${len(L)} apart instead of ${len(L0)}.`;
+    range.setAttribute("aria-valuetext", `${Math.round(h * FT_PER_M)} feet deep`);
+  }
+  for (const p of PERIODS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = `${p} s`; b.setAttribute("aria-pressed", String(p === T));
+    b.onclick = () => {
+      T = p;
+      $("shoal-periods").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      draw();
+    };
+    $("shoal-periods").appendChild(b);
+  }
+  range.addEventListener("input", draw);
+  draw();
+})();
+
 if (MODEL) {
   // How much of the geometry is charted.
   const chartedB = MODEL.blockers.filter((b) => b.cells.length).length;
@@ -3855,5 +4486,11 @@ if (MODEL) {
 }
 
 spy();
-if (location.hash) { const t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
+if (location.hash) { const t = document.getElementById(location.hash.slice(1)); if (t) { unfold(t); t.scrollIntoView(); } }
+// An in-page link into a fold opens it first.
+document.addEventListener("click", (ev) => {
+  const a = ev.target.closest && ev.target.closest('a[href^="#"]');
+  const t = a && document.getElementById(a.getAttribute("href").slice(1));
+  if (t) unfold(t);
+});
 </script>

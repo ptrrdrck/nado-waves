@@ -491,3 +491,55 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    on the next two frames as charts settle, unless the reader scrolls
    meanwhile. iPhone has no scroll anchoring; measured with it off and on,
    120 px added above the reader moved nothing, with no double correction.
+
+## The documentation page: plain words first
+
+   **Every section opens in plain words for a reader new to all of it,
+   child or adult** (owner's request, 2026-11-24: written so a child could
+   follow it, literally and figuratively; asked who reads it, the owner chose
+   "any age, beginner" over a children's register). Under the plain words,
+   two folds, closed until opened: **More**, further in the same voice (the
+   why, the exceptions, an example), and **Technical**, the exact method
+   (the math, the model choices, the sources, the worked hour), the
+   section's earlier text adapted rather than pasted (owner's names for
+   both). A section with nothing deeper has no fold. Because the exact
+   version is one tap away, the plain words drop every qualifier only an
+   expert needs; they never drop the caveat. "Nothing has ever measured a
+   wave at these three breaks" stays on show, "physically derived" is said
+   and explained, and a height is never likened to a body ("waist-high"):
+   a significant height is not a face height, and the step between them has
+   not been fitted (pinned, `TestPlainWordsFirst`).
+   **Headings and navigation are unchanged** (owner's call, same day: plain
+   rewrites of the headings were proposed and turned down). The contents
+   pill still builds from the h2s and h3s; ids are kept, so links and the
+   wording file's keys hold. One section was added, "The basics"
+   (`start-basics`), because everything after it assumes the words it
+   defines.
+   **Pictures** (all four the owner picked): an icon per section, drawn in
+   the page (a sprite of `<symbol>`s, `currentColor`, no library); "A
+   swell's trip to the sand", eight panels from storm to the number on the
+   card, each a link to its section, rows on a phone and two rows of four
+   from 901 px; plain labelled drawings in the page's tokens, so they follow
+   the theme; and two toys. **Walk the beach** draws a break's windows from
+   `MODEL`, the same geometry the forecast reads, with every break's west
+   edge and one swell between Center's west edge and South's, so the walk
+   shows it blocked and then let in. It has three stops, never a smooth
+   slide, because there are three breaks and no geometry between them, and
+   it says "straight lines only". **Shallower water** is shoaling alone, by
+   the chain's own linear theory (g = 9.81, as `nearshore.shoaling_squared`),
+   for a picked period from 400 m to 5 m, where the chain hands over to the
+   surf zone, and gives heights only as a share of deep water, so no number
+   on it is a forecast. The prose figures beside it (2% and 51% at 5 m for
+   8 s and 20 s, the 9% dip near 60 m at 16 s) are checked against the
+   chain's function by test.
+   **Search reads inside the folds and opens the one its match is in**
+   (`unfold`), as do a link and a URL hash into one; the fold's own label
+   is not indexed, or "technical" would match every section. On a wide
+   screen a block wider than the column inside an open fold widens the
+   fold, centred, as the column does outside one (`fitFold`; the owner's
+   2026-10-29 decision for tables and math); the fold's prose keeps its
+   measure. `app/docs_wording.md` marks each fold `[More]` ...
+   `[end of More]`, `[Technical]` ... `[end of Technical]`.
+   **Rolled out in stages:** first a sample (Start, Shoaling, Wind) for the
+   owner to judge, then the other groups in page order (handoff item 28a).
+

@@ -9,6 +9,7 @@ the archive here: if the chain moves, the page has to move with it.
 from __future__ import annotations
 
 import json
+import math
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -377,3 +378,60 @@ class TestTheTidePhase:
         if c is None or not c.analysis:
             pytest.skip("no archived harmonic constants")
         assert f"NOAA's {c.analysis.replace('–', '&ndash;')} analysis" in DOCS
+
+
+class TestPlainWordsFirst:
+    """Owner's decision, 2026-11-24: every section opens in plain words for a
+    reader new to all of it, with a "More" fold in the same voice and a
+    "Technical" fold that keeps the exact method. Search opens the fold its
+    match is in, and the numbers the plain words quote are the chain's own."""
+
+    def test_every_fold_is_more_or_technical(self):
+        folds = re.findall(r'<details class="fold (more|tech)"><summary>([^<]*)</summary><div class="in">', DOCS)
+        assert folds and len(folds) == DOCS.count("<details")
+        for kind, label in folds:
+            assert label == {"more": "More", "tech": "Technical"}[kind], label
+
+    def test_search_reads_inside_folds_and_opens_them(self):
+        assert 'n.closest("svg, script, style, .anchor, .mapbox, summary")' in DOCS
+        go = DOCS[DOCS.index("function go("):DOCS.index('$("search").addEventListener("input"')]
+        assert go.index("unfold(first)") < go.index("scrollIntoView")
+
+    def test_the_wording_file_marks_every_fold(self):
+        current = (ROOT / "app" / "docs_wording.md").read_text(encoding="utf-8")
+        marks = lambda m: len(re.findall(rf"^\[{m}\]$", current, flags=re.M))
+        assert marks("More") == DOCS.count('<details class="fold more">')
+        assert marks("Technical") == DOCS.count('<details class="fold tech">')
+        assert marks("end of More") == marks("More") and marks("end of Technical") == marks("Technical")
+
+    def test_the_walk_stops_only_at_the_three_breaks(self):
+        """There is no geometry between the breaks, so no stop between them."""
+
+        assert 'id="walk" min="0" max="2" step="1"' in DOCS
+        assert 'const ORDER = ["coronado_north", "coronado_center", "coronado_south"];' in DOCS
+
+    def test_the_shoaling_toy_and_its_prose_are_the_chains_formula(self):
+        from forecast import nearshore
+
+        toy = DOCS[DOCS.index("// Shallower water"):]
+        toy = toy[:toy.index("})();")]
+        assert f"const G = {nearshore.G:g}," in toy and "SHALLOW = 5," in toy
+
+        def ks(period_s, depth_m):
+            return math.sqrt(nearshore.shoaling_squared(1 / period_s, depth_m))
+
+        assert f"an 8 s swell is about {round(100 * (ks(8, 5) - 1))}% taller" in TEXT
+        assert f"a 20 s swell about {round(100 * (ks(20, 5) - 1))}% taller" in TEXT
+        depths = range(10, 201)
+        lowest = min(depths, key=lambda h: ks(16, h))
+        assert f"up to {round(100 * (1 - ks(16, lowest)))}% smaller" in TEXT
+        assert 55 <= lowest <= 65 and "a 16 s swell at around 200 ft (60 m)" in TEXT
+        assert round(ks(12.5, 5), 2) == 1.22  # the Technical fold's worked figure
+
+    def test_no_height_is_compared_with_a_body(self):
+        """A significant height is not a face height (the caveat above), so the
+        plain words never turn one into "waist-high" and the like."""
+
+        lowered = TEXT.lower()
+        for word in ("waist", "knee", "chest", "head-high", "overhead", "shoulder"):
+            assert word not in lowered, word

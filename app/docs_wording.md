@@ -16,6 +16,9 @@ How to edit:
 - `[bracketed notes]` are things the page draws or fills in itself: drawings,
   live blocks, the geometry tables. Their wording is not here.
 - Fenced blocks are the math. Edit them like any other text.
+- `[More]` and `[Technical]` open a section's two folds, and `[end of More]`
+  and `[end of Technical]` close them. Everything between is the fold's text:
+  edit it like the rest, and keep the markers.
 - A line starting `>>` is a note to Claude, not page text. Use it for
   anything that is not a wording change, where it applies:
   `>> move this section after [calc-table]`, `>> delete this section`,
@@ -26,23 +29,156 @@ How to edit:
 
 Nado Waves · documentation
 
-Every card, chart and calculation on the forecast page, what each one is built from, and what each one is standing on. Start at the top for the tour, or use the contents to go straight to one thing.
+What every number on the forecast page means, where it comes from, and how far to trust it. Read from the top for the whole story, or open the contents to jump to one thing.
+
+Every section starts in plain words.
+
+Open **More** for the why, in the same plain words.
+
+Open **Technical** for the exact math, models and sources.
+
+A swell's trip to the sand
+
+1. [**A storm** Wind blowing over the sea, often very far away, makes waves.](#start-basics)
+2. [**The swell travels** The waves sort themselves into smooth lines and cross the ocean.](#swell-origin)
+3. [**The buoy** A buoy 18 mi (29 km) off Point Loma measures the waves as they pass.](#calc-buoy)
+4. [**The gaps** Land blocks most of the ocean. Swell gets in only through a few gaps.](#calc-windows)
+5. [**The seabed** In shallower water the waves bend, spread out and slow down.](#calc-refraction)
+6. [**Growing** Close to shore, the waves bunch up and grow taller.](#calc-shoaling)
+7. [**Breaking** When a wave gets too tall for the water under it, it breaks.](#calc-break)
+8. [**The number** The height where the waves break: the big number on each card.](#swell-headline)
 
 ### [start-what] What Nado Waves is
 
-A swell forecaster for the three breaks on Coronado Central Beach: North, Center and South. All three read the same offshore buoy, NDBC 46232 off Point Loma, and they get three different answers. The reason is geometric. Point Loma, the Coronado Islands and the Baja coast block most of the ocean from these beaches, and the gaps they leave open, the *swell windows*, point a different way from each spot on the sand. Walking from North to South moves the west edge of the window by about {{geo:west-sweep}}.
+Nado Waves forecasts the surf at three spots on Coronado Central Beach: **North**, **Center** and **South**. Surfers call a spot like this a **break**, because it's where the waves break. The three are less than 2 miles (2.8 km) apart.
 
-The premise is that a forecast that respects that geometry can say something a regional forecast cannot: which of the three breaks is holding more of today's swell.
+All three get their waves from the same ocean, measured by the same buoy. Yet each one gets its own forecast. Here's why:
+
+1. Land blocks most of the ocean from this beach: Point Loma, the Coronado Islands and the coast of Mexico.
+2. Swell can only reach the sand through the gaps between them. These gaps are called **swell windows**.
+3. Each break looks out through the gaps at a slightly different angle. So a swell that reaches one break can miss another.
+
+[drawing: walk the beach] Caption: Slide to walk the beach. Blue is where swell can come straight in, grey is where land is in the way, and north is up. The blue arrow is one swell from the west, followed in the words above. These are straight lines only: some swell also bends round the edges and over the seabed, which later steps add.
+
+Walking from North to South swings the edge of the west window by about {{geo:west-sweep}}. That's enough to change which break gets more of a swell from the west.
+
+So the question Nado Waves tries to answer is: **which of the three breaks is getting more of today's swell?**
+
+[More]
+
+A regional forecast gives one number for a long stretch of coast. Here, three spots less than 2 miles apart can get different waves from the same swell, and that difference is what Nado Waves is built to show.
+
+The buoy sits out in the open ocean with nothing in the way, so it feels swell from every direction. Each break only gets what comes through its own windows.
+
+The windows are only the start. Over the seabed the swell bends, and that can change the order. In [one worked hour](#calc-hour), South had the most swell coming through its windows, but North came out biggest once the seabed had its say. That's what the physics says. Nobody has checked it at the beach yet.
+
+[end of More]
+
+[Technical]
+
+All three breaks read the same offshore buoy, NDBC 46232 off Point Loma, and get three different answers. The reason is geometric. Point Loma, the Coronado Islands and the Baja coast block most of the ocean from these beaches, and the gaps they leave open, the *swell windows*, point a different way from each spot on the sand. The west window's west edge is the line from the break that just grazes the tip of Point Loma, and walking from North to South moves it by about {{geo:west-sweep}}.
+
+The premise is that a forecast that respects that geometry can say something a regional forecast cannot: which of the three breaks is holding more of today's swell. The drawing above reads each break's windows from the same geometry the forecast uses; [the aperture](#aperture) has every vertex behind them.
+
+[end of Technical]
 
 ### [start-claims] What it claims, and what it does not
 
-**Nothing has ever measured a wave at these three breaks.** This is **physically derived**, not an accurate forecast, and it carries no error bar because there is nothing to compute one against. What it claims is which break holds more of today's swell — not how big it is.
+**Nothing has ever measured a wave at these three breaks.** So nobody knows yet how close these numbers come to the waves on the sand.
+
+Every number here is worked out with physics, starting from real measurements out at sea. The project calls that **physically derived**. It is not the same as checked: nothing has compared these numbers with the beach yet.
+
+What it claims
+
+- Which of the three breaks is getting more of today's swell.
+
+What it does not claim
+
+- How big the waves are at the beach. Nobody has measured them.
+- How far off any number might be. There's nothing to measure the error against, so there's no “give or take”.
+
+The height on each card is where the waves break. It's a [significant height](#start-basics), a kind of average that buoys use. It is not the same as the height of a wave's face, which is what many surfers mean by a wave's size.
+
+[More]
+
+Each break's number is built in steps, one for each thing that happens to a swell on its way in. Every step is in [the swell calculation](#calc):
+
+1. Start with the swell the buoy measured.
+2. Keep only what can get through that break's windows.
+3. Let the seabed bend it, and let it spread round the edges of each window.
+4. Take off what the sandy bottom rubs away.
+5. Let it grow as the water gets shallower, and add the little waves the local wind makes.
+6. Carry it in over the shape of the beach, at the tide of the moment, until it breaks.
+
+Three things still stand between that number and the waves you see:
+
+- Nobody has worked out how to turn a significant height into a face height at these breaks.
+- The shape of the beach comes from a survey made in 2016. Sandbars move every season.
+- Nothing has checked the result against the beach.
+
+The plan to check it is people at the beach, writing down which break looks bigger. [The beach observation log](#confidence-log).
+
+[end of More]
+
+[Technical]
+
+This is **physically derived**, not an accurate forecast, and it carries no error bar because there is nothing to compute one against. What it claims is which break holds more of today's swell — not how big it is.
 
 Each break's number is the buoy's swell carried by physics to where it **breaks**: through the windows the coast leaves open, bent over the seabed and slowed by its friction, diffracted round every window edge, lifted by shoaling into 5 m of water with local wind chop added, then carried in over the surveyed beach profile at the tide of the moment until it breaks. It is still not a wave height at the beach as a surfer would call it: a significant height, not a face height, and the step from one to the other has not been fitted; the beach profile is a 2016 survey rather than this season's sandbars; and nothing has checked it against the sand.
 
+[end of Technical]
+
+### [start-basics] The basics
+
+A few words come up all over the forecast page. Here's what they mean.
+
+[drawing: a wave from the side, and a compass] Caption: Left: a wave from the side. The crest behind the buoy reaches it one period later. Right: a swell's direction is where it comes **from**.
+
+- **Swell**
+  Waves made by wind far away. By the time they get here, they've left the wind that made them behind, and they arrive as smooth, even lines.
+- **Wind sea**
+  Waves the wind is still pushing: choppier and messier. The wind at the beach makes small ones of its own, called **chop**.
+- **Height**
+  From the bottom of a wave (the **trough**) to its top (the **crest**). Waves come in all sizes, so buoys sum them up with a kind of average called the **significant height**: about the average of the biggest third.
+- **Period**
+  The seconds between one crest and the next passing the same spot. Longer-period swell travels faster, feels the seabed sooner, and bends more on the way in.
+- **Direction**
+  Where the swell comes **from**, as a compass bearing: 270° is from the west, 180° from the south. Wind directions work the same way.
+- **Buoy**
+  A float anchored out at sea. It rides up and down and side to side on the waves, and from that movement it works out their height, period and direction.
+- **Tide**
+  The sea slowly rising and falling, roughly twice a day. It changes how deep the water is where the waves break.
+
+[More]
+
+**The sea is many swells at once.** Two storms far apart can send swell here on the same day, from different directions and with different periods, on top of whatever the local wind is doing. The buoy measures how the waves' energy is spread over every period and direction, and the forecast page splits that into [swell trains](#swell-trains): each one a swell with its own height, period and direction.
+
+**Swell or wind sea?** A train counts as wind sea only while the wind is still driving it, which means the wind blowing its way is faster than the waves. A short period on its own doesn't make waves wind sea. [How the page decides](#wind-sea).
+
+**Why “from”?** Buoys and weather reports give the direction a swell or a wind comes from: a west wind blows from the west. Some wave models give the direction the waves are heading instead. The forecast turns those round once, so every direction on the page means “from”.
+
+**Feet or metres?** The forecast page shows feet by default; its Units button switches to metres or both. This page always shows both.
+
+[end of More]
+
+[Technical]
+
+- **Significant height**
+  Hs = 4√m0, where m0 is the spectrum's zeroth moment, its total energy. For a narrow sea it is close to H1/3, the mean of the highest third of waves, trough to crest. What buoys and models report, and what every height here is.
+- **Spectrum**
+  The energy density E(f, θ) over frequency and direction. The buoy reports it hourly, the model for every hour of its run.
+- **Peak and mean period**
+  The peak period is where the spectrum's energy peaks; the mean period here is Tm02 = √(m0/m2).
+- **Direction**
+  NDBC's mean wave direction is the bearing the swell comes FROM. GFS-Wave's bulletin gives the direction it travels TOWARD, and the collector flips it once, on the way in.
+- **Units**
+  The chain runs in metres and seconds, the units the buoy and the model publish. Feet appear only on screen.
+
+[end of Technical]
+
 ### [start-minute] The page in one minute
 
-From the top of the forecast page down. The figures are a real hour, noon on Monday 28 September 2026, at the North break.
+Here's the forecast page from top to bottom. The numbers come from a real hour: noon on Monday 28 September 2026, at North.
 
 [annotated card, row by row:]
 - “LIVE” / Forecast
@@ -53,31 +189,60 @@ From the top of the forecast page down. The figures are a real hour, noon on Mon
 - **Charts** ▴
 - **Wind** 9 mph (8 kt) from the west, cross-shore at this break · **Tide** 6.2 ft (1.89 m)
 
-1. **Two tabs.** “LIVE” is built only from measurements, Forecast only from a model. [Two tabs, two chains](#chains).
-2. **One tab per break**, ranked by how much swell each one's windows let in, with the buoy itself always last. [Break tabs](#swell-tabs).
-3. **The headline**: the height where the waves break, and the depth they break in. The caret at its end folds out the calculation behind it. [Reading the table](#calc-table).
-4. **The wave trains** that make up the number, and **the map**: the break's windows over the seabed, turned the way the break faces. [The map](#swell-map).
-5. **Where it came from, and when the next one is due.** [Countdowns](#swell-countdown).
-6. **Charts**, closed until opened, the last line of every card. [Charts](#charts).
-7. **Wind and Tide**, cards of their own because one station feeds all three breaks. [Wind](#wind), [Tide](#tide).
+1. **Two tabs.** “LIVE” shows only measurements. Forecast shows only what a computer model predicts. [Two tabs, two chains](#chains).
+2. **A tab for each break**, in order of how much swell its windows let in, and the Buoys tab last. [Break tabs](#swell-tabs).
+3. **The big number**: the height of the waves where they break. The little arrow at its end opens the working behind it. [Reading the table](#calc-table).
+4. **The swell trains** that add up to that number, and **a map** of the break's windows over the seabed. [The map](#swell-map).
+5. **Where the reading came from**, and when the next one is due. [Countdowns](#swell-countdown).
+6. **Charts**, folded away until you open them. [Charts](#charts).
+7. **Wind and Tide**, on cards of their own, because one station serves all three breaks. [Wind](#wind), [Tide](#tide).
 
 ### [start-wide] On a wider screen
 
-The page above is a phone's. Wider than a phone, the same cards are laid out to use the room; what they say does not change.
+On a phone you see one break at a time. On a bigger screen you see more at once. The numbers are the same.
 
-- **A tablet held upright** (700 to 949 px wide) keeps the tabs, with Wind and Tide side by side under the Swell card.
-- **From 950 px**, the three breaks sit side by side: North, Center, South, in the order they sit on the sand, never ranked, so a column's place is its break's. Each column's headline, calculation rows, trains and map sit level with the same ones beside it, and one caret opens all three calculations. The buoys get a card of their own, three across. [Origin](#swell-origin) becomes one block for the beach. The swell's charts get a card of their own too, with the break or the buoys picked above the plot. The Wind card gives every break's offshore, cross-shore or onshore line, and the Sun card every break's sunset, each under its break's name.
-- **From 1280 px**, what the whole beach shares sits in a column at the left: the tabs, the Briefing, then Wind, Tide and Sun. The breaks, the buoys and the charts sit beside it.
+- **A tablet, held upright** (700 to 949 px wide): the same tabs, with Wind and Tide side by side.
+- **Wider, from 950 px**: all three breaks side by side, North, Center, South, in the order they sit on the sand.
+- **Wider still, from 1280 px**: what the whole beach shares (the Briefing, Wind, Tide and Sun) moves to a column on the left.
 
-On a wide screen the [Briefing](#briefing) is always open. Its green dot then marks an update you have not been at the page for, and goes at your next touch, click, key or scroll anywhere on it. And every chart has a button beside its menu that opens it full screen; the same button, or Escape, closes it.
+Every chart has a button to open it full screen. Press it again, or Escape, to close it.
+
+[More]
+
+- Side by side, the breaks are never ranked: a column's place is its break's place on the sand. Each column's headline, calculation rows, trains and map sit level with the same ones beside it, and one caret opens all three calculations.
+- The buoys get a card of their own, three across. [Origin](#swell-origin) becomes one block for the beach.
+- The swell's charts get a card of their own too, with the break or the buoys picked above the plot.
+- The Wind card gives every break's offshore, cross-shore or onshore line, and the Sun card every break's sunset, each under its break's name.
+- The [Briefing](#briefing) is always open. Its green dot then marks an update you haven't been at the page for, and goes at your next touch, click, key or scroll anywhere on it.
+
+[end of More]
 
 ### [start-standing] What each tab is standing on, right now
 
-Each tab's file says which of the four confidence levels (geometry, model, calibration, observation) it has reached. These blocks are read from those files as the page loads, so they say what the forecast page is standing on at this moment. A level that reads none is one the project has not reached. [The four levels](#confidence-levels).
+How far can you trust a number? That depends on what it's built on. The project names four levels:
+
+- **Geometry**: the shape of the coast, read off NOAA's charts. The firmest.
+- **Model**: computer physics. The wave model behind the Forecast tab, and the steps that carry every swell to the sand.
+- **Calibration**: adjusting the model to match what was seen at the beach.
+- **Observation**: waves measured at the breaks themselves.
+
+The two boxes below are read from the forecast's own files as this page loads, so they show where things stand right now. A level marked none is one the project hasn't reached yet.
 
 [live block: What “LIVE” is standing on]
 
 [live block: What Forecast is standing on]
+
+[More]
+
+Calibration and observation both need someone to have seen the waves at the beach. Until then, the physics is never called calibration, because that would claim a level the project hasn't reached. [Why](#confidence-physics).
+
+[end of More]
+
+[Technical]
+
+Each tab's file says which of the four confidence levels (geometry, model, calibration, observation) it has reached. These blocks are read from those files as the page loads, so they say what the forecast page is standing on at this moment. [The four levels](#confidence-levels).
+
+[end of Technical]
 
 ## [chains] Two tabs, two chains
 
@@ -384,6 +549,34 @@ South    0.774 → 0.662 m   −14.5%
 
 ### [calc-shoaling] Shoaling
 
+When waves reach shallower water, they slow down. The energy they carry slows with them, so it piles up, and each wave grows taller.
+
+1. Out in deep water, the seabed is too far down for the waves to feel it.
+2. Closer in, the bottom starts to drag on them, and they slow down.
+3. The waves behind catch up, so the crests bunch closer together.
+4. The same energy, moving more slowly, piles up: the waves grow taller.
+
+[drawing: shallower water] Caption: Pick a period, then drag toward the shore. The dashed lines mark the swell's height in deep water. This is shoaling alone, for one period, by the same formula the forecast uses; it stops at 16 ft (5 m), where the forecast hands over to the [wave break](#calc-break).
+
+Two things to try:
+
+- **Longer periods grow more.** At 16 ft (5 m), an 8 s swell is about 2% taller than in deep water, and a 20 s swell about 51% taller.
+- **Waves shrink a little first.** Part of the way in, they get up to 9% smaller before they start to grow. Try a 16 s swell at around 200 ft (60 m).
+
+[More]
+
+**Why longer periods grow more:** a longer wave reaches further down, so it feels the seabed sooner and has slowed down more by the time it gets close in.
+
+**Why they shrink first:** a wave's energy travels at its own speed, which is different from the speed of its crests. In deep water the energy moves at half the crests' speed. As the water shallows, those two speeds come closer together, and for a while the energy speeds up a little. Faster energy is spread thinner, so the waves shrink, until the water is shallow enough to slow everything down.
+
+**The real number is a mix.** A real sea is many periods at once, and the forecast grows every part of it by its own amount. In [the worked hour](#calc-hour), the swell grew 22% at North, 20% at Center and 13% at South: the depth was the same at all three, so the difference comes from each break's own mix of periods.
+
+**Why stop at 16 ft (5 m)?** The forecast's map of how waves bend over the seabed ends in 16 ft (5 m) of water. From there, a separate step carries the waves over the shape of the beach until they break.
+
+[end of More]
+
+[Technical]
+
 As water shallows, waves slow and bunch up, and their height grows. This row puts back the growth the refraction step kept separate, from deep water to the 5 m start point.
 
 ```
@@ -400,6 +593,10 @@ South    0.662 → 0.745 m   +13%
 
 > **Model choice · hand over at 5 m**
 > The ray tables stop in 5 m of water, close in and still inside Point Loma's shadow. From there the surf zone takes over (step 8). A table that stopped further out would describe water outside the shadow, a different place. The surf zone itself starts a little further out than the tables stop, because on big days the waves are already breaking before 5 m.
+
+The slider above uses the same linear wave theory: k from ω² = gk·tanh(kh), cg = ½(1 + 2kh/sinh 2kh)·ω/k, cg,deep = gT/4π, with g = 9.81 m/s².
+
+[end of Technical]
 
 ### [calc-chop] Local chop
 
@@ -618,7 +815,41 @@ Three hours after a reading, if no newer one has come, the numbers made from it 
 
 ## [wind] The Wind card
 
+Wind does two things here. It makes small waves of its own, called chop, which the forecast adds in. And surfers watch which way it blows compared with the beach: off the land, off the sea, or along the sand.
+
 ### [wind-three] Three winds
+
+The page uses three different winds. Each one answers a different question.
+
+KNZY
+
+**Measured** at the Navy airfield on North Island, a short way from the breaks.
+
+The wind on “LIVE”.
+
+Local
+
+**Forecast** by the National Weather Service for the beach itself, hour by hour for 7 days.
+
+The wind on Forecast. It decides offshore or onshore there.
+
+GFS-Wave
+
+**Modelled** by the wave model, out at the buoy, 18 mi (29 km) offshore.
+
+Shown on Forecast. Never decides offshore or onshore.
+
+[More]
+
+**Why three?** The airfield says what the wind is doing now. The weather service says what it will do at the beach. The wave model's own wind is the one it grows its waves from, out at sea.
+
+**Why the airfield never fills in on Forecast.** Its reading is a measurement, not a forecast, and the two tabs never mix the two ([two tabs, two chains](#chains)). If the weather service's forecast doesn't cover an hour, the card says so instead.
+
+**Why the wave model's wind never decides offshore or onshore.** It's the wind 18 mi (29 km) out at sea, not the wind on the sand.
+
+[end of More]
+
+[Technical]
 
 - **KNZY**
   The airfield at Naval Air Station North Island, a few kilometres from the breaks. Its routine report lands at :52 each hour. This is the “LIVE” tab's wind.
@@ -627,9 +858,43 @@ Three hours after a reading, if no newer one has come, the numbers made from it 
 - **GFS-Wave**
   The wave model's own wind at the buoy, 29 km offshore. Kept on the Forecast card because it is the wind the model grows its wind sea from, never used for the offshore/onshore line.
 
+[end of Technical]
+
 ### [wind-sense] Offshore, cross-shore, onshore or light
 
-Whether a wind is offshore depends on which way the beach faces, and the three breaks face {{geo:normals}}. So the line is per break, shown for the break whose tab is open and hidden on the buoy's tab. On a wide screen, with no tabs, every break's line is shown, each naming its break.
+Whether a wind is offshore depends on which way the beach faces. The page works it out in two steps:
+
+1. Take the direction the wind is coming from.
+2. Compare it with the way the beach faces, straight out to sea.
+
+[drawing: which side a wind is on] Caption: A wind blowing from anywhere on the blue arc is offshore, from the brown arc onshore, and from the grey arcs cross-shore. The dashed arrow is the way the beach faces.
+
+- **Offshore**: from the land, blowing out to sea.
+- **Onshore**: from the sea, blowing onto the beach.
+- **Cross-shore**: from in between, more or less along the beach.
+
+The three breaks face slightly different ways, so one wind can get three answers. At noon on 28 September 2026, a 9 mph (8 kt) wind from the west was **cross-shore** at North but **onshore** at Center and South.
+
+And for when there's hardly any wind:
+
+- **Light**: about 3 mph (3 kt) or less. The card still names its side, as in “light offshore”.
+- **Calm** or **Variable**: no wind, or no steady direction. There's no side to name, so the line says why: “no wind” or “no direction”.
+
+[More]
+
+The line is shown for the break whose tab is open, and hidden on the Buoys tab. On a wide screen, with no tabs, every break's line is shown, each under its break's name.
+
+[drawing: near] Caption: Each break's chord, with its shore normal drawn out to sea from the midpoint. One wind, three answers.
+
+A light wind still names its side on the card, but the Shore direction charts count it as light or variable: a direction that faint barely matters, and a forecast gives it one anyway.
+
+The airfield reports a calm as 0° at 0 kt. That's no wind, not a wind from the north.
+
+[end of More]
+
+[Technical]
+
+Per break, from its shore normal, the bearing straight out to sea at right angles to the break's chord: {{geo:normals}}. [Breaks, chords and shore normals](#aperture-chords).
 
 ```
 offshore component = −cos(wind from − shore normal)     +1 straight off the land, −1 straight off the sea
@@ -646,9 +911,9 @@ Center  normal 213.9°   −cos(56.1°) = −0.56   onshore
 South   normal 220.9°   −cos(49.1°) = −0.66   onshore
 ```
 
-[drawing: near] Caption: Each break's chord, with its shore normal drawn out to sea from the midpoint. One wind, three answers.
+3 kt is the Beaufort scale's light air. A calm, reported as 0° at 0 kt, and a VRB wind, reported with no direction, have no side at any break. The rule lives in one place on the page, so the card and both Shore direction charts change together.
 
-A wind of 3 kt or less, the Beaufort scale's light air, is “light”: the card still names its side, “light offshore” and so on, but the Shore direction charts count it as light or variable, because a direction that faint barely matters and a forecast gives it one anyway. A wind of 0 kt is “Calm”: the airfield reports a calm as 0° at 0 kt, which is no wind, not a north wind. A calm or a variable wind has no side at any break, so the break's line says why, “no wind” or “no direction”, rather than repeating the headline. The rule lives in one place on the page, so the card and both Shore direction charts change together.
+[end of Technical]
 
 ## [tide] The Tide card
 
