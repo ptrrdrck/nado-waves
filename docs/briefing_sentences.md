@@ -15,7 +15,7 @@ the page will read as the page's again until that happens. The formula is in
 
 ## The fold's line
 
-- Briefing updated · 7:16 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, R1, Z1, S1)
+- Briefing updated · 7:16 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, A2, R1, Z1, S1)
 - Briefing updated · Oct 21, 12:06 PM  (Y1)
 
 By what the update changed: as many as fit, and the rest carried on in the open fold:
@@ -61,16 +61,18 @@ By what the update changed: as many as fit, and the rest carried on in the open 
 
 ## Alerts
 
-AL1. Coastal Flood Warning until 2 PM Sun  (A1)
+AL1. Coastal Flood Warning until 2 PM Sun  (A1, A2)
 
 AL2. Small Craft Advisory in effect  (A1)
+
+AL3. High Surf Advisory from 1 PM Thu until 4 AM Sat  (A2)
 
 
 ## Swell
 
-SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, WS1, H1, W1, W2, K1, A1, R1, Z1, S1, Y1)
+SW1. 3–4 ft (0.9–1.2 m).  (Q1, C1, M1, WS1, H1, W1, W2, K1, A1, A2, R1, Z1, S1, Y1)
 
-SW2. SSW at 13.3 s, holding.  (Q1, W1, W2, K1, A1, R1, Z1, S1, Y1)
+SW2. SSW at 13.3 s, holding.  (Q1, W1, W2, K1, A1, A2, R1, Z1, S1, Y1)
 
 SW3. 2–5 ft (0.6–1.5 m).  (B1)
 
@@ -99,13 +101,13 @@ SW14. No spectrum from NDBC 46232 since Oct 21, 3:00 PM.  (D1)
 
 ## Tides
 
-TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+TI1. AM low 0.7 ft (0.21 m) at 3:15 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, A2, R1, Z1, S1, Y1)
 
-TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+TI2. AM high 5.3 ft (1.62 m) at 9:32 AM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, A2, R1, Z1, S1, Y1)
 
-TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+TI3. PM low 1.8 ft (0.55 m) at 3:48 PM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, A2, R1, Z1, S1, Y1)
 
-TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+TI4. PM high 6.3 ft (1.92 m) at 10:05 PM  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, A2, R1, Z1, S1, Y1)
 
 TI5. AM low −0.7 ft (−0.21 m) at 6:40 AM  (K1)
 
@@ -114,13 +116,13 @@ TI6. PM high 5.6 ft (1.71 m) at 1:05 PM  (K1)
 
 ## Conditions
 
-CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, WS1, H1, D1, A1, R1, Z1, S1, Y1)
+CO1. Water 67 °F (19.4 °C), up  (Q1, B1, C1, M1, WS1, H1, D1, A1, A2, R1, Z1, S1, Y1)
 
-CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+CO2. Air 61 °F (16 °C), down  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, A2, R1, Z1, S1, Y1)
 
-CO3. Humidity 88%, steady  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+CO3. Humidity 88%, steady  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, A2, R1, Z1, S1, Y1)
 
-CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, R1, Z1, S1, Y1)
+CO4. Pressure 30.05 inHg (1018 hPa)  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, A1, A2, R1, Z1, S1, Y1)
 
 CO5. Rain 0.03 in (0.8 mm) in the last hour (rain), 0.11 in (2.8 mm) in 24 h  (B1)
 
@@ -133,11 +135,11 @@ CO8. Water No current reading  (W2)
 
 ## Water quality
 
-WQ1. North Open; 1,379 copies/100 mL on Oct 21, steady  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, Y1)
+WQ1. North Open; 1,379 copies/100 mL on Oct 21, steady  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, A2, Y1)
 
-WQ2. Center Open; 793 copies/100 mL on Oct 21, up  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, Y1)
+WQ2. Center Open; 793 copies/100 mL on Oct 21, up  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, A2, Y1)
 
-WQ3. South Open; <195 copies/100 mL on Oct 22, down  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, Y1)
+WQ3. South Open; <195 copies/100 mL on Oct 22, down  (Q1, B1, C1, M1, WS1, H1, D1, W1, W2, K1, A1, A2, Y1)
 
 WQ4. North Advisory until 11 AM Sat; 1,379 copies/100 mL on Oct 21, steady  (R1)
 
@@ -170,6 +172,7 @@ WQ12. South Status not read since 2:35 AM; <195 copies/100 mL on Oct 22, down  (
 - **W2**: neither source current: the row says so, and tapped, when each last read, never a value
 - **K1**: no water temperature, no KNZY report, a minus tide
 - **A1**: two NWS alerts in force, one with no end, and one that ended after the build, which drops
+- **A2**: an NWS alert issued that starts after the build: said from when, after those in force (owner's call, 2026-11-25; LIVE only)
 - **R1**: a General Rain Advisory at all three, the county's end ahead: until when, and the samples from before it
 - **Z1**: South closed with no end set, North's day of four results (the City of Coronado's lab), Center with no sample yet
 - **S1**: the county's status last read too long ago: no status, when it was read, the samples kept

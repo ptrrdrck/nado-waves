@@ -10,9 +10,11 @@ NWS's alerts do:
 
 - **Alerts** (owner's request and calls, 2026-10-24): NWS's coast and ocean
   alerts in force at the build, a line each above the swell --
-  "Coastal Flood Warning until 2 PM Sun" -- its name linking to NWS's page,
-  tapped its NWS headline (`forecast.alerts`, from `data/alerts/`). One that
-  starts, changes its words or ends is an update.
+  "Coastal Flood Warning until 2 PM Sun" -- then those issued that start
+  later, "High Surf Advisory from 1 PM Wed until 4 AM Fri" (owner's call,
+  2026-11-25), its name linking to NWS's page, tapped its NWS headline
+  (`forecast.alerts`, from `data/alerts/`). One that is issued, changes its
+  words or ends is an update; one that starts is kept, not announced.
 - **Swell** (owner's wording and calls, 2026-10-23), a summary of two
   sources that are never matched to each other. The beach, from 46232's
   chain: "3–4 ft (0.9–1.2 m)", the breaking height at the three breaks,
@@ -254,7 +256,8 @@ def announced(got: list[dict]) -> bool:
 #: (`water.sample`), the county's lift time set, moved or cleared under a
 #: status that held (`water.lift`), an offshore line's due time (`offshore.changed.due`),
 #: the day's turn times (`tide.turns`), the same trains in a new order
-#: (`swell.order`), and a section whose words changed in a way none of
+#: (`swell.order`), an alert still to start that has started
+#: (`alert.started`), and a section whose words changed in a way none of
 #: these names (`<section>.other`).
 SHOWN = ("alert.new", "alert.extended", "alert.shortened", "alert.ended", "water.status",
          "swell.dark", "swell.back", "surf.up", "surf.down", "swell.new", "swell.dropped",
@@ -288,7 +291,8 @@ def changes(kept: dict | None, built: dict) -> list[dict]:
     a, b = kept.get("text") or {}, built.get("text") or {}
     out = []
     if a.get("alerts") != b.get("alerts"):
-        out += _alert_changes(kept.get("alerts") or [], built.get("alerts") or []) or [{"kind": "alert.other"}]
+        out += _alert_changes(kept.get("alerts") or [], built.get("alerts") or [],
+                              kept.get("built_utc"), built.get("built_utc")) or [{"kind": "alert.other"}]
     if a.get("water_quality") != b.get("water_quality"):
         out += _water_changes(kept.get("water_quality") or {}, built.get("water_quality") or {},
                               kept.get("built_utc"), built.get("built_utc")) or [{"kind": "water.other"}]
@@ -300,13 +304,21 @@ def changes(kept: dict | None, built: dict) -> list[dict]:
     return sorted(out, key=lambda c: rank.get(c["kind"], len(SHOWN)))
 
 
-def _alert_changes(old: list, new: list) -> list[dict]:
+def _alert_changes(old: list, new: list, old_at: str | None = None, new_at: str | None = None) -> list[dict]:
+    """An alert issued is new whether in force or still to start; one that
+    was still to start at the kept update and is in force at this build has
+    started (`alert.started`, kept and not announced: its start was on the
+    line since it was issued, 2026-11-25)."""
+
     was, now = {a.get("event"): a for a in old}, {a.get("event"): a for a in new}
     out = [{"kind": "alert.new", "event": e} for e in now if e not in was]
     for e in now:
         if e in was and now[e].get("ends_utc") != was[e].get("ends_utc"):
             later = (now[e].get("ends_utc") or "9") > (was[e].get("ends_utc") or "9")
             out.append({"kind": "alert.extended" if later else "alert.shortened", "event": e})
+        if (e in was and old_at and new_at and (was[e].get("start_utc") or "") > old_at
+                and (now[e].get("start_utc") or "~") <= new_at):
+            out.append({"kind": "alert.started", "event": e})
     return out + [{"kind": "alert.ended", "event": e} for e in was if e not in now]
 
 

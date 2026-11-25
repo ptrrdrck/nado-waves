@@ -20,6 +20,13 @@ replaces it from when that one was sent, and an alert that only ends others
 (a ``Cancel``, or VTEC actions all CAN / EXP / UPG) is never shown itself.
 Each version is its own `segment`, so a past hour reads the version in force
 then. An alert missed between collections is a gap: nothing here fills it.
+
+**The LIVE Briefing also shows one still to start** (owner's call,
+2026-11-25, after a High Surf Advisory issued for 1 PM read as missing at
+9 AM): sent by the build, its onset after it, and neither replaced nor
+ended before then -- "High Surf Advisory from 1 PM Wed until 4 AM Fri", as
+NWS's own page lists it. LIVE only: a Forecast hour shows the alerts in
+force over that hour, never one that starts later.
 """
 
 from __future__ import annotations
@@ -180,13 +187,34 @@ def in_force(segs: list[dict], at: datetime) -> list[dict]:
     return sorted(best.values(), key=lambda s: (s["start_utc"], s["event"]))
 
 
+def upcoming(segs: list[dict], at: datetime) -> list[dict]:
+    """The alerts sent by `at` that start after it, a line an event: the
+    one starting first (then ending last). A version replaced or ended
+    before its onset has no segment, so it is never here."""
+
+    best: dict[str, dict] = {}
+    for seg in segs:
+        if _utc(seg["sent_utc"]) <= at < _utc(seg["start_utc"]):
+            have = best.get(seg["event"])
+            if have is None or seg["start_utc"] < have["start_utc"] or (
+                    seg["start_utc"] == have["start_utc"] and (seg["stop_utc"] or "~") > (have["stop_utc"] or "~")):
+                best[seg["event"]] = seg
+    return sorted(best.values(), key=lambda s: (s["start_utc"], s["event"]))
+
+
 def briefing(data_dir: Path, at: datetime) -> list[dict]:
-    """The Briefing's alerts: those in force at the build, as the page words
-    them -- the event, its NWS end, its headline and its page."""
+    """The Briefing's alerts: those in force at the build, then those sent
+    by it that start later (an event already in force keeps its one line),
+    as the page words them -- the event, its NWS start and end, its
+    headline and its page."""
 
     seen = [p for p in load(data_dir) if _utc(p["sent"]) <= at]
+    segs = segments(seen)
+    now = in_force(segs, at)
+    held = {s["event"] for s in now}
+    later = [s for s in upcoming(segs, at) if s["event"] not in held]
     return [{k: s[k] for k in ("id", "event", "headline", "url", "start_utc", "ends_utc")}
-            for s in in_force(segments(seen), at)]
+            for s in now + later]
 
 
 def build(data_dir: Path = DEFAULT_DATA_DIR, at: datetime | None = None) -> dict:
