@@ -161,8 +161,18 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    alert for PZZ750, and CAZ043's events in `COASTAL_EVENTS`, never heat,
    fire weather or wind on land, never a Test. In force is NWS's own times:
    onset (never before `sent`) to `ends` (`expires` without one); a later
-   alert that references it takes over from its `sent`, and a Cancel or an
-   all-CAN/EXP/UPG VTEC alert ends it and is never shown. One line an event.
+   alert that references it, or the next version of its VTEC event
+   (office, phenomenon, significance, number) for CAZ043 or PZZ750, takes
+   over from its `sent`, and a Cancel or an all-CAN/EXP/UPG VTEC alert ends
+   it and is never shown. The VTEC chain was added 2026-11-25 (owner's
+   request): NWS re-sends an event as a fresh "Alert" naming no earlier
+   version, so the 20 Nov Coastal Flood Watch's first version ran to its
+   own end after the upgrade (a Cancel naming only the newest) and read in
+   force beside the Warning for 57 h, and the 14 Nov Coastal Flood Advisory
+   outlived its CAN (an "Alert" naming nothing) by 1 h 19 min. Replayed
+   hour by hour over the archive, those are the only two changes. Never
+   `expires` as an end: 22 of 97 next versions were sent after the one
+   before had expired, up to 5.7 h later, while the event ran on. One line an event.
    An alert that starts, moves its end or ends is an update (its words enter
    `update_words` first). **The Forecast tab shows them too**, above the
    Swell card on the backdrop (`#fc-alerts`, `fcAlerts`), every version in

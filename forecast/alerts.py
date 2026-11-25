@@ -15,8 +15,9 @@ draft is never shown (``status`` must be ``Actual``).
 
 **In force** is NWS's own times, never inferred: from the hazard's onset (its
 ``effective`` without one), and never before the alert was sent, to its
-``ends`` (its ``expires`` without one). A later alert that references it
-replaces it from when that one was sent, and an alert that only ends others
+``ends`` (its ``expires`` without one). A later alert that references it,
+or the next version of its VTEC event for one of our zones, replaces it
+from when that one was sent, and an alert that only ends others
 (a ``Cancel``, or VTEC actions all CAN / EXP / UPG) is never shown itself.
 Each version is its own `segment`, so a past hour reads the version in force
 then. An alert missed between collections is a gap: nothing here fills it.
@@ -111,6 +112,22 @@ def actions(props: dict) -> list[str]:
     return out
 
 
+#: The zones an alert is read for.
+OURS = frozenset({LAND_ZONE, MARINE_ZONE})
+
+
+def events(props: dict) -> set[tuple]:
+    """Each operational VTEC line's event, NWS's identity for it across
+    versions: "/O.CON.KSGX.CF.W.0003.../" -> ("KSGX", "CF", "W", "0003")."""
+
+    out = set()
+    for line in (props.get("parameters") or {}).get("VTEC") or []:
+        parts = line.strip("/").split(".")
+        if len(parts) > 5 and parts[0] == "O":
+            out.add(tuple(parts[2:6]))
+    return out
+
+
 def ending(props: dict) -> bool:
     """Whether the alert only ends others: a Cancel, or every VTEC line an end."""
 
@@ -150,6 +167,19 @@ def segments(alerts: list[dict]) -> list[dict]:
             rid = ref.get("identifier")
             if rid and (rid not in replaced or sent < replaced[rid]):
                 replaced[rid] = sent
+    # NWS re-sends an event as a fresh "Alert" naming no earlier version, so
+    # references alone leave a version running to its own end after the
+    # event was upgraded or cancelled (the 20 Nov Coastal Flood Watch). The
+    # VTEC event is NWS's own identity: the next version of it for one of our
+    # zones replaces this one from when it was sent.
+    keyed = [(p, _utc(p["sent"]), events(p), set(zones(p)) & OURS) for p in alerts
+             if p.get("status") == "Actual"]
+    for props, sent, keys, ours in keyed:
+        if not keys:
+            continue
+        nxt = [t for q, t, k, z in keyed if t > sent and keys & k and ours & z]
+        if nxt and (props["id"] not in replaced or min(nxt) < replaced[props["id"]]):
+            replaced[props["id"]] = min(nxt)
     out = []
     for props in alerts:
         if not relevant(props) or ending(props):
