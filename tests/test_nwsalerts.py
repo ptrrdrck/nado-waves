@@ -42,8 +42,15 @@ def props(n: int, event: str = "Coastal Flood Warning", *, sent: str = "2026-10-
         "headline": f"{event} issued October 24 at 3:12AM PDT until October 25 at 2:00PM PDT by NWS San Diego CA",
         "description": "* WHAT...Flooding caused by high tides.", "instruction": None,
         "parameters": {"NWSheadline": [f"{event.upper()} REMAINS IN EFFECT UNTIL 2 PM PDT SUNDAY"],
-                       "VTEC": [f"/O.{vtec}.KSGX.CF.W.0003.261024T1012Z-261025T2100Z/"] if vtec else []},
+                       "VTEC": [f"/O.{vtec}.KSGX.{VTEC_CODE.get(event, 'ZZ.S')}.0003.261024T1012Z-261025T2100Z/"]
+                                if vtec else []},
     }
+
+
+#: Each event's VTEC phenomenon and significance, so two events in a test are
+#: never one VTEC event.
+VTEC_CODE = {"Coastal Flood Warning": "CF.W", "Coastal Flood Watch": "CF.A", "High Surf Advisory": "SU.Y",
+             "Rip Current Statement": "RP.S", "Small Craft Advisory": "SC.Y"}
 
 
 def feature(p: dict) -> dict:
@@ -210,6 +217,41 @@ class TestWhatIsShown:
             segs = alerts.segments(alerts.load(keep(tmp_path / cancel["id"][-8:], first, cancel)))
             assert [s["id"] for s in segs] == [first["id"]]
             assert segs[0]["stop_utc"] == "2026-10-24T16:00:00Z"
+
+    def test_the_next_version_of_its_vtec_event_replaces_it_without_a_reference(self, tmp_path):
+        """2026-11-25: NWS re-sent the 20 Nov Coastal Flood Watch as a fresh
+        "Alert" naming no earlier version, then upgraded it with a Cancel
+        naming only the newest; the first version ran on to its own end and
+        the Watch read in force beside the Warning for 57 h. NWS's VTEC event
+        chains the versions; a version for another zone, or another event,
+        does not."""
+        def watch(n, action, sent, message="Alert", refs=(), ugc=("CAZ043", "CAZ552")):
+            got = props(n, "Coastal Flood Watch", sent=sent, onset="2026-10-24T10:56:00-07:00",
+                        ends="2026-10-28T13:00:00-07:00", message=message, refs=refs, ugc=ugc)
+            got["parameters"]["VTEC"] = [f"/O.{action}.KSGX.CF.A.0001.261026T1100Z-261028T2000Z/"]
+            return got
+        first = watch(1, "NEW", "2026-10-24T10:56:00-07:00")
+        again = watch(2, "CON", "2026-10-24T21:51:00-07:00")
+        upgrade = watch(3, "UPG", "2026-10-25T11:40:00-07:00", message="Cancel", refs=(again["id"],))
+        segs = alerts.segments(alerts.load(keep(tmp_path, first, again, upgrade)))
+        assert [(s["id"], s["stop_utc"]) for s in segs] == [
+            (first["id"], "2026-10-25T04:51:00Z"), (again["id"], "2026-10-25T18:40:00Z")]
+        # Neither runs to the Watch's own end.
+        assert alerts.in_force(segs, _t("2026-10-27T12:00:00Z")) == []
+        # A cancel for another zone alone, or another event's version, cuts nothing.
+        other_zone = watch(4, "CAN", "2026-10-25T11:40:00-07:00", ugc=("CAZ552",))
+        other_event = {**props(5, sent="2026-10-25T11:40:00-07:00")}
+        segs = alerts.segments(alerts.load(keep(tmp_path / "b", first, other_zone, other_event)))
+        assert [s["stop_utc"] for s in segs if s["id"] == first["id"]] == ["2026-10-28T20:00:00Z"]
+
+    def test_a_cancel_naming_no_version_ends_its_event(self, tmp_path):
+        """14 Nov 2026: NWS cancelled the Coastal Flood Advisory at 2:41 PM
+        with an "Alert" (VTEC CAN) naming no earlier version; it read in
+        force to 4 PM."""
+        first = props(1, vtec="CON", message="Update")
+        cancel = props(2, sent="2026-10-24T09:00:00-07:00", vtec="CAN")
+        segs = alerts.segments(alerts.load(keep(tmp_path, first, cancel)))
+        assert [(s["id"], s["stop_utc"]) for s in segs] == [(first["id"], "2026-10-24T16:00:00Z")]
 
     def test_one_line_an_event(self, tmp_path):
         land = props(1, "Hurricane Warning", ugc=("CAZ043",), ends="2026-10-25T12:00:00-07:00")
