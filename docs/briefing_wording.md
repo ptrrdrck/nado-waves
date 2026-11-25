@@ -308,6 +308,31 @@ Center Open; 793 copies/100 mL on Oct 21, up
 South Open; <195 copies/100 mL on Oct 22, down
 ```
 
+### A2: an NWS alert issued that starts after the build: said from when, after those in force (owner's call, 2026-11-25; LIVE only)
+
+```text
+[Briefing updated · 7:16 AM]
+
+Coastal Flood Warning until 2 PM Sun
+High Surf Advisory from 1 PM Thu until 4 AM Sat
+
+3–4 ft (0.9–1.2 m). SSW at 13.3 s, holding.
+
+AM low 0.7 ft (0.21 m) at 3:15 AM
+AM high 5.3 ft (1.62 m) at 9:32 AM
+PM low 1.8 ft (0.55 m) at 3:48 PM
+PM high 6.3 ft (1.92 m) at 10:05 PM
+
+Water 67 °F (19.4 °C), up
+Air 61 °F (16 °C), down
+Humidity 88%, steady
+Pressure 30.05 inHg (1018 hPa)
+
+North Open; 1,379 copies/100 mL on Oct 21, steady
+Center Open; 793 copies/100 mL on Oct 21, up
+South Open; <195 copies/100 mL on Oct 22, down
+```
+
 ### R1: a General Rain Advisory at all three, the county's end ahead: until when, and the samples from before it
 
 ```text

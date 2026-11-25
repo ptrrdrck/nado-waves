@@ -130,7 +130,15 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    on a new `key`. **NWS's coast and ocean alerts come first** (owner's
    request and calls, 2026-10-24; `forecast.alerts`, archived by
    `collector/nwsalerts.py` → `data/alerts/`): a line each while one is in
-   force at the build, "Coastal Flood Warning until 2 PM Sun" (always the
+   force at the build, then **one issued that starts later**, "High Surf
+   Advisory from 1 PM Wed until 4 AM Fri" (owner's call, 2026-11-25, after
+   the 25 Nov High Surf Advisory, sent 1:51 AM for 1 PM, read as missing at
+   8:47 AM; `alerts.upcoming`: sent by the build, onset after it, not
+   replaced or ended before it; an event in force keeps its one line). LIVE
+   only: a Forecast hour shows what is in force over that hour. Issued, it
+   is "new alert"; when it starts its words lose the "from" and the change
+   is `alert.started`, kept and not announced. Each reads "Coastal Flood
+   Warning until 2 PM Sun" (always the
    weekday, so midnight is no update; "in effect" with no NWS end), an ink
    triangle, the event linking to NWS's showsigwx page as the owner's link
    has it, a grey NWS tag, and tapped NWS's own `headline` — NWS's words,
@@ -169,10 +177,18 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    the lines' triangles and the weekday on their words, so the row takes
    24 px more and the short weekday comes in at 372 px, not 348. The
    tablet and the console keep the lines. The archive is
-   every alert the active listing returns for CAZ043 and PZZ750, each its
+   every alert the active listing returns for CAZ043 and PZZ750, and every
+   one NWS's recent listing (`/alerts?zone=…`, its last seven days, page by
+   page to `MAX_PAGES`) returns, each its
    own `/alerts/{id}` document byte for byte, written once by its id
-   (`data/alerts/YYYY/<oid>.json`); an alert issued and ended between
-   collections is a gap. api.weather.gov is denied from a session: built on
+   (`data/alerts/YYYY/<oid>.json`); one gone from the recent listing
+   before a collection saw it is a gap. The recent listing was added
+   2026-11-25 (owner's call): the upgrade that ended the 22 Nov Coastal
+   Flood Watch was never archived, so the Watch read in force beside the
+   Warning to its old end, 26 Nov 1 PM; an ending alert can come and go
+   from the active listing between collections. Never inferred from a
+   Warning of the same hazard: that is a guess, the recent listing is NWS's
+   own record. api.weather.gov is denied from a session: built on
    the API's documented shape, unverified against a live alert until the
    first one lands. Three blocks, apart by the cards' fold rule (owner's call,
    2026-10-23, replacing Origin's dot) — Swell, Tides, then Conditions (the

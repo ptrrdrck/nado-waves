@@ -187,6 +187,22 @@ def test_alerts_and_water_quality_are_read_off_the_build():
     assert _kinds(b(), b(sample="2026-10-30")) == ["water.sample"]
 
 
+def test_an_alert_issued_to_start_later_is_new_and_its_start_is_quiet():
+    """2026-11-25: the Briefing lists an alert still to start, "High Surf
+    Advisory from 1 PM Wed until 4 AM Fri". Issued, it is a new alert; when
+    it starts, its words lose the "from" and it is kept, never announced."""
+    surf = {"event": "High Surf Advisory", "start_utc": "2026-11-25T21:00:00Z", "ends_utc": "2026-11-27T12:00:00Z"}
+
+    def b(at, alerts=(), words=()):
+        return {**_built(at), "built_utc": at, "alerts": list(alerts),
+                "text": {**_built(at)["text"], "alerts": list(words)}}
+    pending = b("2026-11-25T16:50:00Z", [surf], ["High Surf Advisory from 1 PM Wed until 4 AM Fri"])
+    assert _kinds(b("2026-11-25T16:40:00Z"), pending) == ["alert.new"]
+    started = b("2026-11-25T21:05:00Z", [surf], ["High Surf Advisory until 4 AM Fri"])
+    assert _kinds(pending, started) == ["alert.started"]
+    assert "alert.started" not in bf.SHOWN and not bf.announced(bf.changes(pending, started))
+
+
 def test_the_countys_lift_time_under_a_status_that_held_is_named_and_quiet():
     """2026-11-20: "Advisory until 5 PM Thu" at 00:38Z, plain "Advisory" at
     01:07Z as a new Advisory took over -- no status changed, no sample."""

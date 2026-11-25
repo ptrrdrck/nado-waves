@@ -185,8 +185,15 @@ def test_nothing_built_draws_no_fold(cases):
 def test_nws_alerts_are_the_top_line_by_nws_name_and_end(cases):
     assert cases["A1"]["alerts"] == ["Coastal Flood Warning until 2 PM Sun", "Small Craft Advisory in effect"]
     # None anywhere else, and one that ended by the reader's clock drops.
-    assert all(not got["alerts"] for cid, got in cases.items() if cid != "A1")
+    assert all(not got["alerts"] for cid, got in cases.items() if cid not in ("A1", "A2"))
     assert "High Surf Advisory" not in " ".join(cases["A1"]["alerts"])
+
+
+def test_one_issued_to_start_later_says_from_when(cases):
+    """Owner's call, 2026-11-25: the Briefing lists an alert issued that
+    starts after its build, from when, after those in force."""
+    assert cases["A2"]["alerts"] == ["Coastal Flood Warning until 2 PM Sun",
+                                     "High Surf Advisory from 1 PM Thu until 4 AM Sat"]
 
 
 def test_an_alert_is_an_update():

@@ -125,6 +125,11 @@ SMALL_CRAFT = {**COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.example.002.1", "e
 ENDED = {**COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.example.003.1", "event": "High Surf Advisory",
          "ends_utc": "2026-10-22T14:20:00Z"}
 
+PENDING = {**COASTAL_FLOOD, "id": "urn:oid:2.49.0.1.840.0.example.004.1", "event": "High Surf Advisory",
+           "headline": "High Surf Advisory issued October 22 at 6:51AM PDT until October 24 at 4:00AM PDT "
+                       "by NWS San Diego CA",
+           "start_utc": "2026-10-22T20:00:00Z", "ends_utc": "2026-10-24T11:00:00Z"}
+
 RAIN = {"type": "Advisory", "issued_utc": "2026-10-21T18:00:00Z", "lifted_utc": "2026-10-24T18:00:00Z"}
 
 
@@ -187,6 +192,9 @@ CASES = [
                         {"valid_utc": "2026-10-22T20:05:00Z", "height_m": 1.71, "event": "high"}])),
     ("A1", "two NWS alerts in force, one with no end, and one that ended after the build, which drops",
      _case(alerts=[COASTAL_FLOOD, SMALL_CRAFT, ENDED])),
+    ("A2", "an NWS alert issued that starts after the build: said from when, after those in force "
+           "(owner's call, 2026-11-25; LIVE only)",
+     _case(alerts=[COASTAL_FLOOD, PENDING])),
     ("R1", "a General Rain Advisory at all three, the county's end ahead: until when, and the samples "
            "from before it",
      _case(water_quality=_water(**{k: {"status": "Advisory", "event": RAIN, "open_since_utc": None}

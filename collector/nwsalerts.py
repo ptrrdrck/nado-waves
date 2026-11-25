@@ -15,13 +15,22 @@ Diego County Coastal Areas, county CAC073) and the coastal waters off it
 active listing returns for them is kept -- a heat advisory too -- because what
 counts is the reader's decision, as with the b-decks (`collector.besttracks`).
 
+Two listings are read, the active one and NWS's recent one (``/alerts``,
+its last seven days, followed page by page): an alert that ends others --
+a cancel, or a watch upgraded to a warning -- can come and go from the
+active listing between collections, and without it the ended alert reads as
+in force to its old end (owner's call, 2026-11-25: the Coastal Flood Watch
+NWS upgraded on 22 Nov still read in force on the 25th, nothing archived
+having ended it). Every alert either returns is kept, once.
+
 Storage: ``data/alerts/{YEAR}/{oid}.json``, the alert's own document
 (``/alerts/{id}``) byte for byte, written once: an NWS alert id is never
 reissued, and a change is a NEW alert that references the old one. The year
-is the alert's ``sent``. An alert issued and ended between two collections is
-never seen; that is a gap, never filled.
+is the alert's ``sent``. An alert gone from the recent listing before a
+collection saw it is a gap, never filled.
 
-Exit 2 on a CONNECT denial, 1 on a failed listing or a failed alert, 0 else.
+Exit 2 on a CONNECT denial, 1 on a failed listing or a failed alert, 0 else;
+a failed recent listing still keeps what the active one returned.
 """
 
 from __future__ import annotations
@@ -45,6 +54,8 @@ COUNTY = "CAC073"
 MARINE_ZONE = "PZZ750"
 ZONES = (LAND_ZONE, MARINE_ZONE)
 ARCHIVE_DIR = "alerts"
+#: The most pages of the recent listing followed in one collection.
+MAX_PAGES = 20
 
 
 def _get(url: str, timeout: float = 30.0) -> bytes:
@@ -56,6 +67,33 @@ def _get(url: str, timeout: float = 30.0) -> bytes:
 
 def listing_url(zones=ZONES) -> str:
     return f"{BASE_URL}/alerts/active?zone={','.join(zones)}"
+
+
+def recent_url(zones=ZONES) -> str:
+    """NWS's recent alerts for the zones, active or not: the last seven days."""
+
+    return f"{BASE_URL}/alerts?zone={','.join(zones)}"
+
+
+def recent(fetch=_get) -> tuple[list[dict], list[str]]:
+    """Every feature the recent listing returns, following its pages (only
+    to NWS's own ``/alerts?`` links), and what failed."""
+
+    features: list[dict] = []
+    url: str | None = recent_url()
+    for _ in range(MAX_PAGES):
+        try:
+            page = json.loads(fetch(url).decode("utf-8"))
+        except (urllib.error.URLError, ValueError) as exc:
+            return features, [f"the recent listing: {getattr(exc, 'reason', exc)}"]
+        got = page.get("features") or []
+        features += got
+        url = (page.get("pagination") or {}).get("next")
+        if not got or not url:
+            return features, []
+        if not url.startswith(f"{BASE_URL}/alerts?"):
+            return features, [f"the recent listing's next page is not NWS's: {url!r}"]
+    return features, [f"the recent listing ran past {MAX_PAGES} pages"]
 
 
 def oid(alert_id: str) -> str:
@@ -76,14 +114,18 @@ def archive(data_dir: Path, fetch=_get) -> tuple[int, int, list[str]]:
     """(alerts written, alerts already kept, failures)."""
 
     listing = json.loads(fetch(listing_url()).decode("utf-8"))
+    more, failed = recent(fetch)
     written = known = 0
-    failed: list[str] = []
-    for feature in listing.get("features") or []:
+    seen: set[str] = set()
+    for feature in (listing.get("features") or []) + more:
         props = feature.get("properties") or {}
         alert_id, sent = props.get("id"), props.get("sent") or ""
         if not alert_id or len(sent) < 4:
             failed.append(f"an alert without an id or a sent time: {feature.get('id')!r}")
             continue
+        if alert_id in seen:
+            continue
+        seen.add(alert_id)
         try:
             path = path_for(data_dir, alert_id, sent)
         except ValueError as exc:

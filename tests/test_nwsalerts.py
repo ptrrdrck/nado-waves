@@ -61,6 +61,8 @@ def keep(tmp_path: Path, *ps: dict) -> Path:
 class TestTheArchive:
     def test_it_asks_for_the_coast_and_its_waters(self):
         assert nwsalerts.listing_url() == "https://api.weather.gov/alerts/active?zone=CAZ043,PZZ750"
+        # And the last seven days, active or not.
+        assert nwsalerts.recent_url() == "https://api.weather.gov/alerts?zone=CAZ043,PZZ750"
 
     def test_each_alert_is_kept_byte_for_byte_once(self, tmp_path):
         a, b = props(1), props(2, "Small Craft Advisory", ugc=("PZZ750",))
@@ -72,6 +74,8 @@ class TestTheArchive:
             calls.append(url)
             if url == nwsalerts.listing_url():
                 return json.dumps({"features": [feature(a), feature(b)]}).encode()
+            if url == nwsalerts.recent_url():
+                return json.dumps({"features": [feature(a)]}).encode()
             return raw[url]
 
         assert nwsalerts.archive(tmp_path, fetch) == (2, 0, [])
@@ -81,18 +85,63 @@ class TestTheArchive:
         # Seen again: never fetched or written twice.
         calls.clear()
         assert nwsalerts.archive(tmp_path, fetch) == (0, 2, [])
-        assert calls == [nwsalerts.listing_url()]
+        assert calls == [nwsalerts.listing_url(), nwsalerts.recent_url()]
 
-    def test_a_document_for_another_alert_is_refused(self, tmp_path):
+    def test_an_alert_gone_from_the_active_listing_is_kept_from_the_recent_one(self, tmp_path):
+        """Owner's call, 2026-11-25: the upgrade that ended the 22 Nov Coastal
+        Flood Watch was never archived, so the Watch read in force to its old
+        end. The recent listing, followed page by page, keeps such an alert."""
+        watch, upgrade, other = props(1, "Coastal Flood Watch"), props(2, "Coastal Flood Watch", vtec="UPG"), props(3)
+        docs = {f"https://api.weather.gov/alerts/{p['id']}": json.dumps(feature(p)).encode()
+                for p in (watch, upgrade, other)}
+        page2 = "https://api.weather.gov/alerts?zone=CAZ043,PZZ750&cursor=abc"
+
+        def fetch(url):
+            if url == nwsalerts.listing_url():
+                return json.dumps({"features": [feature(watch)]}).encode()
+            if url == nwsalerts.recent_url():
+                return json.dumps({"features": [feature(watch), feature(upgrade)],
+                                   "pagination": {"next": page2}}).encode()
+            if url == page2:
+                return json.dumps({"features": [feature(other)], "pagination": {"next": page2 + "x"}}).encode()
+            if url == page2 + "x":
+                return json.dumps({"features": []}).encode()
+            return docs[url]
+
+        assert nwsalerts.archive(tmp_path, fetch) == (3, 0, [])
+        assert nwsalerts.path_for(tmp_path, upgrade["id"], upgrade["sent"]).exists()
+
+    def test_a_failed_recent_listing_keeps_the_active_ones_and_fails(self, tmp_path):
         a = props(1)
 
         def fetch(url):
             if url == nwsalerts.listing_url():
                 return json.dumps({"features": [feature(a)]}).encode()
+            if url == nwsalerts.recent_url():
+                raise urllib.error.URLError("HTTP Error 500")
+            return json.dumps(feature(a)).encode()
+
+        written, known, failed = nwsalerts.archive(tmp_path, fetch)
+        assert (written, known) == (1, 0) and failed and "recent listing" in failed[0]
+
+    def test_it_follows_only_nws_own_pages(self):
+        def fetch(url):
+            return json.dumps({"features": [feature(props(1))],
+                               "pagination": {"next": "https://example.com/alerts?zone=x"}}).encode()
+
+        got, failed = nwsalerts.recent(fetch)
+        assert len(got) == 1 and "not NWS's" in failed[0]
+
+    def test_a_document_for_another_alert_is_refused(self, tmp_path):
+        a = props(1)
+
+        def fetch(url):
+            if url in (nwsalerts.listing_url(), nwsalerts.recent_url()):
+                return json.dumps({"features": [feature(a)]}).encode()
             return json.dumps(feature(props(9))).encode()
 
         written, known, failed = nwsalerts.archive(tmp_path, fetch)
-        assert (written, known) == (0, 0) and "says it is" in failed[0]
+        assert (written, known) == (0, 0) and failed == [f"{a['id']}: the document says it is {props(9)['id']!r}"]
         assert not (tmp_path / "alerts").exists()
 
     def test_an_unusable_id_is_never_a_path(self):
@@ -185,6 +234,34 @@ class TestWhatIsShown:
         got = alerts.briefing(tmp_path, _t("2026-10-24T12:00:00Z"))
         assert [a["event"] for a in got] == ["Coastal Flood Warning"]
         assert set(got[0]) == {"id", "event", "headline", "url", "start_utc", "ends_utc"}
+
+    def test_the_briefing_also_says_one_issued_that_starts_later(self, tmp_path):
+        """Owner's call, 2026-11-25: a High Surf Advisory issued at 1:51 AM
+        for 1 PM read as missing at 9 AM. The Briefing lists one sent by its
+        build that starts later, after those in force; an event in force
+        keeps its one line; a version replaced or cancelled before its onset
+        is never listed."""
+        surf = props(2, "High Surf Advisory", onset="2026-10-24T13:00:00-07:00", ends="2026-10-26T04:00:00-07:00")
+        flood_later = props(3, onset="2026-10-25T20:00:00-07:00", ends="2026-10-26T20:00:00-07:00")
+        keep(tmp_path, props(1), surf, flood_later)
+        got = alerts.briefing(tmp_path, _t("2026-10-24T16:00:00Z"))
+        assert [(a["event"], a["start_utc"]) for a in got] == [
+            ("Coastal Flood Warning", "2026-10-24T10:12:00Z"), ("High Surf Advisory", "2026-10-24T20:00:00Z")]
+        assert [a["id"] for a in got] == [props(1)["id"], surf["id"]]
+        # Once it starts it is simply in force.
+        got = alerts.briefing(tmp_path, _t("2026-10-24T21:00:00Z"))
+        assert [a["event"] for a in got] == ["Coastal Flood Warning", "High Surf Advisory"]
+        # Cancelled before its onset: never listed.
+        cancel = props(4, "High Surf Advisory", sent="2026-10-24T08:00:00-07:00", vtec="CAN", message="Update",
+                       refs=(surf["id"],))
+        keep(tmp_path, cancel)
+        assert [a["event"] for a in alerts.briefing(tmp_path, _t("2026-10-24T16:00:00Z"))] == ["Coastal Flood Warning"]
+
+    def test_the_forecast_hours_never_show_one_before_it_starts(self, tmp_path):
+        surf = props(2, "High Surf Advisory", onset="2026-10-24T13:00:00-07:00")
+        segs = alerts.segments(alerts.load(keep(tmp_path, surf)))
+        assert alerts.in_force(segs, _t("2026-10-24T16:00:00Z")) == []
+        assert segs[0]["start_utc"] == "2026-10-24T20:00:00Z"
 
     def test_the_page_file_reaches_48_h_back_as_of_its_build(self, tmp_path):
         old = props(1, sent="2026-10-20T03:00:00-07:00", onset="2026-10-20T03:00:00-07:00",
