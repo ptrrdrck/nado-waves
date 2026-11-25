@@ -1,0 +1,100 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.8e0b802957d4cd343f38c8ce4c1352ebce27ffb8.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.8e0b802957d4cd343f38c8ce4c1352ebce27ffb8.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.8e0b802957d4cd343f38c8ce4c1352ebce27ffb8.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.ab8545ec654b0e687a81cc8ac7a936e8328e87b3.001.2",
+                "identifier": "urn:oid:2.49.0.1.840.0.ab8545ec654b0e687a81cc8ac7a936e8328e87b3.001.2",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-22T05:24:00-08:00"
+            }
+        ],
+        "sent": "2026-11-22T11:40:00-08:00",
+        "effective": "2026-11-22T11:40:00-08:00",
+        "onset": "2026-11-24T04:00:00-08:00",
+        "expires": "2026-11-22T11:55:28-08:00",
+        "ends": "2026-11-26T13:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Cancel",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Observed",
+        "urgency": "Past",
+        "event": "Coastal Flood Watch",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "The Coastal Flood Watch has been replaced. Please see the latest information from NWS San Diego CA on this developing situation.",
+        "description": "The Coastal Flood Watch has been replaced. Please see the latest information from NWS San Diego CA on this developing situation.",
+        "instruction": "Take the necessary actions to protect flood-prone property. Do\nNOT drive around barricades or through flooded areas.",
+        "response": "Monitor",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 221940"
+            ],
+            "NWSheadline": [
+                "COASTAL FLOOD ADVISORY REMAINS IN EFFECT UNTIL 4 AM PST TUESDAY... ...COASTAL FLOOD WARNING IN EFFECT FROM 4 AM TUESDAY TO 1 PM PST FRIDAY"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "EAS-ORG": [
+                "WXR"
+            ],
+            "VTEC": [
+                "/O.UPG.KSGX.CF.A.0001.261124T1200Z-261126T2100Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-26T13:00:00-08:00"
+            ],
+            "expiredReferences": [
+                "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.30595d27213a98c94d21ecc830bd5f1e0e51fcb4.001.2,2026-11-21T18:54:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ee640d3d8c6eaf934df52cf360bafd7eeb68a826.001.2,2026-11-21T12:54:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.9691fe6ac4252df8833be7e74f279b2957487197.001.2,2026-11-21T05:37:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.6aabe10fa29c9fd6a08d6dffb2cf230114dc3afc.001.2,2026-11-20T21:51:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.61e41461528412bb9d9bc52c2353f1434a0d1a4a.001.2,2026-11-20T10:56:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "CFA"
+            ],
+            "NationalWeatherService": [
+                "CFA"
+            ]
+        }
+    }
+}
