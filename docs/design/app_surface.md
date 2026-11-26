@@ -315,8 +315,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
 
    **The foot of the page** (owner's design, 2026-10-28): ONE line,
    "Docs | Observer | Units [Imperial] | ◐" (Observer HIDDEN since 2026-11-11,
-   its bar with it, "just for now", owner's call; the gate still reads the
-   stored choice), spread over the Briefing line's
+   its bar with it, "just for now", owner's call; since 2026-11-26 it is
+   "Observe", shown once the Observe service is set -- `observe.md`), spread over the Briefing line's
    width (at most a phone's 560 px on a tablet or a stack layout, owner's
    call 2026-10-30; the console's sits in its rail), Docs under its words and the glyph's ink under its
    caret's, with no rule above (owner's calls, 2026-10-29) — Docs in ink at the line's
@@ -436,7 +436,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    and nothing else until today's log is done or declined; it returns at
    Coronado's midnight, and ticking it after looking starts it tomorrow.
    That question is the ONE place the page links to the log; docs.html
-   still never does.
+   still never does. **Kept but off since 2026-11-26** (owner's call,
+   `GATE_ON = false`): Observe now drives it and does not gather heights
+   yet; its future is LIVE's numbers blurred until the observer logs or
+   declines (`observe.md`).
 
 ## Imperial leads, metric in parentheses
 

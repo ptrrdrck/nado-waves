@@ -42,6 +42,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log),
+                        beachratings.py (Observe's ratings: shape, surface,
+                        power, its own series -- docs/design/observe.md),
                         stationdepth.py (each shown buoy's water depth,
                         read off NDBC's station page, monthly ->
                         data/station_depth.json; Actions only),
@@ -360,6 +362,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         and minutes after 46232, 0.03–0.25 Hz, for the map's
                         fill; raytrace --paths-only)
     data/beach_log/     the verification series — human observation  [EMPTY]
+    data/beach_ratings/ Observe's ratings (shape, surface, power), pulled from
+                        the Observe service; its own series, never the log  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/ensemble_forecasts/ GEFS-Wave's bulletin at 46232, 00Z 2023–2025 (means
                         only) and every cycle from 2026 (with spread), leads

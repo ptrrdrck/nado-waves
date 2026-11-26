@@ -376,10 +376,44 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
+### Group 7: Observe -- page and series built (branch claude/serene-mayer-jjscwa)
+
+Owner's design, 2026-11-26 (`docs/design/observe.md`): the footer's
+"Observe" switch, a per-person code checked by a hosted service, and three
+rows of chips (Shape, Surface, Power) under each LIVE break, saved on the
+phone first; the ratings are their own series, `data/beach_ratings/`
+(`collector/beachratings.py`). The log-first gate is kept but off. Built
+and measured against a stub service; the switch stays off the public page
+until `OBSERVE_SERVICE` is set.
+
+Open, in order:
+
+- **28. The Observe service and the pull** (session 2). The contract is
+  observe.md's "The service": `/code`, `/ratings`, a pull with a read
+  secret, codes as a secret map of code to observer id, the same code
+  normalisation as the page, a limit on tries. The owner creates the
+  hosting account; the service never holds GitHub write access. Then set
+  `OBSERVE_SERVICE`, give out codes, and prove one rehearsal row end to end
+  (`is_test = true`).
+- **29. Showing a rating** once enough is logged (session 3, after data).
+  observe.md's "Not yet" holds the plan put to the owner.
+- **30. Heights through Observe, and the gate as blurred numbers**: the log
+  moving into the page, incrementally (owner's direction). Not scoped.
+
 ### Carryover prompts
 
 Each assumes a fresh session; add "Confirm each item before building. PR,
 wait for Tests, don't merge." to each.
+
+- Item 28, Observe's service (high effort on the strongest model: a new
+  external service, a credential and an access check, where a mistake
+  leaks codes or lets anyone write): "Repo ptrrdrck/nado-waves; attach
+  ptrrdrck/nado-waves-notes. Read docs/design/observe.md, then
+  docs/design/infrastructure.md and collector/beachratings.py. Task:
+  handoff item 28 — build the Observe service to observe.md's contract and
+  the Actions job that pulls its ratings into data/beach_ratings/ through
+  import_rows. I will create the hosting account; tell me exactly what to
+  set up and which secrets go where. Codes go in no file in either repo."
 
 - Item 27, first (diagnosis; the strongest model, high effort, because
   the stage responsible is unknown and each next test has to be chosen

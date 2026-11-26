@@ -4578,18 +4578,20 @@ class TestTheFoldsSlide:
 
 class TestTheLogFirstGate:
     """Owner's call, 2026-10-16: an observer reaches the log before any
-    forecast. The setting, "Wave observer", sits on Docs' line at the
-    right; the gate is the one place the page links to the log."""
+    forecast; the gate is the one place the page links to the log. Kept but
+    off since 2026-11-26 (owner's call): Observe, which now drives it, does
+    not gather heights yet."""
 
     def test_the_setting_sits_by_the_docs_link(self):
-        """Owner's design, 2026-10-28: one centred line, Docs | Observer |
-        Units | the theme glyph at its right end."""
+        """Owner's design, 2026-10-28: one centred line, Docs | Observe |
+        Units | the theme glyph at its right end. "Observe" since 2026-11-26."""
         links = SOURCE[SOURCE.index('<nav class="links"'):]
         links = links[:links.index("</nav>")]
-        assert 'id="log-gate"' in links and "Observer</label>" in links
-        # Hidden for now, its bar with it (owner's call, 2026-11-11).
+        assert 'id="observe"' in links and "Observe</label>" in links
+        # Hidden in the markup, its bar with it: shown only once the service
+        # is set (`TestObserve`).
         assert '<label class="logger" hidden' in links
-        assert (links.index("docs.html") < links.index('id="log-gate"') < links.index('id="units"')
+        assert (links.index("docs.html") < links.index('id="observe"') < links.index('id="units"')
                 < links.index('id="theme"'))
         rule = SOURCE[SOURCE.index(".links{"):]
         rule = rule[:rule.index("}")]
@@ -4624,6 +4626,87 @@ class TestTheLogFirstGate:
 
     def test_turning_it_on_after_reading_starts_tomorrow(self):
         assert "if (box.checked) store(GATE.cleared, coastDay(Date.now()));" in SOURCE
+
+    def test_it_is_kept_but_off(self):
+        """Owner's call, 2026-11-26: the gate stays, switched off, and Observe
+        is what would close it."""
+        assert "const GATE_ON = false;" in SOURCE
+        assert ("const gated = () => GATE_ON && observing() && "
+                "stored(GATE.cleared) !== coastDay(Date.now());") in SOURCE
+
+
+def _node(script):
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not available")
+    got = subprocess.run([node, "-e", script], capture_output=True, text=True, timeout=30)
+    assert got.returncode == 0, got.stderr
+    return json.loads(got.stdout)
+
+
+def _const(name):
+    start = SOURCE.index(f"const {name} = ")
+    return SOURCE[start:SOURCE.index(";\n", start) + 2]
+
+
+class TestObserve:
+    """Observe (owner's design, 2026-11-26): the footer's switch, a code the
+    service checks, and three rows of chips under each LIVE break."""
+
+    def test_the_switch_waits_for_the_service(self):
+        """No switch that leads to a code nobody can check."""
+        assert 'const OBSERVE_SERVICE = "";' in SOURCE
+        body = SOURCE[SOURCE.index("function wireObserve() {"):]
+        body = body[:body.index("\n}\n")]
+        assert body.index("if (!OBSERVE_API) return;") < body.index("label.hidden = false;")
+        assert "if (MODE !== \"now\" || !OBSERVE_API || !observing() || !SHORT[id]) return \"\";" in SOURCE
+
+    def test_a_crafted_link_cannot_move_the_service(self):
+        """?observe= is honoured from this machine only: on the public page a
+        link could otherwise send an observer's stored code anywhere."""
+        decl = _const("OBSERVE_API")
+        assert '["localhost", "127.0.0.1", ""].includes(location.hostname) && PARAM.get("observe")' in decl
+
+    def test_the_page_holds_no_codes(self):
+        """The service decides; a code is kept only after it said yes."""
+        body = SOURCE[SOURCE.index("async function checkCode() {"):]
+        body = body[:body.index("\n}\n")]
+        assert body.index("got.json.ok === true") < body.index("store(OBSERVE.code, code);")
+        assert SOURCE.count("store(OBSERVE.code, code)") == 1
+
+    def test_a_code_is_read_as_the_service_reads_it(self):
+        got = _node(_const("codeOf") + """
+          console.log(JSON.stringify(["Heron Jetty 27", "  heron\u2013jetty_27 ", "HERON-JETTY-27",
+                                      "heron--jetty 27", ""].map(codeOf)));""")
+        assert got == ["heron-jetty-27"] * 4 + [""]
+
+    def test_earlier_is_coronados_clock(self):
+        """A time today on the beach's clock, in winter and in summer."""
+        start = SOURCE.index("function coastWallMs(")
+        fn = SOURCE[start:SOURCE.index("\n}\n", start) + 3]
+        got = _node('const COAST_TZ = "America/Los_Angeles";' + fn + """
+          console.log(JSON.stringify([coastWallMs("2026-11-26", "11:30"), coastWallMs("2026-07-04", "06:05")]
+            .map((ms) => new Date(ms).toISOString())));""")
+        assert got == ["2026-11-26T19:30:00.000Z", "2026-07-04T13:05:00.000Z"]
+
+    def test_a_rating_is_kept_on_the_phone_before_it_is_sent(self):
+        body = SOURCE[SOURCE.index("function saveRating(id) {"):]
+        body = body[:body.index("\n}\n")]
+        assert body.index("keepQueue([...rateQueue(), row]);") < body.index("flushRatings();")
+        flush = SOURCE[SOURCE.index("async function flushRatings() {"):]
+        flush = flush[:flush.index("\n}\n")]
+        # Emptied only by the service's answer, row by row.
+        assert flush.count("keepQueue(") == 1
+        assert "keepQueue(rateQueue().filter((r) => !done.has(r.entry_id)));" in flush
+
+    def test_a_redraw_keeps_a_half_made_rating(self):
+        assert "const d = rateDraft(id);" in SOURCE[SOURCE.index("function ratePanel(id) {"):]
+        assert "if (rateTyping()) return;" in SOURCE
+
+    def test_ratings_sit_under_the_numbers_on_live_only(self):
+        body = SOURCE[SOURCE.index("function breakPanel(c) {"):]
+        body = body[:body.index("\n}\n")]
+        assert body.index("${measured}") < body.index("${ratePanel(c.id)}") < body.index("${drawing ||")
 
 
 class TestAStaleReadingGreys:
