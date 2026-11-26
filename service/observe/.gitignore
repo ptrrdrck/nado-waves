@@ -1,0 +1,5 @@
+# Never committed: wrangler's local state, and .dev.vars, where a local
+# run would hold codes (docs/design/observe.md).
+.wrangler/
+.dev.vars
+node_modules/

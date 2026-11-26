@@ -37,3 +37,9 @@ jobs:
       # taking the next test as it frees: 347 s serial, 49 s on four, measured
       # 2026-10-12. The suite writes only into tmp_path, so tests share nothing.
       - run: python -m pytest tests -q -n auto --dist worksteal
+      # The Observe service (service/observe/), a Cloudflare Worker, against
+      # node:sqlite in place of D1. No packages: node's own test runner.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --no-warnings --test service/observe/test/*.test.js

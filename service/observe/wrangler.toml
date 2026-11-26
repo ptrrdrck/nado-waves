@@ -1,0 +1,14 @@
+# The Observe service (docs/design/observe.md, "Setting it up").
+# No secret belongs in this file: CODES and PULL_TOKEN are Worker secrets,
+# set with `npx wrangler secret put`, and never written anywhere else.
+name = "nado-observe"
+main = "src/worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nado-observe"
+# Printed by `npx wrangler d1 create nado-observe`. An identifier, not a
+# credential: it is safe in this public file.
+database_id = "PASTE-THE-ID-FROM-d1-create"

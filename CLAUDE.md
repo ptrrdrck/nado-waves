@@ -295,6 +295,7 @@ Full map: `docs/design/layout.md`.
                  trainsplit, trainmerge, windsea, …); publish.
     app/         forecast.html (the page), docs.html (its one link),
                  beachlog*.html (the log), vendor/ (MapLibre).
+    service/     observe/: the Observe service (a Cloudflare Worker).
     data/        tracked archives (historical, spectra, wind, tide, alerts,
                  briefings, series, forecast_log, beach_log, …); data/live/
                  derived and gitignored.

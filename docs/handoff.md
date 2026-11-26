@@ -376,7 +376,7 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
-### Group 7: Observe -- page and series built (branch claude/serene-mayer-jjscwa)
+### Group 7: Observe -- page, series, service and pull built (branches claude/serene-mayer-jjscwa, claude/zen-euler-qss8aa)
 
 Owner's design, 2026-11-26 (`docs/design/observe.md`): the footer's
 "Observe" switch, a per-person code checked by a hosted service, and three
@@ -388,13 +388,15 @@ until `OBSERVE_SERVICE` is set.
 
 Open, in order:
 
-- **28. The Observe service and the pull** (session 2). The contract is
-  observe.md's "The service": `/code`, `/ratings`, a pull with a read
-  secret, codes as a secret map of code to observer id, the same code
-  normalisation as the page, a limit on tries. The owner creates the
-  hosting account; the service never holds GitHub write access. Then set
-  `OBSERVE_SERVICE`, give out codes, and prove one rehearsal row end to end
-  (`is_test = true`).
+- **28. The Observe service and the pull** -- built (branch
+  claude/zen-euler-qss8aa): `service/observe/` (Cloudflare Worker + D1,
+  deployed by hand by the owner), `collector/observepull.py` and
+  `observe-pull.yml`, codes from `newcode.py` (two Coronado streets and a
+  house number, printed only). Tested on node:sqlite and in `wrangler dev`.
+  **Still open:** the owner prunes `streets.txt` (written from memory) and
+  deploys (observe.md, "Setting it up"); then `OBSERVE_SERVICE` set in the
+  page, codes given out, and one rehearsal row (`is_test = true`) proved
+  from the phone through `observe-pull.yml` into `ratings.csv`.
 - **29. Showing a rating** once enough is logged (session 3, after data).
   observe.md's "Not yet" holds the plan put to the owner.
 - **30. Heights through Observe, and the gate as blurred numbers**: the log
@@ -405,15 +407,14 @@ Open, in order:
 Each assumes a fresh session; add "Confirm each item before building. PR,
 wait for Tests, don't merge." to each.
 
-- Item 28, Observe's service (high effort on the strongest model: a new
-  external service, a credential and an access check, where a mistake
-  leaks codes or lets anyone write): "Repo ptrrdrck/nado-waves; attach
-  ptrrdrck/nado-waves-notes. Read docs/design/observe.md, then
-  docs/design/infrastructure.md and collector/beachratings.py. Task:
-  handoff item 28 — build the Observe service to observe.md's contract and
-  the Actions job that pulls its ratings into data/beach_ratings/ through
-  import_rows. I will create the hosting account; tell me exactly what to
-  set up and which secrets go where. Codes go in no file in either repo."
+- Item 28's last step, after the owner has deployed (medium effort is
+  enough: a one-line constant and a watched end-to-end run, no design):
+  "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes. Read
+  docs/design/observe.md. The Observe service is deployed at <URL>. Set
+  OBSERVE_SERVICE in app/forecast.html to it, commit the D1 database_id in
+  service/observe/wrangler.toml, and once I have saved one rating with
+  Test entry ticked, dispatch observe-pull.yml and confirm the row landed
+  in data/beach_ratings/ratings.csv with is_test = true."
 
 - Item 27, first (diagnosis; the strongest model, high effort, because
   the stage responsible is unknown and each next test has to be chosen

@@ -259,3 +259,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   whether the history is actually unrecoverable.** It was for Open-Meteo. It was
   not for GFS-Wave, whose every cycle since 2021-03 sits in the NOAA Open Data
   bucket — which turned a six-month wait into an afternoon.
+- **The Observe service is the one piece outside Actions and Pages**
+  (`service/observe/`, a Cloudflare Worker; `docs/design/observe.md`). It
+  takes writes from the public page, so it holds the observer codes as a
+  Worker secret and never holds GitHub write access; Actions pulls from it
+  with a read token (`OBSERVE_PULL_TOKEN`) through `observe-pull.yml`, the
+  ratings file's one writer. It is deployed by hand: a Cloudflare token in
+  GitHub would let anyone who can push deploy a worker that reads the codes.
+  The pull is not in the staleness alert: ratings are sporadic, and a quiet
+  week is not a fault.

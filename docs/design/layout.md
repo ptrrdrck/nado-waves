@@ -44,6 +44,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         beachlog.py + beachlog_import.py (the observation log),
                         beachratings.py (Observe's ratings: shape, surface,
                         power, its own series -- docs/design/observe.md),
+                        observepull.py (pulls them from the Observe service,
+                        observe-pull.yml its one writer),
                         stationdepth.py (each shown buoy's water depth,
                         read off NDBC's station page, monthly ->
                         data/station_depth.json; Actions only),
@@ -111,6 +113,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         stay on the phone and are handed back as text. The two
                         differ only in <title>; a test enforces it. The repo CSV
                         stays the system of record for both.
+    service/observe/    the Observe service, a Cloudflare Worker + D1, deployed
+                        by hand by the owner (docs/design/observe.md): checks
+                        codes, takes ratings, serves the pull. src/vocab.js is
+                        generated from beachratings.py; schema.sql, wrangler.toml
+                        (no secrets); newcode.py + streets.txt print codes to
+                        the terminal only; test/ runs on node:sqlite
     forecast/
       geometry.py       which bearings reach each beach          [built]
       transform.py      spectrum -> energy through the aperture   [built]
