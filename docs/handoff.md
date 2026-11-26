@@ -376,10 +376,45 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
+### Group 7: Observe -- page, series, service and pull built (branches claude/serene-mayer-jjscwa, claude/zen-euler-qss8aa)
+
+Owner's design, 2026-11-26 (`docs/design/observe.md`): the footer's
+"Observe" switch, a per-person code checked by a hosted service, and three
+rows of chips (Shape, Surface, Power) under each LIVE break, saved on the
+phone first; the ratings are their own series, `data/beach_ratings/`
+(`collector/beachratings.py`). The log-first gate is kept but off. Built
+and measured against a stub service; the switch stays off the public page
+until `OBSERVE_SERVICE` is set.
+
+Open, in order:
+
+- **28. The Observe service and the pull** -- built (branch
+  claude/zen-euler-qss8aa): `service/observe/` (Cloudflare Worker + D1,
+  deployed by hand by the owner), `collector/observepull.py` and
+  `observe-pull.yml`, codes from `newcode.py` (two Coronado streets and a
+  house number, printed only). Tested on node:sqlite and in `wrangler dev`.
+  **Still open:** the owner prunes `streets.txt` (written from memory) and
+  deploys (observe.md, "Setting it up"); then `OBSERVE_SERVICE` set in the
+  page, codes given out, and one rehearsal row (`is_test = true`) proved
+  from the phone through `observe-pull.yml` into `ratings.csv`.
+- **29. Showing a rating** once enough is logged (session 3, after data).
+  observe.md's "Not yet" holds the plan put to the owner.
+- **30. Heights through Observe, and the gate as blurred numbers**: the log
+  moving into the page, incrementally (owner's direction). Not scoped.
+
 ### Carryover prompts
 
 Each assumes a fresh session; add "Confirm each item before building. PR,
 wait for Tests, don't merge." to each.
+
+- Item 28's last step, after the owner has deployed (medium effort is
+  enough: a one-line constant and a watched end-to-end run, no design):
+  "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes. Read
+  docs/design/observe.md. The Observe service is deployed at <URL>. Set
+  OBSERVE_SERVICE in app/forecast.html to it, commit the D1 database_id in
+  service/observe/wrangler.toml, and once I have saved one rating with
+  Test entry ticked, dispatch observe-pull.yml and confirm the row landed
+  in data/beach_ratings/ratings.csv with is_test = true."
 
 - Item 27, first (diagnosis; the strongest model, high effort, because
   the stage responsible is unknown and each next test has to be chosen

@@ -1,0 +1,69 @@
+# Coronado street names for observer codes (newcode.py). One lowercase word a
+# line; # starts a comment. WRITTEN FROM MEMORY AND NOT CHECKED: delete any
+# that is not a Coronado street, or that you would rather not use.
+#
+# The list is public, and that is fine: a code's strength is the random
+# choice from it, not the list's secrecy. newcode.py says how strong a code
+# from this list is and refuses if it falls below 2^24 possible codes.
+
+# The village
+orange
+ocean
+glorietta
+alameda
+adella
+pomona
+palm
+isabella
+margarita
+tolita
+loma
+encino
+ynez
+soledad
+guadalupe
+balboa
+cabrillo
+marina
+miguel
+visalia
+churchill
+strand
+coronado
+first
+second
+third
+fourth
+fifth
+sixth
+seventh
+eighth
+ninth
+tenth
+
+# The Cays
+antigua
+aruba
+bahama
+jamaica
+montego
+tobago
+trinidad
+sandpiper
+spinnaker
+
+# Less sure: check these first
+monterey
+flora
+olive
+acacia
+alder
+pine
+prospect
+dana
+star
+halsey
+mccain
+leyte
+tulagi
+guadalcanal

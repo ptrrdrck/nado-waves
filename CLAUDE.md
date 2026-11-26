@@ -274,6 +274,12 @@ App (`docs/design/app_surface.md`):
   behind it, and four plausible ones were killed by their own tests. Write the
   test that could falsify the idea before building on it.
 
+Observe (`docs/design/observe.md`):
+- Codes are checked by the Observe service, never by the page, and live in no
+  file in either repo; the page never names its observer.
+- Ratings are their own series (`data/beach_ratings/`), never the beach log;
+  power is soft to steep, not a score.
+
 ## Layout
 
 Full map: `docs/design/layout.md`.
@@ -289,6 +295,7 @@ Full map: `docs/design/layout.md`.
                  trainsplit, trainmerge, windsea, …); publish.
     app/         forecast.html (the page), docs.html (its one link),
                  beachlog*.html (the log), vendor/ (MapLibre).
+    service/     observe/: the Observe service (a Cloudflare Worker).
     data/        tracked archives (historical, spectra, wind, tide, alerts,
                  briefings, series, forecast_log, beach_log, …); data/live/
                  derived and gitignored.

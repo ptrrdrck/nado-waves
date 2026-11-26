@@ -42,6 +42,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         enc_layers.py (what else the charts carry: the jetty,
                         the soundings, a finer coastline — BRIEFING §22),
                         beachlog.py + beachlog_import.py (the observation log),
+                        beachratings.py (Observe's ratings: shape, surface,
+                        power, its own series -- docs/design/observe.md),
+                        observepull.py (pulls them from the Observe service,
+                        observe-pull.yml its one writer),
                         stationdepth.py (each shown buoy's water depth,
                         read off NDBC's station page, monthly ->
                         data/station_depth.json; Actions only),
@@ -109,6 +113,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         stay on the phone and are handed back as text. The two
                         differ only in <title>; a test enforces it. The repo CSV
                         stays the system of record for both.
+    service/observe/    the Observe service, a Cloudflare Worker + D1, deployed
+                        by hand by the owner (docs/design/observe.md): checks
+                        codes, takes ratings, serves the pull. src/vocab.js is
+                        generated from beachratings.py; schema.sql, wrangler.toml
+                        (no secrets); newcode.py + streets.txt print codes to
+                        the terminal only; test/ runs on node:sqlite
     forecast/
       geometry.py       which bearings reach each beach          [built]
       transform.py      spectrum -> energy through the aperture   [built]
@@ -360,6 +370,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
                         and minutes after 46232, 0.03–0.25 Hz, for the map's
                         fill; raytrace --paths-only)
     data/beach_log/     the verification series — human observation  [EMPTY]
+    data/beach_ratings/ Observe's ratings (shape, surface, power), pulled from
+                        the Observe service; its own series, never the log  [EMPTY]
     data/historical/    3 years hourly, 15 stations — irreplaceable
     data/ensemble_forecasts/ GEFS-Wave's bulletin at 46232, 00Z 2023–2025 (means
                         only) and every cycle from 2026 (with spread), leads
