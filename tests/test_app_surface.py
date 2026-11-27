@@ -5496,11 +5496,12 @@ class TestTheSwellCardsTabsBoxAndTray:
     def test_a_tab_names_o_and_u_stand_a_little_apart(self):
         # Barlow Condensed sets O and U as close as its straight letters and
         # SOUTH and BUOYS read squeezed (owner's calls, 2026-11-27, replacing
-        # a 6% scale of the picked name): 0.05 em more each side (0.06 read
-        # loose), 0.03 em between an O and a U side by side (.05 - .02).
+        # a 6% scale of the picked name): 0.05 em more before one, 0.04 after
+        # (0.06 each side, then 0.05, read loose), 0.03 em between an O and a
+        # U side by side (.04 - .01).
         assert "scale(1.06)" not in SOURCE
-        assert ".tabbox .tab-ou{margin:0 .05em}" in SOURCE
-        assert ".tabbox .tab-ou + .tab-ou{margin-left:-.02em}" in SOURCE
+        assert ".tabbox .tab-ou{margin:0 .04em 0 .05em}" in SOURCE
+        assert ".tabbox .tab-ou + .tab-ou{margin-left:-.01em}" in SOURCE
         assert "${tabLetters(tab.title)}" in self.fn("swellCard")
         start = SOURCE.index("const tabLetters = ")
         js = SOURCE[start:SOURCE.index("\n", start)] + (

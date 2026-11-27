@@ -443,11 +443,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h){transform:translateY(var(--tab-shift))}
 /* A tab name's O and U a little apart from their neighbours (owner's call,
    2026-11-27): Barlow Condensed sets them as close as its straight letters,
-   1.7-2.0 px painted, and SOUTH and BUOYS read squeezed. 0.05 em more each
-   side (0.06 read a touch loose); between an O and a U side by side 0.03 em,
-   not twice the side's. */
-.tabbox .tab-ou{margin:0 .05em}
-.tabbox .tab-ou + .tab-ou{margin-left:-.02em}
+   1.7-2.0 px painted, and SOUTH and BUOYS read squeezed. 0.05 em more before
+   one, 0.04 after (UT, OR, OY read loose at 0.05; 0.06 each side before
+   that); between an O and a U side by side 0.03 em, not twice the side's. */
+.tabbox .tab-ou{margin:0 .04em 0 .05em}
+.tabbox .tab-ou + .tab-ou{margin-left:-.01em}
 .cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
   transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
 @media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
