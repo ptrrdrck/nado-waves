@@ -5133,7 +5133,9 @@ class TestTheTitleRowPills:
     def test_a_tap_changes_the_text_and_nothing_else(self):
         rule = SOURCE[SOURCE.index("button.chead-pills{"):]
         rule = rule[:rule.index("}\n")]
-        assert "-webkit-tap-highlight-color:transparent" in rule
+        # No tap flash: the page's one rule since 2026-11-27 (owner's call).
+        assert "\nhtml{-webkit-tap-highlight-color:transparent}\n" in SOURCE
+        assert SOURCE.count("-webkit-tap-highlight-color") == 1
         assert "background:none" in rule and "user-select:none" in rule
         assert "button.chead-pills:focus{outline:none}" in SOURCE
         assert "button.chead-pills:active" not in SOURCE and ".chead-pills:hover" not in SOURCE
@@ -5400,6 +5402,21 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".tab-tray .rose.sea{margin-left:-11px;margin-right:-11px}" in css
         # The buoys' station blocks too (owner's call, 2026-11-27).
         assert ".tab-tray .buoy-info{margin-left:-11px;margin-right:-11px;" in SOURCE
+
+    def test_each_buoys_rose_and_station_block_are_one_plate(self):
+        # No card between them, a hairline on the words' 11 px, spaced as
+        # the Origin / Charts rule paints (17.3 / 16.2 px at 390; measured
+        # 17.2 / 15.8), and the last buoy's block, open, the box's foot
+        # (owner's calls, 2026-11-27).
+        assert ".tab-tray .rose.sea:has(+ .buoy-info){margin-bottom:-11px}" in SOURCE
+        assert ".tab-tray .rose.sea:has(+ .buoy-info) .rose-tray{border-bottom:0;padding-bottom:11.5px}" in SOURCE
+        assert "border-top:0;padding-top:12.5px}" in SOURCE
+        assert "left:11px;right:11px;\n" in SOURCE
+        assert ("border-top:1px solid var(--line)}" in
+                SOURCE[SOURCE.index(".tab-tray .rose.sea + .buoy-info::before{"):][:200])
+        assert (".tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child)"
+                "{padding-bottom:0}") in SOURCE
+        assert ".tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}" in SOURCE
 
     def test_the_box_sits_as_far_from_its_neighbours_as_the_range_from_the_title(self):
         # 17.5 px painted at 390 each (owner's call, 2026-11-27): title ink to

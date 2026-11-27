@@ -531,5 +531,16 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      under the title's, 17.5 px painted at 390 each, measured in pixels with
      the tray shut and open (`.swell-brief` 6 px and `.tabbox` 7.5 px of
      margin on the card's 8 px gap; it was 13.5 above, 10 below).
+   - **Each buoy's rose and station block are ONE plate in the tray**
+     (owner's calls, same day): no card between them, a hairline across
+     them on the words' 11 px, spaced as the rule between Origin and Charts
+     paints (17.3 px from the ink above, 16.2 to the ink below, at 390;
+     the plate measures 17.2 / 15.8). The last buoy's block, open, is the
+     box's foot, as the map's caption is on a break.
+   - **No grey tap flash anywhere on the page** (owner's call, same day):
+     WebKit's default highlight spilled past the tray's caret onto the tabs.
+     One `html` rule replaces the sixteen per-element opt-outs; every
+     control answers a tap by changing state, keyboard focus keeps its
+     outlines. docs.html and the beach log pages are unchanged.
    - The Forecast tab's card and the wide layouts are unchanged for now
      (docs/handoff.md, group 7).

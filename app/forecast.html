@@ -71,6 +71,12 @@ try {
    the root alone, because the Briefing scrolls inside itself: a scroller
    ends the ancestors' say. Zero specificity, so the charts' pan-y stands. */
 *{box-sizing:border-box;touch-action:manipulation}
+/* No grey tap flash anywhere (owner's call, 2026-11-27): WebKit paints one
+   over any tapped control that does not opt out, and it spilled past the
+   Swell card's tray caret onto the tabs. Every control here answers a tap
+   by changing state; keyboard focus keeps its outlines. One rule for the
+   page, replacing sixteen per-element opt-outs. */
+html{-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 body{
   background:var(--paper); color:var(--ink);
@@ -251,7 +257,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-block.brief-cond{gap:6px}
 .brief-row{display:grid;grid-template-columns:62px 9px minmax(0,1fr) auto;column-gap:6px;align-items:start;
            width:100%;padding:0;margin:0;border:0;background:none;font:inherit;color:inherit;
-           text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+           text-align:left;cursor:pointer}
 .brief-key{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;font-size:12.5px;
            letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}
@@ -291,7 +297,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* The day's tide as a curve (owner's choice, 2026-10-23): greys and ink,
    the hours gone grey, nights shaded as the Tide card's charts are. */
 .brief-tide{display:block;width:100%;height:151px;padding:0;margin:0;border:0;background:none;font:inherit;
-            color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+            color:inherit;cursor:pointer}
 .brief-tide svg{display:block;overflow:visible}
 .brief-tide path{fill:none;stroke-linejoin:round}
 .brief-tide path.gone{stroke:var(--faint);stroke-width:1.4}
@@ -326,7 +332,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    tab a line above the Swell card on the backdrop. */
 .alerts{display:flex;flex-direction:column;gap:6px;padding:0 13px}
 .alert{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:start;
-       font-size:15px;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+       font-size:15px;color:var(--ink);cursor:pointer}
 .alert-tri{display:block;width:16px;height:16px;margin-top:2px;color:var(--ink)}
 .alert-line a{font-weight:600}
 .alert-when{white-space:nowrap}
@@ -451,6 +457,17 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    tray's own 11 px. */
 .tab-tray .buoy-info{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px;
                      border-left:0;border-right:0;border-radius:0}
+/* Each buoy's rose and station block ONE plate (owner's call, 2026-11-27):
+   no card between them, a hairline across them on the words' 11 px, spaced
+   as the rule between Origin and Charts is (painted, below). */
+.tab-tray .rose.sea:has(+ .buoy-info){margin-bottom:-11px}
+.tab-tray .rose.sea:has(+ .buoy-info) .rose-tray{border-bottom:0;padding-bottom:11.5px}
+.tab-tray .rose.sea + .buoy-info{position:relative;margin-top:0;border-top:0;padding-top:12.5px}
+.tab-tray .rose.sea + .buoy-info::before{content:"";position:absolute;top:0;left:11px;right:11px;
+                                         border-top:1px solid var(--line)}
+/* The last buoy's plate, open, is the box's foot. */
+.tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child){padding-bottom:0}
+.tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}
 /* Where the tide is going next. Dim like any other supporting line, with the
    direction itself at full ink because that is the word being read. */
 /* Inline, not flex: the height carries its own metric span and flex would
@@ -564,11 +581,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .train:not(.lead){opacity:.72}
 /* A train with an arrow on the drawing picks it there (owner's request,
    2026-10-05). */
-.train[data-train]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:4px}
+.train[data-train]{cursor:pointer;border-radius:4px}
 .train[data-train]:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* On the Buoys tab a row lights its period range on the rose (owner's
    request, 2026-10-08); the lit row reads as pressed. */
-.train[data-rose-train]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:4px}
+.train[data-rose-train]{cursor:pointer;border-radius:4px}
 .train[data-rose-train]:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* A picked row reads as pressed, on the Buoys tab and on a break's alike
    (owner's request, 2026-10-09). */
@@ -638,7 +655,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    state, no selection (owner's call, 2026-11-08). The keyboard's focus ring
    stays: it is not shown for a tap. */
 button.chead-pills{font:inherit;color:inherit;background:none;border:0;padding:0;margin-left:auto;
-  border-radius:4px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  border-radius:4px;cursor:pointer;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 button.chead-pills:focus{outline:none}
 button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2px}
@@ -785,7 +802,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .bi-v .unit{font-weight:400;white-space:nowrap}
 .bi-t{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
 .buoy-info:not(.bi-times) .bi-t{display:none}
-.bi-read[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bi-read[role=button]{cursor:pointer}
 .bi-read[role=button]:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
 .bi-none .bi-v{font-weight:400;color:var(--faint)}
 .bi-rule{height:1px;background:var(--line)}
@@ -941,7 +958,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    -- the things in the drawing that are not geometry-as-obstacle -- and a
    picked window washed in grey. */
 .aperture{display:block;width:100%;max-width:420px;height:auto;margin:0 auto;overflow:visible;
-  cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  cursor:pointer;touch-action:manipulation}
 .aperture [data-pick]{outline:none}
 .aperture .win{fill:var(--soft);fill-opacity:0;stroke:none}
 .aperture .win.on{fill-opacity:.3}
@@ -1007,7 +1024,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .brief-cont .count{margin-left:0;color:var(--soft);font-weight:400}
 /* Tapped, it shuts the fold as the line does, and lights the caret as the
    line's hover does (owner's request, 2026-11-02). */
-.brief-cont{cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.brief-cont{cursor:pointer;-webkit-user-select:none;user-select:none}
 .chart-head:has(+ .brief-cont:hover) .calc-toggle{color:var(--ink)}
 /* Closed, the line takes taps from the space around it too (owner's
    request, 2026-11-02, after missing it below): an empty layer reaching
@@ -1047,7 +1064,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .chart .ranges button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .chart .chart-note{font-size:12px;color:var(--faint);align-self:stretch}
 .series{display:block;width:100%;height:auto;overflow:visible;cursor:crosshair;
-        touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+        touch-action:pan-y}
 .series:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
 .series .grid{stroke:var(--line);stroke-width:1}
 .series .zero{stroke:var(--line-strong);stroke-width:1}
@@ -1163,7 +1180,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .rose .rose-play svg{width:12px;height:12px;fill:currentColor}
 .rose .rose-track{flex:1 1 auto;min-width:0;height:28px;box-sizing:border-box;display:flex;align-items:center;gap:8px;
   padding:0 10px 0 8px;border:1px solid transparent;border-radius:6px;background:var(--card);color:var(--ink);
-  box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none;-webkit-tap-highlight-color:transparent}
+  box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none}
 .rose .rose-when{flex:none;min-width:4.9em;text-align:right;font:600 12px/1 Archivo,sans-serif;
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .rose .rose-rail{position:relative;flex:1 1 auto;height:2px;border-radius:1px;background:var(--line-strong)}
@@ -1325,7 +1342,7 @@ a{color:var(--surf)}
 .links .bar{width:1px;height:14px;background:var(--line-strong);flex:none}
 @media (max-width:369px){ .links{gap:8px} .links .bar{display:none} }
 /* Observer: a real checkbox, drawn as a small switch. */
-.links .logger{position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.links .logger{position:relative;cursor:pointer}
 .links .logger input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
 .links .logger .sw{position:relative;width:28px;height:16px;border-radius:8px;background:var(--line-strong);
                    transition:background-color .2s;flex:none}
@@ -1344,14 +1361,13 @@ a{color:var(--surf)}
 .links .units{display:inline-flex;align-items:center;gap:6px}
 .links .units button{display:inline-grid;place-items:center;height:22px;padding:0 7px;margin:0;
                      border:1px solid var(--line-strong);border-radius:5px;background:transparent;
-                     font:inherit;font-size:12.5px;line-height:1;color:var(--ink);cursor:pointer;
-                     -webkit-tap-highlight-color:transparent}
+                     font:inherit;font-size:12.5px;line-height:1;color:var(--ink);cursor:pointer;}
 .links .units button > span{grid-area:1/1;transform:translateY(.3px)}
 .links .units button > span:not(.on){visibility:hidden}
 /* Theme: one glyph, a half-lit disc, its lit half turned to the theme a
    tap gives. 18 px drawn in a 32 px target. */
 .links .theme{display:grid;place-items:center;width:32px;height:32px;margin:-7px -4px -7px -7px;padding:0;border:0;
-              background:none;color:var(--soft);cursor:pointer;-webkit-tap-highlight-color:transparent}
+              background:none;color:var(--soft);cursor:pointer}
 .links .theme:hover{color:var(--ink)}
 .links .theme svg{display:block;width:18px;height:18px;transition:transform .35s ease}
 :root[data-theme="dark"] .links .theme svg{transform:rotate(180deg)}
@@ -1474,8 +1490,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 .week-names,.week-day{display:grid;grid-template-rows:var(--wk-date) repeat(3,var(--wk-cell));row-gap:var(--wk-gap)}
 .week-names{align-items:center;font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
   text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;color:var(--soft)}
-.week-date,.week-cell{font:inherit;margin:0;border:0;cursor:pointer;color:var(--ink);
-  -webkit-tap-highlight-color:transparent}
+.week-date,.week-cell{font:inherit;margin:0;border:0;cursor:pointer;color:var(--ink);}
 .week-date{background:none;padding:0;font-size:12.5px;font-weight:600;color:var(--soft);white-space:nowrap}
 .week-day.on .week-date{color:var(--ink)}
 .week-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:7px;
@@ -1534,8 +1549,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    (owner's request, 2026-11-21: 28 px square, the glyph 16 px at a 1.4
    stroke, as the map's Layers button). */
 .week-today{position:absolute;z-index:1;display:grid;place-items:center;width:28px;height:28px;
-  padding:0;border:0;border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;
-  -webkit-tap-highlight-color:transparent}
+  padding:0;border:0;border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;}
 .week-today svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;
   stroke-linejoin:round}
 .week-today:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
