@@ -4393,7 +4393,7 @@ class TestTheBriefing:
     def test_a_sparkline_never_draws_across_a_missing_hour(self):
         spark = self.BLOCK[self.BLOCK.index("function briefSpark"):]
         spark = spark[:spark.index("\n}\n")]
-        assert "{gapH = 1.5, log = false, dots = false} = {}" in spark      # an hour, unless a row says
+        assert "{gapH = 1.5, log = false, dots = false, w = 64, h = 18, cls = \"\"} = {}" in spark      # an hour, unless a row says
         assert "if (i && p[0] - points[i - 1][0] > gapH * 3600) runs.push([]);" in spark
         bars = self.BLOCK[self.BLOCK.index("function briefBars"):]
         assert 'if (d[1] == null) return "";' in bars[:bars.index("\n}\n")]
@@ -5340,7 +5340,7 @@ class TestTheSwellCardsTabsBoxAndTray:
         # The same block, the same rows: the words and numbers are the
         # Briefing's own, never a second rendering of them.
         assert "briefingParts(B)" in brief
-        assert "parts.swell.map(briefSwellRow)" in brief
+        assert "rows.map(briefSwellRow)" in brief and "parts.swell.map((r) =>" in brief
         assert 'class="brief-block brief-swell swell-brief"' in brief
 
     def test_only_the_live_card_gets_the_headline_and_the_tray(self):
@@ -5417,6 +5417,26 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert (".tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child)"
                 "{padding-bottom:0}") in SOURCE
         assert ".tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}" in SOURCE
+
+    def test_the_ranges_sparkline_is_112_by_28_where_it_fits(self):
+        # Owner's pick, 2026-11-27: drawn at that size (its line and dot as
+        # thick as the Briefing's), the Briefing's 64 x 18 beside it for a
+        # phone under 361 px or a range that would wrap beside it.
+        brief = self.fn("swellBrief")
+        assert 'briefSpark(s.spark, s.window_h || 24, {w: 112, h: 28, cls: "big"}) + r.spark' in brief
+        fit = self.fn("fitSwellSpark")
+        assert 'window.matchMedia("(max-width: 360px)")' in fit
+        assert "big.offsetHeight > 1.5 * parseFloat(getComputedStyle(big).lineHeight)" in fit
+        assert ".swell-brief .brief-spark.big{width:112px;height:28px}" in SOURCE
+        assert ("new MutationObserver(() => fitSwellSpark())\n"
+                '    .observe(document.getElementById("conditions"), {childList: true, subtree: true});') in SOURCE
+        js = (self.fn("briefSpark") + "\nconst pts = [[0, 1.0], [1800, 1.4], [3600, 1.2]];"
+              + "\nconsole.log(JSON.stringify([briefSpark(pts, 1), briefSpark(pts, 1, {w: 112, h: 28, cls: 'big'})]));")
+        small, big = json.loads(self._node(js))
+        assert small.startswith('<svg class="brief-spark" viewBox="0 0 64 18"')
+        assert big.startswith('<svg class="brief-spark big" viewBox="0 0 112 28"')
+        # The newest reading at the right end, 3 units in, as the small one.
+        assert 'cx="109.0"' in big and 'cx="61.0"' in small
 
     def test_the_box_sits_as_far_from_its_neighbours_as_the_range_from_the_title(self):
         # 17.5 px painted at 390 each (owner's call, 2026-11-27): title ink to

@@ -542,5 +542,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      One `html` rule replaces the sixteen per-element opt-outs; every
      control answers a tap by changing state, keyboard focus keeps its
      outlines. docs.html and the beach log pages are unchanged.
+   - **The range's sparkline is 112 x 28** (owner's pick of three options,
+     same day; it was the Briefing's 64 x 18): as tall as the range's
+     29.7 px line allows, drawn at that size so its line and dot keep their
+     weight (`briefSpark`'s `w` / `h`). The 64 x 18 is drawn beside it and
+     shown instead under 361 px, or wherever the range would wrap beside
+     the big one (`fitSwellSpark`): measured, "10–14 ft (3.0–4.3 m)" in
+     Both does at 390 and 375, today's "3–7 ft (0.9–2.1 m)" does not.
    - The Forecast tab's card and the wide layouts are unchanged for now
      (docs/handoff.md, group 7).

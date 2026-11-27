@@ -452,6 +452,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    17.5 px painted at 390, title ink to range ink, the last headline line's
    ink to the box's hairline, the box's foot to the rule. */
 .swell-brief{margin-bottom:6px}
+/* The range's sparkline at 112 x 28 (owner's pick, 2026-11-27), as tall as
+   the range's line allows; the 64 x 18 where it cannot fit (`fitSwellSpark`). */
+.swell-brief .brief-spark.big{width:112px;height:28px}
+.swell-brief .brief-head:not(.tight) .brief-spark:not(.big),
+.swell-brief .brief-head.tight .brief-spark.big{display:none}
 .tabbox{margin-bottom:7.5px}
 /* The buoys' station blocks the tray's width too, their words on the
    tray's own 11 px. */
@@ -2789,9 +2794,11 @@ const briefWindow = (h) => (h >= 48 ? `${Math.round(h / 24)} d` : `${h} h`);
 // `gapH`), the newest an ink dot. `log` scales the values by their
 // logarithm, for a quantity that spans decades; `dots` marks a reading the
 // line cannot join, between two gaps, with a small faint dot.
-function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false} = {}) {
+// `w` and `h` draw it at another size, its line and dot as thick as ever
+// (the Swell card's headline, 112 x 28); `cls` tags it.
+function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false, w = 64, h = 18, cls = ""} = {}) {
   if (!points || points.length < 2) return "";
-  const W = 64, H = 18, t1 = points[points.length - 1][0], t0 = t1 - windowH * 3600;
+  const W = w, H = h, t1 = points[points.length - 1][0], t0 = t1 - windowH * 3600;
   const val = log ? (v) => Math.log10(Math.max(v, 1)) : (v) => v;
   const ys = points.map((p) => val(p[1])), lo = Math.min(...ys), hi = Math.max(...ys);
   const X = (t) => 1 + (t - t0) / (t1 - t0) * (W - 4), Y = (v) => H - 2 - (hi > lo ? (val(v) - lo) / (hi - lo) : 0.5) * (H - 4);
@@ -2801,7 +2808,7 @@ function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false} = {
     runs[runs.length - 1].push([X(p[0]).toFixed(1), Y(p[1]).toFixed(1)]);
   });
   const last = points[points.length - 1];
-  return `<svg class="brief-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
+  return `<svg class="brief-spark${cls ? ` ${cls}` : ""}" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
     + runs.map((r) => (r.length > 1 ? `<polyline points="${r.map((q) => q.join(",")).join(" ")}"/>`
       : dots ? `<circle class="lone" cx="${r[0][0]}" cy="${r[0][1]}" r="1"/>` : "")).join("")
     + `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="2.2"/></svg>`;
@@ -4015,6 +4022,8 @@ if (typeof MutationObserver !== "undefined" && document.getElementById("conditio
   new MutationObserver(() => fitPills($("conditions")))
     .observe(document.getElementById("conditions"), {childList: true, subtree: true});
   new MutationObserver(() => fitHeads($("conditions")))
+    .observe(document.getElementById("conditions"), {childList: true, subtree: true});
+  new MutationObserver(() => fitSwellSpark())
     .observe(document.getElementById("conditions"), {childList: true, subtree: true});
 }
 
@@ -8383,7 +8392,30 @@ function setTrayOpen(open) {
 function swellBrief(B) {
   const parts = briefingParts(B);
   if (!parts || !parts.swell.length) return "";
-  return `<div class="brief-block brief-swell swell-brief">${parts.swell.map(briefSwellRow).join("")}</div>`;
+  // Its sparkline at 112 x 28 (owner's pick, 2026-11-27), the Briefing's
+  // 64 x 18 beside it for where that cannot fit (`fitSwellSpark`).
+  const s = B.swell || {};
+  const rows = parts.swell.map((r) => (r.kind === "beach" && r.spark
+    ? {...r, spark: briefSpark(s.spark, s.window_h || 24, {w: 112, h: 28, cls: "big"}) + r.spark} : r));
+  return `<div class="brief-block brief-swell swell-brief">${rows.map(briefSwellRow).join("")}</div>`;
+}
+// The big sparkline unless the phone is under 361 px or the range would
+// wrap beside it (two-digit feet in "Both" under 390 px): then the small.
+const SPARK_WIDTH = new WeakMap();
+const sparkResize = typeof ResizeObserver === "undefined" ? null
+  : new ResizeObserver((entries) => entries.forEach(({target, contentRect}) => {
+    const width = Math.round(contentRect.width);
+    if (width && SPARK_WIDTH.get(target) !== width) { SPARK_WIDTH.set(target, width); fitSwellSpark(); }
+  }));
+function fitSwellSpark() {
+  const head = document.querySelector(".swell-brief .brief-head");
+  if (!head || !head.querySelector(".brief-spark.big")) return;
+  head.classList.remove("tight");
+  const big = head.querySelector(".brief-big");
+  const narrow = !!(window.matchMedia && window.matchMedia("(max-width: 360px)").matches);
+  const wraps = !!big && big.offsetHeight > 1.5 * parseFloat(getComputedStyle(big).lineHeight);
+  if (narrow || wraps) head.classList.add("tight");
+  if (sparkResize && !SPARK_WIDTH.has(head)) { SPARK_WIDTH.set(head, Math.round(head.clientWidth)); sparkResize.observe(head); }
 }
 
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
