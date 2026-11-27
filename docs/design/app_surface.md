@@ -568,9 +568,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      question): every name is 14 px with 10 px of caps painted, and SOUTH
      read smaller because Barlow Condensed sets O and U as close as its
      straight letters (1.7-2.0 px painted), so the round letters look
-     squeezed. Each O and U is a span (`tabLetters`, `.tab-ou`) with 0.06 em
-     more each side, and between an O and a U side by side half that, not
-     twice: SO / OU / UT 2.3 px painted at 3x, NO / OR 3.0, BU / UO / OY 2.7.
+     squeezed. Each O and U is a span (`tabLetters`, `.tab-ou`) with 0.05 em
+     more each side (0.06 read a touch loose, same day), and 0.03 em between
+     an O and a U side by side, not twice the side's: SO / OU / UT 2.3 px
+     painted at 3x, NO 2.7 / OR 3.0, BU 2.3 / UO / OY 2.7.
    - A buoy's fold spans the tray with its contents padded back in: the
      folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
      reaching past it showed its sides only once the slide had ended
