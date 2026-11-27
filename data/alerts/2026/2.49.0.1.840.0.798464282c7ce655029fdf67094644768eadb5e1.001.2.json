@@ -1,0 +1,103 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.798464282c7ce655029fdf67094644768eadb5e1.001.2",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.798464282c7ce655029fdf67094644768eadb5e1.001.2",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.798464282c7ce655029fdf67094644768eadb5e1.001.2",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.aa0af5b019e270ef0ef960408031798236435d3a.001.3",
+                "identifier": "urn:oid:2.49.0.1.840.0.aa0af5b019e270ef0ef960408031798236435d3a.001.3",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-27T04:03:00-08:00"
+            },
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.aa0af5b019e270ef0ef960408031798236435d3a.002.2",
+                "identifier": "urn:oid:2.49.0.1.840.0.aa0af5b019e270ef0ef960408031798236435d3a.002.2",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-27T04:03:00-08:00"
+            }
+        ],
+        "sent": "2026-11-27T12:52:00-08:00",
+        "effective": "2026-11-27T12:52:00-08:00",
+        "onset": "2026-11-27T13:00:00-08:00",
+        "expires": "2026-11-27T22:15:00-08:00",
+        "ends": "2026-11-28T16:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Update",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Beach Hazards Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Beach Hazards Statement issued November 27 at 12:52PM PST until November 28 at 4:00PM PST by NWS San Diego CA",
+        "description": "* WHAT...Breaking surf of 4 to 7 feet with sets up to 8 feet on\nexposed west-facing beaches and minor to locally moderate\ncoastal flooding.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...Through Saturday afternoon.\n\n* IMPACTS...Dangerous swimming and surfing conditions and beach\nerosion. Large breaking waves can cause injury and wash people\noff beaches and rocks. Low-lying parking lots and boardwalks\nwill flood during morning high tides.\n\n* ADDITIONAL DETAILS...High tides Saturday morning will be 7.0 to\n7.1 feet and occur just after 11 AM PST.",
+        "instruction": "Take the necessary actions to protect flood-prone property. If\ntravel is required, do not drive around barricades or through\nwater of unknown depth.\n\nRemain out of the water to avoid hazardous swimming conditions.\nStay off of rock jetties and sea walls. Waves can suddenly and\nquickly move much farther up the beach than expected; stay back\nfrom the water and never turn your back on the ocean.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 272052"
+            ],
+            "NWSheadline": [
+                "BEACH HAZARDS STATEMENT REMAINS IN EFFECT THROUGH SATURDAY AFTERNOON... ...COASTAL FLOOD WARNING WILL EXPIRE AT 1 PM PST THIS AFTERNOON"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.CON.KSGX.BH.S.0020.261127T2100Z-261129T0000Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-28T16:00:00-08:00"
+            ],
+            "expiredReferences": [
+                "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ca8a5eecdf715406b96c309382978c22ff42126b.002.1,2026-11-27T00:10:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ca8a5eecdf715406b96c309382978c22ff42126b.001.1,2026-11-27T00:10:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "BHS"
+            ]
+        }
+    }
+}
