@@ -536,7 +536,13 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      them on the words' 11 px, spaced as the rule between Origin and Charts
      paints (17.3 px from the ink above, 16.2 to the ink below, at 390;
      the plate measures 17.2 / 15.8). The last buoy's block, open, is the
-     box's foot, as the map's caption is on a break.
+     box's foot, as the map's caption is on a break. An open buoy's block
+     is the rule above the next buoy (owner's call, same day): pulled down
+     by its margin so its foot's hairline lies on that rule (31 and 21 px of
+     card sat above it), the next name 11 px under it as under the rule; a
+     margin, not a hidden rule, so a fold's slide never jumps.
+   - The tray's caret sits 5 px further from the tabs (owner's call, same
+     day): its ink 12.5 px under the tab buttons, 8 px above the box's foot.
    - **No grey tap flash anywhere on the page** (owner's call, same day):
      WebKit's default highlight spilled past the tray's caret onto the tabs.
      One `html` rule replaces the sixteen per-element opt-outs; every

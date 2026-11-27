@@ -5438,6 +5438,18 @@ class TestTheSwellCardsTabsBoxAndTray:
         # The newest reading at the right end, 3 units in, as the small one.
         assert 'cx="109.0"' in big and 'cx="61.0"' in small
 
+    def test_an_open_buoys_plate_is_the_rule_above_the_next_buoy(self):
+        # Owner's call, 2026-11-27: the plate's foot lies on the next buoy's
+        # rule (measured at 390: 31 and 21 px of card above it before), by a
+        # margin rather than a hidden rule, so a fold's slide never jumps.
+        assert ".tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}" in SOURCE
+        assert ".tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}" in SOURCE
+        assert ".pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}" in SOURCE
+
+    def test_the_caret_sits_clear_of_the_tabs(self):
+        # 5 px more than at first (owner's call, 2026-11-27).
+        assert ".tray-toggle{display:grid;place-items:center;width:100%;height:22px;margin-top:2px;" in SOURCE
+
     def test_the_box_sits_as_far_from_its_neighbours_as_the_range_from_the_title(self):
         # 17.5 px painted at 390 each (owner's call, 2026-11-27): title ink to
         # range ink, the headline's last ink to the box (8 px card gap + 6),

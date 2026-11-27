@@ -425,7 +425,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                font-variant-numeric:tabular-nums}
 .tabbox .subtabs button:not([aria-selected="true"]) .tab-h{color:var(--soft)}
 .tabbox .tab-m{display:block;font-size:11.5px;color:var(--faint)}
-.tray-toggle{display:grid;place-items:center;width:100%;height:22px;margin-top:-3px;padding:0;border:0;
+.tray-toggle{display:grid;place-items:center;width:100%;height:22px;margin-top:2px;padding:0;border:0;
              background:transparent;color:var(--soft);cursor:pointer}
 .tray-toggle:hover{color:var(--ink)}
 .tray-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:-2px}
@@ -470,6 +470,13 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tab-tray .rose.sea + .buoy-info{position:relative;margin-top:0;border-top:0;padding-top:12.5px}
 .tab-tray .rose.sea + .buoy-info::before{content:"";position:absolute;top:0;left:11px;right:11px;
                                          border-top:1px solid var(--line)}
+/* An open buoy's plate is the rule above the next buoy (owner's call,
+   2026-11-27): pulled down so its foot's hairline lies on that rule, so no
+   card and no second line between them, and the next name as far under it
+   as under the rule. A margin, not a hidden rule, so a fold's slide never
+   jumps. Measured at 390: 31 and 21 px of card above the rule before. */
+.tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}
+.tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}
 /* The last buoy's plate, open, is the box's foot. */
 .tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child){padding-bottom:0}
 .tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}
