@@ -489,6 +489,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    17.5 px painted at 390, title ink to range ink, the last headline line's
    ink to the box's hairline, the box's foot to the rule. */
 .swell-brief{margin-bottom:6px}
+/* The Forecast headline's last line never has a descender (no trend word, so
+   no "g"): 2.5 px less, so its ink sits as far above the box as LIVE's. */
+.swell-brief.fc{margin-bottom:3.5px}
 /* The range's sparkline at 112 x 28 (owner's pick, 2026-11-27), as tall as
    the range's line allows; the 64 x 18 where it cannot fit (`fitSwellSpark`). */
 .swell-brief .brief-spark.big{width:112px;height:28px}
@@ -2850,10 +2853,17 @@ const briefWindow = (h) => (h >= 48 ? `${Math.round(h / 24)} d` : `${h} h`);
 // logarithm, for a quantity that spans decades; `dots` marks a reading the
 // line cannot join, between two gaps, with a small faint dot.
 // `w` and `h` draw it at another size, its line and dot as thick as ever
-// (the Swell card's headline, 112 x 28); `cls` tags it.
-function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false, w = 64, h = 18, cls = ""} = {}) {
+// (the Swell card's headline, 112 x 28); `cls` tags it. `start` (Unix
+// seconds) draws the window from then instead of the one ending at the
+// newest reading, and `dot` puts the ink dot on the reading at that time
+// instead of the newest (the Forecast tab's headline: the 24 h from the
+// picked hour, its dot on that hour).
+function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false, w = 64, h = 18, cls = "",
+                                      start = null, dot = null} = {}) {
+  if (start != null) points = (points || []).filter((p) => p[0] >= start && p[0] <= start + windowH * 3600);
   if (!points || points.length < 2) return "";
-  const W = w, H = h, t1 = points[points.length - 1][0], t0 = t1 - windowH * 3600;
+  const W = w, H = h, t1 = start != null ? start + windowH * 3600 : points[points.length - 1][0],
+    t0 = t1 - windowH * 3600;
   const val = log ? (v) => Math.log10(Math.max(v, 1)) : (v) => v;
   const ys = points.map((p) => val(p[1])), lo = Math.min(...ys), hi = Math.max(...ys);
   const X = (t) => 1 + (t - t0) / (t1 - t0) * (W - 4), Y = (v) => H - 2 - (hi > lo ? (val(v) - lo) / (hi - lo) : 0.5) * (H - 4);
@@ -2862,11 +2872,11 @@ function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false, w =
     if (i && p[0] - points[i - 1][0] > gapH * 3600) runs.push([]);
     runs[runs.length - 1].push([X(p[0]).toFixed(1), Y(p[1]).toFixed(1)]);
   });
-  const last = points[points.length - 1];
+  const last = dot != null ? points.find((p) => p[0] === dot) : points[points.length - 1];
   return `<svg class="brief-spark${cls ? ` ${cls}` : ""}" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
     + runs.map((r) => (r.length > 1 ? `<polyline points="${r.map((q) => q.join(",")).join(" ")}"/>`
       : dots ? `<circle class="lone" cx="${r[0][0]}" cy="${r[0][1]}" r="1"/>` : "")).join("")
-    + `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="2.2"/></svg>`;
+    + (last ? `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="2.2"/>` : "") + "</svg>";
 }
 // Rain's week: a bar a Pacific day, today's in ink; a day with no reports
 // has no bar and no baseline.
@@ -8470,6 +8480,82 @@ function swellBrief(B) {
     ? {...r, spark: briefSpark(s.spark, s.window_h || 24, {w: 112, h: 28, cls: "big"}) + r.spark} : r));
   return `<div class="brief-block brief-swell swell-brief">${rows.map(briefSwellRow).join("")}</div>`;
 }
+// The Forecast tab's swell headline (owner's design and picks, 2026-11-27,
+// from a mock on that day's run): LIVE's headline at the picked hour from
+// forecast.json alone -- the Forecast chain never borrows a measurement, so
+// no 46047 lines and no dark-buoy line. The range over the three cards'
+// breaking heights as they show them (`feetRange`); a sparkline of the
+// biggest each step over the 24 h FROM the picked hour, its dot on that
+// hour; then a line a train by the Briefing's rule (`fcSwellTrains`). No
+// trend word (owner's pick): nothing follows a train between model hours.
+const FC_SPARK_H = 24;
+let FC_SPARK_MEMO = null;
+function fcBeachSpark() {
+  if (FC_SPARK_MEMO && FC_SPARK_MEMO.data === DATA && FC_SPARK_MEMO.steps === STEPS) return FC_SPARK_MEMO.pts;
+  const pts = [];
+  for (const st of STEPS) {
+    const hs = cardsForForecast(st).map((c) => c.hsWindow).filter((v) => v != null);
+    if (hs.length) pts.push([Date.parse(st.valid_utc) / 1000, Math.max(...hs)]);
+  }
+  FC_SPARK_MEMO = {data: DATA, steps: STEPS, pts};
+  return pts;
+}
+// A train's heading as the Briefing reads it (`briefing._heading`): the
+// larger direction of a two-direction train, else its own.
+const fcHeading = (t) => ((t.lobes || []).length >= 2 ? t.lobes[0][0] : t.from_deg);
+// `briefing.listed_trains` on the cards' own rows: every train at any break
+// at >= half the biggest anywhere (`MIX_SHARE`), biggest first, North first
+// on a tie, one line a buoy train (`swell`: the model's train at 46232 that
+// carried most of the row), never local chop; with nothing but chop, the
+// biggest break's lead. Two lines whose words match are one (owner's call,
+// 2026-11-27: two buoy trains each surfaced as a 19.0 s W row, 28 Nov 03Z).
+// What a line stands for is docs/handoff.md item 30.
+function fcSwellTrains(cards) {
+  const order = Object.fromEntries(ORDER.map((id, k) => [id, k]));
+  const pool = [];
+  for (const c of cards) {
+    for (const t of c.trains || []) if (!t.local && fcHeading(t) != null) pool.push({t, id: c.id});
+  }
+  pool.sort((a, b) => (b.t.hs_m || 0) - (a.t.hs_m || 0) || order[a.id] - order[b.id]);
+  if (!pool.length) {
+    const top = cards.filter((c) => c.hsWindow != null).sort((a, b) => b.hsWindow - a.hsWindow)[0];
+    const lead = top && (top.trains || [])[0];
+    return lead ? [lead] : [];
+  }
+  const biggest = pool[0].t.hs_m || 0, out = [], said = new Set();
+  for (const {t} of pool) {
+    if ((t.hs_m || 0) < 0.5 * biggest) break;
+    if (t.swell != null) {
+      if (said.has(t.swell)) continue;
+      said.add(t.swell);
+    }
+    out.push(t);
+  }
+  return out;
+}
+function fcSwellBrief(step, cards) {
+  const hs = cards.map((c) => c.hsWindow).filter((v) => v != null);
+  if (!step || !hs.length) return "";
+  const [lo, hi] = feetRange(hs);
+  const at = Date.parse(step.valid_utc) / 1000, pts = fcBeachSpark();
+  // Model steps are 3 h apart: a gap is a missing step, not a missing hour.
+  const opts = {start: at, dot: at, gapH: 4.5};
+  const spark = briefSpark(pts, FC_SPARK_H, {...opts, w: 112, h: 28, cls: "big"}) + briefSpark(pts, FC_SPARK_H, opts);
+  const rows = [{kind: "beach", range: dual(`${lo}–${hi}\u00a0ft`,
+    `${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m`, briefNum),
+    spark, window: spark ? `next ${briefWindow(FC_SPARK_H)}` : ""}];
+  const said = new Set();
+  for (const tn of fcSwellTrains(cards)) {
+    const dir = fcHeading(tn);
+    const from = dir != null ? briefNum(point(dir)) + (tn.wind_sea ? " wind sea" : "") : tn.wind_sea ? "Wind sea" : "";
+    const per = tn.period_s != null ? `${from ? "at" : "At"} ${briefNum(`${tn.period_s.toFixed(1)}\u00a0s`)}` : "";
+    const html = [from, per].filter(Boolean).join(" ");
+    if (!html || said.has(html)) continue;
+    said.add(html);
+    rows.push({kind: "train", html, trend: ""});
+  }
+  return `<div class="brief-block brief-swell swell-brief fc">${rows.map(briefSwellRow).join("")}</div>`;
+}
 // The big sparkline unless the phone is under 361 px or the range would
 // wrap beside it (two-digit feet in "Both" under 390 px): then the small.
 const SPARK_WIDTH = new WeakMap();
@@ -9269,6 +9355,10 @@ function renderConditions(step, cards) {
       due: modelPills("fc-swell", anchor, "GFS-Wave", run),
       chart: true,
       buoyRose: roseBlock(DATA.station),
+      // LIVE's card on a phone (owner's design, 2026-11-27): a headline at
+      // the picked hour from the model alone, each tab's height, the tray.
+      headline: fcSwellBrief(step, cards),
+      tray: true,
     }));
 
     // Wind and tide under an earlier run's hour: the log kept neither, so

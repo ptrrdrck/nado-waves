@@ -376,7 +376,7 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
-### Group 7: the Swell card's tabs box and tray -- LIVE phone done (PR #252)
+### Group 7: the Swell card's tabs box and tray -- phone done (PR #252; item 28, branch claude/forecast-swell-card-alignment-bi2xbu)
 
 The LIVE phone card shipped (app_surface.md "The Swell card's tabs box and
 tray", every measurement and owner's call there): the Briefing's swell
@@ -405,17 +405,34 @@ neither the vendored script nor a stylesheet), `kept()` bypassed to plain
 fetches, and `Date` pinned to the snapshot's collection so the countdowns
 and greying read as they did. Mock only, never committed.
 
-28. **The Forecast tab's Swell card, aligned** -- the same tab heights and
-    tray, and a forecast version of the Briefing's swell block as its
-    headline: the range over the three breaks at the picked hour, its
-    trains, from forecast.json alone (the Forecast chain never borrows a
-    measurement). What its sparkline spans, and whether it carries a trend
-    word, are the owner's to decide from a mock.
+28. **The Forecast tab's Swell card, aligned** -- done (app_surface.md
+    "The Forecast tab's Swell card"): LIVE's tab heights and tray, and its
+    own headline from forecast.json at the picked hour (`fcSwellBrief`):
+    the range, a sparkline of the 24 h FROM the hour, a line a train by the
+    Briefing's rule, lines whose words match merged, no trend word (the
+    owner's picks from the mock).
 29. **The wide layouts** -- the swell headline moves into the wide Swell
     card above its three break columns, and leaves the always-open
     Briefing as it did on the phone; no tabs or tray there. Docs.html's
     Briefing paragraphs say the Briefing folds out the swell: update them
     once both layouts agree (ask first; it is the docs page).
+30. **One line a swell in the swell headline, both tabs** (owner's call,
+    2026-11-27) -- the headline says one line a BUOY train (`buoy_train` on
+    LIVE, `swell` on Forecast: the buoy train that carried most of the row,
+    BRIEFING §49), and the words are the row's own peak. A row two buoy
+    trains reach can read as the other one: at 28 Nov 03Z on the run of
+    27 Nov 15:33Z Center's one row peaked at 19.0 s and was credited to the
+    12.7 s buoy train, South's 19.0 s row to the 19.0 s one, so the rule
+    printed "W at 19.0 s" twice (Forecast now merges matching words) and
+    South's 12.7 s row, its train "already said", was never said. On that
+    run a row with other words went unsaid on 51 of 57 hours, mostly the
+    same swell at another break (W / WSW 16.6 s), some another swell (SW
+    12.7 s under "W at 13.6 s", 27 Nov 15-21Z). The aim is ONE LINE A SWELL,
+    not necessarily a buoy train: the owner's sketch for that hour is "W at
+    19.0 s and 12.7 s". `forecast.trainmatch` is how the shipped rule was
+    measured (owner's condition); update it to score a one-line-a-swell
+    rule, measure over the archive and the known-answer control, then
+    change `briefing.listed_trains` and `fcSwellTrains` together.
 
 ### Carryover prompts
 
@@ -433,17 +450,20 @@ wait for Tests, don't merge." to each.
   Imperial Beach clears deep water to 21 m on open shelf, so find which
   Coronado-only stage makes the excess. Propose each step's measurement
   before running it."
-- Group 7, item 28, first (open design; the strongest model, high
-  effort, because the forecast headline has no Briefing to copy and what
-  it may claim from a model is a design call): "Repo ptrrdrck/nado-waves;
-  attach ptrrdrck/nado-waves-notes and read BRIEFING §44, briefing.md's
-  Swell block, app_surface.md 'The Swell card's tabs box and tray', and
-  docs/handoff.md group 7 (it says how the last mock was built). Task:
-  item 28, the Forecast tab's Swell card aligned with LIVE's: tab heights,
-  the tray, and a forecast-aligned version of the Briefing's swell block
-  as its headline, from forecast.json alone. Mock the headline's options
-  as an artifact on live data first."
-- Group 7, item 29, after 28 (careful; a strong model at medium effort,
+- Item 30 (open design and measurement; the strongest model, high effort,
+  because it changes a measured rule on both tabs and the rule has to be
+  scored before it is chosen): "Repo ptrrdrck/nado-waves; attach
+  ptrrdrck/nado-waves-notes and read BRIEFING §40 and §49, briefing.md's
+  Swell block (the line-a-train paragraphs), app_surface.md 'The Forecast
+  tab's Swell card', forecast/trainmatch.py, and docs/handoff.md item 30.
+  Task: item 30. The swell headline should say one line a SWELL, not
+  necessarily one a buoy train: at 28 Nov 03Z it said 'W at 19.0 s' twice
+  and never the 12.7 s swell, where the owner wants 'W at 19.0 s and
+  12.7 s'. Update trainmatch to score a one-line-a-swell rule against the
+  shipped one over the archive and its known-answer control, propose the
+  rule with those numbers, then apply it to LIVE (briefing.listed_trains)
+  and Forecast (fcSwellTrains) together."
+- Group 7, item 29 (careful; a strong model at medium effort,
   layout work against an existing pattern): "Repo ptrrdrck/nado-waves;
   attach ptrrdrck/nado-waves-notes and read app_surface.md 'The Swell
   card's tabs box and tray' and its wide-layout sections, and docs/

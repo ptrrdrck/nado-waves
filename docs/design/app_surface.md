@@ -606,5 +606,54 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      shown instead under 361 px, or wherever the range would wrap beside
      the big one (`fitSwellSpark`): measured, "10–14 ft (3.0–4.3 m)" in
      Both does at 390 and 375, today's "3–7 ft (0.9–2.1 m)" does not.
-   - The Forecast tab's card and the wide layouts are unchanged for now
-     (docs/handoff.md, group 7).
+   - The Forecast tab's card is the same on a phone since the same day
+     (below); the wide layouts are unchanged for now (docs/handoff.md item
+     29).
+
+## The Forecast tab's Swell card (phone)
+
+   **Since 2026-11-27 the Forecast tab's Swell card on a phone is LIVE's:
+   headline, tabs box, tray** (owner's design and picks, same day, docs/
+   handoff.md item 28; mocked as an artifact on that day's published run
+   with a switcher for the options, before building):
+
+   - **The same tabs box and tray** (`tray: true` on the Forecast call):
+     every rule in the section above holds unchanged. A break tab's height
+     is its card's `hsWindow`, the Buoys tab's the model's combined height
+     at 46232 (a dash for an hour with no spectral product). The box sits
+     17.5 px under the headline's ink and over the Charts rule (there is no
+     Origin on this tab), painted at 390 with the tray shut and open and on
+     the Buoys tab. Its last line never has a descender -- no trend word, so
+     no "g" -- which painted 20.5 px against LIVE's 18.0 on the same day, so
+     `.swell-brief.fc` has 2.5 px less margin.
+   - **Its headline is its own, from forecast.json alone**
+     (`fcSwellBrief`): the Forecast chain never borrows a measurement, so
+     it is NOT the Briefing's block and has no 46047 lines and no dark-buoy
+     line. At the picked hour: the range over the three cards' breaking
+     heights as they show them (`feetRange`, LIVE's rounding); a sparkline
+     of the biggest break each step over the **24 h FROM the picked hour**,
+     its dot on that hour, "next 24 h" beside it (owner's pick of four: 24 h
+     to the hour, 12 h either side, 24 h on, the whole run), the 112 x 28 and
+     64 x 18 pair `fitSwellSpark` chooses between; then a line a train by
+     the Briefing's rule (`fcSwellTrains`, `briefing.listed_trains` on the
+     cards' rows, one line a model buoy train, `swell`). The sparkline's
+     steps are the picker's (3 h apart), a gap a missing step; past hours
+     are the log's, as the page showed them; near the run's end the line
+     stops where the run does.
+   - **No trend word** (owner's pick, same day, of none, LIVE's 3 h back,
+     and 3 h on). Mocked from the model's rose at 46232 -- the train's buoy
+     train's 22.5° sector and period band, LIVE's thresholds -- it moved
+     between all four words over most of 28 Nov on one run, and nothing
+     follows a train between model hours; how often each would fire was
+     never measured.
+   - **Two lines whose words match are one** (owner's call, same day): at
+     28 Nov 03Z two buoy trains each surfaced as a W 19.0 s row (Center's
+     one row, peaking at 19.0 s, was credited to the 12.7 s buoy train), so
+     the rule printed "W at 19.0 s" twice and left the 12.7 s swell unsaid.
+     On that run identical words came on 1 hour of 57; a row with other
+     words went unsaid on 51, mostly the same swell at another break (W /
+     WSW 16.6 s), some another swell (SW 12.7 s under "W at 13.6 s", 27 Nov
+     15-21Z). What a line stands for, on both tabs, is docs/handoff.md
+     item 30. LIVE is unchanged.
+   - `briefSpark` takes `start` and `dot` (the window from an hour, the dot
+     on a reading) for it; every other sparkline draws as before.
