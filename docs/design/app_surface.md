@@ -557,11 +557,15 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      or shut (once the slide ended, the move read as late), and drawn in by
      a redraw while open.
    - **The picked tab drops its height while the tray is open** (owner's
-     call, same day: the tray's headline repeats it): it fades over the
-     fold's 240 ms as the tray's contents fade in, and the name slides to
+     call, same day: the tray's headline repeats it): the name slides to
      the tab's middle on the fold's ease, by half the height's lines and
-     the 1 px gap (`--tab-shift`, centred to 0.01 px in Imperial and Both).
-     Picking another tab with the tray open swaps them the same way.
+     the 1 px gap (`--tab-shift`, centred to 0.01 px in Imperial and Both),
+     and the height slides down WITH it, out of the tab (clipped), fading in
+     120 ms; back over the fold's 240. A fade alone left the height under
+     the name (owner's report, same day): the ease moves the name 40% of
+     its way in 10 ms. Sampled frame by frame, the 1 px between them holds
+     opening and shutting. Picking another tab with the tray open swaps
+     them the same way.
    - **No grey tap flash anywhere on the page** (owner's call, same day):
      WebKit's default highlight spilled past the tray's caret onto the tabs.
      One `html` rule replaces the sixteen per-element opt-outs; every

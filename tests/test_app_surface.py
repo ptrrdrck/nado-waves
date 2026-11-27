@@ -5462,16 +5462,20 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".tab-tray .buoy-fold{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px}" in SOURCE
 
     def test_the_picked_tab_drops_its_height_while_the_tray_is_open(self):
-        # It fades as the tray's contents fade in, the name sliding to the
-        # tab's middle (owner's call, 2026-11-27): half the height's lines
-        # and the 1 px gap, measured centred to 0.01 px in both modes.
-        assert ".tabbox .tab-name{--tab-shift:calc((15px * 1.15 + 1px) / 2);" in SOURCE
-        assert ".tabbox .tab-name:has(+ .tab-h > .tab-m){--tab-shift:calc((15px * 1.15 + 11.5px * 1.15 + 1px) / 2)}" in SOURCE
-        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-name'
+        # The name slides to the tab's middle (half the height's lines and the
+        # 1 px gap, centred to 0.01 px in both modes) and the height slides
+        # WITH it as it fades, so the 1 px between them holds on every frame
+        # (owner's calls, 2026-11-27: a fade alone left the height under the
+        # name, which the fold's ease moves 40% of its way in 10 ms).
+        assert ".tabbox .subtabs button{overflow:hidden;--tab-shift:calc((15px * 1.15 + 1px) / 2)}" in SOURCE
+        assert ".tabbox .subtabs button:has(.tab-m){--tab-shift:calc((15px * 1.15 + 11.5px * 1.15 + 1px) / 2)}" in SOURCE
+        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h)'
                 "{transform:translateY(var(--tab-shift))}") in SOURCE
-        assert '.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0}' in SOURCE
-        # The fold's own timing: 240 ms, its ease for the slide, linear fade.
-        assert "transition:transform .24s cubic-bezier(.05,.7,.1,1)}" in SOURCE
+        rule = SOURCE[SOURCE.index('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{'):]
+        rule = rule[:rule.index("}\n")]
+        assert "opacity:0;" in rule and "transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)" in rule
+        # The fold's own timing: 240 ms on its ease.
+        assert ".tabbox .tab-h{transition:opacity .24s linear,transform .24s cubic-bezier(.05,.7,.1,1)}" in SOURCE
         assert 'const FOLD_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)"};' in SOURCE
 
     def test_46232s_pills_leave_the_title_row_only_while_the_tray_is_open(self):

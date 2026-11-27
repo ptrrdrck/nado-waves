@@ -425,14 +425,19 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                font-variant-numeric:tabular-nums}
 .tabbox .subtabs button:not([aria-selected="true"]) .tab-h{color:var(--soft)}
 .tabbox .tab-m{display:block;font-size:11.5px;color:var(--faint)}
-/* The tray open, the picked tab's height is the tray's headline's: it fades
-   as the tray's contents fade in, and the name slides to the tab's middle,
-   half the height's lines and the 1 px gap (owner's call, 2026-11-27). */
-.tabbox .tab-name{--tab-shift:calc((15px * 1.15 + 1px) / 2);transition:transform .24s cubic-bezier(.05,.7,.1,1)}
-.tabbox .tab-name:has(+ .tab-h > .tab-m){--tab-shift:calc((15px * 1.15 + 11.5px * 1.15 + 1px) / 2)}
-.tabbox .tab-h{transition:opacity .24s linear}
-.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-name{transform:translateY(var(--tab-shift))}
-.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0}
+/* The tray open, the picked tab's height is the tray's headline's: the name
+   slides to the tab's middle, half the height's lines and the 1 px gap, on
+   the fold's ease, and the height slides down WITH it, out of the tab, as it
+   fades (owner's calls, 2026-11-27). Together, so the 1 px between them
+   holds: the ease moves the name 40% of its way in 10 ms, and a fade alone
+   left the height under it. Out in 120 ms, back over the fold's 240. */
+.tabbox .subtabs button{overflow:hidden;--tab-shift:calc((15px * 1.15 + 1px) / 2)}
+.tabbox .subtabs button:has(.tab-m){--tab-shift:calc((15px * 1.15 + 11.5px * 1.15 + 1px) / 2)}
+.tabbox .tab-name{transition:transform .24s cubic-bezier(.05,.7,.1,1)}
+.tabbox .tab-h{transition:opacity .24s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
+.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h){transform:translateY(var(--tab-shift))}
+.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
+  transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
 @media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
 .tray-toggle{display:grid;place-items:center;width:100%;height:28.5px;margin-top:2px;padding:0 0 6.5px;border:0;
              background:transparent;color:var(--soft);cursor:pointer}
