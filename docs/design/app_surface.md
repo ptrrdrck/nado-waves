@@ -543,9 +543,21 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      margin, not a hidden rule, so a fold's slide never jumps.
    - The tray's caret sits 5 px further from the tabs (owner's call, same
      day): its ink 12.5 px under the tab buttons, and above the box's foot
-     (or the open tray) a pixel less than the tab names' ink sits under the
-     box's top edge: 14.4 px against 15.3 painted at 390, which reads as
-     equal (owner's calls, same day; it was 8, then 15.4, which read large).
+     (or the open tray) a little less than the tab names' ink sits under
+     the box's top edge, which reads as equal: 14.4 px against 15.3 painted
+     at 390 (owner's calls, same day; it was 8, then 15.4, which read large),
+     and 12.7 against 13.3 once the names were centred by their ink (below),
+     Both's names 3 px higher and its caret likewise.
+   - **Each tab's name and height are centred by their ink** (owner's
+     call, same day): the caps' line box carries empty leading under them,
+     so they sat 12.3 / 8.9 px of tab above and below their ink (12.3 / 6.2
+     in Both, the bracket's line under them); now 10.3 / 10.9 and 9.3 / 9.1,
+     pixel-snapped at 2x, the tab's height unchanged. The open tab's lone
+     name likewise, by `--tab-shift` measured (9.4 / 17.15 px): 19.8 / 19.9
+     and 26.3 / 26.6.
+   - **The tray's first ink about 17.5 px under its edge** (owner's call,
+     same day; it was 12.6 on a break): 17.3 on a break, 17.4 in Both,
+     17.3 on the Buoys tab, the card's rhythm round the box.
    - A buoy's fold spans the tray with its contents padded back in: the
      folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
      reaching past it showed its sides only once the slide had ended
@@ -558,8 +570,7 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      a redraw while open.
    - **The picked tab drops its height while the tray is open** (owner's
      call, same day: the tray's headline repeats it): the name slides to
-     the tab's middle on the fold's ease, by half the height's lines and
-     the 1 px gap (`--tab-shift`, centred to 0.01 px in Imperial and Both),
+     the tab's middle on the fold's ease (`--tab-shift`, by its ink, above),
      and the height slides down WITH it, out of the tab (clipped), fading in
      120 ms; back over the fold's 240. A fade alone left the height under
      the name (owner's report, same day): the ease moves the name 40% of

@@ -5399,7 +5399,7 @@ class TestTheSwellCardsTabsBoxAndTray:
         css = css[:css.index(".swell-brief{")]
         assert ".tab-tray .sm-face{margin:0 -11px}" in css
         assert ".tab-tray{display:flex;flex-direction:column;background:var(--card);" in css
-        assert "padding:8px 11px 0}" in css
+        assert "padding:12.9px 11px 0}" in css
         assert ".tab-tray .sm-face:last-child{margin-bottom:0}" in css
         assert ".tab-tray .rose.sea{margin-left:-11px;margin-right:-11px}" in css
         # The buoys' station blocks too (owner's call, 2026-11-27).
@@ -5449,11 +5449,26 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}" in SOURCE
 
     def test_the_caret_sits_clear_of_the_tabs(self):
-        # 5 px more than at first above it; below it a pixel under the box's
-        # top edge to the tab names' ink, 14.4 px against 15.3 painted at
-        # 390, which read as equal (owner's calls, 2026-11-27).
-        assert (".tray-toggle{display:grid;place-items:center;width:100%;height:28.5px;margin-top:2px;"
-                "padding:0 0 6.5px;") in SOURCE
+        # 5 px more than at first above it; below it a little under the box's
+        # top edge to the tab names' ink, which reads as equal: 12.7 px
+        # against 13.3 painted at 390 once the names were centred by their
+        # ink, Both's 3 px higher names likewise (owner's calls, 2026-11-27).
+        assert (".tray-toggle{display:grid;place-items:center;width:100%;height:26.8px;margin-top:2px;"
+                "padding:0 0 4.8px;") in SOURCE
+        assert ".tabbox:has(.tab-m) .tray-toggle{height:25.45px;padding-bottom:3.45px}" in SOURCE
+
+    def test_each_tab_is_centred_by_its_ink(self):
+        # Line boxes put the caps' empty leading under them: 12.3 / 8.9 px
+        # of tab above and below the ink (12.3 / 6.2 in Both); now 10.3 /
+        # 10.9 and 9.3 / 9.1, pixel-snapped at 2x (owner's call, 2026-11-27).
+        assert "gap:1px;padding:4.6px 2px 6.4px}" in SOURCE
+        assert ".tabbox .subtabs button:has(.tab-m){padding:2.95px 2px 8.05px}" in SOURCE
+
+    def test_the_trays_first_ink_sits_in_the_cards_rhythm(self):
+        # About 17.5 px under the tray's edge (17.3 / 17.4 / 17.3 measured on
+        # a break, in Both, on the Buoys tab), as round the box (owner's
+        # call, 2026-11-27; it was 12.6 on a break).
+        assert "padding:12.9px 11px 0}" in SOURCE[SOURCE.index(".tab-tray{display:flex;"):][:200]
 
     def test_a_buoys_fold_spans_the_tray_so_its_slide_never_clips_it(self):
         # `.fold-moving` clips a sliding fold; a rose reaching past the fold
@@ -5462,13 +5477,13 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".tab-tray .buoy-fold{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px}" in SOURCE
 
     def test_the_picked_tab_drops_its_height_while_the_tray_is_open(self):
-        # The name slides to the tab's middle (half the height's lines and the
-        # 1 px gap, centred to 0.01 px in both modes) and the height slides
+        # The name slides to the tab's middle (by its ink: 19.8 / 19.9 and
+        # 26.3 / 26.6 px of tab above and below it open) and the height slides
         # WITH it as it fades, so the 1 px between them holds on every frame
         # (owner's calls, 2026-11-27: a fade alone left the height under the
         # name, which the fold's ease moves 40% of its way in 10 ms).
-        assert ".tabbox .subtabs button{overflow:hidden;--tab-shift:calc((15px * 1.15 + 1px) / 2)}" in SOURCE
-        assert ".tabbox .subtabs button:has(.tab-m){--tab-shift:calc((15px * 1.15 + 11.5px * 1.15 + 1px) / 2)}" in SOURCE
+        assert ".tabbox .subtabs button{overflow:hidden;--tab-shift:9.4px}" in SOURCE
+        assert ".tabbox .subtabs button:has(.tab-m){--tab-shift:17.15px}" in SOURCE
         assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h)'
                 "{transform:translateY(var(--tab-shift))}") in SOURCE
         rule = SOURCE[SOURCE.index('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{'):]
