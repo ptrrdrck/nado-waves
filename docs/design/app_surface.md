@@ -570,8 +570,11 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      straight letters (1.7-2.0 px painted), so the round letters look
      squeezed. Each O and U is a span (`tabLetters`, `.tab-ou`) with 0.05 em
      more before it and 0.04 after (owner's calls, same day: 0.06 each side
-     read loose, then UT, OR and OY at 0.05), and 0.03 em between an O and a
-     U side by side, not twice the side's.
+     read loose, then UT, OR and OY at 0.05), and 0.04 em between an O and a
+     U side by side, not twice the side's (0.03 read tight). Pairs that still
+     read uneven are moved by eye in `TAB_KERN`, em before the second letter:
+     CENTER's EN and BUOYS' YS +0.01, BUOYS' OY -0.01 (owner's calls, same
+     day).
    - A buoy's fold spans the tray with its contents padded back in: the
      folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
      reaching past it showed its sides only once the slide had ended

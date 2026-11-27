@@ -445,9 +445,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    2026-11-27): Barlow Condensed sets them as close as its straight letters,
    1.7-2.0 px painted, and SOUTH and BUOYS read squeezed. 0.05 em more before
    one, 0.04 after (UT, OR, OY read loose at 0.05; 0.06 each side before
-   that); between an O and a U side by side 0.03 em, not twice the side's. */
+   that); between an O and a U side by side 0.04 em, not twice the side's
+   (0.03 read tight). Other pairs: `TAB_KERN`. */
 .tabbox .tab-ou{margin:0 .04em 0 .05em}
-.tabbox .tab-ou + .tab-ou{margin-left:-.01em}
+.tabbox .tab-ou + .tab-ou{margin-left:0}
 .cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
   transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
 @media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
@@ -8421,8 +8422,16 @@ function cardChart(id) {
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
 // A tab's name with each O and U in a span of its own, spaced apart from
-// its neighbours (owner's call, 2026-11-27; `.tab-ou`).
-const tabLetters = (title) => String(title).replace(/[OU]/gi, (ch) => `<span class="tab-ou">${ch}</span>`);
+// its neighbours (owner's call, 2026-11-27; `.tab-ou`), and the pairs that
+// still read uneven moved by eye, in em before the second letter (owner's
+// calls, same day): CENTER's EN and BUOYS' YS opened, its OY closed.
+const TAB_KERN = {EN: 0.01, YS: 0.01, OY: -0.01};
+const tabLetters = (title) => [...String(title)].map((ch, i, all) => {
+  const kern = i ? TAB_KERN[(all[i - 1] + ch).toUpperCase()] : 0;
+  const ou = /[OU]/i.test(ch);
+  if (!ou && !kern) return ch;
+  return `<span${ou ? ' class="tab-ou"' : ""}${kern ? ` style="margin-left:${kern}em"` : ""}>${ch}</span>`;
+}).join("");
 // A tab's height under its name (owner's design, 2026-11-27): a break's
 // breaking height or the Buoys tab's combined, as its headline shows it, the
 // metric on a line of its own in "Both" (four tabs share a phone's width);
