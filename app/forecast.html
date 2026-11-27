@@ -402,6 +402,46 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .subtabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
 .subtabs button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .pane{display:flex;flex-direction:column;gap:11px;padding-top:4px}
+/* THE SWELL CARD'S TABS BOX AND ITS TRAY (owner's design, 2026-11-27; LIVE
+   tab, phone layout). The Briefing's swell block is the card's headline,
+   under its title row; each tab carries its own height under its name (a
+   break's breaking height, the Buoys tab 46232's combined), metric on a line
+   of its own in "Both"; the box is the tabs and a tray folding out under
+   them, closed until opened (a caret under the tabs, or the picked tab tapped
+   again), holding what the picked tab showed before: a break's headline (its
+   caret still folds the calculation), trains and map, the map edge to edge
+   and its caption the box's foot. */
+.tabbox{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;
+        background:var(--paper);overflow:hidden}
+.tabbox > .subtabs{border:0;border-radius:0;background:transparent}
+.tabbox .subtabs button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px 5px}
+.tabbox .tab-h{font:500 15px/1.15 Archivo,sans-serif;letter-spacing:0;text-transform:none;color:var(--ink);
+               font-variant-numeric:tabular-nums}
+.tabbox .subtabs button:not([aria-selected="true"]) .tab-h{color:var(--soft)}
+.tabbox .tab-m{display:block;font-size:11.5px;color:var(--faint)}
+.tray-toggle{display:grid;place-items:center;width:100%;height:22px;margin-top:-3px;padding:0;border:0;
+             background:transparent;color:var(--soft);cursor:pointer}
+.tray-toggle:hover{color:var(--ink)}
+.tray-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:-2px}
+.tray-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
+                 stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
+.tray-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion: reduce){ .tray-toggle svg{transition:none} }
+.tab-tray{display:flex;flex-direction:column;background:var(--card);border-top:1px solid var(--line);
+          padding:8px 11px 0}
+.tab-tray > .pane{padding-top:0}
+.tab-tray > .pane + .pane.after{padding-top:11px}
+/* The map the tray's width, its caption the box's foot. */
+.tab-tray .sm-face{margin:0 -11px}
+.tab-tray .sm-face:last-child{margin-bottom:0}
+.tab-tray .sm-plate{border-left:0;border-right:0;border-radius:0}
+.tab-tray .sm-cap{border-left:0;border-right:0;border-bottom:0;border-radius:0}
+/* 46232's rose likewise on the Buoys tab, the box's width. */
+.tab-tray .rose.sea{margin-left:-11px;margin-right:-11px}
+.tab-tray .rose-plate,.tab-tray .rose-tray{border-left:0;border-right:0;border-radius:0}
+.tab-tray .rose-plate > .rose-sea{border-radius:0}
+.tab-tray > .pane:not(:has(> .sm-face:last-child)){padding-bottom:11px}
+.swell-brief{margin-bottom:2px}
 /* Where the tide is going next. Dim like any other supporting line, with the
    direction itself at full ink because that is the word being read. */
 /* Inline, not flex: the height carries its own metric span and flex would
@@ -3539,7 +3579,10 @@ function briefingFold(B) {
   const blocks = [
     parts.alerts.length
       && `<div class="brief-block brief-alerts">${parts.alerts.map((a) => alertRow(a, B.built_utc)).join("")}</div>`,
-    parts.swell.length && `<div class="brief-block brief-swell">${parts.swell.map(briefSwellRow).join("")}</div>`,
+    // On a phone the swell block is the Swell card's headline (owner's
+    // design, 2026-11-27), so the fold goes from the alerts to the tides.
+    WIDE() && parts.swell.length
+      && `<div class="brief-block brief-swell">${parts.swell.map(briefSwellRow).join("")}</div>`,
     parts.tides.length && `<div class="brief-block brief-tides">${briefTideBlock(parts.tides, B)}</div>`,
     (waterRows.length || parts.water_quality.length)
       && `<div class="brief-block brief-cond brief-water">${waterRows.map((r) => briefCondRow(r, B)).join("")}`
@@ -8291,16 +8334,45 @@ function cardChart(id) {
 // stale reading has to be marked whichever tab is open. Tucked into the
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
+// A tab's height under its name (owner's design, 2026-11-27): a break's
+// breaking height or the Buoys tab's combined, as its headline shows it, the
+// metric on a line of its own in "Both" (four tabs share a phone's width);
+// grey as that headline greys.
+function tabHeight(m, aged = "") {
+  if (m == null) return `<span class="tab-h"${aged}>\u2014</span>`;
+  const ft = `${(m * FT_PER_M).toFixed(1)} ft`, met = `${m.toFixed(2)} m`;
+  return `<span class="tab-h"${aged}>${UNITS === "metric" ? met : ft}`
+    + `${UNITS === "both" ? `<span class="tab-m unit">(${met})</span>` : ""}</span>`;
+}
+// The swell card's tray, open or shut: shut on every load, kept across a
+// redraw (owner's design, 2026-11-27).
+let TRAY_OPEN = false;
+function setTrayOpen(open) {
+  TRAY_OPEN = open;
+  const btn = document.querySelector("[data-tray-toggle]");
+  if (btn) btn.setAttribute("aria-expanded", String(open));
+  const tray = $("swell-tray");
+  if (!tray) return;
+  slideFolds([tray], open, () => { if (SWELL_TAB === BUOY_TAB) roseShown(); });
+}
+// The Briefing's swell block as the Swell card's headline (owner's design,
+// 2026-11-27), its words and numbers the Briefing's own.
+function swellBrief(B) {
+  const parts = briefingParts(B);
+  if (!parts || !parts.swell.length) return "";
+  return `<div class="brief-block brief-swell swell-brief">${parts.swell.map(briefSwellRow).join("")}</div>`;
+}
+
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
                     due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = "",
-                    lead = "", buoyPills = false}) {
+                    lead = "", buoyPills = false, headline = "", tray = false}) {
   if (WIDE()) {
     return swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
                       origin, buoyRose, buoyAged, lead});
   }
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
-    origin: c.origin || null,
+    origin: c.origin || null, h: tray ? tabHeight(c.hsWindow, c.aged) : "",
   }));
   // "Buoys" on both chains (owner's request, 2026-10-06), though only the
   // LIVE tab carries a second one: GFS-Wave's run is at 46232 alone. The id
@@ -8310,24 +8382,37 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   tabs.push({id: BUOY_TAB, title: "Buoys",
              body: buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged,
                              {pills: buoyPills ? due : ""}),
-             after: others.map(contextBuoy).join(""), chart, origin});
+             after: others.map(contextBuoy).join(""), chart, origin,
+             h: tray ? tabHeight(buoy && buoy.hs_m, buoyAged) : ""});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
 
-  return `<div class="cond swell" data-card="swell" data-tab="${chosen}"${buoyPills ? " data-buoy-pills" : ""}>
-    ${headRow(`<span class="lbl">${label}</span>`, due)}
-    <div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoys">
+  const strip = `<div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoys">
       ${tabs.map((tab) => `<button type="button" role="tab" id="swell-tab-${tab.id}"
         data-swell-tab="${tab.id}" aria-controls="swell-pane-${tab.id}"
         aria-selected="${tab.id === chosen}" tabindex="${tab.id === chosen ? 0 : -1}"
-        >${tab.title}</button>`).join("")}
-    </div>
-    ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
-      aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
-    ${srcLines(source)}
-    ${tabs.filter((tab) => tab.after).map((tab) => `<div class="pane after" data-after-tab="${tab.id}"`
-      + `${tab.id === chosen ? "" : " hidden"}>${tab.after}</div>`).join("")}
+        >${tray ? `<span class="tab-name">${tab.title}</span>${tab.h}` : tab.title}</button>`).join("")}
+    </div>`;
+  const panes = tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
+      aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("");
+  const after = tabs.filter((tab) => tab.after).map((tab) => `<div class="pane after" data-after-tab="${tab.id}"`
+      + `${tab.id === chosen ? "" : " hidden"}>${tab.after}</div>`).join("");
+  // The tabs box and its tray (owner's design, 2026-11-27): the tabs, a
+  // caret under them, and the panes folded under that, closed until opened.
+  const box = !tray ? `${strip}${panes}${srcLines(source)}${after}`
+    : `<div class="tabbox" data-tabbox>
+      ${strip}
+      <button type="button" class="tray-toggle" data-tray-toggle aria-controls="swell-tray"
+        aria-expanded="${TRAY_OPEN}" aria-label="${label} at the picked tab"><svg viewBox="0 0 16 16"
+        aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>
+      <div class="tab-tray" id="swell-tray"${TRAY_OPEN ? "" : " hidden"}>${panes}${after}</div>
+    </div>${srcLines(source)}`;
+
+  return `<div class="cond swell" data-card="swell" data-tab="${chosen}"${buoyPills ? " data-buoy-pills" : ""}>
+    ${headRow(`<span class="lbl">${label}</span>`, due)}
+    ${headline}
+    ${box}
     ${tabs.map((tab) => originFold(tab.id, tab.origin, tab.id !== chosen)).join("")}
     ${tabs.filter((tab) => tab.chart).map((tab) => seriesChart(tab.id, tab.id !== chosen)).join("")}
   </div>`;
@@ -8853,7 +8938,12 @@ function wireSwellTabs() {
   const strip = $("conditions");
   strip.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-swell-tab]");
-    if (btn) selectSwellTab(btn.getAttribute("data-swell-tab"));
+    // The picked tab tapped again opens or shuts the tray under the tabs,
+    // as its caret does (owner's design, 2026-11-27).
+    const tabId = btn && btn.getAttribute("data-swell-tab");
+    if (btn && tabId === SWELL_TAB && btn.closest("[data-tabbox]")) setTrayOpen(!TRAY_OPEN);
+    else if (btn) selectSwellTab(tabId);
+    if (e.target.closest("[data-tray-toggle]")) setTrayOpen(!TRAY_OPEN);
     // A card's title-row pills: the left pill's other text.
     const head = e.target.closest("[data-head-key]");
     if (head) tapHead(head.getAttribute("data-head-key"));
@@ -8966,6 +9056,10 @@ function renderConditions(step, cards) {
       buoyPills: true,
       chart: true,
       origin: originFor("buoy"),
+      // The Briefing's swell block heads the card, and the tabs carry their
+      // heights and fold into a tray (owner's design, 2026-11-27; the phone).
+      headline: swellBrief(BRIEFING),
+      tray: true,
     }));
 
     // Wind and Tide grey on their own readings' ages (`agedAttr`); the

@@ -1442,7 +1442,11 @@ class TestTheBreaksAreTabsOfTheSwellCard:
         # In the card's title row, above the tabs and every pane (owner's
         # design, 2026-11-08), so it shows whichever tab is open.
         assert 'headRow(`<span class="lbl">${label}</span>`, due)' in card
-        assert card.index("headRow(") < card.index('class="subtabs"') < card.index('class="pane"')
+        card_ret = card[card.index('return `<div class="cond swell"'):]
+        assert card_ret.index("headRow(") < card_ret.index("${box}")
+        assert card.index('const strip = `<div class="subtabs"') < card.index('const panes = ')
+        assert "${strip}${panes}" in card
+        assert card.index("${strip}") < card.index('<div class="tab-tray" id="swell-tray"')
         panel = SOURCE[SOURCE.index("function buoyPanel"):]
         panel = panel[:panel.index("\n}\n")]
         assert 'class="src"' not in panel and "dueSpan" not in panel
@@ -3660,7 +3664,7 @@ class TestOrigin:
 
     def test_the_buoy_tab_has_one_too(self):
         assert 'origin: originFor("buoy")' in SOURCE
-        assert "after: others.map(contextBuoy).join(\"\"), chart, origin}" in SOURCE
+        assert "after: others.map(contextBuoy).join(\"\"), chart, origin," in SOURCE
 
     def test_distances_are_rounded_and_said_about(self):
         """Two buoys reading one storm differ by about a fifth: a distance
@@ -5306,3 +5310,91 @@ class TestTheReaderKeepsTheirPlace:
         body = SOURCE[SOURCE.index("function holdPlace() {"):]
         body = body[:body.index("\n}\n")]
         assert "Math.abs(scrollY - expect) > 1) return false" in body
+
+
+class TestTheSwellCardsTabsBoxAndTray:
+    """The swell card's redesign on the LIVE tab's phone layout (owner's
+    design, 2026-11-27): the Briefing's swell block is the card's headline,
+    each tab carries its own height, and the panes fold into a tray under the
+    tabs, closed until opened."""
+
+    @staticmethod
+    def fn(name: str) -> str:
+        start = SOURCE.index(f"function {name}(")
+        return SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+
+    def _node(self, script: str) -> str:
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        return subprocess.run([node, "-e", script], capture_output=True, text=True,
+                              check=True).stdout.strip()
+
+    def test_the_briefings_swell_block_moves_to_the_card_on_a_phone(self):
+        fold = self.fn("briefingFold")
+        # Still the Briefing's on a wide screen, until that layout is redone.
+        assert "WIDE() && parts.swell.length" in fold
+        brief = self.fn("swellBrief")
+        # The same block, the same rows: the words and numbers are the
+        # Briefing's own, never a second rendering of them.
+        assert "briefingParts(B)" in brief
+        assert "parts.swell.map(briefSwellRow)" in brief
+        assert 'class="brief-block brief-swell swell-brief"' in brief
+
+    def test_only_the_live_card_gets_the_headline_and_the_tray(self):
+        calls = [SOURCE[i:SOURCE.index("}));", i)] for i in
+                 [m.start() for m in re.finditer(r"rows\.push\(swellCard\(\{", SOURCE)]]
+        assert len(calls) == 2
+        live, forecast = calls
+        assert "headline: swellBrief(BRIEFING)" in live and "tray: true" in live
+        assert "headline" not in forecast and "tray" not in forecast
+        card = self.fn("swellCard")
+        # The headline between the title row and the tabs box.
+        ret = card[card.index('return `<div class="cond swell"'):]
+        assert ret.index("headRow(") < ret.index("${headline}") < ret.index("${box}")
+        # Without a tray, the card is as it was: tabs, panes, the source
+        # lines, the after-blocks.
+        assert "!tray ? `${strip}${panes}${srcLines(source)}${after}`" in card
+
+    def test_the_tray_holds_the_panes_and_starts_closed(self):
+        card = self.fn("swellCard")
+        assert '<div class="tab-tray" id="swell-tray"${TRAY_OPEN ? "" : " hidden"}>${panes}${after}</div>' in card
+        assert 'aria-controls="swell-tray"' in card and 'aria-expanded="${TRAY_OPEN}"' in card
+        # Shut on every load; kept across a redraw by the variable alone.
+        assert "\nlet TRAY_OPEN = false;\n" in SOURCE
+        assert "TRAY_OPEN" not in SOURCE[SOURCE.index("function remember("):][:400]
+        toggle = self.fn("setTrayOpen")
+        assert "slideFolds([tray], open" in toggle
+
+    def test_the_caret_or_the_picked_tab_opens_it(self):
+        wire = self.fn("wireSwellTabs")
+        assert ('if (btn && tabId === SWELL_TAB && btn.closest("[data-tabbox]")) setTrayOpen(!TRAY_OPEN);'
+                in wire)
+        assert 'if (e.target.closest("[data-tray-toggle]")) setTrayOpen(!TRAY_OPEN);' in wire
+
+    def test_each_tab_carries_its_height(self):
+        card = self.fn("swellCard")
+        assert "h: tray ? tabHeight(c.hsWindow, c.aged)" in card
+        # The Buoys tab: 46232's combined height, the anchor every break's
+        # numbers are read from.
+        assert "h: tray ? tabHeight(buoy && buoy.hs_m, buoyAged)" in card
+        js = (UNITS_JS + "const FT_PER_M = 3.28084;\n" + self.fn("tabHeight")
+              + "\nconst out = [tabHeight(1.958), tabHeight(null, ' data-aged-at=\"x\"')];"
+              + "\nUNITS = 'imperial'; out.push(tabHeight(1.958));"
+              + "\nUNITS = 'metric'; out.push(tabHeight(1.958));"
+              + "\nconsole.log(JSON.stringify(out));")
+        both, gap, imperial, metric = json.loads(self._node(js))
+        # Feet to the tenth, as the headline; metric on a line of its own.
+        assert both == '<span class="tab-h">6.4 ft<span class="tab-m unit">(1.96 m)</span></span>'
+        assert gap == '<span class="tab-h" data-aged-at="x">—</span>'
+        assert imperial == '<span class="tab-h">6.4 ft</span>'
+        assert metric == '<span class="tab-h">1.96 m</span>'
+
+    def test_the_map_is_the_trays_width_and_its_caption_the_foot(self):
+        css = SOURCE[SOURCE.index("/* THE SWELL CARD'S TABS BOX AND ITS TRAY"):]
+        css = css[:css.index(".swell-brief{")]
+        assert ".tab-tray .sm-face{margin:0 -11px}" in css
+        assert ".tab-tray{display:flex;flex-direction:column;background:var(--card);" in css
+        assert "padding:8px 11px 0}" in css
+        assert ".tab-tray .sm-face:last-child{margin-bottom:0}" in css
+        assert ".tab-tray .rose.sea{margin-left:-11px;margin-right:-11px}" in css

@@ -491,3 +491,40 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    on the next two frames as charts settle, unless the reader scrolls
    meanwhile. iPhone has no scroll anchoring; measured with it off and on,
    120 px added above the reader moved nothing, with no double correction.
+
+## The Swell card's tabs box and tray (LIVE, phone)
+
+   **Since 2026-11-27 the LIVE Swell card on a phone is headline, tabs box,
+   tray** (owner's design and calls, same day; branch
+   claude/swell-card-redesign-acrmw7, mocked on the branch's own page with
+   that day's published data before merging):
+
+   - **The Briefing's swell block is the card's headline** (`swellBrief`),
+     under its title row: the range, the 24 h sparkline, a line a train,
+     the 46047 offshore lines and the dark-buoy line, the same rows
+     `briefSwellRow` draws, from briefing.json, never a second rendering
+     (BRIEFING §44; the block is rebuilt every collection, so it matches the
+     tabs under it). The Briefing fold on a phone goes from the alerts to the
+     tides; its line, changes and record are unchanged. A wide screen still
+     shows the block in the Briefing until that layout is redone.
+   - **Each tab carries its own height under its name** (`tabHeight`): a
+     break's breaking height, `hsWindow`, to the tenth of a foot as its
+     headline; the Buoys tab 46232's combined height, the anchor every
+     break's numbers come from. In "Both" the metric is a grey line of its
+     own under the feet (four tabs share a 330 px box). Greyed with the
+     headline by `c.aged` / the buoy's age; a dash with no spectrum.
+   - **The tabs box folds out a tray** (`.tabbox`, `#swell-tray`,
+     `TRAY_OPEN`): the box's hairline and paper round the tabs and a caret
+     under them, the tray on the card's colour beneath, its full width.
+     Closed on every load and kept across a redraw. The caret, or the
+     picked tab tapped again, opens and shuts it with the folds' slide
+     (`slideFolds`); picking another tab leaves it as it was.
+   - **The tray holds what the picked tab showed before**: a break's
+     headline, whose caret still folds the calculation, its trains and its
+     map, all at one level; the map edge to edge across the tray (328 px
+     inside the box's hairline at 390, the width it had), its caption the
+     box's foot. The Buoys tab's whole pane, 46232's rose the tray's width
+     too, and 46086's and 46047's blocks. Origin and Charts stay below the
+     box.
+   - The Forecast tab's card and the wide layouts are unchanged for now
+     (docs/handoff.md, group 7).

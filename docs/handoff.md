@@ -376,6 +376,25 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
+### Group 7: the Swell card's tabs box and tray (branch claude/swell-card-redesign-acrmw7)
+
+The LIVE phone card shipped first (app_surface.md "The Swell card's tabs
+box and tray"): the Briefing's swell block as its headline, each tab's
+height under its name, the panes in a tray under the tabs. The owner is
+dialling it in on the phone before these two:
+
+28. **The Forecast tab's Swell card, aligned** -- the same tab heights and
+    tray, and a forecast version of the Briefing's swell block as its
+    headline: the range over the three breaks at the picked hour, its
+    trains, from forecast.json alone (the Forecast chain never borrows a
+    measurement). What its sparkline spans, and whether it carries a trend
+    word, are the owner's to decide from a mock.
+29. **The wide layouts** -- the swell headline moves into the wide Swell
+    card above its three break columns, and leaves the always-open
+    Briefing as it did on the phone; no tabs or tray there. Docs.html's
+    Briefing paragraphs say the Briefing folds out the swell: update them
+    once both layouts agree (ask first; it is the docs page).
+
 ### Carryover prompts
 
 Each assumes a fresh session; add "Confirm each item before building. PR,
@@ -392,6 +411,21 @@ wait for Tests, don't merge." to each.
   Imperial Beach clears deep water to 21 m on open shelf, so find which
   Coronado-only stage makes the excess. Propose each step's measurement
   before running it."
+- Group 7, item 28, once the owner has the phone layout dialled (open
+  design; the strongest model, high effort, because the forecast headline
+  has no Briefing to copy and what it may claim from a model is a design
+  call): "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes and
+  read BRIEFING §44, briefing.md's Swell block, and app_surface.md 'The
+  Swell card's tabs box and tray'. Task: docs/handoff.md item 28, the
+  Forecast tab's Swell card aligned with LIVE's: tab heights, the tray, and
+  a forecast-aligned version of the Briefing's swell block as its headline.
+  Mock the headline's options first."
+- Group 7, item 29, after 28 (careful; a strong model at medium effort,
+  layout work against an existing pattern): "Repo ptrrdrck/nado-waves;
+  attach ptrrdrck/nado-waves-notes and read app_surface.md 'The Swell
+  card's tabs box and tray' and its wide-layout sections. Task: docs/
+  handoff.md item 29, the swell headline in the wide layouts' Swell card,
+  out of the Briefing there."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
