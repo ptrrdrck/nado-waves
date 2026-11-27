@@ -542,7 +542,18 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      card sat above it), the next name 11 px under it as under the rule; a
      margin, not a hidden rule, so a fold's slide never jumps.
    - The tray's caret sits 5 px further from the tabs (owner's call, same
-     day): its ink 12.5 px under the tab buttons, 8 px above the box's foot.
+     day): its ink 12.5 px under the tab buttons, and above the box's foot
+     (or the open tray) as far as the tab names' ink sits under the box's
+     top edge, 15.3 px painted at 390 (owner's call, same day; it was 8).
+   - A buoy's fold spans the tray with its contents padded back in: the
+     folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
+     reaching past it showed its sides only once the slide had ended
+     (owner's report, same day).
+   - **46232's pills move to Point Loma South's line only once the tray is
+     open** (owner's call, same day): on the Buoys tab with the tray shut
+     they stay in the title row (they had vanished into the shut tray);
+     `data-tray-open` is set when the tray's slide ends and cleared as it
+     starts to shut, and drawn in by a redraw while open.
    - **No grey tap flash anywhere on the page** (owner's call, same day):
      WebKit's default highlight spilled past the tray's caret onto the tabs.
      One `html` rule replaces the sixteen per-element opt-outs; every

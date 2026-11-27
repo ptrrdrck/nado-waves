@@ -5273,7 +5273,9 @@ class TestBuoyNamesAndTheOverdueDot:
         # leaves them out there.
         assert 'const head = named ? headRow(buoyTitle(station && station.name), pills) : "";' in panel
         assert '{pills: buoyPills ? due : ""}' in SOURCE and "buoyPills: true," in SOURCE
-        assert '.cond.swell[data-buoy-pills][data-tab="buoy"] > .chead > :not(.lbl){display:none}' in SOURCE
+        # Since 2026-11-27 on the LIVE phone card only once its tray is open.
+        assert ('.cond.swell[data-buoy-pills][data-tab="buoy"][data-tray-open] > .chead > :not(.lbl){display:none}'
+                in SOURCE)
         assert "return head + buoyReading(" in panel
         # The context buoys: across from their own pills.
         assert "headRow(buoyTitle(b.station_name), feed)" in self.fn("contextBuoy")
@@ -5447,8 +5449,26 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}" in SOURCE
 
     def test_the_caret_sits_clear_of_the_tabs(self):
-        # 5 px more than at first (owner's call, 2026-11-27).
-        assert ".tray-toggle{display:grid;place-items:center;width:100%;height:22px;margin-top:2px;" in SOURCE
+        # 5 px more than at first above it, and below it the box's top edge
+        # to the tab names' ink, 15.3 px painted at 390 (owner's calls,
+        # 2026-11-27).
+        assert (".tray-toggle{display:grid;place-items:center;width:100%;height:29.5px;margin-top:2px;"
+                "padding:0 0 7.5px;") in SOURCE
+
+    def test_a_buoys_fold_spans_the_tray_so_its_slide_never_clips_it(self):
+        # `.fold-moving` clips a sliding fold; a rose reaching past the fold
+        # showed its sides only once the slide ended (owner's report).
+        assert ".fold-moving{overflow:hidden;box-sizing:border-box}" in SOURCE
+        assert ".tab-tray .buoy-fold{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px}" in SOURCE
+
+    def test_46232s_pills_leave_the_title_row_only_once_the_tray_is_open(self):
+        assert ('.cond.swell[data-buoy-pills][data-tab="buoy"][data-tray-open] > .chead > :not(.lbl){display:none}'
+                in SOURCE)
+        assert '.cond.swell[data-buoy-pills][data-tab="buoy"]:not(:has(> .tabbox)) > .chead > :not(.lbl),' in SOURCE
+        assert '${tray && TRAY_OPEN ? " data-tray-open" : ""}>' in self.fn("swellCard")
+        toggle = self.fn("setTrayOpen")
+        assert "if (!open) mark(false);" in toggle
+        assert "() => { if (TRAY_OPEN) mark(true); });" in toggle
 
     def test_the_box_sits_as_far_from_its_neighbours_as_the_range_from_the_title(self):
         # 17.5 px painted at 390 each (owner's call, 2026-11-27): title ink to
