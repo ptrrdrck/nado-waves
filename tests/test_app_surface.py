@@ -5488,7 +5488,7 @@ class TestTheSwellCardsTabsBoxAndTray:
                 "{transform:translateY(var(--tab-shift)) scale(1.06)}") in SOURCE
         assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h'
                 "{transform:translateY(var(--tab-shift))}") in SOURCE
-        rule = SOURCE[SOURCE.index('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{'):]
+        rule = SOURCE[SOURCE.index('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;'):]
         rule = rule[:rule.index("}\n")]
         assert "opacity:0;" in rule and "transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)" in rule
         # The fold's own timing: 240 ms on its ease.
