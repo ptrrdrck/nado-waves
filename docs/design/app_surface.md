@@ -523,8 +523,13 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      headline, whose caret still folds the calculation, its trains and its
      map, all at one level; the map edge to edge across the tray (328 px
      inside the box's hairline at 390, the width it had), its caption the
-     box's foot. The Buoys tab's whole pane, 46232's rose the tray's width
-     too, and 46086's and 46047's blocks. Origin and Charts stay below the
-     box.
+     box's foot. The Buoys tab's whole pane, every buoy's rose and station
+     block the tray's width too (owner's call, same day), and 46086's and
+     46047's blocks. Origin and Charts stay below the box.
+   - **The box's spacing** (owner's call, same day): as far from the
+     headline above it and the Origin rule below it as the range's ink sits
+     under the title's, 17.5 px painted at 390 each, measured in pixels with
+     the tray shut and open (`.swell-brief` 6 px and `.tabbox` 7.5 px of
+     margin on the card's 8 px gap; it was 13.5 above, 10 below).
    - The Forecast tab's card and the wide layouts are unchanged for now
      (docs/handoff.md, group 7).

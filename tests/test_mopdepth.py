@@ -174,7 +174,10 @@ def test_a_mop_spectrum_made_from_the_chain_compares_as_exactly_one_in_every_ban
         assert r["mop_eq"] / r["mop_bandwise"] == pytest.approx(1.0, rel=1e-9)
         assert b["point_hs"] == pytest.approx(r["hs_mop"], rel=1e-12)
         assert r["mop_bandwise_navd"] > r["mop_bandwise"]
-        assert all(d == pytest.approx(250.0) for d in b["mop_dir"])
+        # A band with no energy through the aperture has no direction: a gap,
+        # never 250 by default (the newest spectra can leave the top band empty).
+        assert all(math.isnan(d) if e == 0 else d == pytest.approx(250.0)
+                   for d, e in zip(b["mop_dir"], b["mop"]))
     text = "\n".join(mopdepth.band_report(out, spec, "", coarse, conv, med))
     assert "1.00 [1.00, 1.00]" in text
 

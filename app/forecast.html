@@ -441,7 +441,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tab-tray .rose-plate,.tab-tray .rose-tray{border-left:0;border-right:0;border-radius:0}
 .tab-tray .rose-plate > .rose-sea{border-radius:0}
 .tab-tray > .pane:not(:has(> .sm-face:last-child)){padding-bottom:11px}
-.swell-brief{margin-bottom:2px}
+/* The box sits as far from the headline above it and the Origin rule below
+   it as the range's ink sits under the title's (owner's call, 2026-11-27):
+   17.5 px painted at 390, title ink to range ink, the last headline line's
+   ink to the box's hairline, the box's foot to the rule. */
+.swell-brief{margin-bottom:6px}
+.tabbox{margin-bottom:7.5px}
+/* The buoys' station blocks the tray's width too, their words on the
+   tray's own 11 px. */
+.tab-tray .buoy-info{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px;
+                     border-left:0;border-right:0;border-radius:0}
 /* Where the tide is going next. Dim like any other supporting line, with the
    direction itself at full ink because that is the word being read. */
 /* Inline, not flex: the height carries its own metric span and flex would

@@ -5398,3 +5398,13 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert "padding:8px 11px 0}" in css
         assert ".tab-tray .sm-face:last-child{margin-bottom:0}" in css
         assert ".tab-tray .rose.sea{margin-left:-11px;margin-right:-11px}" in css
+        # The buoys' station blocks too (owner's call, 2026-11-27).
+        assert ".tab-tray .buoy-info{margin-left:-11px;margin-right:-11px;" in SOURCE
+
+    def test_the_box_sits_as_far_from_its_neighbours_as_the_range_from_the_title(self):
+        # 17.5 px painted at 390 each (owner's call, 2026-11-27): title ink to
+        # range ink, the headline's last ink to the box (8 px card gap + 6),
+        # the box's foot to the Origin rule (8 + 7.5 + the fold's own 2).
+        assert ".swell-brief{margin-bottom:6px}" in SOURCE
+        assert ".tabbox{margin-bottom:7.5px}" in SOURCE
+        assert ".cond.swell{gap:8px}" in SOURCE
