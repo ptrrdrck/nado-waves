@@ -543,17 +543,25 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      margin, not a hidden rule, so a fold's slide never jumps.
    - The tray's caret sits 5 px further from the tabs (owner's call, same
      day): its ink 12.5 px under the tab buttons, and above the box's foot
-     (or the open tray) as far as the tab names' ink sits under the box's
-     top edge, 15.3 px painted at 390 (owner's call, same day; it was 8).
+     (or the open tray) a pixel less than the tab names' ink sits under the
+     box's top edge: 14.4 px against 15.3 painted at 390, which reads as
+     equal (owner's calls, same day; it was 8, then 15.4, which read large).
    - A buoy's fold spans the tray with its contents padded back in: the
      folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
      reaching past it showed its sides only once the slide had ended
      (owner's report, same day).
-   - **46232's pills move to Point Loma South's line only once the tray is
-     open** (owner's call, same day): on the Buoys tab with the tray shut
-     they stay in the title row (they had vanished into the shut tray);
-     `data-tray-open` is set when the tray's slide ends and cleared as it
-     starts to shut, and drawn in by a redraw while open.
+   - **46232's pills move to Point Loma South's line only while the tray
+     is open** (owner's calls, same day): on the Buoys tab with the tray
+     shut they stay in the title row (they had vanished into the shut
+     tray). `data-tray-open` is set and cleared as the tray STARTS to open
+     or shut (once the slide ended, the move read as late), and drawn in by
+     a redraw while open.
+   - **The picked tab drops its height while the tray is open** (owner's
+     call, same day: the tray's headline repeats it): it fades over the
+     fold's 240 ms as the tray's contents fade in, and the name slides to
+     the tab's middle on the fold's ease, by half the height's lines and
+     the 1 px gap (`--tab-shift`, centred to 0.01 px in Imperial and Both).
+     Picking another tab with the tray open swaps them the same way.
    - **No grey tap flash anywhere on the page** (owner's call, same day):
      WebKit's default highlight spilled past the tray's caret onto the tabs.
      One `html` rule replaces the sixteen per-element opt-outs; every

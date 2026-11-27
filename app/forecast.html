@@ -425,7 +425,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                font-variant-numeric:tabular-nums}
 .tabbox .subtabs button:not([aria-selected="true"]) .tab-h{color:var(--soft)}
 .tabbox .tab-m{display:block;font-size:11.5px;color:var(--faint)}
-.tray-toggle{display:grid;place-items:center;width:100%;height:29.5px;margin-top:2px;padding:0 0 7.5px;border:0;
+/* The tray open, the picked tab's height is the tray's headline's: it fades
+   as the tray's contents fade in, and the name slides to the tab's middle,
+   half the height's lines and the 1 px gap (owner's call, 2026-11-27). */
+.tabbox .tab-name{--tab-shift:calc((15px * 1.15 + 1px) / 2);transition:transform .24s cubic-bezier(.05,.7,.1,1)}
+.tabbox .tab-name:has(+ .tab-h > .tab-m){--tab-shift:calc((15px * 1.15 + 11.5px * 1.15 + 1px) / 2)}
+.tabbox .tab-h{transition:opacity .24s linear}
+.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-name{transform:translateY(var(--tab-shift))}
+.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0}
+@media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
+.tray-toggle{display:grid;place-items:center;width:100%;height:28.5px;margin-top:2px;padding:0 0 6.5px;border:0;
              background:transparent;color:var(--soft);cursor:pointer}
 .tray-toggle:hover{color:var(--ink)}
 .tray-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:-2px}
@@ -8397,14 +8406,12 @@ function setTrayOpen(open) {
   if (btn) btn.setAttribute("aria-expanded", String(open));
   const tray = $("swell-tray");
   if (!tray) return;
-  // The title row's pills come back as the tray starts to shut, and go to
-  // Point Loma South's line once it has opened.
-  const mark = (on) => {
-    const box = document.querySelector("[data-tabbox]"), card = box && box.closest(".cond");
-    if (card) card.toggleAttribute("data-tray-open", on);
-  };
-  if (!open) mark(false);
-  slideFolds([tray], open, () => { if (SWELL_TAB === BUOY_TAB) roseShown(); }, () => { if (TRAY_OPEN) mark(true); });
+  // As the tray starts to open or shut (owner's call, 2026-11-27): 46232's
+  // pills move between the title row and Point Loma South's line, and the
+  // picked tab's height fades as its name slides to the tab's middle.
+  const box = document.querySelector("[data-tabbox]"), card = box && box.closest(".cond");
+  if (card) card.toggleAttribute("data-tray-open", open);
+  slideFolds([tray], open, () => { if (SWELL_TAB === BUOY_TAB) roseShown(); });
 }
 // The Briefing's swell block as the Swell card's headline (owner's design,
 // 2026-11-27), its words and numbers the Briefing's own.
@@ -8484,8 +8491,8 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
     </div>${srcLines(source)}`;
 
   // 46232's pills leave the title row for Point Loma South's line on the
-  // Buoys tab only once the tray is open (owner's call, 2026-11-27): with
-  // it shut they would vanish into it.
+  // Buoys tab only while the tray is open (owner's call, 2026-11-27): with
+  // it shut they would vanish into it. The picked tab drops its height then.
   return `<div class="cond swell" data-card="swell" data-tab="${chosen}"${buoyPills ? " data-buoy-pills" : ""}`
     + `${tray && TRAY_OPEN ? " data-tray-open" : ""}>
     ${headRow(`<span class="lbl">${label}</span>`, due)}

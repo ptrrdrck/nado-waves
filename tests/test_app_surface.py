@@ -5449,11 +5449,11 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}" in SOURCE
 
     def test_the_caret_sits_clear_of_the_tabs(self):
-        # 5 px more than at first above it, and below it the box's top edge
-        # to the tab names' ink, 15.3 px painted at 390 (owner's calls,
-        # 2026-11-27).
-        assert (".tray-toggle{display:grid;place-items:center;width:100%;height:29.5px;margin-top:2px;"
-                "padding:0 0 7.5px;") in SOURCE
+        # 5 px more than at first above it; below it a pixel under the box's
+        # top edge to the tab names' ink, 14.4 px against 15.3 painted at
+        # 390, which read as equal (owner's calls, 2026-11-27).
+        assert (".tray-toggle{display:grid;place-items:center;width:100%;height:28.5px;margin-top:2px;"
+                "padding:0 0 6.5px;") in SOURCE
 
     def test_a_buoys_fold_spans_the_tray_so_its_slide_never_clips_it(self):
         # `.fold-moving` clips a sliding fold; a rose reaching past the fold
@@ -5461,14 +5461,28 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".fold-moving{overflow:hidden;box-sizing:border-box}" in SOURCE
         assert ".tab-tray .buoy-fold{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px}" in SOURCE
 
-    def test_46232s_pills_leave_the_title_row_only_once_the_tray_is_open(self):
+    def test_the_picked_tab_drops_its_height_while_the_tray_is_open(self):
+        # It fades as the tray's contents fade in, the name sliding to the
+        # tab's middle (owner's call, 2026-11-27): half the height's lines
+        # and the 1 px gap, measured centred to 0.01 px in both modes.
+        assert ".tabbox .tab-name{--tab-shift:calc((15px * 1.15 + 1px) / 2);" in SOURCE
+        assert ".tabbox .tab-name:has(+ .tab-h > .tab-m){--tab-shift:calc((15px * 1.15 + 11.5px * 1.15 + 1px) / 2)}" in SOURCE
+        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-name'
+                "{transform:translateY(var(--tab-shift))}") in SOURCE
+        assert '.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0}' in SOURCE
+        # The fold's own timing: 240 ms, its ease for the slide, linear fade.
+        assert "transition:transform .24s cubic-bezier(.05,.7,.1,1)}" in SOURCE
+        assert 'const FOLD_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)"};' in SOURCE
+
+    def test_46232s_pills_leave_the_title_row_only_while_the_tray_is_open(self):
         assert ('.cond.swell[data-buoy-pills][data-tab="buoy"][data-tray-open] > .chead > :not(.lbl){display:none}'
                 in SOURCE)
         assert '.cond.swell[data-buoy-pills][data-tab="buoy"]:not(:has(> .tabbox)) > .chead > :not(.lbl),' in SOURCE
         assert '${tray && TRAY_OPEN ? " data-tray-open" : ""}>' in self.fn("swellCard")
+        # As the tray starts to open or shut (owner's call, 2026-11-27).
         toggle = self.fn("setTrayOpen")
-        assert "if (!open) mark(false);" in toggle
-        assert "() => { if (TRAY_OPEN) mark(true); });" in toggle
+        assert 'if (card) card.toggleAttribute("data-tray-open", open);' in toggle
+        assert toggle.index('toggleAttribute("data-tray-open", open)') < toggle.index("slideFolds(")
 
     def test_the_box_sits_as_far_from_its_neighbours_as_the_range_from_the_title(self):
         # 17.5 px painted at 390 each (owner's call, 2026-11-27): title ink to
