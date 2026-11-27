@@ -286,8 +286,13 @@ class TestOnThePage:
         card = card[:card.index("\n}\n")]
         # 46232's pills in the card's title row since 2026-11-08, each context
         # buoy's above its own headline, in its own block after the panes.
-        assert (card.index('headRow(`<span class="lbl">${label}</span>`, due)')
-                < card.index("${tab.body}</div>") < card.index('data-after-tab="${tab.id}"'))
+        # The panes, then the after-blocks, in the box (and its tray on
+        # LIVE, owner's design, 2026-11-27), the box under the title row.
+        assert card.index("${tab.body}</div>") < card.index('data-after-tab="${tab.id}"')
+        assert "${strip}${panes}${srcLines(source)}${after}" in card
+        assert "${panes}${after}</div>" in card
+        ret = card[card.index('return `<div class="cond swell"'):]
+        assert ret.index('headRow(`<span class="lbl">${label}</span>`, due)') < ret.index("${box}")
         assert 'return `<hr>${headRow(buoyTitle(b.station_name), feed)}${reading}`' in _fn("contextBuoy")
         assert "contextBuoy" not in PAGE[PAGE.index("function buoyPanel("):
                                          PAGE.index("function buoyReading(")]

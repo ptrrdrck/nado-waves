@@ -376,6 +376,47 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
+### Group 7: the Swell card's tabs box and tray -- LIVE phone done (PR #252)
+
+The LIVE phone card shipped (app_surface.md "The Swell card's tabs box and
+tray", every measurement and owner's call there): the Briefing's swell
+block as its headline with a 112 x 28 sparkline, each tab's height under
+its name, the panes in a tray under the tabs, the Buoys tab's plates and
+rhythm, the picked tab dropping its height while the tray is open, the
+tab names' O / U and pair spacing (`tabLetters`, `TAB_KERN`), and no tap
+flash page-wide. The same PR fixed test_mopdepth's known-answer test,
+which read a band with no energy (NaN direction, a gap) as a failure on
+the newest spectra.
+
+`swellCard`'s `tray` and `headline` options are what the LIVE call passes;
+the Forecast call passes neither, so item 28 is mostly a headline to build
+and the two options to pass. Spacing on this card is measured in PAINTED
+pixels (ink to ink, ink to hairline), not boxes: the owner judges it that
+way, and box arithmetic was off by 2-6 px every time.
+
+Mocking with live data, as PR #252's mock was built: clone the public
+`ptrrdrck/nado-waves-forecast` bundle (the git proxy serves it), write its
+`index.html` from `forecast.publish.wrap(repoint(app/forecast.html))`,
+serve it with `python3 -m http.server`, and measure with Playwright. As an
+artifact: the page as the main file, the bundle's JSON, seabed and
+nearshore files beside it; MapLibre's script from jsDelivr
+(`maplibre-gl@4.7.1/dist`) and its CSS inlined (the artifact's CSP admits
+neither the vendored script nor a stylesheet), `kept()` bypassed to plain
+fetches, and `Date` pinned to the snapshot's collection so the countdowns
+and greying read as they did. Mock only, never committed.
+
+28. **The Forecast tab's Swell card, aligned** -- the same tab heights and
+    tray, and a forecast version of the Briefing's swell block as its
+    headline: the range over the three breaks at the picked hour, its
+    trains, from forecast.json alone (the Forecast chain never borrows a
+    measurement). What its sparkline spans, and whether it carries a trend
+    word, are the owner's to decide from a mock.
+29. **The wide layouts** -- the swell headline moves into the wide Swell
+    card above its three break columns, and leaves the always-open
+    Briefing as it did on the phone; no tabs or tray there. Docs.html's
+    Briefing paragraphs say the Briefing folds out the swell: update them
+    once both layouts agree (ask first; it is the docs page).
+
 ### Carryover prompts
 
 Each assumes a fresh session; add "Confirm each item before building. PR,
@@ -392,6 +433,23 @@ wait for Tests, don't merge." to each.
   Imperial Beach clears deep water to 21 m on open shelf, so find which
   Coronado-only stage makes the excess. Propose each step's measurement
   before running it."
+- Group 7, item 28, first (open design; the strongest model, high
+  effort, because the forecast headline has no Briefing to copy and what
+  it may claim from a model is a design call): "Repo ptrrdrck/nado-waves;
+  attach ptrrdrck/nado-waves-notes and read BRIEFING §44, briefing.md's
+  Swell block, app_surface.md 'The Swell card's tabs box and tray', and
+  docs/handoff.md group 7 (it says how the last mock was built). Task:
+  item 28, the Forecast tab's Swell card aligned with LIVE's: tab heights,
+  the tray, and a forecast-aligned version of the Briefing's swell block
+  as its headline, from forecast.json alone. Mock the headline's options
+  as an artifact on live data first."
+- Group 7, item 29, after 28 (careful; a strong model at medium effort,
+  layout work against an existing pattern): "Repo ptrrdrck/nado-waves;
+  attach ptrrdrck/nado-waves-notes and read app_surface.md 'The Swell
+  card's tabs box and tray' and its wide-layout sections, and docs/
+  handoff.md group 7. Task: item 29, the swell headline in the wide
+  layouts' Swell card, out of the Briefing there; then ask about docs.html's
+  Briefing paragraphs. Mock it on live data first."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the

@@ -491,3 +491,120 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    on the next two frames as charts settle, unless the reader scrolls
    meanwhile. iPhone has no scroll anchoring; measured with it off and on,
    120 px added above the reader moved nothing, with no double correction.
+
+## The Swell card's tabs box and tray (LIVE, phone)
+
+   **Since 2026-11-27 the LIVE Swell card on a phone is headline, tabs box,
+   tray** (owner's design and calls, same day; branch
+   claude/swell-card-redesign-acrmw7, mocked on the branch's own page with
+   that day's published data before merging):
+
+   - **The Briefing's swell block is the card's headline** (`swellBrief`),
+     under its title row: the range, the 24 h sparkline, a line a train,
+     the 46047 offshore lines and the dark-buoy line, the same rows
+     `briefSwellRow` draws, from briefing.json, never a second rendering
+     (BRIEFING §44; the block is rebuilt every collection, so it matches the
+     tabs under it). The Briefing fold on a phone goes from the alerts to the
+     tides; its line, changes and record are unchanged. A wide screen still
+     shows the block in the Briefing until that layout is redone.
+   - **Each tab carries its own height under its name** (`tabHeight`): a
+     break's breaking height, `hsWindow`, to the tenth of a foot as its
+     headline; the Buoys tab 46232's combined height, the anchor every
+     break's numbers come from. In "Both" the metric is a grey line of its
+     own under the feet (four tabs share a 330 px box). Greyed with the
+     headline by `c.aged` / the buoy's age; a dash with no spectrum.
+   - **The tabs box folds out a tray** (`.tabbox`, `#swell-tray`,
+     `TRAY_OPEN`): the box's hairline and paper round the tabs and a caret
+     under them, the tray on the card's colour beneath, its full width.
+     Closed on every load and kept across a redraw. The caret, or the
+     picked tab tapped again, opens and shuts it with the folds' slide
+     (`slideFolds`); picking another tab leaves it as it was.
+   - **The tray holds what the picked tab showed before**: a break's
+     headline, whose caret still folds the calculation, its trains and its
+     map, all at one level; the map edge to edge across the tray (328 px
+     inside the box's hairline at 390, the width it had), its caption the
+     box's foot. The Buoys tab's whole pane, every buoy's rose and station
+     block the tray's width too (owner's call, same day), and 46086's and
+     46047's blocks. Origin and Charts stay below the box.
+   - **The box's spacing** (owner's call, same day): as far from the
+     headline above it and the Origin rule below it as the range's ink sits
+     under the title's, 17.5 px painted at 390 each, measured in pixels with
+     the tray shut and open (`.swell-brief` 6 px and `.tabbox` 7.5 px of
+     margin on the card's 8 px gap; it was 13.5 above, 10 below).
+   - **Each buoy's rose and station block are ONE plate in the tray**
+     (owner's calls, same day): no card between them, a hairline across
+     them on the words' 11 px, spaced as the rule between Origin and Charts
+     paints (17.3 px from the ink above, 16.2 to the ink below, at 390;
+     the plate measures 17.2 / 15.8). The last buoy's block, open, is the
+     box's foot, as the map's caption is on a break. An open buoy's block
+     is the rule above the next buoy (owner's call, same day): pulled down
+     by its margin so its foot's hairline lies on that rule (31 and 21 px of
+     card sat above it), the next name 11 px under it as under the rule; a
+     margin, not a hidden rule, so a fold's slide never jumps.
+   - The tray's caret sits 5 px further from the tabs (owner's call, same
+     day): its ink 12.5 px under the tab buttons, and above the box's foot
+     (or the open tray) a little less than the tab names' ink sits under
+     the box's top edge, which reads as equal: 14.4 px against 15.3 painted
+     at 390 (owner's calls, same day; it was 8, then 15.4, which read large),
+     and 12.7 against 13.3 once the names were centred by their ink (below),
+     Both's names 3 px higher and its caret likewise.
+   - **Each tab's name and height are centred by their ink** (owner's
+     call, same day): the caps' line box carries empty leading under them,
+     so they sat 12.3 / 8.9 px of tab above and below their ink (12.3 / 6.2
+     in Both, the bracket's line under them); now 10.3 / 10.9 and 9.3 / 9.1,
+     pixel-snapped at 2x, the tab's height unchanged. The open tab's lone
+     name likewise, by `--tab-shift` measured (9.4 / 17.15 px): 19.8 / 19.9
+     and 26.3 / 26.6.
+   - **The tray's first ink about 17.5 px under its edge** (owner's call,
+     same day; it was 12.6 on a break): 17.3 on a break, 17.4 in Both,
+     17.3 on the Buoys tab, the card's rhythm round the box. **The Buoys tab
+     keeps it** (owner's call, same day): 17.5 px painted above and below
+     each buoy's name and under its height line, to the trains or the next
+     rule (it was 14.9-15.4 above a context buoy's name, 18.5 under every
+     name, 24.0 to the trains, 27.1 under 46232 shut); 16.9-17.9 measured at
+     2x, one 18.5 a device pixel of snapping under an open plate.
+   - **A tab name's O and U stand a little apart** (owner's call, same
+     day, replacing a 6% scale of the picked name, which answered the wrong
+     question): every name is 14 px with 10 px of caps painted, and SOUTH
+     read smaller because Barlow Condensed sets O and U as close as its
+     straight letters (1.7-2.0 px painted), so the round letters look
+     squeezed. Each O and U is a span (`tabLetters`, `.tab-ou`) with 0.05 em
+     more before it and 0.04 after (owner's calls, same day: 0.06 each side
+     read loose, then UT, OR and OY at 0.05), and 0.04 em between an O and a
+     U side by side, not twice the side's (0.03 read tight). Pairs that still
+     read uneven are moved by eye in `TAB_KERN`, em before the second letter:
+     CENTER's EN and BUOYS' YS +0.01, BUOYS' OY -0.02 (owner's calls, same
+     day; -0.01 read a hair wide).
+   - A buoy's fold spans the tray with its contents padded back in: the
+     folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
+     reaching past it showed its sides only once the slide had ended
+     (owner's report, same day).
+   - **46232's pills move to Point Loma South's line only while the tray
+     is open** (owner's calls, same day): on the Buoys tab with the tray
+     shut they stay in the title row (they had vanished into the shut
+     tray). `data-tray-open` is set and cleared as the tray STARTS to open
+     or shut (once the slide ended, the move read as late), and drawn in by
+     a redraw while open.
+   - **The picked tab drops its height while the tray is open** (owner's
+     call, same day: the tray's headline repeats it): the name slides to
+     the tab's middle on the fold's ease (`--tab-shift`, by its ink, above),
+     and the height slides down WITH it, out of the tab (clipped), fading in
+     120 ms; back over the fold's 240. A fade alone left the height under
+     the name (owner's report, same day): the ease moves the name 40% of
+     its way in 10 ms. Sampled frame by frame, the 1 px between them holds
+     opening and shutting. Picking another tab with the tray open swaps
+     them the same way.
+   - **No grey tap flash anywhere on the page** (owner's call, same day):
+     WebKit's default highlight spilled past the tray's caret onto the tabs.
+     One `html` rule replaces the sixteen per-element opt-outs; every
+     control answers a tap by changing state, keyboard focus keeps its
+     outlines. docs.html and the beach log pages are unchanged.
+   - **The range's sparkline is 112 x 28** (owner's pick of three options,
+     same day; it was the Briefing's 64 x 18): as tall as the range's
+     29.7 px line allows, drawn at that size so its line and dot keep their
+     weight (`briefSpark`'s `w` / `h`). The 64 x 18 is drawn beside it and
+     shown instead under 361 px, or wherever the range would wrap beside
+     the big one (`fitSwellSpark`): measured, "10–14 ft (3.0–4.3 m)" in
+     Both does at 390 and 375, today's "3–7 ft (0.9–2.1 m)" does not.
+   - The Forecast tab's card and the wide layouts are unchanged for now
+     (docs/handoff.md, group 7).

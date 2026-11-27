@@ -441,3 +441,13 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    formula and each case) and `docs/briefing_sentences.md` (every distinct
    line once, for the owner to edit; edits are carried into the page by
    hand) by `forecast/briefingwording.py`, both pinned by a test.
+
+## The Swell block on the Swell card (phone)
+
+   **Since 2026-11-27 the Swell block is drawn on the LIVE Swell card on a
+   phone, as its headline, and not in the Briefing fold there** (owner's
+   design; app_surface.md "The Swell card's tabs box and tray"). Only where
+   it is drawn moved: `briefSwell` / `briefSwellRow` draw the same rows, the
+   line's changes still name swell changes, and the record and
+   docs/briefing_wording.md are unchanged. On a wide screen the block stays
+   in the Briefing until docs/handoff.md item 29.

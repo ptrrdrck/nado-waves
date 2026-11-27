@@ -71,6 +71,12 @@ try {
    the root alone, because the Briefing scrolls inside itself: a scroller
    ends the ancestors' say. Zero specificity, so the charts' pan-y stands. */
 *{box-sizing:border-box;touch-action:manipulation}
+/* No grey tap flash anywhere (owner's call, 2026-11-27): WebKit paints one
+   over any tapped control that does not opt out, and it spilled past the
+   Swell card's tray caret onto the tabs. Every control here answers a tap
+   by changing state; keyboard focus keeps its outlines. One rule for the
+   page, replacing sixteen per-element opt-outs. */
+html{-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 body{
   background:var(--paper); color:var(--ink);
@@ -251,7 +257,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .brief-block.brief-cond{gap:6px}
 .brief-row{display:grid;grid-template-columns:62px 9px minmax(0,1fr) auto;column-gap:6px;align-items:start;
            width:100%;padding:0;margin:0;border:0;background:none;font:inherit;color:inherit;
-           text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+           text-align:left;cursor:pointer}
 .brief-key{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;font-size:12.5px;
            letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .brief-arrow{display:block;width:9px;height:9px;fill:var(--ink)}
@@ -291,7 +297,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* The day's tide as a curve (owner's choice, 2026-10-23): greys and ink,
    the hours gone grey, nights shaded as the Tide card's charts are. */
 .brief-tide{display:block;width:100%;height:151px;padding:0;margin:0;border:0;background:none;font:inherit;
-            color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+            color:inherit;cursor:pointer}
 .brief-tide svg{display:block;overflow:visible}
 .brief-tide path{fill:none;stroke-linejoin:round}
 .brief-tide path.gone{stroke:var(--faint);stroke-width:1.4}
@@ -326,7 +332,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    tab a line above the Swell card on the backdrop. */
 .alerts{display:flex;flex-direction:column;gap:6px;padding:0 13px}
 .alert{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:start;
-       font-size:15px;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+       font-size:15px;color:var(--ink);cursor:pointer}
 .alert-tri{display:block;width:16px;height:16px;margin-top:2px;color:var(--ink)}
 .alert-line a{font-weight:600}
 .alert-when{white-space:nowrap}
@@ -402,6 +408,125 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .subtabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
 .subtabs button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .pane{display:flex;flex-direction:column;gap:11px;padding-top:4px}
+/* THE SWELL CARD'S TABS BOX AND ITS TRAY (owner's design, 2026-11-27; LIVE
+   tab, phone layout). The Briefing's swell block is the card's headline,
+   under its title row; each tab carries its own height under its name (a
+   break's breaking height, the Buoys tab 46232's combined), metric on a line
+   of its own in "Both"; the box is the tabs and a tray folding out under
+   them, closed until opened (a caret under the tabs, or the picked tab tapped
+   again), holding what the picked tab showed before: a break's headline (its
+   caret still folds the calculation), trains and map, the map edge to edge
+   and its caption the box's foot. */
+.tabbox{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;
+        background:var(--paper);overflow:hidden}
+.tabbox > .subtabs{border:0;border-radius:0;background:transparent}
+.tabbox .subtabs button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4.6px 2px 6.4px}
+/* Centred by its ink, not its line boxes (owner's call, 2026-11-27): the
+   caps' line box carries empty leading below them, so the name and height
+   sat 1.7 px low (3 px in Both, the bracket's line under them), measured
+   12.3 / 8.9 and 12.3 / 6.2 px of tab above and below their ink at 390. */
+.tabbox .subtabs button:has(.tab-m){padding:2.95px 2px 8.05px}
+.tabbox .tab-h{font:500 15px/1.15 Archivo,sans-serif;letter-spacing:0;text-transform:none;color:var(--ink);
+               font-variant-numeric:tabular-nums}
+.tabbox .subtabs button:not([aria-selected="true"]) .tab-h{color:var(--soft)}
+.tabbox .tab-m{display:block;font-size:11.5px;color:var(--faint)}
+/* The tray open, the picked tab's height is the tray's headline's: the name
+   slides to the tab's middle, half the height's lines and the 1 px gap, on
+   the fold's ease, and the height slides down WITH it, out of the tab, as it
+   fades (owner's calls, 2026-11-27). Together, so the 1 px between them
+   holds: the ease moves the name 40% of its way in 10 ms, and a fade alone
+   left the height under it. Out in 120 ms, back over the fold's 240. */
+.tabbox .subtabs button{overflow:hidden;--tab-shift:9.4px}
+.tabbox .subtabs button:has(.tab-m){--tab-shift:17.15px}
+.tabbox .tab-name{transition:transform .24s cubic-bezier(.05,.7,.1,1)}
+.tabbox .tab-h{transition:opacity .24s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
+.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h){transform:translateY(var(--tab-shift))}
+/* A tab name's O and U a little apart from their neighbours (owner's call,
+   2026-11-27): Barlow Condensed sets them as close as its straight letters,
+   1.7-2.0 px painted, and SOUTH and BUOYS read squeezed. 0.05 em more before
+   one, 0.04 after (UT, OR, OY read loose at 0.05; 0.06 each side before
+   that); between an O and a U side by side 0.04 em, not twice the side's
+   (0.03 read tight). Other pairs: `TAB_KERN`. */
+.tabbox .tab-ou{margin:0 .04em 0 .05em}
+.tabbox .tab-ou + .tab-ou{margin-left:0}
+.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
+  transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
+@media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
+.tray-toggle{display:grid;place-items:center;width:100%;height:26.8px;margin-top:2px;padding:0 0 4.8px;border:0;
+             background:transparent;color:var(--soft);cursor:pointer}
+/* Both's names sit 3 px higher than Imperial's (above): the caret keeps the
+   same balance under them. */
+.tabbox:has(.tab-m) .tray-toggle{height:25.45px;padding-bottom:3.45px}
+.tray-toggle:hover{color:var(--ink)}
+.tray-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:-2px}
+.tray-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
+                 stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
+.tray-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion: reduce){ .tray-toggle svg{transition:none} }
+/* The tray's first ink about 17.5 px under its edge, the card's rhythm round
+   the box (owner's call, 2026-11-27; it was 12.6 on a break, 13.3 on the
+   Buoys tab): measured 17.3 on a break, 17.4 in Both, 17.3 on the Buoys tab. */
+.tab-tray{display:flex;flex-direction:column;background:var(--card);border-top:1px solid var(--line);
+          padding:12.9px 11px 0}
+.tab-tray > .pane{padding-top:0}
+.tab-tray > .pane + .pane.after{padding-top:11px}
+/* The map the tray's width, its caption the box's foot. */
+.tab-tray .sm-face{margin:0 -11px}
+.tab-tray .sm-face:last-child{margin-bottom:0}
+.tab-tray .sm-plate{border-left:0;border-right:0;border-radius:0}
+.tab-tray .sm-cap{border-left:0;border-right:0;border-bottom:0;border-radius:0}
+/* A buoy's fold the tray's width, its contents padded back: the fold's
+   slide clips it (`.fold-moving`), and a rose or plate reaching past it
+   showed its sides only once the slide ended (owner's report, 2026-11-27). */
+.tab-tray .buoy-fold{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px}
+/* 46232's rose likewise on the Buoys tab, the box's width. */
+.tab-tray .rose.sea{margin-left:-11px;margin-right:-11px}
+.tab-tray .rose-plate,.tab-tray .rose-tray{border-left:0;border-right:0;border-radius:0}
+.tab-tray .rose-plate > .rose-sea{border-radius:0}
+.tab-tray > .pane:not(:has(> .sm-face:last-child)){padding-bottom:11px}
+/* The box sits as far from the headline above it and the Origin rule below
+   it as the range's ink sits under the title's (owner's call, 2026-11-27):
+   17.5 px painted at 390, title ink to range ink, the last headline line's
+   ink to the box's hairline, the box's foot to the rule. */
+.swell-brief{margin-bottom:6px}
+/* The range's sparkline at 112 x 28 (owner's pick, 2026-11-27), as tall as
+   the range's line allows; the 64 x 18 where it cannot fit (`fitSwellSpark`). */
+.swell-brief .brief-spark.big{width:112px;height:28px}
+.swell-brief .brief-head:not(.tight) .brief-spark:not(.big),
+.swell-brief .brief-head.tight .brief-spark.big{display:none}
+.tabbox{margin-bottom:7.5px}
+/* The buoys' station blocks the tray's width too, their words on the
+   tray's own 11 px. */
+.tab-tray .buoy-info{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px;
+                     border-left:0;border-right:0;border-radius:0}
+/* Each buoy's rose and station block ONE plate (owner's call, 2026-11-27):
+   no card between them, a hairline across them on the words' 11 px, spaced
+   as the rule between Origin and Charts is (painted, below). */
+.tab-tray .rose.sea:has(+ .buoy-info){margin-bottom:-11px}
+.tab-tray .rose.sea:has(+ .buoy-info) .rose-tray{border-bottom:0;padding-bottom:11.5px}
+.tab-tray .rose.sea + .buoy-info{position:relative;margin-top:0;border-top:0;padding-top:12.5px}
+.tab-tray .rose.sea + .buoy-info::before{content:"";position:absolute;top:0;left:11px;right:11px;
+                                         border-top:1px solid var(--line)}
+/* An open buoy's plate is the rule above the next buoy (owner's call,
+   2026-11-27): pulled down so its foot's hairline lies on that rule, so no
+   card and no second line between them, and the next name as far under it
+   as under the rule. A margin, not a hidden rule, so a fold's slide never
+   jumps. Measured at 390: 31 and 21 px of card above the rule before. */
+.tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}
+.tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}
+/* 17.5 px painted above and below each buoy's name and under its height
+   line, the tray's rhythm (owner's call, 2026-11-27; it was 14.9-15.4 above
+   a context buoy's name, 18.5 under every name, 24.0 to the trains, 27.1 to
+   the rule under 46232 shut and 16.1-16.6 under the others). */
+.tab-tray .pane.after > hr + .chead{margin-top:2.5px}
+.tab-tray .pane > .chead:has(> .buoy-name) + .val-line{margin-top:-1px}
+.tab-tray .pane > .val-line + .buoy-fold{margin-top:-6.5px}
+.tab-tray .pane.after > .buoy-fold[hidden] + hr{margin-top:1px}
+.tab-tray > .pane.after:has(> .buoy-fold:last-child[hidden]){padding-bottom:12px}
+.tab-tray > #swell-pane-buoy:has(> .buoy-fold:last-child[hidden]){padding-bottom:1.5px}
+/* The last buoy's plate, open, is the box's foot. */
+.tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child){padding-bottom:0}
+.tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}
 /* Where the tide is going next. Dim like any other supporting line, with the
    direction itself at full ink because that is the word being read. */
 /* Inline, not flex: the height carries its own metric span and flex would
@@ -515,11 +640,11 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .train:not(.lead){opacity:.72}
 /* A train with an arrow on the drawing picks it there (owner's request,
    2026-10-05). */
-.train[data-train]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:4px}
+.train[data-train]{cursor:pointer;border-radius:4px}
 .train[data-train]:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* On the Buoys tab a row lights its period range on the rose (owner's
    request, 2026-10-08); the lit row reads as pressed. */
-.train[data-rose-train]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:4px}
+.train[data-rose-train]{cursor:pointer;border-radius:4px}
 .train[data-rose-train]:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 /* A picked row reads as pressed, on the Buoys tab and on a break's alike
    (owner's request, 2026-10-09). */
@@ -589,7 +714,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    state, no selection (owner's call, 2026-11-08). The keyboard's focus ring
    stays: it is not shown for a tap. */
 button.chead-pills{font:inherit;color:inherit;background:none;border:0;padding:0;margin-left:auto;
-  border-radius:4px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  border-radius:4px;cursor:pointer;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 button.chead-pills:focus{outline:none}
 button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2px}
@@ -736,7 +861,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .bi-v .unit{font-weight:400;white-space:nowrap}
 .bi-t{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
 .buoy-info:not(.bi-times) .bi-t{display:none}
-.bi-read[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bi-read[role=button]{cursor:pointer}
 .bi-read[role=button]:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
 .bi-none .bi-v{font-weight:400;color:var(--faint)}
 .bi-rule{height:1px;background:var(--line)}
@@ -892,7 +1017,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    -- the things in the drawing that are not geometry-as-obstacle -- and a
    picked window washed in grey. */
 .aperture{display:block;width:100%;max-width:420px;height:auto;margin:0 auto;overflow:visible;
-  cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  cursor:pointer;touch-action:manipulation}
 .aperture [data-pick]{outline:none}
 .aperture .win{fill:var(--soft);fill-opacity:0;stroke:none}
 .aperture .win.on{fill-opacity:.3}
@@ -958,7 +1083,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .brief-cont .count{margin-left:0;color:var(--soft);font-weight:400}
 /* Tapped, it shuts the fold as the line does, and lights the caret as the
    line's hover does (owner's request, 2026-11-02). */
-.brief-cont{cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.brief-cont{cursor:pointer;-webkit-user-select:none;user-select:none}
 .chart-head:has(+ .brief-cont:hover) .calc-toggle{color:var(--ink)}
 /* Closed, the line takes taps from the space around it too (owner's
    request, 2026-11-02, after missing it below): an empty layer reaching
@@ -998,7 +1123,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .chart .ranges button:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .chart .chart-note{font-size:12px;color:var(--faint);align-self:stretch}
 .series{display:block;width:100%;height:auto;overflow:visible;cursor:crosshair;
-        touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+        touch-action:pan-y}
 .series:focus-visible{outline:2px solid var(--surf);outline-offset:2px;border-radius:4px}
 .series .grid{stroke:var(--line);stroke-width:1}
 .series .zero{stroke:var(--line-strong);stroke-width:1}
@@ -1114,7 +1239,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .rose .rose-play svg{width:12px;height:12px;fill:currentColor}
 .rose .rose-track{flex:1 1 auto;min-width:0;height:28px;box-sizing:border-box;display:flex;align-items:center;gap:8px;
   padding:0 10px 0 8px;border:1px solid transparent;border-radius:6px;background:var(--card);color:var(--ink);
-  box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none;-webkit-tap-highlight-color:transparent}
+  box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:ew-resize;touch-action:none}
 .rose .rose-when{flex:none;min-width:4.9em;text-align:right;font:600 12px/1 Archivo,sans-serif;
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .rose .rose-rail{position:relative;flex:1 1 auto;height:2px;border-radius:1px;background:var(--line-strong)}
@@ -1276,7 +1401,7 @@ a{color:var(--surf)}
 .links .bar{width:1px;height:14px;background:var(--line-strong);flex:none}
 @media (max-width:369px){ .links{gap:8px} .links .bar{display:none} }
 /* Observer: a real checkbox, drawn as a small switch. */
-.links .logger{position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.links .logger{position:relative;cursor:pointer}
 .links .logger input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
 .links .logger .sw{position:relative;width:28px;height:16px;border-radius:8px;background:var(--line-strong);
                    transition:background-color .2s;flex:none}
@@ -1295,14 +1420,13 @@ a{color:var(--surf)}
 .links .units{display:inline-flex;align-items:center;gap:6px}
 .links .units button{display:inline-grid;place-items:center;height:22px;padding:0 7px;margin:0;
                      border:1px solid var(--line-strong);border-radius:5px;background:transparent;
-                     font:inherit;font-size:12.5px;line-height:1;color:var(--ink);cursor:pointer;
-                     -webkit-tap-highlight-color:transparent}
+                     font:inherit;font-size:12.5px;line-height:1;color:var(--ink);cursor:pointer;}
 .links .units button > span{grid-area:1/1;transform:translateY(.3px)}
 .links .units button > span:not(.on){visibility:hidden}
 /* Theme: one glyph, a half-lit disc, its lit half turned to the theme a
    tap gives. 18 px drawn in a 32 px target. */
 .links .theme{display:grid;place-items:center;width:32px;height:32px;margin:-7px -4px -7px -7px;padding:0;border:0;
-              background:none;color:var(--soft);cursor:pointer;-webkit-tap-highlight-color:transparent}
+              background:none;color:var(--soft);cursor:pointer}
 .links .theme:hover{color:var(--ink)}
 .links .theme svg{display:block;width:18px;height:18px;transition:transform .35s ease}
 :root[data-theme="dark"] .links .theme svg{transform:rotate(180deg)}
@@ -1425,8 +1549,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 .week-names,.week-day{display:grid;grid-template-rows:var(--wk-date) repeat(3,var(--wk-cell));row-gap:var(--wk-gap)}
 .week-names{align-items:center;font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;
   text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;color:var(--soft)}
-.week-date,.week-cell{font:inherit;margin:0;border:0;cursor:pointer;color:var(--ink);
-  -webkit-tap-highlight-color:transparent}
+.week-date,.week-cell{font:inherit;margin:0;border:0;cursor:pointer;color:var(--ink);}
 .week-date{background:none;padding:0;font-size:12.5px;font-weight:600;color:var(--soft);white-space:nowrap}
 .week-day.on .week-date{color:var(--ink)}
 .week-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:7px;
@@ -1485,8 +1608,7 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
    (owner's request, 2026-11-21: 28 px square, the glyph 16 px at a 1.4
    stroke, as the map's Layers button). */
 .week-today{position:absolute;z-index:1;display:grid;place-items:center;width:28px;height:28px;
-  padding:0;border:0;border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;
-  -webkit-tap-highlight-color:transparent}
+  padding:0;border:0;border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;}
 .week-today svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;
   stroke-linejoin:round}
 .week-today:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
@@ -1509,7 +1631,8 @@ body.chart-maxed::before{content:"";position:fixed;inset:0;z-index:29;
 /* On the LIVE Buoys tab 46232's pills sit across from its name, as the
    context buoys' do (owner's request, 2026-11-11), so the Swell card's title
    row is its title alone there. */
-.cond.swell[data-buoy-pills][data-tab="buoy"] > .chead > :not(.lbl){display:none}
+.cond.swell[data-buoy-pills][data-tab="buoy"]:not(:has(> .tabbox)) > .chead > :not(.lbl),
+.cond.swell[data-buoy-pills][data-tab="buoy"][data-tray-open] > .chead > :not(.lbl){display:none}
 /* ONE plate for the drawing and the map (owner's requests, 2026-11-11): the
    map's square (owner's request, 2026-11-08: room to move about in, never
    more than most of a phone's screen). Its height is the script's (`space`),
@@ -2726,9 +2849,11 @@ const briefWindow = (h) => (h >= 48 ? `${Math.round(h / 24)} d` : `${h} h`);
 // `gapH`), the newest an ink dot. `log` scales the values by their
 // logarithm, for a quantity that spans decades; `dots` marks a reading the
 // line cannot join, between two gaps, with a small faint dot.
-function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false} = {}) {
+// `w` and `h` draw it at another size, its line and dot as thick as ever
+// (the Swell card's headline, 112 x 28); `cls` tags it.
+function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false, w = 64, h = 18, cls = ""} = {}) {
   if (!points || points.length < 2) return "";
-  const W = 64, H = 18, t1 = points[points.length - 1][0], t0 = t1 - windowH * 3600;
+  const W = w, H = h, t1 = points[points.length - 1][0], t0 = t1 - windowH * 3600;
   const val = log ? (v) => Math.log10(Math.max(v, 1)) : (v) => v;
   const ys = points.map((p) => val(p[1])), lo = Math.min(...ys), hi = Math.max(...ys);
   const X = (t) => 1 + (t - t0) / (t1 - t0) * (W - 4), Y = (v) => H - 2 - (hi > lo ? (val(v) - lo) / (hi - lo) : 0.5) * (H - 4);
@@ -2738,7 +2863,7 @@ function briefSpark(points, windowH, {gapH = 1.5, log = false, dots = false} = {
     runs[runs.length - 1].push([X(p[0]).toFixed(1), Y(p[1]).toFixed(1)]);
   });
   const last = points[points.length - 1];
-  return `<svg class="brief-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
+  return `<svg class="brief-spark${cls ? ` ${cls}` : ""}" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
     + runs.map((r) => (r.length > 1 ? `<polyline points="${r.map((q) => q.join(",")).join(" ")}"/>`
       : dots ? `<circle class="lone" cx="${r[0][0]}" cy="${r[0][1]}" r="1"/>` : "")).join("")
     + `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="2.2"/></svg>`;
@@ -3539,7 +3664,10 @@ function briefingFold(B) {
   const blocks = [
     parts.alerts.length
       && `<div class="brief-block brief-alerts">${parts.alerts.map((a) => alertRow(a, B.built_utc)).join("")}</div>`,
-    parts.swell.length && `<div class="brief-block brief-swell">${parts.swell.map(briefSwellRow).join("")}</div>`,
+    // On a phone the swell block is the Swell card's headline (owner's
+    // design, 2026-11-27), so the fold goes from the alerts to the tides.
+    WIDE() && parts.swell.length
+      && `<div class="brief-block brief-swell">${parts.swell.map(briefSwellRow).join("")}</div>`,
     parts.tides.length && `<div class="brief-block brief-tides">${briefTideBlock(parts.tides, B)}</div>`,
     (waterRows.length || parts.water_quality.length)
       && `<div class="brief-block brief-cond brief-water">${waterRows.map((r) => briefCondRow(r, B)).join("")}`
@@ -3949,6 +4077,8 @@ if (typeof MutationObserver !== "undefined" && document.getElementById("conditio
   new MutationObserver(() => fitPills($("conditions")))
     .observe(document.getElementById("conditions"), {childList: true, subtree: true});
   new MutationObserver(() => fitHeads($("conditions")))
+    .observe(document.getElementById("conditions"), {childList: true, subtree: true});
+  new MutationObserver(() => fitSwellSpark())
     .observe(document.getElementById("conditions"), {childList: true, subtree: true});
 }
 
@@ -8291,16 +8421,84 @@ function cardChart(id) {
 // stale reading has to be marked whichever tab is open. Tucked into the
 // buoy's tab, an overdue spectrum would sit behind three tabs of window
 // energy derived from it with no mark on any of them.
+// A tab's name with each O and U in a span of its own, spaced apart from
+// its neighbours (owner's call, 2026-11-27; `.tab-ou`), and the pairs that
+// still read uneven moved by eye, in em before the second letter (owner's
+// calls, same day): CENTER's EN and BUOYS' YS opened, its OY closed.
+const TAB_KERN = {EN: 0.01, YS: 0.01, OY: -0.02};
+const tabLetters = (title) => [...String(title)].map((ch, i, all) => {
+  const kern = i ? TAB_KERN[(all[i - 1] + ch).toUpperCase()] : 0;
+  const ou = /[OU]/i.test(ch);
+  if (!ou && !kern) return ch;
+  return `<span${ou ? ' class="tab-ou"' : ""}${kern ? ` style="margin-left:${kern}em"` : ""}>${ch}</span>`;
+}).join("");
+// A tab's height under its name (owner's design, 2026-11-27): a break's
+// breaking height or the Buoys tab's combined, as its headline shows it, the
+// metric on a line of its own in "Both" (four tabs share a phone's width);
+// grey as that headline greys.
+function tabHeight(m, aged = "") {
+  if (m == null) return `<span class="tab-h"${aged}>\u2014</span>`;
+  const ft = `${(m * FT_PER_M).toFixed(1)} ft`, met = `${m.toFixed(2)} m`;
+  return `<span class="tab-h"${aged}>${UNITS === "metric" ? met : ft}`
+    + `${UNITS === "both" ? `<span class="tab-m unit">(${met})</span>` : ""}</span>`;
+}
+// The swell card's tray, open or shut: shut on every load, kept across a
+// redraw (owner's design, 2026-11-27).
+let TRAY_OPEN = false;
+function setTrayOpen(open) {
+  TRAY_OPEN = open;
+  const btn = document.querySelector("[data-tray-toggle]");
+  if (btn) btn.setAttribute("aria-expanded", String(open));
+  const tray = $("swell-tray");
+  if (!tray) return;
+  // As the tray starts to open or shut (owner's call, 2026-11-27): 46232's
+  // pills move between the title row and Point Loma South's line, and the
+  // picked tab's height fades as its name slides to the tab's middle.
+  const box = document.querySelector("[data-tabbox]"), card = box && box.closest(".cond");
+  if (card) card.toggleAttribute("data-tray-open", open);
+  slideFolds([tray], open, () => { if (SWELL_TAB === BUOY_TAB) roseShown(); });
+}
+// The Briefing's swell block as the Swell card's headline (owner's design,
+// 2026-11-27), its words and numbers the Briefing's own.
+function swellBrief(B) {
+  const parts = briefingParts(B);
+  if (!parts || !parts.swell.length) return "";
+  // Its sparkline at 112 x 28 (owner's pick, 2026-11-27), the Briefing's
+  // 64 x 18 beside it for where that cannot fit (`fitSwellSpark`).
+  const s = B.swell || {};
+  const rows = parts.swell.map((r) => (r.kind === "beach" && r.spark
+    ? {...r, spark: briefSpark(s.spark, s.window_h || 24, {w: 112, h: 28, cls: "big"}) + r.spark} : r));
+  return `<div class="brief-block brief-swell swell-brief">${rows.map(briefSwellRow).join("")}</div>`;
+}
+// The big sparkline unless the phone is under 361 px or the range would
+// wrap beside it (two-digit feet in "Both" under 390 px): then the small.
+const SPARK_WIDTH = new WeakMap();
+const sparkResize = typeof ResizeObserver === "undefined" ? null
+  : new ResizeObserver((entries) => entries.forEach(({target, contentRect}) => {
+    const width = Math.round(contentRect.width);
+    if (width && SPARK_WIDTH.get(target) !== width) { SPARK_WIDTH.set(target, width); fitSwellSpark(); }
+  }));
+function fitSwellSpark() {
+  const head = document.querySelector(".swell-brief .brief-head");
+  if (!head || !head.querySelector(".brief-spark.big")) return;
+  head.classList.remove("tight");
+  const big = head.querySelector(".brief-big");
+  const narrow = !!(window.matchMedia && window.matchMedia("(max-width: 360px)").matches);
+  const wraps = !!big && big.offsetHeight > 1.5 * parseFloat(getComputedStyle(big).lineHeight);
+  if (narrow || wraps) head.classList.add("tight");
+  if (sparkResize && !SPARK_WIDTH.has(head)) { SPARK_WIDTH.set(head, Math.round(head.clientWidth)); sparkResize.observe(head); }
+}
+
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
                     due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = "",
-                    lead = "", buoyPills = false}) {
+                    lead = "", buoyPills = false, headline = "", tray = false}) {
   if (WIDE()) {
     return swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
                       origin, buoyRose, buoyAged, lead});
   }
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
-    origin: c.origin || null,
+    origin: c.origin || null, h: tray ? tabHeight(c.hsWindow, c.aged) : "",
   }));
   // "Buoys" on both chains (owner's request, 2026-10-06), though only the
   // LIVE tab carries a second one: GFS-Wave's run is at 46232 alone. The id
@@ -8310,24 +8508,41 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   tabs.push({id: BUOY_TAB, title: "Buoys",
              body: buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged,
                              {pills: buoyPills ? due : ""}),
-             after: others.map(contextBuoy).join(""), chart, origin});
+             after: others.map(contextBuoy).join(""), chart, origin,
+             h: tray ? tabHeight(buoy && buoy.hs_m, buoyAged) : ""});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
   SWELL_TAB = chosen;
 
-  return `<div class="cond swell" data-card="swell" data-tab="${chosen}"${buoyPills ? " data-buoy-pills" : ""}>
-    ${headRow(`<span class="lbl">${label}</span>`, due)}
-    <div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoys">
+  const strip = `<div class="subtabs" role="tablist" aria-label="${label} at each break, then at the buoys">
       ${tabs.map((tab) => `<button type="button" role="tab" id="swell-tab-${tab.id}"
         data-swell-tab="${tab.id}" aria-controls="swell-pane-${tab.id}"
         aria-selected="${tab.id === chosen}" tabindex="${tab.id === chosen ? 0 : -1}"
-        >${tab.title}</button>`).join("")}
-    </div>
-    ${tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
-      aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("")}
-    ${srcLines(source)}
-    ${tabs.filter((tab) => tab.after).map((tab) => `<div class="pane after" data-after-tab="${tab.id}"`
-      + `${tab.id === chosen ? "" : " hidden"}>${tab.after}</div>`).join("")}
+        >${tray ? `<span class="tab-name">${tabLetters(tab.title)}</span>${tab.h}` : tab.title}</button>`).join("")}
+    </div>`;
+  const panes = tabs.map((tab) => `<div class="pane" role="tabpanel" id="swell-pane-${tab.id}"
+      aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("");
+  const after = tabs.filter((tab) => tab.after).map((tab) => `<div class="pane after" data-after-tab="${tab.id}"`
+      + `${tab.id === chosen ? "" : " hidden"}>${tab.after}</div>`).join("");
+  // The tabs box and its tray (owner's design, 2026-11-27): the tabs, a
+  // caret under them, and the panes folded under that, closed until opened.
+  const box = !tray ? `${strip}${panes}${srcLines(source)}${after}`
+    : `<div class="tabbox" data-tabbox>
+      ${strip}
+      <button type="button" class="tray-toggle" data-tray-toggle aria-controls="swell-tray"
+        aria-expanded="${TRAY_OPEN}" aria-label="${label} at the picked tab"><svg viewBox="0 0 16 16"
+        aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>
+      <div class="tab-tray" id="swell-tray"${TRAY_OPEN ? "" : " hidden"}>${panes}${after}</div>
+    </div>${srcLines(source)}`;
+
+  // 46232's pills leave the title row for Point Loma South's line on the
+  // Buoys tab only while the tray is open (owner's call, 2026-11-27): with
+  // it shut they would vanish into it. The picked tab drops its height then.
+  return `<div class="cond swell" data-card="swell" data-tab="${chosen}"${buoyPills ? " data-buoy-pills" : ""}`
+    + `${tray && TRAY_OPEN ? " data-tray-open" : ""}>
+    ${headRow(`<span class="lbl">${label}</span>`, due)}
+    ${headline}
+    ${box}
     ${tabs.map((tab) => originFold(tab.id, tab.origin, tab.id !== chosen)).join("")}
     ${tabs.filter((tab) => tab.chart).map((tab) => seriesChart(tab.id, tab.id !== chosen)).join("")}
   </div>`;
@@ -8853,7 +9068,12 @@ function wireSwellTabs() {
   const strip = $("conditions");
   strip.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-swell-tab]");
-    if (btn) selectSwellTab(btn.getAttribute("data-swell-tab"));
+    // The picked tab tapped again opens or shuts the tray under the tabs,
+    // as its caret does (owner's design, 2026-11-27).
+    const tabId = btn && btn.getAttribute("data-swell-tab");
+    if (btn && tabId === SWELL_TAB && btn.closest("[data-tabbox]")) setTrayOpen(!TRAY_OPEN);
+    else if (btn) selectSwellTab(tabId);
+    if (e.target.closest("[data-tray-toggle]")) setTrayOpen(!TRAY_OPEN);
     // A card's title-row pills: the left pill's other text.
     const head = e.target.closest("[data-head-key]");
     if (head) tapHead(head.getAttribute("data-head-key"));
@@ -8966,6 +9186,10 @@ function renderConditions(step, cards) {
       buoyPills: true,
       chart: true,
       origin: originFor("buoy"),
+      // The Briefing's swell block heads the card, and the tabs carry their
+      // heights and fold into a tray (owner's design, 2026-11-27; the phone).
+      headline: swellBrief(BRIEFING),
+      tray: true,
     }));
 
     // Wind and Tide grey on their own readings' ages (`agedAttr`); the

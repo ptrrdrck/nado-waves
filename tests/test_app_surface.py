@@ -1442,7 +1442,11 @@ class TestTheBreaksAreTabsOfTheSwellCard:
         # In the card's title row, above the tabs and every pane (owner's
         # design, 2026-11-08), so it shows whichever tab is open.
         assert 'headRow(`<span class="lbl">${label}</span>`, due)' in card
-        assert card.index("headRow(") < card.index('class="subtabs"') < card.index('class="pane"')
+        card_ret = card[card.index('return `<div class="cond swell"'):]
+        assert card_ret.index("headRow(") < card_ret.index("${box}")
+        assert card.index('const strip = `<div class="subtabs"') < card.index('const panes = ')
+        assert "${strip}${panes}" in card
+        assert card.index("${strip}") < card.index('<div class="tab-tray" id="swell-tray"')
         panel = SOURCE[SOURCE.index("function buoyPanel"):]
         panel = panel[:panel.index("\n}\n")]
         assert 'class="src"' not in panel and "dueSpan" not in panel
@@ -3660,7 +3664,7 @@ class TestOrigin:
 
     def test_the_buoy_tab_has_one_too(self):
         assert 'origin: originFor("buoy")' in SOURCE
-        assert "after: others.map(contextBuoy).join(\"\"), chart, origin}" in SOURCE
+        assert "after: others.map(contextBuoy).join(\"\"), chart, origin," in SOURCE
 
     def test_distances_are_rounded_and_said_about(self):
         """Two buoys reading one storm differ by about a fifth: a distance
@@ -4389,7 +4393,7 @@ class TestTheBriefing:
     def test_a_sparkline_never_draws_across_a_missing_hour(self):
         spark = self.BLOCK[self.BLOCK.index("function briefSpark"):]
         spark = spark[:spark.index("\n}\n")]
-        assert "{gapH = 1.5, log = false, dots = false} = {}" in spark      # an hour, unless a row says
+        assert "{gapH = 1.5, log = false, dots = false, w = 64, h = 18, cls = \"\"} = {}" in spark      # an hour, unless a row says
         assert "if (i && p[0] - points[i - 1][0] > gapH * 3600) runs.push([]);" in spark
         bars = self.BLOCK[self.BLOCK.index("function briefBars"):]
         assert 'if (d[1] == null) return "";' in bars[:bars.index("\n}\n")]
@@ -5129,7 +5133,9 @@ class TestTheTitleRowPills:
     def test_a_tap_changes_the_text_and_nothing_else(self):
         rule = SOURCE[SOURCE.index("button.chead-pills{"):]
         rule = rule[:rule.index("}\n")]
-        assert "-webkit-tap-highlight-color:transparent" in rule
+        # No tap flash: the page's one rule since 2026-11-27 (owner's call).
+        assert "\nhtml{-webkit-tap-highlight-color:transparent}\n" in SOURCE
+        assert SOURCE.count("-webkit-tap-highlight-color") == 1
         assert "background:none" in rule and "user-select:none" in rule
         assert "button.chead-pills:focus{outline:none}" in SOURCE
         assert "button.chead-pills:active" not in SOURCE and ".chead-pills:hover" not in SOURCE
@@ -5267,7 +5273,9 @@ class TestBuoyNamesAndTheOverdueDot:
         # leaves them out there.
         assert 'const head = named ? headRow(buoyTitle(station && station.name), pills) : "";' in panel
         assert '{pills: buoyPills ? due : ""}' in SOURCE and "buoyPills: true," in SOURCE
-        assert '.cond.swell[data-buoy-pills][data-tab="buoy"] > .chead > :not(.lbl){display:none}' in SOURCE
+        # Since 2026-11-27 on the LIVE phone card only once its tray is open.
+        assert ('.cond.swell[data-buoy-pills][data-tab="buoy"][data-tray-open] > .chead > :not(.lbl){display:none}'
+                in SOURCE)
         assert "return head + buoyReading(" in panel
         # The context buoys: across from their own pills.
         assert "headRow(buoyTitle(b.station_name), feed)" in self.fn("contextBuoy")
@@ -5306,3 +5314,235 @@ class TestTheReaderKeepsTheirPlace:
         body = SOURCE[SOURCE.index("function holdPlace() {"):]
         body = body[:body.index("\n}\n")]
         assert "Math.abs(scrollY - expect) > 1) return false" in body
+
+
+class TestTheSwellCardsTabsBoxAndTray:
+    """The swell card's redesign on the LIVE tab's phone layout (owner's
+    design, 2026-11-27): the Briefing's swell block is the card's headline,
+    each tab carries its own height, and the panes fold into a tray under the
+    tabs, closed until opened."""
+
+    @staticmethod
+    def fn(name: str) -> str:
+        start = SOURCE.index(f"function {name}(")
+        return SOURCE[start:SOURCE.index("\n}\n", start) + 2]
+
+    def _node(self, script: str) -> str:
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is not available")
+        return subprocess.run([node, "-e", script], capture_output=True, text=True,
+                              check=True).stdout.strip()
+
+    def test_the_briefings_swell_block_moves_to_the_card_on_a_phone(self):
+        fold = self.fn("briefingFold")
+        # Still the Briefing's on a wide screen, until that layout is redone.
+        assert "WIDE() && parts.swell.length" in fold
+        brief = self.fn("swellBrief")
+        # The same block, the same rows: the words and numbers are the
+        # Briefing's own, never a second rendering of them.
+        assert "briefingParts(B)" in brief
+        assert "rows.map(briefSwellRow)" in brief and "parts.swell.map((r) =>" in brief
+        assert 'class="brief-block brief-swell swell-brief"' in brief
+
+    def test_only_the_live_card_gets_the_headline_and_the_tray(self):
+        calls = [SOURCE[i:SOURCE.index("}));", i)] for i in
+                 [m.start() for m in re.finditer(r"rows\.push\(swellCard\(\{", SOURCE)]]
+        assert len(calls) == 2
+        live, forecast = calls
+        assert "headline: swellBrief(BRIEFING)" in live and "tray: true" in live
+        assert "headline" not in forecast and "tray" not in forecast
+        card = self.fn("swellCard")
+        # The headline between the title row and the tabs box.
+        ret = card[card.index('return `<div class="cond swell"'):]
+        assert ret.index("headRow(") < ret.index("${headline}") < ret.index("${box}")
+        # Without a tray, the card is as it was: tabs, panes, the source
+        # lines, the after-blocks.
+        assert "!tray ? `${strip}${panes}${srcLines(source)}${after}`" in card
+
+    def test_the_tray_holds_the_panes_and_starts_closed(self):
+        card = self.fn("swellCard")
+        assert '<div class="tab-tray" id="swell-tray"${TRAY_OPEN ? "" : " hidden"}>${panes}${after}</div>' in card
+        assert 'aria-controls="swell-tray"' in card and 'aria-expanded="${TRAY_OPEN}"' in card
+        # Shut on every load; kept across a redraw by the variable alone.
+        assert "\nlet TRAY_OPEN = false;\n" in SOURCE
+        assert "TRAY_OPEN" not in SOURCE[SOURCE.index("function remember("):][:400]
+        toggle = self.fn("setTrayOpen")
+        assert "slideFolds([tray], open" in toggle
+
+    def test_the_caret_or_the_picked_tab_opens_it(self):
+        wire = self.fn("wireSwellTabs")
+        assert ('if (btn && tabId === SWELL_TAB && btn.closest("[data-tabbox]")) setTrayOpen(!TRAY_OPEN);'
+                in wire)
+        assert 'if (e.target.closest("[data-tray-toggle]")) setTrayOpen(!TRAY_OPEN);' in wire
+
+    def test_each_tab_carries_its_height(self):
+        card = self.fn("swellCard")
+        assert "h: tray ? tabHeight(c.hsWindow, c.aged)" in card
+        # The Buoys tab: 46232's combined height, the anchor every break's
+        # numbers are read from.
+        assert "h: tray ? tabHeight(buoy && buoy.hs_m, buoyAged)" in card
+        js = (UNITS_JS + "const FT_PER_M = 3.28084;\n" + self.fn("tabHeight")
+              + "\nconst out = [tabHeight(1.958), tabHeight(null, ' data-aged-at=\"x\"')];"
+              + "\nUNITS = 'imperial'; out.push(tabHeight(1.958));"
+              + "\nUNITS = 'metric'; out.push(tabHeight(1.958));"
+              + "\nconsole.log(JSON.stringify(out));")
+        both, gap, imperial, metric = json.loads(self._node(js))
+        # Feet to the tenth, as the headline; metric on a line of its own.
+        assert both == '<span class="tab-h">6.4 ft<span class="tab-m unit">(1.96 m)</span></span>'
+        assert gap == '<span class="tab-h" data-aged-at="x">—</span>'
+        assert imperial == '<span class="tab-h">6.4 ft</span>'
+        assert metric == '<span class="tab-h">1.96 m</span>'
+
+    def test_the_map_is_the_trays_width_and_its_caption_the_foot(self):
+        css = SOURCE[SOURCE.index("/* THE SWELL CARD'S TABS BOX AND ITS TRAY"):]
+        css = css[:css.index(".swell-brief{")]
+        assert ".tab-tray .sm-face{margin:0 -11px}" in css
+        assert ".tab-tray{display:flex;flex-direction:column;background:var(--card);" in css
+        assert "padding:12.9px 11px 0}" in css
+        assert ".tab-tray .sm-face:last-child{margin-bottom:0}" in css
+        assert ".tab-tray .rose.sea{margin-left:-11px;margin-right:-11px}" in css
+        # The buoys' station blocks too (owner's call, 2026-11-27).
+        assert ".tab-tray .buoy-info{margin-left:-11px;margin-right:-11px;" in SOURCE
+
+    def test_each_buoys_rose_and_station_block_are_one_plate(self):
+        # No card between them, a hairline on the words' 11 px, spaced as
+        # the Origin / Charts rule paints (17.3 / 16.2 px at 390; measured
+        # 17.2 / 15.8), and the last buoy's block, open, the box's foot
+        # (owner's calls, 2026-11-27).
+        assert ".tab-tray .rose.sea:has(+ .buoy-info){margin-bottom:-11px}" in SOURCE
+        assert ".tab-tray .rose.sea:has(+ .buoy-info) .rose-tray{border-bottom:0;padding-bottom:11.5px}" in SOURCE
+        assert "border-top:0;padding-top:12.5px}" in SOURCE
+        assert "left:11px;right:11px;\n" in SOURCE
+        assert ("border-top:1px solid var(--line)}" in
+                SOURCE[SOURCE.index(".tab-tray .rose.sea + .buoy-info::before{"):][:200])
+        assert (".tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child)"
+                "{padding-bottom:0}") in SOURCE
+        assert ".tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}" in SOURCE
+
+    def test_the_ranges_sparkline_is_112_by_28_where_it_fits(self):
+        # Owner's pick, 2026-11-27: drawn at that size (its line and dot as
+        # thick as the Briefing's), the Briefing's 64 x 18 beside it for a
+        # phone under 361 px or a range that would wrap beside it.
+        brief = self.fn("swellBrief")
+        assert 'briefSpark(s.spark, s.window_h || 24, {w: 112, h: 28, cls: "big"}) + r.spark' in brief
+        fit = self.fn("fitSwellSpark")
+        assert 'window.matchMedia("(max-width: 360px)")' in fit
+        assert "big.offsetHeight > 1.5 * parseFloat(getComputedStyle(big).lineHeight)" in fit
+        assert ".swell-brief .brief-spark.big{width:112px;height:28px}" in SOURCE
+        assert ("new MutationObserver(() => fitSwellSpark())\n"
+                '    .observe(document.getElementById("conditions"), {childList: true, subtree: true});') in SOURCE
+        js = (self.fn("briefSpark") + "\nconst pts = [[0, 1.0], [1800, 1.4], [3600, 1.2]];"
+              + "\nconsole.log(JSON.stringify([briefSpark(pts, 1), briefSpark(pts, 1, {w: 112, h: 28, cls: 'big'})]));")
+        small, big = json.loads(self._node(js))
+        assert small.startswith('<svg class="brief-spark" viewBox="0 0 64 18"')
+        assert big.startswith('<svg class="brief-spark big" viewBox="0 0 112 28"')
+        # The newest reading at the right end, 3 units in, as the small one.
+        assert 'cx="109.0"' in big and 'cx="61.0"' in small
+
+    def test_an_open_buoys_plate_is_the_rule_above_the_next_buoy(self):
+        # Owner's call, 2026-11-27: the plate's foot lies on the next buoy's
+        # rule (measured at 390: 31 and 21 px of card above it before), by a
+        # margin rather than a hidden rule, so a fold's slide never jumps.
+        assert ".tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}" in SOURCE
+        assert ".tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}" in SOURCE
+        assert ".pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}" in SOURCE
+
+    def test_the_caret_sits_clear_of_the_tabs(self):
+        # 5 px more than at first above it; below it a little under the box's
+        # top edge to the tab names' ink, which reads as equal: 12.7 px
+        # against 13.3 painted at 390 once the names were centred by their
+        # ink, Both's 3 px higher names likewise (owner's calls, 2026-11-27).
+        assert (".tray-toggle{display:grid;place-items:center;width:100%;height:26.8px;margin-top:2px;"
+                "padding:0 0 4.8px;") in SOURCE
+        assert ".tabbox:has(.tab-m) .tray-toggle{height:25.45px;padding-bottom:3.45px}" in SOURCE
+
+    def test_each_tab_is_centred_by_its_ink(self):
+        # Line boxes put the caps' empty leading under them: 12.3 / 8.9 px
+        # of tab above and below the ink (12.3 / 6.2 in Both); now 10.3 /
+        # 10.9 and 9.3 / 9.1, pixel-snapped at 2x (owner's call, 2026-11-27).
+        assert "gap:1px;padding:4.6px 2px 6.4px}" in SOURCE
+        assert ".tabbox .subtabs button:has(.tab-m){padding:2.95px 2px 8.05px}" in SOURCE
+
+    def test_the_trays_first_ink_sits_in_the_cards_rhythm(self):
+        # About 17.5 px under the tray's edge (17.3 / 17.4 / 17.3 measured on
+        # a break, in Both, on the Buoys tab), as round the box (owner's
+        # call, 2026-11-27; it was 12.6 on a break).
+        assert "padding:12.9px 11px 0}" in SOURCE[SOURCE.index(".tab-tray{display:flex;"):][:200]
+
+    def test_a_buoys_fold_spans_the_tray_so_its_slide_never_clips_it(self):
+        # `.fold-moving` clips a sliding fold; a rose reaching past the fold
+        # showed its sides only once the slide ended (owner's report).
+        assert ".fold-moving{overflow:hidden;box-sizing:border-box}" in SOURCE
+        assert ".tab-tray .buoy-fold{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px}" in SOURCE
+
+    def test_the_picked_tab_drops_its_height_while_the_tray_is_open(self):
+        # The name slides to the tab's middle (by its ink: 19.8 / 19.9 and
+        # 26.3 / 26.6 px of tab above and below it open) and the height slides
+        # WITH it as it fades, so the 1 px between them holds on every frame
+        # (owner's calls, 2026-11-27: a fade alone left the height under the
+        # name, which the fold's ease moves 40% of its way in 10 ms).
+        assert ".tabbox .subtabs button{overflow:hidden;--tab-shift:9.4px}" in SOURCE
+        assert ".tabbox .subtabs button:has(.tab-m){--tab-shift:17.15px}" in SOURCE
+        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h)'
+                "{transform:translateY(var(--tab-shift))}") in SOURCE
+        rule = SOURCE[SOURCE.index('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;'):]
+        rule = rule[:rule.index("}\n")]
+        assert "opacity:0;" in rule and "transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)" in rule
+        # The fold's own timing: 240 ms on its ease.
+        assert ".tabbox .tab-h{transition:opacity .24s linear,transform .24s cubic-bezier(.05,.7,.1,1)}" in SOURCE
+        assert 'const FOLD_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)"};' in SOURCE
+
+    def test_a_tab_names_o_and_u_stand_a_little_apart(self):
+        # Barlow Condensed sets O and U as close as its straight letters and
+        # SOUTH and BUOYS read squeezed (owner's calls, 2026-11-27, replacing
+        # a 6% scale of the picked name): 0.05 em more before one, 0.04 after
+        # (0.06 each side, then 0.05, read loose), 0.04 em between an O and a
+        # U side by side (0.03 read tight); then CENTER's EN and BUOYS' YS
+        # opened 0.01 em and its OY closed 0.02 (`TAB_KERN`).
+        assert "scale(1.06)" not in SOURCE
+        assert ".tabbox .tab-ou{margin:0 .04em 0 .05em}" in SOURCE
+        assert ".tabbox .tab-ou + .tab-ou{margin-left:0}" in SOURCE
+        assert "const TAB_KERN = {EN: 0.01, YS: 0.01, OY: -0.02};" in SOURCE
+        assert "${tabLetters(tab.title)}" in self.fn("swellCard")
+        start = SOURCE.index("const TAB_KERN = ")
+        js = SOURCE[start:SOURCE.index('}).join("");', start) + 12] + (
+            "\nconsole.log(JSON.stringify(['South', 'Center', 'North', 'Buoys'].map(tabLetters)));")
+        got = json.loads(self._node(js))
+        assert got == [
+            'S<span class="tab-ou">o</span><span class="tab-ou">u</span>th',
+            'Ce<span style="margin-left:0.01em">n</span>ter',
+            'N<span class="tab-ou">o</span>rth',
+            'B<span class="tab-ou">u</span><span class="tab-ou">o</span>'
+            '<span style="margin-left:-0.02em">y</span><span style="margin-left:0.01em">s</span>',
+        ]
+
+    def test_the_buoys_tab_keeps_the_trays_rhythm(self):
+        # 17.5 px painted above and below each buoy's name and under its
+        # height line (owner's call, 2026-11-27), 16.9-17.9 measured at 2x
+        # but for one 18.5 a device pixel of snapping.
+        for rule in (".tab-tray .pane.after > hr + .chead{margin-top:2.5px}",
+                     ".tab-tray .pane > .chead:has(> .buoy-name) + .val-line{margin-top:-1px}",
+                     ".tab-tray .pane > .val-line + .buoy-fold{margin-top:-6.5px}",
+                     ".tab-tray .pane.after > .buoy-fold[hidden] + hr{margin-top:1px}",
+                     ".tab-tray > .pane.after:has(> .buoy-fold:last-child[hidden]){padding-bottom:12px}",
+                     ".tab-tray > #swell-pane-buoy:has(> .buoy-fold:last-child[hidden]){padding-bottom:1.5px}"):
+            assert rule in SOURCE, rule
+
+    def test_46232s_pills_leave_the_title_row_only_while_the_tray_is_open(self):
+        assert ('.cond.swell[data-buoy-pills][data-tab="buoy"][data-tray-open] > .chead > :not(.lbl){display:none}'
+                in SOURCE)
+        assert '.cond.swell[data-buoy-pills][data-tab="buoy"]:not(:has(> .tabbox)) > .chead > :not(.lbl),' in SOURCE
+        assert '${tray && TRAY_OPEN ? " data-tray-open" : ""}>' in self.fn("swellCard")
+        # As the tray starts to open or shut (owner's call, 2026-11-27).
+        toggle = self.fn("setTrayOpen")
+        assert 'if (card) card.toggleAttribute("data-tray-open", open);' in toggle
+        assert toggle.index('toggleAttribute("data-tray-open", open)') < toggle.index("slideFolds(")
+
+    def test_the_box_sits_as_far_from_its_neighbours_as_the_range_from_the_title(self):
+        # 17.5 px painted at 390 each (owner's call, 2026-11-27): title ink to
+        # range ink, the headline's last ink to the box (8 px card gap + 6),
+        # the box's foot to the Origin rule (8 + 7.5 + the fold's own 2).
+        assert ".swell-brief{margin-bottom:6px}" in SOURCE
+        assert ".tabbox{margin-bottom:7.5px}" in SOURCE
+        assert ".cond.swell{gap:8px}" in SOURCE
