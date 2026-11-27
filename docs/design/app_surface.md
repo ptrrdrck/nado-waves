@@ -573,8 +573,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      read loose, then UT, OR and OY at 0.05), and 0.04 em between an O and a
      U side by side, not twice the side's (0.03 read tight). Pairs that still
      read uneven are moved by eye in `TAB_KERN`, em before the second letter:
-     CENTER's EN and BUOYS' YS +0.01, BUOYS' OY -0.01 (owner's calls, same
-     day).
+     CENTER's EN and BUOYS' YS +0.01, BUOYS' OY -0.02 (owner's calls, same
+     day; -0.01 read a hair wide).
    - A buoy's fold spans the tray with its contents padded back in: the
      folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
      reaching past it showed its sides only once the slide had ended

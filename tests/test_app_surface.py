@@ -5499,11 +5499,11 @@ class TestTheSwellCardsTabsBoxAndTray:
         # a 6% scale of the picked name): 0.05 em more before one, 0.04 after
         # (0.06 each side, then 0.05, read loose), 0.04 em between an O and a
         # U side by side (0.03 read tight); then CENTER's EN and BUOYS' YS
-        # opened 0.01 em and its OY closed 0.01 (`TAB_KERN`).
+        # opened 0.01 em and its OY closed 0.02 (`TAB_KERN`).
         assert "scale(1.06)" not in SOURCE
         assert ".tabbox .tab-ou{margin:0 .04em 0 .05em}" in SOURCE
         assert ".tabbox .tab-ou + .tab-ou{margin-left:0}" in SOURCE
-        assert "const TAB_KERN = {EN: 0.01, YS: 0.01, OY: -0.01};" in SOURCE
+        assert "const TAB_KERN = {EN: 0.01, YS: 0.01, OY: -0.02};" in SOURCE
         assert "${tabLetters(tab.title)}" in self.fn("swellCard")
         start = SOURCE.index("const TAB_KERN = ")
         js = SOURCE[start:SOURCE.index('}).join("");', start) + 12] + (
@@ -5514,7 +5514,7 @@ class TestTheSwellCardsTabsBoxAndTray:
             'Ce<span style="margin-left:0.01em">n</span>ter',
             'N<span class="tab-ou">o</span>rth',
             'B<span class="tab-ou">u</span><span class="tab-ou">o</span>'
-            '<span style="margin-left:-0.01em">y</span><span style="margin-left:0.01em">s</span>',
+            '<span style="margin-left:-0.02em">y</span><span style="margin-left:0.01em">s</span>',
         ]
 
     def test_the_buoys_tab_keeps_the_trays_rhythm(self):

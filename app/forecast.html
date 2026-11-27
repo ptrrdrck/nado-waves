@@ -8425,7 +8425,7 @@ function cardChart(id) {
 // its neighbours (owner's call, 2026-11-27; `.tab-ou`), and the pairs that
 // still read uneven moved by eye, in em before the second letter (owner's
 // calls, same day): CENTER's EN and BUOYS' YS opened, its OY closed.
-const TAB_KERN = {EN: 0.01, YS: 0.01, OY: -0.01};
+const TAB_KERN = {EN: 0.01, YS: 0.01, OY: -0.02};
 const tabLetters = (title) => [...String(title)].map((ch, i, all) => {
   const kern = i ? TAB_KERN[(all[i - 1] + ch).toUpperCase()] : 0;
   const ou = /[OU]/i.test(ch);
