@@ -440,7 +440,12 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tabbox .subtabs button:has(.tab-m){--tab-shift:17.15px}
 .tabbox .tab-name{transition:transform .24s cubic-bezier(.05,.7,.1,1)}
 .tabbox .tab-h{transition:opacity .24s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
-.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h){transform:translateY(var(--tab-shift))}
+/* The picked tab's name a touch larger (owner's call, 2026-11-27): the same
+   14 px and 10 px of caps painted as every tab's, it read smaller, dark on
+   the white chip against grey on the grey track. */
+.tabbox .subtabs button[aria-selected="true"] .tab-name{transform:scale(1.06)}
+.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-name{transform:translateY(var(--tab-shift)) scale(1.06)}
+.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{transform:translateY(var(--tab-shift))}
 .cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
   transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
 @media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
@@ -506,6 +511,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    jumps. Measured at 390: 31 and 21 px of card above the rule before. */
 .tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}
 .tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}
+/* 17.5 px painted above and below each buoy's name and under its height
+   line, the tray's rhythm (owner's call, 2026-11-27; it was 14.9-15.4 above
+   a context buoy's name, 18.5 under every name, 24.0 to the trains, 27.1 to
+   the rule under 46232 shut and 16.1-16.6 under the others). */
+.tab-tray .pane.after > hr + .chead{margin-top:2.5px}
+.tab-tray .pane > .chead:has(> .buoy-name) + .val-line{margin-top:-1px}
+.tab-tray .pane > .val-line + .buoy-fold{margin-top:-6.5px}
+.tab-tray .pane.after > .buoy-fold[hidden] + hr{margin-top:1px}
+.tab-tray > .pane.after:has(> .buoy-fold:last-child[hidden]){padding-bottom:12px}
+.tab-tray > #swell-pane-buoy:has(> .buoy-fold:last-child[hidden]){padding-bottom:1.5px}
 /* The last buoy's plate, open, is the box's foot. */
 .tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child){padding-bottom:0}
 .tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}

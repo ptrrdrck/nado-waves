@@ -557,7 +557,16 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      and 26.3 / 26.6.
    - **The tray's first ink about 17.5 px under its edge** (owner's call,
      same day; it was 12.6 on a break): 17.3 on a break, 17.4 in Both,
-     17.3 on the Buoys tab, the card's rhythm round the box.
+     17.3 on the Buoys tab, the card's rhythm round the box. **The Buoys tab
+     keeps it** (owner's call, same day): 17.5 px painted above and below
+     each buoy's name and under its height line, to the trains or the next
+     rule (it was 14.9-15.4 above a context buoy's name, 18.5 under every
+     name, 24.0 to the trains, 27.1 under 46232 shut); 16.9-17.9 measured at
+     2x, one 18.5 a device pixel of snapping under an open plate.
+   - **The picked tab's name is scaled 1.06** (owner's call, same day):
+     every name is 14 px with 10 px of caps painted, and the picked one read
+     smaller, dark on the white chip against grey on the grey track, whichever
+     tab it is (South only because it led). 11 px of caps painted now.
    - A buoy's fold spans the tray with its contents padded back in: the
      folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
      reaching past it showed its sides only once the slide had ended

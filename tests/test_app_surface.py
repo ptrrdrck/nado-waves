@@ -5484,7 +5484,9 @@ class TestTheSwellCardsTabsBoxAndTray:
         # name, which the fold's ease moves 40% of its way in 10 ms).
         assert ".tabbox .subtabs button{overflow:hidden;--tab-shift:9.4px}" in SOURCE
         assert ".tabbox .subtabs button:has(.tab-m){--tab-shift:17.15px}" in SOURCE
-        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h)'
+        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-name'
+                "{transform:translateY(var(--tab-shift)) scale(1.06)}") in SOURCE
+        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h'
                 "{transform:translateY(var(--tab-shift))}") in SOURCE
         rule = SOURCE[SOURCE.index('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{'):]
         rule = rule[:rule.index("}\n")]
@@ -5492,6 +5494,23 @@ class TestTheSwellCardsTabsBoxAndTray:
         # The fold's own timing: 240 ms on its ease.
         assert ".tabbox .tab-h{transition:opacity .24s linear,transform .24s cubic-bezier(.05,.7,.1,1)}" in SOURCE
         assert 'const FOLD_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)"};' in SOURCE
+
+    def test_the_picked_tabs_name_is_a_touch_larger(self):
+        # Same 14 px and 10 px of caps painted as every tab, it read smaller,
+        # dark on the white chip (owner's call, 2026-11-27): 11 px painted.
+        assert '.tabbox .subtabs button[aria-selected="true"] .tab-name{transform:scale(1.06)}' in SOURCE
+
+    def test_the_buoys_tab_keeps_the_trays_rhythm(self):
+        # 17.5 px painted above and below each buoy's name and under its
+        # height line (owner's call, 2026-11-27), 16.9-17.9 measured at 2x
+        # but for one 18.5 a device pixel of snapping.
+        for rule in (".tab-tray .pane.after > hr + .chead{margin-top:2.5px}",
+                     ".tab-tray .pane > .chead:has(> .buoy-name) + .val-line{margin-top:-1px}",
+                     ".tab-tray .pane > .val-line + .buoy-fold{margin-top:-6.5px}",
+                     ".tab-tray .pane.after > .buoy-fold[hidden] + hr{margin-top:1px}",
+                     ".tab-tray > .pane.after:has(> .buoy-fold:last-child[hidden]){padding-bottom:12px}",
+                     ".tab-tray > #swell-pane-buoy:has(> .buoy-fold:last-child[hidden]){padding-bottom:1.5px}"):
+            assert rule in SOURCE, rule
 
     def test_46232s_pills_leave_the_title_row_only_while_the_tray_is_open(self):
         assert ('.cond.swell[data-buoy-pills][data-tab="buoy"][data-tray-open] > .chead > :not(.lbl){display:none}'
