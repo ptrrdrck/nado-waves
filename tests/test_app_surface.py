@@ -5484,9 +5484,7 @@ class TestTheSwellCardsTabsBoxAndTray:
         # name, which the fold's ease moves 40% of its way in 10 ms).
         assert ".tabbox .subtabs button{overflow:hidden;--tab-shift:9.4px}" in SOURCE
         assert ".tabbox .subtabs button:has(.tab-m){--tab-shift:17.15px}" in SOURCE
-        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-name'
-                "{transform:translateY(var(--tab-shift)) scale(1.06)}") in SOURCE
-        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h'
+        assert ('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] :is(.tab-name,.tab-h)'
                 "{transform:translateY(var(--tab-shift))}") in SOURCE
         rule = SOURCE[SOURCE.index('.cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;'):]
         rule = rule[:rule.index("}\n")]
@@ -5495,10 +5493,22 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".tabbox .tab-h{transition:opacity .24s linear,transform .24s cubic-bezier(.05,.7,.1,1)}" in SOURCE
         assert 'const FOLD_SLIDE = {ms: 240, ease: "cubic-bezier(.05,.7,.1,1)"};' in SOURCE
 
-    def test_the_picked_tabs_name_is_a_touch_larger(self):
-        # Same 14 px and 10 px of caps painted as every tab, it read smaller,
-        # dark on the white chip (owner's call, 2026-11-27): 11 px painted.
-        assert '.tabbox .subtabs button[aria-selected="true"] .tab-name{transform:scale(1.06)}' in SOURCE
+    def test_a_tab_names_o_and_u_stand_a_little_apart(self):
+        # Barlow Condensed sets O and U as close as its straight letters and
+        # SOUTH and BUOYS read squeezed (owner's call, 2026-11-27, replacing
+        # a 6% scale of the picked name): 0.06 em more each side, half that
+        # between an O and a U side by side.
+        assert "scale(1.06)" not in SOURCE
+        assert ".tabbox .tab-ou{margin:0 .06em}" in SOURCE
+        assert ".tabbox .tab-ou + .tab-ou{margin-left:-.03em}" in SOURCE
+        assert "${tabLetters(tab.title)}" in self.fn("swellCard")
+        start = SOURCE.index("const tabLetters = ")
+        js = SOURCE[start:SOURCE.index("\n", start)] + (
+            "\nconsole.log(JSON.stringify(['South', 'Center', 'North', 'Buoys'].map(tabLetters)));")
+        got = json.loads(self._node(js))
+        o, u = '<span class="tab-ou">O</span>', '<span class="tab-ou">U</span>'
+        assert got == ["S" + o.replace("O", "o") + u.replace("U", "u") + "th", "Center",
+                       "N" + o.replace("O", "o") + "rth", "B" + u.replace("U", "u") + o.replace("O", "o") + "ys"]
 
     def test_the_buoys_tab_keeps_the_trays_rhythm(self):
         # 17.5 px painted above and below each buoy's name and under its

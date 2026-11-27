@@ -563,10 +563,14 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      rule (it was 14.9-15.4 above a context buoy's name, 18.5 under every
      name, 24.0 to the trains, 27.1 under 46232 shut); 16.9-17.9 measured at
      2x, one 18.5 a device pixel of snapping under an open plate.
-   - **The picked tab's name is scaled 1.06** (owner's call, same day):
-     every name is 14 px with 10 px of caps painted, and the picked one read
-     smaller, dark on the white chip against grey on the grey track, whichever
-     tab it is (South only because it led). 11 px of caps painted now.
+   - **A tab name's O and U stand a little apart** (owner's call, same
+     day, replacing a 6% scale of the picked name, which answered the wrong
+     question): every name is 14 px with 10 px of caps painted, and SOUTH
+     read smaller because Barlow Condensed sets O and U as close as its
+     straight letters (1.7-2.0 px painted), so the round letters look
+     squeezed. Each O and U is a span (`tabLetters`, `.tab-ou`) with 0.06 em
+     more each side, and between an O and a U side by side half that, not
+     twice: SO / OU / UT 2.3 px painted at 3x, NO / OR 3.0, BU / UO / OY 2.7.
    - A buoy's fold spans the tray with its contents padded back in: the
      folds' slide clips a moving fold (`.fold-moving`), and a rose or plate
      reaching past it showed its sides only once the slide had ended
