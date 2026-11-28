@@ -2899,6 +2899,9 @@ function renderStanding(el, standing) {
 // everywhere on this page.
 const DRAWING = (() => {
 const UNITS = "both";
+// The forecast page's togglePick shuts an origin's line under a train the
+// pick has left (2026-11-28); this page has no train rows, so nothing.
+const syncOriginLines = () => {};
 // ---- from app/forecast.html ----
 const AWAY = "pointed away from this beach";
 const dualText = (imp, met) => (UNITS === "imperial" ? imp : UNITS === "metric" ? met : `${imp} (${met})`);
@@ -3207,6 +3210,8 @@ function togglePick(svg, key) {
   const id = svg.getAttribute("data-break");
   PICKED[id] = key && PICKED[id] !== key ? key : null;
   showPick(svg, PICKED[id]);
+  // A line under a row the pick has left shuts with it.
+  syncOriginLines(svg.closest(".pane"));
 }
 // ---- end ----
 return {windowDrawing, showPick, pickAt, pickDrawn, togglePick, PICKED};
