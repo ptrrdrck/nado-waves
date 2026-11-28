@@ -263,8 +263,9 @@ def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
     started deeper (`forecast.nearshoretest`, at a buoy in 21 m) passes its
     own, or the local sea would be de-shoaled from the wrong depth.
 
-    `k_n` is the roughness along every path (MADSEN_K_N ships);
-    `forecast.reefbound` sweeps it, report only.
+    `k_n` is the roughness along every path (MADSEN_K_N ships), or a list
+    with one array per path giving each wet step's roughness, aligned with
+    `steps`; `forecast.reefbound` sweeps and locates it, report only.
     """
 
     hs_m = np.asarray(hs_m, float)
@@ -280,11 +281,19 @@ def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
     n, width = len(steps), int(lengths.max())
     depth = np.full((n, width), H_REF)
     ds = np.zeros((n, width))
+    per_step = not np.isscalar(k_n)
+    kmat = np.full((n, width), MADSEN_K_N if per_step else float(k_n))
     for row, j in enumerate(order):
         h, d = steps[j]
         if len(h):
             depth[row, width - len(h):] = h[::-1]
             ds[row, width - len(d):] = d[::-1]
+            if per_step:
+                kj = np.asarray(k_n[j], float)
+                if kj.shape != np.shape(h):
+                    raise ValueError(f"path {j}: {kj.size} roughness values for {len(h)} steps")
+                kmat[row, width - len(h):] = kj[::-1]
+    kinds = np.unique(kmat)
     first = width - lengths[order]                 # first live column per row, ascending
     # live_rows[c]: rows 0..live_rows[c]-1 have a step at column c.
     live_rows = np.searchsorted(first, np.arange(width), side="right")
@@ -314,7 +323,16 @@ def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
             excursion = hs_loc / (4.0 * shp[:, None, :m, c])
             ab = math.sqrt(2.0) * excursion
             urms = w_p[:, None, None] * excursion
-            ln_f[:, :, :m] -= fw_lookup(ab, k_n) * G * urms / math.sqrt(2.0) * shape[None, None, :m, c]
+            if kinds.size == 1:
+                fw = fw_lookup(ab, float(kinds[0]))
+            else:
+                kc = kmat[:m, c]
+                fw = np.zeros_like(ab)
+                for u in kinds:
+                    on = kc == u
+                    if on.any():
+                        fw = np.where(on[None, None, :], fw_lookup(ab, float(u)), fw)
+            ln_f[:, :, :m] -= fw * G * urms / math.sqrt(2.0) * shape[None, None, :m, c]
         out[order, :, it, :] = -ln_f.transpose(2, 0, 1)
     return out
 
@@ -813,12 +831,16 @@ class Rays:
     #: MSL at the start of each step, step length), exactly the terms the
     #: `friction` integral sums, for the Madsen table (`madsen_losses`).
     steps: list | None = None
+    #: With `step_xy`, each wet step's start position (UTM x, y), aligned
+    #: with `steps` one for one: where a step is, for a seabed that varies
+    #: along the path (`forecast.reefbound`, report only). None otherwise.
+    step_xy: list | None = None
 
 
 def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
           period_s: float, islands: list[Island] | None = None,
           edges: dict[str, np.ndarray] | None = None, record: bool = False,
-          steps: bool = False) -> Rays:
+          steps: bool = False, step_xy: bool = False) -> Rays:
     """Trace every heading at one period, seaward, until deep water, land or edge.
 
     With `islands`, also records where each ray has each island abeam — the
@@ -850,6 +872,7 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
     # those arrays and failed, so the full table build could not run.
     walked = [[(float(x0), float(y0), 0.0)] for _ in range(n)] if record else None
     stepped: list | None = [] if steps else None
+    stepped_xy: list | None = [] if (steps and step_xy) else None
     elapsed = np.zeros(n)
 
     def ahead(island, xa, ya, ba):
@@ -903,6 +926,8 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
             lost[idx[wet]] += friction_rate(omega, h[go][wet]) * ds[wet]
             if stepped is not None:
                 stepped.append((idx[wet], h[go][wet], ds[wet]))
+            if stepped_xy is not None:
+                stepped_xy.append((xa[wet], ya[wet]))
             _, cg_here, _ = speeds(omega, h[go][wet])
             elapsed[idx[wet]] += ds[wet] / cg_here
 
@@ -954,9 +979,16 @@ def trace(bathy: Bathymetry, x0: float, y0: float, near_from_deg: np.ndarray,
             who, hh, dd = who[order], hh[order], dd[order]
             cuts = np.searchsorted(who, np.arange(n + 1))
             per_ray = [(hh[cuts[j]:cuts[j + 1]], dd[cuts[j]:cuts[j + 1]]) for j in range(n)]
+    per_xy = None
+    if stepped_xy is not None:
+        per_xy = [(np.zeros(0), np.zeros(0)) for _ in range(n)]
+        if stepped_xy:
+            sx = np.concatenate([a for a, _ in stepped_xy])[order]
+            sy = np.concatenate([b for _, b in stepped_xy])[order]
+            per_xy = [(sx[cuts[j]:cuts[j + 1]], sy[cuts[j]:cuts[j + 1]]) for j in range(n)]
     return Rays(compass_from(beta), status, x, y, exit_depth, path, passes,
                 {name: tuple(v) for name, v in near_edge.items()} if edges else None,
-                np.exp(-lost), elapsed, walked, per_ray)
+                np.exp(-lost), elapsed, walked, per_ray, per_xy)
 
 
 # ------------------------------------------------------------------ blockers
@@ -1122,7 +1154,7 @@ def edge_points(blockers: list[Blocker]) -> dict[str, np.ndarray]:
 
 
 def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: float,
-                h_ref: float = H_REF, k_n: float = MADSEN_K_N) -> dict:
+                h_ref: float = H_REF, k_n=MADSEN_K_N) -> dict:
     """One frequency's Madsen table: each carrying path's weights on this
     frequency's basis, which path each carrying row (by its place k among the
     frequency's rows) crosses the shelf on, the basis over the nodes (peak,
@@ -1133,17 +1165,26 @@ def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: flo
     src = sorted({int(path_of[i]) for i in rows})
     if not src:
         return {"rank": 0, "basis": [], "paths": [], "rows": {}, "max_error": 0.0}
-    loss = madsen_losses([rays.steps[j] for j in src], omega, h_ref=h_ref, k_n=k_n)
+    k_src = k_n if np.isscalar(k_n) else [k_n[j] for j in src]   # per ray -> per path
+    loss = madsen_losses([rays.steps[j] for j in src], omega, h_ref=h_ref, k_n=k_src)
     weights, basis, err = compress_losses(loss.reshape(len(src), -1))
     at_src = {j: n for n, j in enumerate(src)}
-    return {"rank": len(basis), "basis": basis, "max_error": err, "paths": weights,
-            "rows": {str(int(i)): at_src[int(path_of[i])] for i in rows}}
+    out = {"rank": len(basis), "basis": basis, "max_error": err, "paths": weights,
+           "rows": {str(int(i)): at_src[int(path_of[i])] for i in rows}}
+    if not np.isscalar(k_n):
+        # A located seabed (report only): each path's share of its wet length
+        # rougher than what ships. Never in a shipped table.
+        out["rough_share"] = [
+            round(float(np.sum(d[np.asarray(k_src[n]) > MADSEN_K_N]) / np.sum(d)), 6)
+            if np.sum(d) > 0 else 0.0
+            for n, (_, d) in enumerate(rays.steps[j] for j in src)]
+    return out
 
 
 def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
           freqs: list[float], madsen_out: dict | None = None,
           h_ref: float = H_REF, dir_step: float = DIR_STEP_DEG,
-          fill: str = FILL_RULE, madsen_k_n: float = MADSEN_K_N) -> tuple[list[dict], dict]:
+          fill: str = FILL_RULE, madsen_k_n=MADSEN_K_N) -> tuple[list[dict], dict]:
     """One break's transfer table, with every window edge both hard and soft.
 
     For each ray, two answers:
@@ -1190,7 +1231,9 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
 
     `madsen_k_n` is the roughness the Madsen table is built at; what ships is
     MADSEN_K_N. `forecast.reefbound` builds rougher ones, report only
-    (handoff 27d); the rows do not depend on it.
+    (handoff 27d); the rows do not depend on it. It may also be a function
+    of UTM positions, (x, y) arrays -> roughness array, giving each wet step
+    the roughness where it starts (a located seabed).
     """
 
     if fill not in ("fan", "nearest"):
@@ -1205,7 +1248,9 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     for f in freqs:
         period = 1.0 / f
         omega = 2.0 * math.pi * f
-        rays = trace(bathy, xs, ys, near, period, islands, edges, steps=madsen_out is not None)
+        located = callable(madsen_k_n)
+        rays = trace(bathy, xs, ys, near, period, islands, edges, steps=madsen_out is not None,
+                     step_xy=located and madsen_out is not None)
         c_n, cg_n, _ = speeds(omega, np.array([hs]))
         c0 = G / omega
         gain = (c0 * 0.5 * c0) / float(c_n[0] * cg_n[0])
@@ -1286,8 +1331,9 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                                           np.array([along[i]]), period)[0]) * isl[nearest]
 
         if madsen_out is not None:
+            k_here = ([madsen_k_n(x, y) for x, y in rays.step_xy] if located else madsen_k_n)
             madsen_out[f"{f:.4f}"] = madsen_freq(rays, path_of, diff_t > 0, omega, h_ref=h_ref,
-                                                    k_n=madsen_k_n)
+                                                    k_n=k_here)
         for i, theta in enumerate(near):
             rows.append({
                 "period_s": f"{period:.3f}", "freq_hz": f"{f:.4f}",
