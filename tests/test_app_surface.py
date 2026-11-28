@@ -5429,14 +5429,13 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert 'parts.swell.filter((r) => r.kind !== "off").map((r) =>' in brief
         assert 'class="brief-block brief-swell swell-brief"' in brief
 
-    def _offshore(self, rows, signal=False):
+    def _offshore(self, rows):
         start = SOURCE.index("const TAB_KERN = ")
         letters = SOURCE[start:SOURCE.index('}).join("");', SOURCE.index("const tabLetters = ")) + 12]
-        js = (letters + f"\nlet OFF_SIGNAL = {'true' if signal else 'false'};\n"
-              "const briefNum = (s) => `<b>${s}</b>`;\n"
+        js = (letters + "\nconst briefNum = (s) => `<b>${s}</b>`;\n"
               "const briefSignal = (d) => `<svg class='brief-signal' data-from='${d}'></svg>`;\n"
               f"const briefingParts = () => ({{swell: {json.dumps(rows)}}});\n"
-              + self.fn("offshoreBox").replace("let OFF_SIGNAL = false;\n", "")
+              + self.fn("offshoreBox")
               + "\nprocess.stdout.write(offshoreBox({}));")
         return self._node(js)
 
@@ -5444,8 +5443,9 @@ class TestTheSwellCardsTabsBoxAndTray:
                "buoy": "Point Loma South", "due": "9:50\u00a0PM", "legs": "30\u201340", "body": "the Briefing's"}
 
     def test_tanner_banks_lines_leave_the_headline_for_the_offshore_box(self):
-        # Owner's design, 2026-11-28: under the tabs box, on LIVE (Forecast's
-        # headline has none), the Briefing's sentence unchanged for its record.
+        # Owner's design, 2026-11-28: under the tabs box, above Charts, on
+        # LIVE (Forecast's headline has none), the Briefing's sentence
+        # unchanged for its record.
         calls = [m.group(0) for m in re.finditer(r"swellCard\(\{[\s\S]*?\}\)\)", SOURCE)]
         live = [c for c in calls if "swellBrief(BRIEFING)" in c][0]
         assert "below: offshoreBox(BRIEFING)" in live
@@ -5463,6 +5463,10 @@ class TestTheSwellCardsTabsBoxAndTray:
         html = self._offshore([{"kind": "beach"}, self.OFF_ROW, {**self.OFF_ROW, "point": "W", "trend": ""}])
         assert html.count('class="offbox-title"') == 1
         assert html.count('class="off-swell"') == 2
+        # The Briefing's signal mark beside each, turned by its swell (owner's
+        # pick from the mock, 2026-11-28).
+        assert html.count("<svg class='brief-signal' data-from='305'></svg>") == 2
+        assert "OFF_SIGNAL" not in SOURCE
         text = re.sub(r"<[^>]+>", "", html)
         assert text.startswith("Offshore")
         # A train's line: point and band in ink, the trend after a dot.
@@ -5484,6 +5488,7 @@ class TestTheSwellCardsTabsBoxAndTray:
             SOURCE[SOURCE.index(".offbox-title{"):][:200])
         assert ".off-leg{display:inline-block}" in SOURCE
         assert ".off-swell + .off-swell{margin-top:1px}" in SOURCE
+        assert ".off-swell{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;" in SOURCE
 
     def test_both_cards_get_a_headline_and_the_tray(self):
         # The Forecast card since 2026-11-27 too (owner's design, item 28):

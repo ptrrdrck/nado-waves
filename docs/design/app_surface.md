@@ -688,6 +688,45 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      open slide's uneven steps in headless Chromium follow its frame times
      while a rose's map draws; the caret moves exactly with the fold.)
 
+## The Offshore box (LIVE, phone)
+
+   **Since 2026-11-28 Tanner Bank's swells on their way have a box of their
+   own under the tabs box** (owner's design and pick, same day; mocked on
+   the branch's own page with that day's published data, a real NW 14–17 s
+   swell building and due at Point Loma South at 9:51 PM; merged without a
+   PR at the owner's word, the Tests workflow green on the branch first):
+
+   - **Out of the headline**: `swellBrief` drops the Briefing's offshore
+     rows (`kind: "off"`) and `offshoreBox` draws them, passed to
+     `swellCard` as `below` on the LIVE call only. Forecast's headline has
+     none. The Briefing's own sentence ("NW 14–17 s, building offshore; due
+     at Point Loma South around 9:50 PM, and at the breaks 30–40 min
+     later."), its record, the line's changes, docs/briefing_wording.md and
+     the wide layouts are unchanged: `briefSwell`'s offshore row carries its
+     parts beside that sentence (point, band, trend, buoy, due, legs).
+     Shown only while one is on its way, as the Briefing's lines were.
+   - **The box is the tabs box's kind**: its hairline, paper, 8 px corners
+     and full width, between the tabs box and the Charts rule. One title,
+     "Offshore", in the tab names' type and O / U spacing (`tabLetters`),
+     over every swell on its way.
+   - **Two lines a swell** (owner's wording): "**NW** at **14–17 s** ·
+     building", set as a train's line in the headline (point and band in
+     ink, the trend after the same dot, dropped with its word); then
+     "→ Point Loma South around 9:50 PM → beach 30–40 min later." in plain
+     words, the arrows true arrows, a time on another day with its date,
+     and with no rays' legs the buoy's time ends the line. Each arrow's
+     words wrap as one (`.off-leg`, inline-block), so at 390 the line breaks
+     before the second arrow, never inside "beach 30–40 min later".
+   - **The Briefing's grey signal mark** (a dot sending two arcs, turned the
+     way the swell travels) hangs beside each swell's two lines (owner's
+     pick from the mock's switch, same day).
+   - **Spacing** (owner's rhythm, measured painted at 390): 12.0 px from the
+     box's edge to the title's ink, 11.5 to the first line, 12.5 under the
+     last; 18.0 between the two boxes and 17.0 to the Charts rule, the
+     card's 17.5 by where they snap; 17.5 between two swells (layout).
+   - The wide layouts are docs/handoff.md item 29's: the box moves with the
+     headline there.
+
 ## The Forecast tab's Swell card (phone)
 
    **Since 2026-11-27 the Forecast tab's Swell card on a phone is LIVE's:

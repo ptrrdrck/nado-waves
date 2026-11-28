@@ -492,9 +492,10 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tabbox{margin-bottom:7.5px}
 /* THE OFFSHORE BOX (owner's design, 2026-11-28): the tabs box's hairline,
    paper and corners, its full width, under it on the card's rhythm (17.5 px
-   between the boxes, as from either box to the Origin rule); its one title
+   between the boxes, as from either box to the Charts rule); its one title
    in the tab names' type, and each swell two lines, the first a train's
-   line, the second the plain words under it. Inside, 12 px painted from
+   line, the second the plain words under it, the Briefing's grey signal
+   mark hung beside them. Inside, 12 px painted from
    the box's edge to the title's ink, from the title to the first line and
    from the last line to the edge; 17.5 between two swells. */
 .offbox{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:8px;
@@ -507,7 +508,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    never inside "beach 30–40 min later" (owner's design, 2026-11-28). */
 .off-leg{display:inline-block}
 .off-swell + .off-swell{margin-top:1px}
-.off-swell.signed{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:start}
+.off-swell{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:start}
 /* The buoys' station blocks the tray's width too, their words on the
    tray's own 11 px. */
 .tab-tray .buoy-info{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px;
@@ -8592,15 +8593,16 @@ function swellBrief(B) {
 // title over them all, and two lines a swell, its point and band set as a
 // train's line above them ("NW at 14–17 s · building") and when it is due
 // at 46232 and the beach ("→ Point Loma South around 9:50 PM → beach 30–40
-// min later."). The Briefing's own sentence (`briefSwellText`), its record
-// and the wide layouts are unchanged. Shown only while one is on its way.
-let OFF_SIGNAL = false;
+// min later."), the Briefing's grey signal mark hung beside them (owner's
+// pick from the mock, same day). The Briefing's own sentence
+// (`briefSwellText`), its record and the wide layouts are unchanged. Shown
+// only while one is on its way.
 function offshoreBox(B) {
   const parts = briefingParts(B);
   const rows = parts ? parts.swell.filter((r) => r.kind === "off") : [];
   if (!rows.length) return "";
   return `<div class="offbox"><div class="offbox-title">${tabLetters("Offshore")}</div>`
-    + rows.map((r) => `<div class="off-swell${OFF_SIGNAL ? " signed" : ""}">${OFF_SIGNAL ? briefSignal(r.from) : ""}`
+    + rows.map((r) => `<div class="off-swell">${briefSignal(r.from)}`
       + `<div class="off-words"><div class="off-head">${briefNum(r.point)} at ${briefNum(r.band)}`
       + `${r.trend ? `<span class="brief-sep">·</span>${r.trend}` : ""}</div>`
       + `<div class="off-due"><span class="off-leg">\u2192 ${r.buoy} around ${r.due}${r.legs ? "" : "."}</span>`
