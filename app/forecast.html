@@ -8561,11 +8561,21 @@ function fcBeachSpark() {
 const fcHeading = (t) => ((t.lobes || []).length >= 2 ? t.lobes[0][0] : t.from_deg);
 // `briefing.listed_trains` on the cards' own rows: every train at any break
 // at >= half the biggest anywhere (`MIX_SHARE`), biggest first, North first
-// on a tie, one line a buoy train (`swell`: the model's train at 46232 that
-// carried most of the row), never local chop; with nothing but chop, the
-// biggest break's lead. Two lines whose words match are one (owner's call,
-// 2026-11-27: two buoy trains each surfaced as a 19.0 s W row, 28 Nov 03Z).
-// What a line stands for is docs/handoff.md item 30.
+// on a tie, ONE LINE A SWELL (`fcSameSwell`, `briefing.same_swell`; owner's
+// call, 2026-11-28, docs/handoff.md item 30), never local chop; with nothing
+// but chop, the biggest break's lead. Until then one line a buoy train
+// (`swell`), and at 28 Nov 03Z it said "W at 19.0 s" twice and never the
+// 12.7 s swell.
+// A row is a line's swell when their peaks are within LINE_PERIOD_RATIO and
+// they are one model buoy train (`swell`) or within LINE_HEADING_DEG.
+const LINE_PERIOD_RATIO = 1.25, LINE_HEADING_DEG = 45;
+function fcSameSwell(row, line) {
+  const a = row.period_s, b = line.period_s;
+  if (!a || !b || Math.max(a, b) / Math.min(a, b) > LINE_PERIOD_RATIO) return false;
+  if (row.swell != null && row.swell === line.swell) return true;
+  const ha = fcHeading(row), hb = fcHeading(line);
+  return ha != null && hb != null && Math.abs(((ha - hb + 540) % 360) - 180) <= LINE_HEADING_DEG;
+}
 function fcSwellTrains(cards) {
   const order = Object.fromEntries(ORDER.map((id, k) => [id, k]));
   const pool = [];
@@ -8578,14 +8588,10 @@ function fcSwellTrains(cards) {
     const lead = top && (top.trains || [])[0];
     return lead ? [lead] : [];
   }
-  const biggest = pool[0].t.hs_m || 0, out = [], said = new Set();
+  const biggest = pool[0].t.hs_m || 0, out = [];
   for (const {t} of pool) {
     if ((t.hs_m || 0) < 0.5 * biggest) break;
-    if (t.swell != null) {
-      if (said.has(t.swell)) continue;
-      said.add(t.swell);
-    }
-    out.push(t);
+    if (!out.some((l) => fcSameSwell(t, l))) out.push(t);
   }
   return out;
 }
@@ -8600,15 +8606,12 @@ function fcSwellBrief(step, cards) {
   const rows = [{kind: "beach", range: dual(`${lo}–${hi}\u00a0ft`,
     `${(lo / FT_PER_M).toFixed(1)}–${(hi / FT_PER_M).toFixed(1)}\u00a0m`, briefNum),
     spark, window: spark ? `next ${briefWindow(FC_SPARK_H)}` : ""}];
-  const said = new Set();
   for (const tn of fcSwellTrains(cards)) {
     const dir = fcHeading(tn);
     const from = dir != null ? briefNum(point(dir)) + (tn.wind_sea ? " wind sea" : "") : tn.wind_sea ? "Wind sea" : "";
     const per = tn.period_s != null ? `${from ? "at" : "At"} ${briefNum(`${tn.period_s.toFixed(1)}\u00a0s`)}` : "";
     const html = [from, per].filter(Boolean).join(" ");
-    if (!html || said.has(html)) continue;
-    said.add(html);
-    rows.push({kind: "train", html, trend: ""});
+    if (html) rows.push({kind: "train", html, trend: ""});
   }
   return `<div class="brief-block brief-swell swell-brief fc">${rows.map(briefSwellRow).join("")}</div>`;
 }

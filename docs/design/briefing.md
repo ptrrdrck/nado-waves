@@ -246,7 +246,31 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    set by `nearshore.carry`; owner's decision, BRIEFING §49), a row two
    buoy trains carried being divided first (below, "The leading wave
    train"); the peak-period rule is the fallback for a row with no such
-   credit, and None is a buoy train under the buoy's own floors. each its row's
+   credit, and None is a buoy train under the buoy's own floors.
+   **Since 2026-11-28 it is ONE LINE A SWELL, not a buoy train** (owner's
+   call, docs/handoff.md item 30; `briefing.same_swell`, `LINE_PERIOD_RATIO`
+   1.25, `LINE_HEADING_DEG` 45): a row is left unsaid only when a line
+   already said peaks within ×1.25 of its period AND is the same buoy train
+   or within 45° of its heading -- the buoy train keeping one swell through
+   two windows one line, the period parting two swells one buoy train's
+   credit holds. At 28 Nov 03Z (Forecast run of 27 Nov 15:33Z) Center's one
+   row peaked at 19.0 s but was credited to the 12.7 s buoy train, so one
+   line a buoy train said "W at 19.0 s" twice and never South's 12.7 s
+   swell; it now reads W at 19.0 s and W at 12.7 s, two lines (owner's
+   pick). A line's words are its row's peak, so what a line says is the
+   swell holding the row's peak bin. MEASURED first (`python -m
+   forecast.trainmatch --lines`, owner's condition; each headline scored
+   whole: a swell unsaid, said twice, or neither): in the known-answer
+   control (1,140 trials) right 61.9% -> 75.0%, a swell unsaid 37.5% ->
+   24.0%, said twice 1.1% -> 1.4%, one swell kept to one line 99.2% ->
+   98.3%; ×1.12 hid fewer (13.3%) but said a clean swell twice 7.5% of the
+   time, and keying rows by their peak bin's buoy train fixed 03Z's pattern
+   and nothing else (unsaid 37.2%: the hidden swells are ones the buoy
+   merged). Two swells 1-2 s apart still mostly go unsaid (52-65%). Over the
+   archive, against the buoy's own split, one buoy train takes two lines on
+   25.8% of hours (1.0% before), lines 1.65 -> 1.91 an hour: mostly one buoy
+   train at two breaks peaking 25-50% apart, one swell or two, which nothing
+   here can say. Each its row's
    OFFSHORE heading (the larger direction of a two-direction train, never
    its 5 m one) and period, and ITS OWN STATUS (owner's call, same day):
    its band at 46232 -- the bins it holds in the newest spectrum and the
