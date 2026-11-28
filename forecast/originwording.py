@@ -1,14 +1,15 @@
-"""Every wording the Origin fold can show, rendered by the page's own code.
+"""Every wording an origin's line under a train can show, rendered by the page's own code.
 
     python -m forecast.originwording            # rewrite the permutations
     python -m forecast.originwording --check    # exit 1 if they are out of date
 
 `docs/origin_wording.md` states the owner's formula (2026-10-10, rewritten
-2026-10-14): an origin is a head and one paragraph, each a fixed run of slots,
-and a slot with no value is dropped with its joining words. Its last section shows every permutation, and
-this writes it: the Origin functions are lifted out of `app/forecast.html`
-and run in Node on one made-up Origin block per branch, so the examples are
-what the page prints, never typed. `tests/test_originwording.py` pins that
+2026-10-14, and one paragraph under its train since 2026-11-28): each part a
+fixed run of slots, and a slot with no value is dropped with its joining
+words. Its last section shows every permutation, and this writes it: the
+Origin functions are lifted out of `app/forecast.html` and run in Node on
+one made-up Origin block per branch, its trains made to carry every origin,
+so the examples are what the page prints under a row, never typed. `tests/test_originwording.py` pins that
 the file is this output, so the doc and the page cannot drift.
 
 The numbers in the cases are made up; only the wording is under review.
@@ -93,48 +94,15 @@ def _weakened() -> dict:
     return h
 
 
-def _site(current=(), last=None) -> dict:
+def _site(current=()) -> dict:
     return {"buoy": {"current": [{"arrival": k, "train_period_s": p} for k, p in current],
-                     "last": last}}
-
-
-#: When now.json's spectrum was read, for the cases that ask origins.json
-#: for the last storm named at a tab within the lookback.
-OBSERVED = "2026-10-12T02:00:00Z"
-
-
-def _named(time_utc: str, h: dict) -> dict:
-    """One of origins.json's named moments: the storm as the card named it."""
-
-    return {"time_utc": time_utc, **{k: h[k] for k in ("storm", "name", "best", "word",
-                                                       "match", "sites")}}
-
-
-def _last_storm(reading_last: str) -> dict:
-    """South on 2026-10-12: nothing arriving, Origin's last reading ended on
-    `reading_last`, and Tropical Storm Rachel named at the tab 8-11 Oct."""
-
-    return {"arrivals": [_arrival(**{**PLACED, "region": "the Aleutian storm track"},
-                                  first_utc="2026-09-30T11:00:00Z", last_utc=reading_last)],
-            "sites": _site(last=0), "_observed": OBSERVED,
-            "_origins": {"arrivals": [], "named": [
-                _named("2026-10-08T06:00:00Z", _hurricane()),
-                _named("2026-10-11T18:00:00Z", _weakened())]}}
+                     "last": None}}
 
 
 #: (id, what it is, the Origin block). One per branch the page can take.
+#: Only what is arriving now: since 2026-11-28 a tab's last readable arrival
+#: has no train to sit under, and is not on the card (owner's call).
 CASES = [
-    ("E0", "nothing in 21 days", {"arrivals": [], "sites": _site()}),
-    ("L1", "last readable arrival, placed",
-     {"arrivals": [_arrival(**PLACED)], "sites": _site(last=0)}),
-    ("L2", "last readable arrival, unplaced: split bearing",
-     {"arrivals": [_arrival(**SPLIT)], "sites": _site(last=0)}),
-    ("L3", "last readable arrival, unplaced: 46047 does not have it",
-     {"arrivals": [_arrival(**UNSEEN)], "sites": _site(last=0)}),
-    ("L4", "last readable arrival, a storm named here after Origin's last reading",
-     _last_storm("2026-10-02T18:00:00Z")),
-    ("L5", "last readable arrival, Origin's reading ended after the last storm named here",
-     _last_storm("2026-10-11T23:00:00Z")),
     ("C1", "arriving, placed",
      {"arrivals": [_arrival(**PLACED)], "sites": _site(current=[(0, 15.1)])}),
     ("C2", "arriving, unplaced: split three ways",
@@ -172,9 +140,6 @@ CASES = [
     ("M3", "hurricane and a split bearing, as live on 2026-10-10",
      {"arrivals": [_arrival(**SPLIT3, distance_km=15000, peak_period_s=20.0)],
       "sites": _site(current=[(0, 20.0)]), "hurricanes": [_hurricane()]}),
-    ("M2", "hurricane and a last readable arrival (the last is not shown)",
-     {"arrivals": [_arrival(**PLACED)], "sites": _site(last=0),
-      "hurricanes": [_hurricane()]}),
 ]
 
 
@@ -187,7 +152,7 @@ def script(source: str) -> str:
     """The page's Origin code and its helpers, and a loop printing each case."""
 
     code = "\n".join([
-        "let NOW = null, ORIGINS = null;",
+        "let NOW = null;",
         _lift(source, "const HOUR_MS = ", ";"),
         _lift(source, "const bareName = ", ";"),
         _lift(source, "const MPH_PER_KT = ", ";"),
@@ -198,7 +163,7 @@ def script(source: str) -> str:
         re.sub(r'let UNITS = "[a-z]+";', 'let UNITS = "both";',
                source[source.index("let UNITS = "):source.index("\n// Display-only shortenings")]),
         _lift(source, "function point(", "\n}\n"),
-        source[source.index("function originFor("):source.index("// Whether Origin is folded out")],
+        source[source.index("function originFor("):source.index("// Which lines are open, by site and origin")],
     ])
     cases = json.dumps([[cid, {**BASE, "hurricanes": [], **block}] for cid, _, block in CASES])
     return code + f"""
@@ -209,11 +174,17 @@ const text = (html) => html
   .replace(/<svg class="storm-sym" data-kind="([a-z-]+)"[^]*?<\\/svg>/g, (_, k) => ` {{${{k.replace("-", " ")}} symbol}}`)
   .replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&deg;/g, "°")
   .split("\\n").map((s) => s.trim()).filter(Boolean);
+// Trains that carry every origin in the block: a storm's rows at its
+// periods from its own bearing, a reading's at its period.
+const trainsFor = (o) => [
+  ...o.hurricanes.flatMap((h) => stormPeriods(h.at).map((p) => ({{period_s: p, from_deg: h.at.bearing_deg}}))),
+  ...o.current.map((a) => ({{period_s: a.train_period_s, from_deg: null}}))];
 const out = {{}};
 for (const [id, origin] of {cases}) {{
-  NOW = {{origin, observed_utc: origin._observed}};
-  ORIGINS = origin._origins || null;
-  out[id] = text(originBody(originFor("buoy")));
+  NOW = {{origin}};
+  const o = originFor("buoy");
+  const trains = trainsFor(o);
+  out[id] = text(rowOrigins(o, trains, trains.length).map((g) => g.html).join(""));
 }}
 console.log(JSON.stringify(out));
 """

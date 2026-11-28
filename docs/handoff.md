@@ -441,6 +441,16 @@ and greying read as they did. Mock only, never committed.
     measured (owner's condition); update it to score a one-line-a-swell
     rule, measure over the archive and the known-answer control, then
     change `briefing.listed_trains` and `fcSwellTrains` together.
+31. **Origin on the trains** -- done (branch
+    claude/origin-display-trains-mb8vty; origin.md "Origin on the trains",
+    docs/origin_wording.md's 2026-11-28 pass): the fold is gone; a marked,
+    dotted period, and a tap opens the origin's line under its row. Open:
+    the owner's iPhone (no WebKit in a session: the marks' centring and the
+    line's slide are checked in Chromium only); and a READING on a period
+    two rows share takes the first row, since `origin.match` matches by
+    period alone: 6.5% of reading hours over the archive, 3.6-9.9% by site
+    (origin.md). A fix would match a row, not a period, in `origin.match`;
+    the owner has the numbers, no decision yet.
 
 ### Carryover prompts
 
