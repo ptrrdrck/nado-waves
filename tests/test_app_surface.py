@@ -4393,7 +4393,8 @@ class TestTheBriefing:
     def test_a_sparkline_never_draws_across_a_missing_hour(self):
         spark = self.BLOCK[self.BLOCK.index("function briefSpark"):]
         spark = spark[:spark.index("\n}\n")]
-        assert "{gapH = 1.5, log = false, dots = false, w = 64, h = 18, cls = \"\"} = {}" in spark      # an hour, unless a row says
+        assert ("{gapH = 1.5, log = false, dots = false, w = 64, h = 18, cls = \"\",\n"
+                "                                      start = null, dot = null} = {}") in spark      # an hour, unless a row says
         assert "if (i && p[0] - points[i - 1][0] > gapH * 3600) runs.push([]);" in spark
         bars = self.BLOCK[self.BLOCK.index("function briefBars"):]
         assert 'if (d[1] == null) return "";' in bars[:bars.index("\n}\n")]
@@ -5345,13 +5346,15 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert "rows.map(briefSwellRow)" in brief and "parts.swell.map((r) =>" in brief
         assert 'class="brief-block brief-swell swell-brief"' in brief
 
-    def test_only_the_live_card_gets_the_headline_and_the_tray(self):
+    def test_both_cards_get_a_headline_and_the_tray(self):
+        # The Forecast card since 2026-11-27 too (owner's design, item 28):
+        # its own headline from the model, never the Briefing's.
         calls = [SOURCE[i:SOURCE.index("}));", i)] for i in
                  [m.start() for m in re.finditer(r"rows\.push\(swellCard\(\{", SOURCE)]]
         assert len(calls) == 2
         live, forecast = calls
         assert "headline: swellBrief(BRIEFING)" in live and "tray: true" in live
-        assert "headline" not in forecast and "tray" not in forecast
+        assert "headline: fcSwellBrief(step, cards)" in forecast and "tray: true" in forecast
         card = self.fn("swellCard")
         # The headline between the title row and the tabs box.
         ret = card[card.index('return `<div class="cond swell"'):]
@@ -5439,6 +5442,85 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert big.startswith('<svg class="brief-spark big" viewBox="0 0 112 28"')
         # The newest reading at the right end, 3 units in, as the small one.
         assert 'cx="109.0"' in big and 'cx="61.0"' in small
+
+    def test_a_sparkline_can_start_at_an_hour_and_dot_it(self):
+        # The Forecast headline's: the 24 h from the picked hour, its dot on
+        # that hour; readings outside the window are not drawn.
+        js = (self.fn("briefSpark") + "\nconst pts = [[-3600, 9], [0, 1.0], [1800, 1.4], [3600, 1.2], [7200, 9]];"
+              + "\nconsole.log(briefSpark(pts, 1, {start: 0, dot: 1800}));")
+        svg = self._node(js)
+        # Two circles would mean the newest's dot as well; the window's ends
+        # are 0 and 1 h, so the dot at half an hour sits halfway across.
+        assert svg.count("<circle") == 1 and 'cx="31.0"' in svg
+        assert svg.count(",") == 3                     # three readings, one polyline
+
+    FC_CARDS = [
+        # 28 Nov 03Z on the run of 27 Nov 15:33Z: Center's one row, peaking
+        # at 19.0 s, credited to the 12.7 s buoy train (0); South's 19.0 s
+        # row to the 19.0 s one (1). Two lines read "W at 19.0 s".
+        {"id": "coronado_north", "hsWindow": 0.658, "trains": [
+            {"hs_m": 0.452, "period_s": 11.9, "from_deg": 215, "swell": 0},
+            {"hs_m": 0.358, "period_s": 19.0, "from_deg": 268, "swell": 1}]},
+        {"id": "coronado_center", "hsWindow": 0.913, "trains": [
+            {"hs_m": 0.912, "period_s": 19.0, "from_deg": 271, "swell": 0}]},
+        {"id": "coronado_south", "hsWindow": 1.055, "trains": [
+            {"hs_m": 0.772, "period_s": 12.7, "from_deg": 276, "swell": 0},
+            {"hs_m": 0.72, "period_s": 19.0, "from_deg": 276, "swell": 1},
+            {"hs_m": 0.9, "period_s": 3.1, "from_deg": 270, "local": True}]},
+    ]
+
+    def _fc(self, cards, setup=""):
+        js = (UNITS_JS + "const FT_PER_M = 3.28084;\n" + SOURCE[SOURCE.index("const feetRange = "):SOURCE.index("\nconst speed = ")] + "\n"
+              + self.fn("point") + self.fn("briefSpark") + self.fn("briefSwellRow")
+              + "const briefNum = (s) => `<b>${s}</b>`;\n"
+              + "const briefWindow = (h) => (h >= 48 ? `${Math.round(h / 24)} d` : `${h} h`);\n"
+              + 'const ORDER = ["coronado_north", "coronado_center", "coronado_south"];\n'
+              + "const FC_SPARK_H = 24;\nconst fcBeachSpark = () => [[0, 0.5], [10800, 1.1], [21600, 0.8]];\n"
+              + SOURCE[SOURCE.index("const fcHeading = "):SOURCE.index("\nfunction fcSwellTrains(")] + "\n"
+              + self.fn("fcSwellTrains") + self.fn("fcSwellBrief") + setup
+              + f"\nconsole.log(JSON.stringify(fcSwellBrief({{valid_utc: '1970-01-01T00:00:00Z'}}, {json.dumps(cards)})));")
+        return json.loads(self._node(js))
+
+    def test_the_forecast_headline_is_the_model_alone(self):
+        # The Forecast chain never borrows a measurement (CLAUDE.md, App):
+        # nothing from now.json, the Briefing or the other buoys.
+        for name in ("fcSwellBrief", "fcSwellTrains", "fcBeachSpark"):
+            body = self.fn(name)
+            for live in ("BRIEFING", "NOW", "BUOYS", "measured", "coming", "dark"):
+                assert live not in body, (name, live)
+        assert "cardsForForecast(st)" in self.fn("fcBeachSpark")
+
+    def test_the_forecast_headline_merges_lines_whose_words_match(self):
+        # Owner's call, 2026-11-27: one "W at 19.0 s", never two. The 12.7 s
+        # swell is unsaid by the shipped rule; item 30 is what a line is.
+        html = self._fc(self.FC_CARDS)
+        assert html.count('class="brief-sub"') == 1
+        assert "W</b> at <b>19.0\u00a0s</b>" in html
+        assert "brief-sep" not in html                 # no trend word (owner's pick)
+        # The range as the cards show it, the Briefing's rounding.
+        assert "2–4\u00a0ft" in html
+        # The window is the 24 h from the hour, its dot on the hour.
+        assert "next 24 h" in html and 'class="brief-spark big"' in html
+        assert 'cx="1.0"' in html
+
+    def test_the_forecast_headline_lists_trains_by_the_briefings_rule(self):
+        cards = [
+            {"id": "coronado_north", "hsWindow": 0.8, "trains": [
+                {"hs_m": 0.8, "period_s": 14.5, "from_deg": 280, "swell": 0},
+                {"hs_m": 0.39, "period_s": 16.6, "from_deg": 200, "swell": 1}]},     # under half: unsaid
+            {"id": "coronado_south", "hsWindow": 0.7, "trains": [
+                {"hs_m": 0.7, "period_s": 13.6, "from_deg": 255, "swell": 0},        # the same buoy train
+                {"hs_m": 0.5, "period_s": 4.6, "from_deg": 225, "swell": 2, "wind_sea": True}]},
+        ]
+        html = self._fc(cards)
+        lines = re.findall(r'<div class="brief-sub">(.*?)</div>', html)
+        assert lines == ["<b>W</b> at <b>14.5\u00a0s</b>", "<b>SW</b> wind sea at <b>4.6\u00a0s</b>"]
+        # Only chop: the biggest break's lead, as the Briefing falls back.
+        chop = [{"id": "coronado_center", "hsWindow": 0.3, "trains": [
+            {"hs_m": 0.3, "period_s": 3.0, "from_deg": 270, "local": True}]}]
+        assert "<b>W</b> at <b>3.0\u00a0s</b>" in self._fc(chop)
+        # No heights, no headline.
+        assert self._fc([{"id": "coronado_north", "hsWindow": None, "trains": []}]) == ""
 
     def test_an_open_buoys_plate_is_the_rule_above_the_next_buoy(self):
         # Owner's call, 2026-11-27: the plate's foot lies on the next buoy's

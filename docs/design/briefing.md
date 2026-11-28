@@ -451,3 +451,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    line's changes still name swell changes, and the record and
    docs/briefing_wording.md are unchanged. On a wide screen the block stays
    in the Briefing until docs/handoff.md item 29.
+
+   The Forecast tab's Swell card has a headline of the same shape since the
+   same day, but NOT this block (app_surface.md "The Forecast tab's Swell
+   card"): built on the page from forecast.json at the picked hour, by the
+   same train rule, with no trend word and no 46047 or dark-buoy lines. It
+   is never issued or kept.
