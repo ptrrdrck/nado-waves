@@ -1526,6 +1526,17 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
 :root[data-layout="tablet"] .conditions > .cond.swell{grid-column:1/-1}
 
 .main-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+/* The swell headline above the break columns and the Offshore box under
+   them, each one column wide (owner's picks from a mock, 2026-11-28): the
+   columns' width with their two 28 px gaps taken out. On the card's rhythm,
+   painted at 1440 and 1100: 17.5-18.5 px from the headline's last ink to the
+   columns' names (the Forecast headline's last line has no descender, so
+   2.5 px less margin), 18 from the columns to the box, 12 from the box to
+   the card's edge, as from the columns when there is no box. */
+.main-col .swell-brief,.main-col .offbox{width:calc((100% - 56px) / 3)}
+.main-col .swell-brief{margin-bottom:-2px}
+.main-col .swell-brief.fc{margin-bottom:-4.5px}
+.main-col .offbox{margin:10px 0 0}
 /* Each break a column, each column a phone card's width or more: 262 px is
    a 320 px phone's, and the console's narrowest (1280) leaves ~283. */
 .break-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:28px;align-items:start}
@@ -3737,10 +3748,9 @@ function briefingFold(B) {
   const blocks = [
     parts.alerts.length
       && `<div class="brief-block brief-alerts">${parts.alerts.map((a) => alertRow(a, B.built_utc)).join("")}</div>`,
-    // On a phone the swell block is the Swell card's headline (owner's
-    // design, 2026-11-27), so the fold goes from the alerts to the tides.
-    WIDE() && parts.swell.length
-      && `<div class="brief-block brief-swell">${parts.swell.map(briefSwellRow).join("")}</div>`,
+    // The swell block is the Swell card's headline on every layout (owner's
+    // design, 2026-11-27 on a phone, 2026-11-28 wider), so the Briefing goes
+    // from the alerts to the tides.
     parts.tides.length && `<div class="brief-block brief-tides">${briefTideBlock(parts.tides, B)}</div>`,
     (waterRows.length || parts.water_quality.length)
       && `<div class="brief-block brief-cond brief-water">${waterRows.map((r) => briefCondRow(r, B)).join("")}`
@@ -8595,8 +8605,8 @@ function swellBrief(B) {
 // at 46232 and the beach ("→ Point Loma South around 9:50 PM → beach 30–40
 // min later."), the Briefing's grey signal mark hung beside them (owner's
 // pick from the mock, same day). The Briefing's own sentence
-// (`briefSwellText`), its record and the wide layouts are unchanged. Shown
-// only while one is on its way.
+// (`briefSwellText`) and its record are unchanged. Wider, under the break
+// columns (`swellWide`). Shown only while one is on its way.
 function offshoreBox(B) {
   const parts = briefingParts(B);
   const rows = parts ? parts.swell.filter((r) => r.kind === "off") : [];
@@ -8712,7 +8722,7 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
                     lead = "", buoyPills = false, headline = "", tray = false, below = ""}) {
   if (WIDE()) {
     return swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
-                      origin, buoyRose, buoyAged, lead});
+                      origin, buoyRose, buoyAged, lead, headline, below});
   }
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
@@ -8778,16 +8788,21 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
 // that one spectrum; the buoys' card carries them again above 46232's own
 // headline, as each buoy's above its own (owner's call, 2026-11-08). Origin
 // is on each column's trains, as on the phone's tabs (owner's request,
-// 2026-11-28; it was one block for the beach).
+// 2026-11-28; it was one block for the beach). The swell headline heads the
+// card above the columns and the Offshore box closes it under them, each one
+// column wide, as on a phone (owner's picks from a mock, 2026-11-28; until
+// then the headline was the always-open Briefing's): no tabs, tray or caret.
 function swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
-                    origin, buoyRose, buoyAged, lead = ""}) {
+                    origin, buoyRose, buoyAged, lead = "", headline = "", below = ""}) {
   const breaks = ORDER.map((id) => (cards || []).find((c) => c.id === id)).filter(Boolean);
   const cols = breaks.map((c) => `<div class="pane" data-break-col="${c.id}">
       <span class="col-lbl">${SHORT[c.id] || c.name}</span>${breakPanel(c)}</div>`).join("");
   const swell = `<div class="cond swell" data-card="swell">
     ${headRow(`<span class="lbl">${label}</span>`, due)}
+    ${headline}
     <div class="break-cols" data-align>${cols}</div>
     ${srcLines(source)}
+    ${below}
   </div>`;
   const anchor = `<div class="pane">${headRow(buoyTitle(stationName), due)}`
     + `${buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged, {named: false, origin})}`

@@ -549,9 +549,9 @@ svg text{font-family:Archivo,system-ui,sans-serif}
       <p>Its Buoys tab also shows two more buoys, NDBC 46086 at San Clemente Basin and NDBC 46047 at Tanner
         Banks, measured the same way, and a <a href="#swell-roses">rose</a> under each buoy. Nothing
         on any other tab is computed from either. <a href="#swell-tabs">Why they are there</a>.</p>
-      <p>Above its cards, the <a href="#briefing">Briefing</a> folds out a short read of the swell,
-        the conditions and the day's tides, from the same measurements and North Island's weather
-        reports.</p>
+      <p>Above its cards, the <a href="#briefing">Briefing</a> folds out a short read of the
+        conditions and the day's tides, from the same measurements and North Island's weather
+        reports. Its read of the swell heads the Swell card.</p>
     </section>
 
     <section id="chains-forecast">
@@ -598,24 +598,24 @@ svg text{font-family:Archivo,system-ui,sans-serif}
     <section id="briefing-stories">
       <h3>What it says</h3>
       <p>When the National Weather Service has a coast or ocean alert in force, it comes first, a
-        line each (<a href="#briefing-alerts">below</a>). Then four blocks, always in the same
-        order:</p>
-      <ul>
-        <li><b>Swell</b>: two sources, never matched to each other. First the beach, from NDBC
+        line each (<a href="#briefing-alerts">below</a>). Then three blocks, always in the same
+        order: tides, water and conditions. Its read of the swell is drawn at the head of the Swell
+        card instead, above the breaks.</p>
+      <p id="briefing-swell"><b>The swell</b>, at the head of the Swell card: two sources, never matched to each other. First the beach, from NDBC
           46232: the breaking height at the three breaks as one range in whole feet, the lowest
           rounded down and the highest rounded up from each card's height as the card shows it, to
           the tenth of a foot, so a card reading 4.0 ft never makes the range 5 ft: the cards' own
           numbers, a significant height, not
           a face height. It is set as a headline, beside it a line of the biggest breaking height
           each hour over the last 24 hours, broken where an hour is missing. Under it, a line for
-          each swell train at any of the three breaks at least half the height of the biggest one
-          anywhere, biggest first. Each break sees only the part of a swell its windows let in, so
-          one swell can read a few degrees and a second apart at two breaks: W at 9.1&nbsp;s at one
-          and WSW at 9.9&nbsp;s at another. Each break's train is therefore matched to the train at
-          NDBC 46232 it belongs to, the one holding its peak period (and where the buoy split a band by
-          direction, the side holding its heading), and trains that are one train at the buoy are
-          one line, the biggest's. Two swells only a second or two apart, or from directions the
-          buoy cannot part, can still read as one. Local chop is never listed. A
+          each swell at any of the three breaks at least half the height of the biggest one
+          anywhere, biggest first: one line a swell. Each break sees only the part of a swell its
+          windows let in, so one swell can read a few degrees and a second apart at two breaks: W at
+          9.1&nbsp;s at one and WSW at 9.9&nbsp;s at another. So a break's train is left unsaid when a
+          line already said peaks within a quarter of its period and is either the same train at
+          NDBC 46232 (the one that carried most of it there) or comes from within 45&deg; of it.
+          Two swells only a second or two apart can still read as one, and one swell can take two
+          lines when two breaks see it peak far apart. Local chop is never listed. A
           <a href="#wind-sea">wind sea</a> is, and says so: &ldquo;NW wind sea at 4.5&nbsp;s&rdquo;.
           Each says where it comes from and its period, as its row on the card does: offshore, not
           the direction it arrives from in 5&nbsp;m of water. Then its status, read at NDBC 46232 in
@@ -625,12 +625,14 @@ svg text{font-family:Archivo,system-ui,sans-serif}
           quarter or more, <i>peaking</i> when the day's highest came in the last three hours, and
           <i>holding</i> otherwise. Nothing follows a train from one spectrum to the next, so this
           is the band's energy, measured at the buoy before the windows, not the train's at the
-          break. Then each west or north-west swell Tanner Bank holds, a line each opening on its
-          compass point, with how it is doing there (&ldquo;building offshore&rdquo;) and when it is
-          due here, while some of it is still to arrive (<a href="#briefing-upstream">below</a>).
-          A small grey mark in the margin, a dot sending two arcs, points the way that swell is
-          travelling. If NDBC 46232 is dark it says so and nothing
-          else.</li>
+          break. Under the breaks, while some of it is still to arrive, an
+          <b>Offshore</b> box holds each west or north-west swell Tanner Bank holds, in two lines:
+          its compass point and periods with how it is doing there (&ldquo;NW at 14&ndash;17&nbsp;s
+          &middot; building&rdquo;), then when it is due at NDBC 46232 and at the beach
+          (<a href="#briefing-upstream">below</a>). A small grey mark beside it, a dot sending two
+          arcs, points the way that swell is travelling. If NDBC 46232 is dark it says so and nothing
+          else.</p>
+      <ul>
         <li><b>Tides</b>: today's tide as a curve, from midnight to midnight at Coronado, never
           past it: the harmonic prediction at the open coast with the gauge's departure, as the Tide
           card carries it. Each high and low tide has its height by its dot and its time on the axis

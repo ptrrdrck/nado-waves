@@ -376,7 +376,7 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
-### Group 7: the Swell card's tabs box and tray -- phone done (PR #252; item 28, branch claude/forecast-swell-card-alignment-bi2xbu; the caret at the box's foot, 2026-11-28)
+### Group 7: the Swell card's tabs box and tray -- done (PR #252; item 28, branch claude/forecast-swell-card-alignment-bi2xbu; the caret at the box's foot, 2026-11-28; item 29, branch claude/swell-card-wide-layout-sss0yb)
 
 The LIVE phone card shipped (app_surface.md "The Swell card's tabs box and
 tray", every measurement and owner's call there): the Briefing's swell
@@ -421,19 +421,19 @@ and greying read as they did. Mock only, never committed.
     the range, a sparkline of the 24 h FROM the hour, a line a train by the
     Briefing's rule, lines whose words match merged, no trend word (the
     owner's picks from the mock).
-29. **The wide layouts** -- the swell headline moves into the wide Swell
-    card above its three break columns, and leaves the always-open
-    Briefing as it did on the phone; no tabs or tray there. The Offshore
-    box (app_surface.md "The Offshore box", 2026-11-28) moves with it,
-    under the columns, as on the phone. Docs.html's
-    Briefing paragraphs say the Briefing folds out the swell: update them
-    once both layouts agree (ask first; it is the docs page).
+29. **The wide layouts** -- done (2026-11-28; app_surface.md "The swell
+    headline and Offshore box on a wide screen"): the headline above the
+    break columns on both tabs (Forecast's new there), the Offshore box
+    under them, each one column wide (owner's picks from the mock), the
+    Briefing from the alerts to the tides on every layout. docs.html's
+    Briefing paragraphs reworded in place (owner's option 1 of three): the
+    swell's read heads the Swell card, the Briefing three blocks, Tanner
+    Bank's swells the Offshore box under the breaks.
 30. **One line a swell in the swell headline, both tabs** -- done
     (2026-11-28; `briefing.same_swell` and `fcSwellTrains`, measured by
     `python -m forecast.trainmatch --lines`, briefing.md's Swell block).
-    Open: docs.html's Briefing paragraph still describes one line a buoy
-    train by its peak period (stale since 3 Nov); rewording it waits for
-    the owner (it is the docs page).
+    docs.html's swell paragraph reworded to one line a swell on 2026-11-28
+    (owner's call, with item 29's pass).
 31. **Origin on the trains** -- done (branch
     claude/origin-display-trains-mb8vty; origin.md "Origin on the trains",
     docs/origin_wording.md's 2026-11-28 pass): the fold is gone; a marked,
@@ -461,13 +461,6 @@ wait for Tests, don't merge." to each.
   Imperial Beach clears deep water to 21 m on open shelf, so find which
   Coronado-only stage makes the excess. Propose each step's measurement
   before running it."
-- Group 7, item 29 (careful; a strong model at medium effort,
-  layout work against an existing pattern): "Repo ptrrdrck/nado-waves;
-  attach ptrrdrck/nado-waves-notes and read app_surface.md 'The Swell
-  card's tabs box and tray' and its wide-layout sections, and docs/
-  handoff.md group 7. Task: item 29, the swell headline in the wide
-  layouts' Swell card, out of the Briefing there; then ask about docs.html's
-  Briefing paragraphs. Mock it on live data first."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
