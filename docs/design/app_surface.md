@@ -724,15 +724,19 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      between all four words over most of 28 Nov on one run, and nothing
      follows a train between model hours; how often each would fire was
      never measured.
-   - **Two lines whose words match are one** (owner's call, same day): at
-     28 Nov 03Z two buoy trains each surfaced as a W 19.0 s row (Center's
-     one row, peaking at 19.0 s, was credited to the 12.7 s buoy train), so
-     the rule printed "W at 19.0 s" twice and left the 12.7 s swell unsaid.
-     On that run identical words came on 1 hour of 57; a row with other
-     words went unsaid on 51, mostly the same swell at another break (W /
-     WSW 16.6 s), some another swell (SW 12.7 s under "W at 13.6 s", 27 Nov
-     15-21Z). What a line stands for, on both tabs, is docs/handoff.md
-     item 30. LIVE is unchanged.
+   - **One line a swell** (since 2026-11-28, both tabs, owner's call,
+     docs/handoff.md item 30; `fcSameSwell`, briefing.md's Swell block): a
+     row is unsaid only when a said line peaks within ×1.25 of its period
+     and is the same model buoy train (`swell`) or within 45°. It replaced
+     the merge of lines whose words match (2026-11-27, which the rule now
+     covers): at 28 Nov 03Z two buoy trains each surfaced as a W 19.0 s
+     row (Center's one row, peaking at 19.0 s, was credited to the 12.7 s
+     buoy train), so the rule printed "W at 19.0 s" twice and left the
+     12.7 s swell unsaid; it now reads W at 19.0 s and W at 12.7 s, two
+     lines (owner's pick over one "W at 19.0 s and 12.7 s"). Over the
+     Forecast log since 4 Nov the headline changes on 262 of 1,888 build
+     hours, lines 1.63 -> 1.76 an hour. A test pins fcSwellTrains to
+     `briefing.listed_trains` row for row.
    - `briefSpark` takes `start` and `dot` (the window from an hour, the dot
      on a reading) for it; every other sparkline draws as before.
    - **46232 is the Buoys tab's last buoy here** (owner's report,

@@ -56,3 +56,27 @@ def test_the_page_never_reads_it():
 
     page = (Path(__file__).resolve().parent.parent / "app" / "forecast.html").read_text()
     assert "buoy_train" not in page
+
+
+def test_the_scored_one_line_a_swell_rule_is_the_one_the_briefing_ships():
+    """`trainmatch --lines` scored `SHIPPED_LINES`; the headline must list
+    exactly what it scored, row for row (docs/handoff.md item 30)."""
+
+    import random
+
+    from forecast import briefing as bf
+
+    rng = random.Random(30)
+    for _ in range(400):
+        pool = []
+        for b in M.BREAKS:
+            for _ in range(rng.randint(0, 3)):
+                pool.append({"hs": round(rng.uniform(0.1, 1.5), 3), "brk": b, "src": None,
+                             "period": rng.choice([7.7, 9.1, 9.9, 11.1, 12.5, 13.3, 14.3, 15.4, 16.7, 19.0]),
+                             "heading": rng.randint(180, 300), "key": rng.choice([None, 0, 1, 2])})
+        sites = [{"id": b, "trains": [{"hs_m": r["hs"], "period_s": r["period"], "from_deg": r["heading"],
+                                       "lobes": [], "buoy_train": r["key"]} for r in pool if r["brk"] == b]}
+                 for b in M.BREAKS]
+        want = [(r["period"], r["heading"]) for r in M.lines(pool, M.SHIPPED_LINES)]
+        got = [(t["period_s"], t["from_deg"]) for t in bf.listed_trains(sites)] if pool else []
+        assert got == want, (pool, got, want)

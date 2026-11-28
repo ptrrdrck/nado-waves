@@ -5603,7 +5603,8 @@ class TestTheSwellCardsTabsBoxAndTray:
     FC_CARDS = [
         # 28 Nov 03Z on the run of 27 Nov 15:33Z: Center's one row, peaking
         # at 19.0 s, credited to the 12.7 s buoy train (0); South's 19.0 s
-        # row to the 19.0 s one (1). Two lines read "W at 19.0 s".
+        # row to the 19.0 s one (1). One line a buoy train read "W at 19.0 s"
+        # twice; one line a swell reads W at 19.0 s and W at 12.7 s.
         {"id": "coronado_north", "hsWindow": 0.658, "trains": [
             {"hs_m": 0.452, "period_s": 11.9, "from_deg": 215, "swell": 0},
             {"hs_m": 0.358, "period_s": 19.0, "from_deg": 268, "swell": 1}]},
@@ -5636,18 +5637,42 @@ class TestTheSwellCardsTabsBoxAndTray:
                 assert live not in body, (name, live)
         assert "cardsForForecast(st)" in self.fn("fcBeachSpark")
 
-    def test_the_forecast_headline_merges_lines_whose_words_match(self):
-        # Owner's call, 2026-11-27: one "W at 19.0 s", never two. The 12.7 s
-        # swell is unsaid by the shipped rule; item 30 is what a line is.
+    def test_the_forecast_headline_is_one_line_a_swell(self):
+        # Owner's call, 2026-11-28 (handoff item 30): one line a swell, not a
+        # buoy train -- W at 19.0 s and W at 12.7 s, two lines, as LIVE's
+        # `briefing.same_swell` lists them.
         html = self._fc(self.FC_CARDS)
-        assert html.count('class="brief-sub"') == 1
-        assert "W</b> at <b>19.0\u00a0s</b>" in html
+        lines = re.findall(r'<div class="brief-sub">(.*?)</div>', html)
+        assert lines == ["<b>W</b> at <b>19.0\u00a0s</b>", "<b>W</b> at <b>12.7\u00a0s</b>"]
+        assert "LINE_PERIOD_RATIO = 1.25, LINE_HEADING_DEG = 45;" in SOURCE   # briefing's numbers
         assert "brief-sep" not in html                 # no trend word (owner's pick)
         # The range as the cards show it, the Briefing's rounding.
         assert "2–4\u00a0ft" in html
         # The window is the 24 h from the hour, its dot on the hour.
         assert "next 24 h" in html and 'class="brief-spark big"' in html
         assert 'cx="1.0"' in html
+
+    def test_the_forecast_lines_are_the_briefings_row_for_row(self):
+        # fcSwellTrains and briefing.listed_trains are one rule on two tabs.
+        import random
+
+        from forecast import briefing as bf
+
+        rng, cases = random.Random(28), []
+        for _ in range(200):
+            cards = [{"id": b, "hsWindow": 1.0, "trains": [
+                {"hs_m": round(rng.uniform(0.1, 1.5), 3), "from_deg": rng.randint(180, 300),
+                 "period_s": rng.choice([7.7, 9.1, 11.1, 12.7, 13.6, 15.4, 16.6, 19.0]),
+                 "swell": rng.choice([None, 0, 1, 2])} for _ in range(rng.randint(1, 3))]}
+                for b in ("coronado_north", "coronado_center", "coronado_south")]
+            cases.append(cards)
+        js = (SOURCE[SOURCE.index("const fcHeading = "):SOURCE.index("\nfunction fcSwellTrains(")] + "\n"
+              + 'const ORDER = ["coronado_north", "coronado_center", "coronado_south"];\n'
+              + self.fn("fcSwellTrains")
+              + f"\nconsole.log(JSON.stringify({json.dumps(cases)}.map((c) => fcSwellTrains(c).map((t) => [t.period_s, t.from_deg]))));")
+        got = json.loads(self._node(js))
+        want = [[[t["period_s"], t["from_deg"]] for t in bf.listed_trains(c)] for c in cases]
+        assert got == want
 
     def test_the_forecast_headline_lists_trains_by_the_briefings_rule(self):
         cards = [
