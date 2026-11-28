@@ -54,8 +54,9 @@ FIELDS = ["service", "layer_id", "layer", "feature", "ring", "seq", "lat", "lon"
 POINT_FIELDS = ["service", "layer_id", "layer", "feature", "lat", "lon"]
 LINE_FIELDS = ["service", "layer_id", "layer", "feature", "path", "seq", "lat", "lon"]
 EXIT_NO_AREA = 4
-#: S-57 NATSUR codes (IHO S-57 Appendix A), for the run's summary only; the
-#: stored attributes are the service's own values, undecoded.
+#: S-57 NATSUR codes (IHO S-57 Appendix A), for the run's summary only, when a
+#: service gives a code; NOAA's gave words on run 19. Stored values are the
+#: service's own, undecoded.
 NATSUR = {"1": "mud", "2": "clay", "3": "silt", "4": "sand", "5": "stone", "6": "gravel",
           "7": "pebbles", "8": "cobbles", "9": "rock", "11": "lava", "14": "coral",
           "17": "shells", "18": "boulder"}
@@ -81,7 +82,9 @@ def natsur_of(attributes: dict) -> str | None:
 def decode(natsur: str | None) -> str:
     if natsur is None:
         return "no NATSUR"
-    return "+".join(NATSUR.get(c.strip(), f"code {c.strip()}") for c in re.split(r"[,;]", natsur))
+    # The services give NATSUR as words ("sand,shells"); a bare code is decoded.
+    parts = [c.strip() for c in re.split(r"[,;]", natsur)]
+    return "+".join(NATSUR.get(c, f"code {c}") if c.isdigit() else c for c in parts)
 
 
 def run(data_dir: Path, probe: bool) -> int:

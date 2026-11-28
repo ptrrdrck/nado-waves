@@ -370,6 +370,21 @@ sections).
        owner's call. B is the bound for the whole chain, and would also
        lower Imperial Beach's open-shelf result (1.03x observed at 0.05 m),
        how far not measured (the owner skipped that check).
+       **The chart's seabed nature, fetched** (owner, 2026-11-28;
+       `collector.seabed`, `shoreline.yml` input `seabed`, run 19, answered
+       first time; `data/seabed/`). S-57 SBDARE in (-117.45, 32.50,
+       -117.10, 32.80): 485 features, **24 areas and 461 points**. Every
+       area is rock (22) or boulder (2), all small (tens to a few hundred
+       metres) and WATLEV 4 (covers and uncovers): the intertidal rocks
+       along Point Loma's west shore from the tip (32.663° N) to 32.727° N,
+       and two near the harbour, surveys 1998-2012. No subtidal area at any
+       scale. The points are bottom samples (sand 215, mud 76, sand+shells
+       72, rock 61, ...); in the water south of the tip (32.60-32.665° N,
+       117.26-117.17° W) 84 samples, 10 of them rock, 39 sand, 21
+       sand+shells. A point is one sample, not an extent. Not yet measured:
+       how far each wrap ray runs near rock samples or over the charted
+       areas, which would locate §63's bound; that is the next step to
+       propose, the owner's call.
        **Found on the way and fixed (owner's choice of design, 2026-11-21):
        the Point Loma / Baja diffraction fill** -- BRIEFING §61, chain.md "A
        headland's fill is read across the Fresnel zone", `docs/fill_shift.md`.

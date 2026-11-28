@@ -40,6 +40,7 @@ def test_natsur_is_read_whatever_its_case_and_decoded_only_for_the_summary():
     assert seabed.decode("4,9") == "sand+rock"
     assert seabed.decode(None) == "no NATSUR"
     assert seabed.decode("99") == "code 99"
+    assert seabed.decode("sand,shells") == "sand+shells"      # NOAA's form, run 19
 
 
 def _fake(monkeypatch, feats, geometry="esriGeometryPoint"):
