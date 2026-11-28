@@ -3674,8 +3674,9 @@ class TestOrigin:
         _from_storm`): its period from within SAME_SOURCE_DEG of NHC's
         bearing, so of two rows sharing a period only the storm's (South,
         6 Oct 12Z: 14.3 s from 257 and 173 degrees, Rachel at 167). Its band
-        cut into two rows is one origin on both. A reading takes the first
-        row of its period, as `origin.match` does. A row past the list's
+        cut into two rows is one origin on both. A reading takes the row
+        `origin.match` took (`train_index`, BRIEFING §63), and a payload
+        without one the first row of its period. A row past the list's
         limit is not on the card, and neither is its origin."""
 
         script = ("const SAME_SOURCE_DEG = 45;\n"
@@ -3691,12 +3692,16 @@ class TestOrigin:
                   "const o = {hurricanes: [{storm: 'EP18', name: 'Rachel', at: at(14.3, 167, [11.1])},"
                   " {storm: 'EP19', name: 'Lobe', at: at(9.9, 200)},"
                   " {storm: 'EP20', name: 'Far', at: at(8.0, 270)}],"
-                  " current: [{first_utc: 'A', train_period_s: 14.3}, {first_utc: 'B', train_period_s: 8.0}]};\n"
+                  " current: [{first_utc: 'A', train_period_s: 14.3}, {first_utc: 'B', train_period_s: 8.0},"
+                  " {first_utc: 'C', train_period_s: 14.3, train_index: 1},"
+                  " {first_utc: 'D', train_period_s: 8.0, train_index: 4}]};\n"
                   "console.log(JSON.stringify(rowOrigins(o, trains).map((g) => [g.html, g.rows, g.kind])));\n")
         got = json.loads(_node_run(script))
         assert got == [["storm Rachel", [1, 2], "Hurricane"],
                        ["storm Lobe", [3], "Hurricane"],
-                       ["reading A", [0], "reading"]]
+                       ["reading A", [0], "reading"],
+                       ["reading C", [1], "reading"]]
+        assert "train_period_s: c.train_period_s, train_index: c.train_index" in SOURCE
 
     def test_the_line_sits_under_its_row_or_its_bracket(self):
         """A line goes under the block holding its last row -- the row, or

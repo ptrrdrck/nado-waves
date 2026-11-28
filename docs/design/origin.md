@@ -68,19 +68,38 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      SAME_SOURCE_DEG of NHC's bearing on either of the row's directions. Two
      rows can share a period: South, 6 Oct 12Z, 14.3 s from 257° and from
      173°, Rachel at 167° -- the fold never had to choose, a row does. A
-     reading's is the first row of its period, as `origin.match` takes it
-     (by period only, so on a tie the row is the first). Measured over the
-     archive (2,398 hours, 4 Aug - 28 Nov 2026; card rows rebuilt as Origin
-     rebuilds a past hour, a reading's frequency interpolated linearly
-     between its lead and latest periods, as dispersion makes it): two shown
-     rows share a period on 9.0-11.7% of hours at the breaks and 5.0% at the
-     buoy; a reading sits on such a period on 220 of 3,393 reading-on-a-row
-     hours (6.5%: buoy 3.6%, Center 5.7%, North 7.4%, South 9.9%), where its
-     row is the first of the two, never chosen. A storm did on 5 named
-     moments, 4 settled to one row by its direction test and one (Rachel,
-     Center, 9 Oct 00Z, 11.1 s) with two rows passing, the first taken.
-     Reported to the owner; not changed (it would be `origin.match`'s). A
-     matched row past the list's four is not on the card, nor its origin.
+     storm did on 5 named moments, 4 settled to one row by its direction
+     test and one (Rachel, Center, 9 Oct 00Z, 11.1 s) with two rows passing,
+     the first taken.
+   - **A reading's row** (owner's yes, 2026-11-28; BRIEFING §63):
+     `origin.match` returns the row, not its period, and now.json's
+     `current` carries it as `train_index`. The nearest period first, as
+     before; of the rows on that period, the one nearest the arrival's
+     46047 bearing on either of its directions -- the storm's own test with
+     46047 in NHC's place, and the direction the reading's line states. A
+     withheld bearing, or none, keeps the first row: 46047 then holds the
+     train from two directions and says neither. Until then a reading took
+     the first row of its period (by period only).
+     Measured by replaying `origin.reading` hour by hour (2,400 hours, 4
+     Aug - 28 Nov 06Z; each ridge as it stood that hour, through the gate,
+     running, on that hour's rebuilt rows, the list's four): 1,989
+     reading-on-a-row hours, 151 on a period two rows share (7.6%: buoy
+     4.0%, North 8.4%, Center 8.5%, South 9.5%; 23 readings; the two rows
+     ≥ 30° apart on 146). #256's first count (220 of 3,393, 6.5%)
+     interpolated each arrival's frequency over its whole life, before its
+     gate passed too. Of the 151: bearing placed on 73, withheld on 76,
+     none on 2. On south bearings (135-240°, where 46232 and 46047 agree
+     within ~10°, §37), 46232's own ridge heading and 46047's bearing pick
+     the same row on 40 of 41 hours, and not the first row on 16; on
+     west and north-west ones (32) 46047 separates the rows by ≥ 24° and
+     moves 11. 27 tie hours move (1.4% of reading hours), all placed;
+     a reading's row jumps > 45° hour to hour 5 times in 56 (8 before).
+     Rejected: 46232's own heading (never the arrival's, §38; at a shared
+     period it mixes both rows; 9 jumps), and a withheld bearing's nearest
+     held direction (66 moved, but on 44 of the 76 withheld hours both rows
+     or neither sit within 30° of one). Not changed: `stormtrack`'s refusal
+     of a storm on a train Origin reads from elsewhere is still by period.
+     A matched row past the list's four is not on the card, nor its origin.
    - **The words** (owner's call, same day): one paragraph in the
      supporting line's 15 px grey, no head at the value size, no storm
      symbol (the row's mark is it) and no "The {T} s train" (the row says

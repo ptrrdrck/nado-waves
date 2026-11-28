@@ -4358,7 +4358,7 @@ function originFor(site) {
   return {
     hurricanes,
     current: (s.current || []).filter((c) => A[c.arrival] && !isNamed(c))
-      .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
+      .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s, train_index: c.train_index})),
     site, names: O.station_names || {},
     bearingStations: O.bearing_stations || [],
   };
@@ -4519,9 +4519,10 @@ function readingEntry(a, o) {
 // into (`also_periods_s`), from within SAME_SOURCE_DEG of NHC's bearing on
 // either of the row's directions -- two rows may share a period and only one
 // come from the storm (South, 6 Oct 12Z: 14.3 s from 257 and from 173
-// degrees, Rachel at 167). A reading's is the first row of its period, as
-// `origin.match` takes it. A row past the list's limit is not on the card,
-// and neither is its origin.
+// degrees, Rachel at 167). A reading's is the row `origin.match` took
+// (`train_index`): on a shared period, the one nearest 46047's bearing, else
+// the first (BRIEFING §63); a payload without it, the first of its period. A
+// row past the list's limit is not on the card, and neither is its origin.
 const trainHeads = (t) => (t.lobes && t.lobes.length ? t.lobes.map((l) => l[0]) : [t.from_deg]);
 const samePeriod = (t, p) => p != null && Math.abs(t.period_s - p) < 0.05;
 function rowOrigins(o, trains, limit = 4) {
@@ -4537,7 +4538,8 @@ function rowOrigins(o, trains, limit = 4) {
     }
   }
   for (const a of o.current) {
-    const r = shown.find(({t}) => samePeriod(t, a.train_period_s));
+    const r = a.train_index != null ? shown[a.train_index]
+      : shown.find(({t}) => samePeriod(t, a.train_period_s));
     if (r) out.push({rows: [r.i], kind: "reading", key: a.first_utc, html: readingEntry(a, o)});
   }
   return out;

@@ -439,16 +439,17 @@ and greying read as they did. Mock only, never committed.
     docs/origin_wording.md's 2026-11-28 pass): the fold is gone; a marked,
     dotted period, and a tap opens the origin's line under its row. Open:
     the owner's iPhone (no WebKit in a session: the marks' centring and the
-    line's slide are checked in Chromium only); and a READING on a period
-    two rows share takes the first row, since `origin.match` matches by
-    period alone: 6.5% of reading hours over the archive, 3.6-9.9% by site
-    (origin.md). A fix would match a row, not a period, in `origin.match`;
-    the owner has the numbers, no decision yet.
+    line's slide are checked in Chromium only). Done since (owner's yes,
+    2026-11-28; BRIEFING §63, origin.md "A reading's row"): a reading on a
+    period two rows share takes the row nearest its 46047 bearing, not the
+    first (`origin.match` returns the row; now.json's `train_index`); a
+    withheld bearing keeps the first. 151 of 1,989 reading hours share a
+    period, 27 move. Still by period: `stormtrack._contradicted`, a storm
+    refused on a train Origin reads from elsewhere (not measured).
 
 ### Carryover prompts
 
-Each assumes a fresh session; add "Confirm each item before building. PR,
-wait for Tests, don't merge." to each.
+Each assumes a fresh session.
 
 - Item 27, first (diagnosis; the strongest model, high effort, because
   the stage responsible is unknown and each next test has to be chosen
@@ -460,18 +461,21 @@ wait for Tests, don't merge." to each.
   only. The owner saw the headline high on big westerly days (17 Nov);
   Imperial Beach clears deep water to 21 m on open shelf, so find which
   Coronado-only stage makes the excess. Propose each step's measurement
-  before running it."
+  before running it. Confirm each item before building. PR, wait for
+  Tests, don't merge."
 - Group 7, item 29 (careful; a strong model at medium effort,
   layout work against an existing pattern): "Repo ptrrdrck/nado-waves;
   attach ptrrdrck/nado-waves-notes and read app_surface.md 'The Swell
   card's tabs box and tray' and its wide-layout sections, and docs/
   handoff.md group 7. Task: item 29, the swell headline in the wide
   layouts' Swell card, out of the Briefing there; then ask about docs.html's
-  Briefing paragraphs. Mock it on live data first."
+  Briefing paragraphs. Mock it on live data first. Confirm each item
+  before building. PR, wait for Tests, don't merge."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
-  cause and the truth before changing anything."
+  cause and the truth before changing anything. Confirm each item before
+  building. PR, wait for Tests, don't merge."
 
 ### Working efficiently
 
