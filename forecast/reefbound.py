@@ -247,6 +247,19 @@ def _qs(v: list[float]) -> str:
     return f"{m:.2f} [{lo:.2f}, {hi:.2f}]" if m == m else "—"
 
 
+def _verdict(res: dict) -> str:
+    k = max(res["rough"])
+    got = {b: _q([r[b][("A", k)]["head"] for r in res["rows"] if b in r])[0]
+           for b in ("coronado_center", "coronado_south")}
+    text = ", ".join(f"{b.split('_')[1].title()} {v:.2f}" for b, v in got.items())
+    if all(v > FALSIFIER for v in got.values()):
+        return (f"A at {k:g} m keeps {text} of the headline (median), above {FALSIFIER:.2f}: "
+                "the reef's roughness is ruled out as the stage.")
+    return (f"A at {k:g} m keeps {text} of the headline (median), not above {FALSIFIER:.2f}: "
+            "the reef's roughness is NOT ruled out. Whether it is the stage depends on where "
+            "the rock is and what roughness it has, neither of which this measures.")
+
+
 def report(res: dict) -> str:
     from .nearshore import BREAKS
 
@@ -272,6 +285,10 @@ def report(res: dict) -> str:
         "rock roughness has been read here. Falsifier, stated before running: "
         f"A at 0.5 m keeping more than {FALSIFIER:.2f} of the headline at Center "
         "and South rules the reef's roughness out as the stage.",
+        "",
+        "## Verdict on the falsifier",
+        "",
+        _verdict(res),
         "",
         "## Controls",
         "",

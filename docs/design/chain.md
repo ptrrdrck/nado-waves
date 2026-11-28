@@ -653,6 +653,17 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
   through the Point Loma fill, whose ~55-70 rays per frequency all read the
   spectrum at one nearest-clear-ray heading that wanders 218°-2° across
   frequencies.
+- **A rough bed under the wrap, an upper bound (2026-11-28, BRIEFING §63,
+  `docs/reef_bound.md`, `python -m forecast.reefbound --write`)**: Madsen
+  at k_N = 0.1 / 0.2 / 0.5 m (a sweep, not a rock value) under every metre
+  of the wrap's paths, on 170 big westerly hours: Center's and South's
+  headline 0.92 / 0.80 / 0.62-0.63 of shipped, flat with the buoy's size;
+  under every path 0.90 / 0.74-0.76 / 0.49-0.53. The bound is large enough
+  that the reef's roughness is not ruled out; where the rock is and what
+  roughness it has are unmeasured. Madsen's functions and `raytrace.table`
+  take the roughness as an argument (`k_n`, `madsen_k_n`), default
+  `MADSEN_K_N`, so every shipped call is unchanged; the rough tables are
+  built by the shipped call into `data/live/reefbound/`.
 
 ## Bottom friction is Madsen's, tabulated
 
