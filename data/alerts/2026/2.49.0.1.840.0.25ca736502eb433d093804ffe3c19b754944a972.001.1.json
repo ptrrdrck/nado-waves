@@ -1,0 +1,97 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "@vocab": "https://api.weather.gov/ontology#"
+        }
+    ],
+    "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.25ca736502eb433d093804ffe3c19b754944a972.001.1",
+    "type": "Feature",
+    "geometry": null,
+    "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.25ca736502eb433d093804ffe3c19b754944a972.001.1",
+        "@type": "wx:Alert",
+        "id": "urn:oid:2.49.0.1.840.0.25ca736502eb433d093804ffe3c19b754944a972.001.1",
+        "areaDesc": "San Diego County Coastal Areas; Orange County Coastal",
+        "geocode": {
+            "SAME": [
+                "006073",
+                "006059"
+            ],
+            "UGC": [
+                "CAZ043",
+                "CAZ552"
+            ]
+        },
+        "affectedZones": [
+            "https://api.weather.gov/zones/forecast/CAZ043",
+            "https://api.weather.gov/zones/forecast/CAZ552"
+        ],
+        "references": [
+            {
+                "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.58130900b6831e9012454c48e0793ef0e40467a9.001.1",
+                "identifier": "urn:oid:2.49.0.1.840.0.58130900b6831e9012454c48e0793ef0e40467a9.001.1",
+                "sender": "w-nws.webmaster@noaa.gov",
+                "sent": "2026-11-27T21:56:00-08:00"
+            }
+        ],
+        "sent": "2026-11-28T01:32:00-08:00",
+        "effective": "2026-11-28T01:32:00-08:00",
+        "onset": "2026-11-28T01:32:00-08:00",
+        "expires": "2026-11-28T16:00:00-08:00",
+        "ends": "2026-11-28T16:00:00-08:00",
+        "status": "Actual",
+        "messageType": "Update",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Beach Hazards Statement",
+        "sender": "w-nws.webmaster@noaa.gov",
+        "senderName": "NWS San Diego CA",
+        "headline": "Beach Hazards Statement issued November 28 at 1:32AM PST until November 28 at 4:00PM PST by NWS San Diego CA",
+        "description": "* WHAT...Breaking surf of 4 to 7 feet with sets up to 8 feet on\nexposed west-facing beaches and minor to locally moderate\ncoastal flooding.\n\n* WHERE...San Diego County Coastal Areas and Orange County\nCoastal Areas.\n\n* WHEN...Through 4PM PST this afternoon.\n\n* IMPACTS...Dangerous swimming and surfing conditions and beach\nerosion. Large breaking waves can cause injury and wash people\noff beaches and rocks. Low-lying parking lots and boardwalks\nwill flood during morning high tides.\n\n* ADDITIONAL DETAILS...High tides this morning will be 7.0 to 7.1\nfeet and occur just after 11 AM PST. Surf will wane this\nevening, falling to 3 to 5 feet by early Sunday morning.",
+        "instruction": "Remain out of the water to avoid hazardous swimming conditions.",
+        "response": "Avoid",
+        "note": null,
+        "parameters": {
+            "AWIPSidentifier": [
+                "CFWSGX"
+            ],
+            "WMOidentifier": [
+                "WHUS46 KSGX 280932"
+            ],
+            "NWSheadline": [
+                "BEACH HAZARDS STATEMENT REMAINS IN EFFECT THROUGH THIS AFTERNOON"
+            ],
+            "BLOCKCHANNEL": [
+                "EAS",
+                "NWEM",
+                "CMAS"
+            ],
+            "VTEC": [
+                "/O.CON.KSGX.BH.S.0020.000000T0000Z-261129T0000Z/"
+            ],
+            "eventEndingTime": [
+                "2026-11-28T16:00:00-08:00"
+            ],
+            "expiredReferences": [
+                "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.798464282c7ce655029fdf67094644768eadb5e1.001.2,2026-11-27T12:52:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.aa0af5b019e270ef0ef960408031798236435d3a.002.2,2026-11-27T04:03:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.aa0af5b019e270ef0ef960408031798236435d3a.001.3,2026-11-27T04:03:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ca8a5eecdf715406b96c309382978c22ff42126b.002.1,2026-11-27T00:10:00-08:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.ca8a5eecdf715406b96c309382978c22ff42126b.001.1,2026-11-27T00:10:00-08:00"
+            ]
+        },
+        "scope": "Public",
+        "code": "IPAWSv1.0",
+        "language": "en-US",
+        "web": "http://www.weather.gov",
+        "eventCode": {
+            "SAME": [
+                "NWS"
+            ],
+            "NationalWeatherService": [
+                "BHS"
+            ]
+        }
+    }
+}
