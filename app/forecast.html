@@ -470,14 +470,16 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tab-tray{isolation:isolate}
 .tab-tray:not([hidden]) + .tray-toggle::before{content:"";position:absolute;top:0;left:0;right:0;
                                               border-top:1px solid var(--line)}
-.tray-toggle[aria-expanded="true"]{padding:3.25px 0 3.55px}
-.tabbox:has(.tab-m) .tray-toggle[aria-expanded="true"]{padding:2.75px 0 2.7px}
+.tray-toggle[aria-expanded="true"]{padding:4px 0 2.8px}
+.tabbox:has(.tab-m) .tray-toggle[aria-expanded="true"]{padding:3px 0 2.45px}
 .tray-toggle:hover{color:var(--ink)}
 .tray-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:-2px}
+/* Up open or shut (owner's call, 2026-11-28): shut it sits under the tabs,
+   the page's closed caret; open it is the tray's foot, pointing the way the
+   tray shuts. Not the calculation's turn to down when open. */
 .tray-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
-                 stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
-.tray-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
-@media (prefers-reduced-motion: reduce){ .tray-toggle,.tray-toggle svg{transition:none} }
+                 stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion: reduce){ .tray-toggle{transition:none} }
 /* The tray's first ink about 17.5 px under its edge, the card's rhythm round
    the box (owner's call, 2026-11-27; it was 12.6 on a break, 13.3 on the
    Buoys tab): measured 17.3 on a break, 17.4 in Both, 17.3 on the Buoys tab. */

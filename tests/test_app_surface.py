@@ -5399,11 +5399,21 @@ class TestTheSwellCardsTabsBoxAndTray:
 
     def test_the_open_caret_sits_midway_between_its_hairline_and_the_boxs_edge(self):
         # 10.25 px of paper each side of its ink at 390, 9.75 in Both:
-        # measured 10.0 / 10.5 and 10.0 / 9.5, pixel-snapped at 2x. The bar
+        # measured 10.5 / 10.0 and 9.5 / 10.0, pixel-snapped at 2x. The bar
         # keeps its height, so nothing jumps as the tray starts to move.
-        assert '.tray-toggle[aria-expanded="true"]{padding:3.25px 0 3.55px}' in SOURCE
-        assert '.tabbox:has(.tab-m) .tray-toggle[aria-expanded="true"]{padding:2.75px 0 2.7px}' in SOURCE
+        assert '.tray-toggle[aria-expanded="true"]{padding:4px 0 2.8px}' in SOURCE
+        assert '.tabbox:has(.tab-m) .tray-toggle[aria-expanded="true"]{padding:3px 0 2.45px}' in SOURCE
         assert "transition:padding .24s cubic-bezier(.05,.7,.1,1)" in SOURCE
+
+    def test_the_trays_caret_points_up_open_or_shut(self):
+        # Shut, the page's closed caret under the tabs; open, the tray's
+        # foot pointing the way it shuts (owner's call, 2026-11-28). The
+        # calculation's caret still turns down when open.
+        card = self.fn("swellCard")
+        assert '<path d="M3.5 10 8 5.5 12.5 10"/></svg></button>' in card
+        assert ".tray-toggle[aria-expanded" not in SOURCE.replace(
+            '.tray-toggle[aria-expanded="true"]{padding:', "")
+        assert '.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}' in SOURCE
 
     def test_shut_from_its_caret_out_of_the_tabs_sight_the_caret_stays_put(self):
         toggle = self.fn("setTrayOpen")
