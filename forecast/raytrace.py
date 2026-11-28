@@ -203,37 +203,41 @@ def speeds(omega: float, h: np.ndarray):
     return c, cg, dc_dh
 
 
-def madsen_fw(ab: np.ndarray) -> np.ndarray:
+def madsen_fw(ab: np.ndarray, k_n: float = MADSEN_K_N) -> np.ndarray:
     """Madsen et al. (1988) as SWAN solves it:
-    1/(4√fw) + log10(1/(4√fw)) = m_f + log10(a_b/k_N), and 0.3 below a_b/k_N = 1.57."""
+    1/(4√fw) + log10(1/(4√fw)) = m_f + log10(a_b/k_N), and 0.3 below a_b/k_N = 1.57.
+
+    `k_n` is the bottom roughness; what ships is MADSEN_K_N, everywhere.
+    `forecast.reefbound` sweeps it, report only (handoff 27d)."""
 
     ab = np.asarray(ab, float)
-    rhs = MADSEN_M_F + np.log10(np.maximum(ab, 1e-9) / MADSEN_K_N)
+    rhs = MADSEN_M_F + np.log10(np.maximum(ab, 1e-9) / k_n)
     y = np.maximum(rhs, 0.5)               # y = 1/(4√fw); Newton on y + log10 y = rhs
     for _ in range(30):
         y = y - (y + np.log10(y) - rhs) / (1.0 + 1.0 / (y * math.log(10)))
         y = np.maximum(y, 1e-3)
     fw = 1.0 / (16.0 * y * y)
-    return np.where(ab / MADSEN_K_N > 1.57, fw, 0.3)
+    return np.where(ab / k_n > 1.57, fw, 0.3)
 
 
 _FW_LOG_AB = np.linspace(-4.0, 2.0, 3001)          # log10 of a_b in metres
-_FW = None
+_FW: dict[float, np.ndarray] = {}
 
 
-def fw_lookup(ab: np.ndarray) -> np.ndarray:
+def fw_lookup(ab: np.ndarray, k_n: float = MADSEN_K_N) -> np.ndarray:
     """madsen_fw on a table in log10(a_b), the form `forecast.shelfloss`
     measured with (pinned to the solved form by its control and a test)."""
 
-    global _FW
-    if _FW is None:
-        _FW = madsen_fw(10.0 ** _FW_LOG_AB)
-    return np.interp(np.log10(np.maximum(ab, 1e-4)), _FW_LOG_AB, _FW)
+    fw = _FW.get(k_n)
+    if fw is None:
+        fw = _FW[k_n] = madsen_fw(10.0 ** _FW_LOG_AB, k_n)
+    return np.interp(np.log10(np.maximum(ab, 1e-4)), _FW_LOG_AB, fw)
 
 
 def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
                   hs_m=MADSEN_HS_M, peak_hz=MADSEN_PEAK_HZ, tide_m=MADSEN_TIDE_M,
-                  law: str = "madsen", h_ref: float = H_REF) -> np.ndarray:
+                  law: str = "madsen", h_ref: float = H_REF,
+                  k_n: float = MADSEN_K_N) -> np.ndarray:
     """−ln(survival) per path at every node, shape (paths, peak, tide, hs).
 
     `steps` is each path's wet steps as `trace(..., steps=True)` records them,
@@ -258,6 +262,9 @@ def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
     start, as `nearshore.carry` measures it). What ships is H_REF; a table
     started deeper (`forecast.nearshoretest`, at a buoy in 21 m) passes its
     own, or the local sea would be de-shoaled from the wrong depth.
+
+    `k_n` is the roughness along every path (MADSEN_K_N ships);
+    `forecast.reefbound` sweeps it, report only.
     """
 
     hs_m = np.asarray(hs_m, float)
@@ -307,7 +314,7 @@ def madsen_losses(steps: list[tuple[np.ndarray, np.ndarray]], omega: float,
             excursion = hs_loc / (4.0 * shp[:, None, :m, c])
             ab = math.sqrt(2.0) * excursion
             urms = w_p[:, None, None] * excursion
-            ln_f[:, :, :m] -= fw_lookup(ab) * G * urms / math.sqrt(2.0) * shape[None, None, :m, c]
+            ln_f[:, :, :m] -= fw_lookup(ab, k_n) * G * urms / math.sqrt(2.0) * shape[None, None, :m, c]
         out[order, :, it, :] = -ln_f.transpose(2, 0, 1)
     return out
 
@@ -1115,7 +1122,7 @@ def edge_points(blockers: list[Blocker]) -> dict[str, np.ndarray]:
 
 
 def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: float,
-                h_ref: float = H_REF) -> dict:
+                h_ref: float = H_REF, k_n: float = MADSEN_K_N) -> dict:
     """One frequency's Madsen table: each carrying path's weights on this
     frequency's basis, which path each carrying row (by its place k among the
     frequency's rows) crosses the shelf on, the basis over the nodes (peak,
@@ -1126,7 +1133,7 @@ def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: flo
     src = sorted({int(path_of[i]) for i in rows})
     if not src:
         return {"rank": 0, "basis": [], "paths": [], "rows": {}, "max_error": 0.0}
-    loss = madsen_losses([rays.steps[j] for j in src], omega, h_ref=h_ref)
+    loss = madsen_losses([rays.steps[j] for j in src], omega, h_ref=h_ref, k_n=k_n)
     weights, basis, err = compress_losses(loss.reshape(len(src), -1))
     at_src = {j: n for n, j in enumerate(src)}
     return {"rank": len(basis), "basis": basis, "max_error": err, "paths": weights,
@@ -1136,7 +1143,7 @@ def madsen_freq(rays: Rays, path_of: np.ndarray, carries: np.ndarray, omega: flo
 def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
           freqs: list[float], madsen_out: dict | None = None,
           h_ref: float = H_REF, dir_step: float = DIR_STEP_DEG,
-          fill: str = FILL_RULE) -> tuple[list[dict], dict]:
+          fill: str = FILL_RULE, madsen_k_n: float = MADSEN_K_N) -> tuple[list[dict], dict]:
     """One break's transfer table, with every window edge both hard and soft.
 
     For each ray, two answers:
@@ -1180,6 +1187,10 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
     `dir_step` is the spacing of the start headings; what ships is
     DIR_STEP_DEG. `forecast.wrapbudget` traces finer combs with it, report
     only (handoff 27b).
+
+    `madsen_k_n` is the roughness the Madsen table is built at; what ships is
+    MADSEN_K_N. `forecast.reefbound` builds rougher ones, report only
+    (handoff 27d); the rows do not depend on it.
     """
 
     if fill not in ("fan", "nearest"):
@@ -1275,7 +1286,8 @@ def table(bathy: Bathymetry, spot: Spot, blockers: list[Blocker],
                                           np.array([along[i]]), period)[0]) * isl[nearest]
 
         if madsen_out is not None:
-            madsen_out[f"{f:.4f}"] = madsen_freq(rays, path_of, diff_t > 0, omega, h_ref=h_ref)
+            madsen_out[f"{f:.4f}"] = madsen_freq(rays, path_of, diff_t > 0, omega, h_ref=h_ref,
+                                                    k_n=madsen_k_n)
         for i, theta in enumerate(near):
             rows.append({
                 "period_s": f"{period:.3f}", "freq_hz": f"{f:.4f}",
