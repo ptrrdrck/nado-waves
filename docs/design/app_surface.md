@@ -341,7 +341,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    the three breaks as columns NORTH TO SOUTH, never ranked (a column's
    place is its break's), each column's headline, calculation rows (by
    step name), trains and measured line held level by `alignCols`, one
-   caret opening all three calculations; the buoys a card of their own,
+   caret opening all three calculations, the swell headline above them and
+   the Offshore box under them, each one column wide (since 2026-11-28; "The
+   swell headline and Offshore box on a wide screen"); the buoys a card of their own,
    three across; Origin on each column's trains as on a phone's tab (since
    2026-11-28; until then ONE block for the beach, `beachOrigin`, each entry
    once under the breaks that showed it; origin.md, "Origin on the
@@ -523,8 +525,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      `briefSwellRow` draws, from briefing.json, never a second rendering
      (BRIEFING §44; the block is rebuilt every collection, so it matches the
      tabs under it). The Briefing fold on a phone goes from the alerts to the
-     tides; its line, changes and record are unchanged. A wide screen still
-     shows the block in the Briefing until that layout is redone.
+     tides; its line, changes and record are unchanged. A wide screen showed
+     the block in the Briefing until 2026-11-28 (below, "The swell headline
+     and Offshore box on a wide screen").
    - **Each tab carries its own height under its name** (`tabHeight`): a
      break's breaking height, `hsWindow`, to the tenth of a foot as its
      headline; the Buoys tab 46232's combined height, the anchor every
@@ -632,8 +635,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      the big one (`fitSwellSpark`): measured, "10–14 ft (3.0–4.3 m)" in
      Both does at 390 and 375, today's "3–7 ft (0.9–2.1 m)" does not.
    - The Forecast tab's card is the same on a phone since the same day
-     (below); the wide layouts are unchanged for now (docs/handoff.md item
-     29).
+     (below); the wide layouts took the headline on 2026-11-28 (below), with
+     no tabs or tray.
 
    **Since 2026-11-28 the caret is the box's foot** (owner's calls, same
    day; mocked on the branch's own page with that day's published data,
@@ -701,8 +704,8 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      `swellCard` as `below` on the LIVE call only. Forecast's headline has
      none. The Briefing's own sentence ("NW 14–17 s, building offshore; due
      at Point Loma South around 9:50 PM, and at the breaks 30–40 min
-     later."), its record, the line's changes, docs/briefing_wording.md and
-     the wide layouts are unchanged: `briefSwell`'s offshore row carries its
+     later."), its record, the line's changes and docs/briefing_wording.md
+     are unchanged: `briefSwell`'s offshore row carries its
      parts beside that sentence (point, band, trend, buoy, due, legs).
      Shown only while one is on its way, as the Briefing's lines were.
    - **The box is the tabs box's kind**: its hairline, paper, 8 px corners
@@ -724,8 +727,46 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      box's edge to the title's ink, 11.5 to the first line, 12.5 under the
      last; 18.0 between the two boxes and 17.0 to the Charts rule, the
      card's 17.5 by where they snap; 17.5 between two swells (layout).
-   - The wide layouts are docs/handoff.md item 29's: the box moves with the
-     headline there.
+   - Wider, the box moved with the headline on 2026-11-28 (next section).
+
+## The swell headline and Offshore box on a wide screen
+
+   **Since 2026-11-28 the wide layouts' Swell card carries the swell
+   headline above its break columns and the Offshore box under them**
+   (owner's picks, same day, docs/handoff.md item 29; mocked as an artifact
+   on that day's published bundle, 15:08Z, with switches for the open
+   choices; the bundle had no swell on its way, so the mock added the
+   11:28Z briefing's real one with its times moved on):
+
+   - **Stack and console only** (`swellWide`, passed `headline` and
+     `below` by `swellCard`): the tablet and the phone draw the phone card
+     and were checked unchanged, full-page screenshots at 320, 390, 414,
+     698, 820 and 949 px on both tabs equal to the branch's before (the
+     only differing pixels, 4, were the Tide card's countdown ring, which
+     moves with the clock). No tabs, tray or caret.
+   - **The order**: title row, headline, the three columns, the Offshore
+     box. LIVE's headline is `swellBrief`'s, the Briefing's own rows;
+     Forecast's is `fcSwellBrief`'s, new on the wide Forecast tab (it had
+     no headline there). The Offshore box is LIVE's only, as on a phone.
+   - **Each one column wide** (owner's picks of three for the headline --
+     the card's width, which put the sparkline 900 px from its range at
+     1440; the sparkline beside the range; one column -- and of two for
+     the box, the card's width or one column): the columns' width with
+     their two 28 px gaps taken out, so both sit exactly over and under
+     North's column, at 278 px (950, 1280) to 318 px (1440). In "Both"
+     at 950 and 1280 the range falls back to the 64 x 18 sparkline
+     (`fitSwellSpark`), never wrapping; the box's due line wraps before
+     its second arrow, as at 390.
+   - **The Briefing goes from the alerts to the tides on every layout**:
+     the console's rail and stack's band drop the swell block; stack's band
+     keeps three columns (tides, water, the other conditions). Its line,
+     changes, dot and record are unchanged.
+   - **Spacing** (the card's rhythm, measured painted at 1440, 1280, 1100
+     and 950): title ink to the range's 17.5 px; the headline's last ink to
+     the columns' names 17.5-18.5 by where they snap (`.main-col
+     .swell-brief` -2 px of margin, Forecast's -4.5, its last line having
+     no descender); the columns' foot to the box 18.0; the box to the
+     card's edge 12, as from the columns when there is no box.
 
 ## The Forecast tab's Swell card (phone)
 

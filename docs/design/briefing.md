@@ -473,8 +473,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    design; app_surface.md "The Swell card's tabs box and tray"). Only where
    it is drawn moved: `briefSwell` / `briefSwellRow` draw the same rows, the
    line's changes still name swell changes, and the record and
-   docs/briefing_wording.md are unchanged. On a wide screen the block stays
-   in the Briefing until docs/handoff.md item 29.
+   docs/briefing_wording.md are unchanged. On a wide screen the block stayed
+   in the Briefing until 2026-11-28, when it moved to that card's head too
+   (app_surface.md "The swell headline and Offshore box on a wide screen");
+   the Briefing goes from the alerts to the tides on every layout.
 
    **Since 2026-11-28 Tanner Bank's lines are not in that headline** but in
    the card's Offshore box under its tabs (owner's design; app_surface.md

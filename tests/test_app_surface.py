@@ -4855,6 +4855,21 @@ class TestTheWideLayouts:
         assert '<div class="pane">${headRow(buoyTitle(stationName), due)}' in wide
         assert "srcLines(source, due)" not in wide
 
+    def test_the_wide_card_carries_the_headline_and_the_offshore_box(self):
+        """Item 29 (owner's picks from a mock, 2026-11-28): the headline above
+        the break columns and the Offshore box under them, each one column
+        wide; no tabs, tray or caret."""
+        card = self.fn("swellCard")
+        assert "origin, buoyRose, buoyAged, lead, headline, below});" in card
+        wide = self.fn("swellWide")
+        swell = wide[wide.index("const swell = `"):wide.index("const anchor = ")]
+        assert (swell.index("headRow(") < swell.index("${headline}")
+                < swell.index('<div class="break-cols" data-align>') < swell.index("${below}"))
+        assert "tray" not in wide and "tabbox" not in wide
+        assert ".main-col .swell-brief,.main-col .offbox{width:calc((100% - 56px) / 3)}" in SOURCE
+        # The width is the columns' with their two gaps taken out.
+        assert "column-gap:28px" in SOURCE[SOURCE.index(".break-cols{"):][:120]
+
     def test_origin_is_on_each_columns_trains(self):
         """Since 2026-11-28 (owner's request) no one block for the beach: each
         column's trains carry their break's origins, as on the phone's tabs,
@@ -5416,10 +5431,12 @@ class TestTheSwellCardsTabsBoxAndTray:
         return subprocess.run([node, "-e", script], capture_output=True, text=True,
                               check=True).stdout.strip()
 
-    def test_the_briefings_swell_block_moves_to_the_card_on_a_phone(self):
+    def test_the_briefings_swell_block_is_the_cards_on_every_layout(self):
         fold = self.fn("briefingFold")
-        # Still the Briefing's on a wide screen, until that layout is redone.
-        assert "WIDE() && parts.swell.length" in fold
+        # The phone since 2026-11-27, the wide layouts since 2026-11-28
+        # (owner's call, item 29): the Briefing goes from the alerts to the
+        # tides wherever it is drawn.
+        assert "parts.swell" not in fold and "briefSwellRow" not in fold
         brief = self.fn("swellBrief")
         # The same block, the same rows: the words and numbers are the
         # Briefing's own, never a second rendering of them.
