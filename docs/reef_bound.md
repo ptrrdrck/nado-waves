@@ -61,6 +61,60 @@ A at 0.5 m keeps Center 0.63, South 0.62 of the headline (median), not above 0.9
 | 2.5-3 m | 49 | 0.95 | 0.89 | 0.84 | 0.92 | 0.80 | 0.62 | 0.92 | 0.80 | 0.60 |
 | >= 3 m | 35 | 0.95 | 0.89 | 0.83 | 0.92 | 0.80 | 0.62 | 0.91 | 0.79 | 0.61 |
 
+## Located: rough only where the chart puts rock (Center and South)
+
+The chart's seabed nature (`collector.seabed`, run 19, `data/seabed/`): 24 areas, all intertidal rock or boulder at Point Loma's west shore, and 461 bottom samples. Each wet step of every ray takes k_N on rock and the shipped 0.05 m elsewhere; every ray, not only the wrap's, since rock is rock for any ray.
+
+- **R0**: inside a charted rock or boulder area (the chart's own extents).
+- **R1**: nearest bottom sample within 250 m, and it is rock or boulder.
+- **R2**: the same within 1000 m.
+
+R1 and R2 take a sample's nature for the ground round it: a judgement, swept over two radii, never a charted extent.
+
+Falsifier, stated before running: R2 at 0.5 m keeping more than 0.95 of the headline at Center and South means the rock the chart knows cannot make the excess.
+
+**Verdict**: R2 at 0.5 m keeps Center 0.97, South 0.95 (median): the falsifier fired; the charted rock is ruled out as the stage.
+
+Controls: the row-by-row energy sum gives the shipped 5 m energy to 2.2e-12% (worst); each path's share on rock is the same in every K's build (yes); a located bed with no step on rock gives the shipped-roughness build back exactly, and every step on rock the uniform build (`tests/test_reefbound.py`).
+
+### Headline over shipped, median [10th, 90th]
+
+| rule | k_N | Center | South | ceiling (§63 A): Center / South |
+|---|---|---|---|---|
+| R0 | 0.1 m | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 0.92 / 0.92 |
+| R0 | 0.2 m | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 0.80 / 0.80 |
+| R0 | 0.5 m | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 0.63 / 0.62 |
+| R1 | 0.1 m | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] | 0.92 / 0.92 |
+| R1 | 0.2 m | 1.00 [1.00, 1.00] | 1.00 [0.99, 1.00] | 0.80 / 0.80 |
+| R1 | 0.5 m | 0.99 [0.99, 1.00] | 0.99 [0.98, 0.99] | 0.63 / 0.62 |
+| R2 | 0.1 m | 1.00 [0.99, 1.00] | 0.99 [0.99, 1.00] | 0.92 / 0.92 |
+| R2 | 0.2 m | 0.99 [0.98, 0.99] | 0.98 [0.97, 0.99] | 0.80 / 0.80 |
+| R2 | 0.5 m | 0.97 [0.95, 0.98] | 0.95 [0.93, 0.97] | 0.63 / 0.62 |
+
+### 5 m height over shipped, median [10th, 90th]
+
+| rule | k_N | Center | South |
+|---|---|---|---|
+| R0 | 0.1 m | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| R0 | 0.2 m | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| R0 | 0.5 m | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| R1 | 0.1 m | 1.00 [1.00, 1.00] | 1.00 [1.00, 1.00] |
+| R1 | 0.2 m | 1.00 [0.99, 1.00] | 0.99 [0.99, 1.00] |
+| R1 | 0.5 m | 0.99 [0.98, 0.99] | 0.99 [0.98, 0.99] |
+| R2 | 0.1 m | 0.99 [0.99, 1.00] | 0.99 [0.99, 0.99] |
+| R2 | 0.2 m | 0.98 [0.98, 0.99] | 0.98 [0.97, 0.98] |
+| R2 | 0.5 m | 0.96 [0.94, 0.98] | 0.94 [0.92, 0.96] |
+
+### Where it acts, median [10th, 90th]
+
+Path share on rock: each carrying row's share of its path's wet length on rock, weighted by the row's shipped 5 m energy. Loss on the wrap: of the energy the rough rock takes at 0.5 m, the share taken from the wrap route's rows.
+
+| rule | Center: on rock, wrap / all / loss on the wrap | South: on rock, wrap / all / loss on the wrap |
+|---|---|---|
+| R0 | 0.00 [0.00, 0.00] / 0.00 [0.00, 0.00] / — | 0.00 [0.00, 0.00] / 0.00 [0.00, 0.00] / — |
+| R1 | 0.01 [0.01, 0.01] / 0.01 [0.01, 0.01] / 0.89 [0.81, 0.95] | 0.02 [0.01, 0.02] / 0.01 [0.01, 0.02] / 0.97 [0.94, 0.98] |
+| R2 | 0.06 [0.04, 0.07] / 0.06 [0.05, 0.07] / 0.89 [0.81, 0.94] | 0.08 [0.07, 0.09] / 0.08 [0.07, 0.09] / 0.96 [0.94, 0.98] |
+
 ## What this does not say
 
 - **Nothing is observed.** A model's friction with an unread roughness laid over the whole of a path; where the rock is, and what roughness it has, are both unknown here.

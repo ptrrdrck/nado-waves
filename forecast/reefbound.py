@@ -466,9 +466,12 @@ def located_report(res: dict) -> list[str]:
         "cannot make the excess.",
         "",
         "**Verdict**: R2 at " + f"{k_max:g} m keeps " +
-        ", ".join(f"{name[b]} {v:.2f}" for b, v in r2.items()) + " (median): " +
-        ("the falsifier fired; the charted rock is ruled out as the stage." if fired else
-         "the falsifier did not fire."),
+        ", ".join(f"{name[b]} {v:.3f}" for b, v in r2.items()) + " (median): " +
+        ("the falsifier fired" if fired else "the falsifier did not fire") +
+        ("; " + ", ".join(name[b] for b, v in r2.items() if abs(v - FALSIFIER) < 0.01)
+         + " within a point of the line, so the verdict there rests on R2's radius, a "
+         "judgement." if any(abs(v - FALSIFIER) < 0.01 for v in r2.values()) else ".")
+        + (" On the rock the chart knows, the charted rock is not the stage." if fired else ""),
         "",
         "Controls: the row-by-row energy sum gives the shipped 5 m energy to "
         f"{100 * res['worst_rows']:.1e}% (worst); each path's share on rock is the same in "
