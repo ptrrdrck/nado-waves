@@ -435,11 +435,13 @@ and greying read as they did. Mock only, never committed.
     docs/origin_wording.md's 2026-11-28 pass): the fold is gone; a marked,
     dotted period, and a tap opens the origin's line under its row. Open:
     the owner's iPhone (no WebKit in a session: the marks' centring and the
-    line's slide are checked in Chromium only); and a READING on a period
-    two rows share takes the first row, since `origin.match` matches by
-    period alone: 6.5% of reading hours over the archive, 3.6-9.9% by site
-    (origin.md). A fix would match a row, not a period, in `origin.match`;
-    the owner has the numbers, no decision yet.
+    line's slide are checked in Chromium only). Done since (owner's yes,
+    2026-11-28; BRIEFING §63, origin.md "A reading's row"): a reading on a
+    period two rows share takes the row nearest its 46047 bearing, not the
+    first (`origin.match` returns the row; now.json's `train_index`); a
+    withheld bearing keeps the first. 151 of 1,989 reading hours share a
+    period, 27 move. Still by period: `stormtrack._contradicted`, a storm
+    refused on a train Origin reads from elsewhere (not measured).
 
 ### Carryover prompts
 

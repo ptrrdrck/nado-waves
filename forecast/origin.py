@@ -452,8 +452,21 @@ def _arrival_dict(a: Arrival, running: bool) -> dict:
     }
 
 
-def match(arrival: Arrival, trains: list[dict], at: Point | None = None) -> float | None:
-    """The period of the card train this arrival IS, or None.
+def _off(a: float, b: float) -> float:
+    return abs((a - b + 180.0) % 360.0 - 180.0)
+
+
+def _heads(train: dict) -> list[float]:
+    """A card row's directions: each lobe's heading when it has two or more,
+    else its one `from_deg` (the page's `trainHeads`)."""
+
+    lobes = train.get("lobes") or []
+    heads = [lobe[0] for lobe in lobes] if lobes else [train.get("from_deg")]
+    return [h for h in heads if h is not None]
+
+
+def match(arrival: Arrival, trains: list[dict], at: Point | None = None) -> int | None:
+    """The card row this arrival IS, as its index in `trains`, or None.
 
     A card lists a break's trains by their peak bin's period; the ridge is at
     its refined frequency at `at`, its newest point unless a past hour is
@@ -461,17 +474,34 @@ def match(arrival: Arrival, trains: list[dict], at: Point | None = None) -> floa
     train. The origin belongs to the train, and a break shows it only when the
     train is on that break's card: which trains reach a break is the aperture's
     answer, never a test of one bearing against the window (BRIEFING §10).
+
+    Two rows can share the nearest period, one swell each from two directions
+    (7.6% of reading hours over the archive, BRIEFING §63). Then the row is the
+    one nearest the arrival's bearing at 46047 on either of its directions,
+    the test a named storm's row passes against NHC's (`stormtrack`): 46232's
+    own heading is never the arrival's (§38), and at a shared period it mixes
+    both rows. A withheld bearing, or none, says neither, so the first row
+    stands, as card order always had it.
     """
 
     best = None
-    for train in trains or []:
+    for k, train in enumerate(trains or []):
         period = train.get("period_s")
         if not period:
             continue
         gap = abs(1.0 / period - (at or arrival.ridge.last).freq_hz)
         if gap <= TRAIN_MATCH_HZ and (best is None or gap < best[0]):
-            best = (gap, period)
-    return best[1] if best else None
+            best = (gap, k)
+    if best is None:
+        return None
+    if arrival.bearing_deg is None:
+        return best[1]
+    period = trains[best[1]]["period_s"]
+    shared = [k for k, train in enumerate(trains)
+              if train.get("period_s") and abs(train["period_s"] - period) < 0.05]
+    nearest = [(min((_off(h, arrival.bearing_deg) for h in _heads(trains[k])), default=math.inf), k)
+               for k in shared]
+    return min(nearest)[1]
 
 
 def peak_point(arrival: Arrival) -> Point:
@@ -505,9 +535,11 @@ def reading(spectra, archives: dict[str, list], position, *, newest: datetime,
     for site, trains in trains_now.items():
         current = []
         for k, a in enumerate(found):
-            period = match(a, trains) if running[k] else None
-            if period is not None:
-                current.append({"arrival": k, "train_period_s": period})
+            row = match(a, trains) if running[k] else None
+            if row is not None:
+                # The row itself, not only its period: two rows can share one.
+                current.append({"arrival": k, "train_period_s": trains[row]["period_s"],
+                                "train_index": row})
         current.sort(key=lambda c: -c["train_period_s"])
         sites[site] = {"current": current, "last": None}
 

@@ -207,14 +207,46 @@ class TestWhichBreakShowsIt:
 
     def test_a_card_train_within_one_and_a_half_bins_is_this_train(self):
         a = self.ridge_at(1 / 15.0)
-        assert match(a, [{"period_s": 15.4}, {"period_s": 8.0}]) == 15.4
+        assert match(a, [{"period_s": 8.0}, {"period_s": 15.4}]) == 1
         assert match(a, [{"period_s": 12.5}]) is None
 
     def test_a_past_hour_is_matched_at_its_own_frequency(self):
         ridge = Ridge([Point(START, 1 / 16.0, 0.3, 200.0), Point(START, 1 / 11.0, 0.3, 200.0)])
         a = origin.Arrival(ridge=ridge, fit=None)
         assert match(a, [{"period_s": 16.0}]) is None
-        assert match(a, [{"period_s": 16.0}], ridge.points[0]) == 16.0
+        assert match(a, [{"period_s": 16.0}], ridge.points[0]) == 0
+
+    # Two rows on one period, one swell each (South, 6 Oct 12Z: 14.3 s from
+    # 257° and from 173°): the row is the one from the arrival's side.
+    TWO_ROWS = [{"period_s": 14.3, "from_deg": 257, "lobes": []},
+                {"period_s": 14.3, "from_deg": 173, "lobes": []}]
+
+    def test_two_rows_on_one_period_take_the_one_nearest_the_bearing(self):
+        a = self.ridge_at(1 / 14.3)
+        a.bearing_deg = 190.0
+        assert match(a, self.TWO_ROWS) == 1
+        a.bearing_deg = 300.0                  # 46047's north-west, 46232's 257
+        assert match(a, self.TWO_ROWS) == 0
+
+    def test_a_row_of_two_directions_is_near_on_either(self):
+        a = self.ridge_at(1 / 14.3)
+        a.bearing_deg = 185.0
+        rows = [{"period_s": 14.3, "from_deg": 250, "lobes": []},
+                {"period_s": 14.3, "from_deg": 230, "lobes": [[270, 0.6], [190, 0.4]]}]
+        assert match(a, rows) == 1
+
+    def test_a_withheld_or_missing_bearing_keeps_the_first_row(self):
+        a = self.ridge_at(1 / 14.3)
+        assert match(a, self.TWO_ROWS) == 0
+        a.bearing_lobes = [(175.0, 0.5), (300.0, 0.3)]     # withheld: two directions
+        assert match(a, self.TWO_ROWS) == 0
+
+    def test_the_bearing_never_beats_a_nearer_period(self):
+        a = self.ridge_at(1 / 14.3)
+        a.bearing_deg = 173.0
+        rows = [{"period_s": 14.3, "from_deg": 257, "lobes": []},
+                {"period_s": 13.3, "from_deg": 173, "lobes": []}]
+        assert match(a, rows) == 0
 
 
 class TestTheBlock:
@@ -243,6 +275,7 @@ class TestTheBlock:
         block, _ = self.build(newest_after_h=29)
         assert len(block["arrivals"]) == 1 and block["arrivals"][0]["running"]
         assert block["sites"]["coronado_north"]["current"][0]["arrival"] == 0
+        assert block["sites"]["coronado_north"]["current"][0]["train_index"] == 0
         assert block["sites"]["coronado_south"]["current"] == []
         assert block["arrivals"][0]["region"] and block["arrivals"][0]["bearing_from"] == "46047"
 
