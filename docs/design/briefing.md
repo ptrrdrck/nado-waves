@@ -476,6 +476,14 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    docs/briefing_wording.md are unchanged. On a wide screen the block stays
    in the Briefing until docs/handoff.md item 29.
 
+   **Since 2026-11-28 Tanner Bank's lines are not in that headline** but in
+   the card's Offshore box under its tabs (owner's design; app_surface.md
+   "The Offshore box"), in the card's own words: "NW at 14–17 s ·
+   building / → Point Loma South around 9:50 PM → beach 30–40 min later."
+   Drawn from the same rows: `briefSwell` keeps the Briefing's sentence for
+   the record, the line and the wide layouts, and carries its parts beside
+   it for the box.
+
    The Forecast tab's Swell card has a headline of the same shape since the
    same day, but NOT this block (app_surface.md "The Forecast tab's Swell
    card"): built on the page from forecast.json at the picked hour, by the

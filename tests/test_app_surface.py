@@ -5424,8 +5424,71 @@ class TestTheSwellCardsTabsBoxAndTray:
         # The same block, the same rows: the words and numbers are the
         # Briefing's own, never a second rendering of them.
         assert "briefingParts(B)" in brief
-        assert "rows.map(briefSwellRow)" in brief and "parts.swell.map((r) =>" in brief
+        assert "rows.map(briefSwellRow)" in brief
+        # Tanner Bank's lines are the Offshore box's (owner's design, 2026-11-28).
+        assert 'parts.swell.filter((r) => r.kind !== "off").map((r) =>' in brief
         assert 'class="brief-block brief-swell swell-brief"' in brief
+
+    def _offshore(self, rows):
+        start = SOURCE.index("const TAB_KERN = ")
+        letters = SOURCE[start:SOURCE.index('}).join("");', SOURCE.index("const tabLetters = ")) + 12]
+        js = (letters + "\nconst briefNum = (s) => `<b>${s}</b>`;\n"
+              "const briefSignal = (d) => `<svg class='brief-signal' data-from='${d}'></svg>`;\n"
+              f"const briefingParts = () => ({{swell: {json.dumps(rows)}}});\n"
+              + self.fn("offshoreBox")
+              + "\nprocess.stdout.write(offshoreBox({}));")
+        return self._node(js)
+
+    OFF_ROW = {"kind": "off", "from": 305, "point": "NW", "band": "14\u201317\u00a0s", "trend": "building",
+               "buoy": "Point Loma South", "due": "9:50\u00a0PM", "legs": "30\u201340", "body": "the Briefing's"}
+
+    def test_tanner_banks_lines_leave_the_headline_for_the_offshore_box(self):
+        # Owner's design, 2026-11-28: under the tabs box, above Charts, on
+        # LIVE (Forecast's headline has none), the Briefing's sentence
+        # unchanged for its record.
+        calls = [m.group(0) for m in re.finditer(r"swellCard\(\{[\s\S]*?\}\)\)", SOURCE)]
+        live = [c for c in calls if "swellBrief(BRIEFING)" in c][0]
+        assert "below: offshoreBox(BRIEFING)" in live
+        assert sum("below:" in c for c in calls) == 1
+        card = self.fn("swellCard")
+        ret = card[card.index('return `<div class="cond swell"'):]
+        assert ret.index("${box}") < ret.index("${below}") < ret.index("seriesChart(")
+        swell = self.fn("briefSwell")
+        assert "due at ${briefBuoy(B, B.station || \"46232\")} around ${briefAt(c.due_buoy_utc, B)}" in swell
+        assert "point: BRIEF_SECTOR[c.sector] || c.sector" in swell
+        # No swell on its way, no box.
+        assert self._offshore([{"kind": "beach"}]) == ""
+
+    def test_the_offshore_box_says_each_swell_in_two_lines_under_one_title(self):
+        html = self._offshore([{"kind": "beach"}, self.OFF_ROW, {**self.OFF_ROW, "point": "W", "trend": ""}])
+        assert html.count('class="offbox-title"') == 1
+        assert html.count('class="off-swell"') == 2
+        # The Briefing's signal mark beside each, turned by its swell (owner's
+        # pick from the mock, 2026-11-28).
+        assert html.count("<svg class='brief-signal' data-from='305'></svg>") == 2
+        assert "OFF_SIGNAL" not in SOURCE
+        text = re.sub(r"<[^>]+>", "", html)
+        assert text.startswith("Offshore")
+        # A train's line: point and band in ink, the trend after a dot.
+        assert "<b>NW</b> at <b>14\u201317\u00a0s</b><span class=\"brief-sep\">\u00b7</span>building" in html
+        # The trendless one drops its dot with its word.
+        assert "<b>W</b> at <b>14\u201317\u00a0s</b></div>" in html
+        # Then when it is due, each arrow's words wrapping as one.
+        assert ('<span class="off-leg">\u2192 Point Loma South around 9:50\u00a0PM</span> '
+                '<span class="off-leg">\u2192 beach 30\u201340 min later.</span>') in html
+        # With no rays' legs, the buoy's time ends the line.
+        html = self._offshore([{**self.OFF_ROW, "legs": ""}])
+        assert '<span class="off-leg">\u2192 Point Loma South around 9:50\u00a0PM.</span></div>' in html
+        assert "beach" not in html
+
+    def test_the_offshore_box_is_the_tabs_boxs_kind(self):
+        assert (".offbox{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:8px;\n"
+                "        background:var(--paper);padding:9px 11px 6.5px;margin:2.5px 0 7.5px;") in SOURCE
+        assert 'font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;' in (
+            SOURCE[SOURCE.index(".offbox-title{"):][:200])
+        assert ".off-leg{display:inline-block}" in SOURCE
+        assert ".off-swell + .off-swell{margin-top:1px}" in SOURCE
+        assert ".off-swell{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;" in SOURCE
 
     def test_both_cards_get_a_headline_and_the_tray(self):
         # The Forecast card since 2026-11-27 too (owner's design, item 28):
@@ -5768,8 +5831,8 @@ class TestTheSwellCardsTabsBoxAndTray:
         # U side by side (0.03 read tight); then CENTER's EN and BUOYS' YS
         # opened 0.01 em and its OY closed 0.02 (`TAB_KERN`).
         assert "scale(1.06)" not in SOURCE
-        assert ".tabbox .tab-ou{margin:0 .04em 0 .05em}" in SOURCE
-        assert ".tabbox .tab-ou + .tab-ou{margin-left:0}" in SOURCE
+        assert ":is(.tabbox,.offbox) .tab-ou{margin:0 .04em 0 .05em}" in SOURCE
+        assert ":is(.tabbox,.offbox) .tab-ou + .tab-ou{margin-left:0}" in SOURCE
         assert "const TAB_KERN = {EN: 0.01, YS: 0.01, OY: -0.02};" in SOURCE
         assert "${tabLetters(tab.title)}" in self.fn("swellCard")
         start = SOURCE.index("const TAB_KERN = ")

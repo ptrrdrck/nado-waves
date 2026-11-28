@@ -394,7 +394,9 @@ ruled strip open or shut, every fold's caret on the page turned (down
 shut, up open), shutting from the caret keeps it under the finger, buoy
 folds stopped jumping as they finish shutting, and Forecast's 46232 became
 the Buoys tab's foot (app_surface.md "The page's carets" and the tray
-section's 2026-11-28 block). Item 29's wide layouts have no tray or caret.
+section's 2026-11-28 block). Later that day Tanner Bank's swells on their way
+left the LIVE headline for an Offshore box under the tabs box (app_surface.md
+"The Offshore box"). Item 29's wide layouts have no tray or caret.
 
 `swellCard`'s `tray` and `headline` options are what the LIVE call passes;
 the Forecast call passes neither, so item 28 is mostly a headline to build
@@ -421,7 +423,9 @@ and greying read as they did. Mock only, never committed.
     owner's picks from the mock).
 29. **The wide layouts** -- the swell headline moves into the wide Swell
     card above its three break columns, and leaves the always-open
-    Briefing as it did on the phone; no tabs or tray there. Docs.html's
+    Briefing as it did on the phone; no tabs or tray there. The Offshore
+    box (app_surface.md "The Offshore box", 2026-11-28) moves with it,
+    under the columns, as on the phone. Docs.html's
     Briefing paragraphs say the Briefing folds out the swell: update them
     once both layouts agree (ask first; it is the docs page).
 30. **One line a swell in the swell headline, both tabs** -- done
