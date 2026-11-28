@@ -1079,15 +1079,16 @@ class TestTheCalculationTable:
 
     def test_the_caret_folds_the_table_under_the_headline(self):
         """Owner's design, 2026-09-26: a caret at the right end of the
-        headline, up while closed and down while open, one state for every
-        break, kept across a refresh like the tab choices."""
+        headline, down while closed and up while open (the other way round
+        until the owner's call of 2026-11-28), one state for every break,
+        kept across a refresh like the tab choices."""
 
         toggle = SOURCE[SOURCE.index("function calcToggle"):]
         toggle = toggle[:toggle.index("\n}\n")]
         assert 'aria-controls="calc-${id}"' in toggle
         assert 'aria-expanded="${CALC_OPEN}"' in toggle
         assert "<path d=\"M3.5 10 8 5.5 12.5 10\"/>" in toggle     # drawn pointing up
-        assert '.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}' in SOURCE
+        assert ':is(.calc-toggle,.tray-toggle):not([aria-expanded="true"]) svg{transform:rotate(-180deg)}' in SOURCE
         assert 'calc: "nado-waves.calc"' in SOURCE
         assert 'CALC_OPEN = recall(KEEP.calc) === "open";' in SOURCE
         assert ('if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row"))'
@@ -2435,8 +2436,8 @@ class TestTheWeekChart:
 
     def test_it_folds_out_from_its_own_line_with_the_calculations_caret(self):
         """Owner's design, 2026-09-27: a "Charts" line below the
-        drawing, with the calculation's caret -- up while closed, down while
-        open -- closed until opened, one state for every tab, kept across a
+        drawing, with the calculation's caret -- down while closed, up while
+        open since 2026-11-28 -- closed until opened, one state for every tab, kept across a
         refresh."""
 
         toggle = SOURCE[SOURCE.index("function chartToggle"):]
@@ -5377,7 +5378,69 @@ class TestTheSwellCardsTabsBoxAndTray:
         wire = self.fn("wireSwellTabs")
         assert ('if (btn && tabId === SWELL_TAB && btn.closest("[data-tabbox]")) setTrayOpen(!TRAY_OPEN);'
                 in wire)
-        assert 'if (e.target.closest("[data-tray-toggle]")) setTrayOpen(!TRAY_OPEN);' in wire
+        assert 'const caret = e.target.closest("[data-tray-toggle]");' in wire
+        assert "if (caret) setTrayOpen(!TRAY_OPEN, caret);" in wire
+
+    def test_the_caret_is_the_boxs_foot_under_the_open_tray(self):
+        # Under the panes, not between them and the tabs (owner's call,
+        # 2026-11-28), so the tray shuts from its foot as well as its tab.
+        card = self.fn("swellCard")
+        box = card[card.index('<div class="tabbox" data-tabbox>'):]
+        box = box[:box.index("</div>${srcLines(source)}`")]
+        assert box.index("${strip}") < box.index('<div class="tab-tray" id="swell-tray"') < box.index(
+            '<button type="button" class="tray-toggle"')
+        # Opaque and above the tray, which keeps its top padding under a
+        # negative margin as it shuts; the map's controls under it.
+        assert ("position:relative;z-index:1;display:grid;place-items:center;width:100%;height:28.8px;"
+                in SOURCE)
+        assert ".tab-tray{isolation:isolate}" in SOURCE
+
+    def test_the_tray_keeps_its_top_edge_when_shut(self):
+        # A hairline across the caret's top open or shut (owner's call,
+        # 2026-11-28): under the tabs with the tray shut, the tray's foot with
+        # it open. Drawn, not a border, so it never moves the caret.
+        assert ('.tray-toggle::before{content:"";position:absolute;top:0;left:0;right:0;'
+                'border-top:1px solid var(--line)}') in SOURCE
+        assert ".tab-tray:not([hidden]) + .tray-toggle" not in SOURCE
+
+    def test_the_caret_sits_midway_between_its_hairline_and_the_boxs_edge(self):
+        # 10.25 px of paper each side of its ink at 390: measured 10.5 / 10.0
+        # open and shut, pixel-snapped at 2x. Its ink on the same rows either
+        # way, so one padding; one height in every unit mode, so nothing
+        # jumps as the tray starts to move.
+        assert "padding:4px 0 2.8px;border:0;background:var(--paper);" in SOURCE
+        assert ".tabbox:has(.tab-m) .tray-toggle" not in SOURCE
+        assert '.tray-toggle[aria-expanded="true"]{' not in SOURCE
+
+    def test_the_pages_carets_point_down_shut_and_up_open(self):
+        # Every fold's and the tray's (owner's call, 2026-11-28; up while
+        # closed before). Drawn up, turned about the middle of its ink, so it
+        # sits on the rows a closed caret's ink did; clockwise as it opens.
+        card = self.fn("swellCard")
+        assert '<path d="M3.5 10 8 5.5 12.5 10"/></svg></button>' in card
+        assert ':is(.calc-toggle,.tray-toggle):not([aria-expanded="true"]) svg{transform:rotate(-180deg)}' in SOURCE
+        assert 'svg{transform:rotate(180deg)}' not in SOURCE.replace(".links .theme svg{transform:rotate(180deg)}", "")
+        for cls in (".calc-toggle", ".tray-toggle"):
+            rule = SOURCE[SOURCE.index(cls + " svg{"):]
+            assert "transform-origin:8px 7.75px;" in rule[:rule.index("}")]
+        # Every fold's caret is a calc-toggle or the tray's, and says its state.
+        assert SOURCE.count('<path d="M3.5 10 8 5.5 12.5 10"/>') == (
+            SOURCE.count('class="calc-toggle"') + SOURCE.count('class="tray-toggle"'))
+
+    def test_shut_from_its_caret_out_of_the_tabs_sight_the_caret_stays_put(self):
+        toggle = self.fn("setTrayOpen")
+        assert "function setTrayOpen(open, caret)" in toggle
+        # Only shutting, only from the caret, only with the tabs scrolled
+        # above the screen's top.
+        assert ("const keep = caret && !open && strip && strip.getBoundingClientRect().top < 0;"
+                in toggle)
+        # Whatever the caret moved, put back each frame while the tray slides;
+        # a newer tap lets go.
+        assert "if (pin !== TRAY_PIN) return;" in toggle
+        assert "const d = caret.getBoundingClientRect().top - y0;" in toggle
+        assert "window.scrollBy(0, d)" in toggle
+        assert "if (FOLD_MOVES.has(tray)) requestAnimationFrame(hold);" in toggle
+        assert toggle.index("const y0 = ") < toggle.index("slideFolds(") < toggle.index("hold();")
 
     def test_each_tab_carries_its_height(self):
         card = self.fn("swellCard")
@@ -5419,9 +5482,12 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert "left:11px;right:11px;\n" in SOURCE
         assert ("border-top:1px solid var(--line)}" in
                 SOURCE[SOURCE.index(".tab-tray .rose.sea + .buoy-info::before{"):][:200])
-        assert (".tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child)"
-                "{padding-bottom:0}") in SOURCE
-        assert ".tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}" in SOURCE
+        # The tray's last buoy's plate, open, is the box's foot: Tanner Bank
+        # on LIVE, 46232 on Forecast (owner's report, 2026-11-28).
+        assert (".tab-tray > :is(.pane.after, #swell-pane-buoy:last-child) > .buoy-fold:last-child"
+                ":has(> .buoy-info:last-child){margin-bottom:-12px}") in SOURCE
+        assert (".tab-tray > :is(.pane.after, #swell-pane-buoy:last-child) > .buoy-fold:last-child"
+                " > .buoy-info:last-child{border-bottom:0}") in SOURCE
 
     def test_the_ranges_sparkline_is_112_by_28_where_it_fits(self):
         # Owner's pick, 2026-11-27: drawn at that size (its line and dot as
@@ -5524,20 +5590,34 @@ class TestTheSwellCardsTabsBoxAndTray:
 
     def test_an_open_buoys_plate_is_the_rule_above_the_next_buoy(self):
         # Owner's call, 2026-11-27: the plate's foot lies on the next buoy's
-        # rule (measured at 390: 31 and 21 px of card above it before), by a
-        # margin rather than a hidden rule, so a fold's slide never jumps.
-        assert ".tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}" in SOURCE
-        assert ".tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}" in SOURCE
+        # rule (measured at 390: 31 and 21 px of card above it before), by the
+        # FOLD's own margin, which the slide moves, the plate inside it.
+        assert ".tab-tray :is(#swell-pane-buoy, .pane.after) > .buoy-fold > .buoy-info:last-child{margin-bottom:0}" in SOURCE
+        assert (".tab-tray > #swell-pane-buoy:has(+ .pane.after) > .buoy-fold:last-child"
+                ":has(> .buoy-info:last-child){margin-bottom:-13.5px}") in SOURCE
+        assert (".tab-tray .pane.after > .buoy-fold:not(:last-child)"
+                ":has(> .buoy-info:last-child){margin-bottom:-13px}") in SOURCE
         assert ".pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}" in SOURCE
 
+    def test_nothing_under_a_buoy_moves_when_its_fold_hides(self):
+        # A fold is hidden only once its slide ends: spacing keyed to [hidden]
+        # moved everything under it in the last frame (owner's report,
+        # 2026-11-28: -9.6, +0.9 and +11.9 px on LIVE). The pane's spacing is
+        # the shut one; the open fold's margin makes the difference.
+        tray_css = SOURCE[SOURCE.index(".tab-tray{display:flex"):SOURCE.index("/* Where the tide is going next.")]
+        assert ".buoy-fold[hidden]" not in tray_css
+        assert ".buoy-fold:last-child[hidden]" not in tray_css
+        assert ":not([hidden])" not in tray_css
+        fold = self.fn("slideFold")
+        assert 'marginBottom: cs.marginBottom' in fold
+
     def test_the_caret_sits_clear_of_the_tabs(self):
-        # 5 px more than at first above it; below it a little under the box's
-        # top edge to the tab names' ink, which reads as equal: 12.7 px
-        # against 13.3 painted at 390 once the names were centred by their
-        # ink, Both's 3 px higher names likewise (owner's calls, 2026-11-27).
-        assert (".tray-toggle{display:grid;place-items:center;width:100%;height:26.8px;margin-top:2px;"
-                "padding:0 0 4.8px;") in SOURCE
-        assert ".tabbox:has(.tab-m) .tray-toggle{height:25.45px;padding-bottom:3.45px}" in SOURCE
+        # With the tray shut the caret's strip sits under the tabs, its
+        # hairline the tray's top edge (owner's call, 2026-11-28); before, the
+        # caret was balanced against the tab names' ink with no line.
+        card = self.fn("swellCard")
+        box = card[card.index('<div class="tabbox" data-tabbox>'):]
+        assert box.index("${strip}") < box.index('class="tray-toggle"')
 
     def test_each_tab_is_centred_by_its_ink(self):
         # Line boxes put the caps' empty leading under them: 12.3 / 8.9 px
@@ -5606,9 +5686,9 @@ class TestTheSwellCardsTabsBoxAndTray:
         for rule in (".tab-tray .pane.after > hr + .chead{margin-top:2.5px}",
                      ".tab-tray .pane > .chead:has(> .buoy-name) + .val-line{margin-top:-1px}",
                      ".tab-tray .pane > .val-line + .buoy-fold{margin-top:-6.5px}",
-                     ".tab-tray .pane.after > .buoy-fold[hidden] + hr{margin-top:1px}",
-                     ".tab-tray > .pane.after:has(> .buoy-fold:last-child[hidden]){padding-bottom:12px}",
-                     ".tab-tray > #swell-pane-buoy:has(> .buoy-fold:last-child[hidden]){padding-bottom:1.5px}"):
+                     ".tab-tray .pane.after > .buoy-fold + hr{margin-top:1px}",
+                     ".tab-tray > :is(.pane.after, #swell-pane-buoy:last-child){padding-bottom:12px}",
+                     ".tab-tray > #swell-pane-buoy:has(+ .pane.after){padding-bottom:1.5px}"):
             assert rule in SOURCE, rule
 
     def test_46232s_pills_leave_the_title_row_only_while_the_tray_is_open(self):

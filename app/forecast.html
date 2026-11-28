@@ -452,16 +452,28 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
   transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
 @media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
-.tray-toggle{display:grid;place-items:center;width:100%;height:26.8px;margin-top:2px;padding:0 0 4.8px;border:0;
-             background:transparent;color:var(--soft);cursor:pointer}
-/* Both's names sit 3 px higher than Imperial's (above): the caret keeps the
-   same balance under them. */
-.tabbox:has(.tab-m) .tray-toggle{height:25.45px;padding-bottom:3.45px}
+/* The caret its own strip, the box's foot (owner's calls, 2026-11-28):
+   under the open panes, and under the tabs with the tray shut, a hairline
+   across its top either way (the tray's top edge, kept when it is shut),
+   the box's own paper, and the caret between that hairline and the box's
+   edge, as much paper above its ink as under it: 10.25 px each side at
+   390, measured 10.5 / 10.0 painted. Its ink sits on the same rows open or
+   shut (the page's carets, below), so one padding serves both, and the
+   strip is one height in every unit mode, so nothing jumps as the tray
+   starts to move. It is opaque and above the tray, because a shutting fold
+   keeps its top padding under a negative margin (`slideFold`) and the
+   caret rides over it; the tray is its own stacking context so the map's
+   controls stay under the caret. The hairline is drawn, not a border, so
+   it never moves the caret. */
+.tray-toggle{position:relative;z-index:1;display:grid;place-items:center;width:100%;height:28.8px;
+             padding:4px 0 2.8px;border:0;background:var(--paper);color:var(--soft);cursor:pointer}
+.tray-toggle::before{content:"";position:absolute;top:0;left:0;right:0;border-top:1px solid var(--line)}
+.tab-tray{isolation:isolate}
 .tray-toggle:hover{color:var(--ink)}
 .tray-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:-2px}
 .tray-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
-                 stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
-.tray-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+                 stroke-linecap:round;stroke-linejoin:round;transform-origin:8px 7.75px;
+                 transition:transform .15s ease-out}
 @media (prefers-reduced-motion: reduce){ .tray-toggle svg{transition:none} }
 /* The tray's first ink about 17.5 px under its edge, the card's rhythm round
    the box (owner's call, 2026-11-27; it was 12.6 on a break, 13.3 on the
@@ -510,13 +522,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tab-tray .rose.sea + .buoy-info{position:relative;margin-top:0;border-top:0;padding-top:12.5px}
 .tab-tray .rose.sea + .buoy-info::before{content:"";position:absolute;top:0;left:11px;right:11px;
                                          border-top:1px solid var(--line)}
-/* An open buoy's plate is the rule above the next buoy (owner's call,
-   2026-11-27): pulled down so its foot's hairline lies on that rule, so no
-   card and no second line between them, and the next name as far under it
-   as under the rule. A margin, not a hidden rule, so a fold's slide never
-   jumps. Measured at 390: 31 and 21 px of card above the rule before. */
-.tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}
-.tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}
 /* 17.5 px painted above and below each buoy's name and under its height
    line, the tray's rhythm (owner's call, 2026-11-27; it was 14.9-15.4 above
    a context buoy's name, 18.5 under every name, 24.0 to the trains, 27.1 to
@@ -524,12 +529,36 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tab-tray .pane.after > hr + .chead{margin-top:2.5px}
 .tab-tray .pane > .chead:has(> .buoy-name) + .val-line{margin-top:-1px}
 .tab-tray .pane > .val-line + .buoy-fold{margin-top:-6.5px}
-.tab-tray .pane.after > .buoy-fold[hidden] + hr{margin-top:1px}
-.tab-tray > .pane.after:has(> .buoy-fold:last-child[hidden]){padding-bottom:12px}
-.tab-tray > #swell-pane-buoy:has(> .buoy-fold:last-child[hidden]){padding-bottom:1.5px}
-/* The last buoy's plate, open, is the box's foot. */
-.tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child){padding-bottom:0}
-.tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}
+/* WHAT A BUOY'S FOLD CHANGES BELOW IT IS ITS OWN BOTTOM MARGIN, never a
+   rule keyed to the fold being hidden: `slideFold` slides that margin, and
+   the fold is hidden only once its slide ends, so a [hidden] rule moved
+   everything under it in the last frame (owner's report, 2026-11-28:
+   -9.6, +0.9 and +11.9 px at 46232, 46086 and 46047 on LIVE). The pane's
+   spacing is the shut one; open, the margin makes the difference, and the
+   plate stays inside its fold, so the slide's clip never cuts it (its
+   own margins outside the tray, 9-11 px, are dropped in it).
+   An open buoy's plate is the rule above the next buoy (owner's call,
+   2026-11-27): its foot's hairline lies on that rule, so no card and no
+   second line between them, and the next name as far under it as under
+   the rule. Measured at 390: 31 and 21 px of card above the rule before.
+   On LIVE 46232's plate on the after-pane's first rule (its 11 px of
+   padding, 11 of the pane's own when open, the rule's 1 px)... */
+.tab-tray :is(#swell-pane-buoy, .pane.after) > .buoy-fold > .buoy-info:last-child{margin-bottom:0}
+.tab-tray > #swell-pane-buoy:has(+ .pane.after){padding-bottom:1.5px}
+.tab-tray > #swell-pane-buoy:has(+ .pane.after) > .buoy-fold:last-child{margin-bottom:9.5px}
+.tab-tray > #swell-pane-buoy:has(+ .pane.after) > .buoy-fold:last-child:has(> .buoy-info:last-child){margin-bottom:-13.5px}
+/* ...a context buoy's on the next buoy's rule (the pane's 11 px gap)... */
+.tab-tray .pane.after > .buoy-fold + hr{margin-top:1px}
+.tab-tray .pane.after > .buoy-fold:not(:last-child){margin-bottom:-1px}
+.tab-tray .pane.after > .buoy-fold:not(:last-child):has(> .buoy-info:last-child){margin-bottom:-13px}
+/* ...and the tray's last buoy's the box's foot: Tanner Bank on LIVE, and
+   46232 on Forecast, the Buoys tab's only buoy there. Shut, 12 px under its
+   height line to the caret's hairline (owner's report, 2026-11-28: 46232 on
+   Forecast had LIVE's 1.5 px, a rule below it in mind, and its open plate
+   ran 12 px under the caret). */
+.tab-tray > :is(.pane.after, #swell-pane-buoy:last-child){padding-bottom:12px}
+.tab-tray > :is(.pane.after, #swell-pane-buoy:last-child) > .buoy-fold:last-child:has(> .buoy-info:last-child){margin-bottom:-12px}
+.tab-tray > :is(.pane.after, #swell-pane-buoy:last-child) > .buoy-fold:last-child > .buoy-info:last-child{border-bottom:0}
 /* Where the tide is going next. Dim like any other supporting line, with the
    direction itself at full ink because that is the word being read. */
 /* Inline, not flex: the height carries its own metric span and flex would
@@ -881,8 +910,16 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .calc-toggle:hover{color:var(--ink)}
 .calc-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .calc-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
-                 stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
-.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+                 stroke-linecap:round;stroke-linejoin:round;transform-origin:8px 7.75px;
+                 transition:transform .15s ease-out}
+/* THE PAGE'S CARETS, every fold's and the Swell card's tray's: DOWN while
+   closed, UP while open (owner's call, 2026-11-28; it was the other way
+   round). Drawn up, and turned about the middle of its ink (4.5-11 of 16),
+   so a caret's ink sits on the same rows open or shut, where a closed one's
+   sat before; turned clockwise as it opens, as before. A select's arrow
+   (the forecast hour's, a chart's picker) points down always: it marks a
+   menu, not a fold. */
+:is(.calc-toggle,.tray-toggle):not([aria-expanded="true"]) svg{transform:rotate(-180deg)}
 @media (prefers-reduced-motion: reduce){ .calc-toggle svg{transition:none} }
 /* The calculation, one effect per row. Heights in the leading train's ink and
    weight, the metric under the imperial so four columns fit a phone. */
@@ -8455,8 +8492,10 @@ function tabHeight(m, aged = "") {
 // The swell card's tray, open or shut: shut on every load, kept across a
 // redraw (owner's design, 2026-11-27).
 let TRAY_OPEN = false;
-function setTrayOpen(open) {
+let TRAY_PIN = 0;
+function setTrayOpen(open, caret) {
   TRAY_OPEN = open;
+  const pin = ++TRAY_PIN;
   const btn = document.querySelector("[data-tray-toggle]");
   if (btn) btn.setAttribute("aria-expanded", String(open));
   const tray = $("swell-tray");
@@ -8466,7 +8505,24 @@ function setTrayOpen(open) {
   // picked tab's height fades as its name slides to the tab's middle.
   const box = document.querySelector("[data-tabbox]"), card = box && box.closest(".cond");
   if (card) card.toggleAttribute("data-tray-open", open);
+  // Shut from its caret with the tabs scrolled out of sight, the page scrolls
+  // with the shutting tray, so the caret stays under the finger and the shut
+  // box ends in view (owner's call, 2026-11-28); with the tabs in sight the
+  // caret rises to them, as it does when the tab is tapped. Each frame puts
+  // back whatever the caret has moved, so a browser's own scroll anchoring
+  // is never added twice. Tapped again, the pin lets go.
+  const strip = box && box.querySelector(".subtabs");
+  const keep = caret && !open && strip && strip.getBoundingClientRect().top < 0;
+  const y0 = keep ? caret.getBoundingClientRect().top : 0;
   slideFolds([tray], open, () => { if (SWELL_TAB === BUOY_TAB) roseShown(); });
+  if (!keep) return;
+  const hold = () => {
+    if (pin !== TRAY_PIN) return;
+    const d = caret.getBoundingClientRect().top - y0;
+    if (Math.abs(d) >= 0.5) window.scrollBy(0, d);
+    if (FOLD_MOVES.has(tray)) requestAnimationFrame(hold);
+  };
+  hold();
 }
 // The Briefing's swell block as the Swell card's headline (owner's design,
 // 2026-11-27), its words and numbers the Briefing's own.
@@ -8610,15 +8666,17 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
       aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("");
   const after = tabs.filter((tab) => tab.after).map((tab) => `<div class="pane after" data-after-tab="${tab.id}"`
       + `${tab.id === chosen ? "" : " hidden"}>${tab.after}</div>`).join("");
-  // The tabs box and its tray (owner's design, 2026-11-27): the tabs, a
-  // caret under them, and the panes folded under that, closed until opened.
+  // The tabs box and its tray (owner's design, 2026-11-27): the tabs, the
+  // panes folded under them, closed until opened, and the caret the box's
+  // foot, under the panes when open (owner's call, 2026-11-28), so the tray
+  // shuts from its foot as well as from the tab.
   const box = !tray ? `${strip}${panes}${srcLines(source)}${after}`
     : `<div class="tabbox" data-tabbox>
       ${strip}
+      <div class="tab-tray" id="swell-tray"${TRAY_OPEN ? "" : " hidden"}>${panes}${after}</div>
       <button type="button" class="tray-toggle" data-tray-toggle aria-controls="swell-tray"
         aria-expanded="${TRAY_OPEN}" aria-label="${label} at the picked tab"><svg viewBox="0 0 16 16"
         aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>
-      <div class="tab-tray" id="swell-tray"${TRAY_OPEN ? "" : " hidden"}>${panes}${after}</div>
     </div>${srcLines(source)}`;
 
   // 46232's pills leave the title row for Point Loma South's line on the
@@ -9159,7 +9217,8 @@ function wireSwellTabs() {
     const tabId = btn && btn.getAttribute("data-swell-tab");
     if (btn && tabId === SWELL_TAB && btn.closest("[data-tabbox]")) setTrayOpen(!TRAY_OPEN);
     else if (btn) selectSwellTab(tabId);
-    if (e.target.closest("[data-tray-toggle]")) setTrayOpen(!TRAY_OPEN);
+    const caret = e.target.closest("[data-tray-toggle]");
+    if (caret) setTrayOpen(!TRAY_OPEN, caret);
     // A card's title-row pills: the left pill's other text.
     const head = e.target.closest("[data-head-key]");
     if (head) tapHead(head.getAttribute("data-head-key"));
