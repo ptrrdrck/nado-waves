@@ -299,10 +299,10 @@ def test_the_swell_is_each_breaks_card_number_and_the_trains_pooled_over_the_bre
     assert got["coming"] == []
 
 
-def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_buoy_train():
+def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_swell():
     """Owner's calls, 2026-10-23 and -24: pooled over the three breaks, half
-    the biggest swell train's height, one line a train at the buoy (the
-    biggest's), never local chop; a train of two directions by its larger,
+    the biggest swell train's height, one line a swell (the biggest's; since
+    2026-11-28 by `same_swell`, before it one a buoy train), never local chop; a train of two directions by its larger,
     as its row names it, never its 5 m heading. Wind sea -- the wind still
     driving it -- is listed and says so (owner's call, 2026-11-08)."""
 
@@ -322,14 +322,16 @@ def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_buoy_tr
     assert [(t["period_s"], t["from_deg"]) for t in got] == [(15.4, 221), (9.1, 264), (4.8, 240)]
     assert got[2]["wind_sea"] is True and "wind_sea" not in got[0]
     assert got[0]["band_hz"] == [0.045, 0.43] and got[0]["held_deg"] == [187, 234]
-    # Two trains of one compass point that are two trains at the buoy are two
-    # lines; a train the buoy's split does not hold is its own line.
+    # Two trains of one compass point whose periods are apart are two lines;
+    # a train the buoy's split does not hold is its own line unless it is
+    # a said line's swell by period and heading.
     two = [{"id": "coronado_north", "hs_nearshore_m": 1.0, "trains": [
                {"period_s": 15.4, "from_deg": 200, "hs_m": 1.0, "lobes": [], "buoy_train": 0},
                {"period_s": 11.1, "from_deg": 205, "hs_m": 0.8, "lobes": [], "buoy_train": 1}]},
            {"id": "coronado_south", "hs_nearshore_m": 1.0, "trains": [
-               {"period_s": 12.5, "from_deg": 210, "hs_m": 0.7, "lobes": [], "buoy_train": None}]}]
-    assert [t["period_s"] for t in bf.listed_trains(two)] == [15.4, 11.1, 12.5]
+               {"period_s": 12.5, "from_deg": 280, "hs_m": 0.7, "lobes": [], "buoy_train": None},
+               {"period_s": 12.5, "from_deg": 210, "hs_m": 0.6, "lobes": [], "buoy_train": None}]}]
+    assert [(t["period_s"], t["from_deg"]) for t in bf.listed_trains(two)] == [(15.4, 200), (11.1, 205), (12.5, 280)]
     assert bf.listed_trains([{"id": "coronado_north", "trains": [], "peak_period_s": 13.3,
                               "peak_direction_deg": 200, "hs_nearshore_m": 1.0}])[0]["from_deg"] == 200
     only_sea = {"id": "coronado_north", "hs_nearshore_m": 1.0,
@@ -340,6 +342,33 @@ def test_every_swell_train_at_half_the_biggest_anywhere_is_listed_once_a_buoy_tr
                              "local": True, "lobes": []}]}
     assert bf.listed_trains([only_chop])[0]["period_s"] == 3.5     # nothing else to name: the lead
     assert bf.listed_trains([]) == []
+
+
+def test_one_line_a_swell_not_a_buoy_train():
+    """Owner's call, 2026-11-28 (docs/handoff.md item 30): at 28 Nov 03Z on
+    the run of 27 Nov 15:33Z Center's one row peaked at 19.0 s but was
+    credited to the 12.7 s buoy train, so one line a buoy train said "W at
+    19.0 s" twice and never South's 12.7 s swell. The owner's sketch: W at
+    19.0 s and at 12.7 s, as two lines."""
+
+    def site(i, *rows):
+        return {"id": i, "hs_nearshore_m": 1.0, "trains": [
+            {"hs_m": h, "period_s": p, "from_deg": d, "lobes": [], "buoy_train": k} for h, p, d, k in rows]}
+
+    sites = [site("coronado_north", (0.452, 11.9, 215, 0), (0.358, 19.0, 268, 1)),
+             site("coronado_center", (0.912, 19.0, 271, 0)),
+             site("coronado_south", (0.772, 12.7, 276, 0), (0.72, 19.0, 276, 1))]
+    assert [(t["period_s"], t["from_deg"]) for t in bf.listed_trains(sites)] == [(19.0, 271), (12.7, 276)]
+    # One swell through two windows, far apart in heading: one buoy train keeps it one line.
+    one = [site("coronado_south", (1.0, 14.3, 190, 0), (0.9, 15.4, 259, 0))]
+    assert len(bf.listed_trains(one)) == 1
+    # Two buoy trains, one swell's words (a period apart, a few degrees): one line.
+    near = [site("coronado_north", (1.0, 16.7, 262, 0)), site("coronado_south", (0.9, 15.4, 250, 1))]
+    assert len(bf.listed_trains(near)) == 1
+    # Two buoy trains, one period, from 60° apart: two lines.
+    apart = [site("coronado_north", (1.0, 14.3, 200, 0)), site("coronado_south", (0.9, 14.3, 260, 1))]
+    assert len(bf.listed_trains(apart)) == 2
+    assert (bf.LINE_PERIOD_RATIO, bf.LINE_HEADING_DEG) == (1.25, 45.0)
 
 
 def test_a_dark_buoy_is_said_and_nothing_else():

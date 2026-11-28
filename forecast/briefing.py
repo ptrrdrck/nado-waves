@@ -179,6 +179,20 @@ PEAK_COVER = 0.75
 #: when it became the wind's call and not a period's (BRIEFING §51).
 MIX_SHARE = 0.5
 
+#: ONE LINE A SWELL (owner's call, 2026-11-28, docs/handoff.md item 30): a
+#: row is left unsaid only when a line already said peaks within this ratio
+#: of its period and is the same buoy train or within LINE_HEADING_DEG of its
+#: heading (`same_swell`). Until then it was one line a buoy train, and at
+#: 28 Nov 03Z (run of 27 Nov 15:33Z) Center's 19.0 s row, credited to the
+#: 12.7 s train, printed "W at 19.0 s" beside South's 19.0 s row and left
+#: South's 12.7 s swell unsaid. Measured (`python -m forecast.trainmatch
+#: --lines`), against two known swells with buoy noise (1,140 trials): the
+#: headline right 61.9% -> 75.0%, a swell unsaid 37.5% -> 24.0%, said twice
+#: 1.1% -> 1.4%, one swell kept to one line 99.2% -> 98.3%. ×1.12 hid fewer
+#: (13.3%) but said one clean swell twice 7.5% of the time; not chosen.
+LINE_PERIOD_RATIO = 1.25
+LINE_HEADING_DEG = 45.0
+
 
 def _utc(stamp: str | None) -> datetime | None:
     return datetime.strptime(stamp, ISO).replace(tzinfo=timezone.utc) if stamp else None
@@ -943,13 +957,13 @@ def listed_trains(sites: list[dict]) -> list[dict]:
     (owner's call, 2026-10-23, after the WSW sea leading Center and South
     went unsaid because North was the biggest break): every swell train at
     any break at ≥ MIX_SHARE of the biggest one anywhere, biggest first,
-    and ONE LINE A BUOY TRAIN (owner's call, 2026-10-24, replacing one a
-    compass point, which listed one W swell twice either side of the W / WSW
-    boundary): trains at two breaks that are the same train at 46232
-    (`buoy_train`: since 2026-11-03 the buoy train that carried most of the
-    row, a row two carried being divided first -- `nearshore.carry`,
-    BRIEFING §49) are one line, the biggest's. A
-    train with no buoy train is its own line. Never local chop, and wind sea
+    and ONE LINE A SWELL (owner's call, 2026-11-28, `same_swell`: peaks
+    within LINE_PERIOD_RATIO, and one buoy train or headings within
+    LINE_HEADING_DEG), replacing one a buoy train (2026-10-24 to 11-28,
+    `buoy_train`, which said one swell twice when a row two buoy trains
+    reached peaked in the other's periods, and hid a swell the buoy merged
+    into another's train), which had replaced one a compass point (one W
+    swell twice either side of the W / WSW boundary). Never local chop, and wind sea
     -- the wind still driving it, `forecast.windsea` -- said as such
     (`wind_sea`; owner's call, 2026-11-08, BRIEFING §51: until then every
     train under 8 s was left out as "wind sea"); with no train at all but
@@ -974,19 +988,35 @@ def listed_trains(sites: list[dict]) -> list[dict]:
         return ([{"period_s": top.get("peak_period_s"), "from_deg": top.get("peak_direction_deg"),
                   "hs_m": top.get("hs_nearshore_m")}] if top.get("peak_period_s") is not None else [])
     biggest = pool[0][0].get("hs_m") or 0.0
-    out, said = [], set()
+    out, said = [], []
     for t, site in pool:
         if (t.get("hs_m") or 0.0) < MIX_SHARE * biggest:
             break
-        swell = t.get("buoy_train")
-        if swell is not None:
-            if swell in said:
-                continue
-            said.add(swell)
+        if any(same_swell(t, s) for s in said):
+            continue
+        said.append(t)
         out.append({"period_s": t.get("period_s"), "from_deg": _heading(t), "hs_m": t.get("hs_m"),
                     "band_hz": t.get("band_hz"), "held_deg": t.get("held_deg"),
                     **({"wind_sea": True} if t.get("wind_sea") else {})})
     return out
+
+
+def same_swell(row: dict, line: dict) -> bool:
+    """Whether a row is the swell a line already said (`LINE_PERIOD_RATIO`,
+    `LINE_HEADING_DEG`): peaks within the ratio, and the same buoy train
+    (`buoy_train` on LIVE, `swell` on Forecast) or headings within the
+    degrees. The buoy train keeps one swell through two windows, read far
+    apart in heading, one line; the period parts two swells the buoy's
+    credit merged. `fcSwellTrains` is the same test."""
+
+    a, b = row.get("period_s"), line.get("period_s")
+    if not a or not b or max(a, b) / min(a, b) > LINE_PERIOD_RATIO:
+        return False
+    ka = row.get("buoy_train", row.get("swell"))
+    if ka is not None and ka == line.get("buoy_train", line.get("swell")):
+        return True
+    ha, hb = _heading(row), _heading(line)
+    return ha is not None and hb is not None and abs((ha - hb + 180) % 360 - 180) <= LINE_HEADING_DEG
 
 
 def band_energy(spectrum, band_hz, held) -> float | None:

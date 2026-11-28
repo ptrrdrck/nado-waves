@@ -416,23 +416,12 @@ and greying read as they did. Mock only, never committed.
     Briefing as it did on the phone; no tabs or tray there. Docs.html's
     Briefing paragraphs say the Briefing folds out the swell: update them
     once both layouts agree (ask first; it is the docs page).
-30. **One line a swell in the swell headline, both tabs** (owner's call,
-    2026-11-27) -- the headline says one line a BUOY train (`buoy_train` on
-    LIVE, `swell` on Forecast: the buoy train that carried most of the row,
-    BRIEFING §49), and the words are the row's own peak. A row two buoy
-    trains reach can read as the other one: at 28 Nov 03Z on the run of
-    27 Nov 15:33Z Center's one row peaked at 19.0 s and was credited to the
-    12.7 s buoy train, South's 19.0 s row to the 19.0 s one, so the rule
-    printed "W at 19.0 s" twice (Forecast now merges matching words) and
-    South's 12.7 s row, its train "already said", was never said. On that
-    run a row with other words went unsaid on 51 of 57 hours, mostly the
-    same swell at another break (W / WSW 16.6 s), some another swell (SW
-    12.7 s under "W at 13.6 s", 27 Nov 15-21Z). The aim is ONE LINE A SWELL,
-    not necessarily a buoy train: the owner's sketch for that hour is "W at
-    19.0 s and 12.7 s". `forecast.trainmatch` is how the shipped rule was
-    measured (owner's condition); update it to score a one-line-a-swell
-    rule, measure over the archive and the known-answer control, then
-    change `briefing.listed_trains` and `fcSwellTrains` together.
+30. **One line a swell in the swell headline, both tabs** -- done
+    (2026-11-28; `briefing.same_swell` and `fcSwellTrains`, measured by
+    `python -m forecast.trainmatch --lines`, briefing.md's Swell block).
+    Open: docs.html's Briefing paragraph still describes one line a buoy
+    train by its peak period (stale since 3 Nov); rewording it waits for
+    the owner (it is the docs page).
 
 ### Carryover prompts
 
@@ -450,19 +439,6 @@ wait for Tests, don't merge." to each.
   Imperial Beach clears deep water to 21 m on open shelf, so find which
   Coronado-only stage makes the excess. Propose each step's measurement
   before running it."
-- Item 30 (open design and measurement; the strongest model, high effort,
-  because it changes a measured rule on both tabs and the rule has to be
-  scored before it is chosen): "Repo ptrrdrck/nado-waves; attach
-  ptrrdrck/nado-waves-notes and read BRIEFING §40 and §49, briefing.md's
-  Swell block (the line-a-train paragraphs), app_surface.md 'The Forecast
-  tab's Swell card', forecast/trainmatch.py, and docs/handoff.md item 30.
-  Task: item 30. The swell headline should say one line a SWELL, not
-  necessarily one a buoy train: at 28 Nov 03Z it said 'W at 19.0 s' twice
-  and never the 12.7 s swell, where the owner wants 'W at 19.0 s and
-  12.7 s'. Update trainmatch to score a one-line-a-swell rule against the
-  shipped one over the archive and its known-answer control, propose the
-  rule with those numbers, then apply it to LIVE (briefing.listed_trains)
-  and Forecast (fcSwellTrains) together."
 - Group 7, item 29 (careful; a strong model at medium effort,
   layout work against an existing pattern): "Repo ptrrdrck/nado-waves;
   attach ptrrdrck/nado-waves-notes and read app_surface.md 'The Swell
