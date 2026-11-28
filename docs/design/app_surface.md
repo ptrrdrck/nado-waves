@@ -492,6 +492,24 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    meanwhile. iPhone has no scroll anchoring; measured with it off and on,
    120 px added above the reader moved nothing, with no double correction.
 
+## The page's carets
+
+   **Every fold's caret points DOWN while closed and UP while open**
+   (owner's call, 2026-11-28; it was the other way round, up closed and
+   turned down open): the calculation's, the Briefing's, Origin's, both
+   kinds of Charts', each buoy's headline's, the tide's Phase's, and the
+   Swell card's tray's. One rule, `:is(.calc-toggle,.tray-toggle)`: the
+   caret is still drawn up (`M3.5 10 8 5.5 12.5 10`) and turned -180° while
+   `aria-expanded` is not true, about the middle of its ink (4.5-11 of its
+   16 px, `transform-origin: 8px 7.75px`), so a caret's ink sits on the
+   same rows open or shut: a closed caret's exactly where a closed caret's
+   sat before (Origin's measured identical at 2x), an open one 0.5 px
+   higher than the old open one. It still turns clockwise as it opens.
+   A select's arrow (the forecast hour's, a chart's picker) points down
+   always: it marks a menu, not a fold. docs.html names "the caret" and
+   never its direction, so it is unchanged. `tests/test_app_surface.py`
+   pins the rule, and that every caret drawn is a fold's button.
+
 ## The Swell card's tabs box and tray (LIVE, phone)
 
    **Since 2026-11-27 the LIVE Swell card on a phone is headline, tabs box,
@@ -515,7 +533,9 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      headline by `c.aged` / the buoy's age; a dash with no spectrum.
    - **The tabs box folds out a tray** (`.tabbox`, `#swell-tray`,
      `TRAY_OPEN`): the box's hairline and paper round the tabs and a caret
-     under them, the tray on the card's colour beneath, its full width.
+     under them, the tray on the card's colour beneath, its full width
+     (since 2026-11-28 the tray opens ABOVE the caret, the box's foot;
+     below).
      Closed on every load and kept across a redraw. The caret, or the
      picked tab tapped again, opens and shuts it with the folds' slide
      (`slideFolds`); picking another tab leaves it as it was.
@@ -540,8 +560,11 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      is the rule above the next buoy (owner's call, same day): pulled down
      by its margin so its foot's hairline lies on that rule (31 and 21 px of
      card sat above it), the next name 11 px under it as under the rule; a
-     margin, not a hidden rule, so a fold's slide never jumps.
-   - The tray's caret sits 5 px further from the tabs (owner's call, same
+     margin, not a hidden rule, so a fold's slide never jumps. (It still
+     jumped as the slide ENDED, by spacing keyed to the shut fold's
+     [hidden]: fixed 2026-11-28, below.)
+   - (Superseded 2026-11-28 by the caret's own ruled strip, below.) The
+     tray's caret sits 5 px further from the tabs (owner's call, same
      day): its ink 12.5 px under the tab buttons, and above the box's foot
      (or the open tray) a little less than the tab names' ink sits under
      the box's top edge, which reads as equal: 14.4 px against 15.3 painted
@@ -610,6 +633,59 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      (below); the wide layouts are unchanged for now (docs/handoff.md item
      29).
 
+   **Since 2026-11-28 the caret is the box's foot** (owner's calls, same
+   day; mocked on the branch's own page with that day's published data,
+   merged without a PR at the owner's word, the Tests workflow green on the
+   branch first). LIVE and Forecast share `swellCard`, so both changed:
+
+   - **The tray opens between the tabs and the caret**, so the caret rides
+     the tray's bottom edge as it slides, and the tray shuts from its foot
+     as well as from the picked tab. The caret is opaque (the box's paper)
+     and above the tray (`z-index: 1`), because a shutting fold keeps its
+     top padding under a negative margin (`slideFold`) and the caret rides
+     over it; the tray is its own stacking context (`isolation`) so the
+     map's controls stay under the caret. Frozen frame by frame both ways,
+     nothing of the tray shows past the caret.
+   - **The caret is its own ruled strip, open or shut** (owner's calls,
+     same day): a hairline across its top, drawn (`::before`), never a
+     border, so it never moves the caret. Shut, it sits under the tabs --
+     the tray's top edge, kept (it had none: the caret was balanced
+     against the tab names' ink, above); open, it is the tray's foot, the
+     map's caption or the last plate on it. The caret's ink midway between
+     the hairline and the box's edge: 28.8 px, 4 / 2.8 px of padding, 10.5
+     px above the ink and 10.8 below in layout; painted at 390, 10.5 above
+     and 10.0-11.0 below by where it snaps at 2x, shut, open and in Both.
+     One height and padding in every state and unit mode (Both's caret had
+     1.35 px less, under its taller tabs), so nothing jumps as the tray
+     starts to move. The caret turns with the page's (above): down shut,
+     up open (owner's call, same day, after a mock of it up both ways).
+   - **Shut from its caret with the tabs scrolled out of sight, the caret
+     stays under the finger** (owner's call, same day): each frame of the
+     slide the page scrolls by whatever the caret moved, so the reader ends
+     looking at the shut box, not at whatever lay below the tray; with the
+     tabs in sight the caret rises to them, as when the tab is tapped. Only
+     the residual is put back, so a browser's own scroll anchoring is never
+     added twice; a newer tap lets go (`TRAY_PIN`). Measured in Chromium on
+     a 420 px tall window: pinned to the pixel until the page's top stops
+     it.
+   - **A buoy's fold shuts without a jump** (owner's report, same day: the
+     last frame of shutting 46232 and 46047 on LIVE): frame by frame at
+     390 the last frame moved everything under it -9.6 px at 46232, +0.9 at
+     46086, +11.9 at 46047, because the spacing under each was keyed to its
+     fold being [hidden], and a fold is hidden only once its slide ends.
+     The panes now keep their shut spacing and the open fold's OWN bottom
+     margin makes the difference, which `slideFold` slides: -13.5 px for
+     46232 onto the after-pane's rule (the pane 1.5 px shut), -13 for a
+     context buoy onto the next rule (that rule 1 px down always), -12 for
+     the tray's last buoy, whose plate is the box's foot (its pane 12 px).
+     Every shut now ends -2.1, -0.9, -0.07 px; the open layouts are as
+     they were to the pixel; the plate stays inside its fold, so the
+     slide's clip no longer cuts its last 23 px as a shut starts. The
+     plate's own margins outside the tray (9-11 px) are dropped in it. A
+     test fails if any spacing in the tray keys on [hidden] again. (The
+     open slide's uneven steps in headless Chromium follow its frame times
+     while a rose's map draws; the caret moves exactly with the fold.)
+
 ## The Forecast tab's Swell card (phone)
 
    **Since 2026-11-27 the Forecast tab's Swell card on a phone is LIVE's:
@@ -657,3 +733,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      item 30. LIVE is unchanged.
    - `briefSpark` takes `start` and `dot` (the window from an hour, the dot
      on a reading) for it; every other sparkline draws as before.
+   - **46232 is the Buoys tab's last buoy here** (owner's report,
+     2026-11-28): the tab has no context buoys on Forecast, but 46232 was
+     spaced as on LIVE, a ruled buoy in mind below it: 1.5 px under its
+     height line to the box's foot shut, and its open plate ran 12 px under
+     the caret. It takes the tray's last buoy's rules (`#swell-pane-buoy:
+     last-child`, LIVE's Tanner Bank's): 12 px to the caret's hairline
+     shut, its plate the box's foot open.

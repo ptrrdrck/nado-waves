@@ -376,7 +376,7 @@ Open, the owner's calls:
   about right in total but ~25% low on long-period south swell; neither
   wins outright, and nothing is fitted or shipped.
 
-### Group 7: the Swell card's tabs box and tray -- phone done (PR #252; item 28, branch claude/forecast-swell-card-alignment-bi2xbu)
+### Group 7: the Swell card's tabs box and tray -- phone done (PR #252; item 28, branch claude/forecast-swell-card-alignment-bi2xbu; the caret at the box's foot, 2026-11-28)
 
 The LIVE phone card shipped (app_surface.md "The Swell card's tabs box and
 tray", every measurement and owner's call there): the Briefing's swell
@@ -387,6 +387,14 @@ tab names' O / U and pair spacing (`tabLetters`, `TAB_KERN`), and no tap
 flash page-wide. The same PR fixed test_mopdepth's known-answer test,
 which read a band with no energy (NaN direction, a gap) as a failure on
 the newest spectra.
+
+On 2026-11-28 (branch claude/swell-card-redesign-acrmw7, merged without a
+PR at the owner's word) the tray moved ABOVE its caret, the caret became a
+ruled strip open or shut, every fold's caret on the page turned (down
+shut, up open), shutting from the caret keeps it under the finger, buoy
+folds stopped jumping as they finish shutting, and Forecast's 46232 became
+the Buoys tab's foot (app_surface.md "The page's carets" and the tray
+section's 2026-11-28 block). Item 29's wide layouts have no tray or caret.
 
 `swellCard`'s `tray` and `headline` options are what the LIVE call passes;
 the Forecast call passes neither, so item 28 is mostly a headline to build
