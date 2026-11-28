@@ -550,7 +550,8 @@ class TestATrainsPetals:
         shown = " ".join(re.findall(r"`[^`]*`", read)).lower()
         assert "train" not in re.sub(r"\$\{[^}]*\}", "", shown)
         assert 'data-rose-train="${i}"' in PAGE
-        assert 'aria-label="Show this period range on the rose"' in PAGE
+        # Since 2026-11-28 a row with an origin adds where it came from.
+        assert 'aria-label="Show this period range on the rose${where}"' in PAGE
 
 
 class TestADividedTrainsPetals:

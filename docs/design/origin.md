@@ -1,11 +1,104 @@
-_Read before touching Origin, storm matching, NHC tracks, or the Origins chart._
+_Read before touching Origin, its marks and lines on the trains, storm matching, NHC tracks, or the Origins chart._
 
 # Origin and the Origins chart
 
 Moved verbatim from CLAUDE.md on 2026-11-14 (the context-reduction
 restructure); CLAUDE.md keeps the one-line rule and points here.
 
+## Origin on the trains (since 2026-11-28)
+
+   **Origin is no longer a fold** (owner's request, 2026-11-28, mocked in
+   "Origin on the Trains" on that day's LIVE data and on 6 and 11 Oct
+   rebuilt from the archive, three rounds). Each origin arriving now is a
+   line under the train it is matched to, folded until that row is tapped.
+   The Origin line, its count, its rule, its stored open state
+   (`nado-waves.origin-open`) and the wide screen's one block for the beach
+   (`beachOrigin`) are gone; each wide column's trains and 46232's on the
+   buoys card carry their own, as a phone's tabs do. LIVE only, as before.
+   Everything in the next section about how an origin is read, matched,
+   named and placed stands; what it says about the fold, its count and the
+   last readable arrival is history.
+
+   - **The mark** (owner's calls, same day): a matched row's period is
+     underlined with dots (1 px, 3 px under), and its kind's mark sits LEFT
+     of the period, out of the flow so nothing on the row moves -- the
+     tropical cyclone symbol for a named storm (`stormSymbol`, eye open for a
+     tropical storm and filled for a hurricane) or a ring for Origin's own
+     reading, in the period's grey. Two origins on one row, two marks. The
+     first round put it after the period or at the row's end; the owner
+     asked for the left, there being room. Measured at 390 px: 64-72 px
+     between the height and the period in Imperial, 61 in Metric.
+   - **Scale and centring, measured at 4x on real rows**: the row is 21 px,
+     the period's digits 10 px tall and centred on it (5.5-15.5). Both
+     symbols are drawn on one 20-unit grid in a 13 px box at one stroke (2
+     units); the ring is r 6.75 (ink 10.5 px) against the storm's 11-11.5
+     px of arms, a closed circle reading as large as the open arms (r 6, ink
+     9.5, read small). The marks' ink centres sit within 0.25 px of the
+     digits' in every unit setting. A `translateY(-50%)` put them 1 px
+     lower in "Both" than in Imperial with identical boxes (a paint offset
+     snapped differently as the row's fractional position moved), so the
+     box is placed by `top: calc(50% - 6.5px)`; a further 0.25 px moved
+     nothing (snapped). 6-7 px from the mark's ink to the period's.
+   - **"Both" units** (owner's pick of three, same day): there a height
+     fills 87.4-95.5 px of its 96 px column, leaving 16.6 px to the period
+     under 10 ft and 8.5 from 10 ft, against the ~22 a mark needs. The
+     height column is 110 px in "Both" on every list (`.trains.both`), so
+     nothing jumps between tabs: 15-16 px from the height's ink to the mark.
+     At 320 px that ran headings 7-20 px past the list (2-6 px before), so
+     every row's heading now ends on its point alone (`trainForms`: "SSW"
+     after "SSW 204°"), measured fitting 5 px inside the list. Rejected: no
+     shorter form (overrun), the mark at the row's end in "Both" only (the
+     mark moving with the units).
+   - **The tap does both** (owner's pick, same day): a row that picks its
+     arrows on the drawing, or its period on the rose, still does, and opens
+     its line; a second tap undoes both; a pick moved elsewhere, from the
+     list or the drawing, shuts it (`originTap`, `syncOriginLines` from
+     `togglePick`). A row that picks nothing opens and shuts its own line
+     (`data-origin-row`). Lines slide with the folds (`slideFolds`), are
+     shut on every load and kept across a redraw (`ORIGIN_LINES`, by site
+     and origin), never stored.
+   - **Under the row, or under its bracket** (owner's call, same day): a
+     line goes under the block holding its last row -- the row, or the
+     bracket of the swell it is in -- and every row of that block opens it,
+     a tap on one bracketed row picking the whole swell (Center, 28 Nov:
+     the reading is the 14.3 s row's, the 11.8 s row opens it too). A
+     storm's band cut into two rows (`also_periods_s`) is one line on both.
+   - **Which row** (`rowOrigins`): a named storm's is the row its own test
+     passed (`stormtrack._from_storm`): its period, from within
+     SAME_SOURCE_DEG of NHC's bearing on either of the row's directions. Two
+     rows can share a period: South, 6 Oct 12Z, 14.3 s from 257° and from
+     173°, Rachel at 167° -- the fold never had to choose, a row does. A
+     reading's is the first row of its period, as `origin.match` takes it
+     (by period only, so on a tie the row is the first). Measured over the
+     archive (2,398 hours, 4 Aug - 28 Nov 2026; card rows rebuilt as Origin
+     rebuilds a past hour, a reading's frequency interpolated linearly
+     between its lead and latest periods, as dispersion makes it): two shown
+     rows share a period on 9.0-11.7% of hours at the breaks and 5.0% at the
+     buoy; a reading sits on such a period on 220 of 3,393 reading-on-a-row
+     hours (6.5%: buoy 3.6%, Center 5.7%, North 7.4%, South 9.9%), where its
+     row is the first of the two, never chosen. A storm did on 5 named
+     moments, 4 settled to one row by its direction test and one (Rachel,
+     Center, 9 Oct 00Z, 11.1 s) with two rows passing, the first taken.
+     Reported to the owner; not changed (it would be `origin.match`'s). A
+     matched row past the list's four is not on the card, nor its origin.
+   - **The words** (owner's call, same day): one paragraph in the
+     supporting line's 15 px grey, no head at the value size, no storm
+     symbol (the row's mark is it) and no "The {T} s train" (the row says
+     the period): "Hurricane Rachel. Sent Oct 5 from about 900 mi away. NHC
+     had it at 167° SSE, …". The name keeps its NHC link. The formula and
+     every permutation: `docs/origin_wording.md`.
+   - **Only what is arriving now** (owner's call, same day): a tab's last
+     readable arrival has no train to sit under and is not on the card; the
+     Origins chart keeps the history.
+   - **Its colours under a stale list**: the line keeps them, as the fold
+     did (`agedAttr`); the row and its mark grey with the reading.
+   - The tabs box still sits 17.5 px painted from the rule below it, now
+     Charts', on LIVE and Forecast.
+
 ## Origin
+
+   _As it stood until 2026-11-28 (the fold); the section above says what
+   changed._
 
    **Right above each LIVE swell tab's Charts line, an Origin line** (owner's
    request, 2026-10-02; `forecast/origin.py`, BRIEFING §37) that folds out

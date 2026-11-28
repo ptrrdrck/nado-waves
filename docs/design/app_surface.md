@@ -342,10 +342,10 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
    place is its break's), each column's headline, calculation rows (by
    step name), trains and measured line held level by `alignCols`, one
    caret opening all three calculations; the buoys a card of their own,
-   three across; Origin ONE block for the beach (`beachOrigin`): each
-   entry exactly as a break's fold words it, once, under the breaks that
-   show it, so nothing is reworded and an entry that differs by train or
-   period is two; the swell's charts a card of their own with the break
+   three across; Origin on each column's trains as on a phone's tab (since
+   2026-11-28; until then ONE block for the beach, `beachOrigin`, each entry
+   once under the breaks that showed it; origin.md, "Origin on the
+   trains"); the swell's charts a card of their own with the break
    picked above the plot (`selectSwellTab` picks only that, there), and
    every chart drawn at its own width (`chartDims`: 320 units on a phone,
    its CSS pixels wider, so the text stays the phone's size) with a
@@ -545,10 +545,12 @@ restructure); CLAUDE.md keeps the one-line rule and points here.
      inside the box's hairline at 390, the width it had), its caption the
      box's foot. The Buoys tab's whole pane, every buoy's rose and station
      block the tray's width too (owner's call, same day), and 46086's and
-     46047's blocks. Origin and Charts stay below the box.
+     46047's blocks. Charts stays below the box (Origin did until
+     2026-11-28, when it moved onto the trains in the tray; origin.md).
    - **The box's spacing** (owner's call, same day): as far from the
-     headline above it and the Origin rule below it as the range's ink sits
-     under the title's, 17.5 px painted at 390 each, measured in pixels with
+     headline above it and the rule below it (Origin's until 2026-11-28,
+     Charts' since, measured still 17.5 px on both tabs) as the range's ink
+     sits under the title's, 17.5 px painted at 390 each, measured in pixels with
      the tray shut and open (`.swell-brief` 6 px and `.tabbox` 7.5 px of
      margin on the card's 8 px gap; it was 13.5 above, 10 below).
    - **Each buoy's rose and station block are ONE plate in the tray**
