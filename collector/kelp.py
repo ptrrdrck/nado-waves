@@ -64,10 +64,10 @@ EXIT_POINTS_ONLY = 4
 PAGE = 500
 
 
-def query_url(layer_url: str, *, count_only: bool, offset: int = 0) -> str:
+def query_url(layer_url: str, *, count_only: bool, offset: int = 0, bbox=BBOX) -> str:
     params = {
         "where": "1=1",
-        "geometry": ",".join(f"{v}" for v in BBOX),
+        "geometry": ",".join(f"{v}" for v in bbox),
         "geometryType": "esriGeometryEnvelope",
         "inSR": "4326",
         "spatialRel": "esriSpatialRelIntersects",
@@ -81,10 +81,11 @@ def query_url(layer_url: str, *, count_only: bool, offset: int = 0) -> str:
     return f"{layer_url}/query?{urllib.parse.urlencode(params)}"
 
 
-def features(layer_url: str) -> list[dict]:
+def features(layer_url: str, bbox=BBOX) -> list[dict]:
     out, offset = [], 0
     while True:
-        page = fetch_json(query_url(layer_url, count_only=False, offset=offset), timeout=TIMEOUT)
+        page = fetch_json(query_url(layer_url, count_only=False, offset=offset, bbox=bbox),
+                          timeout=TIMEOUT)
         if "error" in page:
             raise RuntimeError(f"{layer_url}: {json.dumps(page['error'])[:200]}")
         got = page.get("features") or []

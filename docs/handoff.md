@@ -351,7 +351,40 @@ sections).
        points-only is exit 4; run 18 stored the 45), `forecast.kelpcross`
        (never run; refuses without an area). Reopens on a measured
        swell-band attenuation from a paper read, or a beach-log observation
-       naming the wrap. Reef (Madsen at a rock roughness) was not asked for.
+       naming the wrap.
+       **Reef: Madsen at a rougher bed, an upper bound** -- done, report only
+       (owner, 2026-11-28; BRIEFING §63, `docs/reef_bound.md`, `python -m
+       forecast.reefbound --write`, ~4 min once the nine rough tables are
+       cached in `data/live/reefbound/`; build each with `python -m
+       forecast.reefbound --build K BREAK`, ~12 min, four at a time on 4
+       cores ~35 min). No seabed-type map is in the archive, so the rough
+       bed lies under the WHOLE of every wrap path (A) or every path (B), on
+       170 big westerly hours (8-28 Nov). k_N = 0.1 / 0.2 / 0.5 m, a sweep,
+       not a rock value (no paper read). A: Center and South headline 0.92 /
+       0.80 / 0.62-0.63 of shipped, North 0.95 / 0.89 / 0.85, flat with
+       46232's size; B: 0.90 / 0.74-0.76 / 0.49-0.53. The falsifier (A at
+       0.5 m keeping > 0.95) did not fire: the reef's roughness is not ruled
+       out as the stage. Not measured: where the rock is (the ENC's SBDARE,
+       seabed nature, from Actions; `collector.enc_layers` already counts
+       it) and a rock roughness from a paper actually read. Either is the
+       owner's call. B is the bound for the whole chain, and would also
+       lower Imperial Beach's open-shelf result (1.03x observed at 0.05 m),
+       how far not measured (the owner skipped that check).
+       **The chart's seabed nature, fetched** (owner, 2026-11-28;
+       `collector.seabed`, `shoreline.yml` input `seabed`, run 19, answered
+       first time; `data/seabed/`). S-57 SBDARE in (-117.45, 32.50,
+       -117.10, 32.80): 485 features, **24 areas and 461 points**. Every
+       area is rock (22) or boulder (2), all small (tens to a few hundred
+       metres) and WATLEV 4 (covers and uncovers): the intertidal rocks
+       along Point Loma's west shore from the tip (32.663° N) to 32.727° N,
+       and two near the harbour, surveys 1998-2012. No subtidal area at any
+       scale. The points are bottom samples (sand 215, mud 76, sand+shells
+       72, rock 61, ...); in the water south of the tip (32.60-32.665° N,
+       117.26-117.17° W) 84 samples, 10 of them rock, 39 sand, 21
+       sand+shells. A point is one sample, not an extent. Not yet measured:
+       how far each wrap ray runs near rock samples or over the charted
+       areas, which would locate §63's bound; that is the next step to
+       propose, the owner's call.
        **Found on the way and fixed (owner's choice of design, 2026-11-21):
        the Point Loma / Baja diffraction fill** -- BRIEFING §61, chain.md "A
        headland's fill is read across the Fresnel zone", `docs/fill_shift.md`.
