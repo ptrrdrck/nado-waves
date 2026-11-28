@@ -159,19 +159,18 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A second reading inside a card, under its own small label: the Forecast
    tab's model wind "At the buoy" under the local forecast wind. */
 .cond .subcond{display:flex;flex-direction:column;gap:2px;margin-top:12px}
-/* Each arrival under ORIGIN: its sea, the line under it, its provenance.
-   The tide's phase paragraphs are set the same way (owner's request,
-   2026-10-14): a heading at the card's value size over a body in the
-   supporting line's grey. */
+/* Each origin under a train, and the tide's phase paragraphs (owner's
+   request, 2026-10-14): a paragraph in the supporting line's grey; a phase
+   paragraph has a heading at the card's value size over it, an origin none
+   (owner's call, 2026-11-28). */
 .cond .origin,.cond .phase-entry{display:flex;flex-direction:column;gap:2px}
 .cond .origin + .origin,.cond .phase-entry + .phase-entry{margin-top:10px;padding-top:12px;position:relative}
-/* Entries inside Origin, and the phase's paragraphs, are set apart by a
-   centred dot, never a rule: a full-width rule is what opens a section on
+/* Two origins under one train, and the phase's paragraphs, are set apart by
+   a centred dot, never a rule: a full-width rule is what opens a section on
    this card (owner's call, 2026-10-14). */
 .cond .origin + .origin::before,.cond .phase-entry + .phase-entry::before{content:"";position:absolute;
                                 top:-2px;left:calc(50% - 2px);
                                 width:4px;height:4px;border-radius:50%;background:var(--soft)}
-.cond .origin > .val > .unit{white-space:nowrap}
 /* THE BRIEFING (owner's requests, 2026-10-16, -17 and -22) sits on the
    page's backdrop above the LIVE cards, in a fold of its own -- not a card:
    no border, no fill, its line the Charts line's weight with the same caret
@@ -367,26 +366,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    and the dot between them takes that grey too, a step more contrast than
    the rule colour it had (owner's request, 2026-10-14). */
 .cond .origin > .turn,.cond .phase-entry > .turn{font-size:15px}
-/* A tab's last readable arrival (owner's request, 2026-10-12): a line saying
-   nothing readable is arriving at the tab, then the entry, its lines at the
-   size the grey "last readable arrival" tag had beside the head. */
-.cond .origin.last > .turn{font-size:15px}
-/* A blank line between that opening line and the entry it introduces
-   (owner's request, 2026-10-13): one line of its own 15 px text. */
-.cond .origin.last > .turn:first-child{margin-bottom:1.2em}
-/* A named storm's symbol after its name: the meteorological tropical cyclone
-   symbol, two arms around the eye as a Northern Hemisphere storm turns, the
-   eye open for a tropical storm and filled for a hurricane. */
-.cond .origin .storm-sym{width:1em;height:1em;margin-left:.3em;vertical-align:-.14em;
-                         fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-.cond .origin .storm-sym .eye{fill:var(--card)}
-.cond .origin .storm-sym[data-kind="hurricane"] .eye{fill:currentColor}
-/* ORIGIN folds out like the charts, from its own line with the same caret,
-   right above "Charts" and under a rule of its own (owner's call,
-   2026-10-02): the swell card's one other rule. Closed until opened. */
-.cond > .origin-fold{display:flex;flex-direction:column;gap:6px;
-                     border-top:1px solid var(--line);padding-top:9px;margin-top:2px}
-.origin-fold .fold-body{display:flex;flex-direction:column;gap:2px}
 .cond .sublbl{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
               letter-spacing:.06em;font-size:11.5px;color:var(--soft)}
 /* A number inside a provenance line ("of 3.8 ft (1.15 m) at the buoy") stays
@@ -496,8 +475,9 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tab-tray .rose-plate,.tab-tray .rose-tray{border-left:0;border-right:0;border-radius:0}
 .tab-tray .rose-plate > .rose-sea{border-radius:0}
 .tab-tray > .pane:not(:has(> .sm-face:last-child)){padding-bottom:11px}
-/* The box sits as far from the headline above it and the Origin rule below
-   it as the range's ink sits under the title's (owner's call, 2026-11-27):
+/* The box sits as far from the headline above it and the rule below it
+   (Origin's until 2026-11-28, Charts' since: still 17.5 px, measured) as the
+   range's ink sits under the title's (owner's call, 2026-11-27):
    17.5 px painted at 390, title ink to range ink, the last headline line's
    ink to the box's hairline, the box's foot to the rule. */
 .swell-brief{margin-bottom:6px}
@@ -534,7 +514,7 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
                      border-left:0;border-right:0;border-radius:0}
 /* Each buoy's rose and station block ONE plate (owner's call, 2026-11-27):
    no card between them, a hairline across them on the words' 11 px, spaced
-   as the rule between Origin and Charts is (painted, below). */
+   as the rule between Origin and Charts was (painted, below). */
 .tab-tray .rose.sea:has(+ .buoy-info){margin-bottom:-11px}
 .tab-tray .rose.sea:has(+ .buoy-info) .rose-tray{border-bottom:0;padding-bottom:11.5px}
 .tab-tray .rose.sea + .buoy-info{position:relative;margin-top:0;border-top:0;padding-top:12.5px}
@@ -699,6 +679,29 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 /* A picked row reads as pressed, on the Buoys tab and on a break's alike
    (owner's request, 2026-10-09). */
 .train[data-rose-train][aria-pressed="true"],.train[data-train][aria-pressed="true"]{background:var(--paper);opacity:1}
+/* ORIGIN ON THE TRAINS (owner's request, 2026-11-28, replacing the Origin
+   fold): a train an origin is matched to carries a dotted underline on its
+   period and its kind's mark -- the tropical cyclone symbol for a named
+   storm, eye open for a tropical storm and filled for a hurricane, a ring
+   for Origin's own reading -- in the period's grey. A tap on the row folds
+   the origin's line out under it, or under its swell's bracket.
+   The mark sits LEFT of the period (owner's call, same day), out of the
+   flow so nothing on the row moves, its ink centred on the row as the
+   period's digits are (measured at 4x: both on 10.5 of a 21 px row). The
+   two symbols are drawn on one 20-unit grid at one stroke; the ring is 15.5
+   units across against the storm's 15 on a diagonal, its ink 10.5 px to the
+   storm's 11-11.5, a closed circle reading as large as the open arms. */
+.train.has-origin .tp{text-decoration:underline dotted;text-decoration-thickness:1px;
+                      text-underline-offset:3px;position:relative}
+.train .tp > .omark{position:absolute;right:calc(100% + 4px);top:calc(50% - 6.5px);
+                    display:flex;gap:3px;color:var(--soft)}
+.train .omark svg{display:block;width:13px;height:13px;fill:none;stroke:currentColor;
+                  stroke-width:2;stroke-linecap:round}
+.train .omark .storm-sym .eye{fill:none}
+.train .omark .storm-sym[data-kind="hurricane"] .eye{fill:currentColor}
+/* In "Both" a height runs 87-96 px of its 96 px column, which leaves no room
+   for the mark; the column takes the mark's lane there, on every list. */
+.trains.both .train .ht{min-width:110px}
 /* Each LIVE card's provenance is two lines of joined pills (owner's
    requests, 2026-10-09 to -12): where and when; then the station, "NDBC
    <id>", "METAR KNZY" or "NOAA 9410170", with a dot on that
@@ -817,7 +820,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    Every card's title is now the same capitals a size up, bold and in ink
    (the "At the buoy" heading too); the pills lose their fills -- the age or
    the model in the faint grey, a hairline, the station in ink -- so the two
-   sides weigh about the same; the fold rows (Origin, Charts, Phase) take the
+   sides weigh about the same; the fold rows (Charts, Phase) take the
    old title type, so the reading is the heaviest thing on a card. */
 .cond > .lbl,.chead > .lbl,.chead > .sublbl{font-family:"Barlow Condensed",Archivo,sans-serif;
   font-size:14px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.1em}
@@ -1116,7 +1119,6 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 /* The whole line folds the charts out, not only its caret (owner's call,
    2026-09-30); the caret still lights with it. */
 .chart-head:hover .calc-toggle{color:var(--ink)}
-.origin-fold .chart-head:hover .calc-toggle{color:var(--ink)}
 .chart-head .count{margin-left:2px;color:var(--soft);font-weight:400;font-variant-numeric:tabular-nums}
 /* The Briefing's line is one line: it fills the row beside its caret, and
    `fitBriefLine` says as many of the update's changes as fit there. */
@@ -1153,8 +1155,7 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 /* The "Charts" line is the last thing on every card, below the provenance,
    under a rule (owner's call, 2026-10-02): 8 px of margin on the card's 2 px
    gap above it, 9 px below. The swell card's gap is wider, so it takes less
-   margin to match. The only rule on the card, but for the swell card's Origin
-   line on LIVE, which takes one of its own just above. */
+   margin to match. The only rule on the card. */
 .cond > .chart{border-top:1px solid var(--line);padding-top:9px;margin-top:8px}
 .cond.swell > .chart{margin-top:2px}
 .chart-fold,.chart-body{display:flex;flex-direction:column;gap:6px}
@@ -1354,6 +1355,12 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
    leading train's arrow greys. The id outranks every card rule it replaces. */
 #conditions [data-aged-at].aged,#conditions [data-aged-at].aged *{color:var(--faint)}
 #conditions .trains.aged .train{opacity:1}
+/* An origin's line under a stale list keeps its colours, as the Origin fold
+   did: it was right for the reading it was made from (`agedAttr`). The row
+   above it, and its mark, grey with the reading. */
+#conditions [data-aged-at].aged .train-origin .turn,
+#conditions [data-aged-at].aged .train-origin .turn *{color:var(--soft)}
+#conditions [data-aged-at].aged .train-origin .turn a{color:var(--surf)}
 #conditions .aperture.aged .swell.lead line{stroke:var(--faint)}
 #conditions .aperture.aged .swell.lead polygon{fill:var(--faint)}
 /* A rose frame that went past it unreplaced (`roseAged`): its petals and
@@ -1527,13 +1534,6 @@ select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px 
 .break-cols .pane > .col-lbl + *{margin-top:-6px}
 /* One context buoy's block starts with its own headline, no rule. */
 .buoys-card .break-cols .pane > hr:first-child{display:none}
-/* Origin for the beach: each arrival once, with the breaks it reaches over
-   it, apart by the card's centred dot. */
-.cond .origin-group{display:flex;flex-direction:column;gap:2px}
-.cond .origin-group + .origin-group{margin-top:10px;padding-top:12px;position:relative}
-.cond .origin-group + .origin-group::before{content:"";position:absolute;top:-2px;left:calc(50% - 2px);
-  width:4px;height:4px;border-radius:50%;background:var(--soft)}
-.cond .origin-group > .sublbl{margin-bottom:2px}
 /* The swell charts' own card on a wide screen, the break they draw picked
    above the plot as the phone's tabs pick it. */
 .cond.charts-card > .chart{border-top:0;padding-top:0;margin-top:0}
@@ -2116,11 +2116,14 @@ function fromText(t) {
 // there is room -- "WNW 282° & WSW 248°", "SSW 197°" -- except a TAGGED row
 // with two directions, which names them by point at most ("WNW & WSW") beside
 // its tag. Then points, then one point: the larger direction's (lobes come
-// largest first), the last resort on a narrow phone.
+// largest first), the last resort on a narrow phone. Every row ends on its
+// point alone (owner's call, 2026-11-28): in "Both" the height column takes
+// an origin mark's lane, and on a 320 px phone "SSW 204°" ran up to 20 px
+// past the list.
 function trainForms(t, tagged = false) {
   const h = headings(t);
   const one = point(h[0]);
-  if (h.length < 2) return tagged ? [compass(h[0]), one] : [compass(h[0])];
+  if (h.length < 2) return [compass(h[0]), one];
   const points = h.map(point).join(" & ");
   return tagged ? [points, one] : [fromText(t), points, one];
 }
@@ -3870,7 +3873,7 @@ const KEEP = {mode: "nado-waves.mode", swell: "nado-waves.swell-tab",
               calc: "nado-waves.calc", chart: "nado-waves.chart",
               fcChart: "nado-waves.fc-chart", chartOpen: "nado-waves.chart-open",
               windChart: "nado-waves.wind-chart-open", tideChart: "nado-waves.tide-chart-open",
-              wtView: "nado-waves.wt-view", originOpen: "nado-waves.origin-open",
+              wtView: "nado-waves.wt-view",
               roseMode: "nado-waves.rose-mode", phaseOpen: "nado-waves.phase-open",
               buoyOpen: "nado-waves.buoy-open", briefOpen: "nado-waves.brief-open"};
 function recall(key) {
@@ -4020,31 +4023,63 @@ function cardsForForecast(step) {
 // even when it repeats that number (owner's call, 2026-11-11, reversing
 // 2026-11-09's drop: without it the period and heading jumped sideways
 // between break tabs).
-function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = "", headline = null} = {}) {
+function trainList(trains, {limit = 4, drawn = () => false, rose = null, aged = "", headline = null,
+                            origins = [], site = ""} = {}) {
   if (!trains || !trains.length) return "";
+  const blocks = swellGroups(trains.slice(0, limit));
+  // Each origin's line goes under the block (a row, or its swell's bracket)
+  // holding the last of its rows, and opens from every row of the blocks
+  // its rows are in: a tap on one row of a bracket picks the whole swell.
+  const blockOf = (i) => blocks.findIndex((b) => b.some((r) => r.i === i));
+  const lines = new Map();
+  for (const g of origins) {
+    const at = Math.max(...g.rows.map(blockOf));
+    if (at < 0) continue;
+    const line = lines.get(at) || {origins: [], rows: new Set()};
+    line.origins.push(g);
+    g.rows.forEach((i) => blocks[blockOf(i)].forEach((r) => line.rows.add(r.i)));
+    lines.set(at, line);
+  }
+  const lineId = (at) => `origin-${site}-${at}`;
+  const lineOf = (i) => [...lines.entries()].find(([, l]) => l.rows.has(i));
   const row = ({t, i}, group) => {
     const tag = t.local ? "chop" : t.wind_sea ? "ws" : "";
     const forms = trainForms(t, !!tag);
     // On the Buoys tab a row lights its period range on the rose below.
     const onRose = rose && roseTrainOK(rose, i);
     const of = group ? group.map((r) => r.i).sort((a, b) => a - b).join(".") : "";
+    const own = origins.filter((g) => g.rows.includes(i));
+    const opens = lineOf(i);
+    const mark = own.length ? `<span class="omark" aria-hidden="true">${own.map(originMark).join("")}</span>` : "";
+    const where = opens ? " and where it came from" : "";
     return `
-    <div class="train${i === 0 ? " lead" : ""}"${drawn(i)
+    <div class="train${i === 0 ? " lead" : ""}${own.length ? " has-origin" : ""}"${drawn(i)
       ? ` data-train="${i}" tabindex="0" role="button"${of ? ` data-group="${of}"` : ""} aria-pressed="false"`
-        + ` aria-label="${of ? "Show this swell's trains on the drawing" : "Show this train on the drawing"}"`
+        + ` aria-label="${of ? "Show this swell's trains on the drawing" : "Show this train on the drawing"}${where}"`
       : onRose ? ` data-rose-train="${i}" data-rose-for="${rose}" tabindex="0" role="button"`
-        + ` aria-pressed="${ROSE_TRAIN[rose] === i}" aria-label="Show this period range on the rose"` : ""}>
+        + ` aria-pressed="${ROSE_TRAIN[rose] === i}" aria-label="Show this period range on the rose${where}"`
+      : opens ? ` data-origin-row="${i}" tabindex="0" role="button" aria-expanded="false"`
+        + ` aria-label="Show where this train came from"` : ""}${opens
+      ? ` aria-controls="${lineId(opens[0])}"` : ""}>
       <span class="ht">${height(t.hs_m)}</span>
-      <span class="tp">${t.period_s.toFixed(1)} s</span>
+      <span class="tp">${t.period_s.toFixed(1)} s${mark}</span>
       <span class="dr">${forms.map((f, k) => `<span${k ? " hidden" : ""}>${f}</span>`).join("")}</span>
       ${tag === "chop" ? '<span class="tag">local chop</span>'
         : tag === "ws" ? '<span class="tag">wind sea</span>' : ""}
     </div>`;
   };
-  return `<div class="trains"${aged}>` + swellGroups(trains.slice(0, limit)).map((g) => (g.length > 1
+  const line = (at) => {
+    const l = lines.get(at);
+    if (!l) return "";
+    const key = `${site}|${l.origins.map((g) => g.key).join("+")}`;
+    return `<div class="train-origin" id="${lineId(at)}" data-origin-line="${key}"`
+      + ` data-origin-rows="${[...l.rows].sort((a, b) => a - b).join(".")}"`
+      + `${ORIGIN_LINES.has(key) ? "" : " hidden"}>${l.origins.map((g) => g.html).join("")}</div>`;
+  };
+  return `<div class="trains${UNITS === "both" ? " both" : ""}"${aged}>` + blocks.map((g, at) => (g.length > 1
     ? `<div class="swell-group" role="group" aria-label="One swell, ${g.length} trains">`
       + `${g.map((r) => row(r, g)).join("")}</div>`
-    : row(g[0], null))).join("") + `</div>`;
+    : row(g[0], null)) + line(at)).join("") + `</div>`;
 }
 // The drawing's caption for one swell divided into rows: what it was at the
 // buoy (the rows' `swell_at_buoy`), and how many trains reach the break.
@@ -4273,7 +4308,8 @@ function breakPanel(c) {
   return `
     ${head}
 
-    ${c.trains && c.trains.length ? trainList(c.trains, {drawn, aged, headline: c.hsWindow}) : `
+    ${c.trains && c.trains.length ? trainList(c.trains, {drawn, aged, headline: c.hsWindow,
+      origins: rowOrigins(c.origin, c.trains), site: c.id}) : `
     <div class="quiet"${aged}>
       peak <b>${c.period ? c.period.toFixed(1) + " s" : "—"}</b>
       from <b>${compass(c.direction)}</b>
@@ -4313,9 +4349,8 @@ function originFor(site) {
   // An arrival whose bearing was withheld because 46047's energy at it was
   // split (BRIEFING §38) is the storm's only from within SAME_SOURCE_DEG of one
   // of the directions it held: withholding a place must not make a name easier.
-  const near = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180) <= SAME_SOURCE_DEG;
-  const sameSource = (a, deg) => a.bearing_deg != null ? near(a.bearing_deg, deg)
-    : (a.bearing_lobes || []).length ? a.bearing_lobes.some(([h]) => near(h, deg))
+  const sameSource = (a, deg) => a.bearing_deg != null ? nearDeg(a.bearing_deg, deg)
+    : (a.bearing_lobes || []).length ? a.bearing_lobes.some(([h]) => nearDeg(h, deg))
     : true;
   const isNamed = (c) => hurricanes.some((h) => stormPeriods(h.at).includes(c.train_period_s)
     && sameSource(A[c.arrival], h.at.bearing_deg));
@@ -4323,44 +4358,9 @@ function originFor(site) {
     hurricanes,
     current: (s.current || []).filter((c) => A[c.arrival] && !isNamed(c))
       .map((c) => ({...A[c.arrival], train_period_s: c.train_period_s})),
-    last: s.last != null && A[s.last] ? A[s.last] : null,
-    lastStorm: lastStormAt(site, O),
-    site, lookback: O.lookback_days, names: O.station_names || {},
+    site, names: O.station_names || {},
     bearingStations: O.bearing_stations || [],
   };
-}
-
-// The last storm the card named at this tab, from origins.json's named moments
-// (forecast.originhistory): its newest within the lookback, as of now.json's
-// spectrum, and the first moment it was named there with the fix that sent
-// that same train, for the day the train shown arrived (owner's request,
-// 2026-10-12: "Arrived Oct 5" under a train sent Oct 10 was the storm's first
-// train at South, not this one). The
-// "last readable arrival" is whichever of it and Origin's own last reading
-// ended later (owner's report, 2026-10-12: South read "Aleutian storm track",
-// ended 2 Oct, when Tropical Storm Rachel was named there to 11 Oct). A
-// reading origins.json credits to a storm at this tab is that storm's, so it
-// never stands in for it. Without origins.json, Origin's reading alone.
-function lastStormAt(site, O) {
-  const end = Date.parse((NOW && NOW.observed_utc) || "");
-  if (!ORIGINS || !ORIGINS.named || !Number.isFinite(end)) return null;
-  const from = end - (O.lookback_days || 21) * 24 * HOUR_MS;
-  const here = ORIGINS.named.filter((n) => n.sites && n.sites[site])
-    .map((n) => ({...n, t: Date.parse(n.time_utc)})).filter((n) => n.t <= end && n.t >= from);
-  if (!here.length) return null;
-  const last = here.reduce((a, b) => (b.t > a.t ? b : a));
-  const sent = last.sites[site].fix_utc;
-  const first = here.filter((n) => n.storm === last.storm && n.sites[site].fix_utc === sent)
-    .reduce((a, b) => (b.t < a.t ? b : a));
-  return {...last, at: last.sites[site], since: first.time_utc};
-}
-const namedHere = (a, site) => Boolean(a && ORIGINS && (ORIGINS.arrivals || []).some(
-  (b) => b.first_utc === a.first_utc && (b.named || {})[site]));
-function lastArrival(o) {
-  const reading = o.last && !namedHere(o.last, o.site) ? o.last : null;
-  const storm = o.lastStorm;
-  if (storm && (!reading || storm.t >= Date.parse(reading.last_utc))) return {storm};
-  return reading ? {reading} : o.last ? {reading: o.last} : {};
 }
 
 // Rounded in each unit to `step`: 500 for Origin's dispersion distances, which
@@ -4376,18 +4376,17 @@ const onDay = (iso) => new Date(iso).toLocaleString(undefined, {month: "short", 
 // "A", "A and B", "A, B and C".
 const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
-// Every origin is a head and one paragraph, whatever kind it is (owner's
-// design, 2026-10-04; one paragraph since the owner's rewrite of 2026-10-14),
-// and each part is a fixed run of slots (owner's formula, 2026-10-10,
-// docs/origin_wording.md): a slot with no value is dropped with its joining
-// words, and nothing is reworded per case.
-//   WHAT:  the head alone (a hurricane or tropical storm by name, the name
-//          linked to NHC's page, and its symbol; a sea; or an unplaced
-//          storm); a tab's last readable arrival opens with a line saying no
-//          readable swell is arriving there now.
-//   SENT:  "The {T} s train, sent [about] {date} from about {far} away."
-//          "about" when the day is fitted off the swell, bare when it is
-//          NHC's fix.
+// Every origin is ONE paragraph in the supporting line's style, whatever kind
+// it is (owner's call, 2026-11-28, when Origin moved onto the trains: no head
+// of its own, no storm symbol -- the row carries it -- and no "The {T} s
+// train", the row it opens under saying the period), each part a fixed run
+// of slots (owner's formula, 2026-10-10, docs/origin_wording.md): a slot
+// with no value is dropped with its joining words, and nothing is reworded
+// per case.
+//   WHAT:  "{Hurricane|Tropical Storm} {Name}.", the name alone linked to
+//          NHC's page; "{Sea}."; or "Unplaced storm.".
+//   SENT:  "Sent [about] {date} from about {far} away." "about" when the
+//          day is fitted off the swell, bare when it is NHC's fix.
 //   HELD:  where its direction comes from, in a sentence of its own: a named
 //          storm's "NHC had it at {deg}, with winds of {speed} and {mb} mb
 //          pressure at that time", the fix that sent the train; a reading's,
@@ -4397,12 +4396,11 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 //          does not have it.
 //   KNOWN: how long it has been arriving, "Arriving for {h} h so far." on
 //          every kind (owner's call, 2026-10-14): a named storm's by its
-//          track, a reading's as read off the swell; past, the day it
-//          arrived, "no longer arriving", and no hours, on every kind.
+//          track, a reading's as read off the swell.
 // No provenance block follows them (owner's call, 2026-10-14): how a storm is
 // read and matched is on docs.html, and each buoy is named where it is used.
 const SAME_SOURCE_DEG = 45;
-const ORIGIN_SEP = " &middot; ";
+const nearDeg = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180) <= SAME_SOURCE_DEG;
 // NHC's own page for the storm, with its advisories, track and cone map
 // (owner's call, 2026-10-12): the readable page rather than the best-track
 // file collector.besttracks archives and the card reads. Rachel in 2026 is
@@ -4436,36 +4434,27 @@ const stormSymbol = (kind) => `<svg class="storm-sym" data-kind="${kind.toLowerC
   + ` viewBox="0 0 20 20" role="img" aria-label="${kind.toLowerCase()} symbol">`
   + `<path d="M6.6 10C6.6 4.2 12 1.6 17.6 3M13.4 10c0 5.8-5.4 8.4-11 7"/>`
   + `<circle class="eye" cx="10" cy="10" r="3.2"/></svg>`;
-// On the fold the storm's name alone links to NHC's page for it (owner's
-// call, 2026-10-14, when the provenance line that carried the link went),
-// and its symbol follows the name. The Origins chart's readout, which a
-// finger scrubs, names the storm with neither (owner's call, same day): the
-// symbol is drawn by the fold's styles alone, and the dot is the chart's mark.
+// Under a train the storm's name alone links to NHC's page for it (owner's
+// call, 2026-10-14, when the provenance line that carried the link went);
+// its symbol is the row's mark, never repeated in the line (owner's call,
+// 2026-11-28). The Origins chart's readout, which a finger scrubs, names the
+// storm unlinked (owner's call, 2026-10-14).
 const stormName = (name, at, link = false) => `${stormKind(at)} `
   + (link ? `<a href="${stormPageUrl(name, at.fix_utc)}" rel="noopener">${name}</a>` : name);
-const stormHead = (name, at) => stormName(name, at, true) + stormSymbol(stormKind(at));
-// A tab's last readable arrival opens with a line of its own, and carries no
-// tag (owner's request, 2026-10-12; reworded 2026-10-14, without the tab).
-const LAST_INTRO = "No readable swell arriving here now. The last one was:";
-function originEntry({head, intro, body, storm}) {
-  return `<div class="origin${intro ? " last" : ""}"${storm ? ` data-hurricane="${storm}"` : ""}>
-    ${intro ? `<span class="turn">${intro}</span>` : ""}
-    <span class="val">${head}</span>
-    <span class="turn">${body}</span>
-  </div>`;
+function originEntry({what, body, storm}) {
+  return `<div class="origin"${storm ? ` data-hurricane="${storm}"` : ""}>`
+    + `<span class="turn">${what}. ${body}</span></div>`;
 }
 
-// The paragraph's first sentence, for every kind: the train, when it was
-// sent, and how far.
+// The paragraph's second sentence, for every kind: when the train was sent,
+// and how far. Its period is the row's.
 const bearingText = (d) => `${Math.round(d)}&deg; ${point(d)}`;
 // A storm's swell the break's splitter cut into adjacent rows is one band at
-// the open-ocean buoy, and is named as one: "The 10.5 and 11.1 s trains"
-// (owner's request, 2026-10-11; forecast.stormtrack `also_periods_s`).
+// the open-ocean buoy (owner's request, 2026-10-11; forecast.stormtrack
+// `also_periods_s`): its line is one, under every row it reaches.
 const stormPeriods = (at) => [at.train_period_s, ...(at.also_periods_s || [])];
-const trainAt = ({period, also = [], sent, fitted, km, step}) =>
-  `The ${andList([period, ...also].sort((x, y) => x - y).map((p) => p.toFixed(1)))}`
-  + `&nbsp;s train${also.length ? "s" : ""}, sent ${fitted ? "about " : ""}${onDay(sent)}`
-  + ` from ${farAway(km, step)} away.`;
+const sentFrom = ({sent, fitted, km, step}) =>
+  `Sent ${fitted ? "about " : ""}${onDay(sent)} from ${farAway(km, step)} away.`;
 
 // A reading's direction, in a sentence naming the buoy it is read at (owner's
 // rewrite, 2026-10-14): the bearing it holds the train from; every direction
@@ -4495,88 +4484,106 @@ function heldAt(a, o) {
 // from, never how big it is. Where the storm was, and how strong, are NHC's: the fix that
 // sent the train now arriving, in the sentence after the day it was sent,
 // because the storm has moved on since. Never Origin's distance.
-// Past, as a tab's last readable arrival (owner's request, 2026-10-12): after
-// the line saying so, the head and the train's sentence, then "Arrived {date},
-// no longer arriving." on the day the train shown first arrived; no counts.
-function hurricaneEntry(h, o, past = false) {
+function hurricaneEntry(h, o) {
   const s = h.at;
   const hours = Object.values(h.match || {}).map((m) => m.hours).filter((v) => v != null);
   return originEntry({
-    head: stormHead(h.name, s),
-    intro: past ? LAST_INTRO : "",
+    what: stormName(h.name, s, true),
     storm: h.storm,
-    body: trainAt({period: s.train_period_s, also: s.also_periods_s || [],
-                   sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})
+    body: sentFrom({sent: s.fix_utc, fitted: false, km: s.distance_km, step: 100})
       + ` NHC had it at ${bearingText(s.bearing_deg)}, with winds of ${speed(s.vmax_kt)}`
       + (s.mslp_mb ? ` and ${s.mslp_mb} mb pressure` : "") + " at that time."
-      + (past ? ` Arrived ${onDay(h.since)}, no longer arriving.`
-        : hours.length ? ` Arriving for ${Math.max(...hours)} h so far.` : ""),
+      + (hours.length ? ` Arriving for ${Math.max(...hours)} h so far.` : ""),
   });
 }
 
-// An arrival read backwards off the swell: still arriving, or the last one
-// this tab had. The last is the train it was at its peak hour, when it was
-// matched to this tab's own trains.
-function readingEntry(a, o, past = false) {
+// An arrival read backwards off the swell, still arriving.
+function readingEntry(a, o) {
   const hours = Math.max(1, Math.round(a.hours_read));
   return originEntry({
-    head: isPlaced(a) ? sea(a.region) : "Unplaced storm",
-    intro: past ? LAST_INTRO : "",
-    body: trainAt({period: past ? (a.peak_period_s || a.lead_period_s) : a.train_period_s,
-                   sent: a.generated_utc, fitted: true, km: a.distance_km, step: 500})
-      + ` ${heldAt(a, o)} `
-      + (past ? `Arrived ${onDay(a.first_utc)}, no longer arriving.`
-        : `Arriving for ${hours} h so far.`),
+    what: isPlaced(a) ? sea(a.region) : "Unplaced storm",
+    body: sentFrom({sent: a.generated_utc, fitted: true, km: a.distance_km, step: 500})
+      + ` ${heldAt(a, o)} Arriving for ${hours} h so far.`,
   });
 }
 
-// What folds out under the "Origin" line: the entries, and nothing under them.
-function originBody(o) {
-  return originEntries(o).join("");
+// ORIGIN ON THE TRAINS (owner's request, 2026-11-28, replacing the Origin
+// fold and the wide screen's one block for the beach): each origin arriving
+// now is a line under the train it is matched to, folded until that row is
+// tapped. Only what is arriving now: a tab's last readable arrival has no
+// train to sit on, and is left to the Origins chart (owner's call, same day).
+//
+// Which row. A named storm's is the row its own test passed
+// (`stormtrack._from_storm`): its period, or one the splitter cut its band
+// into (`also_periods_s`), from within SAME_SOURCE_DEG of NHC's bearing on
+// either of the row's directions -- two rows may share a period and only one
+// come from the storm (South, 6 Oct 12Z: 14.3 s from 257 and from 173
+// degrees, Rachel at 167). A reading's is the first row of its period, as
+// `origin.match` takes it. A row past the list's limit is not on the card,
+// and neither is its origin.
+const trainHeads = (t) => (t.lobes && t.lobes.length ? t.lobes.map((l) => l[0]) : [t.from_deg]);
+const samePeriod = (t, p) => p != null && Math.abs(t.period_s - p) < 0.05;
+function rowOrigins(o, trains, limit = 4) {
+  if (!o) return [];
+  const shown = (trains || []).slice(0, limit).map((t, i) => ({t, i}));
+  const out = [];
+  for (const h of o.hurricanes) {
+    const rows = stormPeriods(h.at).map((p) => shown.find(({t}) => samePeriod(t, p)
+      && trainHeads(t).some((d) => d != null && nearDeg(d, h.at.bearing_deg))))
+      .filter(Boolean).map((r) => r.i);
+    if (rows.length) {
+      out.push({rows: [...new Set(rows)], kind: stormKind(h.at), key: h.storm, html: hurricaneEntry(h, o)});
+    }
+  }
+  for (const a of o.current) {
+    const r = shown.find(({t}) => samePeriod(t, a.train_period_s));
+    if (r) out.push({rows: [r.i], kind: "reading", key: a.first_utc, html: readingEntry(a, o)});
+  }
+  return out;
 }
-// The same, an entry each, for the wide screen's one block (`beachOrigin`).
-function originEntries(o) {
-  const now = o.hurricanes.length || o.current.length;
-  const {storm, reading} = now ? {} : lastArrival(o);
-  return now
-    ? [...o.hurricanes.map((h) => hurricaneEntry(h, o)), ...o.current.map((a) => readingEntry(a, o))]
-    : [storm ? hurricaneEntry(storm, o, true)
-      : reading ? readingEntry(reading, o, true)
-        : `<span class="val"><span class="unit">No readable swell in the last ${o.lookback} days.</span></span>`];
-}
+// The mark: the storm's own symbol, as its head carries it, or a ring.
+const originMark = (g) => (g.kind === "reading"
+  ? '<svg class="ring" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.75"/></svg>'
+  : stormSymbol(g.kind));
 
-// Whether Origin is folded out. One state for every tab, like the charts',
-// and kept across a refresh the same way.
-let ORIGIN_OPEN = false;
-// The count beside the title (owner's request, 2026-10-03), in parentheses and
-// only when something is arriving (owner's call, same day): what the fold
-// lists as arriving now, named hurricanes and Origin's own readings, each one
-// of this tab's trains. A "last readable arrival" is not now, and is not counted.
-function originCount(o) {
-  return o.hurricanes.length + o.current.length;
-}
-function originFold(id, o, hidden = false) {
-  if (!o) return "";
-  const n = originCount(o);
-  const said = `${n} origin${n === 1 ? "" : "s"} arriving now`;
-  return `<div class="origin-fold" data-origin-tab="${id}"${hidden ? " hidden" : ""}>
-    <div class="chart-head" data-origin-head><span>Origin${n ? ` <span class="count"
-      data-origin-count title="${said}">(${n})</span>` : ""}</span><button type="button"
-      class="calc-toggle" data-origin-toggle aria-controls="origin-fold-${id}"
-      aria-expanded="${ORIGIN_OPEN}" aria-label="Origin${n ? `, ${said}` : ""}"><svg viewBox="0 0 16 16"
-      aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
-    <div class="fold-body" id="origin-fold-${id}"${ORIGIN_OPEN ? "" : " hidden"}>${originBody(o)}</div>
-  </div>`;
-}
-function setOriginOpen(open) {
-  ORIGIN_OPEN = open;
-  remember(KEEP.originOpen, open ? "open" : "closed");
-  const folds = [...document.querySelectorAll("[data-origin-toggle]")].map((btn) => {
-    btn.setAttribute("aria-expanded", String(open));
-    return $(btn.getAttribute("aria-controls"));
+// Which lines are open, by site and origin: closed on every load, kept
+// across a redraw (the tray's rule).
+const ORIGIN_LINES = new Set();
+function setOriginLine(line, open) {
+  if (!line || line.hidden === !open) return;
+  if (open) ORIGIN_LINES.add(line.dataset.originLine); else ORIGIN_LINES.delete(line.dataset.originLine);
+  line.closest(".trains").querySelectorAll("[data-origin-row]").forEach((r) => {
+    if (r.getAttribute("aria-controls") === line.id) r.setAttribute("aria-expanded", String(open));
   });
-  slideFolds(folds, open);
+  slideFolds([line], open);
 }
+const rowIndex = (row) => row.getAttribute("data-train") ?? row.getAttribute("data-rose-train")
+  ?? row.getAttribute("data-origin-row");
+const lineRows = (line) => line.getAttribute("data-origin-rows").split(".");
+// A tap on a row: one that picks (its arrows, its period on the rose) opens
+// its line with the pick and shuts it with the pick, so a second tap undoes
+// both; picking another row shuts the first's. A row that picks nothing
+// opens and shuts its own line. Runs after the pick has been made.
+function originTap(row) {
+  const list = row.closest(".trains");
+  if (!list) return;
+  const i = rowIndex(row);
+  const picks = row.hasAttribute("aria-pressed");
+  for (const line of list.querySelectorAll("[data-origin-rows]")) {
+    const mine = lineRows(line).includes(i);
+    if (!picks) { if (mine) setOriginLine(line, line.hidden); continue; }
+    if (mine) setOriginLine(line, row.getAttribute("aria-pressed") === "true");
+    else syncOriginLine(line);
+  }
+}
+// A picking line stays open only while one of its rows is picked: picked
+// elsewhere (an arrow on the drawing, another row), it shuts.
+function syncOriginLine(line) {
+  const rows = [...line.closest(".trains").querySelectorAll(".train")]
+    .filter((r) => r.hasAttribute("aria-pressed") && lineRows(line).includes(rowIndex(r)));
+  if (rows.length && !rows.some((r) => r.getAttribute("aria-pressed") === "true")) setOriginLine(line, false);
+}
+const syncOriginLines = (root) => root && root.querySelectorAll("[data-origin-rows]").forEach(syncOriginLine);
 
 // A depth for a label: whole feet, metres to one decimal below ten.
 function depthText(m) {
@@ -5021,6 +5028,8 @@ function togglePick(svg, key) {
   const id = svg.getAttribute("data-break");
   PICKED[id] = key && PICKED[id] !== key ? key : null;
   showPick(svg, PICKED[id]);
+  // A line under a row the pick has left shuts with it.
+  syncOriginLines(svg.closest(".pane"));
 }
 
 function restorePicks() {
@@ -5046,7 +5055,7 @@ function wireDrawings() {
   const settle = (svg) => showPick(svg, PICKED[svg.getAttribute("data-break")] || null);
   strip.addEventListener("click", (e) => {
     const got = rowOf(e);
-    if (got) togglePick(got.svg, got.key);
+    if (got) { togglePick(got.svg, got.key); originTap(got.row); }
   });
   strip.addEventListener("pointerover", (e) => {
     const got = e.pointerType === "mouse" && rowOf(e);
@@ -5061,6 +5070,7 @@ function wireDrawings() {
     if (!got) return;
     e.preventDefault();
     togglePick(got.svg, got.key);
+    originTap(got.row);
   });
   strip.addEventListener("click", (e) => {
     const svg = e.target.closest("svg.aperture");
@@ -5118,7 +5128,8 @@ function wireDrawings() {
 // `pills`: its own pills across from its name, as the context buoys' are
 // (owner's request, 2026-11-11: 46232's on the LIVE Buoys tab, which the
 // Swell card's title row then leaves out).
-function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "", {named = true, pills = ""} = {}) {
+function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "",
+                   {named = true, pills = "", origin = null} = {}) {
   const line = measuredLine(measured, (m) => m.buoy);
   const id = station && station.id;
   const head = named ? headRow(buoyTitle(station && station.name), pills) : "";
@@ -5129,7 +5140,7 @@ function buoyPanel(buoy, measured = null, station = null, rose = "", aged = "", 
   if (!buoy || buoy.hs_m == null) {
     return head + valLine('<span class="val"><span class="unit">no spectrum</span></span>') + rose + note + line;
   }
-  return head + buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note, aged}) + line;
+  return head + buoyReading(buoy, id, {roseFor: rose ? id : null, rose, note, aged, origin}) + line;
 }
 // A buoy's name above its headline: NDBC's, its state dropped, set as the
 // station is in the pills across from it (owner's request, 2026-11-09).
@@ -5276,8 +5287,9 @@ const valLine = (val) => `<div class="val-line">${val}</div>`;
 // trains, the rose and the words under them. Closed until opened, each buoy
 // its own, kept across a refresh. Nothing to fold, no caret. Under a past
 // Forecast hour the observed line stays outside it, as on a break's tab.
-function buoyReading(buoy, id, {roseFor = null, rose = "", note = "", aged = ""} = {}) {
-  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor, aged, headline: buoy.hs_m})
+function buoyReading(buoy, id, {roseFor = null, rose = "", note = "", aged = "", origin = null} = {}) {
+  const trains = buoy.trains && buoy.trains.length ? trainList(buoy.trains, {rose: roseFor, aged, headline: buoy.hs_m,
+    origins: rowOrigins(origin, buoy.trains), site: BUOY_TAB})
     : buoy.period_s ? `<div class="quiet"${aged}>peak <b>${buoy.period_s.toFixed(1)} s</b>`
       + ` from <b>${compass(buoy.from_deg)}</b></div>` : "";
   const value = `<span class="val"${aged}>${height(buoy.hs_m)} <span class="unit">combined</span></span>`;
@@ -6004,6 +6016,21 @@ function toggleRoseTrain(row) {
   document.querySelectorAll(`[data-rose="${station}"]`).forEach(roseUpdate);
 }
 
+// A train that picks nothing, but has an origin: its row opens its line.
+function wireOriginRows() {
+  const strip = $("conditions");
+  strip.addEventListener("click", (e) => {
+    const row = e.target.closest("[data-origin-row]");
+    if (row) originTap(row);
+  });
+  strip.addEventListener("keydown", (e) => {
+    const row = (e.key === "Enter" || e.key === " ") && e.target.closest("[data-origin-row]");
+    if (!row) return;
+    e.preventDefault();
+    originTap(row);
+  });
+}
+
 function wireRoses() {
   const strip = $("conditions");
   strip.addEventListener("keydown", (e) => {
@@ -6011,10 +6038,11 @@ function wireRoses() {
     if (!row) return;
     e.preventDefault();
     toggleRoseTrain(row);
+    originTap(row);
   });
   strip.addEventListener("click", (e) => {
     const row = e.target.closest("[data-rose-train]");
-    if (row) { toggleRoseTrain(row); return; }
+    if (row) { toggleRoseTrain(row); originTap(row); return; }
     const mode = e.target.closest("[data-rose-mode]");
     if (mode) {
       ROSE_MODE = mode.getAttribute("data-rose-mode");
@@ -8686,7 +8714,7 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   }
   const tabs = rankByEnergy(cards || []).map((c) => ({
     id: c.id, title: SHORT[c.id] || c.name, body: breakPanel(c), chart: !!c.chart,
-    origin: c.origin || null, h: tray ? tabHeight(c.hsWindow, c.aged) : "",
+    h: tray ? tabHeight(c.hsWindow, c.aged) : "",
   }));
   // "Buoys" on both chains (owner's request, 2026-10-06), though only the
   // LIVE tab carries a second one: GFS-Wave's run is at 46232 alone. The id
@@ -8695,8 +8723,8 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
   // its own headline; shown and hidden with the tab like its pane.
   tabs.push({id: BUOY_TAB, title: "Buoys",
              body: buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged,
-                             {pills: buoyPills ? due : ""}),
-             after: others.map(contextBuoy).join(""), chart, origin,
+                             {pills: buoyPills ? due : "", origin}),
+             after: others.map(contextBuoy).join(""), chart,
              h: tray ? tabHeight(buoy && buoy.hs_m, buoyAged) : ""});
   const chosen = tabs.some((tab) => tab.id === SWELL_TAB) ? SWELL_TAB : tabs[0].id;
   // The Wind card, built after this one, shows the line for the open tab.
@@ -8734,7 +8762,6 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
     ${headline}
     ${box}
     ${below}
-    ${tabs.map((tab) => originFold(tab.id, tab.origin, tab.id !== chosen)).join("")}
     ${tabs.filter((tab) => tab.chart).map((tab) => seriesChart(tab.id, tab.id !== chosen)).join("")}
   </div>`;
 }
@@ -8747,8 +8774,9 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
 // so the console's rail stacks beside it. The pills in the Swell card's
 // title row are 46232's, as on every phone tab: every break's numbers are
 // that one spectrum; the buoys' card carries them again above 46232's own
-// headline, as each buoy's above its own (owner's call, 2026-11-08). Origin is one block for the beach (`beachOrigin`), each arrival
-// once with the breaks it reaches.
+// headline, as each buoy's above its own (owner's call, 2026-11-08). Origin
+// is on each column's trains, as on the phone's tabs (owner's request,
+// 2026-11-28; it was one block for the beach).
 function swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
                     origin, buoyRose, buoyAged, lead = ""}) {
   const breaks = ORDER.map((id) => (cards || []).find((c) => c.id === id)).filter(Boolean);
@@ -8758,15 +8786,13 @@ function swellWide({label, buoy, station, stationName, others, cards, source, du
     ${headRow(`<span class="lbl">${label}</span>`, due)}
     <div class="break-cols" data-align>${cols}</div>
     ${srcLines(source)}
-    ${beachOrigin(breaks)}
   </div>`;
   const anchor = `<div class="pane">${headRow(buoyTitle(stationName), due)}`
-    + `${buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged, {named: false})}`
+    + `${buoyPanel(buoy, measured, {id: station, name: stationName}, buoyRose, buoyAged, {named: false, origin})}`
     + `${srcLines(source)}</div>`;
   const buoys = `<div class="cond swell buoys-card" data-card="buoys">
     <span class="lbl">Buoys</span>
     <div class="break-cols">${anchor}${others.map((b) => `<div class="pane">${contextBuoy(b)}</div>`).join("")}</div>
-    ${origin ? originFold(BUOY_TAB, origin) : ""}
   </div>`;
   // The charts: one fold, the break picked inside it, each break's charts
   // kept as on the phone's tabs and shown by `selectSwellTab`.
@@ -8788,38 +8814,6 @@ function swellWide({label, buoy, station, stationName, others, cards, source, du
     </div>
   </div>`;
   return `<div class="main-col">${lead}${swell}${buoys}${charts}</div>`;
-}
-
-// Origin for the beach on a wide screen: every break's entries as each
-// break's own fold would show them, each distinct entry once, under the
-// breaks it is shown at ("North and Center"). Nothing is reworded: an entry
-// that reads differently at two breaks -- another train, another period --
-// is two entries. The count is the arrivals now, each once.
-function beachOrigin(breaks) {
-  const groups = [];
-  const now = new Set();
-  for (const c of breaks) {
-    const o = c.origin;
-    if (!o) continue;
-    for (const html of originEntries(o)) {
-      const got = groups.find((g) => g.html === html);
-      if (got) got.ids.push(c.id); else groups.push({html, ids: [c.id]});
-      if (originCount(o)) now.add(html);
-    }
-  }
-  if (!groups.length) return "";
-  const n = now.size;
-  const said = `${n} origin${n === 1 ? "" : "s"} arriving now`;
-  const body = groups.map((g) => `<div class="origin-group"><span class="sublbl">`
-    + `${andList(g.ids.map((id) => SHORT[id]))}</span>${g.html}</div>`).join("");
-  return `<div class="origin-fold">
-    <div class="chart-head" data-origin-head><span>Origin${n ? ` <span class="count"
-      data-origin-count title="${said}">(${n})</span>` : ""}</span><button type="button"
-      class="calc-toggle" data-origin-toggle aria-controls="origin-fold-beach"
-      aria-expanded="${ORIGIN_OPEN}" aria-label="Origin${n ? `, ${said}` : ""}"><svg viewBox="0 0 16 16"
-      aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button></div>
-    <div class="fold-body" id="origin-fold-beach"${ORIGIN_OPEN ? "" : " hidden"}>${body}</div>
-  </div>`;
 }
 
 // THE WEEK STRIP (owner's request, 2026-10-30): the Forecast tab's days, a
@@ -9237,9 +9231,6 @@ function selectSwellTab(id, {focus = false} = {}) {
   document.querySelectorAll("[data-chart-tab]").forEach((chart) => {
     chart.hidden = chart.getAttribute("data-chart-tab") !== id;
   });
-  document.querySelectorAll("[data-origin-tab]").forEach((fold) => {
-    fold.hidden = fold.getAttribute("data-origin-tab") !== id;
-  });
   document.querySelectorAll("[data-after-tab]").forEach((block) => {
     block.hidden = block.getAttribute("data-after-tab") !== id;
   });
@@ -9277,8 +9268,6 @@ function wireSwellTabs() {
       const id = buoyHead.getAttribute("data-buoy-head");
       setBuoyOpen(id, !BUOY_OPEN[id]);
     }
-    // Origin's caret, or anywhere else on its line.
-    if (e.target.closest("[data-origin-head]")) setOriginOpen(!ORIGIN_OPEN);
     // The tide phase's caret, or anywhere else on its line.
     if (e.target.closest("[data-phase-head]")) setPhaseOpen(!PHASE_OPEN);
   });
@@ -10151,6 +10140,7 @@ function boot(data, observed, measured, series, windtide) {
   wireSwellTabs();
   wireWeek();
   wireRoses();
+  wireOriginRows();
   wireDrawings();
   wireCharts();
 
@@ -10218,7 +10208,6 @@ function boot(data, observed, measured, series, windtide) {
   FC_MODE0 = FC_MODES.some((m) => m.id === fcView) ? fcView : FC_MODES[0].id;
   // Folded away until the reader opens it, as the calculation is.
   CHART_OPEN = recall(KEEP.chartOpen) === "open";
-  ORIGIN_OPEN = recall(KEEP.originOpen) === "open";
   PHASE_OPEN = recall(KEEP.phaseOpen) === "open";
   BRIEF_OPEN = recall(KEEP.briefOpen) === "open";
   CARD_CHART_OPEN.wind = recall(KEEP.windChart) === "open";

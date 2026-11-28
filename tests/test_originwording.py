@@ -1,9 +1,11 @@
-"""The Origin fold's wording, rendered by the page's own code (owner's
-formula, 2026-10-10; docs/origin_wording.md).
+"""An origin's words under its train, rendered by the page's own code (owner's
+formula, 2026-10-10; one paragraph under the train since 2026-11-28;
+docs/origin_wording.md).
 
 `forecast.originwording` runs the page's Origin functions in Node on one
-made-up Origin block per branch. These pin that the doc is that output, and
-check each claim the formula exists to get right.
+made-up Origin block per branch, its trains made to carry every origin. These
+pin that the doc is that output, and check each claim the formula exists to
+get right.
 """
 
 import shutil
@@ -29,24 +31,44 @@ def test_the_doc_is_what_the_page_prints(cases):
 NHC = "https://www.nhc.noaa.gov/archive/2026/"
 RACHEL = f"[Rachel]({NHC}RACHEL_graphics.php)"
 SERGIO = f"[Sergio]({NHC}SERGIO_graphics.php)"
-INTRO = "No readable swell arriving here now. The last one was:"
+WHAT = ("Hurricane ", "Tropical Storm ", "South Pacific.", "Unplaced storm.")
 
 
-def test_every_entry_is_a_head_and_one_paragraph(cases):
-    """Owner's rewrite, 2026-10-14: what; then sent when and from where,
-    where the direction was read and how it is known, run on as one
-    paragraph. Nothing follows the entries."""
+def test_every_origin_is_one_paragraph(cases):
+    """Owner's call, 2026-11-28: one style, no head of its own. What it is
+    opens the paragraph as its first sentence; then sent when and from
+    where, where the direction was read and how it is known, run on.
+    Nothing follows it."""
 
     for cid, lines in cases.items():
-        for k, line in enumerate(lines):
-            if line.startswith("The ") and " s train" in line:
-                assert k >= 1 and not lines[k - 1].startswith("The "), cid
-                assert k + 1 == len(lines) or not lines[k + 1].startswith((
-                    "Arriving for", "NHC had", "Tanner Bank", "Trains")), cid
-                assert line.endswith((" so far.", " h.", ", no longer arriving.", " at that time."))
+        assert lines, cid
+        for line in lines:
+            assert line.startswith(WHAT), (cid, line)
+            assert ". Sent " in line, (cid, line)
+            assert line.endswith((" so far.", " at that time.")), (cid, line)
 
 
-def test_no_provenance_follows_the_entries(cases):
+def test_the_row_says_the_period_and_the_line_does_not(cases):
+    """Owner's call, 2026-11-28: "The {T} s train" went, the tapped row
+    saying the period; a storm's swell cut into two rows is one line under
+    their bracket, with no periods either (T3)."""
+
+    for cid, lines in cases.items():
+        text = "\n".join(lines)
+        assert " s train" not in text and " s trains" not in text, cid
+        assert "15.1" not in text and "14.3" not in text and "10.5" not in text, cid
+    assert cases["T3"] == cases["T1"]
+
+
+def test_no_storm_symbol_in_the_line(cases):
+    """Owner's call, 2026-11-28: the row carries the storm's symbol as its
+    mark; the paragraph does not repeat it."""
+
+    for cid, lines in cases.items():
+        assert "symbol" not in "\n".join(lines), cid
+
+
+def test_no_provenance_follows_the_paragraph(cases):
     """Owner's call, 2026-10-14: storm matching is explained on docs.html."""
 
     for cid, lines in cases.items():
@@ -56,35 +78,31 @@ def test_no_provenance_follows_the_entries(cases):
             assert gone not in text, (cid, gone)
 
 
-def test_line_two_is_one_sentence_with_away(cases):
-    """Owner's rewrite, 2026-10-10: "The … train, sent … from about … away"
-    on every kind, a named storm's bearing after a comma."""
+def test_the_second_sentence_is_when_and_how_far_away(cases):
+    """Owner's rewrite, 2026-10-10, without the train since 2026-11-28:
+    "Sent … from about … away." on every kind."""
 
     for cid, lines in cases.items():
         for line in lines:
-            if " s train, sent " in line or " s trains, sent " in line:
-                assert line.startswith("The ") and " away" in line, (cid, line)
+            sent = line[line.index(". Sent ") + 2:]
+            assert sent[:sent.index(".") + 1].endswith(" away."), (cid, line)
 
 
 def test_a_readings_direction_names_the_buoy_it_is_read_at(cases):
     """Owner's rewrite, 2026-10-14: placed, split and unseen each say it in a
-    sentence of its own naming 46047, after the train's."""
+    sentence of its own naming 46047, after the day it was sent."""
 
-    assert cases["L2"][2] == (
-        "The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank "
-        "(NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. "
-        "Arrived Oct 6, no longer arriving.")
+    assert cases["C1"] == [
+        "South Pacific. Sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank "
+        "(NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far."]
     assert ("away. Tanner Bank (NDBC 46047) holds this train from 140° SE, 196° SSW and "
-            "254° WSW, so no place is given. Arriving for 18 h so far.") in cases["C2"][1]
-    assert ("away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h "
-            "so far.") in cases["C1"][1]
-    for cid in ("L3", "C3"):
-        line = cases[cid][2 if cid[0] == "L" else 1]
-        assert ("away. Tanner Bank (NDBC 46047) does not have this train, so no place is "
-                "given. ") in line
-        assert " bearing" not in line and " holds " not in line
-    for cid in ("L2", "L3", "C2", "C3"):
-        assert cases[cid][1 if cid[0] == "L" else 0] == "Unplaced storm", cid
+            "254° WSW, so no place is given. Arriving for 18 h so far.") in cases["C2"][0]
+    line = cases["C3"][0]
+    assert ("away. Tanner Bank (NDBC 46047) does not have this train, so no place is "
+            "given. ") in line
+    assert " bearing" not in line and " holds " not in line
+    for cid in ("C2", "C3"):
+        assert cases[cid][0].startswith("Unplaced storm. Sent about "), cid
     for cid, lines in cases.items():
         assert "split bearing" not in "\n".join(lines), cid
 
@@ -96,23 +114,22 @@ def test_no_neither_without_a_nor(cases):
 
 
 def test_a_fitted_date_is_about_and_nhcs_is_not(cases):
-    assert all(" sent about " in line for line in cases["C1"] if " s train, " in line)
-    assert all(" sent Oct " in line for line in cases["H1"] if " s train, " in line)
+    assert ". Sent about Oct 1 " in cases["C1"][0]
+    assert ". Sent Oct 1 " in cases["H1"][0]
 
 
 def test_a_hurricanes_place_and_strength_are_nhcs_in_a_sentence_of_their_own(cases):
-    """Line 1 is the name alone; the bearing, winds and pressure follow the
-    day the train was sent, so they never read as the storm now, in a
-    sentence naming NHC as a reading's names its buoy (owner's calls,
-    2026-10-14: "had", and "at that time" after the strength)."""
+    """The bearing, winds and pressure follow the day the train was sent, so
+    they never read as the storm now, in a sentence naming NHC as a
+    reading's names its buoy (owner's calls, 2026-10-14: "had", and "at that
+    time" after the strength)."""
 
-    assert cases["H1"][0] == f"Hurricane {RACHEL} {{hurricane symbol}}"
-    assert cases["H1"][1] == (
-        "The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at "
+    assert cases["H1"] == [
+        f"Hurricane {RACHEL}. Sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at "
         "196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving "
-        "for 30 h so far.")
+        "for 30 h so far."]
     # No hours at any gate buoy: the sentence drops (H3).
-    assert cases["H3"][1].endswith("NHC had it at 196° SSW, with winds of 121 mph (105 kt) at "
+    assert cases["H3"][0].endswith("NHC had it at 196° SSW, with winds of 121 mph (105 kt) at "
                                    "that time.")
 
 
@@ -121,18 +138,12 @@ def test_a_weakened_storm_reads_as_the_fix_that_sent_its_train(cases):
     for the swell its tropical storm fixes sent, and is a tropical storm on
     that train, as a weakened hurricane's winds are the fix's, not today's."""
 
-    assert cases["T1"][0] == f"Tropical Storm {RACHEL} {{tropical storm symbol}}"
+    assert cases["T1"][0].startswith(f"Tropical Storm {RACHEL}. Sent Oct 8 ")
     assert "with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h" \
-        in cases["T1"][1]
-    assert [cases["T2"][0], cases["T2"][2]] == [f"Tropical Storm {RACHEL} {{tropical storm symbol}}",
-                                                f"Hurricane {SERGIO} {{hurricane symbol}}"]
-
-
-def test_one_storms_swell_cut_into_two_rows_is_named_as_one(cases):
-    """Owner's request, 2026-10-11 (BRIEFING §37h-i): rows that are one band
-    at the open-ocean buoy are one storm's swell, listed together."""
-
-    assert cases["T3"][1].startswith("The 10.5 and 11.1 s trains, sent Oct 8 ")
+        in cases["T1"][0]
+    assert [cases["T2"][0][:len(f"Tropical Storm {RACHEL}.")],
+            cases["T2"][1][:len(f"Hurricane {SERGIO}.")]] == [f"Tropical Storm {RACHEL}.",
+                                                              f"Hurricane {SERGIO}."]
 
 
 def test_the_match_stays_off_the_card_and_its_hours_say_how_long(cases):
@@ -142,59 +153,42 @@ def test_the_match_stays_off_the_card_and_its_hours_say_how_long(cases):
     by its track, the longest at any gate buoy (H2: 30 h at 46047, 26 h at
     46086), and no buoy is named for it."""
 
-    for cid in ("H1", "H2", "H3", "H4", "M1", "M2"):
+    for cid in ("H1", "H2", "H3", "H4", "M1"):
         text = "\n".join(cases[cid])
         assert "%" not in text and "match" not in text.lower(), cid
         assert " of 50 " not in text and "copies" not in text and "beat" not in text, cid
-    assert cases["H2"][1].endswith("pressure at that time. Arriving for 30 h so far.")
-    assert "NDBC" not in cases["H2"][1]
+    assert cases["H2"][0].endswith("pressure at that time. Arriving for 30 h so far.")
+    assert "NDBC" not in cases["H2"][0]
 
 
 def test_the_storms_name_alone_links_to_its_nhc_page(cases):
-    """Owner's call, 2026-10-14: with the provenance gone, the link is on the
-    name in the head, and only the name."""
+    """Owner's call, 2026-10-14: the link is on the storm's name, and only
+    the name."""
 
-    assert cases["H1"][0] == f"Hurricane {RACHEL} {{hurricane symbol}}"
-    assert cases["H4"][0].startswith(f"Hurricane {RACHEL}")
-    assert cases["H4"][2].startswith(f"Hurricane {SERGIO}")
+    assert cases["H1"][0].startswith(f"Hurricane {RACHEL}. ")
+    assert cases["H4"][0].startswith(f"Hurricane {RACHEL}. ")
+    assert cases["H4"][1].startswith(f"Hurricane {SERGIO}. ")
+    for cid, lines in cases.items():
+        assert "\n".join(lines).count("](") == sum(line.startswith(("Hurricane", "Tropical"))
+                                                   for line in lines), cid
+
+
+def test_storms_come_first_then_readings(cases):
+    assert cases["M1"][0].startswith(f"Hurricane {RACHEL}. ")
+    assert cases["M1"][1].startswith("South Pacific. ")
+    assert cases["M3"][1].startswith("Unplaced storm. ")
 
 
 def test_nothing_read_backwards_is_not_said_to_be(cases):
-    assert cases["E0"] == ["No readable swell in the last 21 days."]
-    for cid in ("H1", "H2", "H3", "H4", "M2"):
+    for cid in ("H1", "H2", "H3", "H4"):
         assert "backwards" not in "\n".join(cases[cid]), cid
 
 
-def test_the_last_readable_arrival_is_the_later_of_a_reading_and_a_named_storm(cases):
-    """Owner's report, 2026-10-12: South read "Aleutian storm track", a
-    reading ended 2 Oct, while Tropical Storm Rachel was named there to
-    11 Oct. Whichever ended later is the tab's last readable arrival."""
+def test_only_what_is_arriving_now(cases):
+    """Owner's call, 2026-11-28: a last readable arrival has no train to sit
+    under, and is not on the card."""
 
-    assert cases["L4"][1] == f"Tropical Storm {RACHEL} {{tropical storm symbol}}"
-    assert cases["L5"][1] == "Aleutian storm track"
-    assert not any("Rachel" in line for line in cases["L5"])
-
-
-def test_a_last_readable_arrival_reads_as_the_owner_wrote_it(cases):
-    """Owner's requests, 2026-10-12 and -14: an opening line without the
-    tab, the storm and its symbol, one sentence ending with the day the train
-    SHOWN arrived (not the storm's first train at the tab), no counts, and
-    nothing under it."""
-
-    for cid in ("L1", "L2", "L3", "L4", "L5"):
-        assert cases[cid][0] == INTRO, cid
-        assert "last readable arrival" not in "\n".join(cases[cid]), cid
-    assert cases["L4"] == [
-        INTRO,
-        f"Tropical Storm {RACHEL} {{tropical storm symbol}}",
-        "The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at "
-        "200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arrived "
-        "Oct 11, no longer arriving."]
-
-
-def test_a_storm_arrival_is_never_before_its_train_was_sent(cases):
-    """"Arrived" is the first moment the storm was named at the tab with the
-    fix that sent the train shown: the storm's first train there (Oct 8, a
-    hurricane fix of Oct 2 in L4) read "sent Oct 8 ... Arrived Oct 7"."""
-
-    assert "Arrived Oct 11," in cases["L4"][2] and "Arrived Oct 7" not in cases["L4"][2]
+    for cid, lines in cases.items():
+        text = "\n".join(lines)
+        assert "no longer arriving" not in text and "The last one" not in text, cid
+        assert "No readable swell" not in text, cid

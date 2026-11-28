@@ -494,7 +494,8 @@ svg text{font-family:Archivo,system-ui,sans-serif}
           order they sit on the sand, never ranked, so a column's place is its break's. Each
           column's headline, calculation rows, trains and map sit level with the same ones
           beside it, and one caret opens all three calculations. The buoys get a card of their
-          own, three across. <a href="#swell-origin">Origin</a> becomes one block for the beach.
+          own, three across. Each column's trains carry their own <a href="#swell-origin">origins</a>,
+          as a break's tab does.
           The swell's charts get a card of their own too, with the break or the buoys picked
           above the plot. The Wind card gives every break's offshore, cross-shore or onshore
           line, and the Sun card every break's sunset, each under its break's name.</li>
@@ -1634,17 +1635,16 @@ Hs = 1.000 m                         → 3.3 ft (1.00 m), breaking at 7 ft (2.1 
 
     <section id="swell-origin">
       <h3>Origin: where the swell was born</h3>
-      <p>On a wide screen, where the breaks sit side by side, Origin is one block for the beach
-        under them: each arrival once, under the names of the breaks it reaches. An arrival that
-        reads differently at two breaks, another train or another period, is listed for each, in
-        its own words. The rest of this section describes one break's.</p>
-      <p>On &ldquo;LIVE&rdquo;, the <b>Origin</b> line folds out, like the charts, from its own
-        line right above &ldquo;Charts&rdquo;. The number in parentheses beside its title counts the
-        origins arriving at that tab now, named hurricanes and readings alike, and is not there
-        when nothing is arriving; a last readable arrival is not counted. Under it, each train that came from a distant storm
-        says where that storm was: a sea, about how far away and in which direction, and when the swell
-        left it. It is read backwards off the buoy's own spectrum. It is not a forecast, and
-        nothing observes the storm.</p>
+      <p>On &ldquo;LIVE&rdquo;, a train that came from a distant storm has its period underlined
+        with dots and a mark to the left of it: the tropical cyclone symbol for a named storm, its
+        eye open for a tropical storm and filled for a hurricane, or a ring for a storm read off the
+        swell. Tap the train and a line opens under it saying where that storm was: a sea, about
+        how far away and in which direction, and when the swell left it. The tap still shows the
+        train on the drawing, or its periods on the rose on the Buoys tab, and a second tap closes
+        both. Where a swell's trains are bracketed, the line sits under the bracket and a tap on
+        any of them opens it. On a wide screen each column's trains carry their own. It is read
+        backwards off the buoy's own spectrum. It is not a forecast, and nothing observes the
+        storm.</p>
       <p>Long-period waves travel faster than short ones. In deep water a wave group moves at
         <i>gT</i>/4&pi;, so a 20-second swell outruns a 14-second one. A storm makes every period at
         once, and by the time the energy has crossed an ocean the long periods have pulled ahead.
@@ -1666,16 +1666,17 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         known, and their average would point between them. An arrival with no direction read gets a
         distance and a date and no place.</p>
       <p>An origin belongs to a train, so a break shows only the arrivals that are one of its own
-        trains, and the buoy's tab only those among the buoy's.</p>
-      <p>Every origin is written the same way, a head and one paragraph, whatever kind it is,
-        and each is the same run of parts in the same order: a part with nothing to say is left
-        out, and nothing is reworded. The head says what it is: a hurricane or tropical storm by
-        name, the name linking to the National Hurricane Center's page for it, with its track and
-        map; a sea; or an <b>unplaced storm</b>, either because NDBC 46047 has the train from several
-        directions at once or because NDBC 46047 does not have the train at all. The paragraph opens
-        with one sentence: the train, the day it was sent, and how far away the storm was. A
-        reading's day is &ldquo;about&rdquo;, because it is fitted off the swell like the distance;
-        a named storm's is the time of NHC's position. The next sentence says where the direction
+        trains, and the buoy's tab only those among the buoy's. Only what is arriving now is shown;
+        the Origins chart, under Charts, keeps the ones before.</p>
+      <p>Every origin is written the same way, one paragraph, whatever kind it is, and each is
+        the same run of parts in the same order: a part with nothing to say is left out, and nothing
+        is reworded. It opens with what it is: a hurricane or tropical storm by name, the name
+        linking to the National Hurricane Center's page for it, with its track and map; a sea; or
+        an <b>unplaced storm</b>, either because NDBC 46047 has the train from several directions at
+        once or because NDBC 46047 does not have the train at all. The next sentence gives the day
+        the swell was sent and how far away the storm was; the train's period is the one on its
+        row. A reading's day is &ldquo;about&rdquo;, because it is fitted off the swell like the
+        distance; a named storm's is the time of NHC's position. The next sentence says where the direction
         comes from. For a named storm it is NHC: where NHC had it, by bearing in degrees and compass
         point, and its winds and central pressure at that time, when it sent the train, which
         may not be what they are now. For a reading it names NDBC 46047 and says what it holds: the train from one bearing; the
@@ -1685,12 +1686,7 @@ t₀ = where the line reaches f = 0    <span class="c">when it blew</span></pre>
         what names the storm (described below), and is not repeated on the card; for a reading, how
         long the swell it is read from has been arriving, because a reading can still move while
         the train is arriving. Either way it reads &ldquo;Arriving for&nbsp;&hellip;&nbsp;h so
-        far.&rdquo; When no readable swell is arriving, the last readable arrival
-        at that tab in the last three weeks is shown after a line saying so: whichever ended later
-        of the last swell read backwards there, with the train it was at its busiest hour, and the
-        last storm named there, as it was last named, its paragraph ending with the day that train
-        arrived, with no hours. A named storm's name is followed by its symbol, the eye open for a
-        tropical storm and filled for a hurricane. No sources are listed under the entries: every
+        far.&rdquo; No sources are listed under the lines: every
         train is read off NDBC 46232's spectrum, a named storm's too; a reading's storm is then read
         backwards from it, with its direction from NDBC 46047; a named storm's position, winds and
         pressure are NHC's best track, an analysis; and each is described in this section.</p>
@@ -2184,8 +2180,8 @@ sunset        = last moment any of the disc is above max(skyline, sea horizon)
           weakened to a tropical storm, that the card would have named then (see <a href="#swell-origin">Origin</a>), at the distance of NHC's
           position that sent the train; its name sits by its first dot in view. A grey bar is an
           arrival read off the swell itself with no storm named for it, at its dispersion
-          distance, over the hours it was arriving. The readout names each as the Origin fold
-          does: a storm by name, a sea, or an unplaced storm with no bearing. Distance runs on a log
+          distance, over the hours it was arriving. The readout names each as the line under a
+          train does: a storm by name, a sea, or an unplaced storm with no bearing. Distance runs on a log
           scale, 500 to 10,000 miles. Each mark is on a tab only where it was one of that tab's
           own trains, as on the card; and an arrival is drawn as the storm, not as a bar, where
           the storm's train at that tab is the arrival's own and Origin read it from within
@@ -2903,6 +2899,9 @@ function renderStanding(el, standing) {
 // everywhere on this page.
 const DRAWING = (() => {
 const UNITS = "both";
+// The forecast page's togglePick shuts an origin's line under a train the
+// pick has left (2026-11-28); this page has no train rows, so nothing.
+const syncOriginLines = () => {};
 // ---- from app/forecast.html ----
 const AWAY = "pointed away from this beach";
 const dualText = (imp, met) => (UNITS === "imperial" ? imp : UNITS === "metric" ? met : `${imp} (${met})`);
@@ -3211,6 +3210,8 @@ function togglePick(svg, key) {
   const id = svg.getAttribute("data-break");
   PICKED[id] = key && PICKED[id] !== key ? key : null;
   showPick(svg, PICKED[id]);
+  // A line under a row the pick has left shuts with it.
+  syncOriginLines(svg.closest(".pane"));
 }
 // ---- end ----
 return {windowDrawing, showPick, pickAt, pickDrawn, togglePick, PICKED};

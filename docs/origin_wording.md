@@ -1,49 +1,48 @@
 # Origin wording: the formula, and every permutation
 
-The owner's formula for the Origin fold, decided 2026-10-10, rewritten
-2026-10-14, and on the page since then. The section at the end lists every permutation. It is not typed:
-`python -m forecast.originwording` lifts the Origin code out of
-`app/forecast.html`, runs it in Node on one made-up Origin block per branch,
-and writes what the page prints. `tests/test_originwording.py` fails if the
-page and this file disagree. Edit the wording above the generated section;
-the numbers in the cases are made up, and dates are Pacific.
+The owner's formula for an origin's words, decided 2026-10-10, rewritten
+2026-10-14, and set as one paragraph under its train since 2026-11-28, when
+Origin left its fold for the train rows. The section at the end lists every
+permutation. It is not typed: `python -m forecast.originwording` lifts the
+Origin code out of `app/forecast.html`, runs it in Node on one made-up Origin
+block per branch, and writes what the page prints under a row.
+`tests/test_originwording.py` fails if the page and this file disagree. Edit
+the wording above the generated section; the numbers in the cases are made
+up, and dates are Pacific.
 
 ## The formula
 
-Every entry is a head and one paragraph (owner's rewrite, 2026-10-14; three
-lines before that, in the owner's 2026-10-04 design): **what**, then **sent
-when and from where**, **where the direction comes from** and **how it is
-known**, run on. Each part is a fixed run of slots. A slot with no
-value is dropped together with its joining words. Nothing is reworded per case.
+Every origin is ONE paragraph in the supporting line's style, under the train
+it is matched to (owner's call, 2026-11-28): **what**, then **sent when and
+from where**, **where the direction comes from** and **how it is known**, run
+on. Each part is a fixed run of slots. A slot with no value is dropped
+together with its joining words. Nothing is reworded per case.
 
 | Part | Slot | Hurricane | Reading, placed | Reading, unplaced: split bearing | Reading, unplaced: not at 46047 |
 |---|---|---|---|---|---|
-| 0 past | opening line, if past | `No readable swell arriving here now. The last one was:` | same | same | same |
-| 1 what | head | `Hurricane {Name}` or `Tropical Storm {Name}`, the name linked to NHC's page, then its symbol | `{Sea}` | `Unplaced storm` | `Unplaced storm` |
-| 2 sent | train | `The {T} s train` (the card's train) | `The {T} s train` (the card's train now; its peak-hour train if past) | same | same |
-| 2 | when | `, sent {date}` (NHC's fix) | `, sent about {date}` (fitted off the swell) | same | same |
-| 2 | distance | ` from about {mi} ({km}) away`, to 100 | ` from about {mi} ({km}) away`, to 500 | same | same |
-| 2 | end | `.` | `.` | `.` | `.` |
-| 3 held | source | ` NHC had it at {deg}° {pt}, with winds of {mph} ({kt})` + ` and {mb} mb pressure` if the fix has one, then ` at that time.`; past: + ` Arrived {date}, no longer arriving.` | ` {46047} holds this train from {deg}° {pt}.` | ` {46047} holds this train from {d1}° {pt} and {d2}° {pt}, so no place is given.` (three: `{d1}, {d2} and {d3}`) | ` {46047} does not have this train, so no place is given.` |
-| 4 known | hours | ` Arriving for {h} h so far.`, the longest at any gate buoy; none if no buoy has hours, or if past | ` Arriving for {h} h so far.`, as read off the swell; past: ` Arrived {date}, no longer arriving.` | same | same |
+| 1 what | name | `Hurricane {Name}.` or `Tropical Storm {Name}.`, the name alone linked to NHC's page | `{Sea}.` | `Unplaced storm.` | `Unplaced storm.` |
+| 2 sent | when | ` Sent {date}` (NHC's fix) | ` Sent about {date}` (fitted off the swell) | same | same |
+| 2 | distance | ` from about {mi} ({km}) away.`, to 100 | ` from about {mi} ({km}) away.`, to 500 | same | same |
+| 3 held | source | ` NHC had it at {deg}° {pt}, with winds of {mph} ({kt})` + ` and {mb} mb pressure` if the fix has one, then ` at that time.` | ` {46047} holds this train from {deg}° {pt}.` | ` {46047} holds this train from {d1}° {pt} and {d2}° {pt}, so no place is given.` (three: `{d1}, {d2} and {d3}`) | ` {46047} does not have this train, so no place is given.` |
+| 4 known | hours | ` Arriving for {h} h so far.`, the longest at any gate buoy; none if no buoy has hours | ` Arriving for {h} h so far.`, as read off the swell | same | same |
 
-A past entry's lines are at 15 px, the size its old grey tag was, with a blank
-line between its opening line and the head (owner's request, 2026-10-13); the
-head stays at the storm name's size. A storm's symbol is the meteorological
-tropical cyclone symbol, two arms around the eye as a Northern Hemisphere storm
-turns: the eye open for a tropical storm, filled for a hurricane, in ink. A
-storm's name links to NHC's page for that storm, with its advisories, track and
-cone map (`https://www.nhc.noaa.gov/archive/{year}/{NAME}_graphics.php`), not
-the best-track file the card reads; only the name is the link, and the Origins
-chart's readout names the storm unlinked and without its symbol. A storm's past `{date}` is the first
-moment it was named at the tab with the fix that sent the train shown, so a
-train never arrives before it was sent.
+The paragraph names no period: the row it opens under says it, and a storm's
+swell the splitter cut into two rows ("The 10.5 and 11.1 s trains" until
+2026-11-28) is one line under the bracket the rows share. "This train" is
+that row's. The storm's symbol is the row's mark, never repeated in the
+paragraph: the meteorological tropical cyclone symbol, two arms around the
+eye as a Northern Hemisphere storm turns, the eye open for a tropical storm,
+filled for a hurricane; a reading's mark is a ring. A storm's name links to
+NHC's page for that storm, with its advisories, track and cone map
+(`https://www.nhc.noaa.gov/archive/{year}/{NAME}_graphics.php`), not the
+best-track file the card reads; only the name is the link, and the Origins
+chart's readout names the storm unlinked.
 
-**No provenance follows the entries** (owner's call, 2026-10-14): how trains
-are read off 46232, how storms are read backwards from them and how a storm is
-matched to NHC's track are on `docs.html`. What the provenance said about a
-reading's direction is in part 3 now, beside the train, and NHC's link is on
-the storm's name.
+**No provenance follows the paragraph** (owner's call, 2026-10-14): how
+trains are read off 46232, how storms are read backwards from them and how a
+storm is matched to NHC's track are on `docs.html`. What the provenance said
+about a reading's direction is in part 3, and NHC's link is on the storm's
+name.
 
 Every buoy is named as NDBC names it without its state, from `now.json`'s
 `station_names`, which covers the bearing buoys and every gate buoy a shown
@@ -51,13 +50,32 @@ hurricane was matched at, and by NDBC's number: "Point Loma South (NDBC
 46232)", "Tanner Bank (NDBC 46047)" (owner's requests, 2026-10-13 and
 2026-11-06, the second replacing CDIP's number for 46232).
 
-Fold-level rules (unchanged): hurricanes first, then current readings; a
-reading of the same train as a shown hurricane is dropped; the last readable
-arrival appears only when nothing is arriving, and is whichever ended later:
-Origin's last reading at the tab, or the last storm named there (from
-`origins.json`; owner's report, 2026-10-12), a storm's in the hurricane's
-form with its opening line and "Arrived {date}, no longer arriving."; with
-nothing at all, `No readable swell in the last {21} days.` alone.
+Line-level rules: under one train, storms first, then readings, two set
+apart by a centred dot; a reading of the same train as a shown storm is
+dropped. Only what is arriving now is on the card.
+
+### Decided 2026-11-28
+
+Origin left its fold for the train rows (owner's request): each origin is a
+line under the train it is matched to, folded until the row is tapped.
+
+- **One style, no head.** The name, the sea or "Unplaced storm" opens the
+  paragraph as its first sentence, at the paragraph's size and grey; the
+  head at the card's value size went.
+- **No storm symbol in the line.** The row carries it as its mark.
+- **No "The {T} s train".** The tapped row says the period; the second
+  sentence opens "Sent".
+- **No last readable arrival.** With nothing arriving there is no train to
+  sit under; the Origins chart keeps the history. The opening line "No
+  readable swell arriving here now. The last one was:", its "Arrived {date},
+  no longer arriving." and "No readable swell in the last 21 days." went
+  with it.
+
+Before this each entry was a head (at the storm name's size, the storm's
+symbol after its name) and a paragraph opening "The {T} s train, sent …", a
+tab's last readable arrival had its own opening line, and its lines were at
+15 px with a blank line after that opening (owner's requests, 2026-10-12 and
+-13).
 
 ### Decided 2026-10-14
 
@@ -185,164 +203,92 @@ Before 2026-10-10 the fold read, among other things:
 
 ## Every permutation
 
-Cases: E is empty, L is the last readable arrival, C is arriving now, H is a
-hurricane, M is a mix. Grey tags are set off by two spaces, and a link
-is shown as `[text](url)`.
+Cases: C is arriving now, H is a hurricane, T a tropical storm, M is a mix.
+Each paragraph is one origin's line under its train, and a link is shown as
+`[text](url)`.
 
 <!-- Generated by python -m forecast.originwording. Edit above this line. -->
-
-### E0: nothing in 21 days
-
-```text
-No readable swell in the last 21 days.
-```
-
-### L1: last readable arrival, placed
-
-```text
-No readable swell arriving here now. The last one was:
-South Pacific
-The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arrived Oct 6, no longer arriving.
-```
-
-### L2: last readable arrival, unplaced: split bearing
-
-```text
-No readable swell arriving here now. The last one was:
-Unplaced storm
-The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Arrived Oct 6, no longer arriving.
-```
-
-### L3: last readable arrival, unplaced: 46047 does not have it
-
-```text
-No readable swell arriving here now. The last one was:
-Unplaced storm
-The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) does not have this train, so no place is given. Arrived Oct 6, no longer arriving.
-```
-
-### L4: last readable arrival, a storm named here after Origin's last reading
-
-```text
-No readable swell arriving here now. The last one was:
-Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {tropical storm symbol}
-The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arrived Oct 11, no longer arriving.
-```
-
-### L5: last readable arrival, Origin's reading ended after the last storm named here
-
-```text
-No readable swell arriving here now. The last one was:
-Aleutian storm track
-The 15.4 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arrived Sep 30, no longer arriving.
-```
 
 ### C1: arriving, placed
 
 ```text
-South Pacific
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
+South Pacific. Sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
 ```
 
 ### C2: arriving, unplaced: split three ways
 
 ```text
-Unplaced storm
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Arriving for 18 h so far.
+Unplaced storm. Sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Arriving for 18 h so far.
 ```
 
 ### C3: arriving, unplaced: 46047 does not have it
 
 ```text
-Unplaced storm
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) does not have this train, so no place is given. Arriving for 18 h so far.
+Unplaced storm. Sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) does not have this train, so no place is given. Arriving for 18 h so far.
 ```
 
 ### C4: arriving, one of each
 
 ```text
-South Pacific
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
-Unplaced storm
-The 13.2 s train, sent about Oct 2 from about 3,000 mi (5,000 km) away. Tanner Bank (NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Arriving for 18 h so far.
-Unplaced storm
-The 11.8 s train, sent about Oct 4 from about 2,000 mi (3,000 km) away. Tanner Bank (NDBC 46047) does not have this train, so no place is given. Arriving for 18 h so far.
+South Pacific. Sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
+Unplaced storm. Sent about Oct 2 from about 3,000 mi (5,000 km) away. Tanner Bank (NDBC 46047) holds this train from 205° SSW and 285° WNW, so no place is given. Arriving for 18 h so far.
+Unplaced storm. Sent about Oct 4 from about 2,000 mi (3,000 km) away. Tanner Bank (NDBC 46047) does not have this train, so no place is given. Arriving for 18 h so far.
 ```
 
 ### H1: hurricane, one gate buoy
 
 ```text
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
+Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 ```
 
 ### H2: hurricane, two gate buoys
 
 ```text
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
+Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
 ```
 
 ### H3: hurricane, no hours, no pressure
 
 ```text
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) at that time.
+Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) at that time.
 ```
 
 ### H4: two hurricanes
 
 ```text
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
-Hurricane [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php) {hurricane symbol}
-The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 178° S, with winds of 109 mph (95 kt) and 964 mb pressure at that time. Arriving for 22 h so far.
+Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
+Hurricane [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php). Sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 178° S, with winds of 109 mph (95 kt) and 964 mb pressure at that time. Arriving for 22 h so far.
 ```
 
 ### T1: a hurricane since weakened: its tropical storm fix sent the train
 
 ```text
-Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {tropical storm symbol}
-The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
+Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
 ```
 
 ### T3: one storm's swell cut into two rows at this break
 
 ```text
-Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {tropical storm symbol}
-The 10.5 and 11.1 s trains, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
+Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
 ```
 
 ### T2: a tropical storm and a hurricane
 
 ```text
-Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {tropical storm symbol}
-The 10.5 s train, sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
-Hurricane [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php) {hurricane symbol}
-The 12.5 s train, sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 178° S, with winds of 109 mph (95 kt) and 964 mb pressure at that time. Arriving for 22 h so far.
+Tropical Storm [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 8 from about 800 mi (1,300 km) away. NHC had it at 200° SSW, with winds of 69 mph (60 kt) and 985 mb pressure at that time. Arriving for 40 h so far.
+Hurricane [Sergio](https://www.nhc.noaa.gov/archive/2026/SERGIO_graphics.php). Sent Oct 8 from about 1,300 mi (2,200 km) away. NHC had it at 178° S, with winds of 109 mph (95 kt) and 964 mb pressure at that time. Arriving for 22 h so far.
 ```
 
 ### M1: hurricane and a placed reading
 
 ```text
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
-South Pacific
-The 15.1 s train, sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
+Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
+South Pacific. Sent about Oct 1 from about 4,500 mi (7,500 km) away. Tanner Bank (NDBC 46047) holds this train from 212° SSW. Arriving for 18 h so far.
 ```
 
 ### M3: hurricane and a split bearing, as live on 2026-10-10
 
 ```text
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
-Unplaced storm
-The 20.0 s train, sent about Oct 1 from about 9,500 mi (15,000 km) away. Tanner Bank (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Arriving for 18 h so far.
-```
-
-### M2: hurricane and a last readable arrival (the last is not shown)
-
-```text
-Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php) {hurricane symbol}
-The 14.3 s train, sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
+Hurricane [Rachel](https://www.nhc.noaa.gov/archive/2026/RACHEL_graphics.php). Sent Oct 1 from about 1,000 mi (1,700 km) away. NHC had it at 196° SSW, with winds of 121 mph (105 kt) and 950 mb pressure at that time. Arriving for 30 h so far.
+Unplaced storm. Sent about Oct 1 from about 9,500 mi (15,000 km) away. Tanner Bank (NDBC 46047) holds this train from 140° SE, 196° SSW and 254° WSW, so no place is given. Arriving for 18 h so far.
 ```
