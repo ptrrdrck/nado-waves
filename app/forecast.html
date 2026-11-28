@@ -452,17 +452,32 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
   transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
 @media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
-.tray-toggle{display:grid;place-items:center;width:100%;height:26.8px;margin-top:2px;padding:0 0 4.8px;border:0;
-             background:transparent;color:var(--soft);cursor:pointer}
+.tray-toggle{position:relative;z-index:1;display:grid;place-items:center;width:100%;height:28.8px;
+             padding:2px 0 4.8px;border:0;background:var(--paper);color:var(--soft);cursor:pointer;
+             transition:padding .24s cubic-bezier(.05,.7,.1,1)}
 /* Both's names sit 3 px higher than Imperial's (above): the caret keeps the
    same balance under them. */
-.tabbox:has(.tab-m) .tray-toggle{height:25.45px;padding-bottom:3.45px}
+.tabbox:has(.tab-m) .tray-toggle{height:27.45px;padding-bottom:3.45px}
+/* The caret the box's foot (owner's call, 2026-11-28): under the open panes,
+   a hairline across its top, the box's own paper, and the caret between
+   that hairline and the box's edge, as much paper above its ink as under it
+   (measured painted at 390: 10.25 px each side, 9.75 in Both). It
+   is opaque and above the tray, because a shutting fold keeps its top
+   padding under a negative margin (`slideFold`) and the caret rides over
+   it; the tray is its own stacking context so the map's controls stay
+   under the caret. The hairline is drawn, not a border, so it never moves
+   the caret, and it shows while the tray does, sliding included. */
+.tab-tray{isolation:isolate}
+.tab-tray:not([hidden]) + .tray-toggle::before{content:"";position:absolute;top:0;left:0;right:0;
+                                              border-top:1px solid var(--line)}
+.tray-toggle[aria-expanded="true"]{padding:3.25px 0 3.55px}
+.tabbox:has(.tab-m) .tray-toggle[aria-expanded="true"]{padding:2.75px 0 2.7px}
 .tray-toggle:hover{color:var(--ink)}
 .tray-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:-2px}
 .tray-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
                  stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
 .tray-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
-@media (prefers-reduced-motion: reduce){ .tray-toggle svg{transition:none} }
+@media (prefers-reduced-motion: reduce){ .tray-toggle,.tray-toggle svg{transition:none} }
 /* The tray's first ink about 17.5 px under its edge, the card's rhythm round
    the box (owner's call, 2026-11-27; it was 12.6 on a break, 13.3 on the
    Buoys tab): measured 17.3 on a break, 17.4 in Both, 17.3 on the Buoys tab. */
@@ -8455,8 +8470,10 @@ function tabHeight(m, aged = "") {
 // The swell card's tray, open or shut: shut on every load, kept across a
 // redraw (owner's design, 2026-11-27).
 let TRAY_OPEN = false;
-function setTrayOpen(open) {
+let TRAY_PIN = 0;
+function setTrayOpen(open, caret) {
   TRAY_OPEN = open;
+  const pin = ++TRAY_PIN;
   const btn = document.querySelector("[data-tray-toggle]");
   if (btn) btn.setAttribute("aria-expanded", String(open));
   const tray = $("swell-tray");
@@ -8466,7 +8483,24 @@ function setTrayOpen(open) {
   // picked tab's height fades as its name slides to the tab's middle.
   const box = document.querySelector("[data-tabbox]"), card = box && box.closest(".cond");
   if (card) card.toggleAttribute("data-tray-open", open);
+  // Shut from its caret with the tabs scrolled out of sight, the page scrolls
+  // with the shutting tray, so the caret stays under the finger and the shut
+  // box ends in view (owner's call, 2026-11-28); with the tabs in sight the
+  // caret rises to them, as it does when the tab is tapped. Each frame puts
+  // back whatever the caret has moved, so a browser's own scroll anchoring
+  // is never added twice. Tapped again, the pin lets go.
+  const strip = box && box.querySelector(".subtabs");
+  const keep = caret && !open && strip && strip.getBoundingClientRect().top < 0;
+  const y0 = keep ? caret.getBoundingClientRect().top : 0;
   slideFolds([tray], open, () => { if (SWELL_TAB === BUOY_TAB) roseShown(); });
+  if (!keep) return;
+  const hold = () => {
+    if (pin !== TRAY_PIN) return;
+    const d = caret.getBoundingClientRect().top - y0;
+    if (Math.abs(d) >= 0.5) window.scrollBy(0, d);
+    if (FOLD_MOVES.has(tray)) requestAnimationFrame(hold);
+  };
+  hold();
 }
 // The Briefing's swell block as the Swell card's headline (owner's design,
 // 2026-11-27), its words and numbers the Briefing's own.
@@ -8610,15 +8644,17 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
       aria-labelledby="swell-tab-${tab.id}"${tab.id === chosen ? "" : " hidden"}>${tab.body}</div>`).join("");
   const after = tabs.filter((tab) => tab.after).map((tab) => `<div class="pane after" data-after-tab="${tab.id}"`
       + `${tab.id === chosen ? "" : " hidden"}>${tab.after}</div>`).join("");
-  // The tabs box and its tray (owner's design, 2026-11-27): the tabs, a
-  // caret under them, and the panes folded under that, closed until opened.
+  // The tabs box and its tray (owner's design, 2026-11-27): the tabs, the
+  // panes folded under them, closed until opened, and the caret the box's
+  // foot, under the panes when open (owner's call, 2026-11-28), so the tray
+  // shuts from its foot as well as from the tab.
   const box = !tray ? `${strip}${panes}${srcLines(source)}${after}`
     : `<div class="tabbox" data-tabbox>
       ${strip}
+      <div class="tab-tray" id="swell-tray"${TRAY_OPEN ? "" : " hidden"}>${panes}${after}</div>
       <button type="button" class="tray-toggle" data-tray-toggle aria-controls="swell-tray"
         aria-expanded="${TRAY_OPEN}" aria-label="${label} at the picked tab"><svg viewBox="0 0 16 16"
         aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>
-      <div class="tab-tray" id="swell-tray"${TRAY_OPEN ? "" : " hidden"}>${panes}${after}</div>
     </div>${srcLines(source)}`;
 
   // 46232's pills leave the title row for Point Loma South's line on the
@@ -9159,7 +9195,8 @@ function wireSwellTabs() {
     const tabId = btn && btn.getAttribute("data-swell-tab");
     if (btn && tabId === SWELL_TAB && btn.closest("[data-tabbox]")) setTrayOpen(!TRAY_OPEN);
     else if (btn) selectSwellTab(tabId);
-    if (e.target.closest("[data-tray-toggle]")) setTrayOpen(!TRAY_OPEN);
+    const caret = e.target.closest("[data-tray-toggle]");
+    if (caret) setTrayOpen(!TRAY_OPEN, caret);
     // A card's title-row pills: the left pill's other text.
     const head = e.target.closest("[data-head-key]");
     if (head) tapHead(head.getAttribute("data-head-key"));

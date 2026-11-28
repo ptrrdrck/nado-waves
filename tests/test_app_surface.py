@@ -5377,7 +5377,48 @@ class TestTheSwellCardsTabsBoxAndTray:
         wire = self.fn("wireSwellTabs")
         assert ('if (btn && tabId === SWELL_TAB && btn.closest("[data-tabbox]")) setTrayOpen(!TRAY_OPEN);'
                 in wire)
-        assert 'if (e.target.closest("[data-tray-toggle]")) setTrayOpen(!TRAY_OPEN);' in wire
+        assert 'const caret = e.target.closest("[data-tray-toggle]");' in wire
+        assert "if (caret) setTrayOpen(!TRAY_OPEN, caret);" in wire
+
+    def test_the_caret_is_the_boxs_foot_under_the_open_tray(self):
+        # Under the panes, not between them and the tabs (owner's call,
+        # 2026-11-28), so the tray shuts from its foot as well as its tab.
+        card = self.fn("swellCard")
+        box = card[card.index('<div class="tabbox" data-tabbox>'):]
+        box = box[:box.index("</div>${srcLines(source)}`")]
+        assert box.index("${strip}") < box.index('<div class="tab-tray" id="swell-tray"') < box.index(
+            '<button type="button" class="tray-toggle"')
+        # Opaque and above the tray, which keeps its top padding under a
+        # negative margin as it shuts; the map's controls under it.
+        assert ("position:relative;z-index:1;display:grid;place-items:center;width:100%;height:28.8px;"
+                in SOURCE)
+        assert "padding:2px 0 4.8px;border:0;background:var(--paper);" in SOURCE
+        assert ".tab-tray{isolation:isolate}" in SOURCE
+        # Its hairline drawn, not a border, while the tray shows.
+        assert ".tab-tray:not([hidden]) + .tray-toggle::before{" in SOURCE
+
+    def test_the_open_caret_sits_midway_between_its_hairline_and_the_boxs_edge(self):
+        # 10.25 px of paper each side of its ink at 390, 9.75 in Both:
+        # measured 10.0 / 10.5 and 10.0 / 9.5, pixel-snapped at 2x. The bar
+        # keeps its height, so nothing jumps as the tray starts to move.
+        assert '.tray-toggle[aria-expanded="true"]{padding:3.25px 0 3.55px}' in SOURCE
+        assert '.tabbox:has(.tab-m) .tray-toggle[aria-expanded="true"]{padding:2.75px 0 2.7px}' in SOURCE
+        assert "transition:padding .24s cubic-bezier(.05,.7,.1,1)" in SOURCE
+
+    def test_shut_from_its_caret_out_of_the_tabs_sight_the_caret_stays_put(self):
+        toggle = self.fn("setTrayOpen")
+        assert "function setTrayOpen(open, caret)" in toggle
+        # Only shutting, only from the caret, only with the tabs scrolled
+        # above the screen's top.
+        assert ("const keep = caret && !open && strip && strip.getBoundingClientRect().top < 0;"
+                in toggle)
+        # Whatever the caret moved, put back each frame while the tray slides;
+        # a newer tap lets go.
+        assert "if (pin !== TRAY_PIN) return;" in toggle
+        assert "const d = caret.getBoundingClientRect().top - y0;" in toggle
+        assert "window.scrollBy(0, d)" in toggle
+        assert "if (FOLD_MOVES.has(tray)) requestAnimationFrame(hold);" in toggle
+        assert toggle.index("const y0 = ") < toggle.index("slideFolds(") < toggle.index("hold();")
 
     def test_each_tab_carries_its_height(self):
         card = self.fn("swellCard")
@@ -5535,9 +5576,10 @@ class TestTheSwellCardsTabsBoxAndTray:
         # top edge to the tab names' ink, which reads as equal: 12.7 px
         # against 13.3 painted at 390 once the names were centred by their
         # ink, Both's 3 px higher names likewise (owner's calls, 2026-11-27).
-        assert (".tray-toggle{display:grid;place-items:center;width:100%;height:26.8px;margin-top:2px;"
-                "padding:0 0 4.8px;") in SOURCE
-        assert ".tabbox:has(.tab-m) .tray-toggle{height:25.45px;padding-bottom:3.45px}" in SOURCE
+        # The 2 px above it now its own padding, the caret the box's foot.
+        assert ("display:grid;place-items:center;width:100%;height:28.8px;\n"
+                "             padding:2px 0 4.8px;") in SOURCE
+        assert ".tabbox:has(.tab-m) .tray-toggle{height:27.45px;padding-bottom:3.45px}" in SOURCE
 
     def test_each_tab_is_centred_by_its_ink(self):
         # Line boxes put the caps' empty leading under them: 12.3 / 8.9 px
