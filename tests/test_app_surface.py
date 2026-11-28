@@ -5482,9 +5482,12 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert "left:11px;right:11px;\n" in SOURCE
         assert ("border-top:1px solid var(--line)}" in
                 SOURCE[SOURCE.index(".tab-tray .rose.sea + .buoy-info::before{"):][:200])
-        assert (".tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child)"
-                "{padding-bottom:0}") in SOURCE
-        assert ".tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}" in SOURCE
+        # The tray's last buoy's plate, open, is the box's foot: Tanner Bank
+        # on LIVE, 46232 on Forecast (owner's report, 2026-11-28).
+        assert (".tab-tray > :is(.pane.after, #swell-pane-buoy:last-child) > .buoy-fold:last-child"
+                ":has(> .buoy-info:last-child){margin-bottom:-12px}") in SOURCE
+        assert (".tab-tray > :is(.pane.after, #swell-pane-buoy:last-child) > .buoy-fold:last-child"
+                " > .buoy-info:last-child{border-bottom:0}") in SOURCE
 
     def test_the_ranges_sparkline_is_112_by_28_where_it_fits(self):
         # Owner's pick, 2026-11-27: drawn at that size (its line and dot as
@@ -5587,11 +5590,26 @@ class TestTheSwellCardsTabsBoxAndTray:
 
     def test_an_open_buoys_plate_is_the_rule_above_the_next_buoy(self):
         # Owner's call, 2026-11-27: the plate's foot lies on the next buoy's
-        # rule (measured at 390: 31 and 21 px of card above it before), by a
-        # margin rather than a hidden rule, so a fold's slide never jumps.
-        assert ".tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}" in SOURCE
-        assert ".tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}" in SOURCE
+        # rule (measured at 390: 31 and 21 px of card above it before), by the
+        # FOLD's own margin, which the slide moves, the plate inside it.
+        assert ".tab-tray :is(#swell-pane-buoy, .pane.after) > .buoy-fold > .buoy-info:last-child{margin-bottom:0}" in SOURCE
+        assert (".tab-tray > #swell-pane-buoy:has(+ .pane.after) > .buoy-fold:last-child"
+                ":has(> .buoy-info:last-child){margin-bottom:-13.5px}") in SOURCE
+        assert (".tab-tray .pane.after > .buoy-fold:not(:last-child)"
+                ":has(> .buoy-info:last-child){margin-bottom:-13px}") in SOURCE
         assert ".pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}" in SOURCE
+
+    def test_nothing_under_a_buoy_moves_when_its_fold_hides(self):
+        # A fold is hidden only once its slide ends: spacing keyed to [hidden]
+        # moved everything under it in the last frame (owner's report,
+        # 2026-11-28: -9.6, +0.9 and +11.9 px on LIVE). The pane's spacing is
+        # the shut one; the open fold's margin makes the difference.
+        tray_css = SOURCE[SOURCE.index(".tab-tray{display:flex"):SOURCE.index("/* Where the tide is going next.")]
+        assert ".buoy-fold[hidden]" not in tray_css
+        assert ".buoy-fold:last-child[hidden]" not in tray_css
+        assert ":not([hidden])" not in tray_css
+        fold = self.fn("slideFold")
+        assert 'marginBottom: cs.marginBottom' in fold
 
     def test_the_caret_sits_clear_of_the_tabs(self):
         # With the tray shut the caret's strip sits under the tabs, its
@@ -5668,9 +5686,9 @@ class TestTheSwellCardsTabsBoxAndTray:
         for rule in (".tab-tray .pane.after > hr + .chead{margin-top:2.5px}",
                      ".tab-tray .pane > .chead:has(> .buoy-name) + .val-line{margin-top:-1px}",
                      ".tab-tray .pane > .val-line + .buoy-fold{margin-top:-6.5px}",
-                     ".tab-tray .pane.after > .buoy-fold[hidden] + hr{margin-top:1px}",
-                     ".tab-tray > .pane.after:has(> .buoy-fold:last-child[hidden]){padding-bottom:12px}",
-                     ".tab-tray > #swell-pane-buoy:has(> .buoy-fold:last-child[hidden]){padding-bottom:1.5px}"):
+                     ".tab-tray .pane.after > .buoy-fold + hr{margin-top:1px}",
+                     ".tab-tray > :is(.pane.after, #swell-pane-buoy:last-child){padding-bottom:12px}",
+                     ".tab-tray > #swell-pane-buoy:has(+ .pane.after){padding-bottom:1.5px}"):
             assert rule in SOURCE, rule
 
     def test_46232s_pills_leave_the_title_row_only_while_the_tray_is_open(self):

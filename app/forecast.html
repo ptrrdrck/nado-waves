@@ -522,13 +522,6 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tab-tray .rose.sea + .buoy-info{position:relative;margin-top:0;border-top:0;padding-top:12.5px}
 .tab-tray .rose.sea + .buoy-info::before{content:"";position:absolute;top:0;left:11px;right:11px;
                                          border-top:1px solid var(--line)}
-/* An open buoy's plate is the rule above the next buoy (owner's call,
-   2026-11-27): pulled down so its foot's hairline lies on that rule, so no
-   card and no second line between them, and the next name as far under it
-   as under the rule. A margin, not a hidden rule, so a fold's slide never
-   jumps. Measured at 390: 31 and 21 px of card above the rule before. */
-.tab-tray #swell-pane-buoy .buoy-info{margin-bottom:-23px}
-.tab-tray .pane.after > .buoy-fold:not(:last-child) .buoy-info{margin-bottom:-12px}
 /* 17.5 px painted above and below each buoy's name and under its height
    line, the tray's rhythm (owner's call, 2026-11-27; it was 14.9-15.4 above
    a context buoy's name, 18.5 under every name, 24.0 to the trains, 27.1 to
@@ -536,12 +529,36 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .tab-tray .pane.after > hr + .chead{margin-top:2.5px}
 .tab-tray .pane > .chead:has(> .buoy-name) + .val-line{margin-top:-1px}
 .tab-tray .pane > .val-line + .buoy-fold{margin-top:-6.5px}
-.tab-tray .pane.after > .buoy-fold[hidden] + hr{margin-top:1px}
-.tab-tray > .pane.after:has(> .buoy-fold:last-child[hidden]){padding-bottom:12px}
-.tab-tray > #swell-pane-buoy:has(> .buoy-fold:last-child[hidden]){padding-bottom:1.5px}
-/* The last buoy's plate, open, is the box's foot. */
-.tab-tray > .pane.after:has(> .buoy-fold:last-child:not([hidden]) > .buoy-info:last-child){padding-bottom:0}
-.tab-tray .pane.after > .buoy-fold:last-child .buoy-info:last-child{margin-bottom:0;border-bottom:0}
+/* WHAT A BUOY'S FOLD CHANGES BELOW IT IS ITS OWN BOTTOM MARGIN, never a
+   rule keyed to the fold being hidden: `slideFold` slides that margin, and
+   the fold is hidden only once its slide ends, so a [hidden] rule moved
+   everything under it in the last frame (owner's report, 2026-11-28:
+   -9.6, +0.9 and +11.9 px at 46232, 46086 and 46047 on LIVE). The pane's
+   spacing is the shut one; open, the margin makes the difference, and the
+   plate stays inside its fold, so the slide's clip never cuts it (its
+   own margins outside the tray, 9-11 px, are dropped in it).
+   An open buoy's plate is the rule above the next buoy (owner's call,
+   2026-11-27): its foot's hairline lies on that rule, so no card and no
+   second line between them, and the next name as far under it as under
+   the rule. Measured at 390: 31 and 21 px of card above the rule before.
+   On LIVE 46232's plate on the after-pane's first rule (its 11 px of
+   padding, 11 of the pane's own when open, the rule's 1 px)... */
+.tab-tray :is(#swell-pane-buoy, .pane.after) > .buoy-fold > .buoy-info:last-child{margin-bottom:0}
+.tab-tray > #swell-pane-buoy:has(+ .pane.after){padding-bottom:1.5px}
+.tab-tray > #swell-pane-buoy:has(+ .pane.after) > .buoy-fold:last-child{margin-bottom:9.5px}
+.tab-tray > #swell-pane-buoy:has(+ .pane.after) > .buoy-fold:last-child:has(> .buoy-info:last-child){margin-bottom:-13.5px}
+/* ...a context buoy's on the next buoy's rule (the pane's 11 px gap)... */
+.tab-tray .pane.after > .buoy-fold + hr{margin-top:1px}
+.tab-tray .pane.after > .buoy-fold:not(:last-child){margin-bottom:-1px}
+.tab-tray .pane.after > .buoy-fold:not(:last-child):has(> .buoy-info:last-child){margin-bottom:-13px}
+/* ...and the tray's last buoy's the box's foot: Tanner Bank on LIVE, and
+   46232 on Forecast, the Buoys tab's only buoy there. Shut, 12 px under its
+   height line to the caret's hairline (owner's report, 2026-11-28: 46232 on
+   Forecast had LIVE's 1.5 px, a rule below it in mind, and its open plate
+   ran 12 px under the caret). */
+.tab-tray > :is(.pane.after, #swell-pane-buoy:last-child){padding-bottom:12px}
+.tab-tray > :is(.pane.after, #swell-pane-buoy:last-child) > .buoy-fold:last-child:has(> .buoy-info:last-child){margin-bottom:-12px}
+.tab-tray > :is(.pane.after, #swell-pane-buoy:last-child) > .buoy-fold:last-child > .buoy-info:last-child{border-bottom:0}
 /* Where the tide is going next. Dim like any other supporting line, with the
    direction itself at full ink because that is the word being read. */
 /* Inline, not flex: the height carries its own metric span and flex would
