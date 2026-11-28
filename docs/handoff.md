@@ -427,9 +427,8 @@ and greying read as they did. Mock only, never committed.
 30. **One line a swell in the swell headline, both tabs** -- done
     (2026-11-28; `briefing.same_swell` and `fcSwellTrains`, measured by
     `python -m forecast.trainmatch --lines`, briefing.md's Swell block).
-    Open: docs.html's Briefing paragraph still describes one line a buoy
-    train by its peak period (stale since 3 Nov); rewording it waits for
-    the owner (it is the docs page).
+    docs.html's Briefing paragraph reworded to match (owner's go-ahead,
+    same day).
 
 ### Carryover prompts
 
