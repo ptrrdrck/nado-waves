@@ -445,8 +445,7 @@ and greying read as they did. Mock only, never committed.
 
 ### Carryover prompts
 
-Each assumes a fresh session; add "Confirm each item before building. PR,
-wait for Tests, don't merge." to each.
+Each assumes a fresh session.
 
 - Item 27, first (diagnosis; the strongest model, high effort, because
   the stage responsible is unknown and each next test has to be chosen
@@ -458,18 +457,21 @@ wait for Tests, don't merge." to each.
   only. The owner saw the headline high on big westerly days (17 Nov);
   Imperial Beach clears deep water to 21 m on open shelf, so find which
   Coronado-only stage makes the excess. Propose each step's measurement
-  before running it."
+  before running it. Confirm each item before building. PR, wait for
+  Tests, don't merge."
 - Group 7, item 29 (careful; a strong model at medium effort,
   layout work against an existing pattern): "Repo ptrrdrck/nado-waves;
   attach ptrrdrck/nado-waves-notes and read app_surface.md 'The Swell
   card's tabs box and tray' and its wide-layout sections, and docs/
   handoff.md group 7. Task: item 29, the swell headline in the wide
   layouts' Swell card, out of the Briefing there; then ask about docs.html's
-  Briefing paragraphs. Mock it on live data first."
+  Briefing paragraphs. Mock it on live data first. Confirm each item
+  before building. PR, wait for Tests, don't merge."
 - Group 2: "Repo ptrrdrck/nado-waves; attach ptrrdrck/nado-waves-notes.
   Group 2 of docs/handoff.md (items 4 and 3), geometry and ray diagnosis.
   Read the design docs and BRIEFING sections it names first. Report the
-  cause and the truth before changing anything."
+  cause and the truth before changing anything. Confirm each item before
+  building. PR, wait for Tests, don't merge."
 
 ### Working efficiently
 
