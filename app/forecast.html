@@ -452,34 +452,29 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
   transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
 @media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
+/* The caret its own strip, the box's foot (owner's calls, 2026-11-28):
+   under the open panes, and under the tabs with the tray shut, a hairline
+   across its top either way (the tray's top edge, kept when it is shut),
+   the box's own paper, and the caret between that hairline and the box's
+   edge, as much paper above its ink as under it: 10.25 px each side at
+   390, measured 10.5 / 10.0 painted. Its ink sits on the same rows open or
+   shut (the page's carets, below), so one padding serves both, and the
+   strip is one height in every unit mode, so nothing jumps as the tray
+   starts to move. It is opaque and above the tray, because a shutting fold
+   keeps its top padding under a negative margin (`slideFold`) and the
+   caret rides over it; the tray is its own stacking context so the map's
+   controls stay under the caret. The hairline is drawn, not a border, so
+   it never moves the caret. */
 .tray-toggle{position:relative;z-index:1;display:grid;place-items:center;width:100%;height:28.8px;
-             padding:2px 0 4.8px;border:0;background:var(--paper);color:var(--soft);cursor:pointer;
-             transition:padding .24s cubic-bezier(.05,.7,.1,1)}
-/* Both's names sit 3 px higher than Imperial's (above): the caret keeps the
-   same balance under them. */
-.tabbox:has(.tab-m) .tray-toggle{height:27.45px;padding-bottom:3.45px}
-/* The caret the box's foot (owner's call, 2026-11-28): under the open panes,
-   a hairline across its top, the box's own paper, and the caret between
-   that hairline and the box's edge, as much paper above its ink as under it
-   (measured painted at 390: 10.25 px each side, 9.75 in Both). It
-   is opaque and above the tray, because a shutting fold keeps its top
-   padding under a negative margin (`slideFold`) and the caret rides over
-   it; the tray is its own stacking context so the map's controls stay
-   under the caret. The hairline is drawn, not a border, so it never moves
-   the caret, and it shows while the tray does, sliding included. */
+             padding:4px 0 2.8px;border:0;background:var(--paper);color:var(--soft);cursor:pointer}
+.tray-toggle::before{content:"";position:absolute;top:0;left:0;right:0;border-top:1px solid var(--line)}
 .tab-tray{isolation:isolate}
-.tab-tray:not([hidden]) + .tray-toggle::before{content:"";position:absolute;top:0;left:0;right:0;
-                                              border-top:1px solid var(--line)}
-.tray-toggle[aria-expanded="true"]{padding:4px 0 2.8px}
-.tabbox:has(.tab-m) .tray-toggle[aria-expanded="true"]{padding:3px 0 2.45px}
 .tray-toggle:hover{color:var(--ink)}
 .tray-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:-2px}
-/* Up open or shut (owner's call, 2026-11-28): shut it sits under the tabs,
-   the page's closed caret; open it is the tray's foot, pointing the way the
-   tray shuts. Not the calculation's turn to down when open. */
 .tray-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
-                 stroke-linecap:round;stroke-linejoin:round}
-@media (prefers-reduced-motion: reduce){ .tray-toggle{transition:none} }
+                 stroke-linecap:round;stroke-linejoin:round;transform-origin:8px 7.75px;
+                 transition:transform .15s ease-out}
+@media (prefers-reduced-motion: reduce){ .tray-toggle svg{transition:none} }
 /* The tray's first ink about 17.5 px under its edge, the card's rhythm round
    the box (owner's call, 2026-11-27; it was 12.6 on a break, 13.3 on the
    Buoys tab): measured 17.3 on a break, 17.4 in Both, 17.3 on the Buoys tab. */
@@ -898,8 +893,16 @@ button.chead-pills:focus-visible{outline:2px solid var(--surf);outline-offset:2p
 .calc-toggle:hover{color:var(--ink)}
 .calc-toggle:focus-visible{outline:2px solid var(--surf);outline-offset:1px}
 .calc-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
-                 stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
-.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+                 stroke-linecap:round;stroke-linejoin:round;transform-origin:8px 7.75px;
+                 transition:transform .15s ease-out}
+/* THE PAGE'S CARETS, every fold's and the Swell card's tray's: DOWN while
+   closed, UP while open (owner's call, 2026-11-28; it was the other way
+   round). Drawn up, and turned about the middle of its ink (4.5-11 of 16),
+   so a caret's ink sits on the same rows open or shut, where a closed one's
+   sat before; turned clockwise as it opens, as before. A select's arrow
+   (the forecast hour's, a chart's picker) points down always: it marks a
+   menu, not a fold. */
+:is(.calc-toggle,.tray-toggle):not([aria-expanded="true"]) svg{transform:rotate(-180deg)}
 @media (prefers-reduced-motion: reduce){ .calc-toggle svg{transition:none} }
 /* The calculation, one effect per row. Heights in the leading train's ink and
    weight, the metric under the imperial so four columns fit a phone. */

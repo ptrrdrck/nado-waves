@@ -1079,15 +1079,16 @@ class TestTheCalculationTable:
 
     def test_the_caret_folds_the_table_under_the_headline(self):
         """Owner's design, 2026-09-26: a caret at the right end of the
-        headline, up while closed and down while open, one state for every
-        break, kept across a refresh like the tab choices."""
+        headline, down while closed and up while open (the other way round
+        until the owner's call of 2026-11-28), one state for every break,
+        kept across a refresh like the tab choices."""
 
         toggle = SOURCE[SOURCE.index("function calcToggle"):]
         toggle = toggle[:toggle.index("\n}\n")]
         assert 'aria-controls="calc-${id}"' in toggle
         assert 'aria-expanded="${CALC_OPEN}"' in toggle
         assert "<path d=\"M3.5 10 8 5.5 12.5 10\"/>" in toggle     # drawn pointing up
-        assert '.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}' in SOURCE
+        assert ':is(.calc-toggle,.tray-toggle):not([aria-expanded="true"]) svg{transform:rotate(-180deg)}' in SOURCE
         assert 'calc: "nado-waves.calc"' in SOURCE
         assert 'CALC_OPEN = recall(KEEP.calc) === "open";' in SOURCE
         assert ('if (e.target.closest("[data-calc-toggle]") || e.target.closest(".val-row"))'
@@ -2435,8 +2436,8 @@ class TestTheWeekChart:
 
     def test_it_folds_out_from_its_own_line_with_the_calculations_caret(self):
         """Owner's design, 2026-09-27: a "Charts" line below the
-        drawing, with the calculation's caret -- up while closed, down while
-        open -- closed until opened, one state for every tab, kept across a
+        drawing, with the calculation's caret -- down while closed, up while
+        open since 2026-11-28 -- closed until opened, one state for every tab, kept across a
         refresh."""
 
         toggle = SOURCE[SOURCE.index("function chartToggle"):]
@@ -5392,28 +5393,39 @@ class TestTheSwellCardsTabsBoxAndTray:
         # negative margin as it shuts; the map's controls under it.
         assert ("position:relative;z-index:1;display:grid;place-items:center;width:100%;height:28.8px;"
                 in SOURCE)
-        assert "padding:2px 0 4.8px;border:0;background:var(--paper);" in SOURCE
         assert ".tab-tray{isolation:isolate}" in SOURCE
-        # Its hairline drawn, not a border, while the tray shows.
-        assert ".tab-tray:not([hidden]) + .tray-toggle::before{" in SOURCE
 
-    def test_the_open_caret_sits_midway_between_its_hairline_and_the_boxs_edge(self):
-        # 10.25 px of paper each side of its ink at 390, 9.75 in Both:
-        # measured 10.5 / 10.0 and 9.5 / 10.0, pixel-snapped at 2x. The bar
-        # keeps its height, so nothing jumps as the tray starts to move.
-        assert '.tray-toggle[aria-expanded="true"]{padding:4px 0 2.8px}' in SOURCE
-        assert '.tabbox:has(.tab-m) .tray-toggle[aria-expanded="true"]{padding:3px 0 2.45px}' in SOURCE
-        assert "transition:padding .24s cubic-bezier(.05,.7,.1,1)" in SOURCE
+    def test_the_tray_keeps_its_top_edge_when_shut(self):
+        # A hairline across the caret's top open or shut (owner's call,
+        # 2026-11-28): under the tabs with the tray shut, the tray's foot with
+        # it open. Drawn, not a border, so it never moves the caret.
+        assert ('.tray-toggle::before{content:"";position:absolute;top:0;left:0;right:0;'
+                'border-top:1px solid var(--line)}') in SOURCE
+        assert ".tab-tray:not([hidden]) + .tray-toggle" not in SOURCE
 
-    def test_the_trays_caret_points_up_open_or_shut(self):
-        # Shut, the page's closed caret under the tabs; open, the tray's
-        # foot pointing the way it shuts (owner's call, 2026-11-28). The
-        # calculation's caret still turns down when open.
+    def test_the_caret_sits_midway_between_its_hairline_and_the_boxs_edge(self):
+        # 10.25 px of paper each side of its ink at 390: measured 10.5 / 10.0
+        # open and shut, pixel-snapped at 2x. Its ink on the same rows either
+        # way, so one padding; one height in every unit mode, so nothing
+        # jumps as the tray starts to move.
+        assert "padding:4px 0 2.8px;border:0;background:var(--paper);" in SOURCE
+        assert ".tabbox:has(.tab-m) .tray-toggle" not in SOURCE
+        assert '.tray-toggle[aria-expanded="true"]{' not in SOURCE
+
+    def test_the_pages_carets_point_down_shut_and_up_open(self):
+        # Every fold's and the tray's (owner's call, 2026-11-28; up while
+        # closed before). Drawn up, turned about the middle of its ink, so it
+        # sits on the rows a closed caret's ink did; clockwise as it opens.
         card = self.fn("swellCard")
         assert '<path d="M3.5 10 8 5.5 12.5 10"/></svg></button>' in card
-        assert ".tray-toggle[aria-expanded" not in SOURCE.replace(
-            '.tray-toggle[aria-expanded="true"]{padding:', "")
-        assert '.calc-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}' in SOURCE
+        assert ':is(.calc-toggle,.tray-toggle):not([aria-expanded="true"]) svg{transform:rotate(-180deg)}' in SOURCE
+        assert 'svg{transform:rotate(180deg)}' not in SOURCE.replace(".links .theme svg{transform:rotate(180deg)}", "")
+        for cls in (".calc-toggle", ".tray-toggle"):
+            rule = SOURCE[SOURCE.index(cls + " svg{"):]
+            assert "transform-origin:8px 7.75px;" in rule[:rule.index("}")]
+        # Every fold's caret is a calc-toggle or the tray's, and says its state.
+        assert SOURCE.count('<path d="M3.5 10 8 5.5 12.5 10"/>') == (
+            SOURCE.count('class="calc-toggle"') + SOURCE.count('class="tray-toggle"'))
 
     def test_shut_from_its_caret_out_of_the_tabs_sight_the_caret_stays_put(self):
         toggle = self.fn("setTrayOpen")
@@ -5582,14 +5594,12 @@ class TestTheSwellCardsTabsBoxAndTray:
         assert ".pane hr{border:0;border-top:1px solid var(--line);margin:0;width:100%}" in SOURCE
 
     def test_the_caret_sits_clear_of_the_tabs(self):
-        # 5 px more than at first above it; below it a little under the box's
-        # top edge to the tab names' ink, which reads as equal: 12.7 px
-        # against 13.3 painted at 390 once the names were centred by their
-        # ink, Both's 3 px higher names likewise (owner's calls, 2026-11-27).
-        # The 2 px above it now its own padding, the caret the box's foot.
-        assert ("display:grid;place-items:center;width:100%;height:28.8px;\n"
-                "             padding:2px 0 4.8px;") in SOURCE
-        assert ".tabbox:has(.tab-m) .tray-toggle{height:27.45px;padding-bottom:3.45px}" in SOURCE
+        # With the tray shut the caret's strip sits under the tabs, its
+        # hairline the tray's top edge (owner's call, 2026-11-28); before, the
+        # caret was balanced against the tab names' ink with no line.
+        card = self.fn("swellCard")
+        box = card[card.index('<div class="tabbox" data-tabbox>'):]
+        assert box.index("${strip}") < box.index('class="tray-toggle"')
 
     def test_each_tab_is_centred_by_its_ink(self):
         # Line boxes put the caps' empty leading under them: 12.3 / 8.9 px
