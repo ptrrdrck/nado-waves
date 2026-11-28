@@ -425,15 +425,15 @@ and greying read as they did. Mock only, never committed.
     headline and Offshore box on a wide screen"): the headline above the
     break columns on both tabs (Forecast's new there), the Offshore box
     under them, each one column wide (owner's picks from the mock), the
-    Briefing from the alerts to the tides on every layout. Open: docs.html's
-    Briefing paragraphs still say the Briefing folds out the swell (put to
-    the owner; it is the docs page).
+    Briefing from the alerts to the tides on every layout. docs.html's
+    Briefing paragraphs reworded in place (owner's option 1 of three): the
+    swell's read heads the Swell card, the Briefing three blocks, Tanner
+    Bank's swells the Offshore box under the breaks.
 30. **One line a swell in the swell headline, both tabs** -- done
     (2026-11-28; `briefing.same_swell` and `fcSwellTrains`, measured by
     `python -m forecast.trainmatch --lines`, briefing.md's Swell block).
-    Open: docs.html's Briefing paragraph still describes one line a buoy
-    train by its peak period (stale since 3 Nov); rewording it waits for
-    the owner (it is the docs page).
+    docs.html's swell paragraph reworded to one line a swell on 2026-11-28
+    (owner's call, with item 29's pass).
 31. **Origin on the trains** -- done (branch
     claude/origin-display-trains-mb8vty; origin.md "Origin on the trains",
     docs/origin_wording.md's 2026-11-28 pass): the fold is gone; a marked,
