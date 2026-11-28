@@ -447,8 +447,8 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
    one, 0.04 after (UT, OR, OY read loose at 0.05; 0.06 each side before
    that); between an O and a U side by side 0.04 em, not twice the side's
    (0.03 read tight). Other pairs: `TAB_KERN`. */
-.tabbox .tab-ou{margin:0 .04em 0 .05em}
-.tabbox .tab-ou + .tab-ou{margin-left:0}
+:is(.tabbox,.offbox) .tab-ou{margin:0 .04em 0 .05em}
+:is(.tabbox,.offbox) .tab-ou + .tab-ou{margin-left:0}
 .cond[data-tray-open] .tabbox .subtabs button[aria-selected="true"] .tab-h{opacity:0;
   transition:opacity .12s linear,transform .24s cubic-bezier(.05,.7,.1,1)}
 @media (prefers-reduced-motion: reduce){ .tabbox .tab-name,.tabbox .tab-h{transition:none} }
@@ -510,6 +510,24 @@ header{display:flex;flex-direction:column;gap:9px;border-bottom:1px solid var(--
 .swell-brief .brief-head:not(.tight) .brief-spark:not(.big),
 .swell-brief .brief-head.tight .brief-spark.big{display:none}
 .tabbox{margin-bottom:7.5px}
+/* THE OFFSHORE BOX (owner's design, 2026-11-28): the tabs box's hairline,
+   paper and corners, its full width, under it on the card's rhythm (17.5 px
+   between the boxes, as from either box to the Origin rule); its one title
+   in the tab names' type, and each swell two lines, the first a train's
+   line, the second the plain words under it. Inside, 12 px painted from
+   the box's edge to the title's ink, from the title to the first line and
+   from the last line to the edge; 17.5 between two swells. */
+.offbox{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:8px;
+        background:var(--paper);padding:9px 11px 6.5px;margin:2.5px 0 7.5px;font-size:15px;color:var(--soft)}
+.offbox-title{font-family:"Barlow Condensed",Archivo,sans-serif;font-weight:600;text-transform:uppercase;
+              letter-spacing:.06em;font-size:14px;line-height:1.15;color:var(--soft);margin-bottom:-1.5px}
+.off-words{display:flex;flex-direction:column;gap:2px;min-width:0}
+.off-due{font-size:14.5px}
+/* Each arrow's words wrap as one, so a phone's line breaks before an arrow,
+   never inside "beach 30–40 min later" (owner's design, 2026-11-28). */
+.off-leg{display:inline-block}
+.off-swell + .off-swell{margin-top:1px}
+.off-swell.signed{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:start}
 /* The buoys' station blocks the tray's width too, their words on the
    tray's own 11 px. */
 .tab-tray .buoy-info{margin-left:-11px;margin-right:-11px;padding-left:11px;padding-right:11px;
@@ -2848,7 +2866,11 @@ function briefSwell(B) {
     const from = (c.sector_deg[0] + c.sector_deg[1]) / 2;
     out.push({kind: "off", from, body: `${head}, ${off}; `
       + `due at ${briefBuoy(B, B.station || "46232")} around ${briefAt(c.due_buoy_utc, B)}`
-      + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + "."});
+      + (legs.length ? `, and at the breaks ${lo}–${hi} min later` : "") + ".",
+      // Its parts, for the Swell card's Offshore box (`offshoreBox`).
+      point: BRIEF_SECTOR[c.sector] || c.sector, band: `${c.band_s[0]}–${c.band_s[1]}\u00a0s`,
+      trend: c.trend || "", buoy: briefBuoy(B, B.station || "46232"), due: briefAt(c.due_buoy_utc, B),
+      legs: legs.length ? `${lo}–${hi}` : ""});
   }
   return out;
 }
@@ -8532,9 +8554,30 @@ function swellBrief(B) {
   // Its sparkline at 112 x 28 (owner's pick, 2026-11-27), the Briefing's
   // 64 x 18 beside it for where that cannot fit (`fitSwellSpark`).
   const s = B.swell || {};
-  const rows = parts.swell.map((r) => (r.kind === "beach" && r.spark
+  // Tanner Bank's lines are the Offshore box's, under the tabs (below).
+  const rows = parts.swell.filter((r) => r.kind !== "off").map((r) => (r.kind === "beach" && r.spark
     ? {...r, spark: briefSpark(s.spark, s.window_h || 24, {w: 112, h: 28, cls: "big"}) + r.spark} : r));
   return `<div class="brief-block brief-swell swell-brief">${rows.map(briefSwellRow).join("")}</div>`;
+}
+// Tanner Bank's swells still on their way, out of the headline into a box of
+// their own under the tabs box (owner's design, 2026-11-28): one "Offshore"
+// title over them all, and two lines a swell, its point and band set as a
+// train's line above them ("NW at 14–17 s · building") and when it is due
+// at 46232 and the beach ("→ Point Loma South around 9:50 PM → beach 30–40
+// min later."). The Briefing's own sentence (`briefSwellText`), its record
+// and the wide layouts are unchanged. Shown only while one is on its way.
+let OFF_SIGNAL = false;
+function offshoreBox(B) {
+  const parts = briefingParts(B);
+  const rows = parts ? parts.swell.filter((r) => r.kind === "off") : [];
+  if (!rows.length) return "";
+  return `<div class="offbox"><div class="offbox-title">${tabLetters("Offshore")}</div>`
+    + rows.map((r) => `<div class="off-swell${OFF_SIGNAL ? " signed" : ""}">${OFF_SIGNAL ? briefSignal(r.from) : ""}`
+      + `<div class="off-words"><div class="off-head">${briefNum(r.point)} at ${briefNum(r.band)}`
+      + `${r.trend ? `<span class="brief-sep">·</span>${r.trend}` : ""}</div>`
+      + `<div class="off-due"><span class="off-leg">\u2192 ${r.buoy} around ${r.due}${r.legs ? "" : "."}</span>`
+      + `${r.legs ? ` <span class="off-leg">\u2192 beach ${r.legs} min later.</span>` : ""}</div></div></div>`).join("")
+    + `</div>`;
 }
 // The Forecast tab's swell headline (owner's design and picks, 2026-11-27,
 // from a mock on that day's run): LIVE's headline at the picked hour from
@@ -8636,7 +8679,7 @@ function fitSwellSpark() {
 
 function swellCard({label, buoy, station, stationName = null, others = [], cards, source,
                     due = "", measured = null, chart = false, origin = null, buoyRose = "", buoyAged = "",
-                    lead = "", buoyPills = false, headline = "", tray = false}) {
+                    lead = "", buoyPills = false, headline = "", tray = false, below = ""}) {
   if (WIDE()) {
     return swellWide({label, buoy, station, stationName, others, cards, source, due, measured, chart,
                       origin, buoyRose, buoyAged, lead});
@@ -8690,6 +8733,7 @@ function swellCard({label, buoy, station, stationName = null, others = [], cards
     ${headRow(`<span class="lbl">${label}</span>`, due)}
     ${headline}
     ${box}
+    ${below}
     ${tabs.map((tab) => originFold(tab.id, tab.origin, tab.id !== chosen)).join("")}
     ${tabs.filter((tab) => tab.chart).map((tab) => seriesChart(tab.id, tab.id !== chosen)).join("")}
   </div>`;
@@ -9338,6 +9382,7 @@ function renderConditions(step, cards) {
       // heights and fold into a tray (owner's design, 2026-11-27; the phone).
       headline: swellBrief(BRIEFING),
       tray: true,
+      below: offshoreBox(BRIEFING),
     }));
 
     // Wind and Tide grey on their own readings' ages (`agedAttr`); the
